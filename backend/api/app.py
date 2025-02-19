@@ -115,20 +115,6 @@ async def upload_data(
     Handles interview data upload (JSON format only in Phase 1).
     """
     try:
-        try:
-            user_info_dict = json.loads(user_info) if isinstance(user_info, str) else user_info
-        except (json.JSONDecodeError, TypeError):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid user_info format. Must be a valid JSON string."
-            )
-
-        user_id = user_info_dict.get('user_id')
-        if not user_id:
-            raise HTTPException(
-                status_code=400,
-                detail="user_id is required in user_info"
-            )
 
         # Validate file type
         if file.content_type != "application/json":
@@ -154,7 +140,7 @@ async def upload_data(
         # Create interview data record
         try:
             interview_data = InterviewData(
-                user_id=user_id,
+                user_id=current_user.user_id,  # Use authenticated user's ID
                 input_type="json",
                 original_data=data,
                 filename=file.filename
@@ -171,7 +157,7 @@ async def upload_data(
             )
 
         data_id = interview_data.data_id
-        logger.info(f"Data uploaded successfully for user {user_id}. Data ID: {data_id}")
+        logger.info(f"Data uploaded successfully for user {current_user.user_id}. Data ID: {data_id}")
 
         return {
             "data_id": data_id,
