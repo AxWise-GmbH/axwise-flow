@@ -24,25 +24,20 @@ from backend.models import User, InterviewData, AnalysisResult
 from config import validate_config, LLM_CONFIG
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Define request models
-class UserInfo(BaseModel):
-    user_id: str
-    email: str | None = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "user_id": "test_user_123",
-                "email": "test@example.com"
-            }
-        }
-
 class AnalysisRequest(BaseModel):
-    data_id: int
+    """
+    Request model for triggering data analysis.
+    """
+    data_id: int = Field(..., description="ID of the uploaded data to analyze")
     llm_provider: Literal["openai", "gemini"] = Field(
+        ...,
         description="LLM provider to use for analysis"
     )
     llm_model: str | None = Field(
@@ -59,6 +54,40 @@ class AnalysisRequest(BaseModel):
             }
         }
 
+# Define response models
+class UploadResponse(BaseModel):
+    """
+    Response model for data upload endpoint.
+    """
+    data_id: int
+    message: str
+
+class AnalysisResponse(BaseModel):
+    """
+    Response model for analysis endpoint.
+    """
+    result_id: int
+    message: str
+
+class ResultResponse(BaseModel):
+    """
+    Response model for results endpoint.
+    """
+    status: Literal["processing", "completed", "error"]
+    result_id: int | None = None
+    analysis_date: datetime | None = None
+    results: Dict[str, Any] | None = None
+    llm_provider: str | None = None
+    llm_model: str | None = None
+    error: str | None = None
+
+class HealthCheckResponse(BaseModel):
+    """
+    Response model for health check endpoint.
+    """
+    status: str
+    timestamp: datetime
+
 # Initialize FastAPI with security scheme
 app = FastAPI(
     title="Interview Analysis API",
@@ -68,11 +97,24 @@ app = FastAPI(
     Available LLM providers and models:
     - OpenAI: gpt-4o-2024-08-06
     - Google: gemini-2.0-flash
+    
+    Authentication:
+    - All endpoints (except /health) require Bearer token authentication
+    - For Phase 1/2, any non-empty token value is accepted for testing
+    - In production, proper JWT validation will be implemented
     """,
-    version="1.0.0",
+    version="2.0.0",
     openapi_url="/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
+    contact={
+        "name": "Development Team",
+        "email": "dev@example.com",
+    },
+    license_info={
+        "name": "Private",
+        "url": "https://example.com/license",
+    },
     components={
         "securitySchemes": {
             "bearerAuth": {
@@ -103,19 +145,23 @@ app.add_middleware(
 # Initialize database tables
 create_tables()
 
-@app.post("/api/data")
+@app.post(
+    "/api/data",
+    response_model=UploadResponse,
+    tags=["Data Management"],
+    summary="Upload interview data",
+    description="Upload interview data in JSON format for analysis."
+)
 async def upload_data(
     request: Request,
-    user_info: str = Form(description="User information in JSON format. Example: {\"user_id\": \"test_user_123\", \"email\": \"test@example.com\"}"),
     file: UploadFile = File(description="JSON file containing interview data"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Handles interview data upload (JSON format only in Phase 1).
+    Handles interview data upload (JSON format only in Phase 1/2).
     """
     try:
-
         # Validate file type
         if file.content_type != "application/json":
             raise HTTPException(
@@ -140,7 +186,7 @@ async def upload_data(
         # Create interview data record
         try:
             interview_data = InterviewData(
-                user_id=current_user.user_id,  # Use authenticated user's ID
+                user_id=current_user.user_id,
                 input_type="json",
                 original_data=data,
                 filename=file.filename
@@ -159,10 +205,10 @@ async def upload_data(
         data_id = interview_data.data_id
         logger.info(f"Data uploaded successfully for user {current_user.user_id}. Data ID: {data_id}")
 
-        return {
-            "data_id": data_id,
-            "message": f"Data uploaded successfully. Use data_id: {data_id} for analysis."
-        }
+        return UploadResponse(
+            data_id=data_id,
+            message=f"Data uploaded successfully. Use data_id: {data_id} for analysis."
+        )
 
     except HTTPException as he:
         raise he
@@ -173,7 +219,13 @@ async def upload_data(
             detail=f"Internal server error: {str(e)}"
         )
 
-@app.post("/api/analyze")
+@app.post(
+    "/api/analyze",
+    response_model=AnalysisResponse,
+    tags=["Analysis"],
+    summary="Trigger data analysis",
+    description="Trigger analysis of previously uploaded interview data."
+)
 async def analyze_data(
     request: Request,
     analysis_request: AnalysisRequest,
@@ -278,10 +330,10 @@ async def analyze_data(
         # Start the analysis task
         asyncio.create_task(run_analysis(result_id))
 
-        return {
-            "result_id": result_id,
-            "message": f"Analysis started. Use result_id: {result_id} to check results."
-        }
+        return AnalysisResponse(
+            result_id=result_id,
+            message=f"Analysis started. Use result_id: {result_id} to check results."
+        )
 
     except HTTPException as he:
         raise he
@@ -292,7 +344,13 @@ async def analyze_data(
             detail=f"Internal server error: {str(e)}"
         )
 
-@app.get("/api/results/{result_id}")
+@app.get(
+    "/api/results/{result_id}",
+    response_model=ResultResponse,
+    tags=["Analysis"],
+    summary="Get analysis results",
+    description="Retrieve the results of a previously triggered analysis."
+)
 async def get_results(
     result_id: int,
     request: Request,
@@ -320,27 +378,27 @@ async def get_results(
 
         # Check if results are available
         if not analysis_result.results:
-            return {
-                "status": "processing",
-                "message": "Analysis is still in progress."
-            }
+            return ResultResponse(
+                status="processing",
+                message="Analysis is still in progress."
+            )
 
         # Check for error in results
         if isinstance(analysis_result.results, dict) and "error" in analysis_result.results:
-            return {
-                "status": "error",
-                "error": analysis_result.results["error"]
-            }
+            return ResultResponse(
+                status="error",
+                error=analysis_result.results["error"]
+            )
 
         logger.info(f"Successfully retrieved results for result_id: {result_id}")
-        return {
-            "status": "completed",
-            "result_id": analysis_result.result_id,
-            "analysis_date": analysis_result.analysis_date,
-            "results": analysis_result.results,
-            "llm_provider": analysis_result.llm_provider,
-            "llm_model": analysis_result.llm_model
-        }
+        return ResultResponse(
+            status="completed",
+            result_id=analysis_result.result_id,
+            analysis_date=analysis_result.analysis_date,
+            results=analysis_result.results,
+            llm_provider=analysis_result.llm_provider,
+            llm_model=analysis_result.llm_model
+        )
 
     except HTTPException as he:
         raise he
@@ -351,10 +409,19 @@ async def get_results(
             detail=f"Internal server error: {str(e)}"
         )
 
-# Health check endpoint (unprotected)
-@app.get("/health")
+@app.get(
+    "/health",
+    response_model=HealthCheckResponse,
+    tags=["System"],
+    summary="Health check",
+    description="Simple health check endpoint to verify the API is running.",
+    include_in_schema=True
+)
 async def health_check():
     """
     Simple health check endpoint.
     """
-    return {"status": "healthy", "timestamp": datetime.utcnow()}
+    return HealthCheckResponse(
+        status="healthy",
+        timestamp=datetime.utcnow()
+    )
