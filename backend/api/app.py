@@ -290,6 +290,60 @@ async def analyze_data(
             detail=f"Internal server error: {str(e)}"
         )
 
+def transform_analysis_results(results):
+    """
+    Transform analysis results to conform to the DetailedAnalysisResult schema.
+    This middleware function ensures that the data from the LLM service is properly
+    formatted before validation against the Pydantic model.
+    
+    Args:
+        results (dict): The raw results from the LLM service
+        
+    Returns:
+        dict: Transformed results that conform to the DetailedAnalysisResult schema
+    """
+    if not results:
+        return results
+        
+    # Make a deep copy to avoid modifying the original
+    import copy
+    transformed = copy.deepcopy(results)
+    
+    # Fix patterns: ensure each pattern has a category field
+    if "patterns" in transformed and isinstance(transformed["patterns"], list):
+        for i, pattern in enumerate(transformed["patterns"]):
+            # If pattern has type but no category, copy type to category
+            if isinstance(pattern, dict):
+                if "type" in pattern and "category" not in pattern:
+                    pattern["category"] = pattern["type"]
+                    logger.info(f"Transformed pattern {i}: Added category from type '{pattern['type']}'")
+                
+                # Ensure frequency is a float between 0 and 1
+                if "frequency" in pattern:
+                    if isinstance(pattern["frequency"], str):
+                        try:
+                            pattern["frequency"] = float(pattern["frequency"])
+                        except ValueError:
+                            pattern["frequency"] = 0.5  # Default value
+                    
+                    # Normalize if greater than 1
+                    if pattern["frequency"] and pattern["frequency"] > 1:
+                        pattern["frequency"] = pattern["frequency"] / 100
+    
+    # Fix sentiment: ensure it's a list
+    if "sentiment" in transformed:
+        if not isinstance(transformed["sentiment"], list):
+            # If it's a dict, wrap it in a list
+            if isinstance(transformed["sentiment"], dict):
+                transformed["sentiment"] = [transformed["sentiment"]]
+                logger.info("Transformed sentiment: Converted object to array")
+            else:
+                # If it's something else, create an empty list
+                transformed["sentiment"] = []
+                logger.info("Transformed sentiment: Replaced with empty array")
+    
+    return transformed
+
 @app.get(
     "/api/results/{result_id}",
     response_model=ResultResponse,
@@ -354,6 +408,10 @@ async def get_results(
                         pass
 
                 # Format into the expected structure
+                
+                # Apply transformation middleware to ensure data conforms to schema
+                results = transform_analysis_results(results)
+                
                 formatted_results = {
                     "id": str(analysis_result.result_id),
                     "status": "completed",
