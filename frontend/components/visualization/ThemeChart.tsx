@@ -71,7 +71,7 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
   const chartData = useMemo(() => {
     return data.map((theme) => ({
       name: theme.name,
-      frequency: Math.round((theme.frequency || 0) * 100),
+      frequency: Math.min(100, Math.round((theme.frequency || 0) * 100)),
       sentiment: theme.sentiment || 0,
       keywords: theme.keywords,
       // Store the original theme object for click handling
@@ -133,7 +133,7 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
       <ResponsiveContainer height={height}>
         <BarChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
           <XAxis
@@ -141,7 +141,7 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
             angle={-45}
             textAnchor="end"
             height={80}
-            tick={{ fontSize: 12 }}
+            tick={{ fontSize: 12, dy: 10 }}
           />
           <YAxis
             label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}

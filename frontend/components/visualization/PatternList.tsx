@@ -96,7 +96,7 @@ export const PatternList: React.FC<PatternListProps> = ({
             {patterns.map((pattern) => {
               const isExpanded = expandedPatterns[pattern.id] || false;
               const sentimentColor = getSentimentColor(pattern.sentiment || 0);
-              const frequencyPercent = Math.round((pattern.frequency || 0) * 100);
+              const frequencyPercent = Math.min(100, Math.round((pattern.frequency || 0) * 100));
               
               return (
                 <div 
