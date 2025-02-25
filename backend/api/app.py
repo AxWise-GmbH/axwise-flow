@@ -13,7 +13,11 @@ import asyncio
 import os
 from sqlalchemy.orm import Session
 from datetime import datetime
-from pydantic import BaseModel, Field
+
+from backend.schemas import (
+    AnalysisRequest, UploadResponse, AnalysisResponse,
+    ResultResponse, HealthCheckResponse, DetailedAnalysisResult
+)
 
 from core.processing_pipeline import process_data
 from services.llm import LLMServiceFactory
@@ -29,64 +33,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Define request models
-class AnalysisRequest(BaseModel):
-    """
-    Request model for triggering data analysis.
-    """
-    data_id: int = Field(..., description="ID of the uploaded data to analyze")
-    llm_provider: Literal["openai", "gemini"] = Field(
-        ...,
-        description="LLM provider to use for analysis"
-    )
-    llm_model: str | None = Field(
-        default=None,
-        description="Model to use for analysis. Uses 'gpt-4o-2024-08-06' for OpenAI or 'gemini-2.0-flash' for Google."
-    )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "data_id": 1,
-                "llm_provider": "openai",
-                "llm_model": "gpt-4o-2024-08-06"
-            }
-        }
-
-# Define response models
-class UploadResponse(BaseModel):
-    """
-    Response model for data upload endpoint.
-    """
-    data_id: int
-    message: str
-
-class AnalysisResponse(BaseModel):
-    """
-    Response model for analysis endpoint.
-    """
-    result_id: int
-    message: str
-
-class ResultResponse(BaseModel):
-    """
-    Response model for results endpoint.
-    """
-    status: Literal["processing", "completed", "error"]
-    result_id: int | None = None
-    analysis_date: datetime | None = None
-    results: Dict[str, Any] | None = None
-    llm_provider: str | None = None
-    llm_model: str | None = None
-    error: str | None = None
-
-class HealthCheckResponse(BaseModel):
-    """
-    Response model for health check endpoint.
-    """
-    status: str
-    timestamp: datetime
 
 # Initialize FastAPI with security scheme
 app = FastAPI(
@@ -387,15 +333,58 @@ async def get_results(
         if isinstance(analysis_result.results, dict) and "error" in analysis_result.results:
             return ResultResponse(
                 status="error",
+                result_id=analysis_result.result_id,
                 error=analysis_result.results["error"]
             )
+
+        # Format the results to match the DetailedAnalysisResult schema
+        # This makes it easier for the frontend to consume
+        formatted_results = None
+        if analysis_result.results:
+            try:
+                # Ensure results have the expected structure
+                results = analysis_result.results
+
+                # If results is a string (e.g., JSON string), try to parse it
+                if isinstance(results, str):
+                    try:
+                        results = json.loads(results)
+                    except json.JSONDecodeError:
+                        # If it's not valid JSON, use as is
+                        pass
+
+                # Format into the expected structure
+                formatted_results = {
+                    "id": str(analysis_result.result_id),
+                    "status": "completed",
+                    "createdAt": analysis_result.analysis_date.isoformat(),
+                    "fileName": getattr(analysis_result.interview_data, 'filename', 'Unknown'),
+                    "fileSize": None,  # We don't store this currently
+                    "themes": results.get("themes", []),
+                    "patterns": results.get("patterns", []),
+                    "sentimentOverview": results.get("sentimentOverview", {
+                        "positive": 0.0,
+                        "neutral": 0.0,
+                        "negative": 0.0
+                    }),
+                    "sentiment": results.get("sentiment", [])
+                }
+                
+                # Validate against the schema
+                # This will raise an exception if the structure doesn't match
+                DetailedAnalysisResult(**formatted_results)
+                
+            except Exception as e:
+                logger.warning(f"Error formatting results: {str(e)}")
+                # Fall back to the raw results if formatting fails
+                formatted_results = analysis_result.results
 
         logger.info(f"Successfully retrieved results for result_id: {result_id}")
         return ResultResponse(
             status="completed",
             result_id=analysis_result.result_id,
             analysis_date=analysis_result.analysis_date,
-            results=analysis_result.results,
+            results=formatted_results,
             llm_provider=analysis_result.llm_provider,
             llm_model=analysis_result.llm_model
         )
