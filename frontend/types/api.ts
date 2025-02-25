@@ -14,6 +14,16 @@ export interface UploadResponse {
 }
 
 /**
+ * Response from the analyze endpoint
+ */
+export interface AnalysisResponse {
+  result_id: number;
+  message: string;
+  status?: 'started' | 'error';
+  error?: string;
+}
+
+/**
  * Theme data structure
  */
 export interface Theme {
