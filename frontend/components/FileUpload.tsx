@@ -3,31 +3,41 @@
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useCallback, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 import { AlertCircle, CheckCircle2, UploadCloud } from 'lucide-react'
+import type { UploadResponse } from '@/types/api'
 
 interface FileUploadProps {
   onUploadComplete: (dataId: number) => void
 }
 
-export function FileUpload({ onUploadComplete }: FileUploadProps) {
+export function FileUpload({ onUploadComplete }: FileUploadProps): JSX.Element {
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<Error | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
 
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      setUploadProgress(0)
-      const chunkSize = 1024 * 1024 // 1MB chunks
-      const totalSize = file.size
-      let uploadedSize = 0
+  // Set auth token once during component initialization
+  React.useEffect(() => apiClient.setAuthToken("test-token"), [])
 
+  const uploadFile = async (file: File) => {
+    if (file.type !== 'application/json') {
+      setUploadError(new Error('Please upload a JSON file'))
+      return
+    }
+
+    setIsUploading(true)
+    setUploadProgress(0)
+    setUploadError(null)
+    setUploadSuccess(false)
+
+    try {
       const reader = new FileReader()
       reader.readAsArrayBuffer(file)
 
-      await new Promise((resolve, reject) => {
+      const uploadResponse = await new Promise<UploadResponse>((resolve, reject) => {
         reader.onload = async () => {
           try {
             const response = await apiClient.uploadData(file)
@@ -40,26 +50,20 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         reader.onerror = () => reject(reader.error)
       })
 
-      return await apiClient.uploadData(file)
-    },
-    onSuccess: (data) => {
-      onUploadComplete(data.data_id)
-    },
-  })
+      setUploadSuccess(true)
+      setIsUploading(false)
+      onUploadComplete(uploadResponse.data_id)
+    } catch (error) {
+      setUploadError(error instanceof Error ? error : new Error('Failed to upload file'))
+      setIsUploading(false)
+    }
+  }
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0]
-      if (!file) return
-
-      if (file.type !== 'application/json') {
-        uploadMutation.error = new Error('Please upload a JSON file')
-        return
-      }
-
-      uploadMutation.mutate(file)
+    (acceptedFiles: File[]) => {
+      if (acceptedFiles[0]) uploadFile(acceptedFiles[0])
     },
-    [uploadMutation]
+    [uploadFile]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -78,10 +82,10 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
           border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
           transition-colors duration-200
           ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted'}
-          ${uploadMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <input {...getInputProps()} disabled={uploadMutation.isPending} />
+        <input {...getInputProps()} disabled={isUploading} />
 
         <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
 
@@ -95,16 +99,16 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
           )}
         </div>
 
-        <Button
-          className="mt-4"
-          disabled={uploadMutation.isPending}
-          variant="outline"
+        <button
+          className="mt-4 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+          disabled={isUploading}
+          type="button"
         >
           Select File
-        </Button>
+        </button>
       </div>
 
-      {uploadMutation.isPending && (
+      {isUploading && (
         <div className="mt-4 space-y-2">
           <Progress value={uploadProgress} className="w-full" />
           <p className="text-sm text-muted-foreground">
@@ -113,20 +117,18 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
         </div>
       )}
 
-      {uploadMutation.isSuccess && (
+      {uploadSuccess && (
         <div className="mt-4 p-4 bg-primary/10 text-primary rounded-md flex items-center">
           <CheckCircle2 className="h-5 w-5 mr-2" />
           <p>File uploaded successfully!</p>
         </div>
       )}
 
-      {uploadMutation.isError && (
+      {uploadError && (
         <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-md flex items-center">
           <AlertCircle className="h-5 w-5 mr-2" />
           <p>
-            {uploadMutation.error instanceof Error
-              ? uploadMutation.error.message
-              : 'Failed to upload file'}
+            {uploadError.message || 'Failed to upload file'}
           </p>
         </div>
       )}
