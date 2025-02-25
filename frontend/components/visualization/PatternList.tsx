@@ -46,7 +46,14 @@ export const PatternList: React.FC<PatternListProps> = ({
   const patternsByCategory = useMemo(() => {
     const grouped: Record<string, Pattern[]> = {};
     
-    data.forEach(pattern => {
+    // Sort patterns by frequency for better visualization
+    const sortedData = [...data].sort((a, b) => {
+      const freqA = a.frequency || 0;
+      const freqB = b.frequency || 0;
+      return freqB - freqA; // Sort in descending order
+    });
+    
+    sortedData.forEach(pattern => {
       const category = pattern.category || 'Uncategorized';
       if (!grouped[category]) {
         grouped[category] = [];
@@ -59,14 +66,14 @@ export const PatternList: React.FC<PatternListProps> = ({
 
   // Get color based on sentiment
   const getSentimentColor = (sentiment: number) => {
-    if (sentiment > 0.2) return SENTIMENT_COLORS.positive;
+    if (sentiment >= 0.2) return SENTIMENT_COLORS.positive;
     if (sentiment < -0.2) return SENTIMENT_COLORS.negative;
     return SENTIMENT_COLORS.neutral;
   };
 
   // Get sentiment label
   const getSentimentLabel = (sentiment: number) => {
-    if (sentiment > 0.2) return 'Positive';
+    if (sentiment >= 0.2) return 'Positive';
     if (sentiment < -0.2) return 'Negative';
     return 'Neutral';
   };
@@ -147,7 +154,7 @@ export const PatternList: React.FC<PatternListProps> = ({
                           toggleExpanded(pattern.id);
                         }}
                       >
-                        {isExpanded ? 'Hide' : 'Show'} Examples
+                        {isExpanded ? 'Hide' : 'Show'} Supporting Statements
                         <svg
                           className={`ml-1 w-4 h-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
                           fill="none"

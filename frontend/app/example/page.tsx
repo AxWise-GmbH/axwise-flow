@@ -19,6 +19,7 @@ export default function ExamplePage() {
   const [error, setError] = useState<string | null>(null);
   const [useMockData, setUseMockData] = useState<boolean>(false);
   const [authToken, setAuthToken] = useState<string>('testuser123');
+  const [llmProvider, setLlmProvider] = useState<'openai' | 'gemini'>('openai');
   const [activeTab, setActiveTab] = useState<'themes' | 'patterns' | 'sentiment'>('themes');
 
   // Handle file selection
@@ -71,7 +72,7 @@ export default function ExamplePage() {
       apiClient.setAuthToken(authToken);
       
       // Trigger analysis
-      const response = await apiClient.analyzeData(uploadResponse.data_id, 'openai', !useMockData);
+      const response = await apiClient.analyzeData(uploadResponse.data_id, llmProvider, !useMockData);
       setAnalysisResponse(response);
       
       // Clear previous results
@@ -96,6 +97,7 @@ export default function ExamplePage() {
       
       // Set auth token
       apiClient.setAuthToken(authToken);
+      console.log(`Getting results for analysis ${analysisResponse.result_id} using ${llmProvider}`);
       
       try {
         // Fetch results
@@ -208,6 +210,30 @@ export default function ExamplePage() {
                 placeholder="Enter auth token"
               />
             </div>
+            
+            <div className="ml-8">
+              <label className="block text-sm font-medium mb-1">
+                LLM Provider:
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    checked={llmProvider === 'openai'}
+                    onChange={() => setLlmProvider('openai')}
+                  />
+                  <span>OpenAI</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    checked={llmProvider === 'gemini'}
+                    onChange={() => setLlmProvider('gemini')}
+                  />
+                  <span>Google Gemini</span>
+                </label>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -259,6 +285,12 @@ export default function ExamplePage() {
               <div className="p-4 bg-green-100 dark:bg-green-800/30 rounded-md">
                 <h3 className="font-medium">Analysis Started</h3>
                 <p className="text-sm mt-1">Result ID: {analysisResponse.result_id}</p>
+                <p className="text-sm">
+                  Using LLM Provider: <span className="font-medium">
+                    {llmProvider === 'openai' ? 'OpenAI' : 'Google Gemini'}
+                  </span>
+                </p>
+                
                 <p className="text-sm">{analysisResponse.message}</p>
               </div>
             )}
@@ -294,6 +326,14 @@ export default function ExamplePage() {
             {results && (
               <div className="mt-4">
                 <div className="border-b border-border mb-4">
+                  <div className="mb-4 p-2 bg-muted/20 rounded-md">
+                    <p className="text-sm">
+                      Analysis performed using: <span className="font-medium">
+                        {results.llmProvider || (llmProvider === 'openai' ? 'OpenAI' : 'Google Gemini')}
+                      </span>
+                    </p>
+                  </div>
+                  
                   <nav className="flex space-x-8">
                     <button
                       className={`py-4 px-1 border-b-2 font-medium text-sm ${

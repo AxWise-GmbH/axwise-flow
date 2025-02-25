@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type {
   BarChart as BarChartType,
   CartesianGrid as CartesianGridType,
@@ -67,11 +67,21 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
   className,
   onThemeClick,
 }) => {
+  // State for expanded themes
+  const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
+  
   // Transform data for the chart
   const chartData = useMemo(() => {
-    return data.map((theme) => ({
+    // Sort themes by frequency for better visualization
+    const sortedData = [...data].sort((a, b) => {
+      const freqA = a.frequency || 0;
+      const freqB = b.frequency || 0;
+      return freqB - freqA; // Sort in descending order
+    });
+    
+    return sortedData.map((theme) => ({
       name: theme.name,
-      frequency: Math.min(100, Math.round((theme.frequency || 0) * 100)),
+      frequency: Math.min(100, Math.round(((theme.frequency || 0) * 100))),
       sentiment: theme.sentiment || 0,
       keywords: theme.keywords,
       // Store the original theme object for click handling
@@ -106,6 +116,14 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
     []
   );
 
+  // Toggle theme expanded state
+  const toggleExpanded = (themeId: number) => {
+    setExpandedThemes(prev => ({
+      ...prev,
+      [themeId]: !prev[themeId]
+    }));
+  };
+
   // Handle bar click
   const handleBarClick = (data: any) => {
     if (onThemeClick && data.originalData) {
@@ -115,9 +133,46 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
 
   // Get color based on sentiment
   const getBarColor = (sentiment: number) => {
-    if (sentiment > 0.2) return SENTIMENT_COLORS.positive;
+    if (sentiment >= 0.2) return SENTIMENT_COLORS.positive;
     if (sentiment < -0.2) return SENTIMENT_COLORS.negative;
     return SENTIMENT_COLORS.neutral;
+  };
+
+  // Render supporting statements for a theme
+  const renderSupportingStatements = (theme: Theme) => {
+    const isExpanded = expandedThemes[theme.id] || false;
+    
+    return (
+      <div className="mt-2">
+        <button
+          type="button"
+          className="text-xs text-primary flex items-center"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleExpanded(theme.id);
+          }}
+        >
+          {isExpanded ? 'Hide' : 'Show'} Supporting Statements
+          <svg
+            className={`ml-1 w-4 h-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        {isExpanded && theme.examples && theme.examples.length > 0 && (
+          <ul className="text-xs list-disc list-inside mt-2 text-muted-foreground space-y-1">
+            {theme.examples.map((example: string, i: number) => (
+              <li key={i} className="pl-2">{example}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
   };
 
   if (chartData.length === 0) {
@@ -129,7 +184,7 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
   }
 
   return (
-    <div className={className}>
+    <div className={`${className || ''} space-y-6`}>
       <ResponsiveContainer height={height}>
         <BarChart
           data={chartData}
@@ -161,6 +216,19 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
         </BarChart>
       </ResponsiveContainer>
 
+      {/* Theme details with supporting statements */}
+      <div className="mt-6 space-y-4">
+        <h3 className="text-lg font-semibold">Theme Details</h3>
+        <div className="space-y-4">
+          {data.map((theme) => (
+            <div key={theme.id} className="p-4 border border-border rounded-md">
+              <h4 className="font-semibold">{theme.name}</h4>
+              <p className="text-sm text-muted-foreground">Frequency: {Math.round((theme.frequency || 0) * 100)}%</p>
+              {renderSupportingStatements(theme)}
+            </div>
+          ))}
+        </div>
+      </div>
       {showLegend && (
         <ChartLegend
           items={legendItems}

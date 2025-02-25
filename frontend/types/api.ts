@@ -31,6 +31,7 @@ export interface Theme {
   name: string;
   frequency: number;
   keywords: string[];
+  examples?: string[];
   sentiment?: number;
 }
 
@@ -87,6 +88,8 @@ export interface DetailedAnalysisResult {
   patterns: Pattern[];
   sentiment: SentimentData[];
   sentimentOverview: SentimentOverview;
+  llmProvider?: string;
+  llmModel?: string;
   error?: string;
 }
 
