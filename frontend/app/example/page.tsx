@@ -17,6 +17,8 @@ export default function ExamplePage() {
   const [results, setResults] = useState<DetailedAnalysisResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [useMockData, setUseMockData] = useState<boolean>(false);
+  const [authToken, setAuthToken] = useState<string>('testuser123');
   const [activeTab, setActiveTab] = useState<'themes' | 'patterns' | 'sentiment'>('themes');
 
   // Handle file selection
@@ -37,8 +39,11 @@ export default function ExamplePage() {
       setLoading(true);
       setError(null);
       
+      // Set auth token
+      apiClient.setAuthToken(authToken);
+      
       // Upload the file
-      const response = await apiClient.uploadData(file);
+      const response = await apiClient.uploadData(file, !useMockData);
       setUploadResponse(response);
       
       // Clear previous analysis data
@@ -62,8 +67,11 @@ export default function ExamplePage() {
       setLoading(true);
       setError(null);
       
+      // Set auth token
+      apiClient.setAuthToken(authToken);
+      
       // Trigger analysis
-      const response = await apiClient.analyzeData(uploadResponse.data_id);
+      const response = await apiClient.analyzeData(uploadResponse.data_id, 'openai', !useMockData);
       setAnalysisResponse(response);
       
       // Clear previous results
@@ -86,8 +94,11 @@ export default function ExamplePage() {
       setLoading(true);
       setError(null);
       
+      // Set auth token
+      apiClient.setAuthToken(authToken);
+      
       // Fetch results
-      const resultData = await apiClient.getAnalysisById(String(analysisResponse.result_id));
+      const resultData = await apiClient.getAnalysisById(String(analysisResponse.result_id), !useMockData);
       setResults(resultData);
     } catch (err) {
       setError(`Failed to fetch results: ${err instanceof Error ? err.message : String(err)}`);
@@ -98,9 +109,8 @@ export default function ExamplePage() {
 
   // Toggle between mock and real data
   const toggleMockData = () => {
-    // This is just a demonstration - in a real app, you would use environment variables
-    // @ts-ignore - Accessing private property for demonstration
-    apiClient.useMockData = !apiClient.useMockData;
+    // Update the local state
+    setUseMockData(!useMockData);
     // Reset state
     setFile(null);
     setUploadResponse(null);
@@ -131,8 +141,20 @@ export default function ExamplePage() {
               Toggle Mock Data
             </button>
             <div className="text-sm">
-              {/* @ts-ignore - Accessing private property for demonstration */}
-              Status: Using {apiClient.useMockData ? 'mock' : 'real'} data
+              Status: Using {useMockData ? 'mock' : 'real'} data
+            </div>
+            
+            <div className="ml-8">
+              <label className="block text-sm font-medium mb-1">
+                Auth Token:
+              </label>
+              <input
+                type="text"
+                value={authToken}
+                onChange={(e) => setAuthToken(e.target.value)}
+                className="border border-border rounded-md p-2 w-64"
+                placeholder="Enter auth token"
+              />
             </div>
           </div>
         </section>
@@ -152,7 +174,7 @@ export default function ExamplePage() {
               <button
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
                 onClick={handleUpload}
-                disabled={!file || loading}
+                disabled={!file || loading || file.type !== 'application/json'}
               >
                 Upload
               </button>
