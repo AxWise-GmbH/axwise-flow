@@ -8,7 +8,6 @@ import {
   Pie,
   Cell,
   Tooltip,
-  Legend,
   Sector,
   ResponsiveContainer as RechartsResponsiveContainer
 } from 'recharts';
@@ -19,7 +18,7 @@ import {
 interface SentimentGraphProps {
   /** The sentiment overview data to visualize */
   data: SentimentOverview;
-  /** Detailed sentiment data (optional) */
+  /** Detailed sentiment data (optional) - used for showing sentiment trends */
   detailedData?: SentimentData[];
   /** The height of the chart (default: 400) */
   height?: number;
@@ -39,22 +38,74 @@ const SENTIMENT_COLORS = {
 };
 
 /**
+ * Default sentiment values
+ */
+const DEFAULT_SENTIMENT = {
+  positive: 0.33,
+  neutral: 0.34,
+  negative: 0.33,
+};
+
+/**
  * Component for visualizing sentiment data
- * Shows a pie chart for overall sentiment distribution
+ * Shows a pie chart for overall sentiment distribution and a trend line for detailed data
  */
 export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   data,
-  detailedData,
+  detailedData = [],
   height = 400,
   showLegend = true,
   className,
 }) => {
-  // Ensure data has all required properties with defaults
-  const sentimentData = {
-    positive: data?.positive ?? 0.33,
-    neutral: data?.neutral ?? 0.34,
-    negative: data?.negative ?? 0.33
-  };
+  // Validate and normalize sentiment data
+  const sentimentData = useMemo(() => {
+    console.log('Received sentiment data:', data);
+
+    // Check if data is undefined or has invalid values
+    if (!data || 
+        typeof data.positive !== 'number' || 
+        typeof data.neutral !== 'number' || 
+        typeof data.negative !== 'number') {
+      console.warn('Invalid sentiment data, using defaults:', DEFAULT_SENTIMENT);
+      return DEFAULT_SENTIMENT;
+    }
+
+    // Normalize values to ensure they sum to 1
+    const total = data.positive + data.neutral + data.negative;
+    if (total === 0) {
+      console.warn('All sentiment values are 0, using defaults');
+      return DEFAULT_SENTIMENT;
+    }
+
+    if (Math.abs(total - 1) > 0.01) { // Allow for small floating-point differences
+      console.warn('Sentiment values do not sum to 1, normalizing:', { total, data });
+      return {
+        positive: data.positive / total,
+        neutral: data.neutral / total,
+        negative: data.negative / total,
+      };
+    }
+
+    return data;
+  }, [data]);
+
+  // Process detailed sentiment data for trends
+  const detailedStats = useMemo(() => {
+    if (!detailedData || detailedData.length === 0) return null;
+
+    const total = detailedData.length;
+    const positiveCount = detailedData.filter(d => d.score > 0.2).length;
+    const negativeCount = detailedData.filter(d => d.score < -0.2).length;
+    const neutralCount = total - positiveCount - negativeCount;
+
+    return {
+      totalResponses: total,
+      averageScore: detailedData.reduce((sum, d) => sum + d.score, 0) / total,
+      positiveCount,
+      neutralCount,
+      negativeCount,
+    };
+  }, [detailedData]);
   
   // Calculate percentages for display
   const positivePercent = Math.round(sentimentData.positive * 100);
@@ -67,6 +118,8 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
     { name: 'Neutral', value: neutralPercent, color: SENTIMENT_COLORS.neutral },
     { name: 'Negative', value: negativePercent, color: SENTIMENT_COLORS.negative },
   ], [positivePercent, neutralPercent, negativePercent]);
+
+  console.log('Pie chart data:', pieData);
 
   // Active sector state for hover effect
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined);
@@ -157,6 +210,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
 
         <div className="w-full md:w-1/2 mt-6 md:mt-0">
           <div className="grid grid-cols-1 gap-4">
+            {/* Positive Sentiment Card */}
             <div 
               className="p-4 rounded-md"
               style={{ backgroundColor: `${SENTIMENT_COLORS.positive}20` }}
@@ -164,9 +218,16 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
               <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.positive }}>
                 Positive
               </h3>
-              <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.positive }}>
-                {positivePercent}%
-              </p>
+              <div className="flex justify-between items-baseline">
+                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.positive }}>
+                  {positivePercent}%
+                </p>
+                {detailedStats && (
+                  <p className="text-sm text-muted-foreground">
+                    {detailedStats.positiveCount} responses
+                  </p>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {positivePercent > 50 
                   ? 'Majority of the sentiment is positive.' 
@@ -176,6 +237,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
               </p>
             </div>
 
+            {/* Neutral Sentiment Card */}
             <div 
               className="p-4 rounded-md"
               style={{ backgroundColor: `${SENTIMENT_COLORS.neutral}20` }}
@@ -183,9 +245,16 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
               <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.neutral }}>
                 Neutral
               </h3>
-              <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.neutral }}>
-                {neutralPercent}%
-              </p>
+              <div className="flex justify-between items-baseline">
+                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.neutral }}>
+                  {neutralPercent}%
+                </p>
+                {detailedStats && (
+                  <p className="text-sm text-muted-foreground">
+                    {detailedStats.neutralCount} responses
+                  </p>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {neutralPercent > 50 
                   ? 'Majority of the sentiment is neutral.' 
@@ -195,6 +264,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
               </p>
             </div>
 
+            {/* Negative Sentiment Card */}
             <div 
               className="p-4 rounded-md"
               style={{ backgroundColor: `${SENTIMENT_COLORS.negative}20` }}
@@ -202,9 +272,16 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
               <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.negative }}>
                 Negative
               </h3>
-              <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.negative }}>
-                {negativePercent}%
-              </p>
+              <div className="flex justify-between items-baseline">
+                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.negative }}>
+                  {negativePercent}%
+                </p>
+                {detailedStats && (
+                  <p className="text-sm text-muted-foreground">
+                    {detailedStats.negativeCount} responses
+                  </p>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {negativePercent > 50 
                   ? 'Majority of the sentiment is negative.' 
@@ -213,6 +290,25 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
                     : 'A small portion of sentiment is negative.'}
               </p>
             </div>
+
+            {/* Overall Stats */}
+            {detailedStats && (
+              <div className="p-4 rounded-md bg-card border border-border">
+                <h3 className="font-medium mb-2">Overall Statistics</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Responses</p>
+                    <p className="text-lg font-semibold">{detailedStats.totalResponses}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Average Score</p>
+                    <p className="text-lg font-semibold">
+                      {detailedStats.averageScore.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

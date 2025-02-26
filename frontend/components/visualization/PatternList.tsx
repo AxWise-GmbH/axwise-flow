@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pattern } from '@/types/api';
-import { ResponsiveContainer, ChartTooltip, createCustomTooltip } from './common';
+import { ResponsiveContainer, createCustomTooltip } from './common';
 import {
   BarChart,
   Bar,
@@ -107,6 +107,14 @@ export const PatternList: React.FC<PatternListProps> = ({
     return SENTIMENT_COLORS.neutral;
   };
 
+  // Get sentiment label based on sentiment value
+  const getSentimentLabel = (sentiment: number | undefined) => {
+    if (typeof sentiment !== 'number') return 'Neutral';
+    if (sentiment >= 0.2) return 'Positive';
+    if (sentiment < -0.2) return 'Negative';
+    return 'Neutral';
+  };
+
   // Toggle pattern expanded state
   const toggleExpanded = (patternId: number) => {
     setExpandedPatterns(prev => ({
@@ -184,7 +192,6 @@ export const PatternList: React.FC<PatternListProps> = ({
                 const isSelected = selectedPattern?.id === pattern.id;
                 const sentimentColor = getBarColor(pattern.sentiment || 0);
                 const frequencyPercent = Math.min(100, Math.round((pattern.frequency || 0) * 100));
-                const sentimentValue = pattern.sentiment || 0;
                 
                 return (
                   <div 
@@ -208,7 +215,7 @@ export const PatternList: React.FC<PatternListProps> = ({
                           color: sentimentColor 
                         }}
                       >
-                        {sentimentValue >= 0.2 ? 'Positive' : sentimentValue < -0.2 ? 'Negative' : 'Neutral'}
+                        {getSentimentLabel(pattern.sentiment)}
                       </span>
                     </div>
                     

@@ -41,6 +41,8 @@ export default function AnalysisResultsPage() {
         const result = await fetchAnalysis(analysisId);
         if (!result) {
           showToast('Failed to load analysis data', { variant: 'error' });
+        } else {
+          console.log('Analysis data loaded:', result);
         }
       } catch (err) {
         console.error('Error in analysis effect:', err);
@@ -151,6 +153,16 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
   const selectedTab = useSelectedTab();
   const setSelectedTab = useUIStore(state => state.setSelectedTab);
   
+  // Add debug logging for sentiment data
+  useEffect(() => {
+    if (selectedTab === 'sentiment') {
+      console.log('Sentiment tab selected, data:', {
+        sentimentOverview: data.sentimentOverview,
+        sentiment: data.sentiment
+      });
+    }
+  }, [selectedTab, data]);
+
   return (
     <div>
       <div className="border-b border-border">
@@ -191,12 +203,20 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
       <div className="py-6">
         {selectedTab === 'themes' && <ThemeChart data={data.themes} className="mt-4" />}
         {selectedTab === 'patterns' && <PatternList data={data.patterns} className="mt-4" />}
-        {selectedTab === 'sentiment' && <SentimentGraph data={data.sentimentOverview} detailedData={data.sentiment} className="mt-4" />}
+        {selectedTab === 'sentiment' && (
+          <>
+            {console.log('Rendering SentimentGraph with:', {
+              overview: data.sentimentOverview,
+              detailedData: data.sentiment
+            })}
+            <SentimentGraph 
+              data={data.sentimentOverview} 
+              detailedData={data.sentiment} 
+              className="mt-4" 
+            />
+          </>
+        )}
       </div>
     </div>
   );
 }
-
-/**
- * Placeholder component for theme visualization
- */
