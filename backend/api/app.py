@@ -99,11 +99,11 @@ app = FastAPI(
     contact={
         "name": "Development Team",
         "email": "dev@example.com",
-    },
+        },
     license_info={
         "name": "Private",
         "url": "https://example.com/license",
-    }
+        }
 )
 
 # Get CORS settings from environment or use defaults
@@ -285,18 +285,18 @@ async def analyze_data(
             db.add(analysis_result)
             db.commit()
             db.refresh(analysis_result)
+            result_id = analysis_result.result_id
+            logger.info(f"Created analysis result record. Result ID: {result_id}")
         except Exception as db_error:
             logger.error(f"Database error creating analysis result: {str(db_error)}")
             db.rollback()
             raise HTTPException(
                 status_code=500,
                 detail=f"Database error: {str(db_error)}"
-            )
+)
 
-        result_id = analysis_result.result_id
-        logger.info(f"Created analysis result record. Result ID: {result_id}")
 
-        # Start the analysis task
+        # Run analysis asynchronously
         async def run_analysis(result_id: int):
             try:
                 # Create a new session for this async task
@@ -334,14 +334,15 @@ async def analyze_data(
                     if "sentiment" in results and isinstance(results["sentiment"], dict):
                         sentiment_data = results["sentiment"]
                         results["sentimentOverview"] = sentiment_data.get("breakdown", DEFAULT_SENTIMENT_OVERVIEW)
+                        # Store supporting statements separately to match frontend schema
+                        results["sentimentStatements"] = sentiment_data.get("supporting_statements", {
+                            "positive": [], 
+                            "neutral": [], 
+                            "negative": []
+                        })
                         if "overall" in sentiment_data:
                             sentiment_data["overall"] = (sentiment_data["overall"] - 0.5) * 2
-                        if "supporting_statements" not in sentiment_data:
-                            sentiment_data["supporting_statements"] = {
-                                "positive": [], 
-                                "neutral": [], 
-                                "negative": []
-                            }
+                        # Extract details for sentiment timeline
                         results["sentiment"] = sentiment_data.get("details", [])
                 
                 # Update analysis result with the actual results
@@ -361,29 +362,32 @@ async def analyze_data(
                     
                 return results
             except Exception as e:
-                logger.error(f"Error during analysis: {str(e)}")
+                logger.exception(f"Error during analysis: {str(e)}")
                 
                 try:
-                    # Create a new session for this error handling
+                    # Update error in database
+                    if task_db:
+                        task_db.close()
+                        
                     from backend.database import SessionLocal
-                    error_db = SessionLocal()
-                    
-                    # Update analysis result with error status
-                    db_result = error_db.query(AnalysisResult).filter(
-                        AnalysisResult.result_id == result_id
-                    ).first()
-                    if db_result:
-                        db_result.results = {"error": str(e)}
-                        db_result.status = 'failed'
-                        db_result.completed_at = datetime.utcnow()
-                        error_db.commit()  # Use synchronous commit
-                        logger.error(f"Analysis failed for result_id: {result_id}: {str(e)}")
-                    
-                    # Close the session
-                    error_db.close()
-                except Exception as db_error:
-                    logger.error(f"Error updating analysis result: {str(db_error)}")
+                    with SessionLocal() as error_db:
+                        db_result = error_db.query(AnalysisResult).filter(
+                            AnalysisResult.result_id == result_id
+                        ).first()
+                        if db_result:
+                            db_result.results = {"error": str(e)}
+                            db_result.status = 'failed'
+                            db_result.completed_at = datetime.utcnow()
+                            error_db.commit()
+                            logger.error(f"Analysis failed for result_id: {result_id}: {str(e)}")
 
+                except Exception as db_error:
+                    logger.exception(f"Error updating analysis result: {str(db_error)}")
+                raise  # Re-raise the original exception
+            finally:
+                if 'task_db' in locals() and task_db and not task_db.closed:
+                    task_db.close()
+            
         # Start the analysis task
         asyncio.create_task(run_analysis(result_id))
 
@@ -475,7 +479,7 @@ async def get_results(
                     "patterns": results.get("patterns", []),
                     "sentimentOverview": results.get("sentimentOverview", DEFAULT_SENTIMENT_OVERVIEW),
                     "sentiment": results.get("sentiment", []),
-                    "sentimentStatements": results.get("sentimentStatements", {
+                    "sentimentStatements": results.get("sentimentStatements",  {
                         "positive": [],
                         "neutral": [],
                         "negative": []
@@ -491,8 +495,37 @@ async def get_results(
                 formatted_results = analysis_result.results
 
         logger.info(f"Successfully retrieved results for result_id: {result_id}")
+ # Log success
         return ResultResponse(
             status="completed",
             result_id=analysis_result.result_id,
             analysis_date=analysis_result.analysis_date,
             results=formatted_results,
+            llm_provider=analysis_result.llm_provider,
+        )
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error retrieving results: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
+
+@app.get(
+    "/health",
+    response_model=HealthCheckResponse,
+    tags=["System"],
+    summary="Health check",
+    description="Simple health check endpoint to verify the API is running.",
+    include_in_schema=True
+)
+async def health_check():
+    """
+    Simple health check endpoint.
+    """
+    return HealthCheckResponse(
+        status="healthy",
+        timestamp=datetime.utcnow()
+    )

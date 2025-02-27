@@ -14,53 +14,36 @@ import {
   ReferenceLine,
 } from 'recharts';
 
-/**
- * Props for the PatternList component
- */
 interface PatternListProps {
-  /** The patterns data to display */
   data: Pattern[];
-  /** Whether to show evidence (default: true) */
   showEvidence?: boolean;
-  /** Additional CSS class names */
   className?: string;
-  /** Callback when a pattern is clicked */
   onPatternClick?: (pattern: Pattern) => void;
 }
 
-/**
- * Color scale for sentiment values
- */
 const SENTIMENT_COLORS = {
   positive: '#22c55e', // green-500
   neutral: '#64748b', // slate-500
   negative: '#ef4444', // red-500
 };
 
-/**
- * Component for displaying patterns with visual indicators
- * Shows frequency, sentiment, and evidence for each pattern using a bar chart visualization
- */
 export const PatternList: React.FC<PatternListProps> = ({
   data,
   showEvidence = true,
   className,
   onPatternClick,
 }) => {
-  // State for expanded patterns
   const [expandedPatterns, setExpandedPatterns] = useState<Record<string, boolean>>({});
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
 
-  // Group patterns by category and transform data for the chart
   const { chartData, patternsByCategory } = useMemo(() => {
     const grouped: Record<string, Pattern[]> = {};
     const transformed: any[] = [];
     
-    // Sort patterns by frequency for better visualization
     const sortedData = [...data].sort((a, b) => {
       const freqA = a.frequency || 0;
       const freqB = b.frequency || 0;
-      return freqB - freqA; // Sort in descending order
+      return freqB - freqA;
     });
     
     sortedData.forEach(pattern => {
@@ -83,7 +66,6 @@ export const PatternList: React.FC<PatternListProps> = ({
     return { chartData: transformed, patternsByCategory: grouped };
   }, [data]);
 
-  // Custom tooltip
   const customTooltip = useMemo(
     () =>
       createCustomTooltip({
@@ -98,22 +80,19 @@ export const PatternList: React.FC<PatternListProps> = ({
     []
   );
 
-  // Get color based on sentiment
   const getBarColor = (sentiment: number) => {
     if (sentiment >= 0.2) return SENTIMENT_COLORS.positive;
-    if (sentiment < -0.2) return SENTIMENT_COLORS.negative;
+    if (sentiment <= -0.2) return SENTIMENT_COLORS.negative;
     return SENTIMENT_COLORS.neutral;
   };
 
-  // Get sentiment label based on sentiment value
   const getSentimentLabel = (sentiment: number | undefined) => {
     if (typeof sentiment !== 'number') return 'Neutral';
     if (sentiment >= 0.2) return 'Positive';
-    if (sentiment < -0.2) return 'Negative';
+    if (sentiment <= -0.2) return 'Negative';
     return 'Neutral';
   };
 
-  // Toggle pattern expanded state
   const toggleExpanded = (patternId: number) => {
     setExpandedPatterns(prev => ({
       ...prev,
@@ -121,7 +100,6 @@ export const PatternList: React.FC<PatternListProps> = ({
     }));
   };
 
-  // Handle bar click
   const handleBarClick = (data: any) => {
     if (data.originalPattern) {
       setSelectedPattern(data.originalPattern);
@@ -141,7 +119,6 @@ export const PatternList: React.FC<PatternListProps> = ({
 
   return (
     <div className={className}>
-      {/* Main visualization */}
       <div className="mb-8">
         <ResponsiveContainer height={400}>
           <BarChart
@@ -149,9 +126,10 @@ export const PatternList: React.FC<PatternListProps> = ({
             margin={{ 
               top: 20,
               right: 30,
-              left: 20,
-              bottom: 120
+              left: 40,
+              bottom: 150
             }}
+            barSize={20}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis
@@ -159,12 +137,21 @@ export const PatternList: React.FC<PatternListProps> = ({
               angle={-45}
               textAnchor="end"
               height={100}
-              tick={{ fontSize: 11, dy: 10 }}
               interval={0}
+              tick={{ 
+                fontSize: 11,
+                fill: '#666',
+                dy: 10,
+              }}
             />
             <YAxis
-              label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-              tick={{ fontSize: 12 }}
+              label={{ 
+                value: 'Frequency (%)', 
+                angle: -90, 
+                position: 'insideLeft', 
+                style: { textAnchor: 'middle' } 
+              }}
+              tick={{ fontSize: 11 }}
             />
             <Tooltip content={customTooltip} />
             <ReferenceLine y={0} stroke="#666" />
@@ -185,7 +172,6 @@ export const PatternList: React.FC<PatternListProps> = ({
         </ResponsiveContainer>
       </div>
 
-      {/* Pattern details */}
       <div className="space-y-6">
         {Object.entries(patternsByCategory).map(([category, patterns]) => (
           <div key={category} className="mb-8">

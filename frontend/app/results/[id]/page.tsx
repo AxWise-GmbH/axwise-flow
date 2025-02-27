@@ -19,16 +19,11 @@ import {
 import { ThemeChart, PatternList, SentimentGraph } from '@/components/visualization';
 import type { DetailedAnalysisResult } from '@/types/api';
 
-/**
- * Analysis Results Page
- * Displays detailed analysis results for a specific analysis ID
- */
 export default function AnalysisResultsPage() {
   const params = useParams();
   const analysisId = params?.id as string;
   const { showToast } = useToast();
   
-  // Get state and actions from stores
   const fetchAnalysis = useFetchAnalysis();
   const analysisData = useCurrentAnalysis();
   const isLoading = useAnalysisLoading();
@@ -54,7 +49,6 @@ export default function AnalysisResultsPage() {
       loadAnalysis();
     }
 
-    // Cleanup on unmount
     return () => {
       clearError();
     };
@@ -112,9 +106,6 @@ export default function AnalysisResultsPage() {
   );
 }
 
-/**
- * Header component for the analysis results page
- */
 function AnalysisHeader({ data }: { data: DetailedAnalysisResult }) {
   return (
     <div className="bg-card p-6 rounded-lg shadow-sm">
@@ -145,20 +136,16 @@ function AnalysisHeader({ data }: { data: DetailedAnalysisResult }) {
   );
 }
 
-/**
- * Tabs component for navigating between different analysis views
- */
 function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
-  // Get tab state from UI store
   const selectedTab = useSelectedTab();
   const setSelectedTab = useUIStore(state => state.setSelectedTab);
   
-  // Add debug logging for sentiment data
   useEffect(() => {
     if (selectedTab === 'sentiment') {
       console.log('Sentiment tab selected, data:', {
         sentimentOverview: data.sentimentOverview,
-        sentiment: data.sentiment
+        sentiment: data.sentiment,
+        supportingStatements: data.sentimentStatements
       });
     }
   }, [selectedTab, data]);
@@ -201,20 +188,25 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
       </div>
       
       <div className="py-6">
-        {selectedTab === 'themes' && <ThemeChart data={data.themes} className="mt-4" />}
-        {selectedTab === 'patterns' && <PatternList data={data.patterns} className="mt-4" />}
+        {selectedTab === 'themes' && (
+          <ThemeChart 
+            data={data.themes} 
+            className="mt-4" 
+          />
+        )}
+        {selectedTab === 'patterns' && (
+          <PatternList 
+            data={data.patterns} 
+            className="mt-4" 
+          />
+        )}
         {selectedTab === 'sentiment' && (
-          <>
-            {console.log('Rendering SentimentGraph with:', {
-              overview: data.sentimentOverview,
-              detailedData: data.sentiment
-            })}
-            <SentimentGraph 
-              data={data.sentimentOverview} 
-              detailedData={data.sentiment} 
-              className="mt-4" 
-            />
-          </>
+          <SentimentGraph 
+            data={data.sentimentOverview} 
+            detailedData={data.sentiment}
+            supportingStatements={data.sentimentStatements}
+            className="mt-4" 
+          />
         )}
       </div>
     </div>

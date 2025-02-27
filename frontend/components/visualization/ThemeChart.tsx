@@ -31,35 +31,20 @@ import {
   ReferenceLine,
 } from 'recharts';
 
-/**
- * Props for the ThemeChart component
- */
 interface ThemeChartProps {
-  /** The themes data to visualize */
   data: Theme[];
-  /** The height of the chart (default: 400) */
   height?: number;
-  /** Whether to show the legend (default: true) */
   showLegend?: boolean;
-  /** Additional CSS class names */
   className?: string;
-  /** Callback when a theme is clicked */
   onThemeClick?: (theme: Theme) => void;
 }
 
-/**
- * Color scale for sentiment values
- */
 const SENTIMENT_COLORS = {
   positive: '#22c55e', // green-500
   neutral: '#64748b', // slate-500
   negative: '#ef4444', // red-500
 };
 
-/**
- * Component for visualizing themes data with a bar chart
- * Shows frequency and sentiment of each theme
- */
 export const ThemeChart: React.FC<ThemeChartProps> = ({
   data,
   height = 400,
@@ -67,29 +52,25 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
   className,
   onThemeClick,
 }) => {
-  // State for expanded themes
   const [expandedThemes, setExpandedThemes] = useState<Record<string, boolean>>({});
   
-  // Transform data for the chart
   const chartData = useMemo(() => {
-    // Sort themes by frequency for better visualization
     const sortedData = [...data].sort((a, b) => {
       const freqA = a.frequency || 0;
       const freqB = b.frequency || 0;
-      return freqB - freqA; // Sort in descending order
+      return freqB - freqA;
     });
     
     return sortedData.map((theme) => ({
       name: theme.name,
+      shortName: theme.name.length > 20 ? `${theme.name.slice(0, 20)}...` : theme.name,
       frequency: Math.min(100, Math.round(((theme.frequency || 0) * 100))),
       sentiment: theme.sentiment || 0,
       keywords: theme.keywords,
-      // Store the original theme object for click handling
       originalData: theme,
     }));
   }, [data]);
 
-  // Create legend items
   const legendItems = useMemo(() => {
     return [
       { value: 'Positive Sentiment', color: SENTIMENT_COLORS.positive, type: 'circle' as const },
@@ -98,7 +79,6 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
     ];
   }, []);
 
-  // Custom tooltip
   const customTooltip = useMemo(
     () =>
       createCustomTooltip({
@@ -116,7 +96,6 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
     []
   );
 
-  // Toggle theme expanded state
   const toggleExpanded = (themeId: number) => {
     setExpandedThemes(prev => ({
       ...prev,
@@ -124,29 +103,25 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
     }));
   };
 
-  // Handle bar click
   const handleBarClick = (data: any) => {
     if (onThemeClick && data.originalData) {
       onThemeClick(data.originalData);
     }
   };
 
-  // Get color based on sentiment
   const getBarColor = (sentiment: number) => {
     if (sentiment >= 0.2) return SENTIMENT_COLORS.positive;
-    if (sentiment < -0.2) return SENTIMENT_COLORS.negative;
+    if (sentiment <= -0.2) return SENTIMENT_COLORS.negative;
     return SENTIMENT_COLORS.neutral;
   };
 
-  // Get sentiment label based on sentiment value
   const getSentimentLabel = (sentiment: number | undefined) => {
     if (typeof sentiment !== 'number') return 'Neutral';
     if (sentiment >= 0.2) return 'Positive';
-    if (sentiment < -0.2) return 'Negative';
+    if (sentiment <= -0.2) return 'Negative';
     return 'Neutral';
   };
 
-  // Render supporting statements for a theme
   const renderSupportingStatements = (theme: Theme) => {
     const isExpanded = expandedThemes[theme.id] || false;
     const statements = theme.statements || theme.examples || [];
@@ -202,19 +177,30 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
       <ResponsiveContainer height={height}>
         <BarChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+          margin={{ top: 20, right: 30, left: 40, bottom: 150 }}
+          barSize={20}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
           <XAxis
-            dataKey="name"
+            dataKey="shortName"
             angle={-45}
             textAnchor="end"
-            height={80}
-            tick={{ fontSize: 12, dy: 10 }}
+            height={100}
+            interval={0}
+            tick={{ 
+              fontSize: 11,
+              fill: '#666',
+              dy: 10,
+            }}
           />
           <YAxis
-            label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-            tick={{ fontSize: 12 }}
+            label={{ 
+              value: 'Frequency (%)', 
+              angle: -90, 
+              position: 'insideLeft', 
+              style: { textAnchor: 'middle' } 
+            }}
+            tick={{ fontSize: 11 }}
           />
           <Tooltip content={customTooltip} />
           <ReferenceLine y={0} stroke="#666" />
@@ -234,7 +220,6 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
         </BarChart>
       </ResponsiveContainer>
 
-      {/* Theme details with supporting statements */}
       <div className="mt-6 space-y-4">
         <h3 className="text-lg font-semibold">Theme Details</h3>
         <div className="space-y-4">
