@@ -5,12 +5,24 @@ FastAPI application for handling interview data and analysis.
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+import sys
+import os
+
+# Add the parent directory to the Python path
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+    
+# Add the project root to the Python path
+project_root = os.path.dirname(backend_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from backend.services.external.auth_middleware import get_current_user
 from typing import Dict, Any, List, Literal
 import logging
 import json
 import asyncio
-import os
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -19,13 +31,12 @@ from backend.schemas import (
     ResultResponse, HealthCheckResponse, DetailedAnalysisResult
 )
 
-from core.processing_pipeline import process_data
-from services.llm import LLMServiceFactory
-from services import get_nlp_processor
-from services.nlp.processor import NLPProcessor
+from backend.core.processing_pipeline import process_data
+from backend.services.llm import LLMServiceFactory
+from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
 from backend.models import User, InterviewData, AnalysisResult
-from config import validate_config, LLM_CONFIG
+from backend.config import validate_config, LLM_CONFIG
 
 # Configure logging
 logging.basicConfig(
@@ -222,7 +233,14 @@ async def analyze_data(
         # Parse the stored JSON data
         try:
             data = json.loads(interview_data.original_data)
-        except json.JSONDecodeError:
+            # Ensure data is a list of dictionaries
+            if not isinstance(data, list):
+                data = [data]  # Wrap single object in list
+            for item in data:
+                if not isinstance(item, dict):
+                    raise ValueError("Data must be a list of dictionaries")
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error: {str(je)}")
             raise HTTPException(
                 status_code=500,
                 detail="Stored data is not valid JSON."
@@ -238,10 +256,14 @@ async def analyze_data(
         # Create analysis result record
         analysis_result = AnalysisResult(
             data_id=data_id,
+            status='processing',
             llm_provider=llm_provider,
             llm_model=llm_model
         )
-        db.add(analysis_result)
+        try:
+            db.add(analysis_result)
+        except Exception as db_error:
+            logger.error(f"Database error creating analysis result: {str(db_error)}")
         db.commit()
         db.refresh(analysis_result)
 
@@ -251,27 +273,51 @@ async def analyze_data(
         # Run analysis asynchronously
         async def run_analysis(result_id: int):
             try:
+                # Create a new session for this async task
+                from backend.database import SessionLocal
+                task_db = SessionLocal()
+                
                 results = await process_data(nlp_processor, llm_service, data)
                 
                 # Update analysis result with the actual results
-                db_result = db.query(AnalysisResult).filter(
-                    AnalysisResult.result_id == result_id
+                db_result = task_db.query(AnalysisResult).filter(
+                    AnalysisResult.result_id == result_id,
+                    AnalysisResult.status != 'failed'  # Only update if not failed
                 ).first()
                 if db_result:
                     db_result.results = results
-                    db.commit()
+                    db_result.status = 'completed'
+                    db_result.completed_at = datetime.utcnow()
+                    task_db.commit()  # Use synchronous commit
                     logger.info(f"Analysis completed for result_id: {result_id}")
+                
+                # Close the session
+                task_db.close()
                     
                 return results
             except Exception as e:
                 logger.error(f"Error during analysis: {str(e)}")
-                # Update analysis result with error status
-                db_result = db.query(AnalysisResult).filter(
-                    AnalysisResult.result_id == result_id
-                ).first()
-                if db_result:
-                    db_result.results = {"error": str(e)}
-                    db.commit()
+                
+                try:
+                    # Create a new session for this error handling
+                    from backend.database import SessionLocal
+                    error_db = SessionLocal()
+                    
+                    # Update analysis result with error status
+                    db_result = error_db.query(AnalysisResult).filter(
+                        AnalysisResult.result_id == result_id
+                    ).first()
+                    if db_result:
+                        db_result.results = {"error": str(e)}
+                        db_result.status = 'failed'
+                        db_result.completed_at = datetime.utcnow()
+                        error_db.commit()  # Use synchronous commit
+                        logger.error(f"Analysis failed for result_id: {result_id}: {str(e)}")
+                    
+                    # Close the session
+                    error_db.close()
+                except Exception as db_error:
+                    logger.error(f"Error updating analysis result: {str(db_error)}")
 
         # Start the analysis task
         asyncio.create_task(run_analysis(result_id))

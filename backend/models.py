@@ -39,9 +39,11 @@ class AnalysisResult(Base):
     result_id = Column(Integer, primary_key=True, autoincrement=True)
     data_id = Column(Integer, ForeignKey("interview_data.data_id"))
     analysis_date = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
     results = Column(JSON)
     llm_provider = Column(String)
     llm_model = Column(String)
+    status = Column(String, default='processing')  # possible values: processing, completed, failed
 
     interview_data = relationship("InterviewData", back_populates="analysis_results")
     personas = relationship("Persona", back_populates="analysis_result")

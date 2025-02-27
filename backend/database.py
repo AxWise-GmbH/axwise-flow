@@ -1,27 +1,33 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
-from pathlib import Path
+import logging
 
-# Create the backend directory if it doesn't exist
-backend_dir = Path(__file__).parent
-db_path = backend_dir / "interview_data.db"
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# SQLite URL - use absolute path to avoid any path resolution issues
+# Create Base instance
+Base = declarative_base()
+
+# PostgreSQL URL
 REDACTED_DATABASE_URL=***REDACTED***
 
-# Create engine with check_same_thread=False to allow multiple threads (needed for FastAPI)
-engine = create_engine(
-    REDACTED_DATABASE_URL, 
-    connect_args={"check_same_thread": False}
-)
+try:
+    # Create engine for PostgreSQL
+    engine = create_engine(REDACTED_DATABASE_URL)
+
+    # Test the connection
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+        logger.info("Successfully connected to the PostgreSQL database")
+except Exception as e:
+    logger.error(f"Error connecting to the database: {str(e)}")
+    raise
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Import Base from models to ensure all models are registered
-from .models import Base
 
 def get_db():
     """
@@ -39,7 +45,15 @@ def create_tables():
     Creates all tables defined in the models.
     Should be called when the application starts.
     """
-    Base.metadata.create_all(bind=engine)
+    try:
+        # Import models here to avoid circular imports
+        from .models import User, InterviewData, AnalysisResult, Persona  # noqa
+        
+        Base.metadata.create_all(bind=engine)
+        logger.info("Successfully created all database tables")
+    except Exception as e:
+        logger.error(f"Error creating tables: {str(e)}")
+        raise
 
 def init_db():
     """

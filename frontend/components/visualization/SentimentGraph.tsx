@@ -20,12 +20,20 @@ interface SentimentGraphProps {
   data: SentimentOverview;
   /** Detailed sentiment data (optional) - used for showing sentiment trends */
   detailedData?: SentimentData[];
+  /** Supporting statements for each sentiment category */
+  supportingStatements?: {
+    positive: string[];
+    neutral: string[];
+    negative: string[];
+  };
   /** The height of the chart (default: 400) */
   height?: number;
   /** Whether to show the legend (default: true) */
   showLegend?: boolean;
   /** Additional CSS class names */
   className?: string;
+  /** Whether to show statements (default: true) */
+  showStatements?: boolean;
 }
 
 /**
@@ -48,13 +56,15 @@ const DEFAULT_SENTIMENT = {
 
 /**
  * Component for visualizing sentiment data
- * Shows a pie chart for overall sentiment distribution and a trend line for detailed data
+ * Shows a pie chart for overall sentiment distribution and supporting statements
  */
 export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   data,
   detailedData = [],
+  supportingStatements = { positive: [], neutral: [], negative: [] },
   height = 400,
   showLegend = true,
+  showStatements = true,
   className,
 }) => {
   // Validate and normalize sentiment data
@@ -119,8 +129,6 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
     { name: 'Negative', value: negativePercent, color: SENTIMENT_COLORS.negative },
   ], [positivePercent, neutralPercent, negativePercent]);
 
-  console.log('Pie chart data:', pieData);
-
   // Active sector state for hover effect
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined);
   const onPieEnter = (_: any, index: number) => setActiveIndex(index);
@@ -168,6 +176,75 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
           opacity={0.8}
         />
       </g>
+    );
+  };
+
+  // Render statements section with proper colors
+  const renderStatements = () => {
+    if (!showStatements) return null;
+
+    return (
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Positive Statements */}
+        <div 
+          className="p-4 rounded-md border"
+          style={{ borderColor: SENTIMENT_COLORS.positive, backgroundColor: `${SENTIMENT_COLORS.positive}10` }}
+        >
+          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.positive }}>
+            Positive Statements
+          </h3>
+          <ul className="space-y-2">
+            {supportingStatements.positive.map((statement, index) => (
+              <li key={index} className="text-sm text-muted-foreground">
+                {statement}
+              </li>
+            ))}
+            {supportingStatements.positive.length === 0 && (
+              <li className="text-sm text-muted-foreground italic">No positive statements found</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Neutral Statements */}
+        <div 
+          className="p-4 rounded-md border"
+          style={{ borderColor: SENTIMENT_COLORS.neutral, backgroundColor: `${SENTIMENT_COLORS.neutral}10` }}
+        >
+          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.neutral }}>
+            Neutral Statements
+          </h3>
+          <ul className="space-y-2">
+            {supportingStatements.neutral.map((statement, index) => (
+              <li key={index} className="text-sm text-muted-foreground">
+                {statement}
+              </li>
+            ))}
+            {supportingStatements.neutral.length === 0 && (
+              <li className="text-sm text-muted-foreground italic">No neutral statements found</li>
+            )}
+          </ul>
+        </div>
+
+        {/* Negative Statements */}
+        <div 
+          className="p-4 rounded-md border"
+          style={{ borderColor: SENTIMENT_COLORS.negative, backgroundColor: `${SENTIMENT_COLORS.negative}10` }}
+        >
+          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.negative }}>
+            Negative Statements
+          </h3>
+          <ul className="space-y-2">
+            {supportingStatements.negative.map((statement, index) => (
+              <li key={index} className="text-sm text-muted-foreground">
+                {statement}
+              </li>
+            ))}
+            {supportingStatements.negative.length === 0 && (
+              <li className="text-sm text-muted-foreground italic">No negative statements found</li>
+            )}
+          </ul>
+        </div>
+      </div>
     );
   };
 
@@ -228,13 +305,6 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
                   </p>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {positivePercent > 50 
-                  ? 'Majority of the sentiment is positive.' 
-                  : positivePercent > 30 
-                    ? 'A significant portion of sentiment is positive.' 
-                    : 'A small portion of sentiment is positive.'}
-              </p>
             </div>
 
             {/* Neutral Sentiment Card */}
@@ -255,13 +325,6 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
                   </p>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {neutralPercent > 50 
-                  ? 'Majority of the sentiment is neutral.' 
-                  : neutralPercent > 30 
-                    ? 'A significant portion of sentiment is neutral.' 
-                    : 'A small portion of sentiment is neutral.'}
-              </p>
             </div>
 
             {/* Negative Sentiment Card */}
@@ -282,33 +345,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
                   </p>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                {negativePercent > 50 
-                  ? 'Majority of the sentiment is negative.' 
-                  : negativePercent > 30 
-                    ? 'A significant portion of sentiment is negative.' 
-                    : 'A small portion of sentiment is negative.'}
-              </p>
             </div>
-
-            {/* Overall Stats */}
-            {detailedStats && (
-              <div className="p-4 rounded-md bg-card border border-border">
-                <h3 className="font-medium mb-2">Overall Statistics</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Responses</p>
-                    <p className="text-lg font-semibold">{detailedStats.totalResponses}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Average Score</p>
-                    <p className="text-lg font-semibold">
-                      {detailedStats.averageScore.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -323,6 +360,9 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
           />
         </div>
       )}
+
+      {/* Supporting Statements Section */}
+      {renderStatements()}
     </div>
   );
 };

@@ -31,7 +31,8 @@ export interface Theme {
   name: string;
   frequency: number;
   keywords: string[];
-  examples?: string[];
+  statements?: string[];    // Supporting statements from the LLM
+  examples?: string[];      // Legacy field for backward compatibility
   sentiment?: number;
 }
 
@@ -43,7 +44,8 @@ export interface Pattern {
   category: string;
   description: string;
   frequency: number;
-  examples: string[];
+  evidence?: string[];     // Supporting evidence from the LLM
+  examples?: string[];     // Legacy field for backward compatibility
   sentiment?: number;
 }
 
@@ -66,12 +68,22 @@ export interface SentimentOverview {
 }
 
 /**
+ * Supporting statements for each sentiment category
+ */
+export interface SentimentStatements {
+  positive: string[];
+  neutral: string[];
+  negative: string[];
+}
+
+/**
  * Analysis result data structure
  */
 export interface AnalysisResult {
   themes: Theme[];
   patterns: Pattern[];
   sentiment: SentimentData[];
+  sentimentStatements?: SentimentStatements;  // Supporting statements for sentiment categories
   dataId: number;
 }
 
@@ -88,6 +100,7 @@ export interface DetailedAnalysisResult {
   patterns: Pattern[];
   sentiment: SentimentData[];
   sentimentOverview: SentimentOverview;
+  sentimentStatements?: SentimentStatements;  // Supporting statements for sentiment categories
   llmProvider?: string;
   llmModel?: string;
   error?: string;

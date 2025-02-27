@@ -20,10 +20,8 @@ import {
 interface PatternListProps {
   /** The patterns data to display */
   data: Pattern[];
-  /** Whether to show examples (default: true) */
-  showExamples?: boolean;
-  /** Maximum number of examples to show (default: 3) */
-  maxExamples?: number;
+  /** Whether to show evidence (default: true) */
+  showEvidence?: boolean;
   /** Additional CSS class names */
   className?: string;
   /** Callback when a pattern is clicked */
@@ -41,12 +39,11 @@ const SENTIMENT_COLORS = {
 
 /**
  * Component for displaying patterns with visual indicators
- * Shows frequency, sentiment, and examples for each pattern using a bar chart visualization
+ * Shows frequency, sentiment, and evidence for each pattern using a bar chart visualization
  */
 export const PatternList: React.FC<PatternListProps> = ({
   data,
-  showExamples = true,
-  maxExamples = 3,
+  showEvidence = true,
   className,
   onPatternClick,
 }) => {
@@ -74,7 +71,8 @@ export const PatternList: React.FC<PatternListProps> = ({
       grouped[category].push(pattern);
       
       transformed.push({
-        name: pattern.description?.slice(0, 30) + (pattern.description?.length > 30 ? '...' : '') || 'No description',
+        name: pattern.description,
+        shortName: pattern.description?.slice(0, 30) + (pattern.description?.length > 30 ? '...' : '') || 'No description',
         frequency: Math.min(100, Math.round((pattern.frequency || 0) * 100)),
         sentiment: pattern.sentiment || 0,
         category,
@@ -148,15 +146,21 @@ export const PatternList: React.FC<PatternListProps> = ({
         <ResponsiveContainer height={400}>
           <BarChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+            margin={{ 
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 120
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis
-              dataKey="name"
+              dataKey="shortName"
               angle={-45}
               textAnchor="end"
-              height={80}
-              tick={{ fontSize: 12, dy: 10 }}
+              height={100}
+              tick={{ fontSize: 11, dy: 10 }}
+              interval={0}
             />
             <YAxis
               label={{ value: 'Frequency (%)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
@@ -192,6 +196,7 @@ export const PatternList: React.FC<PatternListProps> = ({
                 const isSelected = selectedPattern?.id === pattern.id;
                 const sentimentColor = getBarColor(pattern.sentiment || 0);
                 const frequencyPercent = Math.min(100, Math.round((pattern.frequency || 0) * 100));
+                const evidence = pattern.evidence || pattern.examples || [];
                 
                 return (
                   <div 
@@ -201,6 +206,10 @@ export const PatternList: React.FC<PatternListProps> = ({
                         ? 'border-primary bg-primary/5' 
                         : 'border-border hover:border-primary'
                     }`}
+                    style={{ 
+                      borderLeftWidth: '4px',
+                      borderLeftColor: sentimentColor
+                    }}
                     onClick={() => {
                       setSelectedPattern(pattern);
                       if (onPatternClick) onPatternClick(pattern);
@@ -235,7 +244,7 @@ export const PatternList: React.FC<PatternListProps> = ({
                       </div>
                     </div>
                     
-                    {showExamples && pattern.examples && pattern.examples.length > 0 && (
+                    {showEvidence && evidence.length > 0 && (
                       <div className="mt-3">
                         <button
                           type="button"
@@ -245,7 +254,7 @@ export const PatternList: React.FC<PatternListProps> = ({
                             toggleExpanded(pattern.id);
                           }}
                         >
-                          {isExpanded ? 'Hide' : 'Show'} Supporting Statements
+                          {isExpanded ? 'Hide' : 'Show'} Supporting Evidence ({evidence.length})
                           <svg
                             className={`ml-1 w-4 h-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
                             fill="none"
@@ -264,14 +273,9 @@ export const PatternList: React.FC<PatternListProps> = ({
                         
                         {isExpanded && (
                           <ul className="text-xs list-disc list-inside mt-2 text-muted-foreground space-y-1">
-                            {pattern.examples.slice(0, maxExamples).map((example, i) => (
-                              <li key={i} className="pl-2">{example}</li>
+                            {evidence.map((item, i) => (
+                              <li key={i} className="pl-2">{item}</li>
                             ))}
-                            {pattern.examples.length > maxExamples && (
-                              <li className="text-primary">
-                                +{pattern.examples.length - maxExamples} more examples
-                              </li>
-                            )}
                           </ul>
                         )}
                       </div>

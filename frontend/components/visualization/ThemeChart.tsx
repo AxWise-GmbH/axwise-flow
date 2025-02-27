@@ -138,9 +138,23 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
     return SENTIMENT_COLORS.neutral;
   };
 
+  // Get sentiment label based on sentiment value
+  const getSentimentLabel = (sentiment: number | undefined) => {
+    if (typeof sentiment !== 'number') return 'Neutral';
+    if (sentiment >= 0.2) return 'Positive';
+    if (sentiment < -0.2) return 'Negative';
+    return 'Neutral';
+  };
+
   // Render supporting statements for a theme
   const renderSupportingStatements = (theme: Theme) => {
     const isExpanded = expandedThemes[theme.id] || false;
+    const statements = theme.statements || theme.examples || [];
+    const statementLabel = theme.statements ? 'Supporting Statements' : 'Examples';
+    
+    if (statements.length === 0) {
+      return null;
+    }
     
     return (
       <div className="mt-2">
@@ -152,7 +166,7 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
             toggleExpanded(theme.id);
           }}
         >
-          {isExpanded ? 'Hide' : 'Show'} Supporting Statements
+          {isExpanded ? 'Hide' : 'Show'} {statementLabel}
           <svg
             className={`ml-1 w-4 h-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
             fill="none"
@@ -164,10 +178,10 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
           </svg>
         </button>
         
-        {isExpanded && theme.examples && theme.examples.length > 0 && (
+        {isExpanded && (
           <ul className="text-xs list-disc list-inside mt-2 text-muted-foreground space-y-1">
-            {theme.examples.map((example: string, i: number) => (
-              <li key={i} className="pl-2">{example}</li>
+            {statements.map((statement, i) => (
+              <li key={i} className="pl-2">{statement}</li>
             ))}
           </ul>
         )}
@@ -210,7 +224,11 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
             onClick={handleBarClick}
           >
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={getBarColor(entry.sentiment)} />
+              <Cell 
+                key={`cell-${index}`} 
+                fill={getBarColor(entry.sentiment)}
+                opacity={entry.originalData.id === chartData[index]?.originalData.id ? 1 : 0.7}
+              />
             ))}
           </Bar>
         </BarChart>
@@ -221,14 +239,47 @@ export const ThemeChart: React.FC<ThemeChartProps> = ({
         <h3 className="text-lg font-semibold">Theme Details</h3>
         <div className="space-y-4">
           {data.map((theme) => (
-            <div key={theme.id} className="p-4 border border-border rounded-md">
-              <h4 className="font-semibold">{theme.name}</h4>
-              <p className="text-sm text-muted-foreground">Frequency: {Math.round((theme.frequency || 0) * 100)}%</p>
+            <div 
+              key={theme.id} 
+              className="p-4 border border-border rounded-md"
+              style={{ 
+                borderLeftWidth: '4px',
+                borderLeftColor: getBarColor(theme.sentiment || 0)
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold">{theme.name}</h4>
+                <span 
+                  className="px-2 py-1 text-xs rounded-full"
+                  style={{ 
+                    backgroundColor: `${getBarColor(theme.sentiment || 0)}20`,
+                    color: getBarColor(theme.sentiment || 0)
+                  }}
+                >
+                  {getSentimentLabel(theme.sentiment)}
+                </span>
+              </div>
+              <div className="mt-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <span>Frequency:</span>
+                  <div className="ml-2 w-32 h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full rounded-full" 
+                      style={{ 
+                        width: `${Math.round((theme.frequency || 0) * 100)}%`,
+                        backgroundColor: getBarColor(theme.sentiment || 0)
+                      }}
+                    />
+                  </div>
+                  <span className="ml-2">{Math.round((theme.frequency || 0) * 100)}%</span>
+                </div>
+              </div>
               {renderSupportingStatements(theme)}
             </div>
           ))}
         </div>
       </div>
+
       {showLegend && (
         <ChartLegend
           items={legendItems}
