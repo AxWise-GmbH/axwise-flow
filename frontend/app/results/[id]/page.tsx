@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
@@ -17,6 +17,7 @@ import {
   useSelectedTab 
 } from '@/store/useUIStore';
 import { ThemeChart, PatternList, SentimentGraph } from '@/components/visualization';
+import UnifiedVisualization from '@/components/visualization/UnifiedVisualization';
 import type { DetailedAnalysisResult } from '@/types/api';
 
 export default function AnalysisResultsPage() {
@@ -150,6 +151,9 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
     }
   }, [selectedTab, data]);
 
+  // Toggle for visualization type (classic or unified)
+  const [useUnifiedView, setUseUnifiedView] = useState(true);
+
   return (
     <div>
       <div className="border-b border-border">
@@ -187,26 +191,88 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
         </nav>
       </div>
       
+      {/* View Type Toggle */}
+      <div className="mt-4 flex justify-end">
+        <div className="flex space-x-2 items-center">
+          <span className="text-sm text-muted-foreground">View:</span>
+          <button
+            className={`px-3 py-1 text-sm rounded ${
+              !useUnifiedView 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-muted text-muted-foreground'
+            }`}
+            onClick={() => setUseUnifiedView(false)}
+          >
+            Classic
+          </button>
+          <button
+            className={`px-3 py-1 text-sm rounded ${
+              useUnifiedView 
+                ? 'bg-primary text-primary-foreground' 
+                : 'bg-muted text-muted-foreground'
+            }`}
+            onClick={() => setUseUnifiedView(true)}
+          >
+            Unified
+          </button>
+        </div>
+      </div>
+      
       <div className="py-6">
-        {selectedTab === 'themes' && (
-          <ThemeChart 
-            data={data.themes} 
-            className="mt-4" 
-          />
-        )}
-        {selectedTab === 'patterns' && (
-          <PatternList 
-            data={data.patterns} 
-            className="mt-4" 
-          />
-        )}
-        {selectedTab === 'sentiment' && (
-          <SentimentGraph 
-            data={data.sentimentOverview} 
-            detailedData={data.sentiment}
-            supportingStatements={data.sentimentStatements}
-            className="mt-4" 
-          />
+        {useUnifiedView ? (
+          // Unified View
+          <div className="mt-4">
+            {selectedTab === 'themes' && (
+              <UnifiedVisualization
+                type="themes"
+                themesData={data.themes}
+              />
+            )}
+            {selectedTab === 'patterns' && (
+              <UnifiedVisualization
+                type="patterns"
+                patternsData={data.patterns}
+              />
+            )}
+            {selectedTab === 'sentiment' && (
+              <UnifiedVisualization
+                type="sentiment"
+                sentimentData={{
+                  overview: data.sentimentOverview,
+                  details: data.sentiment,
+                  statements: data.sentimentStatements || {
+                    positive: data.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
+                    neutral: data.sentiment.filter(s => s.score >= -0.2 && s.score <= 0.2).map(s => s.text).slice(0, 5),
+                    negative: data.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
+                  }
+                }}
+              />
+            )}
+          </div>
+        ) : (
+          // Classic View
+          <div className="mt-4">
+            {selectedTab === 'themes' && (
+              <ThemeChart 
+                data={data.themes} 
+                className="mt-4" 
+              />
+            )}
+            {selectedTab === 'patterns' && (
+              <PatternList 
+                data={data.patterns} 
+                className="mt-4" 
+              />
+            )}
+            {selectedTab === 'sentiment' && (
+              <SentimentGraph 
+                data={data.sentimentOverview} 
+                detailedData={data.sentiment}
+                supportingStatements={data.sentimentStatements}
+                className="mt-4" 
+              />
+            )}
+          </div>
         )}
       </div>
     </div>
