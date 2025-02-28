@@ -19,7 +19,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from backend.services.external.auth_middleware import get_current_user
-from typing import Dict, Any, List, Literal
+from typing import Dict, Any, List, Literal, Optional
 import logging
 import json
 import asyncio
@@ -525,3 +525,99 @@ async def health_check():
         status="healthy",
         timestamp=datetime.utcnow()
     )
+
+@app.get(
+    "/api/analyses",
+    response_model=List[DetailedAnalysisResult],
+    tags=["Analysis"],
+    summary="List analyses",
+    description="Retrieve a list of all analyses performed by the current user."
+)
+async def list_analyses(
+    request: Request,
+    sortBy: Optional[str] = None,
+    sortDirection: Optional[Literal["asc", "desc"]] = "desc",
+    status: Optional[Literal["pending", "completed", "failed"]] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lists all analyses performed by the current user.
+    """
+    try:
+        # Build the query with user authorization check
+        query = db.query(AnalysisResult).join(
+            InterviewData
+        ).filter(
+            InterviewData.user_id == current_user.user_id
+        )
+        
+        # Apply status filter if provided
+        if status:
+            query = query.filter(AnalysisResult.status == status)
+        
+        # Apply sorting
+        if sortBy == "createdAt" or sortBy is None:
+            # Default sorting by creation date
+            if sortDirection == "asc":
+                query = query.order_by(AnalysisResult.analysis_date.asc())
+            else:
+                query = query.order_by(AnalysisResult.analysis_date.desc())
+        elif sortBy == "fileName":
+            # Sorting by filename requires joining with InterviewData
+            if sortDirection == "asc":
+                query = query.order_by(InterviewData.filename.asc())
+            else:
+                query = query.order_by(InterviewData.filename.desc())
+                
+        # Execute query
+        analysis_results = query.all()
+        
+        # Format the results
+        formatted_results = []
+        for result in analysis_results:
+            # Skip results with no data
+            if not result or not result.interview_data:
+                continue
+                
+            # Format data to match frontend schema
+            formatted_result = {
+                "id": str(result.result_id),
+                "status": result.status,
+                "createdAt": result.analysis_date.isoformat(),
+                "fileName": result.interview_data.filename if result.interview_data else "Unknown",
+                "fileSize": None,  # We don't store this currently
+                "themes": [],
+                "patterns": [],
+                "sentimentOverview": DEFAULT_SENTIMENT_OVERVIEW,
+                "sentiment": [],
+            }
+            
+            # Add results data if available
+            if result.results and isinstance(result.results, dict):
+                # Parse themes, patterns, etc. from results
+                results_data = result.results
+                if "themes" in results_data and isinstance(results_data["themes"], list):
+                    formatted_result["themes"] = results_data["themes"]
+                if "patterns" in results_data and isinstance(results_data["patterns"], list):
+                    formatted_result["patterns"] = results_data["patterns"]
+                if "sentimentOverview" in results_data and isinstance(results_data["sentimentOverview"], dict):
+                    formatted_result["sentimentOverview"] = results_data["sentimentOverview"]
+                if "sentiment" in results_data:
+                    formatted_result["sentiment"] = results_data["sentiment"] if isinstance(results_data["sentiment"], list) else []
+            
+            # Add error info if available
+            if result.status == "failed" and result.error_message:
+                formatted_result["error"] = result.error_message
+                
+            formatted_results.append(formatted_result)
+            
+        logger.info(f"Retrieved {len(formatted_results)} analyses for user {current_user.user_id}")
+        return formatted_results
+            
+    except Exception as e:
+        logger.error(f"Error retrieving analyses: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )

@@ -7,7 +7,6 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
 import UnifiedVisualization from '@/components/visualization/UnifiedVisualization';
 import { apiClient } from '@/lib/apiClient';
-import { getMockAnalysisById } from '@/lib/mockData';
 import { UploadResponse, AnalysisResponse, DetailedAnalysisResult } from '@/types/api';
 
 export default function UnifiedDashboard() {
@@ -27,7 +26,6 @@ export default function UnifiedDashboard() {
   const [results, setResults] = useState<DetailedAnalysisResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [useMockData, setUseMockData] = useState<boolean>(false);
   const [authToken, setAuthToken] = useState<string>('testuser123');
   const [llmProvider, setLlmProvider] = useState<'openai' | 'gemini'>('gemini');
   
@@ -61,7 +59,7 @@ export default function UnifiedDashboard() {
       apiClient.setAuthToken(authToken);
       
       // Upload the file
-      const response = await apiClient.uploadData(file, !useMockData);
+      const response = await apiClient.uploadData(file);
       setUploadResponse(response);
       showToast('File uploaded successfully', { variant: 'success' });
       
@@ -91,7 +89,7 @@ export default function UnifiedDashboard() {
       apiClient.setAuthToken(authToken);
       
       // Trigger analysis
-      const response = await apiClient.analyzeData(uploadResponse.data_id, llmProvider, !useMockData);
+      const response = await apiClient.analyzeData(uploadResponse.data_id, llmProvider);
       setAnalysisResponse(response);
       showToast('Analysis initiated successfully', { variant: 'success' });
       
@@ -121,7 +119,7 @@ export default function UnifiedDashboard() {
       
       try {
         // Fetch results
-        const resultData = await apiClient.getAnalysisById(String(analysisResponse.result_id), !useMockData);
+        const resultData = await apiClient.getAnalysisById(String(analysisResponse.result_id));
         
         // Ensure the data has the expected structure
         if (resultData) {
@@ -134,15 +132,37 @@ export default function UnifiedDashboard() {
             };
           }
           
-          // Ensure patterns have category field
+          // Ensure patterns have category field and proper sentiment
           if (resultData.patterns) {
             resultData.patterns = resultData.patterns.map((pattern: any) => {
+              // Use pattern.type as category if missing
               if (pattern.type && !pattern.category) {
-                return { ...pattern, category: pattern.type };
+                pattern.category = pattern.type;
               }
+              
+              // Ensure sentiment is normalized between -1 and 1
+              if (typeof pattern.sentiment === 'number') {
+                if (pattern.sentiment > 1) pattern.sentiment = 1;
+                if (pattern.sentiment < -1) pattern.sentiment = -1;
+              }
+              
               return pattern;
             });
           }
+          
+          // Ensure sentiment is always an array
+          if (!Array.isArray(resultData.sentiment)) {
+            resultData.sentiment = [];
+          }
+          
+          // Process sentiment data to ensure proper formatting for visualization
+          resultData.sentiment = resultData.sentiment.map((item: any) => {
+            return {
+              ...item,
+              score: typeof item.score === 'number' ? item.score : 0,
+              text: item.text || ''
+            };
+          });
         }
         
         setResults(resultData);
@@ -173,109 +193,20 @@ export default function UnifiedDashboard() {
         // Set auth token
         apiClient.setAuthToken(authToken);
         
-        // In development, we can use mock data for faster testing
-        if (useMockData || process.env.NEXT_PUBLIC_...=***REMOVED*** 'true') {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const mockData: DetailedAnalysisResult[] = [
-            {
-              id: '1',
-              status: 'completed',
-              createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-              fileName: 'interview_data_1.json',
-              fileSize: 1024 * 1024 * 2, // 2MB
-              themes: [],
-              patterns: [],
-              sentimentOverview: {
-                positive: 0.6,
-                neutral: 0.3,
-                negative: 0.1,
-              },
-              sentiment: [],
-            },
-            {
-              id: '2',
-              status: 'pending',
-              createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-              fileName: 'interview_data_2.json',
-              fileSize: 1024 * 1024 * 1.5, // 1.5MB
-              themes: [],
-              patterns: [],
-              sentimentOverview: {
-                positive: 0,
-                neutral: 0,
-                negative: 0,
-              },
-              sentiment: [],
-            },
-            {
-              id: '3',
-              status: 'failed',
-              createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-              fileName: 'interview_data_3.json',
-              fileSize: 1024 * 1024 * 3, // 3MB
-              themes: [],
-              patterns: [],
-              sentimentOverview: {
-                positive: 0,
-                neutral: 0,
-                negative: 0,
-              },
-              sentiment: [],
-              error: 'File format not supported',
-            },
-          ];
+        // Use the API client to fetch real data
+        try {
+          const apiParams = {
+            sortBy: sortBy === 'date' ? 'createdAt' : 'fileName',
+            sortDirection: sortDirection,
+            status: filterStatus === 'all' ? undefined : filterStatus,
+          };
           
-          setAnalyses(mockData);
-        } else {
-          // Use the API client to fetch real data
-          try {
-            const apiParams = {
-              sortBy: sortBy === 'date' ? 'createdAt' : 'fileName',
-              sortDirection: sortDirection,
-              status: filterStatus === 'all' ? undefined : filterStatus,
-            };
-            
-            const data = await apiClient.listAnalyses(apiParams);
-            setAnalyses(data);
-          } catch (apiError) {
-            console.error('API error:', apiError);
-            // Fallback to mock data if API fails
-            const mockData: DetailedAnalysisResult[] = [
-              {
-                id: '1',
-                status: 'completed',
-                createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                fileName: 'interview_data_1.json',
-                fileSize: 1024 * 1024 * 2, // 2MB
-                themes: [],
-                patterns: [],
-                sentimentOverview: {
-                  positive: 0.6,
-                  neutral: 0.3,
-                  negative: 0.1,
-                },
-                sentiment: [],
-              },
-              {
-                id: '2',
-                status: 'pending',
-                createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-                fileName: 'interview_data_2.json',
-                fileSize: 1024 * 1024 * 1.5, // 1.5MB
-                themes: [],
-                patterns: [],
-                sentimentOverview: {
-                  positive: 0,
-                  neutral: 0,
-                  negative: 0,
-                },
-                sentiment: [],
-              },
-            ];
-            
-            setAnalyses(mockData);
-            showToast('Using mock data - API connection failed', { variant: 'info' });
-          }
+          const data = await apiClient.listAnalyses(apiParams);
+          setAnalyses(data);
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          setHistoryError(apiError instanceof Error ? apiError : new Error('Failed to fetch analyses'));
+          showToast('Failed to fetch analysis history', { variant: 'error' });
         }
         
         setHistoryLoading(false);
@@ -290,7 +221,7 @@ export default function UnifiedDashboard() {
     if (activeTab === 'history') {
       fetchAnalyses();
     }
-  }, [activeTab, showToast, sortBy, sortDirection, filterStatus, authToken, useMockData]);
+  }, [activeTab, showToast, sortBy, sortDirection, filterStatus, authToken]);
 
   // Load an analysis from history
   const loadAnalysisFromHistory = async (id: string) => {
@@ -302,7 +233,7 @@ export default function UnifiedDashboard() {
       apiClient.setAuthToken(authToken);
       
       // Fetch results
-      const resultData = await apiClient.getAnalysisById(id, !useMockData);
+      const resultData = await apiClient.getAnalysisById(id);
       setResults(resultData);
       showToast('Analysis loaded successfully', { variant: 'success' });
       
@@ -409,16 +340,6 @@ export default function UnifiedDashboard() {
               <h2 className="text-xl font-semibold mb-4">Configuration</h2>
               
               <div className="flex flex-wrap items-center gap-4">
-                <button
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                  onClick={() => setUseMockData(!useMockData)}
-                >
-                  Toggle Mock Data
-                </button>
-                <div className="text-sm">
-                  Status: Using {useMockData ? 'mock' : 'real'} data
-                </div>
-                
                 <div className="mt-2 sm:mt-0">
                   <label className="block text-sm font-medium mb-1">
                     Auth Token:
