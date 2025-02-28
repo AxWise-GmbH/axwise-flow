@@ -280,6 +280,7 @@ async def analyze_data(
             llm_provider, 
             LLM_CONFIG[llm_provider]
         )
+        
         nlp_processor = get_nlp_processor()()
 
         # Create analysis result record
@@ -492,8 +493,16 @@ async def get_results(
                 formatted_results = analysis_result.results
 
         logger.info(f"Successfully retrieved results for result_id: {result_id}")
+        
+        # Map API status to schema status values for consistent response
+        status = "completed"
+        if analysis_result.status == 'processing':
+            status = "pending"
+        elif analysis_result.status == 'error':
+            status = "failed"
+            
         return ResultResponse(
-            status="completed",
+            status=status,
             result_id=analysis_result.result_id,
             analysis_date=analysis_result.analysis_date,
             results=formatted_results,
@@ -606,9 +615,15 @@ async def list_analyses(
                 if "sentiment" in results_data:
                     formatted_result["sentiment"] = results_data["sentiment"] if isinstance(results_data["sentiment"], list) else []
             
-            # Add error info if available
-            if result.status == "failed" and result.error_message:
-                formatted_result["error"] = result.error_message
+            # Add error info if available - fixed to use the results dict for error
+            if result.status == 'failed' and result.results and isinstance(result.results, dict) and "error" in result.results:
+                formatted_result["error"] = result.results["error"]
+                
+            # Map API status to schema status values
+            if result.status == 'processing':
+                formatted_result["status"] = "pending"
+            elif result.status == 'error':
+                formatted_result["status"] = "failed"
                 
             formatted_results.append(formatted_result)
             

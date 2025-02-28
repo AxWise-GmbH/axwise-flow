@@ -66,10 +66,7 @@ class GeminiService:
             # Prepare system message based on task
             system_message = self._get_system_message(task, data)
             
-            # Log the prompt for debugging
-            logger.debug(f"System message for task {task}:\n{system_message}")
-            
-            # Call Gemini API
+            # Use regular generation without schema
             response = await self.client.generate_content_async(
                 [system_message, text],
                 generation_config={
@@ -92,7 +89,7 @@ class GeminiService:
             except json.JSONDecodeError:
                 # If response isn't valid JSON, try to extract JSON from markdown code blocks
                 import re
-                json_match = re.search(r'```(?:json)?\s*({\s*".*})\s*```', result_text, re.DOTALL)
+                json_match = re.search(r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```', result_text, re.DOTALL)
                 if json_match:
                     result = json.loads(json_match.group(1))
                 else:
@@ -100,33 +97,48 @@ class GeminiService:
             
             # Post-process results if needed
             if task == 'theme_analysis':
-                # Ensure each theme has statements
-                if 'themes' in result:
-                    for theme in result['themes']:
-                        if 'statements' not in theme:
-                            theme['statements'] = []
+                # If response is a list of themes directly (not wrapped in an object)
+                if isinstance(result, list):
+                    result = {"themes": result}
+                
+                # Ensure proper themes array
+                if "themes" not in result:
+                    result["themes"] = []
+                
+                # Ensure each theme has required fields
+                for theme in result["themes"]:
+                    if "sentiment" not in theme:
+                        theme["sentiment"] = 0.5  # neutral
+                    if "frequency" not in theme:
+                        theme["frequency"] = 0.5  # medium
+                    if "examples" not in theme and "statements" not in theme:
+                        theme["examples"] = []
+                    
+                    # Copy statements to examples for consistency
+                    if "statements" in theme and "examples" not in theme:
+                        theme["examples"] = theme["statements"]
             
             elif task == 'pattern_recognition':
-                # Ensure each pattern has evidence
-                if 'patterns' in result:
-                    for pattern in result['patterns']:
-                        if 'evidence' not in pattern:
-                            pattern['evidence'] = []
-            
-            elif task == 'sentiment_analysis':
-                # Ensure sentiment has proper structure with supporting statements
-                if 'sentiment' in result:
-                    sentiment = result['sentiment']
-                    if 'breakdown' in sentiment:
-                        for category in ['positive', 'neutral', 'negative']:
-                            if category not in sentiment['breakdown']:
-                                sentiment['breakdown'][category] = 0.0
-                    if 'supporting_statements' not in sentiment:
-                        sentiment['supporting_statements'] = {
-                            'positive': [],
-                            'neutral': [],
-                            'negative': []
-                        }
+                # If response is a list of patterns directly
+                if isinstance(result, list):
+                    result = {"patterns": result}
+                
+                # Ensure proper patterns array
+                if "patterns" not in result:
+                    result["patterns"] = []
+                
+                # Ensure each pattern has required fields
+                for pattern in result["patterns"]:
+                    if "sentiment" not in pattern:
+                        pattern["sentiment"] = 0.5  # neutral
+                    if "frequency" not in pattern:
+                        pattern["frequency"] = 0.5  # medium
+                    if "examples" not in pattern and "evidence" not in pattern:
+                        pattern["examples"] = []
+                    
+                    # Copy evidence to examples for consistency
+                    if "evidence" in pattern and "examples" not in pattern:
+                        pattern["examples"] = pattern["evidence"]
             
             logger.info(f"Successfully analyzed data with Gemini for task: {task}")
             logger.debug(f"Processed result for task {task}:\n{json.dumps(result, indent=2)}")
@@ -140,53 +152,55 @@ class GeminiService:
         """Get identical prompts as OpenAI service for consistent responses"""
         if task == 'theme_analysis':
             return """
-            You are an expert interview analyst. Analyze the provided interview text and identify the main themes.
-            For each theme, provide:
-            1. A descriptive name
-            2. A frequency score between 0 and 1 indicating how prevalent the theme is
-            3. A list of keywords associated with the theme
-            4. A list of 2-3 supporting statements from the text that exemplify this theme
+            Analyze the interview transcripts to identify key themes. Your analysis should be comprehensive and based on actual content from the transcripts.
             
-            Return your analysis in the following JSON format:
-            {
-                "themes": [
-                    {
-                        "name": "Theme Name",
-                        "frequency": 0.75,
-                        "keywords": ["keyword1", "keyword2", "keyword3"],
-                        "statements": [
-                            "Direct quote or paraphrase from text 1",
-                            "Direct quote or paraphrase from text 2"
-                        ]
-                    }
-                ]
-            }
+            Focus on extracting:
+            1. Clear, specific themes (not vague categories)
+            2. Quantify frequency as a decimal between 0.0-1.0
+            3. Sentiment association with each theme (as a decimal between -1.0 and 1.0, where -1.0 is negative, 0.0 is neutral, and 1.0 is positive)
+            4. Supporting examples or quotes from the text
+            
+            Format your response as a JSON object with this structure:
+            [
+              {
+                "name": "Theme name - be specific and concrete",
+                "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+                "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+                "examples": ["direct quote from text", "another example"]
+              },
+              ...
+            ]
+            
+            Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality. 
+            Ensure 100% of your response is in valid JSON format.
             """
             
         elif task == 'pattern_recognition':
             return """
-            You are an expert interview analyst. Analyze the provided interview text and identify recurring patterns.
-            Patterns can be pain points, feature requests, positive feedback, or other recurring elements.
-            For each pattern, provide:
-            1. A category (e.g., "Pain Point", "Feature Request", "Positive Feedback")
-            2. A concise description
-            3. A frequency score between 0 and 1 indicating how prevalent the pattern is
-            4. A list of 2-3 supporting pieces of evidence from the text
+            Analyze the interview transcripts to identify recurring patterns in user behavior, needs, pain points, or feedback. Your analysis should be grounded in the actual content.
             
-            Return your analysis in the following JSON format:
-            {
-                "patterns": [
-                    {
-                        "category": "Pain Point",
-                        "description": "Description here",
-                        "frequency": 0.65,
-                        "evidence": [
-                            "Direct quote or paraphrase from text 1",
-                            "Direct quote or paraphrase from text 2"
-                        ]
-                    }
-                ]
-            }
+            Focus on extracting:
+            1. Specific patterns (not vague observations)
+            2. Categorize each pattern appropriately
+            3. Provide a clear description of the pattern
+            4. Rate frequency as a decimal between 0.0-1.0
+            5. Assign sentiment as a decimal between -1.0 and 1.0 (-1.0 is negative, 0.0 is neutral, 1.0 is positive)
+            6. Include supporting examples or quotes
+            
+            Format your response as a JSON object with this structure:
+            [
+              {
+                "category": "Category name (e.g., User Interface, Performance, Features, Support)",
+                "description": "Specific description of the pattern",
+                "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+                "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+                "examples": ["direct quote from text", "another example"]
+              },
+              ...
+            ]
+            
+            Do not make up information. If there are fewer than 5 clear patterns, that's fine - focus on quality.
+            Ensure 100% of your response is in valid JSON format.
             """
             
         elif task == 'sentiment_analysis':
