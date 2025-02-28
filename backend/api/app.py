@@ -69,8 +69,16 @@ def transform_analysis_results(results):
     if "themes" not in transformed or not isinstance(transformed["themes"], list):
         transformed["themes"] = []
         
-    if "sentiment" not in transformed or not isinstance(transformed["sentiment"], dict):
-        transformed["sentiment"] = {}
+    # Ensure sentiment is always a list to match the DetailedAnalysisResult schema
+    if "sentiment" not in transformed:
+        transformed["sentiment"] = []
+    elif not isinstance(transformed["sentiment"], list):
+        # If sentiment is a dictionary, convert it to a list of one dictionary
+        if isinstance(transformed["sentiment"], dict):
+            transformed["sentiment"] = [transformed["sentiment"]]
+        else:
+            # If sentiment is anything else, use an empty list
+            transformed["sentiment"] = []
         
     if "sentimentOverview" not in transformed:
         transformed["sentimentOverview"] = DEFAULT_SENTIMENT_OVERVIEW
@@ -293,8 +301,7 @@ async def analyze_data(
             raise HTTPException(
                 status_code=500,
                 detail=f"Database error: {str(db_error)}"
-)
-
+            )
 
         # Run analysis asynchronously
         async def run_analysis(result_id: int):
@@ -362,31 +369,21 @@ async def analyze_data(
                     
                 return results
             except Exception as e:
-                logger.exception(f"Error during analysis: {str(e)}")
-                
-                try:
-                    # Update error in database
-                    if task_db:
-                        task_db.close()
-                        
-                    from backend.database import SessionLocal
-                    with SessionLocal() as error_db:
-                        db_result = error_db.query(AnalysisResult).filter(
-                            AnalysisResult.result_id == result_id
-                        ).first()
-                        if db_result:
-                            db_result.results = {"error": str(e)}
-                            db_result.status = 'failed'
-                            db_result.completed_at = datetime.utcnow()
-                            error_db.commit()
-                            logger.error(f"Analysis failed for result_id: {result_id}: {str(e)}")
-
-                except Exception as db_error:
-                    logger.exception(f"Error updating analysis result: {str(db_error)}")
-                raise  # Re-raise the original exception
+                logger.error(f"Error during analysis: {str(e)}")
+                if result_id:
+                    # Update result status to error
+                    task_db = next(get_db())
+                    result = task_db.query(AnalysisResult).filter(AnalysisResult.result_id == result_id).first()
+                    if result:
+                        result.status = "error"
+                        result.error_message = str(e)
+                        task_db.commit()
             finally:
-                if 'task_db' in locals() and task_db and not task_db.closed:
-                    task_db.close()
+                if 'task_db' in locals() and task_db:
+                    try:
+                        task_db.close()
+                    except:
+                        pass
             
         # Start the analysis task
         asyncio.create_task(run_analysis(result_id))
@@ -495,7 +492,6 @@ async def get_results(
                 formatted_results = analysis_result.results
 
         logger.info(f"Successfully retrieved results for result_id: {result_id}")
- # Log success
         return ResultResponse(
             status="completed",
             result_id=analysis_result.result_id,

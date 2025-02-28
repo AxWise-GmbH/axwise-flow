@@ -41,6 +41,7 @@ export interface Theme {
  */
 export interface Pattern {
   id: number;
+  name: string;
   category: string;
   description: string;
   frequency: number;

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pattern } from '@/types/api';
-import { ResponsiveContainer, createCustomTooltip } from './common';
+import { ResponsiveContainer, createCustomTooltip, ChartLegend } from './common';
 import {
   BarChart,
   Bar,
@@ -12,6 +12,9 @@ import {
   Tooltip,
   Cell,
   ReferenceLine,
+  Legend,
+  Treemap,
+  ResponsiveContainer as RechartsResponsiveContainer,
 } from 'recharts';
 
 interface PatternListProps {
@@ -35,50 +38,74 @@ export const PatternList: React.FC<PatternListProps> = ({
 }) => {
   const [expandedPatterns, setExpandedPatterns] = useState<Record<string, boolean>>({});
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [displayMode, setDisplayMode] = useState<'treemap' | 'bar'>('treemap');
 
-  const { chartData, patternsByCategory } = useMemo(() => {
+  // Process the data to handle missing fields
+  const processedData = useMemo(() => {
+    return data.map((pattern, index) => ({
+      ...pattern,
+      id: pattern.id || index,
+      name: pattern.name || `Pattern ${index + 1}`,
+      category: pattern.category || 'Uncategorized',
+      description: pattern.description || '',
+      frequency: typeof pattern.frequency === 'number' ? pattern.frequency : 0,
+      sentiment: typeof pattern.sentiment === 'number' ? pattern.sentiment : 0,
+      evidence: pattern.evidence || pattern.examples || [],
+      examples: pattern.examples || pattern.evidence || []
+    }));
+  }, [data]);
+
+  const { chartData, treemapData, patternsByCategory } = useMemo(() => {
     const grouped: Record<string, Pattern[]> = {};
     const transformed: any[] = [];
+    const treeData: any[] = [];
     
-    const sortedData = [...data].sort((a, b) => {
-      const freqA = a.frequency || 0;
-      const freqB = b.frequency || 0;
+    const sortedData = [...processedData].sort((a, b) => {
+      const freqA = typeof a.frequency === 'number' ? a.frequency : 0;
+      const freqB = typeof b.frequency === 'number' ? b.frequency : 0;
       return freqB - freqA;
     });
     
-    sortedData.forEach(pattern => {
+    sortedData.forEach((pattern, index) => {
       const category = pattern.category || 'Uncategorized';
+      const frequencyValue = typeof pattern.frequency === 'number' 
+        ? pattern.frequency 
+        : (typeof pattern.frequency === 'string' 
+          ? parseFloat(pattern.frequency) || 0 
+          : 0);
+      
+      // For the bar chart
+      transformed.push({
+        id: pattern.id || index,
+        name: pattern.name,
+        frequency: frequencyValue,
+        sentiment: pattern.sentiment || 0,
+        originalData: pattern,
+      });
+      
+      // For the treemap
+      treeData.push({
+        name: pattern.name,
+        size: frequencyValue * 100,
+        sentiment: pattern.sentiment || 0,
+        category,
+        originalData: pattern,
+      });
+      
+      // For the categorized list
       if (!grouped[category]) {
         grouped[category] = [];
       }
       grouped[category].push(pattern);
-      
-      transformed.push({
-        name: pattern.description,
-        shortName: pattern.description?.slice(0, 30) + (pattern.description?.length > 30 ? '...' : '') || 'No description',
-        frequency: Math.min(100, Math.round((pattern.frequency || 0) * 100)),
-        sentiment: pattern.sentiment || 0,
-        category,
-        originalPattern: pattern,
-      });
     });
     
-    return { chartData: transformed, patternsByCategory: grouped };
-  }, [data]);
-
-  const customTooltip = useMemo(
-    () =>
-      createCustomTooltip({
-        formatter: (value, name) => {
-          if (name === 'frequency') {
-            return `${value}%`;
-          }
-          return value;
-        },
-        labelFormatter: (label) => <span className="font-medium">{label}</span>,
-      }),
-    []
-  );
+    return { 
+      chartData: transformed, 
+      treemapData: [{ name: 'Patterns', children: treeData }],
+      patternsByCategory: grouped 
+    };
+  }, [processedData]);
 
   const getBarColor = (sentiment: number) => {
     if (sentiment >= 0.2) return SENTIMENT_COLORS.positive;
@@ -100,179 +127,190 @@ export const PatternList: React.FC<PatternListProps> = ({
     }));
   };
 
-  const handleBarClick = (data: any) => {
-    if (data.originalPattern) {
-      setSelectedPattern(data.originalPattern);
-      if (onPatternClick) {
-        onPatternClick(data.originalPattern);
-      }
+  const handleItemClick = (data: any) => {
+    if (data && data.originalData && onPatternClick) {
+      setSelectedPattern(data.originalData);
+      onPatternClick(data.originalData);
     }
   };
 
-  if (data.length === 0) {
+  // Custom tooltip component that shows pattern details on hover
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white shadow-lg rounded-md p-4 border border-gray-200">
+          <h3 className="font-semibold text-gray-900">{data.name}</h3>
+          <p className="text-sm text-gray-600">
+            Frequency: {typeof data.frequency === 'number' ? `${(data.frequency * 100).toFixed(0)}%` : data.frequency}
+          </p>
+          <p className="text-sm" style={{ color: getBarColor(data.sentiment) }}>
+            Sentiment: {getSentimentLabel(data.sentiment)}
+          </p>
+          {data.originalData.description && (
+            <p className="text-sm text-gray-700 mt-2">{data.originalData.description}</p>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const legendItems = [
+    { value: 'Positive Pattern', color: SENTIMENT_COLORS.positive, type: 'circle' as const },
+    { value: 'Neutral Pattern', color: SENTIMENT_COLORS.neutral, type: 'circle' as const },
+    { value: 'Negative Pattern', color: SENTIMENT_COLORS.negative, type: 'circle' as const },
+  ];
+
+  // Render function for treemap items
+  const renderTreemapContent = (props: any) => {
+    const { root, depth, x, y, width, height, index, name, sentiment } = props;
+    const color = getBarColor(sentiment);
+    
     return (
-      <div className={`flex items-center justify-center h-40 ${className || ''}`}>
-        <p className="text-muted-foreground">No pattern data available</p>
+      <g>
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          style={{
+            fill: color,
+            stroke: '#fff',
+            strokeWidth: 2,
+            fillOpacity: depth === 1 ? (activeIndex === index ? 0.8 : 0.6) : 0,
+          }}
+          onMouseEnter={() => setActiveIndex(index)}
+          onMouseLeave={() => setActiveIndex(null)}
+          onClick={() => handleItemClick(props)}
+          cursor="pointer"
+        />
+        {width > 50 && height > 25 ? (
+          <text
+            x={x + width / 2}
+            y={y + height / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#fff"
+            fontSize={width > 100 ? 14 : 10}
+            fontWeight="500"
+          >
+            {name}
+          </text>
+        ) : null}
+      </g>
+    );
+  };
+
+  // Check if we have valid data to display
+  if (!data || data.length === 0) {
+    return (
+      <div className={`w-full ${className} p-4 border border-gray-200 rounded-md`}>
+        <p className="text-gray-500 text-center">No patterns found in the analysis.</p>
       </div>
     );
   }
 
   return (
-    <div className={className}>
-      <div className="mb-8">
+    <div className={`w-full ${className}`}>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Patterns</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setDisplayMode('treemap')}
+            className={`px-3 py-1 text-sm rounded ${
+              displayMode === 'treemap' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Treemap
+          </button>
+          <button
+            onClick={() => setDisplayMode('bar')}
+            className={`px-3 py-1 text-sm rounded ${
+              displayMode === 'bar' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            Bar Chart
+          </button>
+        </div>
+      </div>
+
+      {displayMode === 'treemap' ? (
+        <div style={{ width: '100%', height: 400 }}>
+          <RechartsResponsiveContainer width="100%" height="100%">
+            <Treemap
+              data={treemapData}
+              dataKey="size"
+              aspectRatio={4/3}
+              stroke="#fff"
+              fill="#8884d8"
+              content={renderTreemapContent as any}
+              isAnimationActive={true}
+            />
+          </RechartsResponsiveContainer>
+        </div>
+      ) : (
         <ResponsiveContainer height={400}>
           <BarChart
             data={chartData}
-            margin={{ 
-              top: 20,
-              right: 30,
-              left: 40,
-              bottom: 150
-            }}
-            barSize={20}
+            margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis
-              dataKey="shortName"
-              angle={-45}
-              textAnchor="end"
-              height={100}
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              angle={-45} 
+              textAnchor="end" 
+              tick={{ fontSize: 12 }}
               interval={0}
-              tick={{ 
-                fontSize: 11,
-                fill: '#666',
-                dy: 10,
-              }}
+              height={70}
             />
-            <YAxis
-              label={{ 
-                value: 'Frequency (%)', 
-                angle: -90, 
-                position: 'insideLeft', 
-                style: { textAnchor: 'middle' } 
-              }}
-              tick={{ fontSize: 11 }}
-            />
-            <Tooltip content={customTooltip} />
-            <ReferenceLine y={0} stroke="#666" />
-            <Bar
-              dataKey="frequency"
-              name="Frequency"
-              onClick={handleBarClick}
+            <YAxis tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar 
+              dataKey="frequency" 
+              onClick={handleItemClick}
+              isAnimationActive={true}
             >
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={getBarColor(entry.sentiment)}
-                  opacity={selectedPattern?.id === entry.originalPattern.id ? 1 : 0.7}
+                  fill={getBarColor(entry.sentiment)} 
+                  style={{ cursor: 'pointer' }}
                 />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      )}
+
+      <div className="mt-4">
+        <ChartLegend items={legendItems} />
       </div>
 
-      <div className="space-y-6">
-        {Object.entries(patternsByCategory).map(([category, patterns]) => (
-          <div key={category} className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">{category}</h3>
-            <div className="space-y-4">
-              {patterns.map((pattern) => {
-                const isExpanded = expandedPatterns[pattern.id] || false;
-                const isSelected = selectedPattern?.id === pattern.id;
-                const sentimentColor = getBarColor(pattern.sentiment || 0);
-                const frequencyPercent = Math.min(100, Math.round((pattern.frequency || 0) * 100));
-                const evidence = pattern.evidence || pattern.examples || [];
-                
-                return (
-                  <div 
-                    key={pattern.id} 
-                    className={`p-4 border rounded-md transition-colors ${
-                      isSelected 
-                        ? 'border-primary bg-primary/5' 
-                        : 'border-border hover:border-primary'
-                    }`}
-                    style={{ 
-                      borderLeftWidth: '4px',
-                      borderLeftColor: sentimentColor
-                    }}
-                    onClick={() => {
-                      setSelectedPattern(pattern);
-                      if (onPatternClick) onPatternClick(pattern);
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">{pattern.description}</h4>
-                      <span 
-                        className="px-2 py-1 text-xs rounded-full"
-                        style={{ 
-                          backgroundColor: `${sentimentColor}20`, 
-                          color: sentimentColor 
-                        }}
-                      >
-                        {getSentimentLabel(pattern.sentiment)}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <span>Frequency:</span>
-                        <div className="ml-2 w-32 h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full" 
-                            style={{ 
-                              width: `${frequencyPercent}%`,
-                              backgroundColor: sentimentColor
-                            }}
-                          />
-                        </div>
-                        <span className="ml-2">{frequencyPercent}%</span>
-                      </div>
-                    </div>
-                    
-                    {showEvidence && evidence.length > 0 && (
-                      <div className="mt-3">
-                        <button
-                          type="button"
-                          className="text-xs text-primary flex items-center"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleExpanded(pattern.id);
-                          }}
-                        >
-                          {isExpanded ? 'Hide' : 'Show'} Supporting Evidence ({evidence.length})
-                          <svg
-                            className={`ml-1 w-4 h-4 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </button>
-                        
-                        {isExpanded && (
-                          <ul className="text-xs list-disc list-inside mt-2 text-muted-foreground space-y-1">
-                            {evidence.map((item, i) => (
-                              <li key={i} className="pl-2">{item}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      {selectedPattern && (
+        <div className="mt-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-800">{selectedPattern.name}</h3>
+          {selectedPattern.description && (
+            <p className="mt-2 text-gray-700">{selectedPattern.description}</p>
+          )}
+          {showEvidence && (selectedPattern.evidence || selectedPattern.examples) && (
+            (selectedPattern.evidence?.length || selectedPattern.examples?.length) ? (
+              <div className="mt-3">
+                <h4 className="font-semibold text-gray-700">Supporting Evidence:</h4>
+                <ul className="mt-2 list-disc pl-5 space-y-2">
+                  {(selectedPattern.evidence || selectedPattern.examples || []).map((example, idx) => (
+                    <li key={idx} className="text-gray-600">{example}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null
+          )}
+        </div>
+      )}
     </div>
   );
 };
