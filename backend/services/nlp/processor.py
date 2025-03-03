@@ -2,8 +2,10 @@
 
 import logging
 import asyncio
+import json
 import re
 from typing import Dict, Any, List, Tuple
+from domain.interfaces.llm_service import ILLMService
 
 logger = logging.getLogger(__name__)
 
@@ -282,7 +284,7 @@ class NLPProcessor:
             logger.error(f"Error validating results: {str(e)}")
             return False
 
-    async def extract_insights(self, results: Dict[str, Any], llm_service) -> Dict[str, Any]:
+    async def extract_insights(self, results: Dict[str, Any], llm_service: ILLMService) -> Dict[str, Any]:
         """Extract additional insights from analysis results"""
         try:
             # Get original text and extracted insights
@@ -294,16 +296,9 @@ class NLPProcessor:
             
             # Add supporting evidence from themes and patterns
             for theme in results.get('themes', []):
-                if 'examples' in theme:
-                    texts.extend(theme.get('examples', []))
-                elif 'statements' in theme:
-                    texts.extend(theme.get('statements', []))
-            
+                texts.extend(theme.get('statements', []))
             for pattern in results.get('patterns', []):
-                if 'examples' in pattern:
-                    texts.extend(pattern.get('examples', []))
-                elif 'evidence' in pattern:
-                    texts.extend(pattern.get('evidence', []))
+                texts.extend(pattern.get('evidence', []))
             
             # If no texts available, raise error
             if not texts:
@@ -323,25 +318,7 @@ class NLPProcessor:
             })
             
             # Update results with new insights
-            # Make sure 'insights' field exists and is initialized as a list
-            if 'insights' not in results:
-                results['insights'] = []
-                
-            # Ensure insights_result has expected structure
-            if isinstance(insights_result, dict) and 'insights' in insights_result:
-                new_insights = insights_result.get('insights', [])
-                if isinstance(new_insights, list):
-                    results['insights'].extend(new_insights)
-                else:
-                    logger.warning(f"Unexpected insights structure: {type(new_insights)}")
-            else:
-                logger.warning(f"Unexpected insights_result structure: {type(insights_result)}")
-                # Add a default insight if structure is unexpected
-                results['insights'].append({
-                    "topic": "Data Analysis",
-                    "observation": "Analysis completed with non-standard output format.",
-                    "evidence": ["Processing completed."]
-                })
+            results['insights'].extend(insights_result.get('insights', []))
             
             # Add metadata
             results['metadata'] = {
@@ -350,21 +327,46 @@ class NLPProcessor:
                 'processing_stats': insights_result.get('metadata', {}).get('processing_stats', {})
             }
             
-            # Ensure all required fields are present for validation
-            required_fields = ['themes', 'patterns', 'sentiment', 'insights', 'original_text']
-            for field in required_fields:
-                if field not in results:
-                    if field == 'insights':
-                        results[field] = []
-                    elif field == 'sentiment':
-                        results[field] = {}
-                    elif field in ['themes', 'patterns']:
-                        results[field] = []
-                    else:
-                        results[field] = ""
+            # Generate personas from the text
+            logger.info("Generating personas from interview text")
+            
+            # Import the persona generation service here to avoid circular imports
+            from backend.services.processing.persona_formation import PersonaFormationService
+            
+            # Create persona formation service
+            persona_service = PersonaFormationService(None, llm_service)
+            
+            # Use direct text-to-persona generation
+            try:
+                # Get the raw text from the original source if available
+                raw_text = results.get('original_text', combined_text)
+                
+                # Generate personas directly from text
+                personas = await persona_service.generate_persona_from_text(raw_text)
+                
+                # Add personas to results
+                results['personas'] = personas
+                logger.info(f"Added {len(personas)} personas to analysis results")
+            except Exception as persona_err:
+                # Log the error but continue processing
+                logger.error(f"Error generating personas: {str(persona_err)}")
+                
+                # Add empty personas list to results
+                results['personas'] = []
+                
+                # Try pattern-based approach as fallback
+                try:
+                    if results.get('patterns'):
+                        logger.info("Attempting pattern-based persona generation as fallback")
+                        pattern_personas = await persona_service.form_personas(results.get('patterns', []))
+                        results['personas'] = pattern_personas
+                        logger.info(f"Added {len(pattern_personas)} pattern-based personas to analysis results")
+                except Exception as pattern_err:
+                    logger.error(f"Error in pattern-based persona generation fallback: {str(pattern_err)}")
             
             return results
             
         except Exception as e:
             logger.error(f"Error extracting insights: {str(e)}")
-            raise
+            # Return partial results if available
+            return results if isinstance(results, dict) else {}

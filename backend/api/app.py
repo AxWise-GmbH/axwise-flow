@@ -82,6 +82,16 @@ def transform_analysis_results(results):
         
     if "sentimentOverview" not in transformed:
         transformed["sentimentOverview"] = DEFAULT_SENTIMENT_OVERVIEW
+    
+    # Handle personas data
+    if "personas" not in transformed:
+        transformed["personas"] = []
+    elif not isinstance(transformed["personas"], list):
+        # Ensure personas is always a list
+        if isinstance(transformed["personas"], dict):
+            transformed["personas"] = [transformed["personas"]]
+        else:
+            transformed["personas"] = []
         
     return transformed
 
