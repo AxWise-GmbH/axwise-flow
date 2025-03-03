@@ -145,8 +145,8 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
               <div className="mt-2">
                 <p className="text-sm font-medium">Supporting Statements:</p>
                 <ul className="mt-1 list-disc list-inside text-sm text-gray-600">
-                  {(theme.statements || theme.examples || []).slice(0, 3).map((statement, i) => (
-                    <li key={i} className="ml-2">{statement}</li>
+                  {(theme.statements || theme.examples || []).map((statement, i) => (
+                    <li key={i} className="ml-2 whitespace-pre-wrap">{statement}</li>
                   ))}
                 </ul>
               </div>
@@ -194,8 +194,8 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                     <div className="mt-2">
                       <p className="text-sm font-medium">Supporting Evidence:</p>
                       <ul className="mt-1 list-disc list-inside text-sm text-gray-600">
-                        {(pattern.evidence || pattern.examples || []).slice(0, 2).map((evidence, i) => (
-                          <li key={i} className="ml-2">{evidence}</li>
+                        {(pattern.evidence || pattern.examples || []).map((evidence, i) => (
+                          <li key={i} className="ml-2 whitespace-pre-wrap">{evidence}</li>
                         ))}
                       </ul>
                     </div>
@@ -225,7 +225,7 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
           return (
             <li 
               key={idx}
-              className="p-3 rounded-md text-sm"
+              className="p-3 rounded-md text-sm whitespace-pre-wrap"
               style={{ backgroundColor: `${SENTIMENT_COLORS[sentimentType]}15` }}
             >
               {statement}

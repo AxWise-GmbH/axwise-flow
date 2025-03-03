@@ -244,13 +244,18 @@ export default function UnifiedDashboard() {
           }
           
           // Process sentiment data to ensure proper formatting for visualization
-          resultData.sentiment = resultData.sentiment.map((item: any) => {
-            return {
-              ...item,
-              score: typeof item.score === 'number' ? item.score : 0,
-              text: item.text || ''
-            };
-          });
+          let validSentimentItems = resultData.sentiment
+            .filter((item: any) => item.answer && item.answer.trim() !== '')
+            .map((item: any) => {
+              return {
+                ...item,
+                score: typeof item.score === 'number' ? item.score : 0,
+                answer: item.answer || '' // Only use answer field, no fallback to text
+              };
+            });
+          
+          // Use the filtered list for sentiment data
+          resultData.sentiment = validSentimentItems;
           
           // Ensure sentimentStatements exist or create them from sentiment data
           if (!resultData.sentimentStatements) {
@@ -261,14 +266,15 @@ export default function UnifiedDashboard() {
             const neutral: string[] = [];
             const negative: string[] = [];
             
-            resultData.sentiment.forEach((item: any) => {
-              const text = item.text || '';
-              if (!text) return; // Skip empty statements
+            validSentimentItems.forEach((item: any) => {
+              // Only use the answer field for statements
+              const statement = item.answer || '';
+              if (!statement) return; // Skip empty statements
               
               const score = item.score || 0;
-              if (score >= 0.2) positive.push(text);
-              else if (score <= -0.2) negative.push(text);
-              else neutral.push(text);
+              if (score >= 0.2) positive.push(statement);
+              else if (score <= -0.2) negative.push(statement);
+              else neutral.push(statement);
             });
             
             resultData.sentimentStatements = {
@@ -349,13 +355,18 @@ export default function UnifiedDashboard() {
         }
         
         // Process sentiment data to ensure proper formatting for visualization
-        resultData.sentiment = resultData.sentiment.map((item: any) => {
-          return {
-            ...item,
-            score: typeof item.score === 'number' ? item.score : 0,
-            text: item.text || ''
-          };
-        });
+        let validSentimentItems = resultData.sentiment
+          .filter((item: any) => item.answer && item.answer.trim() !== '')
+          .map((item: any) => {
+            return {
+              ...item,
+              score: typeof item.score === 'number' ? item.score : 0,
+              answer: item.answer || '' // Only use answer field, no fallback to text
+            };
+          });
+        
+        // Use the filtered list for sentiment data
+        resultData.sentiment = validSentimentItems;
         
         // Ensure sentimentStatements exist or create them from sentiment data
         if (!resultData.sentimentStatements) {
@@ -366,14 +377,15 @@ export default function UnifiedDashboard() {
           const neutral: string[] = [];
           const negative: string[] = [];
           
-          resultData.sentiment.forEach((item: any) => {
-            const text = item.text || '';
-            if (!text) return; // Skip empty statements
+          validSentimentItems.forEach((item: any) => {
+            // Only use the answer field for statements
+            const statement = item.answer || '';
+            if (!statement) return; // Skip empty statements
             
             const score = item.score || 0;
-            if (score >= 0.2) positive.push(text);
-            else if (score <= -0.2) negative.push(text);
-            else neutral.push(text);
+            if (score >= 0.2) positive.push(statement);
+            else if (score <= -0.2) negative.push(statement);
+            else neutral.push(statement);
           });
           
           resultData.sentimentStatements = {
