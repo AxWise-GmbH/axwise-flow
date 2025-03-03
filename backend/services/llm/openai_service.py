@@ -117,17 +117,70 @@ class OpenAIService:
                     
                     # Ensure supporting statements exist
                     if 'supporting_statements' not in sentiment:
+                        logger.warning("No supporting_statements found in sentiment data, checking alternative fields")
+                        
+                        # Check for alternative fields that might contain statements
+                        if 'positive' in sentiment and isinstance(sentiment['positive'], list):
+                            logger.info(f"Found {len(sentiment['positive'])} statements in 'positive' field")
+                            positive_statements = sentiment['positive']
+                        else:
+                            positive_statements = []
+                            
+                        if 'negative' in sentiment and isinstance(sentiment['negative'], list):
+                            logger.info(f"Found {len(sentiment['negative'])} statements in 'negative' field")
+                            negative_statements = sentiment['negative']
+                        else:
+                            negative_statements = []
+                            
+                        # Create neutral statements (can be empty)
+                        neutral_statements = []
+                        
+                        # Extract from details if available and other fields were empty
+                        if not positive_statements and not negative_statements and 'details' in sentiment:
+                            logger.info(f"Attempting to extract statements from {len(sentiment['details'])} details")
+                            for detail in sentiment['details']:
+                                if isinstance(detail, dict) and 'evidence' in detail and 'score' in detail:
+                                    evidence = detail['evidence']
+                                    score = detail['score']
+                                    
+                                    if isinstance(evidence, str) and evidence.strip():
+                                        if score >= 0.6:
+                                            positive_statements.append(evidence)
+                                        elif score <= 0.4:
+                                            negative_statements.append(evidence)
+                                        else:
+                                            neutral_statements.append(evidence)
+                        
                         sentiment['supporting_statements'] = {
-                            'positive': [],
-                            'neutral': [],
-                            'negative': []
+                            'positive': positive_statements,
+                            'neutral': neutral_statements,
+                            'negative': negative_statements
                         }
+                        
+                        logger.info(f"Created supporting_statements with {len(positive_statements)} positive, {len(neutral_statements)} neutral, and {len(negative_statements)} negative statements")
+                    else:
+                        logger.info(f"Found existing supporting_statements in sentiment data")
+                        # Log samples of the first statement in each category if available
+                        if sentiment['supporting_statements'].get('positive', []):
+                            logger.info(f"Sample positive statement: {sentiment['supporting_statements']['positive'][0]}")
+                        if sentiment['supporting_statements'].get('neutral', []):
+                            logger.info(f"Sample neutral statement: {sentiment['supporting_statements']['neutral'][0]}")
+                        if sentiment['supporting_statements'].get('negative', []):
+                            logger.info(f"Sample negative statement: {sentiment['supporting_statements']['negative'][0]}")
                     
                     # Ensure details have proper sentiment scores
                     if 'details' in sentiment:
                         for detail in sentiment['details']:
                             if 'score' in detail:
                                 detail['score'] = (detail['score'] - 0.5) * 2
+                    
+                    # Create sentimentStatements field for frontend compatibility
+                    result['sentimentStatements'] = {
+                        'positive': sentiment['supporting_statements'].get('positive', []),
+                        'neutral': sentiment['supporting_statements'].get('neutral', []),
+                        'negative': sentiment['supporting_statements'].get('negative', [])
+                    }
+                    logger.info(f"Added sentimentStatements field with {len(result['sentimentStatements']['positive'])} positive, {len(result['sentimentStatements']['neutral'])} neutral, and {len(result['sentimentStatements']['negative'])} negative statements")
             
             logger.info(f"Successfully analyzed data with OpenAI for task: {task}")
             logger.debug(f"Processed result for task {task}:\n{json.dumps(result, indent=2)}")

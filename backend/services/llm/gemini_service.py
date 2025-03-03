@@ -196,6 +196,13 @@ class GeminiService:
                 sentiment = result.get('sentiment', {})
                 breakdown = sentiment.get('breakdown', {})
                 
+                # Normalize breakdown to ensure it sums to 1.0
+                total = sum(breakdown.values()) if breakdown else 0
+                if total > 0 and abs(total - 1.0) > 0.01:
+                    logger.warning(f"Sentiment breakdown does not sum to 1.0 (sum: {total}), normalizing")
+                    for key in breakdown:
+                        breakdown[key] = round(breakdown[key] / total, 3)
+                
                 # Keep sentiment as dictionary (not a list) to match expected format in validate_results
                 transformed = {
                     'sentimentOverview': {
@@ -207,8 +214,9 @@ class GeminiService:
                     'sentiment_details': sentiment.get('details', [])  # Store details separately
                 }
                 
-                # Extract supporting statements
+                # Extract supporting statements with enhanced logging
                 if 'supporting_statements' in sentiment:
+                    logger.info("Found supporting_statements in sentiment data")
                     transformed['sentimentStatements'] = {
                         'positive': sentiment['supporting_statements'].get('positive', []),
                         'neutral': sentiment['supporting_statements'].get('neutral', []),
@@ -217,6 +225,15 @@ class GeminiService:
                     
                     # Log the extraction of statements
                     logger.info(f"Extracted sentiment statements - positive: {len(transformed['sentimentStatements']['positive'])}, neutral: {len(transformed['sentimentStatements']['neutral'])}, negative: {len(transformed['sentimentStatements']['negative'])}")
+                    # Log samples of the first statement in each category if available
+                    if transformed['sentimentStatements']['positive']:
+                        logger.info(f"Sample positive statement: {transformed['sentimentStatements']['positive'][0]}")
+                    if transformed['sentimentStatements']['neutral']:
+                        logger.info(f"Sample neutral statement: {transformed['sentimentStatements']['neutral'][0]}")
+                    if transformed['sentimentStatements']['negative']:
+                        logger.info(f"Sample negative statement: {transformed['sentimentStatements']['negative'][0]}")
+                else:
+                    logger.warning("No supporting_statements found in sentiment data")
                 
                 # If no supporting statements in the API response, or they're empty,
                 # attempt to extract them from the sentiment details
@@ -236,40 +253,58 @@ class GeminiService:
                     
                     # Extract from sentiment details if available
                     details = sentiment.get('details', [])
-                    for detail in details:
-                        if isinstance(detail, dict) and 'evidence' in detail and 'score' in detail:
-                            evidence = detail['evidence']
-                            score = detail['score']
-                            
-                            if isinstance(evidence, str) and evidence.strip():
-                                if score >= 0.6:
-                                    statements['positive'].append(evidence)
-                                elif score <= 0.4:
-                                    statements['negative'].append(evidence)
-                                else:
-                                    statements['neutral'].append(evidence)
+                    if details:
+                        logger.info(f"Found {len(details)} detail items to extract statements from")
+                        for detail in details:
+                            if isinstance(detail, dict) and 'evidence' in detail and 'score' in detail:
+                                evidence = detail['evidence']
+                                score = detail['score']
+                                
+                                if isinstance(evidence, str) and evidence.strip():
+                                    if score >= 0.6:
+                                        statements['positive'].append(evidence)
+                                    elif score <= 0.4:
+                                        statements['negative'].append(evidence)
+                                    else:
+                                        statements['neutral'].append(evidence)
+                    
+                        logger.info(f"Extracted {len(statements['positive'])} positive, {len(statements['neutral'])} neutral, {len(statements['negative'])} negative statements from details")
+                    else:
+                        logger.warning("No details found in sentiment data for extracting statements")
                     
                     # If we extracted some statements, use them
                     if any(statements.values()):
                         transformed['sentimentStatements'] = statements
-                        logger.info(f"Successfully extracted {len(statements['positive'])} positive, {len(statements['neutral'])} neutral, and {len(statements['negative'])} negative statements from details")
+                        logger.info(f"Successfully extracted statements from details")
                     else:
-                        # If no statements extracted from details, generate some based on text
-                        # This ensures we always have some statements
-                        logger.warning("Could not extract statements from details, using fallback method")
-                        transformed['sentimentStatements'] = {
-                            'positive': [],
-                            'neutral': [],
-                            'negative': []
-                        }
-                
-                # Always ensure sentimentStatements exists in the result
-                if 'sentimentStatements' not in transformed:
-                    transformed['sentimentStatements'] = {
-                        'positive': [],
-                        'neutral': [],
-                        'negative': []
-                    }
+                        # If no statements extracted from details, try a deeper inspection of the data
+                        logger.warning("Could not extract statements from details, trying deeper data inspection")
+                        
+                        # Check if there's a 'positive' and 'negative' array directly in the sentiment object
+                        # This handles the case where LLM returns in a different format
+                        if 'positive' in sentiment and isinstance(sentiment['positive'], list):
+                            statements['positive'] = sentiment['positive']
+                            logger.info(f"Found {len(statements['positive'])} positive statements directly in sentiment object")
+                        
+                        if 'negative' in sentiment and isinstance(sentiment['negative'], list):
+                            statements['negative'] = sentiment['negative']
+                            logger.info(f"Found {len(statements['negative'])} negative statements directly in sentiment object")
+                            
+                        # Create basic neutral statements if we don't have any
+                        if not statements['neutral'] and (statements['positive'] or statements['negative']):
+                            statements['neutral'] = ["Neutral sentiment detected in the interview"]
+                        
+                        if any(statements.values()):
+                            transformed['sentimentStatements'] = statements
+                            logger.info("Successfully extracted statements through deeper inspection")
+                        else:
+                            # Last resort - create empty structure
+                            logger.warning("No statements found through any method, using empty structure")
+                            transformed['sentimentStatements'] = {
+                                'positive': [],
+                                'neutral': [],
+                                'negative': []
+                            }
                 
                 result = transformed
             

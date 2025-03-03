@@ -179,6 +179,42 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
     );
   };
 
+  // Validate and process supporting statements
+  const processedStatements = useMemo(() => {
+    console.log('Processing supporting statements:', supportingStatements);
+    
+    // Ensure all categories exist and contain arrays
+    const processed = {
+      positive: Array.isArray(supportingStatements.positive) ? supportingStatements.positive : [],
+      neutral: Array.isArray(supportingStatements.neutral) ? supportingStatements.neutral : [],
+      negative: Array.isArray(supportingStatements.negative) ? supportingStatements.negative : []
+    };
+    
+    // Filter out empty statements and trim whitespace
+    processed.positive = processed.positive
+      .filter(statement => statement && typeof statement === 'string')
+      .map(statement => statement.trim())
+      .filter(statement => statement.length > 0);
+      
+    processed.neutral = processed.neutral
+      .filter(statement => statement && typeof statement === 'string')
+      .map(statement => statement.trim())
+      .filter(statement => statement.length > 0);
+      
+    processed.negative = processed.negative
+      .filter(statement => statement && typeof statement === 'string')
+      .map(statement => statement.trim())
+      .filter(statement => statement.length > 0);
+    
+    console.log('Processed supporting statements:', {
+      positive: processed.positive.length,
+      neutral: processed.neutral.length,
+      negative: processed.negative.length
+    });
+    
+    return processed;
+  }, [supportingStatements]);
+
   // Render statements section with proper colors
   const renderStatements = () => {
     if (!showStatements) return null;
@@ -194,12 +230,12 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
             Positive Statements
           </h3>
           <ul className="space-y-2">
-            {supportingStatements.positive.map((statement, index) => (
+            {processedStatements.positive.map((statement, index) => (
               <li key={index} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
-            {supportingStatements.positive.length === 0 && (
+            {processedStatements.positive.length === 0 && (
               <li className="text-sm text-muted-foreground italic">No positive statements found</li>
             )}
           </ul>
@@ -214,12 +250,12 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
             Neutral Statements
           </h3>
           <ul className="space-y-2">
-            {supportingStatements.neutral.map((statement, index) => (
+            {processedStatements.neutral.map((statement, index) => (
               <li key={index} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
-            {supportingStatements.neutral.length === 0 && (
+            {processedStatements.neutral.length === 0 && (
               <li className="text-sm text-muted-foreground italic">No neutral statements found</li>
             )}
           </ul>
@@ -234,12 +270,12 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
             Negative Statements
           </h3>
           <ul className="space-y-2">
-            {supportingStatements.negative.map((statement, index) => (
+            {processedStatements.negative.map((statement, index) => (
               <li key={index} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
-            {supportingStatements.negative.length === 0 && (
+            {processedStatements.negative.length === 0 && (
               <li className="text-sm text-muted-foreground italic">No negative statements found</li>
             )}
           </ul>

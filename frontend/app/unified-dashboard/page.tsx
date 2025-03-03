@@ -278,7 +278,13 @@ export default function UnifiedDashboard() {
           resultData.sentiment = validSentimentItems;
           
           // Ensure sentimentStatements exist or create them from sentiment data
-          if (!resultData.sentimentStatements) {
+          if (!resultData.sentimentStatements || 
+              !resultData.sentimentStatements.positive || 
+              !resultData.sentimentStatements.neutral || 
+              !resultData.sentimentStatements.negative ||
+              (resultData.sentimentStatements.positive.length === 0 && 
+               resultData.sentimentStatements.neutral.length === 0 && 
+               resultData.sentimentStatements.negative.length === 0)) {
             console.log('Generating sentiment statements from sentiment data');
             
             // Group sentiment data by score into positive, neutral, and negative
@@ -287,26 +293,41 @@ export default function UnifiedDashboard() {
             const negative: string[] = [];
             
             validSentimentItems.forEach((item: any) => {
-              // Only use the answer field for statements
-              const statement = item.answer || '';
+              // Use answer text as statement and ensure it's not empty
+              const statement = item.answer?.trim() || '';
               if (!statement) return; // Skip empty statements
               
-              const score = item.score || 0;
-              if (score >= 0.2) positive.push(statement);
-              else if (score <= -0.2) negative.push(statement);
-              else neutral.push(statement);
+              const score = typeof item.score === 'number' ? item.score : 0;
+              
+              // Categorize based on score
+              if (score >= 0.2) {
+                positive.push(statement);
+              } else if (score <= -0.2) {
+                negative.push(statement);
+              } else {
+                neutral.push(statement);
+              }
             });
             
+            // Create new sentiment statements object
             resultData.sentimentStatements = {
               positive,
               neutral,
               negative
             };
             
-            console.log('Generated sentiment statements:', resultData.sentimentStatements);
+            console.log('Generated sentiment statements', {
+              positive: positive.length,
+              neutral: neutral.length,
+              negative: negative.length
+            });
           } else {
             // Keep existing sentiment statements unedited
-            console.log('Using existing sentiment statements from API');
+            console.log('Using existing sentiment statements from API', {
+              positive: resultData.sentimentStatements.positive.length,
+              neutral: resultData.sentimentStatements.neutral.length,
+              negative: resultData.sentimentStatements.negative.length
+            });
           }
         }
         
@@ -389,7 +410,13 @@ export default function UnifiedDashboard() {
         resultData.sentiment = validSentimentItems;
         
         // Ensure sentimentStatements exist or create them from sentiment data
-        if (!resultData.sentimentStatements) {
+        if (!resultData.sentimentStatements || 
+            !resultData.sentimentStatements.positive || 
+            !resultData.sentimentStatements.neutral || 
+            !resultData.sentimentStatements.negative ||
+            (resultData.sentimentStatements.positive.length === 0 && 
+             resultData.sentimentStatements.neutral.length === 0 && 
+             resultData.sentimentStatements.negative.length === 0)) {
           console.log('Generating sentiment statements from sentiment data');
           
           // Group sentiment data by score into positive, neutral, and negative
@@ -398,26 +425,41 @@ export default function UnifiedDashboard() {
           const negative: string[] = [];
           
           validSentimentItems.forEach((item: any) => {
-            // Only use the answer field for statements
-            const statement = item.answer || '';
+            // Use answer text as statement and ensure it's not empty
+            const statement = item.answer?.trim() || '';
             if (!statement) return; // Skip empty statements
             
-            const score = item.score || 0;
-            if (score >= 0.2) positive.push(statement);
-            else if (score <= -0.2) negative.push(statement);
-            else neutral.push(statement);
+            const score = typeof item.score === 'number' ? item.score : 0;
+            
+            // Categorize based on score
+            if (score >= 0.2) {
+              positive.push(statement);
+            } else if (score <= -0.2) {
+              negative.push(statement);
+            } else {
+              neutral.push(statement);
+            }
           });
           
+          // Create new sentiment statements object
           resultData.sentimentStatements = {
             positive,
             neutral,
             negative
           };
           
-          console.log('Generated sentiment statements:', resultData.sentimentStatements);
+          console.log('Generated sentiment statements', {
+            positive: positive.length,
+            neutral: neutral.length,
+            negative: negative.length
+          });
         } else {
           // Keep existing sentiment statements unedited
-          console.log('Using existing sentiment statements from API');
+          console.log('Using existing sentiment statements from API', {
+            positive: resultData.sentimentStatements.positive.length,
+            neutral: resultData.sentimentStatements.neutral.length,
+            negative: resultData.sentimentStatements.negative.length
+          });
         }
       }
       
