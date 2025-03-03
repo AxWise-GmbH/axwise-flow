@@ -8,23 +8,24 @@ from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
-async def process_data(nlp_processor, llm_service, data: List[Dict[str, Any]]) -> Dict[str, Any]:
+async def process_data(nlp_processor, llm_service, data: Any) -> Dict[str, Any]:
     """
     Process uploaded data through NLP pipeline.
     
     Args:
         nlp_processor: NLP processor instance
         llm_service: LLM service instance
-        data: List of interview data to process
+        data: Interview data to process (can be a list, dictionary, or string)
         
     Returns:
         Dict[str, Any]: Analysis results
     """
     try:
         # Log processing start
-        logger.info(f"Starting data processing pipeline")
+        logger.info(f"Starting data processing pipeline with data type: {type(data)}")
         
         # Process data through NLP pipeline
+        # The NLP processor now handles different data formats internally
         results = await nlp_processor.process_interview_data(data, llm_service)
         
         # Validate results

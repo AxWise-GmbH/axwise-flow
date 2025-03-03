@@ -22,6 +22,7 @@ export default function UnifiedDashboard() {
   
   // Upload and analysis state
   const [file, setFile] = useState<File | null>(null);
+  const [isTextFile, setIsTextFile] = useState<boolean>(false);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
   const [analysisResponse, setAnalysisResponse] = useState<AnalysisResponse | null>(null);
   const [results, setResults] = useState<DetailedAnalysisResult | null>(null);
@@ -128,7 +129,16 @@ export default function UnifiedDashboard() {
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      
+      // Check if it's a text file by MIME type or extension
+      const isText = selectedFile.type === 'text/plain' || 
+                     selectedFile.name.endsWith('.txt') ||
+                     selectedFile.name.endsWith('.text');
+      setIsTextFile(isText);
+      
+      console.log(`Selected file: ${selectedFile.name}, isTextFile: ${isText}`);
     }
   };
 
@@ -146,8 +156,8 @@ export default function UnifiedDashboard() {
       // Set auth token
       apiClient.setAuthToken(authToken);
       
-      // Upload the file
-      const response = await apiClient.uploadData(file);
+      // Upload the file, passing the isTextFile flag
+      const response = await apiClient.uploadData(file, isTextFile);
       setUploadResponse(response);
       showToast('File uploaded successfully', { variant: 'success' });
       
@@ -162,9 +172,14 @@ export default function UnifiedDashboard() {
     }
   };
 
-  // Handle analysis
-  const handleAnalyze = async () => {
-    if (!uploadResponse) {
+  // Handle data analysis
+  const handleAnalyze = async (uploadData?: UploadResponse, isText?: boolean) => {
+    // Use provided upload response or the state value
+    const uploadResponseToUse = uploadData || uploadResponse;
+    // Use provided isText or the state value
+    const isTextFileToUse = isText !== undefined ? isText : isTextFile;
+    
+    if (!uploadResponseToUse) {
       showToast('Please upload a file first', { variant: 'error' });
       return;
     }
@@ -176,8 +191,13 @@ export default function UnifiedDashboard() {
       // Set auth token
       apiClient.setAuthToken(authToken);
       
-      // Trigger analysis
-      const response = await apiClient.analyzeData(uploadResponse.data_id, llmProvider);
+      // Trigger analysis, passing the isTextFile flag
+      const response = await apiClient.analyzeData(
+        uploadResponseToUse.data_id, 
+        llmProvider,
+        undefined,  // Use default model
+        isTextFileToUse
+      );
       setAnalysisResponse(response);
       showToast('Analysis initiated successfully', { variant: 'success' });
       
@@ -583,7 +603,7 @@ export default function UnifiedDashboard() {
                 <div className="flex items-center space-x-4">
                   <button
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                    onClick={handleAnalyze}
+                    onClick={() => handleAnalyze()}
                     disabled={!uploadResponse || loading}
                   >
                     {loading ? <LoadingSpinner size="sm" /> : 'Analyze'}

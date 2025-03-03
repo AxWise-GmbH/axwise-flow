@@ -28,8 +28,12 @@ class AnalysisRequest(BaseModel):
         description="LLM provider to use for analysis"
     )
     llm_model: Optional[str] = Field(
-        default=None,
-        description="Model to use for analysis. Uses 'gpt-4o-2024-08-06' for OpenAI or 'gemini-2.0-flash' for Google."
+        None,
+        description="Specific LLM model to use (defaults to provider's default model)"
+    )
+    is_free_text: Optional[bool] = Field(
+        False,
+        description="Whether the data is in free-text format"
     )
 
     class Config:

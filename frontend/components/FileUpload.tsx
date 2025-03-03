@@ -23,10 +23,15 @@ export function FileUpload({ onUploadComplete }: FileUploadProps): JSX.Element {
   React.useEffect(() => apiClient.setAuthToken("test-token"), [])
 
   const uploadFile = async (file: File) => {
-    if (file.type !== 'application/json') {
-      setUploadError(new Error('Please upload a JSON file'))
+    if (file.type !== 'application/json' && 
+        file.type !== 'text/plain' && 
+        !file.name.endsWith('.json') && 
+        !file.name.endsWith('.txt')) {
+      setUploadError(new Error('Please upload a JSON or TXT file'))
       return
     }
+
+    const isTextFile = file.type === 'text/plain' || file.name.endsWith('.txt');
 
     setIsUploading(true)
     setUploadProgress(0)
@@ -40,7 +45,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps): JSX.Element {
       const uploadResponse = await new Promise<UploadResponse>((resolve, reject) => {
         reader.onload = async () => {
           try {
-            const response = await apiClient.uploadData(file)
+            const response = await apiClient.uploadData(file, isTextFile)
             setUploadProgress(100)
             resolve(response)
           } catch (error) {
@@ -70,6 +75,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps): JSX.Element {
     onDrop,
     accept: {
       'application/json': ['.json'],
+      'text/plain': ['.txt'],
     },
     maxFiles: 1,
   })
@@ -94,7 +100,7 @@ export function FileUpload({ onUploadComplete }: FileUploadProps): JSX.Element {
             <p className="text-sm text-muted-foreground">Drop the file here...</p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Drag and drop a JSON file, or click to select
+              Drag and drop a JSON or TXT file, or click to select
             </p>
           )}
         </div>

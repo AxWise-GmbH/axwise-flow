@@ -2,7 +2,8 @@
 
 import logging
 import asyncio
-from typing import Dict, Any, List
+import re
+from typing import Dict, Any, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,82 @@ class NLPProcessor:
         """Initialize NLP processor without dependencies"""
         logger.info("Initializing NLP processor")
         
+    async def parse_free_text(self, text: str) -> List[Dict[str, str]]:
+        """
+        Parse free-text interview transcripts to extract question-answer pairs.
+        
+        This method attempts to identify question-answer patterns in free text using
+        common patterns like "Q:", "A:", or standard interview question formats.
+        
+        Args:
+            text (str): The free-text interview transcript
+            
+        Returns:
+            List[Dict[str, str]]: List of extracted question-answer pairs
+        """
+        logger.info("Parsing free-text format input")
+        
+        # Check if the text already uses Q/A format
+        qa_pattern = re.compile(r'(?:^|\n)(?:Q|Question)[:.\s]+(.*?)(?:\n)(?:A|Answer)[:.\s]+(.*?)(?=(?:\n)(?:Q|Question)|$)', re.DOTALL)
+        qa_matches = qa_pattern.findall(text)
+        
+        if qa_matches:
+            logger.info(f"Found {len(qa_matches)} explicit Q/A pairs in the text")
+            qa_pairs = []
+            for q, a in qa_matches:
+                qa_pairs.append({
+                    'question': q.strip(),
+                    'answer': a.strip()
+                })
+            return qa_pairs
+        
+        # If no explicit Q/A format, try to identify question-answer patterns
+        # Common patterns: questions end with ? and often start with interrogative words
+        question_pattern = re.compile(r'(?:^|\n)(?:(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)(.*?)(?=(?:^|\n)(?:(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)|$)', re.DOTALL | re.IGNORECASE)
+        qa_matches = question_pattern.findall(text)
+        
+        if qa_matches:
+            logger.info(f"Extracted {len(qa_matches)} implicit Q/A pairs using question patterns")
+            qa_pairs = []
+            for i, match in enumerate(qa_matches):
+                if i > 0:  # First match is the answer to the previous question
+                    question = qa_matches[i-1][0].strip()
+                    answer = match.strip()
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer
+                    })
+            return qa_pairs
+        
+        # If still no patterns found, split by paragraphs and use alternating Q/A assignment
+        paragraphs = [p.strip() for p in re.split(r'\n\s*\n', text) if p.strip()]
+        
+        if paragraphs:
+            logger.info(f"No clear Q/A structure found. Using paragraph-based splitting with {len(paragraphs)} paragraphs")
+            qa_pairs = []
+            
+            # Attempt to determine if first paragraph is context or introduction
+            is_intro = len(paragraphs[0].split()) > 50 or not any(w in paragraphs[0].lower() for w in ['?', 'who', 'what', 'when', 'where', 'why', 'how'])
+            
+            start_idx = 1 if is_intro else 0
+            for i in range(start_idx, len(paragraphs), 2):
+                if i + 1 < len(paragraphs):
+                    qa_pairs.append({
+                        'question': paragraphs[i].strip(),
+                        'answer': paragraphs[i+1].strip()
+                    })
+            
+            if qa_pairs:
+                logger.info(f"Created {len(qa_pairs)} Q/A pairs using paragraph alternation")
+                return qa_pairs
+        
+        # Last resort: treat the entire text as a single answer with a generic question
+        logger.warning("Could not extract structured Q/A pairs. Treating as single response.")
+        return [{
+            'question': 'Please share your thoughts and opinions on the topic:',
+            'answer': text.strip()
+        }]
+
     async def process_interview_data(self, data: Dict[str, Any], llm_service) -> Dict[str, Any]:
         """Process interview data to extract insights"""
         try:
@@ -20,8 +97,31 @@ class NLPProcessor:
             texts = []
             answer_texts = []  # Explicitly track answer-only content for theme analysis
             
-            # Handle different data formats
-            if isinstance(data, list):
+            # Detect and handle free-text format
+            if isinstance(data, str) or (isinstance(data, dict) and 'free_text' in data):
+                logger.info("Detected free-text format input")
+                raw_text = data if isinstance(data, str) else data.get('free_text', '')
+                
+                if not raw_text or not isinstance(raw_text, str):
+                    logger.error(f"Invalid or empty free text input: {raw_text}")
+                    raise ValueError("Invalid or empty free text input")
+                
+                # Parse free text to extract Q&A pairs
+                qa_pairs = await self.parse_free_text(raw_text)
+                logger.info(f"Extracted {len(qa_pairs)} Q/A pairs from free text")
+                
+                # Process extracted Q&A pairs
+                for item in qa_pairs:
+                    question = item.get('question', '')
+                    answer = item.get('answer', '')
+                    if question and answer:
+                        combined_text = f"Q: {question}\nA: {answer}"
+                        texts.append(combined_text)
+                        # Store answer-only version for theme analysis
+                        answer_texts.append(answer)
+            
+            # Handle existing JSON data formats
+            elif isinstance(data, list):
                 # Handle flat format (list of question-answer pairs)
                 logger.info("Processing flat format data (list of items)")
                 for item in data:

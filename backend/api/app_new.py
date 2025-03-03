@@ -104,6 +104,7 @@ async def analyze_data(
         llm_model = analysis_request.llm_model or (
             "gpt-4o-2024-08-06" if llm_provider == "openai" else "gemini-2.0-flash"
         )
+        is_free_text = analysis_request.is_free_text
 
         # Initialize services
         llm_service = LLMServiceFactory.create(llm_provider, LLM_CONFIG[llm_provider])
@@ -120,8 +121,49 @@ async def analyze_data(
 
         # Parse data
         data = json.loads(interview_data.original_data)
-        if not isinstance(data, list):
-            data = [data]
+        
+        # Handle free text format
+        if is_free_text:
+            logger.info(f"Processing free-text format for data_id: {data_id}")
+            # For free text, we expect data to be a string or have a free_text field
+            
+            # If data comes from the database as a dict with nested structure
+            if isinstance(data, dict):
+                # Extract content field if present
+                if 'content' in data:
+                    data = data['content']
+                # Extract free_text field if present
+                if 'free_text' in data:
+                    data = data['free_text']
+                # Extract metadata if present
+                elif 'metadata' in data and isinstance(data['metadata'], dict) and 'free_text' in data['metadata']:
+                    data = data['metadata']['free_text']
+            # If data is a list with a single dict item
+            elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+                # Extract content field if present
+                if 'content' in data[0]:
+                    data = data[0]['content']
+                # Extract free_text field if present
+                elif 'free_text' in data[0]:
+                    data = data[0]['free_text']
+                
+            # Ensure data is a string for free text processing
+            if not isinstance(data, str):
+                # Try to convert to string if it's not already
+                try:
+                    data = json.dumps(data)
+                except:
+                    # If conversion fails, use empty string as fallback
+                    logger.warning(f"Could not convert free text data to string, using empty string")
+                    data = ""
+            
+            # For free text format, wrap in a dict with free_text field
+            data = {'free_text': data}
+            
+            # Log the extracted data
+            logger.info(f"Extracted free text data: {data['free_text'][:100]}...")
+        elif not isinstance(data, list):
+            data = [data]  # Maintain existing behavior for JSON format
 
         # Create initial analysis record
         analysis_result = AnalysisResult(
@@ -174,3 +216,5 @@ async def analyze_data(
         logger.error(f"Error triggering analysis: {str(e)}")
         raise HTTPException(
             status_code=500,
+            detail=f"Error triggering analysis: {str(e)}"
+        )
