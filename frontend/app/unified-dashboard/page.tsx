@@ -251,12 +251,46 @@ export default function UnifiedDashboard() {
             };
           }
           
-          // For text files, if we have the file content, process it for sentiment statements
+          // For text files, if we have the file content and need sentiment statements
           if (isTextFile && fileContent) {
-            console.log("Using text file content for sentiment statements");
-            // Always process the file content for text files, overriding any existing statements
-            resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
-            console.log("Generated sentiment statements from file content:", resultData.sentimentStatements);
+            // First, check if we already have proper LLM-generated sentiment statements
+            const hasValidSentimentStatements = resultData.sentimentStatements && 
+              resultData.sentimentStatements.positive && 
+              resultData.sentimentStatements.positive.length > 0 &&
+              resultData.sentimentStatements.positive[0] !== "No positive statements were extracted from the interview data." &&
+              resultData.sentimentStatements.positive[0] !== "No positive statements found in the provided text.";
+            
+            if (!hasValidSentimentStatements) {
+              console.log("No valid LLM-generated sentiment statements found, requesting sentiment analysis from backend");
+              
+              try {
+                // LLM-BASED APPROACH:
+                // Ideally, we would send the file content to a dedicated backend endpoint
+                // that would use the LLM to analyze sentiment and extract statements.
+                // 
+                // For example:
+                // const llmSentimentResponse = await apiClient.analyzeSentiment(fileContent);
+                // resultData.sentimentStatements = llmSentimentResponse.sentimentStatements;
+                //
+                // However, since we're already using the LLM for the main analysis,
+                // we should be getting sentiment statements from there.
+                // The code below falls back to client-side processing only when necessary.
+                
+                // If we still don't have valid sentiment statements, use local processing as last resort
+                if (!hasValidSentimentStatements) {
+                  console.log("Using local processing for sentiment statements as fallback");
+                  resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
+                  console.log("Generated sentiment statements from file content:", resultData.sentimentStatements);
+                }
+              } catch (error) {
+                console.error("Error getting sentiment statements from backend:", error);
+                // Fall back to local processing
+                console.log("Falling back to local sentiment processing due to error");
+                resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
+              }
+            } else {
+              console.log("Using LLM-generated sentiment statements from analysis");
+            }
           }
           
           // Ensure patterns have category field and proper sentiment
@@ -311,51 +345,22 @@ export default function UnifiedDashboard() {
             const neutral: string[] = [];
             const negative: string[] = [];
             
-            // IMPROVED: First try to extract from sentiment array
-            if (Array.isArray(resultData.sentiment) && resultData.sentiment.length > 0) {
-              console.log('Extracting from sentiment array with', resultData.sentiment.length, 'items');
+            validSentimentItems.forEach((item: any) => {
+              // Use answer text as statement and ensure it's not empty
+              const statement = item.answer?.trim() || '';
+              if (!statement) return; // Skip empty statements
               
-              resultData.sentiment.forEach((item: any) => {
-                // Use answer or text field for the statement
-                const statement = (item.answer || item.text || '').trim();
-                if (!statement) return; // Skip empty statements
-                
-                const score = typeof item.score === 'number' ? item.score : 0;
-                
-                // Categorize based on score
-                if (score >= 0.2) {
-                  positive.push(statement);
-                } else if (score <= -0.2) {
-                  negative.push(statement);
-                } else {
-                  neutral.push(statement);
-                }
-              });
-            }
-            
-            // IMPROVED: If still no statements, try to extract from raw interview data
-            if (positive.length === 0 && neutral.length === 0 && negative.length === 0) {
-              // Add sample statements as a last resort
-              positive.push(
-                "The user interface is intuitive and easy to navigate.",
-                "I appreciate how quickly the system responds to my inputs.",
-                "The new features have significantly improved my workflow."
-              );
+              const score = typeof item.score === 'number' ? item.score : 0;
               
-              neutral.push(
-                "The system works as expected most of the time.",
-                "I neither like nor dislike the color scheme.",
-                "Some features are useful while others seem unnecessary."
-              );
-              
-              negative.push(
-                "The error messages are confusing and unhelpful.",
-                "I find the loading times to be frustratingly slow.",
-                "The recent update removed features I frequently used."
-              );
-              
-              console.log('Added sample sentiment statements as a fallback');
-            }
+              // Categorize based on score
+              if (score >= 0.2) {
+                positive.push(statement);
+              } else if (score <= -0.2) {
+                negative.push(statement);
+              } else {
+                neutral.push(statement);
+              }
+            });
             
             // Create new sentiment statements object
             resultData.sentimentStatements = {
@@ -369,59 +374,14 @@ export default function UnifiedDashboard() {
               neutral: neutral.length,
               negative: negative.length
             });
-          }
-        }
-        
-        // Check if we need to process free text for sentiment statements
-        if ((!resultData.sentimentStatements || 
-             (resultData.sentimentStatements.positive.length === 0 && 
-             resultData.sentimentStatements.neutral.length === 0 && 
-             resultData.sentimentStatements.negative.length === 0)) && 
-            isTextFile) {
-          
-          // Safely access rawText using type assertion
-          const rawText = (resultData as any).rawText || '';
-          if (rawText) {
-            console.log("Processing raw text to extract sentiment statements");
-            resultData.sentimentStatements = processFreeTextToSentimentStatements(rawText);
           } else {
-            console.log("No raw text found in the result data");
-            // Try to extract raw text from the uploaded file instead
-            if (file && isTextFile) {
-              try {
-                const text = await file.text();
-                console.log("Extracted text directly from the file");
-                resultData.sentimentStatements = processFreeTextToSentimentStatements(text);
-              } catch (err) {
-                console.error("Failed to read text from file:", err);
-              }
-            }
+            // Keep existing sentiment statements unedited
+            console.log('Using existing sentiment statements from API', {
+              positive: resultData.sentimentStatements.positive.length,
+              neutral: resultData.sentimentStatements.neutral.length,
+              negative: resultData.sentimentStatements.negative.length
+            });
           }
-        }
-        
-        // Add fallback for when sentiment statements are still empty
-        if (!resultData.sentimentStatements || 
-            (resultData.sentimentStatements.positive.length === 0 && 
-             resultData.sentimentStatements.neutral.length === 0 && 
-             resultData.sentimentStatements.negative.length === 0)) {
-          console.log("Using sample sentiment statements as fallback");
-          resultData.sentimentStatements = {
-            positive: [
-              "I'm excited, even if I'm a bit nervous.",
-              "It's like giving your profile a mini-makeover whenever you feel like it.",
-              "We're using a microservices architecture with real-time updates."
-            ],
-            neutral: [
-              "It was all about boosting engagement and letting folks express themselves more.",
-              "Users head over to a settings panel – and I'll admit, at first it can seem a little overwhelming.",
-              "We didn't leave any stone unturned."
-            ],
-            negative: [
-              "Every time someone tried to change a theme, the profile would suddenly switch to Comic Sans. It was a total nightmare to debug!",
-              "We noticed some lag during peak times – which is like watching paint dry when you're eager for your new look.",
-              "Some found the interface a bit overwhelming at first."
-            ]
-          };
         }
         
         setResults(resultData);
@@ -639,6 +599,43 @@ export default function UnifiedDashboard() {
     const lines = text.split('\n').filter(line => line.trim().length > 0);
     console.log(`Processing ${lines.length} lines of text from file`);
     
+    // Store question-answer pairs when possible
+    const conversationPairs: { question?: string; answer: string }[] = [];
+    let lastQuestion = '';
+    
+    // First pass: extract question-answer pairs
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip empty lines
+      if (!line) continue;
+      
+      // Check if this line looks like a question
+      const isQuestion = line.endsWith('?') || 
+                         (line.includes(':') && line.toLowerCase().includes('question')) ||
+                         (i > 0 && lines[i-1].toLowerCase().includes('question'));
+      
+      if (isQuestion) {
+        // Store as potential question
+        lastQuestion = line;
+      } else if (lastQuestion && i > 0) {
+        // This might be an answer to the last question
+        // Create a conversation pair
+        conversationPairs.push({
+          question: lastQuestion,
+          answer: line
+        });
+        
+        // Reset last question
+        lastQuestion = '';
+      } else {
+        // Just an isolated statement
+        conversationPairs.push({
+          answer: line
+        });
+      }
+    }
+    
     // Extract just the text content without timestamps and speaker labels
     const textContent = lines.map(line => {
       if (isTeamsFormat) {
@@ -683,54 +680,119 @@ export default function UnifiedDashboard() {
       'painfully', 'miss', 'missing', 'clunky', 'unhappy', 'nonsensical', 'never', 'none'
     ];
     
+    // List of phrases that likely require context and should be filtered out when standalone
+    const contextDependentPhrases = [
+      "it's pretty intuitive", "pretty intuitive", "magic in code", "like magic", 
+      "love that", "actually", "chuckles", "laughs", "exactly", "totally",
+      "that's right", "completely", "absolutely", "basically", "literally",
+      "in general", "well", "more or less", "kind of", "sort of", "definitely"
+    ];
+    
     const positive: string[] = [];
     const neutral: string[] = [];
     const negative: string[] = [];
     
-    // First split into sentences for more granular analysis
-    const allText = textContent.join(' ');
-    // Improved regex for more reliable sentence splitting - handles various punctuation
-    const sentences = allText.match(/[^.!?]+[.!?]+/g) || textContent;
-    console.log(`Split text into ${sentences.length} sentences for analysis`);
-    
-    // Process each sentence and categorize by sentiment
-    sentences.forEach(sentence => {
-      const trimmedSentence = sentence.trim();
-      if (!trimmedSentence || trimmedSentence.length < 5) return; // Skip very short sentences
+    // Process conversation pairs for sentiment
+    conversationPairs.forEach(pair => {
+      const answer = pair.answer.trim();
+      if (!answer || answer.length < 10) return; // Skip very short answers
       
-      const lowerSentence = trimmedSentence.toLowerCase();
+      const lowerAnswer = answer.toLowerCase();
       
-      // Check for positive keywords
-      const foundPositive = positiveKeywords.some(keyword => lowerSentence.includes(keyword));
+      // Check if this is a context-dependent statement without a question
+      const isContextDependent = contextDependentPhrases.some(phrase => 
+        lowerAnswer.includes(phrase) && answer.length < 60
+      );
       
-      // Check for negative keywords
-      const foundNegative = negativeKeywords.some(keyword => lowerSentence.includes(keyword));
+      if (isContextDependent && !pair.question) {
+        // Skip context-dependent statements without questions
+        return;
+      }
       
-      // Determine sentiment based on keyword presence
+      // Format the statement, including the question if it exists
+      let statement = answer;
+      if (pair.question) {
+        statement = `Q: ${pair.question}\nA: ${answer}`;
+      }
+      
+      // Determine sentiment
+      const foundPositive = positiveKeywords.some(keyword => lowerAnswer.includes(keyword));
+      const foundNegative = negativeKeywords.some(keyword => lowerAnswer.includes(keyword));
+      
       if (foundPositive && !foundNegative) {
-        positive.push(trimmedSentence);
+        positive.push(statement);
       } else if (foundNegative && !foundPositive) {
-        negative.push(trimmedSentence);
+        negative.push(statement);
       } else if (foundPositive && foundNegative) {
         // If both positive and negative keywords are found, check which ones are more prominent
-        const posCount = positiveKeywords.filter(kw => lowerSentence.includes(kw)).length;
-        const negCount = negativeKeywords.filter(kw => lowerSentence.includes(kw)).length;
+        const posCount = positiveKeywords.filter(kw => lowerAnswer.includes(kw)).length;
+        const negCount = negativeKeywords.filter(kw => lowerAnswer.includes(kw)).length;
         
         if (posCount > negCount) {
-          positive.push(trimmedSentence);
+          positive.push(statement);
         } else if (negCount > posCount) {
-          negative.push(trimmedSentence);
+          negative.push(statement);
         } else {
-          // Equal counts - look at sentence length and context
-          if (trimmedSentence.length > 30) {
-            neutral.push(trimmedSentence);
-          }
+          neutral.push(statement);
         }
-      } else if (trimmedSentence.length > 20) {
-        // No strong sentiment detected and the sentence is substantial
-        neutral.push(trimmedSentence);
+      } else if (statement.length > 40) {
+        // Longer statements without clear sentiment go to neutral
+        neutral.push(statement);
       }
     });
+    
+    // If the conversation pair approach didn't yield enough results, fall back to sentence-based processing
+    if (positive.length + negative.length + neutral.length < 5) {
+      console.log("Not enough statements from conversation pairs, falling back to sentence analysis");
+      
+      // First split into sentences for more granular analysis
+      const allText = textContent.join(' ');
+      // Improved regex for more reliable sentence splitting - handles various punctuation
+      const sentences = allText.match(/[^.!?]+[.!?]+/g) || textContent;
+      console.log(`Split text into ${sentences.length} sentences for analysis`);
+      
+      // Process each sentence and categorize by sentiment
+      sentences.forEach(sentence => {
+        const trimmedSentence = sentence.trim();
+        if (!trimmedSentence || trimmedSentence.length < 20) return; // Skip short sentences
+        
+        const lowerSentence = trimmedSentence.toLowerCase();
+        
+        // Skip context-dependent phrases that don't make sense alone
+        if (contextDependentPhrases.some(phrase => lowerSentence.includes(phrase)) && 
+            trimmedSentence.length < 60) {
+          return;
+        }
+        
+        // Check for positive keywords
+        const foundPositive = positiveKeywords.some(keyword => lowerSentence.includes(keyword));
+        
+        // Check for negative keywords
+        const foundNegative = negativeKeywords.some(keyword => lowerSentence.includes(keyword));
+        
+        // Determine sentiment based on keyword presence
+        if (foundPositive && !foundNegative) {
+          positive.push(trimmedSentence);
+        } else if (foundNegative && !foundPositive) {
+          negative.push(trimmedSentence);
+        } else if (foundPositive && foundNegative) {
+          // If both positive and negative keywords are found, check which ones are more prominent
+          const posCount = positiveKeywords.filter(kw => lowerSentence.includes(kw)).length;
+          const negCount = negativeKeywords.filter(kw => lowerSentence.includes(kw)).length;
+          
+          if (posCount > negCount) {
+            positive.push(trimmedSentence);
+          } else if (negCount > posCount) {
+            negative.push(trimmedSentence);
+          } else {
+            neutral.push(trimmedSentence);
+          }
+        } else if (trimmedSentence.length > 40) {
+          // Longer sentences without clear sentiment go to neutral
+          neutral.push(trimmedSentence);
+        }
+      });
+    }
     
     console.log("Extracted sentiment statements:", {
       positive: positive.length,
@@ -747,7 +809,7 @@ export default function UnifiedDashboard() {
         // For each line, check if it's long enough to be meaningful
         lines.forEach(line => {
           const trimmedLine = line.trim();
-          if (trimmedLine.length > 30) {
+          if (trimmedLine.length > 40) {
             neutral.push(trimmedLine); // Default to neutral for raw text
           }
         });
