@@ -12,6 +12,8 @@ import { ThemeChart } from '@/components/visualization/ThemeChart';
 import { PatternList } from '@/components/visualization/PatternList';
 import { SentimentGraph } from '@/components/visualization/SentimentGraph';
 import { PersonaList } from '@/components/visualization/PersonaList';
+import { Button } from '@/components/ui/button';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export default function UnifiedDashboard() {
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function UnifiedDashboard() {
   const { userId, isLoaded } = useAuth();
   
   // State for active tab
-  const [activeTab, setActiveTab] = useState<'upload' | 'visualize' | 'history' | 'documentation' | 'personas'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'visualize' | 'history' | 'documentation'>('upload');
   
   // State for visualization sub-tab
   const [visualizationTab, setVisualizationTab] = useState<'themes' | 'patterns' | 'sentiment' | 'personas'>('themes');
@@ -60,21 +62,38 @@ export default function UnifiedDashboard() {
       
       if (tabParam) {
         // Set the active tab based on URL parameter
-        if (tabParam === 'history' || tabParam === 'documentation' || tabParam === 'visualize' || tabParam === 'upload' || tabParam === 'personas') {
-          setActiveTab(tabParam as 'upload' | 'visualize' | 'history' | 'documentation' | 'personas');
+        if (tabParam === 'history' || tabParam === 'documentation' || tabParam === 'visualize' || tabParam === 'upload') {
+          setActiveTab(tabParam as 'upload' | 'visualize' | 'history' | 'documentation');
+        }
+        
+        // Check for visualization tab parameter
+        const visualizationTabParam = searchParams.get('visualizationTab');
+        if (visualizationTabParam && (visualizationTabParam === 'themes' || visualizationTabParam === 'patterns' || 
+            visualizationTabParam === 'sentiment' || visualizationTabParam === 'personas')) {
+          setVisualizationTab(visualizationTabParam as 'themes' | 'patterns' | 'sentiment' | 'personas');
+          // If we have a visualization tab, make sure we're on the visualize tab
+          setActiveTab('visualize');
         }
       }
     }
   }, []);
   
-  // Update URL when tab changes
+  // Update URL when tabs change
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', activeTab);
+      
+      // Also update visualization tab in URL when on visualize tab
+      if (activeTab === 'visualize') {
+        url.searchParams.set('visualizationTab', visualizationTab);
+      } else {
+        url.searchParams.delete('visualizationTab');
+      }
+      
       window.history.pushState({}, '', url);
     }
-  }, [activeTab]);
+  }, [activeTab, visualizationTab]);
   
   // Fetch analysis history
   useEffect(() => {
@@ -884,16 +903,6 @@ export default function UnifiedDashboard() {
         >
           Documentation
         </button>
-        <button
-          onClick={() => setActiveTab('personas')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'personas'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Personas
-        </button>
       </div>
 
       {/* Tab Content */}
@@ -927,18 +936,18 @@ export default function UnifiedDashboard() {
                     <label className="flex items-center space-x-2">
                       <input
                         type="radio"
-                        checked={llmProvider === 'openai'}
-                        onChange={() => setLlmProvider('openai')}
-                      />
-                      <span>OpenAI</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
                         checked={llmProvider === 'gemini'}
                         onChange={() => setLlmProvider('gemini')}
                       />
                       <span>Google Gemini</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        checked={llmProvider === 'openai'}
+                        onChange={() => setLlmProvider('openai')}
+                      />
+                      <span>OpenAI</span>
                     </label>
                   </div>
                 </div>
@@ -979,14 +988,16 @@ export default function UnifiedDashboard() {
               <h2 className="text-xl font-semibold mb-4">Step 2: Analyze Data</h2>
               
               <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <button
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                <div className="mt-8 flex gap-4">
+                  <Button
+                    className="w-full"
                     onClick={() => handleAnalyze()}
-                    disabled={!uploadResponse || loading}
+                    disabled={!uploadResponse || loading || !llmProvider}
+                    type="button"
                   >
-                    {loading ? <LoadingSpinner size="sm" /> : 'Analyze'}
-                  </button>
+                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    Analyze with {llmProvider === 'openai' ? 'OpenAI' : 'Google Gemini'}
+                  </Button>
                 </div>
                 
                 {analysisResponse && (

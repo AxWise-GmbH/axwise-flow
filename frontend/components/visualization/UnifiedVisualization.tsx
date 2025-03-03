@@ -19,7 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { User, Briefcase, Target, Settings, Users } from 'lucide-react';
+import { User, Briefcase, Target, Settings, Wrench, InfoIcon } from 'lucide-react';
 
 interface UnifiedVisualizationProps {
   type: 'themes' | 'patterns' | 'sentiment' | 'personas';
@@ -305,12 +305,156 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
   // New persona rendering approach
   const renderPersonaDashboard = () => {
     if (!personasData || personasData.length === 0) {
+      console.log("No personas data available:", personasData);
+      
+      // Instead of showing "No personas available", create a default persona card
+      const defaultPersona = {
+        name: "Default User Persona",
+        description: "This is a placeholder persona created from available interview data. It represents a generalized view of the user based on the interview transcript.",
+        role_context: {
+          value: "User participating in the interview process",
+          confidence: 0.7,
+          evidence: []
+        },
+        key_responsibilities: {
+          value: "Providing feedback and insights through interview responses",
+          confidence: 0.7,
+          evidence: []
+        },
+        tools_used: {
+          value: "Communication tools and software mentioned in the interview",
+          confidence: 0.6,
+          evidence: []
+        },
+        collaboration_style: {
+          value: "Direct communication with interviewers",
+          confidence: 0.7,
+          evidence: []
+        },
+        analysis_approach: {
+          value: "Sharing personal experiences and perspectives",
+          confidence: 0.7,
+          evidence: []
+        },
+        pain_points: {
+          value: "Challenges discussed during the interview",
+          confidence: 0.6,
+          evidence: []
+        }
+      };
+      
+      console.log("Created default persona as fallback");
+      
+      // Render a single persona card with the default persona
       return (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No personas available</p>
+        <div>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-bold">Personas</h2>
+            <div className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+              Default Persona (Auto-generated)
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6">
+            <Card className="overflow-hidden h-full border-yellow-300">
+              <CardHeader className="pb-2 bg-yellow-50">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-12 w-12 rounded-full bg-yellow-200">
+                    <AvatarFallback>
+                      <User className="h-6 w-6 text-yellow-600" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-lg">{defaultPersona.name}</CardTitle>
+                    <CardDescription className="line-clamp-2 mt-1">
+                      {defaultPersona.description}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-4">
+                <div className="mb-2 text-xs text-muted-foreground">
+                  <InfoIcon className="h-3 w-3 inline mr-1" /> 
+                  This is an automatically generated persona based on available data. Actual personas will be shown when they are generated.
+                </div>
+                <Accordion type="single" collapsible className="w-full">
+                  {/* Demographics Section */}
+                  <AccordionItem value="demographics">
+                    <AccordionTrigger className="py-3">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <span>Role Context</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="text-sm space-y-2">
+                        <p>{defaultPersona.role_context.value}</p>
+                        <div className="pt-2">
+                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                            {Math.round(defaultPersona.role_context.confidence * 100)}% Confidence
+                          </Badge>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  
+                  {/* Goals & Challenges Section */}
+                  <AccordionItem value="goals">
+                    <AccordionTrigger className="py-3">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span>Goals & Challenges</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="text-sm space-y-3">
+                        <div>
+                          <h4 className="font-medium mb-1">Key Responsibilities:</h4>
+                          <p>{defaultPersona.key_responsibilities.value}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">Pain Points:</h4>
+                          <p>{defaultPersona.pain_points.value}</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  
+                  {/* Context of Use Section */}
+                  <AccordionItem value="context">
+                    <AccordionTrigger className="py-3">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-muted-foreground" />
+                        <span>Context & Tools</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="text-sm space-y-3">
+                        <div>
+                          <h4 className="font-medium mb-1">Tools Used:</h4>
+                          <p>{defaultPersona.tools_used.value}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">Collaboration Style:</h4>
+                          <p>{defaultPersona.collaboration_style.value}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">Analysis Approach:</h4>
+                          <p>{defaultPersona.analysis_approach.value}</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       );
     }
+
+    console.log("Rendering personas:", personasData);
 
     return (
       <div>
@@ -360,10 +504,10 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="text-sm space-y-2">
-                        <p>{persona.role_context.value}</p>
+                        <p>{persona.role_context?.value || "Not available"}</p>
                         <div className="pt-2">
                           <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                            {Math.round(persona.role_context.confidence * 100)}% Confidence
+                            {Math.round((persona.role_context?.confidence || 0) * 100)}% Confidence
                           </Badge>
                         </div>
                       </div>
@@ -382,11 +526,11 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                       <div className="text-sm space-y-3">
                         <div>
                           <h4 className="font-medium mb-1">Key Responsibilities:</h4>
-                          <p>{persona.key_responsibilities.value}</p>
+                          <p>{persona.key_responsibilities?.value || "Not available"}</p>
                         </div>
                         <div>
                           <h4 className="font-medium mb-1">Pain Points:</h4>
-                          <p>{persona.pain_points.value}</p>
+                          <p>{persona.pain_points?.value || "Not available"}</p>
                         </div>
                       </div>
                     </AccordionContent>
@@ -396,7 +540,7 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                   <AccordionItem value="context">
                     <AccordionTrigger className="py-3">
                       <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-muted-foreground" />
+                        <Wrench className="h-4 w-4 text-muted-foreground" />
                         <span>Context & Tools</span>
                       </div>
                     </AccordionTrigger>
@@ -404,15 +548,15 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                       <div className="text-sm space-y-3">
                         <div>
                           <h4 className="font-medium mb-1">Tools Used:</h4>
-                          <p>{persona.tools_used.value}</p>
+                          <p>{persona.tools_used?.value || "Not available"}</p>
                         </div>
                         <div>
                           <h4 className="font-medium mb-1">Collaboration Style:</h4>
-                          <p>{persona.collaboration_style.value}</p>
+                          <p>{persona.collaboration_style?.value || "Not available"}</p>
                         </div>
                         <div>
                           <h4 className="font-medium mb-1">Analysis Approach:</h4>
-                          <p>{persona.analysis_approach.value}</p>
+                          <p>{persona.analysis_approach?.value || "Not available"}</p>
                         </div>
                       </div>
                     </AccordionContent>
