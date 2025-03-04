@@ -46,6 +46,30 @@ class AnalysisRequest(BaseModel):
         }
 
 
+class PersonaGenerationRequest(BaseModel):
+    """
+    Request model for direct text-to-persona generation.
+    """
+    text: str = Field(..., description="Raw interview text to generate persona from")
+    llm_provider: Optional[Literal["openai", "gemini"]] = Field(
+        "gemini",
+        description="LLM provider to use for persona generation"
+    )
+    llm_model: Optional[str] = Field(
+        "gemini-2.0-flash",
+        description="Specific LLM model to use"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "text": "I'm a frontend developer working on web applications. I typically use React, TypeScript, and sometimes Angular. My biggest challenge is dealing with legacy code that's poorly documented.",
+                "llm_provider": "gemini",
+                "llm_model": "gemini-2.0-flash"
+            }
+        }
+
+
 # Response Models
 
 class UploadResponse(BaseModel):

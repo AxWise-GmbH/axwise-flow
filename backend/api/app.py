@@ -28,7 +28,7 @@ from datetime import datetime
 
 from backend.schemas import (
     AnalysisRequest, UploadResponse, AnalysisResponse,
-    ResultResponse, HealthCheckResponse, DetailedAnalysisResult
+    ResultResponse, HealthCheckResponse, DetailedAnalysisResult, PersonaGenerationRequest
 )
 
 from backend.core.processing_pipeline import process_data
@@ -37,6 +37,7 @@ from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
 from backend.models import User, InterviewData, AnalysisResult
 from backend.config import validate_config, LLM_CONFIG
+from backend.services.processing.persona_formation import PersonaFormationService
 
 # Configure logging
 logging.basicConfig(
@@ -656,4 +657,93 @@ async def list_analyses(
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
+        )
+
+# Add the new endpoint for direct text-to-persona generation
+@app.post(
+    "/api/generate-persona",
+    tags=["Analysis"],
+    summary="Generate persona directly from text",
+    description="Generate a persona directly from raw interview text without requiring full analysis."
+)
+async def generate_persona_from_text(
+    request: Request,
+    persona_request: PersonaGenerationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate a persona directly from interview text.
+    """
+    try:
+        # Validate input
+        if not persona_request.text:
+            raise HTTPException(status_code=400, detail="No text provided for persona generation")
+        
+        # Log request
+        logger.info(f"Generating persona from text ({len(persona_request.text)} chars)")
+        
+        # Initialize LLM service
+        llm_provider = persona_request.llm_provider or "gemini"
+        llm_model = persona_request.llm_model or "gemini-2.0-flash"
+        
+        try:
+            # Update this line to use the create_llm_service method correctly
+            llm_config = dict(LLM_CONFIG[llm_provider])
+            llm_config['model'] = llm_model
+            llm_service = LLMServiceFactory.create(llm_provider, llm_config)
+            
+            # Create PersonaFormationService
+            from infrastructure.data.config import SystemConfig
+            
+            # Create a minimal SystemConfig for the persona formation service
+            class MinimalSystemConfig:
+                def __init__(self):
+                    self.llm = type('obj', (object,), {
+                        'provider': llm_provider,
+                        'model': llm_model,
+                        'REDACTED_API_KEY': LLM_CONFIG[llm_provider].get('REDACTED_API_KEY', ''),
+                        'temperature': 0.3,
+                        'max_tokens': 2000
+                    })
+                    self.processing = type('obj', (object,), {
+                        'batch_size': 10,
+                        'max_tokens': 2000
+                    })
+                    self.validation = type('obj', (object,), {
+                        'min_confidence': 0.4
+                    })
+            
+            system_config = MinimalSystemConfig()
+            persona_service = PersonaFormationService(system_config, llm_service)
+            
+            # Generate persona
+            personas = await persona_service.generate_persona_from_text(
+                persona_request.text,
+                {'original_text': persona_request.text}
+            )
+            
+            if not personas or len(personas) == 0:
+                logger.error("No personas were generated from text")
+                raise HTTPException(status_code=500, detail="Failed to generate persona from text")
+            
+            # Return the generated persona
+            return {
+                "success": True,
+                "message": "Persona generated successfully",
+                "persona": personas[0] if personas else None
+            }
+            
+        except Exception as service_error:
+            logger.error(f"Service error during persona generation: {str(service_error)}")
+            raise HTTPException(status_code=500, detail=f"Persona generation error: {str(service_error)}")
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Error generating persona: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Server error: {str(e)}"
         )
