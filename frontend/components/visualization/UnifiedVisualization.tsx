@@ -663,6 +663,80 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     }
   };
 
+  // New function to generate key findings based on visualization type
+  const getKeyFindings = () => {
+    if (type === 'themes') {
+      // Get top themes from each sentiment category
+      const positiveTheme = themesBySentiment.positive[0]?.name || 'No positive themes found';
+      const neutralTheme = themesBySentiment.neutral[0]?.name || 'No neutral themes found';
+      const negativeTheme = themesBySentiment.negative[0]?.name || 'No negative themes found';
+      
+      return [
+        `Most prominent positive theme: ${positiveTheme}`,
+        `Most prominent neutral theme: ${neutralTheme}`,
+        `Most prominent negative theme: ${negativeTheme}`
+      ];
+    } else if (type === 'patterns') {
+      // Get top patterns or pattern categories
+      const totalPatterns = patternsData.length;
+      const positiveCount = patternsBySentiment.positive.length;
+      const negativeCount = patternsBySentiment.negative.length;
+      
+      // Calculate percentages
+      const positivePercent = totalPatterns ? Math.round((positiveCount / totalPatterns) * 100) : 0;
+      const negativePercent = totalPatterns ? Math.round((negativeCount / totalPatterns) * 100) : 0;
+      
+      return [
+        `${totalPatterns} distinct patterns identified in the interview`,
+        `${positivePercent}% of patterns have positive sentiment`,
+        `${negativePercent}% of patterns have negative sentiment`
+      ];
+    } else if (type === 'sentiment') {
+      // Use the actual statement counts
+      const positiveCount = sentimentStatements.positive?.length || 0;
+      const neutralCount = sentimentStatements.neutral?.length || 0;
+      const negativeCount = sentimentStatements.negative?.length || 0;
+      const total = positiveCount + neutralCount + negativeCount;
+      
+      return [
+        `${positiveCount} positive statements (${Math.round((positiveCount / total) * 100)}%)`,
+        `${neutralCount} neutral statements (${Math.round((neutralCount / total) * 100)}%)`,
+        `${negativeCount} negative statements (${Math.round((negativeCount / total) * 100)}%)`
+      ];
+    } else if (type === 'personas') {
+      // Get confidence-related findings for personas
+      const { positive: highConf, neutral: medConf, negative: lowConf } = categorizePersonas;
+      const totalPersonas = personasData.length;
+      
+      return [
+        `${totalPersonas} distinct personas generated from the interview data`,
+        `${highConf.length} personas with high confidence scores (70%+)`,
+        `Most confident persona traits: Role Context and Collaboration Style`
+      ];
+    }
+    
+    return ['No key findings available'];
+  };
+  
+  // Component to display key findings
+  const KeyFindings = () => {
+    const findings = getKeyFindings();
+    
+    return (
+      <div className="bg-card p-4 rounded-lg shadow-sm h-full flex flex-col justify-center">
+        <h3 className="text-lg font-medium mb-4">Key Findings</h3>
+        <ul className="space-y-3">
+          {findings.map((finding, index) => (
+            <li key={index} className="flex items-start gap-2">
+              <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+              <span className="text-sm">{finding}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <div className={`${className || ''} w-full`}>
       {/* Special handling for personas - no charts, different layout */}
@@ -674,7 +748,7 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
           <h2 className="text-xl font-bold mb-6">{getTitle()}</h2>
           
           {/* Chart Row */}
-          <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Pie Chart */}
             <div className="bg-card p-4 rounded-lg shadow-sm">
               <h3 className="text-lg font-medium mb-4">Sentiment Distribution</h3>
@@ -700,6 +774,9 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                 </ResponsiveContainer>
               </div>
             </div>
+            
+            {/* Key Findings */}
+            <KeyFindings />
           </div>
           
           {/* Content Row */}

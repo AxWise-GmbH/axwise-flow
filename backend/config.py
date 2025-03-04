@@ -14,14 +14,14 @@ LLM_CONFIG = {
     "openai": {
         "REDACTED_API_KEY": os.getenv("REDACTED_OPENAI_KEY"),
         "model": os.getenv("OPENAI_MODEL", "gpt-4o-2024-08-06"),
-        "temperature": float(os.getenv("OPENAI_TEMPERATURE", "0.3")),
+        "temperature": float(os.getenv("OPENAI_TEMPERATURE", "0.0")),
         "max_tokens": int(os.getenv("OPENAI_MAX_TOKENS", "16384")),
         "context_window": int(os.getenv("OPENAI_CONTEXT_WINDOW", "128000"))
     },
     "gemini": {
         "REDACTED_API_KEY": os.getenv("REDACTED_GEMINI_KEY"),
         "model": os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
-        "temperature": float(os.getenv("GEMINI_TEMPERATURE", "1.0")),
+        "temperature": float(os.getenv("GEMINI_TEMPERATURE", "0.0")),
         "max_tokens": int(os.getenv("GEMINI_MAX_TOKENS", "8192")),
         "context_window": int(os.getenv("GEMINI_CONTEXT_WINDOW", "32000")),
         "top_p": float(os.getenv("GEMINI_TOP_P", "0.95")),
