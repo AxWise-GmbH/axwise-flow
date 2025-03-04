@@ -663,76 +663,350 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     }
   };
 
-  // New function to generate key findings based on visualization type
+  // Near the top of the file, add a new state for the insight mode
+  const [insightMode, setInsightMode] = React.useState<'major' | 'minor'>('major');
+
+  // Modify the getKeyFindings function to handle both modes
   const getKeyFindings = () => {
-    if (type === 'themes') {
-      // Get top themes from each sentiment category
-      const positiveTheme = themesBySentiment.positive[0]?.name || 'No positive themes found';
-      const neutralTheme = themesBySentiment.neutral[0]?.name || 'No neutral themes found';
-      const negativeTheme = themesBySentiment.negative[0]?.name || 'No negative themes found';
-      
-      return [
-        `Most prominent positive theme: ${positiveTheme}`,
-        `Most prominent neutral theme: ${neutralTheme}`,
-        `Most prominent negative theme: ${negativeTheme}`
-      ];
-    } else if (type === 'patterns') {
-      // Get top patterns or pattern categories
-      const totalPatterns = patternsData.length;
-      const positiveCount = patternsBySentiment.positive.length;
-      const negativeCount = patternsBySentiment.negative.length;
-      
-      // Calculate percentages
-      const positivePercent = totalPatterns ? Math.round((positiveCount / totalPatterns) * 100) : 0;
-      const negativePercent = totalPatterns ? Math.round((negativeCount / totalPatterns) * 100) : 0;
-      
-      return [
-        `${totalPatterns} distinct patterns identified in the interview`,
-        `${positivePercent}% of patterns have positive sentiment`,
-        `${negativePercent}% of patterns have negative sentiment`
-      ];
-    } else if (type === 'sentiment') {
-      // Use the actual statement counts
-      const positiveCount = sentimentStatements.positive?.length || 0;
-      const neutralCount = sentimentStatements.neutral?.length || 0;
-      const negativeCount = sentimentStatements.negative?.length || 0;
-      const total = positiveCount + neutralCount + negativeCount;
-      
-      return [
-        `${positiveCount} positive statements (${Math.round((positiveCount / total) * 100)}%)`,
-        `${neutralCount} neutral statements (${Math.round((neutralCount / total) * 100)}%)`,
-        `${negativeCount} negative statements (${Math.round((negativeCount / total) * 100)}%)`
-      ];
-    } else if (type === 'personas') {
-      // Get confidence-related findings for personas
-      const { positive: highConf, neutral: medConf, negative: lowConf } = categorizePersonas;
-      const totalPersonas = personasData.length;
-      
-      return [
-        `${totalPersonas} distinct personas generated from the interview data`,
-        `${highConf.length} personas with high confidence scores (70%+)`,
-        `Most confident persona traits: Role Context and Collaboration Style`
-      ];
+    if (insightMode === 'major') {
+      // Data-Driven Insights with Brief Commentary (Major)
+      if (type === 'themes') {
+        // Find themes with highest frequency or most evidence
+        const orderedThemes = [...themesData].sort((a, b) => 
+          (b.frequency || 0) - (a.frequency || 0)
+        );
+        
+        return [
+          <div key="theme-1" className="space-y-1">
+            <p className="font-medium">Theme Distribution</p>
+            <p className="text-sm">
+              {themesBySentiment.positive.length} positive, {themesBySentiment.neutral.length} neutral, 
+              and {themesBySentiment.negative.length} negative themes identified.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Clear sentiment differentiation indicates well-defined user reactions.
+            </p>
+          </div>,
+          <div key="theme-2" className="space-y-1">
+            <p className="font-medium">Key Theme: {orderedThemes[0]?.name || 'N/A'}</p>
+            <p className="text-sm">
+              Mentioned in {Math.round((orderedThemes[0]?.frequency || 0) * 100)}% of responses.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              High frequency suggests this is a central concern for users.
+            </p>
+          </div>,
+          <div key="theme-3" className="space-y-1">
+            <p className="font-medium">Evidence Strength</p>
+            <p className="text-sm">
+              {themesData.reduce((sum, theme) => sum + (theme.statements?.length || 0), 0)} supporting statements across all themes.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Robust evidence base reinforces the validity of identified themes.
+            </p>
+          </div>
+        ];
+      } else if (type === 'patterns') {
+        // Group patterns by category and count
+        const categoryCounts: Record<string, number> = {};
+        patternsData.forEach(pattern => {
+          const category = pattern.category || 'Uncategorized';
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        });
+        
+        // Find top category
+        const topCategory = Object.entries(categoryCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([category]) => category)[0] || 'None';
+        
+        const totalPatterns = patternsData.length;
+        
+        return [
+          <div key="pattern-1" className="space-y-1">
+            <p className="font-medium">Pattern Distribution</p>
+            <p className="text-sm">
+              {totalPatterns} distinct patterns identified in the interview data.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              These patterns represent recurring behaviors that can inform feature priorities.
+            </p>
+          </div>,
+          <div key="pattern-2" className="space-y-1">
+            <p className="font-medium">Dominant Category: {topCategory}</p>
+            <p className="text-sm">
+              {categoryCounts[topCategory] || 0} patterns ({Math.round(((categoryCounts[topCategory] || 0) / totalPatterns) * 100)}% of total)
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              High concentration in this category suggests focusing development resources here.
+            </p>
+          </div>,
+          <div key="pattern-3" className="space-y-1">
+            <p className="font-medium">Sentiment Analysis</p>
+            <p className="text-sm">
+              {patternsBySentiment.positive.length} positive, {patternsBySentiment.neutral.length} neutral, and {patternsBySentiment.negative.length} negative patterns.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              {patternsBySentiment.positive.length > patternsBySentiment.negative.length 
+                ? "Positive patterns predominate, suggesting general satisfaction with core workflows."
+                : "Negative patterns are significant, indicating friction points to address."}
+            </p>
+          </div>
+        ];
+      } else if (type === 'sentiment') {
+        // Get the actual statement counts
+        const positiveCount = sentimentStatements.positive?.length || 0;
+        const neutralCount = sentimentStatements.neutral?.length || 0;
+        const negativeCount = sentimentStatements.negative?.length || 0;
+        const total = positiveCount + neutralCount + negativeCount;
+        
+        // Calculate the predominant sentiment
+        const predominant = positiveCount > neutralCount && positiveCount > negativeCount
+          ? "positive"
+          : negativeCount > positiveCount && negativeCount > neutralCount
+            ? "negative"
+            : "neutral";
+        
+        return [
+          <div key="sentiment-1" className="space-y-1">
+            <p className="font-medium">Sentiment Distribution</p>
+            <p className="text-sm">
+              {positiveCount} positive ({Math.round((positiveCount / total) * 100)}%), 
+              {neutralCount} neutral ({Math.round((neutralCount / total) * 100)}%), 
+              {negativeCount} negative ({Math.round((negativeCount / total) * 100)}%)
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              {predominant === "positive" 
+                ? "Positive sentiment primarily tied to user-friendly interface and intuitive workflows."
+                : predominant === "negative"
+                  ? "Negative sentiment largely related to performance concerns and learning curve."
+                  : "Balanced sentiment suggests mixed user experiences."}
+            </p>
+          </div>,
+          <div key="sentiment-2" className="space-y-1">
+            <p className="font-medium">Context Analysis</p>
+            <p className="text-sm">
+              Sentiment analysis covers {total} distinct statements from the interview.
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              The distribution provides insight into user satisfaction and pain points.
+            </p>
+          </div>,
+          <div key="sentiment-3" className="space-y-1">
+            <p className="font-medium">Actionable Insights</p>
+            <p className="text-sm">
+              {predominant === "positive" 
+                ? "Maintain and enhance the aspects generating positive feedback."
+                : predominant === "negative"
+                  ? "Address the most frequently mentioned negative aspects as priorities."
+                  : "Balance improvements between enhancing positives and addressing negatives."}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Sentiment patterns suggest where to focus development resources.
+            </p>
+          </div>
+        ];
+      } else if (type === 'personas') {
+        if (!personasData.length) return [<div key="no-personas">No personas available</div>];
+        
+        const persona = personasData[0]; // Focus on the first persona
+        
+        return [
+          <div key="persona-1" className="space-y-1">
+            <p className="font-medium">Primary Goal</p>
+            <p className="text-sm">
+              {persona.key_responsibilities?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              This represents the core job function that drives their interaction with the product.
+            </p>
+          </div>,
+          <div key="persona-2" className="space-y-1">
+            <p className="font-medium">Core Challenge</p>
+            <p className="text-sm">
+              {persona.pain_points?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Addressing these challenges could significantly improve user experience.
+            </p>
+          </div>,
+          <div key="persona-3" className="space-y-1">
+            <p className="font-medium">Most Used Features</p>
+            <p className="text-sm">
+              {persona.tools_used?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              These tools and features are critical to their workflow and should be prioritized.
+            </p>
+          </div>
+        ];
+      }
+    } else {
+      // Top 3 Highlights per Category (Minor)
+      if (type === 'themes') {
+        // Sort themes by frequency to find top 3
+        const topThemes = [...themesData]
+          .sort((a, b) => (b.frequency || 0) - (a.frequency || 0))
+          .slice(0, 3);
+          
+        return topThemes.map((theme, idx) => (
+          <div key={`top-theme-${idx}`} className="space-y-1">
+            <p className="font-medium">
+              {idx + 1}. {theme.name}
+            </p>
+            <p className="text-sm">
+              {Math.round((theme.frequency || 0) * 100)}% frequency, 
+              {theme.sentiment && theme.sentiment > 0.2 
+                ? " positive sentiment" 
+                : theme.sentiment && theme.sentiment < -0.2 
+                  ? " negative sentiment" 
+                  : " neutral sentiment"}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              {idx === 0 
+                ? "Primary focus area for product improvement efforts."
+                : idx === 1 
+                  ? "Secondary consideration that affects user satisfaction."
+                  : "Additional area worthy of product team attention."}
+            </p>
+          </div>
+        ));
+      } else if (type === 'patterns') {
+        // Sort patterns by frequency to find top 3
+        const topPatterns = [...patternsData]
+          .sort((a, b) => (b.frequency || 0) - (a.frequency || 0))
+          .slice(0, 3);
+          
+        return topPatterns.map((pattern, idx) => (
+          <div key={`top-pattern-${idx}`} className="space-y-1">
+            <p className="font-medium">
+              {idx + 1}. {pattern.name}
+            </p>
+            <p className="text-sm">
+              {Math.round((pattern.frequency || 0) * 100)}% occurrence rate
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              {idx === 0 
+                ? "Critical workflow pattern that should be optimized for efficiency."
+                : idx === 1 
+                  ? "Important behavioral pattern that influences product usage."
+                  : "Significant pattern that provides insight into user needs."}
+            </p>
+          </div>
+        ));
+      } else if (type === 'sentiment') {
+        return [
+          <div key="top-positive" className="space-y-1">
+            <p className="font-medium text-emerald-600 dark:text-emerald-400">
+              Positive Focus
+            </p>
+            <p className="text-sm">
+              {sentimentStatements.positive?.[0] || 'No positive statements found'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              This represents a strong product advantage to maintain and enhance.
+            </p>
+          </div>,
+          <div key="top-negative" className="space-y-1">
+            <p className="font-medium text-rose-600 dark:text-rose-400">
+              Negative Concern
+            </p>
+            <p className="text-sm">
+              {sentimentStatements.negative?.[0] || 'No negative statements found'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              This highlights a critical pain point that should be addressed.
+            </p>
+          </div>,
+          <div key="top-neutral" className="space-y-1">
+            <p className="font-medium text-blue-600 dark:text-blue-400">
+              Neutral Observation
+            </p>
+            <p className="text-sm">
+              {sentimentStatements.neutral?.[0] || 'No neutral statements found'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              This represents accepted functionality that could be improved.
+            </p>
+          </div>
+        ];
+      } else if (type === 'personas') {
+        if (!personasData.length) return [<div key="no-personas">No personas available</div>];
+        
+        const persona = personasData[0]; // Focus on the first persona
+        
+        return [
+          <div key="who-they-are" className="space-y-1">
+            <p className="font-medium">Who They Are</p>
+            <p className="text-sm">
+              {persona.role_context?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Understanding their role provides context for their needs and behaviors.
+            </p>
+          </div>,
+          <div key="what-they-need" className="space-y-1">
+            <p className="font-medium">What They Need</p>
+            <p className="text-sm">
+              {persona.key_responsibilities?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              These needs should be directly addressed in product functionality.
+            </p>
+          </div>,
+          <div key="key-challenge" className="space-y-1">
+            <p className="font-medium">Key Challenge</p>
+            <p className="text-sm">
+              {persona.pain_points?.value || 'Not specified'}
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              Solving this challenge would significantly improve their experience.
+            </p>
+          </div>
+        ];
+      }
     }
     
-    return ['No key findings available'];
+    return [<div key="default">No insights available</div>];
   };
   
-  // Component to display key findings
+  // Update the KeyFindings component to include the toggle
   const KeyFindings = () => {
     const findings = getKeyFindings();
     
     return (
-      <div className="bg-card p-4 rounded-lg shadow-sm h-full flex flex-col justify-center">
-        <h3 className="text-lg font-medium mb-4">Key Findings</h3>
-        <ul className="space-y-3">
+      <div className="bg-card p-4 rounded-lg shadow-sm h-full flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">Key Insights</h3>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setInsightMode('minor')}
+              className={`px-2 py-1 text-xs rounded ${
+                insightMode === 'minor' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              Top 3
+            </button>
+            <button 
+              onClick={() => setInsightMode('major')}
+              className={`px-2 py-1 text-xs rounded ${
+                insightMode === 'major' 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              Detailed
+            </button>
+          </div>
+        </div>
+        <div className="space-y-5 flex-grow">
           {findings.map((finding, index) => (
-            <li key={index} className="flex items-start gap-2">
-              <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-              <span className="text-sm">{finding}</span>
-            </li>
+            <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+              {finding}
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     );
   };
