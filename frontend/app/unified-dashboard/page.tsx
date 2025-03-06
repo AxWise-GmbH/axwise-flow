@@ -15,6 +15,60 @@ import { PersonaList } from '@/components/visualization/PersonaList';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles } from 'lucide-react';
 
+const HelpDropdown = ({ isOpen, toggle }: { isOpen: boolean; toggle: () => void }) => {
+  return (
+    <div className="relative inline-block">
+      <button 
+        onClick={toggle}
+        className="text-blue-600 hover:text-blue-800 flex items-center text-sm"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+        </svg>
+        Help Guide
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+          <div className="p-4">
+            <h3 className="font-medium text-lg mb-2">Getting Started Guide</h3>
+            <ol className="space-y-3 list-decimal pl-5 text-sm">
+              <li>
+                <span className="font-medium">Get API Key</span>
+                <p className="text-gray-600 dark:text-gray-300">Create a Google API key with Gemini access</p>
+              </li>
+              <li>
+                <span className="font-medium">Enter API Key</span>
+                <p className="text-gray-600 dark:text-gray-300">Paste your API key in the field above</p>
+              </li>
+              <li>
+                <span className="font-medium">Upload Transcript</span>
+                <p className="text-gray-600 dark:text-gray-300">Upload your interview transcript file (.txt, .docx)</p>
+              </li>
+              <li>
+                <span className="font-medium">Select Analysis Type</span>
+                <p className="text-gray-600 dark:text-gray-300">Choose the type of analysis to perform</p>
+              </li>
+              <li>
+                <span className="font-medium">View Results</span>
+                <p className="text-gray-600 dark:text-gray-300">See analysis in the Visualize tab</p>
+              </li>
+            </ol>
+            <a 
+              href="https://makersuite.google.com/app/REDACTED_API_KEY" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-blue-600 hover:underline text-sm"
+            >
+              Get API key from Google AI Studio →
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function UnifiedDashboard() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -44,6 +98,10 @@ export default function UnifiedDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<Error | null>(null);
+  
+  // Help state
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const toggleHelp = () => setIsHelpOpen(!isHelpOpen);
   
   // Handle authentication redirection within useEffect
   useEffect(() => {
@@ -858,453 +916,655 @@ export default function UnifiedDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold mb-8">Interview Insight Analyst</h1>
+      {/* Header with improved visual structure */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-4 border-b">
+        <div>
+          <h1 className="text-3xl font-bold">Interview Insight Analyst</h1>
+          <p className="text-muted-foreground mt-1">Analyze interview data and generate insights</p>
+        </div>
+        
+        {/* User info and settings placeholder - can be expanded later */}
+        <div className="mt-4 md:mt-0 flex items-center">
+          <span className="text-sm text-muted-foreground mr-2">Logged in as:</span>
+          <div className="bg-primary/10 text-primary font-medium rounded-md px-3 py-1 text-sm">
+            {userId || 'Guest User'}
+          </div>
+        </div>
+      </header>
       
-      {/* Main Tabs */}
-      <div className="flex flex-wrap space-x-2 border-b mb-8">
-        <button
-          onClick={() => setActiveTab('upload')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'upload'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Upload & Analyze
-        </button>
-        <button
-          onClick={() => setActiveTab('visualize')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'visualize'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          disabled={!results}
-        >
-          Visualize Results
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'history'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          History
-        </button>
-        <button
-          onClick={() => setActiveTab('documentation')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'documentation'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Documentation
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div>
-        {/* Upload & Analyze Tab */}
-        {activeTab === 'upload' && (
-          <div className="space-y-8">
-            {/* Configuration Section */}
-            <section className="bg-card p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Configuration</h2>
+      {/* Main content with sidebar navigation and content area */}
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
+        {/* Sidebar Navigation */}
+        <nav className="hidden md:block space-y-1 sticky top-8 self-start">
+          <div className="bg-card p-4 rounded-lg shadow-sm mb-4">
+            <h3 className="font-medium mb-3 text-sm uppercase tracking-wider text-muted-foreground">Main Navigation</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => setActiveTab('upload')}
+                className={`w-full text-left px-3 py-2 rounded-md flex items-center ${
+                  activeTab === 'upload'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                Upload & Analyze
+              </button>
               
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="mt-2 sm:mt-0">
-                  <label className="block text-sm font-medium mb-1">
-                    Auth Token:
-                  </label>
-                  <input
-                    type="text"
-                    value={authToken}
-                    onChange={(e) => setAuthToken(e.target.value)}
-                    className="border border-border rounded-md p-2 w-64"
-                    placeholder="Enter auth token"
-                  />
-                </div>
-                
-                <div className="mt-2 sm:mt-0">
-                  <label className="block text-sm font-medium mb-1">
-                    LLM Provider:
-                  </label>
-                  <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        checked={llmProvider === 'gemini'}
-                        onChange={() => setLlmProvider('gemini')}
-                      />
-                      <span>Google Gemini</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        checked={llmProvider === 'openai'}
-                        onChange={() => setLlmProvider('openai')}
-                      />
-                      <span>OpenAI</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Upload Section */}
-            <section className="bg-card p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Step 1: Upload Data</h2>
+              <button
+                onClick={() => setActiveTab('visualize')}
+                disabled={!results}
+                className={`w-full text-left px-3 py-2 rounded-md flex items-center ${
+                  !results ? 'opacity-50 cursor-not-allowed text-muted-foreground' :
+                  activeTab === 'visualize'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                </svg>
+                Visualize Results
+              </button>
               
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-4">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileChange}
-                    className="border border-border rounded-md p-2"
-                  />
-                  <button
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                    onClick={handleUpload}
-                    disabled={!file || loading}
-                  >
-                    {loading ? <LoadingSpinner size="sm" /> : 'Upload'}
-                  </button>
-                </div>
-                
-                {uploadResponse && (
-                  <div className="mt-2 text-sm text-green-600">
-                    Upload successful! Data ID: {uploadResponse.data_id}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Analyze Section */}
-            <section className="bg-card p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Step 2: Analyze Data</h2>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`w-full text-left px-3 py-2 rounded-md flex items-center ${
+                  activeTab === 'history'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+                </svg>
+                History
+              </button>
               
-              <div className="space-y-4">
-                <div className="mt-8 flex gap-4">
-                  <Button
-                    className="w-full"
-                    onClick={() => handleAnalyze()}
-                    disabled={!uploadResponse || loading || !llmProvider}
-                    type="button"
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                    Analyze with {llmProvider === 'openai' ? 'OpenAI' : 'Google Gemini'}
-                  </Button>
-                </div>
-                
-                {analysisResponse && (
-                  <div className="mt-2 text-sm text-green-600">
-                    Analysis initiated! Result ID: {analysisResponse.result_id}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Get Results Section */}
-            <section className="bg-card p-6 rounded-lg shadow-sm">
-              <h2 className="text-xl font-semibold mb-4">Step 3: Get Results</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <button
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                    onClick={handleGetResults}
-                    disabled={!analysisResponse || loading}
-                  >
-                    {loading ? <LoadingSpinner size="sm" /> : 'Get Results'}
-                  </button>
-                </div>
-                
-                {results && (
-                  <div className="mt-2 text-sm text-green-600">
-                    Results loaded successfully!
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Error Display */}
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
-                <h3 className="font-medium mb-1">Error</h3>
-                <p>{error}</p>
-              </div>
-            )}
+              <button
+                onClick={() => setActiveTab('documentation')}
+                className={`w-full text-left px-3 py-2 rounded-md flex items-center ${
+                  activeTab === 'documentation'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                </svg>
+                Documentation
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Visualization Tab */}
-        {activeTab === 'visualize' && (
-          <div>
-            {!results ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No results available</p>
+          
+          {activeTab === 'visualize' && results && (
+            <div className="bg-card p-4 rounded-lg shadow-sm">
+              <h3 className="font-medium mb-3 text-sm uppercase tracking-wider text-muted-foreground">Visualization</h3>
+              <div className="space-y-1">
                 <button
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                  onClick={() => setActiveTab('upload')}
+                  onClick={() => setVisualizationTab('themes')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${
+                    visualizationTab === 'themes'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent'
+                  }`}
                 >
-                  Upload & Analyze Data
+                  Themes
                 </button>
-              </div>
-            ) : (
-              <div>
-                {/* Visualization Type Tabs */}
-                <div className="flex space-x-2 border-b mb-6">
-                  <button
-                    onClick={() => setVisualizationTab('themes')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'themes'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Themes
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('patterns')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'patterns'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Patterns
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('sentiment')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'sentiment'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Sentiment
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('personas')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'personas'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Personas
-                  </button>
-                </div>
-
-                {/* Visualization Content */}
-                {visualizationTab === 'themes' && (
-                  <UnifiedVisualization
-                    type="themes"
-                    themesData={results.themes}
-                  />
-                )}
-                
-                {visualizationTab === 'patterns' && (
-                  <UnifiedVisualization
-                    type="patterns"
-                    patternsData={results.patterns}
-                  />
-                )}
-                
-                {visualizationTab === 'sentiment' && (
-                  <UnifiedVisualization
-                    type="sentiment"
-                    sentimentData={{
-                      overview: results.sentimentOverview,
-                      details: results.sentiment,
-                      statements: results.sentimentStatements || {
-                        positive: results.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
-                        neutral: results.sentiment.filter(s => s.score >= -0.2 && s.score <= 0.2).map(s => s.text).slice(0, 5),
-                        negative: results.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
-                      }
-                    }}
-                  />
-                )}
-
-                {visualizationTab === 'personas' && (
-                  <UnifiedVisualization
-                    type="personas"
-                    personasData={results.personas || []}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* History Tab */}
-        {activeTab === 'history' && (
-          <div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Analysis History</h2>
-              
-              <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-4">
-                <select
-                  className="px-2 py-1 border border-border rounded-md bg-background text-sm"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="completed">Completed</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                </select>
-                
-                <select
-                  className="px-2 py-1 border border-border rounded-md bg-background text-sm"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                >
-                  <option value="date">Sort by Date</option>
-                  <option value="name">Sort by Name</option>
-                </select>
-                
                 <button
-                  className="p-1 border border-border rounded-md"
-                  onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                  onClick={() => setVisualizationTab('patterns')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${
+                    visualizationTab === 'patterns'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent'
+                  }`}
                 >
-                  {sortDirection === 'asc' ? '↑' : '↓'}
+                  Patterns
+                </button>
+                <button
+                  onClick={() => setVisualizationTab('sentiment')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${
+                    visualizationTab === 'sentiment'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  Sentiment
+                </button>
+                <button
+                  onClick={() => setVisualizationTab('personas')}
+                  className={`w-full text-left px-3 py-2 rounded-md ${
+                    visualizationTab === 'personas'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  Personas
                 </button>
               </div>
             </div>
-            
-            {historyLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <LoadingSpinner size="lg" label="Loading analysis history..." />
-              </div>
-            ) : historyError ? (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
-                <h3 className="font-medium mb-1">Error</h3>
-                <p>{historyError.message}</p>
-                <button 
-                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                  onClick={() => setActiveTab('history')}
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : filteredAndSortedAnalyses.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No analyses found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredAndSortedAnalyses.map((analysis) => (
-                  <div 
-                    key={analysis.id} 
-                    className="bg-card p-4 rounded-lg shadow-sm border border-border"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between">
+          )}
+        </nav>
+        
+        {/* Mobile Navigation - shown only on small screens */}
+        <div className="md:hidden flex overflow-x-auto pb-2 mb-4 space-x-2 scrollbar-hide">
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={`px-4 py-2 whitespace-nowrap rounded-md flex-shrink-0 border ${
+              activeTab === 'upload'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card border-border'
+            }`}
+          >
+            Upload & Analyze
+          </button>
+          <button
+            onClick={() => setActiveTab('visualize')}
+            disabled={!results}
+            className={`px-4 py-2 whitespace-nowrap rounded-md flex-shrink-0 border ${
+              !results ? 'opacity-50 cursor-not-allowed bg-card border-border' :
+              activeTab === 'visualize'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card border-border'
+            }`}
+          >
+            Visualize
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 whitespace-nowrap rounded-md flex-shrink-0 border ${
+              activeTab === 'history'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card border-border'
+            }`}
+          >
+            History
+          </button>
+          <button
+            onClick={() => setActiveTab('documentation')}
+            className={`px-4 py-2 whitespace-nowrap rounded-md flex-shrink-0 border ${
+              activeTab === 'documentation'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card border-border'
+            }`}
+          >
+            Docs
+          </button>
+        </div>
+        
+        {/* Visualization Sub Tabs - Mobile - Shown only when visualize tab is active */}
+        {activeTab === 'visualize' && results && (
+          <div className="md:hidden flex overflow-x-auto mt-1 mb-4 space-x-2 pb-2 scrollbar-hide">
+            <button
+              onClick={() => setVisualizationTab('themes')}
+              className={`px-3 py-1 text-sm rounded-md whitespace-nowrap flex-shrink-0 ${
+                visualizationTab === 'themes'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-accent text-accent-foreground'
+              }`}
+            >
+              Themes
+            </button>
+            <button
+              onClick={() => setVisualizationTab('patterns')}
+              className={`px-3 py-1 text-sm rounded-md whitespace-nowrap flex-shrink-0 ${
+                visualizationTab === 'patterns'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-accent text-accent-foreground'
+              }`}
+            >
+              Patterns
+            </button>
+            <button
+              onClick={() => setVisualizationTab('sentiment')}
+              className={`px-3 py-1 text-sm rounded-md whitespace-nowrap flex-shrink-0 ${
+                visualizationTab === 'sentiment'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-accent text-accent-foreground'
+              }`}
+            >
+              Sentiment
+            </button>
+            <button
+              onClick={() => setVisualizationTab('personas')}
+              className={`px-3 py-1 text-sm rounded-md whitespace-nowrap flex-shrink-0 ${
+                visualizationTab === 'personas'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-accent text-accent-foreground'
+              }`}
+            >
+              Personas
+            </button>
+          </div>
+        )}
+        
+        {/* Main Content Area */}
+        <main className="bg-card p-6 rounded-lg shadow-sm md:col-span-1">
+          {/* Tab Content */}
+          <div>
+            {/* Upload & Analyze Tab */}
+            {activeTab === 'upload' && (
+              <div className="space-y-8">
+                {/* Configuration Section */}
+                <section className="bg-card p-6 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Analysis Configuration</h2>
+                    <HelpDropdown isOpen={isHelpOpen} toggle={toggleHelp} />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h3 className="font-semibold">{analysis.fileName}</h3>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          <span>Created: {formatDate(analysis.createdAt)}</span>
-                          <span className="mx-2">•</span>
-                          <span>Size: {formatFileSize(analysis.fileSize)}</span>
+                        <label className="block text-sm font-medium mb-1">
+                          Authentication Token
+                          <span className="ml-1 text-xs text-blue-500">(Gemini API Key)</span>
+                        </label>
+                        <div className="flex">
+                          <input
+                            type="REDACTED_PASSWORD"
+                            value={authToken}
+                            onChange={(e) => setAuthToken(e.target.value)}
+                            className="flex-grow rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            placeholder="Enter your Gemini API key"
+                          />
                         </div>
                       </div>
                       
-                      <div className="mt-3 md:mt-0 flex items-center space-x-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          analysis.status === 'completed' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                            : analysis.status === 'failed'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                        }`}>
-                          {analysis.status}
-                        </span>
-                        
-                        <button
-                          className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-sm"
-                          onClick={() => loadAnalysisFromHistory(analysis.id)}
-                          disabled={analysis.status !== 'completed'}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Analysis Type</label>
+                        <select
+                          value={visualizationTab}
+                          onChange={(e) => setVisualizationTab(e.target.value as any)}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         >
-                          View
-                        </button>
+                          <option value="themes">Thematic Analysis</option>
+                          <option value="sentiment">Sentiment Analysis</option>
+                          <option value="personas">Persona Generation</option>
+                          <option value="patterns">Pattern Analysis</option>
+                        </select>
                       </div>
                     </div>
                     
-                    {analysis.error && (
-                      <div className="mt-2 text-sm text-red-600">
-                        Error: {analysis.error}
+                    <div>
+                      {/* File uploaders */}
+                      <label className="block text-sm font-medium mb-1">Interview Transcript</label>
+                      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          id="file-upload"
+                          className="hidden"
+                          onChange={handleFileChange}
+                          accept=".txt,.docx,.pdf"
+                        />
+                        <label
+                          htmlFor="file-upload"
+                          className="cursor-pointer flex flex-col items-center justify-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <span className="text-sm font-medium">
+                            {file ? file.name : "Drop files here or click to upload"}
+                          </span>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Supported formats: .txt, .docx, .pdf
+                          </p>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Upload Section */}
+                <section className="bg-card p-6 rounded-lg shadow-sm">
+                  <h2 className="text-xl font-semibold mb-4">Step 1: Upload Data</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="mt-8 flex gap-4">
+                      <Button
+                        className="w-full"
+                        onClick={handleUpload}
+                        disabled={!file || loading}
+                        type="button"
+                      >
+                        {loading ? <LoadingSpinner size="sm" /> : 'Upload'}
+                      </Button>
+                    </div>
+                    
+                    {uploadResponse && (
+                      <div className="mt-2 text-sm text-green-600">
+                        Upload successful! Data ID: {uploadResponse.data_id}
                       </div>
                     )}
                   </div>
-                ))}
+                </section>
+
+                {/* Analyze Section */}
+                <section className="bg-card p-6 rounded-lg shadow-sm">
+                  <h2 className="text-xl font-semibold mb-4">Step 2: Analyze Data</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="mt-8 flex gap-4">
+                      <Button
+                        className="w-full"
+                        onClick={() => handleAnalyze()}
+                        disabled={!uploadResponse || loading || !llmProvider}
+                        type="button"
+                      >
+                        {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                        Analyze with {llmProvider === 'openai' ? 'OpenAI' : 'Google Gemini'}
+                      </Button>
+                    </div>
+                    
+                    {analysisResponse && (
+                      <div className="mt-2 text-sm text-green-600">
+                        Analysis initiated! Result ID: {analysisResponse.result_id}
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Get Results Section */}
+                <section className="bg-card p-6 rounded-lg shadow-sm">
+                  <h2 className="text-xl font-semibold mb-4">Step 3: Get Results</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                        onClick={handleGetResults}
+                        disabled={!analysisResponse || loading}
+                      >
+                        {loading ? <LoadingSpinner size="sm" /> : 'Get Results'}
+                      </button>
+                    </div>
+                    
+                    {results && (
+                      <div className="mt-2 text-sm text-green-600">
+                        Results loaded successfully!
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Error Display */}
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+                    <h3 className="font-medium mb-1">Error</h3>
+                    <p>{error}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Visualization Tab */}
+            {activeTab === 'visualize' && (
+              <div>
+                {!results ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">No results available</p>
+                    <button
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                      onClick={() => setActiveTab('upload')}
+                    >
+                      Upload & Analyze Data
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Visualization Type Tabs */}
+                    <div className="flex space-x-2 border-b mb-6">
+                      <button
+                        onClick={() => setVisualizationTab('themes')}
+                        className={`px-4 py-2 font-medium ${
+                          visualizationTab === 'themes'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Themes
+                      </button>
+                      <button
+                        onClick={() => setVisualizationTab('patterns')}
+                        className={`px-4 py-2 font-medium ${
+                          visualizationTab === 'patterns'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Patterns
+                      </button>
+                      <button
+                        onClick={() => setVisualizationTab('sentiment')}
+                        className={`px-4 py-2 font-medium ${
+                          visualizationTab === 'sentiment'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Sentiment
+                      </button>
+                      <button
+                        onClick={() => setVisualizationTab('personas')}
+                        className={`px-4 py-2 font-medium ${
+                          visualizationTab === 'personas'
+                            ? 'text-blue-600 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Personas
+                      </button>
+                    </div>
+
+                    {/* Visualization Content */}
+                    {visualizationTab === 'themes' && (
+                      <UnifiedVisualization
+                        type="themes"
+                        themesData={results.themes}
+                      />
+                    )}
+                    
+                    {visualizationTab === 'patterns' && (
+                      <UnifiedVisualization
+                        type="patterns"
+                        patternsData={results.patterns}
+                      />
+                    )}
+                    
+                    {visualizationTab === 'sentiment' && (
+                      <UnifiedVisualization
+                        type="sentiment"
+                        sentimentData={{
+                          overview: results.sentimentOverview,
+                          details: results.sentiment,
+                          statements: results.sentimentStatements || {
+                            positive: results.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
+                            neutral: results.sentiment.filter(s => s.score >= -0.2 && s.score <= 0.2).map(s => s.text).slice(0, 5),
+                            negative: results.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
+                          }
+                        }}
+                      />
+                    )}
+
+                    {visualizationTab === 'personas' && (
+                      <UnifiedVisualization
+                        type="personas"
+                        personasData={results.personas || []}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* History Tab */}
+            {activeTab === 'history' && (
+              <div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">Analysis History</h2>
+                  
+                  <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-4">
+                    <select
+                      className="px-2 py-1 border border-border rounded-md bg-background text-sm"
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value as any)}
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="completed">Completed</option>
+                      <option value="pending">Pending</option>
+                      <option value="failed">Failed</option>
+                    </select>
+                    
+                    <select
+                      className="px-2 py-1 border border-border rounded-md bg-background text-sm"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                    >
+                      <option value="date">Sort by Date</option>
+                      <option value="name">Sort by Name</option>
+                    </select>
+                    
+                    <button
+                      className="p-1 border border-border rounded-md"
+                      onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                    >
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </button>
+                  </div>
+                </div>
+                
+                {historyLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <LoadingSpinner size="lg" label="Loading analysis history..." />
+                  </div>
+                ) : historyError ? (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-800">
+                    <h3 className="font-medium mb-1">Error</h3>
+                    <p>{historyError.message}</p>
+                    <button 
+                      className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                      onClick={() => setActiveTab('history')}
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : filteredAndSortedAnalyses.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No analyses found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {filteredAndSortedAnalyses.map((analysis) => (
+                      <div 
+                        key={analysis.id} 
+                        className="bg-card p-4 rounded-lg shadow-sm border border-border"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{analysis.fileName}</h3>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              <span>Created: {formatDate(analysis.createdAt)}</span>
+                              <span className="mx-2">•</span>
+                              <span>Size: {formatFileSize(analysis.fileSize)}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 md:mt-0 flex items-center space-x-3">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              analysis.status === 'completed' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                                : analysis.status === 'failed'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+                            }`}>
+                              {analysis.status}
+                            </span>
+                            
+                            <button
+                              className="px-3 py-1 bg-primary text-primary-foreground rounded-md text-sm"
+                              onClick={() => loadAnalysisFromHistory(analysis.id)}
+                              disabled={analysis.status !== 'completed'}
+                            >
+                              View
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {analysis.error && (
+                          <div className="mt-2 text-sm text-red-600">
+                            Error: {analysis.error}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Documentation Tab */}
+            {activeTab === 'documentation' && (
+              <div className="prose prose-blue max-w-none">
+                <h2>Interview Insight Analyst Documentation</h2>
+                
+                <p>
+                  The Interview Insight Analyst helps you analyze interview data to extract insights, identify patterns,
+                  and understand sentiment. The application uses powerful language models to analyze text and visualize
+                  results in an easy-to-understand format.
+                </p>
+                
+                <h3>Getting Started</h3>
+                
+                <ol>
+                  <li>
+                    <strong>Upload Data</strong>: Start by uploading your interview data in JSON format. The data should
+                    contain interview text and any relevant metadata.
+                  </li>
+                  <li>
+                    <strong>Analyze</strong>: Once your data is uploaded, click the Analyze button to start the analysis
+                    process. You can choose between OpenAI and Google Gemini as the LLM provider.
+                  </li>
+                  <li>
+                    <strong>View Results</strong>: After analysis is complete, click Get Results to view your analysis.
+                    The results will be displayed in the Visualize Results tab.
+                  </li>
+                </ol>
+                
+                <h3>Visualization Types</h3>
+                
+                <ul>
+                  <li>
+                    <strong>Themes</strong>: Major themes identified in the interviews, including frequency and supporting
+                    statements. Themes are organized by sentiment (positive, neutral, negative).
+                  </li>
+                  <li>
+                    <strong>Patterns</strong>: Specific patterns found in responses, grouped by category and sentiment.
+                    Each pattern includes supporting evidence.
+                  </li>
+                  <li>
+                    <strong>Sentiment</strong>: Overall sentiment analysis with distribution of positive, neutral, and
+                    negative sentiments, along with supporting statements.
+                  </li>
+                </ul>
+                
+                <h3>Feature Documentation</h3>
+                
+                <p>
+                  For more detailed documentation, please refer to the following resources:
+                </p>
+                
+                <ul>
+                  <li><a href="/docs/index.md" target="_blank">Main Documentation</a></li>
+                  <li><a href="/docs/visualization_components.md" target="_blank">Visualization Components</a></li>
+                  <li><a href="/docs/backend_integration.md" target="_blank">Backend Integration</a></li>
+                  <li><a href="/docs/PRD.md" target="_blank">Product Requirements Document</a></li>
+                </ul>
               </div>
             )}
           </div>
-        )}
-
-        {/* Documentation Tab */}
-        {activeTab === 'documentation' && (
-          <div className="prose prose-blue max-w-none">
-            <h2>Interview Insight Analyst Documentation</h2>
-            
-            <p>
-              The Interview Insight Analyst helps you analyze interview data to extract insights, identify patterns,
-              and understand sentiment. The application uses powerful language models to analyze text and visualize
-              results in an easy-to-understand format.
-            </p>
-            
-            <h3>Getting Started</h3>
-            
-            <ol>
-              <li>
-                <strong>Upload Data</strong>: Start by uploading your interview data in JSON format. The data should
-                contain interview text and any relevant metadata.
-              </li>
-              <li>
-                <strong>Analyze</strong>: Once your data is uploaded, click the Analyze button to start the analysis
-                process. You can choose between OpenAI and Google Gemini as the LLM provider.
-              </li>
-              <li>
-                <strong>View Results</strong>: After analysis is complete, click Get Results to view your analysis.
-                The results will be displayed in the Visualize Results tab.
-              </li>
-            </ol>
-            
-            <h3>Visualization Types</h3>
-            
-            <ul>
-              <li>
-                <strong>Themes</strong>: Major themes identified in the interviews, including frequency and supporting
-                statements. Themes are organized by sentiment (positive, neutral, negative).
-              </li>
-              <li>
-                <strong>Patterns</strong>: Specific patterns found in responses, grouped by category and sentiment.
-                Each pattern includes supporting evidence.
-              </li>
-              <li>
-                <strong>Sentiment</strong>: Overall sentiment analysis with distribution of positive, neutral, and
-                negative sentiments, along with supporting statements.
-              </li>
-            </ul>
-            
-            <h3>Feature Documentation</h3>
-            
-            <p>
-              For more detailed documentation, please refer to the following resources:
-            </p>
-            
-            <ul>
-              <li><a href="/docs/index.md" target="_blank">Main Documentation</a></li>
-              <li><a href="/docs/visualization_components.md" target="_blank">Visualization Components</a></li>
-              <li><a href="/docs/backend_integration.md" target="_blank">Backend Integration</a></li>
-              <li><a href="/docs/PRD.md" target="_blank">Product Requirements Document</a></li>
-            </ul>
-          </div>
-        )}
+        </main>
       </div>
     </div>
   );

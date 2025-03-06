@@ -1225,35 +1225,47 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     return [<div key="default">No insights available for this analysis type.</div>];
   };
   
-  // Update the KeyFindings component to include the toggle
+  // Update the KeyFindings component to include the toggle and guidance
   const KeyFindings = () => {
     const findings = getKeyFindings();
     
     return (
       <div className="bg-card p-4 rounded-lg shadow-sm h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">Key Insights</h3>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setInsightMode('minor')}
-              className={`px-2 py-1 text-xs rounded ${
-                insightMode === 'minor' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              Top 3
-            </button>
-            <button 
-              onClick={() => setInsightMode('major')}
-              className={`px-2 py-1 text-xs rounded ${
-                insightMode === 'major' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              Detailed
-            </button>
+          <div>
+            <h3 className="text-lg font-medium">Key Insights</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Most important findings from the analysis
+            </p>
+          </div>
+          <div className="flex flex-col">
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setInsightMode('minor')}
+                className={`px-2 py-1 text-xs rounded ${
+                  insightMode === 'minor' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+                title="Show top 3 key points only"
+              >
+                Top 3
+              </button>
+              <button 
+                onClick={() => setInsightMode('major')}
+                className={`px-2 py-1 text-xs rounded ${
+                  insightMode === 'major' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+                title="Show comprehensive analysis with more details"
+              >
+                Detailed
+              </button>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 text-right">
+              {insightMode === 'minor' ? 'Quick highlights' : 'In-depth analysis'}
+            </div>
           </div>
         </div>
         <div className="space-y-5 flex-grow">
@@ -1338,27 +1350,64 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Pie Chart */}
             <div className="bg-card p-4 rounded-lg shadow-sm">
-              <h3 className="text-lg font-medium mb-4">Sentiment Distribution</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={getSummaryChartData()}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {getSummaryChartData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value}${type === 'sentiment' ? ' statements' : ''}`]} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="flex flex-col h-full">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium">Sentiment Distribution</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {type === 'sentiment' 
+                      ? 'Breakdown of positive, neutral, and negative statements in the interview' 
+                      : type === 'themes'
+                        ? 'Distribution of themes by sentiment'
+                        : 'Distribution of patterns by sentiment'}
+                  </p>
+                </div>
+                <div className="flex-grow h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={getSummaryChartData()}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {getSummaryChartData().map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value) => [
+                          `${value}${type === 'sentiment' ? ' statements' : ''}`
+                        ]}
+                        labelFormatter={(name) => {
+                          if (name === 'Positive') return "Positive sentiment - favorable responses";
+                          if (name === 'Neutral') return "Neutral sentiment - balanced responses";
+                          if (name === 'Negative') return "Negative sentiment - concerns or issues";
+                          return name;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 border-t pt-3">
+                  <div className="flex justify-between text-xs">
+                    <div className="flex items-center">
+                      <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.positive }}></div>
+                      <span>Positive: {sentimentPercentages.positive}%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.neutral }}></div>
+                      <span>Neutral: {sentimentPercentages.neutral}%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.negative }}></div>
+                      <span>Negative: {sentimentPercentages.negative}%</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -1369,8 +1418,14 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
           {/* Content Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div>
-              <h3 className="text-lg font-medium mb-3 text-emerald-600 dark:text-emerald-400">
+              <h3 className="text-lg font-medium mb-3 text-emerald-600 dark:text-emerald-400 flex items-center">
+                <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.positive }}></div>
                 Positive
+                <div className="ml-2 text-xs bg-emerald-100 text-emerald-800 rounded-full px-2 py-1">
+                  {type === 'themes' ? themesBySentiment.positive.length : 
+                   type === 'patterns' ? patternsBySentiment.positive.length : 
+                   sentimentStatements.positive.length} items
+                </div>
               </h3>
               {type === 'themes' && renderThemeItems(themesBySentiment.positive, 'positive')}
               {type === 'patterns' && renderPatternItems(patternsBySentiment.positive, 'positive')}
@@ -1378,8 +1433,14 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
             </div>
             
             <div>
-              <h3 className="text-lg font-medium mb-3 text-blue-600 dark:text-blue-400">
+              <h3 className="text-lg font-medium mb-3 text-blue-600 dark:text-blue-400 flex items-center">
+                <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.neutral }}></div>
                 Neutral
+                <div className="ml-2 text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-1">
+                  {type === 'themes' ? themesBySentiment.neutral.length : 
+                   type === 'patterns' ? patternsBySentiment.neutral.length : 
+                   sentimentStatements.neutral.length} items
+                </div>
               </h3>
               {type === 'themes' && renderThemeItems(themesBySentiment.neutral, 'neutral')}
               {type === 'patterns' && renderPatternItems(patternsBySentiment.neutral, 'neutral')}
@@ -1387,8 +1448,14 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
             </div>
             
             <div>
-              <h3 className="text-lg font-medium mb-3 text-rose-600 dark:text-rose-400">
+              <h3 className="text-lg font-medium mb-3 text-rose-600 dark:text-rose-400 flex items-center">
+                <div className="h-3 w-3 rounded-full mr-1" style={{ backgroundColor: SENTIMENT_COLORS.negative }}></div>
                 Negative
+                <div className="ml-2 text-xs bg-rose-100 text-rose-800 rounded-full px-2 py-1">
+                  {type === 'themes' ? themesBySentiment.negative.length : 
+                   type === 'patterns' ? patternsBySentiment.negative.length : 
+                   sentimentStatements.negative.length} items
+                </div>
               </h3>
               {type === 'themes' && renderThemeItems(themesBySentiment.negative, 'negative')}
               {type === 'patterns' && renderPatternItems(patternsBySentiment.negative, 'negative')}
