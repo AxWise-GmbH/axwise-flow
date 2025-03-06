@@ -6,20 +6,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Tooltip
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { User, Briefcase, Target, Settings, Wrench, InfoIcon } from 'lucide-react';
+import { User, Briefcase, Target, Wrench, InfoIcon } from 'lucide-react';
 
 interface UnifiedVisualizationProps {
   type: 'themes' | 'patterns' | 'sentiment' | 'personas';
@@ -146,7 +140,23 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     console.log("Received raw sentiment data:", sentimentData);
     console.log("Received sentiment statements from props:", sentimentData.statements);
     
-    let result = sentimentData.statements || { positive: [], neutral: [], negative: [] };
+    // Initialize with empty arrays to prevent null errors
+    let result: SentimentStatements = { positive: [], neutral: [], negative: [] };
+    
+    // Only merge if sentimentData.statements exists and is an object
+    if (sentimentData.statements && typeof sentimentData.statements === 'object') {
+      try {
+        result = { 
+          positive: [...result.positive, ...(sentimentData.statements?.positive || [])],
+          neutral: [...result.neutral, ...(sentimentData.statements?.neutral || [])],
+          negative: [...result.negative, ...(sentimentData.statements?.negative || [])]
+        };
+      } catch (error) {
+        console.error("Error merging sentiment statements:", error);
+      }
+    } else {
+      console.warn("sentimentData.statements is missing or not an object:", sentimentData.statements);
+    }
     
     // Ensure the structure is as expected
     if (typeof result !== 'object') {
@@ -154,31 +164,71 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
       result = { positive: [], neutral: [], negative: [] };
     }
     
-    // Initialize arrays if missing
+    // Initialize arrays if missing or not arrays
     if (!Array.isArray(result.positive)) result.positive = [];
     if (!Array.isArray(result.neutral)) result.neutral = [];
     if (!Array.isArray(result.negative)) result.negative = [];
     
-    // Filter out invalid items
-    result.positive = result.positive
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+    // Filter out invalid items with detailed logging for debugging
+    try {
+      result.positive = result.positive
+        .filter(statement => {
+          if (!statement) {
+            console.warn("Filtering out null/undefined positive statement");
+            return false;
+          }
+          if (typeof statement !== 'string') {
+            console.warn("Filtering out non-string positive statement:", statement);
+            return false;
+          }
+          return true;
+        })
+        .map(statement => statement.trim())
+        .filter(statement => statement.length > 0);
       
-    result.neutral = result.neutral
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+      result.neutral = result.neutral
+        .filter(statement => {
+          if (!statement) {
+            console.warn("Filtering out null/undefined neutral statement");
+            return false;
+          }
+          if (typeof statement !== 'string') {
+            console.warn("Filtering out non-string neutral statement:", statement);
+            return false;
+          }
+          return true;
+        })
+        .map(statement => statement.trim())
+        .filter(statement => statement.length > 0);
       
-    result.negative = result.negative
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+      result.negative = result.negative
+        .filter(statement => {
+          if (!statement) {
+            console.warn("Filtering out null/undefined negative statement");
+            return false;
+          }
+          if (typeof statement !== 'string') {
+            console.warn("Filtering out non-string negative statement:", statement);
+            return false;
+          }
+          return true;
+        })
+        .map(statement => statement.trim())
+        .filter(statement => statement.length > 0);
+    } catch (error) {
+      console.error("Error filtering sentiment statements:", error);
+      // Reset to empty arrays if filtering fails
+      result = { positive: [], neutral: [], negative: [] };
+    }
     
     // Filter out meaningless statements (names, ages, etc.)
-    result.positive = filterMeaninglessSentimentStatements(result.positive);
-    result.neutral = filterMeaninglessSentimentStatements(result.neutral);
-    result.negative = filterMeaninglessSentimentStatements(result.negative);
+    try {
+      result.positive = filterMeaninglessSentimentStatements(result.positive);
+      result.neutral = filterMeaninglessSentimentStatements(result.neutral);
+      result.negative = filterMeaninglessSentimentStatements(result.negative);
+    } catch (error) {
+      console.error("Error filtering meaningless sentiment statements:", error);
+    }
     
     // Detailed logging
     console.log("Processed sentiment statements:", result);
@@ -221,7 +271,7 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     }
     
     return result;
-  }, [sentimentData, type]);
+  }, [sentimentData, type, filterMeaninglessSentimentStatements]);
 
   // Add persona categorization function
   const categorizePersonas = useMemo(() => {

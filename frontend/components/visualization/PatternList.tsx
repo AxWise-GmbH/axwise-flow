@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pattern } from '@/types/api';
-import { ResponsiveContainer, createCustomTooltip, ChartLegend } from './common';
+import { ChartLegend, createCustomTooltip } from './common';
 import {
   BarChart,
   Bar,
@@ -14,7 +14,7 @@ import {
   ReferenceLine,
   Legend,
   Treemap,
-  ResponsiveContainer as RechartsResponsiveContainer,
+  ResponsiveContainer
 } from 'recharts';
 
 interface PatternListProps {
@@ -40,6 +40,7 @@ export const PatternList: React.FC<PatternListProps> = ({
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [displayMode, setDisplayMode] = useState<'treemap' | 'bar'>('treemap');
+  const [sortBy, setSortBy] = useState<'frequency' | 'sentiment' | 'category'>('frequency');
 
   // Process the data to handle missing fields
   const processedData = useMemo(() => {
@@ -241,7 +242,7 @@ export const PatternList: React.FC<PatternListProps> = ({
 
       {displayMode === 'treemap' ? (
         <div style={{ width: '100%', height: 400 }}>
-          <RechartsResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%">
             <Treemap
               data={treemapData}
               dataKey="size"
@@ -251,40 +252,29 @@ export const PatternList: React.FC<PatternListProps> = ({
               content={renderTreemapContent as any}
               isAnimationActive={true}
             />
-          </RechartsResponsiveContainer>
+          </ResponsiveContainer>
         </div>
       ) : (
-        <ResponsiveContainer height={400}>
-          <BarChart
-            data={chartData}
-            margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              angle={-45} 
-              textAnchor="end" 
-              tick={{ fontSize: 12 }}
-              interval={0}
-              height={70}
-            />
-            <YAxis tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="frequency" 
-              onClick={handleItemClick}
-              isAnimationActive={true}
+        <div style={{ width: '100%', height: 400 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={getBarColor(entry.sentiment)} 
-                  style={{ cursor: 'pointer' }}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <ReferenceLine y={0} stroke="#000" />
+              <Bar dataKey="frequency" name="Frequency" onClick={handleItemClick}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getBarColor(entry.sentiment || 0)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
       <div className="mt-4">

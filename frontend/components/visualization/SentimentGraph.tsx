@@ -2,14 +2,14 @@
 
 import React, { useMemo } from 'react';
 import { SentimentOverview, SentimentData } from '@/types/api';
-import { ResponsiveContainer, ChartLegend, createCustomTooltip } from './common';
+import { ChartLegend, createCustomTooltip } from './common';
 import {
   PieChart,
   Pie,
   Cell,
   Tooltip,
   Sector,
-  ResponsiveContainer as RechartsResponsiveContainer
+  ResponsiveContainer
 } from 'recharts';
 
 /**
