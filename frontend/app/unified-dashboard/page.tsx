@@ -14,6 +14,12 @@ import { SentimentGraph } from '@/components/visualization/SentimentGraph';
 import { PersonaList } from '@/components/visualization/PersonaList';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FileText } from 'lucide-react';
+import AnalysisProgress from '@/components/AnalysisProgress';
 
 export default function UnifiedDashboard() {
   const router = useRouter();
@@ -197,13 +203,12 @@ export default function UnifiedDashboard() {
 
   // Handle data analysis
   const handleAnalyze = async (uploadData?: UploadResponse, isText?: boolean) => {
-    // Use provided upload response or the state value
-    const uploadResponseToUse = uploadData || uploadResponse;
-    // Use provided isText or the state value
+    // Use uploaded data or existing upload response
+    const dataToAnalyze = uploadData || uploadResponse;
     const isTextFileToUse = isText !== undefined ? isText : isTextFile;
     
-    if (!uploadResponseToUse) {
-      showToast('Please upload a file first', { variant: 'error' });
+    if (!dataToAnalyze) {
+      setError('No data to analyze.');
       return;
     }
 
@@ -216,9 +221,9 @@ export default function UnifiedDashboard() {
       
       // Trigger analysis, passing the isTextFile flag
       const response = await apiClient.analyzeData(
-        uploadResponseToUse.data_id, 
+        dataToAnalyze.data_id,
         llmProvider,
-        undefined,  // Use default model
+        undefined,
         isTextFileToUse
       );
       setAnalysisResponse(response);
@@ -1308,4 +1313,4 @@ export default function UnifiedDashboard() {
       </div>
     </div>
   );
-} 
+}

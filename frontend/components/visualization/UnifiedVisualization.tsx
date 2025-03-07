@@ -1,5 +1,10 @@
 'use client';
 
+// Note on type handling:
+// This component handles multiple visualization types ('themes', 'patterns', 'sentiment', 'personas')
+// We use explicit type guards with separate if statements rather than ternary operators
+// to avoid TypeScript "no overlap" errors when comparing string literal types.
+
 import React, { useMemo } from 'react';
 import { Theme, Pattern, SentimentData, SentimentStatements, Persona } from '@/types/api';
 import {
@@ -73,41 +78,6 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
 
     return { positive, neutral, negative };
   }, [patternsData]);
-
-  // Calculate sentiment percentages
-  const sentimentPercentages = useMemo(() => {
-    // For sentiment analysis, use actual statement counts instead of overview values
-    if (type === 'sentiment' && sentimentData.statements) {
-      const positiveCount = sentimentData.statements.positive?.length || 0;
-      const neutralCount = sentimentData.statements.neutral?.length || 0;
-      const negativeCount = sentimentData.statements.negative?.length || 0;
-      
-      const total = positiveCount + neutralCount + negativeCount || 1; // Prevent division by zero
-      
-      console.log("Calculating sentiment percentages from actual statement counts:", {
-        positiveCount,
-        neutralCount,
-        negativeCount,
-        total
-      });
-      
-      return {
-        positive: Math.round((positiveCount / total) * 100),
-        neutral: Math.round((neutralCount / total) * 100),
-        negative: Math.round((negativeCount / total) * 100)
-      };
-    } else {
-      // For other types, use the original calculation
-      const { positive, neutral, negative } = sentimentData.overview;
-      const total = positive + neutral + negative || 1; // Prevent division by zero
-      
-      return {
-        positive: Math.round((positive / total) * 100),
-        neutral: Math.round((neutral / total) * 100),
-        negative: Math.round((negative / total) * 100)
-      };
-    }
-  }, [sentimentData, type]);
 
   // Function to filter out basic profile information from sentiment statements
   const filterMeaninglessSentimentStatements = (statements: string[]): string[] => {
@@ -1381,11 +1351,6 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     return 'Data available but in unexpected format';
   };
 
-  // Helper function to check if sorting is applicable for the current type
-  const isSortingApplicable = (currentType: 'themes' | 'patterns' | 'sentiment' | 'personas'): boolean => {
-    return currentType === 'themes' || currentType === 'patterns' || currentType === 'sentiment';
-  };
-
   return (
     <div className={`${className || ''} w-full`}>
       {/* Special handling for personas - no charts, different layout */}
@@ -1423,10 +1388,23 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                       ))}
                     </Pie>
                     <Tooltip 
-                      formatter={(value, name) => [
-                        `${value} ${type === 'sentiment' ? 'statements' : type === 'personas' ? 'personas' : type === 'themes' ? 'themes' : 'patterns'}`, 
-                        name
-                      ]} 
+                      formatter={(value, name) => {
+                        let label = '';
+                        
+                        // Use type guards for each possible value
+                        if (type === 'sentiment') {
+                          label = 'statements';
+                        } else if (type === 'themes') {
+                          label = 'themes';
+                        } else if (type === 'patterns') {
+                          label = 'patterns';
+                        } else {
+                          // this covers the 'personas' case
+                          label = 'personas';
+                        }
+                        
+                        return [`${value} ${label}`, name];
+                      }}
                       labelFormatter={() => 'Distribution'}
                     />
                   </PieChart>
@@ -1452,9 +1430,29 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                     Positive
                   </h3>
                   <span className="ml-auto text-sm text-gray-500">
-                    {type === 'themes' && themesBySentiment.positive.length > 0 ? `${themesBySentiment.positive.length} themes` : 
-                     type === 'patterns' && patternsBySentiment.positive.length > 0 ? `${patternsBySentiment.positive.length} patterns` :
-                     type === 'sentiment' && sentimentStatements.positive?.length > 0 ? `${sentimentStatements.positive.length} statements` : ''}
+                    {function() {
+                      // Explicitly handle each type separately to avoid type errors
+                      if (type === 'themes') {
+                        return themesBySentiment.positive.length > 0 
+                          ? `${themesBySentiment.positive.length} themes` 
+                          : '';
+                      }
+                      
+                      if (type === 'patterns') {
+                        return patternsBySentiment.positive.length > 0 
+                          ? `${patternsBySentiment.positive.length} patterns` 
+                          : '';
+                      }
+                      
+                      if (type === 'sentiment') {
+                        return sentimentStatements.positive?.length > 0 
+                          ? `${sentimentStatements.positive.length} statements` 
+                          : '';
+                      }
+                      
+                      // Default case for 'personas' or any other type
+                      return '';
+                    }()}
                   </span>
                 </div>
                 {type === 'themes' && renderThemeItems(themesBySentiment.positive, 'positive')}
@@ -1469,9 +1467,29 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                     Neutral
                   </h3>
                   <span className="ml-auto text-sm text-gray-500">
-                    {type === 'themes' && themesBySentiment.neutral.length > 0 ? `${themesBySentiment.neutral.length} themes` : 
-                     type === 'patterns' && patternsBySentiment.neutral.length > 0 ? `${patternsBySentiment.neutral.length} patterns` :
-                     type === 'sentiment' && sentimentStatements.neutral?.length > 0 ? `${sentimentStatements.neutral.length} statements` : ''}
+                    {function() {
+                      // Explicitly handle each type separately to avoid type errors
+                      if (type === 'themes') {
+                        return themesBySentiment.neutral.length > 0 
+                          ? `${themesBySentiment.neutral.length} themes` 
+                          : '';
+                      }
+                      
+                      if (type === 'patterns') {
+                        return patternsBySentiment.neutral.length > 0 
+                          ? `${patternsBySentiment.neutral.length} patterns` 
+                          : '';
+                      }
+                      
+                      if (type === 'sentiment') {
+                        return sentimentStatements.neutral?.length > 0 
+                          ? `${sentimentStatements.neutral.length} statements` 
+                          : '';
+                      }
+                      
+                      // Default case for 'personas' or any other type
+                      return '';
+                    }()}
                   </span>
                 </div>
                 {type === 'themes' && renderThemeItems(themesBySentiment.neutral, 'neutral')}
@@ -1486,9 +1504,29 @@ export const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                     Negative
                   </h3>
                   <span className="ml-auto text-sm text-gray-500">
-                    {type === 'themes' && themesBySentiment.negative.length > 0 ? `${themesBySentiment.negative.length} themes` : 
-                     type === 'patterns' && patternsBySentiment.negative.length > 0 ? `${patternsBySentiment.negative.length} patterns` :
-                     type === 'sentiment' && sentimentStatements.negative?.length > 0 ? `${sentimentStatements.negative.length} statements` : ''}
+                    {function() {
+                      // Explicitly handle each type separately to avoid type errors
+                      if (type === 'themes') {
+                        return themesBySentiment.negative.length > 0 
+                          ? `${themesBySentiment.negative.length} themes` 
+                          : '';
+                      }
+                      
+                      if (type === 'patterns') {
+                        return patternsBySentiment.negative.length > 0 
+                          ? `${patternsBySentiment.negative.length} patterns` 
+                          : '';
+                      }
+                      
+                      if (type === 'sentiment') {
+                        return sentimentStatements.negative?.length > 0 
+                          ? `${sentimentStatements.negative.length} statements` 
+                          : '';
+                      }
+                      
+                      // Default case for 'personas' or any other type
+                      return '';
+                    }()}
                   </span>
                 </div>
                 {type === 'themes' && renderThemeItems(themesBySentiment.negative, 'negative')}

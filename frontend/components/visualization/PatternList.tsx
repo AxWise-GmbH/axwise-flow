@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Pattern } from '@/types/api';
-import { ChartLegend, createCustomTooltip } from './common';
+import { ChartLegend } from './common';
 import {
   BarChart,
   Bar,
@@ -36,11 +36,9 @@ export const PatternList: React.FC<PatternListProps> = ({
   className,
   onPatternClick,
 }) => {
-  const [expandedPatterns, setExpandedPatterns] = useState<Record<string, boolean>>({});
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [displayMode, setDisplayMode] = useState<'treemap' | 'bar'>('treemap');
-  const [sortBy, setSortBy] = useState<'frequency' | 'sentiment' | 'category'>('frequency');
 
   // Process the data to handle missing fields
   const processedData = useMemo(() => {
@@ -57,7 +55,7 @@ export const PatternList: React.FC<PatternListProps> = ({
     }));
   }, [data]);
 
-  const { chartData, treemapData, patternsByCategory } = useMemo(() => {
+  const { chartData, treemapData } = useMemo(() => {
     const grouped: Record<string, Pattern[]> = {};
     const transformed: any[] = [];
     const treeData: any[] = [];
@@ -103,8 +101,7 @@ export const PatternList: React.FC<PatternListProps> = ({
     
     return { 
       chartData: transformed, 
-      treemapData: [{ name: 'Patterns', children: treeData }],
-      patternsByCategory: grouped 
+      treemapData: [{ name: 'Patterns', children: treeData }]
     };
   }, [processedData]);
 
@@ -119,13 +116,6 @@ export const PatternList: React.FC<PatternListProps> = ({
     if (sentiment >= 0.2) return 'Positive';
     if (sentiment <= -0.2) return 'Negative';
     return 'Neutral';
-  };
-
-  const toggleExpanded = (patternId: number) => {
-    setExpandedPatterns(prev => ({
-      ...prev,
-      [patternId]: !prev[patternId]
-    }));
   };
 
   const handleItemClick = (data: any) => {
@@ -165,7 +155,7 @@ export const PatternList: React.FC<PatternListProps> = ({
 
   // Render function for treemap items
   const renderTreemapContent = (props: any) => {
-    const { root, depth, x, y, width, height, index, name, sentiment } = props;
+    const { depth, x, y, width, height, index, name, sentiment } = props;
     const color = getBarColor(sentiment);
     
     return (
