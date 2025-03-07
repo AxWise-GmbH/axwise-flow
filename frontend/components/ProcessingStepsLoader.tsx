@@ -15,6 +15,7 @@ import {
   Brain, 
   User2
 } from 'lucide-react';
+import ProcessingStageCard from '@/components/loading/ProcessingStageCard';
 
 // Processing stage types and statuses
 export type ProcessingStage = 
@@ -87,39 +88,39 @@ export const ProcessingStepsLoader: React.FC<ProcessingStepsLoaderProps> = ({
   error,
   className = ''
 }) => {
-  // Function to get the status icon based on the step status
-  const getStatusIcon = (status: ProcessingStatus) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="text-green-500" size={16} />;
-      case 'in_progress':
-        return (
-          <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        );
-      case 'failed':
-        return <AlertCircle className="text-red-500" size={16} />;
-      case 'waiting':
-        return <Clock className="text-amber-500" size={16} />;
-      case 'pending':
-      default:
-        return <div className="w-4 h-4 rounded-full border border-gray-300" />;
+  // Find the current active stage (first in_progress stage or last completed stage if no in_progress)
+  const getCurrentStage = (): ProcessingStage | null => {
+    const inProgressStep = steps.find(step => step.status === 'in_progress');
+    if (inProgressStep) return inProgressStep.stage;
+    
+    // If no in_progress, find the last completed step
+    const completedSteps = steps.filter(step => step.status === 'completed');
+    if (completedSteps.length) {
+      return completedSteps[completedSteps.length - 1].stage;
     }
+    
+    return null;
   };
+  
+  const currentStage = getCurrentStage();
 
   return (
     <Card className={`p-6 ${className}`}>
-      <div className="mb-4">
+      <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-lg font-medium">Processing Progress</h3>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm font-medium">
             {Math.round(overallProgress * 100)}%
           </span>
         </div>
-        <Progress value={overallProgress * 100} className="h-2" />
+        <Progress 
+          value={overallProgress * 100} 
+          className="h-2"
+        />
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-md text-red-800 text-sm">
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md text-red-800 dark:text-red-400 text-sm">
           <div className="flex gap-2 items-center">
             <AlertCircle size={16} />
             <span>{error}</span>
@@ -127,33 +128,18 @@ export const ProcessingStepsLoader: React.FC<ProcessingStepsLoaderProps> = ({
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {steps.map((step) => (
-          <div key={step.stage} className="flex items-center gap-3">
-            <div className="flex-shrink-0">
-              {getStatusIcon(step.status)}
-            </div>
-            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-muted rounded-md">
-              {stageIcons[step.stage]}
-            </div>
-            <div className="flex-grow min-w-0">
-              <div className="flex justify-between items-center">
-                <div className="font-medium text-sm truncate">{stageNames[step.stage]}</div>
-                {step.status === 'in_progress' && (
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round(step.progress * 100)}%
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{step.message}</p>
-              {step.status === 'in_progress' && (
-                <Progress 
-                  value={step.progress * 100} 
-                  className="h-1 mt-1" 
-                />
-              )}
-            </div>
-          </div>
+          <ProcessingStageCard
+            key={step.stage}
+            stage={step.stage}
+            status={step.status}
+            message={step.message}
+            progress={step.progress}
+            icon={stageIcons[step.stage]}
+            stageName={stageNames[step.stage]}
+            isCurrentStage={step.stage === currentStage}
+          />
         ))}
       </div>
     </Card>
