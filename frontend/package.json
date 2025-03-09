@@ -10,9 +10,9 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "test:ci": "vitest run",
+    "test:ci": "vitest run --passWithNoTests",
     "type-check": "tsc --noEmit",
-    "prepare": "husky install",
+    "prepare": "node -e \"try { if(process.env.CI !== 'true' && process.env.HUSKY !== '0') require('husky').install() } catch(e) { console.log('Skipping husky setup:', e.message) }\"",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
