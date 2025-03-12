@@ -169,3 +169,33 @@
 .slide-out {
   animation: slideOut 0.3s ease-out;
 }
+
+/* Tooltip animations */
+[data-radix-tooltip-trigger] {
+  transition: opacity 150ms ease;
+}
+
+[data-state="delayed-open"] {
+  animation: fadeIn 200ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(2px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Tooltip content styles */
+[data-radix-tooltip-content] {
+  @apply z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md;
+}
+
+/* Dark mode tooltip styles */
+.dark [data-radix-tooltip-content] {
+  @apply bg-slate-900 border-slate-800;
+}

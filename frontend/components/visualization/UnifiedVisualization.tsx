@@ -1,5 +1,20 @@
 'use client';
 
+/**
+ * UnifiedVisualization Component
+ * 
+ * DEPRECATION WARNING: This component is being phased out in favor of the VisualizationTabs approach.
+ * It should NOT be used for new development. The current architectural decision is to use:
+ * - VisualizationTabs component as the container
+ * - Individual visualization components (ThemeChart, PatternList, etc.) directly
+ * 
+ * This component creates duplicate UI elements when used with the newer implementation
+ * where each specific visualization component (e.g., ThemeChart) now includes its own
+ * Key Insights section.
+ * 
+ * For new routes or features, please use VisualizationTabs instead.
+ */
+
 import React, { useMemo } from 'react';
 import { Theme, Pattern, SentimentData, SentimentStatements, Persona } from '@/types/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -49,25 +64,67 @@ const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
     const insights = [];
     
     if (type === 'themes' && themesData.length > 0) {
-      // Prepare theme insights
+      // Prepare theme insights with more depth and context
       const sortedThemes = [...themesData].sort((a, b) => b.frequency - a.frequency);
       const topThemes = sortedThemes.slice(0, 3);
       
-      insights.push(`Top themes: ${topThemes.map(t => t.name).join(', ')}`);
+      // Add more descriptive top themes insight with percentages
+      insights.push(`Top themes: ${topThemes.map(t => 
+        `${t.name} (${Math.round(t.frequency * 100)}%)`).join(', ')}`);
       
-      // Add sentiment distribution of themes
+      // Add theme clustering insight if applicable
+      if (topThemes.length >= 2) {
+        const topKeywords = topThemes.flatMap(t => t.keywords || []).slice(0, 5);
+        if (topKeywords.length > 0) {
+          insights.push(`Key topics discussed: ${topKeywords.join(', ')}`);
+        }
+      }
+      
+      // Add sentiment distribution of themes with percentages
+      const totalThemes = themesData.length;
       const posThemes = themesData.filter(t => typeof t.sentiment === 'string' && t.sentiment === 'positive').length;
       const neuThemes = themesData.filter(t => typeof t.sentiment === 'string' && t.sentiment === 'neutral').length;
       const negThemes = themesData.filter(t => typeof t.sentiment === 'string' && t.sentiment === 'negative').length;
       
-      if (posThemes > 0) {
-        insights.push(`${posThemes} positive themes identified`);
+      if (totalThemes > 0) {
+        const posPercent = Math.round((posThemes / totalThemes) * 100);
+        const neuPercent = Math.round((neuThemes / totalThemes) * 100);
+        const negPercent = Math.round((negThemes / totalThemes) * 100);
+        
+        // Add sentiment overview with a more insightful message
+        if (posThemes > negThemes && posThemes > neuThemes) {
+          insights.push(`Overall positive theme sentiment (${posPercent}% of themes)`);
+        } else if (negThemes > posThemes && negThemes > neuThemes) {
+          insights.push(`Overall negative theme sentiment (${negPercent}% of themes)`);
+        } else if (neuThemes > posThemes && neuThemes > negThemes) {
+          insights.push(`Overall neutral theme sentiment (${neuPercent}% of themes)`);
+        } else {
+          insights.push(`Mixed theme sentiment distribution`);
+        }
       }
-      if (neuThemes > 0) {
-        insights.push(`${neuThemes} neutral themes identified`);
+      
+      // Add specific insights for top positive and negative themes if they exist
+      const topPosTheme = themesData
+        .filter(t => typeof t.sentiment === 'string' && t.sentiment === 'positive')
+        .sort((a, b) => b.frequency - a.frequency)[0];
+        
+      const topNegTheme = themesData
+        .filter(t => typeof t.sentiment === 'string' && t.sentiment === 'negative')
+        .sort((a, b) => b.frequency - a.frequency)[0];
+      
+      if (topPosTheme) {
+        insights.push(`Most prevalent positive theme: ${topPosTheme.name}`);
       }
-      if (negThemes > 0) {
-        insights.push(`${negThemes} negative themes identified`);
+      
+      if (topNegTheme) {
+        insights.push(`Most prevalent negative theme: ${topNegTheme.name}`);
+      }
+      
+      // Add actionable recommendation based on theme analysis
+      if (topNegTheme && topNegTheme.frequency > 0.2) {
+        insights.push(`Recommended focus area: Address concerns related to "${topNegTheme.name}"`);
+      } else if (topPosTheme && topPosTheme.frequency > 0.2) {
+        insights.push(`Recommended strategy: Build upon strengths in "${topPosTheme.name}"`);
       }
     }
     
@@ -214,6 +271,72 @@ const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
       );
     }
     
+    // For theme visualization, use structured format similar to patterns
+    if (type === 'themes' && themesData.length > 0) {
+      const sortedThemes = [...themesData].sort((a, b) => b.frequency - a.frequency);
+      const topThemes = sortedThemes.slice(0, 3);
+      // Remove the top themes insight to display it differently
+      const otherInsights = insights.filter(insight => !insight.startsWith('Top themes:'));
+      
+      return (
+        <div className="space-y-4">
+          <div className="mb-2">
+            <h3 className="text-sm font-medium mb-2">Key Themes</h3>
+            <div className="space-y-3">
+              {topThemes.map((theme, idx) => (
+                <div key={idx} className="flex gap-3 relative">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium absolute left-0 top-1/2 -translate-y-1/2">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 pl-9">
+                    <div className={`border rounded-lg p-4 relative ${
+                      (typeof theme.sentiment === 'string' && theme.sentiment === 'positive') ? 'border-green-300 bg-green-50' : 
+                      (typeof theme.sentiment === 'string' && theme.sentiment === 'negative') ? 'border-red-300 bg-red-50' :
+                      'border-slate-300 bg-slate-50'
+                    } transition-all duration-150`}>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="absolute top-3 right-3 cursor-help">
+                              {Math.round(theme.frequency * 100)}%
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            <p>Frequency: How often this theme appears in the interview</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <p className="text-sm leading-relaxed pr-16 font-medium">
+                        {theme.name}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {(theme.keywords || []).slice(0, 5).map((keyword, kidx) => (
+                          <Badge key={kidx} variant="secondary" className="text-xs">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {otherInsights.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-2">Theme Insights</h3>
+              <ul className="space-y-2 list-disc pl-5">
+                {otherInsights.map((insight, idx) => (
+                  <li key={idx} className="text-sm">{insight}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
     // For other visualization types, keep the existing format
     return (
       <ul className="space-y-2 list-disc pl-5">
@@ -269,7 +392,7 @@ const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
       <div className="w-full">
         {/* Render the appropriate visualization based on type */}
         {type === 'themes' ? (
-          <ThemeChart themes={themesData} />
+          <ThemeChart themes={themesData} showKeyInsights={false} />
         ) : type === 'patterns' ? (
           <PatternList patterns={patternsData} />
         ) : type === 'sentiment' ? (

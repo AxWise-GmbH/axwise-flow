@@ -1,5 +1,23 @@
 'use client';
 
+/**
+ * UnifiedDashboard Component (DEPRECATED)
+ * 
+ * DEPRECATION WARNING: This implementation is being replaced by page-refactored.tsx.
+ * It uses the UnifiedVisualization component which is being phased out in favor of 
+ * directly using specialized visualization components through VisualizationTabs.
+ * 
+ * Key issues with this implementation:
+ * 1. Uses the deprecated UnifiedVisualization component which creates duplicate UI elements
+ * 2. Implements custom tab navigation instead of using the standardized VisualizationTabs
+ * 3. Directly renders ThemeChart, PatternList, etc. through UnifiedVisualization, creating 
+ *    duplicate Key Insights sections and inconsistent UX
+ * 
+ * DO NOT use this implementation as a reference for new development.
+ * Please refer to page-refactored.tsx instead, which follows the current architectural 
+ * pattern of using VisualizationTabs directly with specialized visualization components.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -8,14 +26,9 @@ import UnifiedVisualization from '@/components/visualization/UnifiedVisualizatio
 import { apiClient } from '@/lib/apiClient';
 import { UploadResponse, AnalysisResponse, DetailedAnalysisResult } from '@/types/api';
 import { useAuth } from '@clerk/nextjs';
-import { ThemeChart } from '@/components/visualization/ThemeChart';
-import { PatternList } from '@/components/visualization/PatternList';
-import { SentimentGraph } from '@/components/visualization/SentimentGraph';
-import { PersonaList } from '@/components/visualization/PersonaList';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileText } from 'lucide-react';

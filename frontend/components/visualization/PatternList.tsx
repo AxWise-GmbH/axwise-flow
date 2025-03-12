@@ -1,24 +1,15 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Pattern } from '@/types/api';
-import { ChartLegend } from './common';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface PatternListProps {
   patterns: Pattern[];
-  showEvidence?: boolean;
   className?: string;
   onPatternClick?: (pattern: Pattern) => void;
 }
@@ -39,13 +30,13 @@ const PATTERN_CATEGORIES = {
   'Uncategorized': 'Other behavioral patterns'
 };
 
-export function PatternList({ patterns, showEvidence = true, className, onPatternClick }: PatternListProps) {
+export function PatternList({ patterns, className, onPatternClick }: PatternListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
 
   // Filter patterns based on search term
   const filteredPatterns = patterns.filter(pattern => 
-    (pattern.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (pattern.name && pattern.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (pattern.description && pattern.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -65,28 +56,6 @@ export function PatternList({ patterns, showEvidence = true, className, onPatter
   // Get all categories
   const categories = Object.keys(groupedPatterns).sort();
 
-  // Process the data to handle missing fields
-  const processedData = useMemo(() => {
-    return patterns.map((pattern, index) => ({
-      ...pattern,
-      id: pattern.id || index,
-      name: pattern.name || `Pattern ${index + 1}`,
-      category: pattern.category || 'Uncategorized',
-      description: pattern.description || '',
-      frequency: typeof pattern.frequency === 'number' ? pattern.frequency : 0,
-      sentiment: typeof pattern.sentiment === 'number' ? pattern.sentiment : 0,
-      evidence: pattern.evidence || pattern.examples || [],
-      examples: pattern.examples || pattern.evidence || []
-    }));
-  }, [patterns]);
-
-  const getSentimentLabel = (sentiment: number | undefined) => {
-    if (typeof sentiment !== 'number') return 'Neutral';
-    if (sentiment >= 0.2) return 'Positive';
-    if (sentiment <= -0.2) return 'Negative';
-    return 'Neutral';
-  };
-
   const getPatternColors = (sentiment: number | undefined) => {
     if (typeof sentiment !== 'number') {
       return { border: 'border-slate-300', bg: 'bg-slate-50' };
@@ -100,19 +69,14 @@ export function PatternList({ patterns, showEvidence = true, className, onPatter
     return { border: 'border-slate-300', bg: 'bg-slate-50' };
   };
 
-  const handlePatternClick = (pattern: Pattern) => {
+  // Call the provided onPatternClick handler if available
+  const handlePatternSelect = (pattern: Pattern) => {
     if (onPatternClick) {
       onPatternClick(pattern);
     } else {
       setSelectedPattern(pattern === selectedPattern ? null : pattern);
     }
   };
-
-  const legendItems = [
-    { value: 'Positive Pattern', color: SENTIMENT_COLORS.positive, type: 'circle' as const },
-    { value: 'Neutral Pattern', color: SENTIMENT_COLORS.neutral, type: 'circle' as const },
-    { value: 'Negative Pattern', color: SENTIMENT_COLORS.negative, type: 'circle' as const },
-  ];
 
   return (
     <div className={`w-full ${className}`}>
@@ -141,9 +105,32 @@ export function PatternList({ patterns, showEvidence = true, className, onPatter
                 <div key={category} className="mb-8 last:mb-0">
                   <div className="mb-3">
                     <h3 className="text-base font-semibold">{category}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {PATTERN_CATEGORIES[category as keyof typeof PATTERN_CATEGORIES] || 'Behavioral patterns'}
-                    </p>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge 
+                            variant="outline"
+                            className="cursor-default"
+                          >
+                            {PATTERN_CATEGORIES[category as keyof typeof PATTERN_CATEGORIES] || 
+                             PATTERN_CATEGORIES['Uncategorized']}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent 
+                          side="right" 
+                          className="bg-white dark:bg-slate-900 border shadow-lg p-3"
+                          align="center"
+                        >
+                          <div className="space-y-1">
+                            <h4 className="font-semibold">Pattern Category</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {PATTERN_CATEGORIES[category as keyof typeof PATTERN_CATEGORIES] || 
+                               PATTERN_CATEGORIES['Uncategorized']}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div className="space-y-6">
                     {groupedPatterns[category].map((pattern) => (
@@ -155,15 +142,29 @@ export function PatternList({ patterns, showEvidence = true, className, onPatter
                         {pattern.description && (
                           <div className="mb-5 p-1.5 relative">
                             <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
-                              <TooltipProvider>
+                              <TooltipProvider key={pattern.id} delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Badge className="absolute top-1/2 right-3 -translate-y-1/2 cursor-help">
+                                    <Badge 
+                                      variant="outline"
+                                      className="absolute top-1/2 right-3 -translate-y-1/2 cursor-default"
+                                    >
                                       {Math.round((pattern.frequency || 0) * 100)}%
                                     </Badge>
                                   </TooltipTrigger>
-                                  <TooltipContent side="left">
-                                    <p>Confidence score: How strongly this pattern is represented in the interview</p>
+                                  <TooltipContent 
+                                    side="left" 
+                                    className="bg-white dark:bg-slate-900 border shadow-lg p-3"
+                                    align="center"
+                                  >
+                                    <div className="space-y-1">
+                                      <h4 className="font-semibold">Pattern Frequency</h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        {pattern.frequency >= 0.7 
+                                          ? "Strong presence in analysis" 
+                                          : "Moderate presence in analysis"}
+                                      </p>
+                                    </div>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -202,7 +203,6 @@ export function PatternList({ patterns, showEvidence = true, className, onPatter
       </Card>
 
       <div className="mt-4">
-        <ChartLegend items={legendItems} />
       </div>
     </div>
   );

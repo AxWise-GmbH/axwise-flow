@@ -1,3 +1,18 @@
+/**
+ * VisualizationTabs Component
+ * 
+ * ARCHITECTURAL NOTE: This is the standardized component for visualizing analysis results.
+ * It should directly render the specialized visualization components:
+ * - ThemeChart for themes (which includes its own Key Insights)
+ * - PatternList for patterns
+ * - SentimentGraph for sentiment
+ * - PersonaList for personas
+ * 
+ * DO NOT use UnifiedVisualization to wrap these components, as this leads to 
+ * duplicate UI elements (like key insights sections). This component replaces
+ * the older approach of using UnifiedVisualization for all visualization types.
+ */
+
 import React, { useEffect } from 'react';
 import { 
   useAnalysisStore, 

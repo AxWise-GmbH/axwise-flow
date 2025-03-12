@@ -1,3 +1,15 @@
+/**
+ * UnifiedDashboard Component (Refactored)
+ * 
+ * ARCHITECTURAL NOTE: This is the standardized implementation of the dashboard, using
+ * the VisualizationTabs component for analysis visualization. This implementation
+ * follows the current architectural decision to use specialized visualization components
+ * directly through VisualizationTabs, rather than wrapping them with UnifiedVisualization.
+ * 
+ * This file replaces the older page.tsx implementation and should be used as the
+ * reference for future development.
+ */
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
