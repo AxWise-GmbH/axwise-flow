@@ -102,7 +102,7 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
           {categories.length > 0 ? (
             <div className="space-y-8">
               {categories.map((category) => (
-                <div key={category} className="mb-8 last:mb-0">
+                <div key={`pattern-category-${category}`} className="mb-8 last:mb-0">
                   <div className="mb-3">
                     <h3 className="text-base font-semibold">{category}</h3>
                     <TooltipProvider delayDuration={300}>
@@ -181,7 +181,7 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                             <div className="pl-3 border-l-2 border-primary/20">
                               <ul className="space-y-3">
                                 {pattern.evidence.map((example, i) => (
-                                  <li key={i} className="relative bg-muted/30 p-3 rounded-md">
+                                  <li key={`pattern-${pattern.id}-evidence-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                                     <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                                     <p className="text-muted-foreground text-sm">{example}</p>
                                   </li>

@@ -216,11 +216,52 @@ class ApiClient {
         }
       } else {
         console.warn("Sentiment is not an array:", typeof results.sentiment);
+        // Handle case where sentiment is an object instead of an array
+        if (results.sentiment && typeof results.sentiment === 'object') {
+          // Convert object structure to expected format if needed
+          const sentimentData = results.sentiment;
+          
+          // Initialize sentimentStatements if not present or malformed
+          if (!results.sentimentStatements || 
+              typeof results.sentimentStatements !== 'object' ||
+              !results.sentimentStatements.positive ||
+              !results.sentimentStatements.neutral ||
+              !results.sentimentStatements.negative) {
+            
+            results.sentimentStatements = {
+              positive: [],
+              neutral: [],
+              negative: []
+            };
+            
+            // If the sentiment object has statement data in a different format, extract it
+            if (sentimentData.statements) {
+              // Process statements if available
+              const statements = sentimentData.statements || {};
+              
+              if (Array.isArray(statements.positive)) {
+                results.sentimentStatements.positive = statements.positive;
+              }
+              if (Array.isArray(statements.neutral)) {
+                results.sentimentStatements.neutral = statements.neutral;
+              }
+              if (Array.isArray(statements.negative)) {
+                results.sentimentStatements.negative = statements.negative;
+              }
+            }
+          }
+        }
       }
       
       // Ensure we have the required fields
       if (!Array.isArray(results.sentiment)) {
-        results.sentiment = [];
+        // Convert sentiment object to array if necessary
+        if (results.sentiment && typeof results.sentiment === 'object') {
+          // Keep object format but ensure it has the necessary properties
+          // Don't override if it's already properly structured
+        } else {
+          results.sentiment = [];
+        }
       }
 
       // Calculate sentimentOverview if missing
