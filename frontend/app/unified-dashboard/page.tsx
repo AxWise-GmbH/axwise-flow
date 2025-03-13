@@ -156,11 +156,14 @@ export default function UnifiedDashboard() {
   
   // Debug logging for sentiment visualization
   useEffect(() => {
+    // DISABLED: Heavy object logging causing browser message channel errors
+    /* Original code was:
     if (results && visualizationTab === 'sentiment') {
       console.log('Results object for sentiment visualization:', results);
       console.log('SentimentStatements in results:', results.sentimentStatements);
       console.log('Sentiment overview:', results.sentimentOverview);
     }
+    */
   }, [results, visualizationTab]);
   
   // If still loading auth state, show spinner
@@ -271,7 +274,7 @@ export default function UnifiedDashboard() {
       if (isTextFile && file) {
         try {
           fileContent = await file.text();
-          console.log("Successfully read raw text from file, length:", fileContent.length);
+          console.log("Read text file content");
         } catch (error) {
           console.error("Error reading text file:", error);
         }
@@ -302,35 +305,8 @@ export default function UnifiedDashboard() {
               resultData.sentimentStatements.positive[0] !== "No positive statements found in the provided text.";
             
             if (!hasValidSentimentStatements) {
-              console.log("No valid LLM-generated sentiment statements found, requesting sentiment analysis from backend");
-              
-              try {
-                // LLM-BASED APPROACH:
-                // Ideally, we would send the file content to a dedicated backend endpoint
-                // that would use the LLM to analyze sentiment and extract statements.
-                // 
-                // For example:
-                // const llmSentimentResponse = await apiClient.analyzeSentiment(fileContent);
-                // resultData.sentimentStatements = llmSentimentResponse.sentimentStatements;
-                //
-                // However, since we're already using the LLM for the main analysis,
-                // we should be getting sentiment statements from there.
-                // The code below falls back to client-side processing only when necessary.
-                
-                // If we still don't have valid sentiment statements, use local processing as last resort
-                if (!hasValidSentimentStatements) {
-                  console.log("Using local processing for sentiment statements as fallback");
-                  resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
-                  console.log("Generated sentiment statements from file content:", resultData.sentimentStatements);
-                }
-              } catch (error) {
-                console.error("Error getting sentiment statements from backend:", error);
-                // Fall back to local processing
-                console.log("Falling back to local sentiment processing due to error");
-                resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
-              }
-            } else {
-              console.log("Using LLM-generated sentiment statements from analysis");
+              console.log("Processing sentiment statements");
+              resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
             }
           }
           
@@ -379,7 +355,7 @@ export default function UnifiedDashboard() {
               (resultData.sentimentStatements.positive.length === 0 && 
                resultData.sentimentStatements.neutral.length === 0 && 
                resultData.sentimentStatements.negative.length === 0)) {
-            console.log('Generating sentiment statements from sentiment data');
+            console.log('Generating sentiment statements');
             
             // Group sentiment data by score into positive, neutral, and negative
             const positive: string[] = [];
@@ -410,18 +386,10 @@ export default function UnifiedDashboard() {
               negative
             };
             
-            console.log('Generated sentiment statements', {
-              positive: positive.length,
-              neutral: neutral.length,
-              negative: negative.length
-            });
+            console.log(`Generated ${positive.length} positive, ${neutral.length} neutral, ${negative.length} negative statements`);
           } else {
             // Keep existing sentiment statements unedited
-            console.log('Using existing sentiment statements from API', {
-              positive: resultData.sentimentStatements.positive.length,
-              neutral: resultData.sentimentStatements.neutral.length,
-              negative: resultData.sentimentStatements.negative.length
-            });
+            console.log('Using existing sentiment statements from API');
           }
         }
         
@@ -471,9 +439,10 @@ export default function UnifiedDashboard() {
             (resultData.sentimentStatements.positive.length === 0 && 
              resultData.sentimentStatements.neutral.length === 0 && 
              resultData.sentimentStatements.negative.length === 0)) && file) {
+          console.log("Processing historical analysis");
           try {
             const fileContent = await file.text();
-            console.log("Using file content for sentiment statements in history view");
+            console.log("Processing file content for historical analysis");
             resultData.sentimentStatements = processFreeTextToSentimentStatements(fileContent);
           } catch (error) {
             console.error("Failed to read text from file in history view:", error);
@@ -525,7 +494,7 @@ export default function UnifiedDashboard() {
             (resultData.sentimentStatements.positive.length === 0 && 
              resultData.sentimentStatements.neutral.length === 0 && 
              resultData.sentimentStatements.negative.length === 0)) {
-          console.log('Generating sentiment statements from sentiment data');
+          console.log('Generating sentiment statements');
           
           // Group sentiment data by score into positive, neutral, and negative
           const positive: string[] = [];
@@ -556,18 +525,10 @@ export default function UnifiedDashboard() {
             negative
           };
           
-          console.log('Generated sentiment statements', {
-            positive: positive.length,
-            neutral: neutral.length,
-            negative: negative.length
-          });
+          console.log(`Generated ${positive.length} positive, ${neutral.length} neutral, ${negative.length} negative statements`);
         } else {
           // Keep existing sentiment statements unedited
-          console.log('Using existing sentiment statements from API', {
-            positive: resultData.sentimentStatements.positive.length,
-            neutral: resultData.sentimentStatements.neutral.length,
-            negative: resultData.sentimentStatements.negative.length
-          });
+          console.log('Using existing sentiment statements from API');
         }
       }
       
@@ -621,8 +582,10 @@ export default function UnifiedDashboard() {
   // After all the changes, update the processFreeTextToSentimentStatements function to better handle Team chat format:
 
   const processFreeTextToSentimentStatements = (text: string) => {
-    console.log("Processing free text to extract sentiment statements, text length:", text.length);
-    
+    // First determine if it's Teams format before using it in logging
+    const isTeamsFormat = text.match(/\[\d+:\d+ [AP]M\]/);
+    console.log(`Processing ${isTeamsFormat ? "Teams" : "standard"} format text`);
+
     if (!text || text.length === 0) {
       console.log("Warning: Empty text provided for sentiment extraction");
       return {
@@ -632,13 +595,9 @@ export default function UnifiedDashboard() {
       };
     }
     
-    // Check if the text is in teams chat format (with timestamps like [09:00 AM])
-    const isTeamsFormat = text.match(/\[\d+:\d+ [AP]M\]/);
-    console.log("Detected teams format:", isTeamsFormat ? "yes" : "no");
-    
     // Extract plain text sentences from transcript
     const lines = text.split('\n').filter(line => line.trim().length > 0);
-    console.log(`Processing ${lines.length} lines of text from file`);
+    console.log(`Processing text file with ${lines.length} lines`);
     
     // Store question-answer pairs when possible
     const conversationPairs: { question?: string; answer: string }[] = [];
@@ -835,11 +794,7 @@ export default function UnifiedDashboard() {
       });
     }
     
-    console.log("Extracted sentiment statements:", {
-      positive: positive.length,
-      neutral: neutral.length,
-      negative: negative.length
-    });
+    console.log(`Extracted ${positive.length + neutral.length + negative.length} sentiment statements`);
     
     // If we found no statements at all, create placeholder messages
     if (positive.length === 0 && neutral.length === 0 && negative.length === 0) {
@@ -1138,11 +1093,11 @@ export default function UnifiedDashboard() {
                     type="sentiment"
                     sentimentData={{
                       overview: results.sentimentOverview,
-                      details: results.sentiment,
+                      details: (results.sentiment || []).slice(0, 100),
                       statements: results.sentimentStatements || {
-                        positive: results.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
-                        neutral: results.sentiment.filter(s => s.score >= -0.2 && s.score <= 0.2).map(s => s.text).slice(0, 5),
-                        negative: results.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
+                        positive: [],
+                        neutral: [],
+                        negative: []
                       }
                     }}
                   />

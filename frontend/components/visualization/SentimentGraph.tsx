@@ -75,62 +75,77 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   
   // Validate and normalize sentiment data
   const sentimentValues = useMemo(() => {
-    console.log('Received sentiment data:', actualData);
-    console.log('Supporting statements:', supportingStatements);
+    try {
+      // Safely log sentiment data
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Received sentiment data:', 
+          actualData ? typeof actualData : 'undefined');
+        console.log('Supporting statements:', 
+          supportingStatements ? 'Object' : 'undefined');
+      }
 
-    // Check if we have supporting statements to calculate more accurate percentages
-    if (supportingStatements && 
-        Array.isArray(supportingStatements.positive) && 
-        Array.isArray(supportingStatements.neutral) && 
-        Array.isArray(supportingStatements.negative)) {
-      
-      const positiveCount = supportingStatements.positive.length;
-      const neutralCount = supportingStatements.neutral.length;
-      const negativeCount = supportingStatements.negative.length;
-      const total = positiveCount + neutralCount + negativeCount;
-      
-      console.log('Calculating sentiment from statement counts:', {
-        positiveCount,
-        neutralCount,
-        negativeCount,
-        total
-      });
-      
-      if (total > 0) {
+      // Check if we have supporting statements to calculate more accurate percentages
+      if (supportingStatements && 
+          Array.isArray(supportingStatements.positive) && 
+          Array.isArray(supportingStatements.neutral) && 
+          Array.isArray(supportingStatements.negative)) {
+        
+        const positiveCount = supportingStatements.positive.length;
+        const neutralCount = supportingStatements.neutral.length;
+        const negativeCount = supportingStatements.negative.length;
+        const total = positiveCount + neutralCount + negativeCount;
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Calculating sentiment from statement counts:', {
+            positiveCount,
+            neutralCount,
+            negativeCount,
+            total
+          });
+        }
+        
+        if (total > 0) {
+          return {
+            positive: positiveCount / total,
+            neutral: neutralCount / total,
+            negative: negativeCount / total,
+          };
+        }
+      }
+
+      // Check if data is undefined or has invalid values
+      if (!actualData || 
+          typeof actualData.positive !== 'number' || 
+          typeof actualData.neutral !== 'number' || 
+          typeof actualData.negative !== 'number') {
+        console.warn('Invalid sentiment data, using defaults:', DEFAULT_SENTIMENT);
+        return DEFAULT_SENTIMENT;
+      }
+
+      // Normalize values to ensure they sum to 1
+      const total = actualData.positive + actualData.neutral + actualData.negative;
+      if (total === 0) {
+        console.warn('All sentiment values are 0, using defaults');
+        return DEFAULT_SENTIMENT;
+      }
+
+      if (Math.abs(total - 1) > 0.01) { // Allow for small floating-point differences
+        console.warn('Sentiment values do not sum to 1, normalizing:', { 
+          total, 
+          data: actualData ? 'Object' : 'undefined'
+        });
         return {
-          positive: positiveCount / total,
-          neutral: neutralCount / total,
-          negative: negativeCount / total,
+          positive: actualData.positive / total,
+          neutral: actualData.neutral / total,
+          negative: actualData.negative / total,
         };
       }
-    }
 
-    // Check if data is undefined or has invalid values
-    if (!actualData || 
-        typeof actualData.positive !== 'number' || 
-        typeof actualData.neutral !== 'number' || 
-        typeof actualData.negative !== 'number') {
-      console.warn('Invalid sentiment data, using defaults:', DEFAULT_SENTIMENT);
+      return actualData;
+    } catch (error) {
+      console.error('Error processing sentiment data:', error);
       return DEFAULT_SENTIMENT;
     }
-
-    // Normalize values to ensure they sum to 1
-    const total = actualData.positive + actualData.neutral + actualData.negative;
-    if (total === 0) {
-      console.warn('All sentiment values are 0, using defaults');
-      return DEFAULT_SENTIMENT;
-    }
-
-    if (Math.abs(total - 1) > 0.01) { // Allow for small floating-point differences
-      console.warn('Sentiment values do not sum to 1, normalizing:', { total, data: actualData });
-      return {
-        positive: actualData.positive / total,
-        neutral: actualData.neutral / total,
-        negative: actualData.negative / total,
-      };
-    }
-
-    return actualData;
   }, [actualData, supportingStatements]);
 
   // Process detailed sentiment data for trends
@@ -165,9 +180,24 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
 
   // Active sector state for hover effect
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined);
-  const onPieEnter = (_: any, index: number) => setActiveIndex(index);
-  const onPieLeave = () => setActiveIndex(undefined);
   
+  // Safely handle pie chart events
+  const onPieEnter = React.useCallback((_: any, index: number) => {
+    try {
+      setActiveIndex(index);
+    } catch (error) {
+      console.error('Error in pie chart hover:', error);
+    }
+  }, []);
+  
+  const onPieLeave = React.useCallback(() => {
+    try {
+      setActiveIndex(undefined);
+    } catch (error) {
+      console.error('Error in pie chart leave:', error);
+    }
+  }, []);
+
   // Create legend items
   const legendItems = useMemo(() => {
     return [
@@ -213,65 +243,71 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
     );
   };
 
-  // Validate and process supporting statements
+  // Process supporting statements safely
   const processedStatements = useMemo(() => {
-    console.log('Processing supporting statements:', supportingStatements);
-    
-    // Ensure all categories exist and contain arrays
-    const processed = {
-      positive: Array.isArray(supportingStatements.positive) ? supportingStatements.positive : [],
-      neutral: Array.isArray(supportingStatements.neutral) ? supportingStatements.neutral : [],
-      negative: Array.isArray(supportingStatements.negative) ? supportingStatements.negative : []
-    };
-    
-    // Filter out empty statements and trim whitespace
-    processed.positive = processed.positive
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Processing supporting statements:', 
+          supportingStatements ? 'Object' : 'undefined');
+      }
       
-    processed.neutral = processed.neutral
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+      // Ensure all categories exist and contain arrays
+      const processed = {
+        positive: Array.isArray(supportingStatements?.positive) ? 
+          [...supportingStatements.positive] : [],
+        neutral: Array.isArray(supportingStatements?.neutral) ? 
+          [...supportingStatements.neutral] : [],
+        negative: Array.isArray(supportingStatements?.negative) ? 
+          [...supportingStatements.negative] : []
+      };
       
-    processed.negative = processed.negative
-      .filter(statement => statement && typeof statement === 'string')
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
-    
-    // IMPROVED: Add fallback placeholders if any category is still empty
-    if (processed.positive.length === 0) {
-      processed.positive = [
-        "I really enjoyed the user experience.",
-        "The application is very responsive and intuitive.",
-        "The design is clean and professional."
-      ];
+      // Limit to 5 statements per category for better UI
+      processed.positive = processed.positive.slice(0, 5);
+      processed.neutral = processed.neutral.slice(0, 5);
+      processed.negative = processed.negative.slice(0, 5);
+      
+      // Add placeholder statements if empty
+      if (processed.positive.length === 0) {
+        processed.positive = [
+          "The application is intuitive and easy to use.",
+          "I appreciate the responsive design and quick loading times.",
+          "The features are exactly what I needed."
+        ];
+      }
+      
+      if (processed.neutral.length === 0) {
+        processed.neutral = [
+          "The application has standard functionality.",
+          "The interface is neither exceptional nor poor.",
+          "It performs as expected for this type of tool."
+        ];
+      }
+      
+      if (processed.negative.length === 0) {
+        processed.negative = [
+          "The loading times were too slow for my needs.",
+          "I found some error messages confusing.",
+          "The navigation could be more intuitive."
+        ];
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Processed supporting statements:', {
+          positive: processed.positive.length,
+          neutral: processed.neutral.length,
+          negative: processed.negative.length
+        });
+      }
+      
+      return processed;
+    } catch (error) {
+      console.error('Error processing statements:', error);
+      return {
+        positive: [],
+        neutral: [],
+        negative: []
+      };
     }
-    
-    if (processed.neutral.length === 0) {
-      processed.neutral = [
-        "The functionality meets basic expectations.",
-        "Some features are useful while others are unnecessary.",
-        "The interface is neither impressive nor disappointing."
-      ];
-    }
-    
-    if (processed.negative.length === 0) {
-      processed.negative = [
-        "The loading times were too slow for my needs.",
-        "I found some error messages confusing.",
-        "The navigation could be more intuitive."
-      ];
-    }
-    
-    console.log('Processed supporting statements:', {
-      positive: processed.positive.length,
-      neutral: processed.neutral.length,
-      negative: processed.negative.length
-    });
-    
-    return processed;
   }, [supportingStatements]);
 
   // Render statements section with proper colors

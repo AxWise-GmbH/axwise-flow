@@ -39,12 +39,25 @@ const DashboardTabs = ({ currentAnalysis }: DashboardTabsProps) => {
   
   // Update URL when tabs change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('tab', activeTab);
-      
-      window.history.pushState({}, '', url);
-    }
+    let isMounted = true;
+    
+    const updateTimer = setTimeout(() => {
+      if (isMounted && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        const currentTab = url.searchParams.get('tab');
+        
+        // Only update if needed
+        if (currentTab !== activeTab) {
+          url.searchParams.set('tab', activeTab);
+          window.history.replaceState({}, '', url);
+        }
+      }
+    }, 50);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(updateTimer);
+    };
   }, [activeTab]);
   
   return (

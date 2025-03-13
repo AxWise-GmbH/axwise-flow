@@ -25,11 +25,27 @@ const VisualizationTab = ({ results }: VisualizationTabProps) => {
   
   // Update URL when visualization tab changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('visualizationTab', activeTab);
-      window.history.pushState({}, '', url);
-    }
+    let isMounted = true;
+    
+    // Use setTimeout to slightly delay the URL update to avoid race conditions
+    const updateTimer = setTimeout(() => {
+      if (isMounted && typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        const currentVisualizationTab = url.searchParams.get('visualizationTab');
+        
+        // Only update if the tab has actually changed to avoid unnecessary history entries
+        if (currentVisualizationTab !== activeTab) {
+          url.searchParams.set('visualizationTab', activeTab);
+          window.history.replaceState({}, '', url); // Use replaceState instead of pushState
+        }
+      }
+    }, 50); // Small delay to avoid race conditions
+    
+    // Cleanup function to handle component unmounting
+    return () => {
+      isMounted = false;
+      clearTimeout(updateTimer);
+    };
   }, [activeTab]);
   
   // Get visualization tab from URL
@@ -49,13 +65,39 @@ const VisualizationTab = ({ results }: VisualizationTabProps) => {
     }
   }, []);
   
-  // Debug logging for sentiment visualization
+  // Debug logging for sentiment visualization - wrapped in try/catch to prevent errors
   useEffect(() => {
-    if (results && activeTab === 'sentiment') {
-      console.log('Results object for sentiment visualization:', results);
-      console.log('SentimentStatements in results:', results.sentimentStatements);
-      console.log('Sentiment overview:', results.sentimentOverview);
+    let isMounted = true;
+    let logTimer: NodeJS.Timeout;
+
+    if (results && activeTab === 'sentiment' && isMounted) {
+      // Defer logging to avoid blocking tab switching
+      logTimer = setTimeout(() => {
+        try {
+          console.log('Results object for sentiment visualization:', 
+            typeof results === 'object' ? 'Object' : typeof results);
+          
+          // Only log if the properties exist
+          if (results.sentimentStatements) {
+            console.log('SentimentStatements in results:', 
+              typeof results.sentimentStatements === 'object' ? 'Object' : typeof results.sentimentStatements);
+          }
+          
+          if (results.sentimentOverview) {
+            console.log('Sentiment overview:', 
+              typeof results.sentimentOverview === 'object' ? 'Object' : typeof results.sentimentOverview);
+          }
+        } catch (error) {
+          // Suppress errors in logging
+          console.error('Error in sentiment debug logging:', error);
+        }
+      }, 100);
     }
+    
+    return () => {
+      isMounted = false;
+      if (logTimer) clearTimeout(logTimer);
+    };
   }, [results, activeTab]);
   
   // If no results available, show placeholder
@@ -107,10 +149,14 @@ const VisualizationTab = ({ results }: VisualizationTabProps) => {
           </TabsContent>
           
           <TabsContent value="sentiment">
-            {results.sentimentStatements && results.sentimentStatements.length > 0 ? (
+            {results.sentimentStatements && 
+             (Object.keys(results.sentimentStatements).length > 0 || 
+              (results.sentimentStatements.positive && results.sentimentStatements.positive.length > 0) ||
+              (results.sentimentStatements.negative && results.sentimentStatements.negative.length > 0) ||
+              (results.sentimentStatements.neutral && results.sentimentStatements.neutral.length > 0)) ? (
               <SentimentGraph 
-                sentimentStatements={results.sentimentStatements} 
-                sentimentOverview={results.sentimentOverview} 
+                data={results.sentimentOverview}
+                supportingStatements={results.sentimentStatements}
               />
             ) : (
               <Alert>
