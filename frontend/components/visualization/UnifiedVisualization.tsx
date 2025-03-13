@@ -242,14 +242,18 @@ const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <p className="text-sm leading-relaxed pr-16 font-medium">
-                        {pattern.name}
-                      </p>
-                      {pattern.description && (
-                        <p className="text-xs text-muted-foreground mt-1 pr-16">
-                          {pattern.description}
-                        </p>
-                      )}
+                      <div className="relative pr-4">
+                        {pattern.description !== pattern.name && (
+                          <p className="text-sm leading-relaxed font-medium">
+                            {pattern.name}
+                          </p>
+                        )}
+                        {pattern.description && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {pattern.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -306,9 +310,11 @@ const UnifiedVisualization: React.FC<UnifiedVisualizationProps> = ({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      <p className="text-sm leading-relaxed pr-16 font-medium">
-                        {theme.name}
-                      </p>
+                      <div className="relative pr-4">
+                        <p className="text-sm leading-relaxed font-medium">
+                          {theme.name}
+                        </p>
+                      </div>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {(theme.keywords || []).slice(0, 5).map((keyword, kidx) => (
                           <Badge key={kidx} variant="secondary" className="text-xs">

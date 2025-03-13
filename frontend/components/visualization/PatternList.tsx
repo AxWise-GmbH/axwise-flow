@@ -138,10 +138,6 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                       const patternKey = `pattern-${category}-${categoryIndex}-${pattern.id || pattern.name}`;
                       return (
                         <div key={patternKey} id={`pattern-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
-                          <div className="w-full mb-4">
-                            <h2 className="text-lg font-bold text-foreground">{pattern.name}</h2>
-                          </div>
-                          
                           {pattern.description && (
                             <div className="mb-5 p-1.5 relative">
                               <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
@@ -171,9 +167,11 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                                <p className="text-base leading-relaxed text-foreground pr-16">
-                                  {pattern.description}
-                                </p>
+                                <div className="relative">
+                                  <p className="text-base leading-relaxed text-foreground pr-[4.5rem]">
+                                    {pattern.description}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           )}

@@ -188,9 +188,11 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          <p className="text-sm leading-relaxed pr-16 font-medium">
-                            {theme.name}
-                          </p>
+                          <div className="relative pr-4">
+                            <p className="text-sm leading-relaxed font-medium">
+                              {theme.name}
+                            </p>
+                          </div>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {(theme.keywords || []).slice(0, 5).map((keyword, kidx) => (
                               <Badge key={`${theme.id || theme.name}-keyword-${kidx}-${keyword}`} variant="secondary" className="text-xs">
