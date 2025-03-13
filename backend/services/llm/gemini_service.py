@@ -314,6 +314,59 @@ class GeminiService:
                 
                 result = transformed
             
+            elif task == 'persona_formation':
+                # Add support for direct persona prompts if provided
+                if 'prompt' in data and data['prompt']:
+                    return data['prompt']
+                    
+                # Otherwise use our standard persona formation prompt
+                text_sample = data.get('text', '')[:3500]  # Limit sample size
+                return f"""
+                Given the following interview text or pattern descriptions, create a detailed persona profile for the main participant.
+                
+                CONTENT FOR ANALYSIS:
+                {text_sample}
+                
+                Create a detailed persona with the following attributes:
+                1. Name: A descriptive role-based name
+                2. Description: Brief summary of who this persona is
+                3. Role context: Their work context and environment
+                4. Key responsibilities: Their main tasks and responsibilities
+                5. Tools used: Tools, software, or methods they use
+                6. Collaboration style: How they collaborate with others
+                7. Analysis approach: How they approach problems and analysis
+                8. Pain points: Challenges or frustrations they face
+                
+                Format your response as a JSON object with these properties:
+                {{
+                  "name": "Role-based name (e.g., 'Technical Project Manager')",
+                  "description": "Brief description",
+                  "role_context": "Primary work context",
+                  "role_confidence": 0.8, // Confidence score (0.0-1.0) for role identification
+                  "role_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "responsibilities": "Key responsibilities",
+                  "resp_confidence": 0.8, // Confidence score (0.0-1.0) for responsibilities
+                  "resp_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "tools": "Tools, software, or methods used",
+                  "tools_confidence": 0.8, // Confidence score (0.0-1.0) for tools
+                  "tools_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "collaboration": "Collaboration style",
+                  "collab_confidence": 0.8, // Confidence score (0.0-1.0) for collaboration style
+                  "collab_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "analysis": "Analysis approach",
+                  "analysis_confidence": 0.8, // Confidence score (0.0-1.0) for analysis approach
+                  "analysis_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "pain_points": "Pain points and challenges",
+                  "pain_confidence": 0.8, // Confidence score (0.0-1.0) for pain points
+                  "pain_evidence": ["Supporting evidence 1", "Supporting evidence 2"],
+                  "patterns": ["Relevant pattern 1", "Relevant pattern 2"],
+                  "confidence": 0.8, // Overall confidence score (0.0-1.0)
+                  "evidence": ["Overall supporting evidence 1", "Overall supporting evidence 2"]
+                }}
+                
+                IMPORTANT: Make sure your response is ONLY valid JSON with NO MARKDOWN formatting.
+                """
+            
             else:
                 return f"You are an expert analyst. Analyze the provided text for the task: {task}."
             

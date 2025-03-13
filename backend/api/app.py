@@ -7,6 +7,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 import sys
 import os
+import uvicorn
+import asyncio
+import logging
+import json
+from typing import Dict, Any, List, Literal, Optional, Union
+import uuid
+import time
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 # Add the parent directory to the Python path
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -19,37 +28,54 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from backend.services.external.auth_middleware import get_current_user
-from typing import Dict, Any, List, Literal, Optional
-import logging
-import json
-import asyncio
-from sqlalchemy.orm import Session
-from datetime import datetime
-
-from backend.schemas import (
-    AnalysisRequest, UploadResponse, AnalysisResponse,
-    ResultResponse, HealthCheckResponse, DetailedAnalysisResult, PersonaGenerationRequest
-)
-
-from backend.core.processing_pipeline import process_data
-from backend.services.llm import LLMServiceFactory
-from backend.services.nlp import get_nlp_processor
-from backend.database import get_db, create_tables
+# Fix imports to use direct backend modules instead of backend.data
+from backend.database import get_db, Base, engine
 from backend.models import User, InterviewData, AnalysisResult
-from backend.config import validate_config, LLM_CONFIG
+from backend.schemas import (
+    AnalysisRequest,
+    AnalysisResponse,
+    ResultResponse,
+    PersonaGenerationRequest,
+    DetailedAnalysisResult,
+    UploadResponse,
+    HealthCheckResponse
+)
+from backend.services.llm.llm_service_factory import LLMServiceFactory
 from backend.services.processing.persona_formation import PersonaFormationService
+from backend.config import validate_config, LLM_CONFIG
+from backend.core.processing_pipeline import process_data
+from backend.services.nlp import get_nlp_processor
+from backend.database import create_tables
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('backend_api.log'),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
+# Initialize global services
+try:
+    # Create a placeholder for the global persona service
+    global_persona_service = None
+    logger.info("Backend API startup: Global service placeholders initialized")
+except Exception as e:
+    logger.error(f"Error initializing global services: {str(e)}")
+
 DEFAULT_SENTIMENT_OVERVIEW = {
-    "positive": 0.33,
-    "neutral": 0.34,
-    "negative": 0.33
+    "overall_score": 0,
+    "positive_score": 0,
+    "negative_score": 0,
+    "neutral_score": 0,
+    "counts": {
+        "positive": 0,
+        "negative": 0,
+        "neutral": 0
+    }
 }
 
 def transform_analysis_results(results):
@@ -141,6 +167,56 @@ app.add_middleware(
 
 # Initialize database tables
 create_tables()
+
+def get_persona_service():
+    """Get or initialize the global persona service"""
+    global global_persona_service
+    
+    if global_persona_service is None:
+        try:
+            # Create LLM service - prefer Gemini for persona generation
+            llm_provider = os.getenv("DEFAULT_LLM_PROVIDER", "gemini")
+            
+            # Make sure we have a valid provider
+            if llm_provider not in LLM_CONFIG:
+                logger.warning(f"Invalid LLM provider: {llm_provider}, falling back to openai")
+                llm_provider = "openai"
+                
+            llm_config = dict(LLM_CONFIG[llm_provider])
+            llm_model = llm_config.get('model', "gpt-4o-2024-08-06" if llm_provider == "openai" else "gemini-2.0-flash")
+            llm_config['model'] = llm_model
+            
+            # Create a minimal config for the persona service
+            class MinimalSystemConfig:
+                def __init__(self):
+                    self.llm = type('obj', (object,), {
+                        'provider': llm_provider,
+                        'model': llm_model,
+                        'REDACTED_API_KEY': llm_config.get('REDACTED_API_KEY', ''),
+                        'temperature': 0.3,
+                        'max_tokens': 2000
+                    })
+                    self.processing = type('obj', (object,), {
+                        'batch_size': 10,
+                        'max_tokens': 2000
+                    })
+                    self.validation = type('obj', (object,), {
+                        'min_confidence': 0.4
+                    })
+            
+            system_config = MinimalSystemConfig()
+            
+            # Create LLM service
+            llm_service = LLMServiceFactory.create(llm_provider, llm_config)
+            
+            # Create persona formation service
+            global_persona_service = PersonaFormationService(system_config, llm_service)
+            logger.info(f"Global persona service initialized with {llm_provider}/{llm_model}")
+        except Exception as e:
+            logger.error(f"Error initializing global persona service: {str(e)}")
+            raise
+    
+    return global_persona_service
 
 @app.post(
     "/api/data",
@@ -698,34 +774,8 @@ async def generate_persona_from_text(
         llm_model = persona_request.llm_model or "gemini-2.0-flash"
         
         try:
-            # Update this line to use the create_llm_service method correctly
-            llm_config = dict(LLM_CONFIG[llm_provider])
-            llm_config['model'] = llm_model
-            llm_service = LLMServiceFactory.create(llm_provider, llm_config)
-            
-            # Create PersonaFormationService
-            from infrastructure.data.config import SystemConfig
-            
-            # Create a minimal SystemConfig for the persona formation service
-            class MinimalSystemConfig:
-                def __init__(self):
-                    self.llm = type('obj', (object,), {
-                        'provider': llm_provider,
-                        'model': llm_model,
-                        'REDACTED_API_KEY': LLM_CONFIG[llm_provider].get('REDACTED_API_KEY', ''),
-                        'temperature': 0.3,
-                        'max_tokens': 2000
-                    })
-                    self.processing = type('obj', (object,), {
-                        'batch_size': 10,
-                        'max_tokens': 2000
-                    })
-                    self.validation = type('obj', (object,), {
-                        'min_confidence': 0.4
-                    })
-            
-            system_config = MinimalSystemConfig()
-            persona_service = PersonaFormationService(system_config, llm_service)
+            # Get the global persona service
+            persona_service = get_persona_service()
             
             # Generate persona
             personas = await persona_service.generate_persona_from_text(

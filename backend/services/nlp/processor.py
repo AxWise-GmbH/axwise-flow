@@ -374,14 +374,13 @@ class NLPProcessor:
             # Generate personas from the text
             logger.info("Generating personas from interview text")
             
-            # Import the persona generation service here to avoid circular imports
-            from backend.services.processing.persona_formation import PersonaFormationService
-            
-            # Create persona formation service
-            persona_service = PersonaFormationService(None, llm_service)
-            
-            # Use direct text-to-persona generation
             try:
+                # Import the global persona service getter
+                from backend.api.app import get_persona_service
+                
+                # Get the global persona service
+                persona_service = get_persona_service()
+                
                 # Get the raw text from the original source if available
                 raw_text = results.get('original_text', combined_text)
                 
@@ -402,6 +401,9 @@ class NLPProcessor:
                 try:
                     if results.get('patterns'):
                         logger.info("Attempting pattern-based persona generation as fallback")
+                        # Import the global persona service getter again to ensure it's available
+                        from backend.api.app import get_persona_service
+                        persona_service = get_persona_service()
                         pattern_personas = await persona_service.form_personas(results.get('patterns', []))
                         results['personas'] = pattern_personas
                         logger.info(f"Added {len(pattern_personas)} pattern-based personas to analysis results")
