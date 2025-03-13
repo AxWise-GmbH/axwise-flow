@@ -199,6 +199,25 @@ export default function UnifiedDashboard() {
     */
   }, [results, visualizationTab]);
   
+  // Add a useEffect to debug patterns data when the tab changes to 'patterns'
+  useEffect(() => {
+    if (visualizationTab === 'patterns' && results && results.patterns) {
+      console.log('Raw patterns data:', results.patterns);
+      
+      // Log individual patterns to debug name issues
+      if (Array.isArray(results.patterns)) {
+        results.patterns.slice(0, 5).forEach((pattern, index) => {
+          console.log(`Pattern ${index} details:`, {
+            id: pattern.id,
+            name: pattern.name,
+            description: pattern.description,
+            category: pattern.category
+          });
+        });
+      }
+    }
+  }, [visualizationTab, results]);
+  
   // If still loading auth state, show spinner
   if (!isLoaded) {
     return <LoadingSpinner />;
@@ -1117,17 +1136,51 @@ export default function UnifiedDashboard() {
                       type="patterns"
                       patternsData={(results.patterns || [])
                         .slice(0, 25)  // Limit to first 25 patterns for performance
-                        .map((pattern, index) => ({
-                          // Parse string id to number or use a numeric fallback
-                          id: typeof pattern.id === 'number' ? pattern.id : (parseInt(String(pattern.id)) || index + 1000),
-                          name: pattern.name || `Unnamed Pattern ${index + 1}`,
-                          description: pattern.description || '',
-                          frequency: pattern.frequency || 0,
-                          category: pattern.category || 'Uncategorized',
-                          sentiment: typeof pattern.sentiment === 'number' ? pattern.sentiment : 0,
-                          // Limit evidence items to 5 per pattern
-                          evidence: Array.isArray(pattern.evidence) ? pattern.evidence.slice(0, 5) : []
-                        }))
+                        .map((pattern, index) => {
+                          // Check if pattern has a description but no name
+                          // This is a common case in the API where the name field is missing
+                          // but the description contains what should be the name
+                          let patternName = '';
+                          
+                          // First check if name exists and is not empty
+                          if (pattern.name && pattern.name.trim() !== '') {
+                            patternName = pattern.name;
+                          } 
+                          // If no name but has description, use first sentence of description (up to 50 chars)
+                          else if (pattern.description && pattern.description.trim() !== '') {
+                            // Get first sentence or first 50 chars
+                            const firstSentence = pattern.description.split('.')[0];
+                            if (firstSentence.length > 50) {
+                              patternName = firstSentence.substring(0, 50) + '...';
+                            } else {
+                              patternName = firstSentence;
+                            }
+                              
+                            // If first sentence is too short, use more of the description
+                            if (patternName.length < 10 && pattern.description.length > patternName.length) {
+                              patternName = pattern.description.substring(0, 50);
+                              if (pattern.description.length > 50) {
+                                patternName += '...';
+                              }
+                            }
+                          }
+                          // Fallback to unnamed pattern
+                          else {
+                            patternName = `Unnamed Pattern ${index + 1}`;
+                          }
+                          
+                          return {
+                            // Parse string id to number or use a numeric fallback
+                            id: typeof pattern.id === 'number' ? pattern.id : (parseInt(String(pattern.id)) || index + 1000),
+                            name: patternName,
+                            description: pattern.description || '',
+                            frequency: pattern.frequency || 0,
+                            category: pattern.category || 'Uncategorized',
+                            sentiment: typeof pattern.sentiment === 'number' ? pattern.sentiment : 0,
+                            // Limit evidence items to 5 per pattern
+                            evidence: Array.isArray(pattern.evidence) ? pattern.evidence.slice(0, 5) : []
+                          };
+                        })
                       }
                     />
                   )}
