@@ -326,7 +326,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
           </h3>
           <ul className="space-y-2">
             {processedStatements.positive.map((statement, index) => (
-              <li key={index} className="text-sm text-muted-foreground">
+              <li key={`positive-statement-${index}-${statement.slice(0, 10).replace(/\s+/g, '-')}`} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
@@ -346,7 +346,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
           </h3>
           <ul className="space-y-2">
             {processedStatements.neutral.map((statement, index) => (
-              <li key={index} className="text-sm text-muted-foreground">
+              <li key={`neutral-statement-${index}-${statement.slice(0, 10).replace(/\s+/g, '-')}`} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
@@ -366,7 +366,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
           </h3>
           <ul className="space-y-2">
             {processedStatements.negative.map((statement, index) => (
-              <li key={index} className="text-sm text-muted-foreground">
+              <li key={`negative-statement-${index}-${statement.slice(0, 10).replace(/\s+/g, '-')}`} className="text-sm text-muted-foreground">
                 {statement}
               </li>
             ))}
@@ -399,7 +399,7 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
                 onMouseLeave={onPieLeave}
               >
                 {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell key={`sentiment-cell-${entry.name}-${index}`} fill={entry.color} />
                 ))}
               </Pie>
               <text 

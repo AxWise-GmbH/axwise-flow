@@ -1,70 +1,227 @@
-// Fix for "message channel closed" errors in Chrome DevTools
-(function() {
+/**
+ * Fixes Chrome DevTools "message channel closed" error
+ * 
+ * This script patches console.log, console.warn, and console.error methods
+ * to prevent circular references and complex objects from causing
+ * "message channel closed" errors in Chrome DevTools.
+ */
+
+// Only patch once
+if (!window.consolePatchApplied) {
+  window.consolePatchApplied = true;
+  
+  // Keep references to the original methods
+  const originalConsoleLog = console.log;
+  const originalConsoleWarn = console.warn;
+  const originalConsoleError = console.error;
+  
+  // Track component mounting/unmounting state
+  window.isUnmounting = false;
+  
+  // Track if we're currently in a React lifecycle method
+  window.__inReactLifecycle = false;
+  
+  // Save references to original React lifecycle methods we need to patch
   if (typeof window !== 'undefined') {
-    // Save original console methods
-    const originalConsoleLog = console.log;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleError = console.error;
-    
-    // Safely stringify objects to prevent circular references
-    function safeStringify(obj) {
-      if (obj === null || obj === undefined) return String(obj);
-      if (typeof obj !== 'object') return String(obj);
-      
-      try {
-        // For objects, only show type and limited properties
-        const type = obj.constructor ? obj.constructor.name : 'Object';
-        return `[${type}]`;
-      } catch (e) {
-        return '[Object]';
+    // Add listener for page visibility changes
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        window.isUnmounting = true;
+        
+        // Wait until next tick to turn off unmounting mode
+        setTimeout(() => {
+          window.isUnmounting = false;
+        }, 100);
       }
+    });
+    
+    // Also track page unload
+    window.addEventListener('beforeunload', function() {
+      window.isUnmounting = true;
+    });
+    
+    // Track page transitions by intercepting history state changes
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function() {
+      window.isUnmounting = true;
+      const result = originalPushState.apply(this, arguments);
+      setTimeout(() => { window.isUnmounting = false; }, 100);
+      return result;
+    };
+    
+    history.replaceState = function() {
+      window.isUnmounting = true;
+      const result = originalReplaceState.apply(this, arguments);
+      setTimeout(() => { window.isUnmounting = false; }, 100);
+      return result;
+    };
+  }
+  
+  // Maximum string length to keep console output manageable
+  const MAX_STRING_LENGTH = 10000;
+  
+  /**
+   * Safely stringify data for console output
+   * - Handles circular references
+   * - Limits output size for large objects
+   * - Avoids processing complex classes like React components
+   */
+  function safeStringify(obj, depth = 0) {
+    if (depth > 2) return "[Object]"; // Limit recursion depth
+    
+    // Handle primitives and null directly
+    if (obj === null) return "null";
+    if (obj === undefined) return "undefined";
+    if (typeof obj === "string") {
+      return obj.length > MAX_STRING_LENGTH 
+        ? obj.substring(0, MAX_STRING_LENGTH) + "... [truncated]" 
+        : obj;
+    }
+    if (typeof obj !== "object") return String(obj);
+    
+    // Skip React elements and DOM nodes
+    if (
+      obj.$$typeof || // React elements
+      (obj.nodeType && obj.nodeName) || // DOM nodes
+      obj._reactInternals || // React instances
+      obj._reactRootContainer || // React roots
+      (obj.constructor && (
+        obj.constructor.name === 'SyntheticEvent' || 
+        obj.constructor.name === 'SyntheticBaseEvent'
+      ))
+    ) {
+      return "[React Component]";
     }
     
-    // Override console methods
-    console.log = function() {
-      try {
-        // Convert complex objects to simple strings
-        const args = Array.from(arguments).map(arg => {
-          if (typeof arg === 'object' && arg !== null) {
-            return safeStringify(arg);
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      if (obj.length > 20) {
+        return `[Array(${obj.length})]`;
+      }
+      return "[" + obj.map(item => safeStringify(item, depth + 1)).join(", ") + "]";
+    }
+    
+    // Handle objects
+    try {
+      const props = [];
+      let count = 0;
+      
+      for (const key in obj) {
+        if (count > 10) {
+          props.push(`... ${Object.keys(obj).length - 10} more properties`);
+          break;
+        }
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          let value;
+          try {
+            value = obj[key];
+            // Skip functions, symbols, and properties that might cause issues
+            if (
+              typeof value === 'function' || 
+              typeof value === 'symbol' ||
+              key === '__proto__' ||
+              key === 'constructor' ||
+              key === 'prototype'
+            ) {
+              value = `[${typeof value}]`;
+            } else {
+              value = safeStringify(value, depth + 1);
+            }
+            props.push(`${key}: ${value}`);
+            count++;
+          } catch (err) {
+            props.push(`${key}: [Error during serialization]`);
           }
-          return arg;
+        }
+      }
+      
+      return `{${props.join(", ")}}`;
+    } catch (err) {
+      return `[Object: serialization error - ${err.message}]`;
+    }
+  }
+  
+  /**
+   * Monitor React component lifecycle through console logging behavior
+   * This helps us detect when components are being unmounted
+   */
+  function patchConsole() {
+    // Replace console.log with our safe version
+    console.log = function() {
+      if (window.isUnmounting) {
+        // During unmounting, only allow string messages to avoid
+        // asynchronous responses from DevTools
+        const simpleArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          return '[Object during unmount]';
         });
-        originalConsoleLog.apply(console, args);
-      } catch (e) {
-        originalConsoleLog('Error in console.log', e.message);
+        return originalConsoleLog.apply(console, simpleArgs);
+      }
+      
+      try {
+        // For normal operation, stringify complex objects but pass through strings
+        const safeArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (typeof arg === 'number') return arg;
+          if (typeof arg === 'boolean') return arg;
+          return safeStringify(arg);
+        });
+        return originalConsoleLog.apply(console, safeArgs);
+      } catch (err) {
+        return originalConsoleLog.call(console, '[Error in console.log]', err.message);
       }
     };
     
+    // Also patch console.warn and console.error with the same approach
     console.warn = function() {
-      try {
-        const args = Array.from(arguments).map(arg => {
-          if (typeof arg === 'object' && arg !== null) {
-            return safeStringify(arg);
-          }
-          return arg;
+      if (window.isUnmounting) {
+        const simpleArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          return '[Object during unmount]';
         });
-        originalConsoleWarn.apply(console, args);
-      } catch (e) {
-        originalConsoleWarn('Error in console.warn', e.message);
+        return originalConsoleWarn.apply(console, simpleArgs);
+      }
+      
+      try {
+        const safeArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (typeof arg === 'number') return arg;
+          if (typeof arg === 'boolean') return arg;
+          return safeStringify(arg);
+        });
+        return originalConsoleWarn.apply(console, safeArgs);
+      } catch (err) {
+        return originalConsoleWarn.call(console, '[Error in console.warn]', err.message);
       }
     };
     
     console.error = function() {
-      try {
-        const args = Array.from(arguments).map(arg => {
-          if (typeof arg === 'object' && arg !== null) {
-            return safeStringify(arg);
-          }
-          return arg;
+      if (window.isUnmounting) {
+        const simpleArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          return '[Object during unmount]';
         });
-        originalConsoleError.apply(console, args);
-      } catch (e) {
-        originalConsoleError('Error in console.error', e.message);
+        return originalConsoleError.apply(console, simpleArgs);
+      }
+      
+      try {
+        const safeArgs = Array.from(arguments).map(arg => {
+          if (typeof arg === 'string') return arg;
+          if (typeof arg === 'number') return arg;
+          if (typeof arg === 'boolean') return arg;
+          return safeStringify(arg);
+        });
+        return originalConsoleError.apply(console, safeArgs);
+      } catch (err) {
+        return originalConsoleError.call(console, '[Error in console.error]', err.message);
       }
     };
-    
-    // Add a flag to indicate this patch is active
-    window.__CONSOLE_PATCHED__ = true;
   }
-})(); 
+  
+  // Apply our patches
+  patchConsole();
+  
+  console.log('Console patched to fix message channel errors');
+} 

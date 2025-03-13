@@ -134,7 +134,7 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                   </div>
                   <div className="space-y-6">
                     {groupedPatterns[category].map((pattern) => (
-                      <div key={pattern.id} id={`pattern-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
+                      <div key={`pattern-item-${pattern.id || pattern.name}`} id={`pattern-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
                         <div className="w-full mb-4">
                           <h2 className="text-lg font-bold text-foreground">{pattern.name}</h2>
                         </div>
@@ -142,7 +142,7 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                         {pattern.description && (
                           <div className="mb-5 p-1.5 relative">
                             <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
-                              <TooltipProvider key={pattern.id} delayDuration={300}>
+                              <TooltipProvider key={`tooltip-${pattern.id || pattern.name}`} delayDuration={300}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Badge 
@@ -181,7 +181,7 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                             <div className="pl-3 border-l-2 border-primary/20">
                               <ul className="space-y-3">
                                 {pattern.evidence.map((example, i) => (
-                                  <li key={`pattern-${pattern.id}-evidence-${i}`} className="relative bg-muted/30 p-3 rounded-md">
+                                  <li key={`pattern-${pattern.id || pattern.name}-evidence-${i}-${example.slice(0, 10).replace(/\s+/g, '-')}`} className="relative bg-muted/30 p-3 rounded-md">
                                     <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                                     <p className="text-muted-foreground text-sm">{example}</p>
                                   </li>

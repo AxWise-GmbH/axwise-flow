@@ -18,13 +18,13 @@
  * pattern of using VisualizationTabs directly with specialized visualization components.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
 import UnifiedVisualization from '@/components/visualization/UnifiedVisualization';
 import { apiClient } from '@/lib/apiClient';
-import { UploadResponse, AnalysisResponse, DetailedAnalysisResult } from '@/types/api';
+import { UploadResponse, AnalysisResponse, DetailedAnalysisResult, SentimentData } from '@/types/api';
 import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles } from 'lucide-react';
@@ -33,6 +33,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileText } from 'lucide-react';
 import AnalysisProgress from '@/components/AnalysisProgress';
+
+// Add this type declaration at the top of the file, after imports
+declare global {
+  interface Window {
+    isUnmounting?: boolean;
+    consolePatchApplied?: boolean;
+  }
+}
+
+// Add this debounce function after imports
+function debounce<T extends (...args: any[]) => any>(fn: T, ms = 300) {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function(this: any, ...args: Parameters<T>) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
 
 export default function UnifiedDashboard() {
   const router = useRouter();
@@ -63,6 +80,17 @@ export default function UnifiedDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<Error | null>(null);
+  
+  // Add a ref to track tab changes
+  const previousTabRef = useRef<string>(visualizationTab);
+  
+  // Use a debounced version of setVisualizationTab
+  const debouncedSetVisualizationTab = useCallback(
+    debounce((newTab: 'themes' | 'patterns' | 'sentiment' | 'personas') => {
+      setVisualizationTab(newTab);
+    }, 100),
+    []
+  );
   
   // Handle authentication redirection within useEffect
   useEffect(() => {
@@ -97,9 +125,12 @@ export default function UnifiedDashboard() {
     }
   }, []);
   
-  // Update URL when tabs change
+  // Update URL when tabs change with debounce
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Store previous tab
+      previousTabRef.current = visualizationTab;
+      
       const url = new URL(window.location.href);
       url.searchParams.set('tab', activeTab);
       
@@ -1016,101 +1047,157 @@ export default function UnifiedDashboard() {
 
         {/* Visualization Tab */}
         {activeTab === 'visualize' && (
-          <div>
-            {!results ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">No results available</p>
-                <button
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-                  onClick={() => setActiveTab('upload')}
-                >
-                  Upload & Analyze Data
-                </button>
-              </div>
-            ) : (
-              <div>
-                {/* Visualization Type Tabs */}
-                <div className="flex space-x-2 border-b mb-6">
+          <div className="flex flex-col h-full">
+            <div className="mb-4">
+              <Tabs 
+                value={visualizationTab} 
+                onValueChange={(value) => {
+                  // Use debounced version to prevent race conditions
+                  debouncedSetVisualizationTab(value as 'themes' | 'patterns' | 'sentiment' | 'personas');
+                  
+                  // Set special flag to prevent logging during tab transitions
+                  if (typeof window !== 'undefined') {
+                    window.isUnmounting = true;
+                    setTimeout(() => {
+                      window.isUnmounting = false;
+                    }, 200);
+                  }
+                }}
+                className="w-full"
+              >
+                <TabsList className="grid grid-cols-4 mb-4">
+                  <TabsTrigger value="themes">Themes</TabsTrigger>
+                  <TabsTrigger value="patterns">Patterns</TabsTrigger>
+                  <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+                  <TabsTrigger value="personas">Personas</TabsTrigger>
+                </TabsList>
+
+                {/* Content is rendered based on visualizationTab state */}
+              </Tabs>
+            </div>
+
+            {/* Tab content is rendered here */}
+            <div className="flex-1">
+              {!results ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground mb-4">No results available</p>
                   <button
-                    onClick={() => setVisualizationTab('themes')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'themes'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                    onClick={() => setActiveTab('upload')}
                   >
-                    Themes
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('patterns')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'patterns'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Patterns
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('sentiment')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'sentiment'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Sentiment
-                  </button>
-                  <button
-                    onClick={() => setVisualizationTab('personas')}
-                    className={`px-4 py-2 font-medium ${
-                      visualizationTab === 'personas'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Personas
+                    Upload & Analyze Data
                   </button>
                 </div>
-
-                {/* Visualization Content */}
-                {visualizationTab === 'themes' && (
-                  <UnifiedVisualization
-                    type="themes"
-                    themesData={results.themes}
-                  />
-                )}
-                
-                {visualizationTab === 'patterns' && (
-                  <UnifiedVisualization
-                    type="patterns"
-                    patternsData={results.patterns}
-                  />
-                )}
-                
-                {visualizationTab === 'sentiment' && (
-                  <UnifiedVisualization
-                    type="sentiment"
-                    sentimentData={{
-                      overview: results.sentimentOverview,
-                      details: (results.sentiment || []).slice(0, 100),
-                      statements: results.sentimentStatements || {
-                        positive: [],
-                        neutral: [],
-                        negative: []
+              ) : (
+                <div>
+                  {/* Visualization Content */}
+                  {visualizationTab === 'themes' && (
+                    <UnifiedVisualization
+                      type="themes"
+                      themesData={results.themes}
+                    />
+                  )}
+                  
+                  {visualizationTab === 'patterns' && (
+                    <UnifiedVisualization
+                      type="patterns"
+                      patternsData={(results.patterns || [])
+                        .slice(0, 25)  // Limit to first 25 patterns for performance
+                        .map(pattern => ({
+                          id: pattern.id,
+                          name: pattern.name || 'Unnamed Pattern',
+                          description: pattern.description || '',
+                          frequency: pattern.frequency || 0,
+                          category: pattern.category || 'Uncategorized',
+                          sentiment: typeof pattern.sentiment === 'number' ? pattern.sentiment : 0,
+                          // Limit evidence items to 5 per pattern
+                          evidence: Array.isArray(pattern.evidence) ? pattern.evidence.slice(0, 5) : []
+                        }))
                       }
-                    }}
-                  />
-                )}
+                    />
+                  )}
+                  
+                  {visualizationTab === 'sentiment' && (
+                    <UnifiedVisualization
+                      type="sentiment"
+                      sentimentData={{
+                        overview: results.sentimentOverview,
+                        // Limit the data and ensure we only use fields that exist in the SentimentData type
+                        details: (results.sentiment || [])
+                          .slice(0, 50)
+                          .map((item: any) => {
+                            // Create a properly typed SentimentData object
+                            const sentimentItem: SentimentData = {
+                              timestamp: item.timestamp || new Date().toISOString(),
+                              text: typeof item.text === 'string' ? item.text : 
+                                   typeof item.answer === 'string' ? item.answer : '',
+                              score: typeof item.score === 'number' ? item.score : 0
+                            };
+                            return sentimentItem;
+                          }),
+                        statements: results.sentimentStatements 
+                          ? {
+                              positive: (results.sentimentStatements.positive || []).slice(0, 10),
+                              neutral: (results.sentimentStatements.neutral || []).slice(0, 10),
+                              negative: (results.sentimentStatements.negative || []).slice(0, 10),
+                            } 
+                          : {
+                              positive: [],
+                              neutral: [],
+                              negative: []
+                            }
+                      }}
+                    />
+                  )}
 
-                {visualizationTab === 'personas' && (
-                  <UnifiedVisualization
-                    type="personas"
-                    personasData={results.personas || []}
-                  />
-                )}
-              </div>
-            )}
+                  {visualizationTab === 'personas' && (
+                    <UnifiedVisualization
+                      type="personas"
+                      personasData={(results.personas || [])
+                        .slice(0, 10)  // Limit to first 10 personas for performance
+                        .map(persona => ({
+                          name: persona.name || 'Unnamed Persona',
+                          description: persona.description || '',
+                          role_context: persona.role_context || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          key_responsibilities: persona.key_responsibilities || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          tools_used: persona.tools_used || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          collaboration_style: persona.collaboration_style || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          analysis_approach: persona.analysis_approach || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          pain_points: persona.pain_points || { 
+                            value: '', 
+                            confidence: 0, 
+                            evidence: [] 
+                          },
+                          patterns: Array.isArray(persona.patterns) ? persona.patterns.slice(0, 5) : [],
+                          confidence: typeof persona.confidence === 'number' ? persona.confidence : 0,
+                          evidence: Array.isArray(persona.evidence) ? persona.evidence.slice(0, 5) : []
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

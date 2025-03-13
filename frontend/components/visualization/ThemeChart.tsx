@@ -154,7 +154,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                 <h3 className="text-sm font-medium mb-2">Key Themes</h3>
                 <div className="space-y-3">
                   {sortedThemes.slice(0, 3).map((theme, idx) => (
-                    <div key={idx} className="flex gap-3 relative">
+                    <div key={`theme-${theme.id || theme.name}-${idx}`} className="flex gap-3 relative">
                       <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium absolute left-0 top-1/2 -translate-y-1/2">
                         {idx + 1}
                       </div>
@@ -193,7 +193,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                           </p>
                           <div className="mt-2 flex flex-wrap gap-1">
                             {(theme.keywords || []).slice(0, 5).map((keyword, kidx) => (
-                              <Badge key={kidx} variant="secondary" className="text-xs">
+                              <Badge key={`${theme.id || theme.name}-keyword-${kidx}-${keyword}`} variant="secondary" className="text-xs">
                                 {keyword}
                               </Badge>
                             ))}
@@ -246,7 +246,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
           {sortedThemes.length > 0 ? (
             <Accordion type="multiple" className="w-full">
               {sortedThemes.map((theme) => (
-                <AccordionItem key={theme.id} value={`theme-${theme.id}`}>
+                <AccordionItem key={`theme-${theme.id || theme.name}`} value={`theme-${theme.id || theme.name}`}>
                   <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center justify-between w-full pr-4">
                       <span className="font-medium text-left flex items-center">
@@ -302,7 +302,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                           <h4 className="text-sm font-medium">Keywords:</h4>
                           <div className="flex flex-wrap gap-1">
                             {theme.keywords.map((keyword, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
+                              <Badge key={`${theme.id || theme.name}-keyword-${i}-${keyword}`} variant="secondary" className="text-xs">
                                 {keyword}
                               </Badge>
                             ))}
@@ -315,7 +315,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                           <h4 className="text-sm font-medium">Associated Codes:</h4>
                           <div className="flex flex-wrap gap-1">
                             {theme.codes.map((code, i) => (
-                              <Badge key={i} variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                              <Badge key={`${theme.id || theme.name}-code-${i}-${code}`} variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
                                 {code}
                               </Badge>
                             ))}
@@ -347,13 +347,13 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                           <div className="rounded-md border p-4">
                             <ul className="space-y-2 text-sm">
                               {theme.statements && theme.statements.map((statement, i) => (
-                                <li key={i} className="relative bg-muted/30 p-3 rounded-md">
+                                <li key={`${theme.id || theme.name}-statement-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                                   <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                                   <p className="italic text-muted-foreground text-sm">"{statement}"</p>
                                 </li>
                               ))}
                               {!theme.statements && theme.examples && theme.examples.map((example, i) => (
-                                <li key={i} className="relative bg-muted/30 p-3 rounded-md">
+                                <li key={`${theme.id || theme.name}-example-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                                   <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                                   <p className="italic text-muted-foreground text-sm">"{example}"</p>
                                 </li>
@@ -440,7 +440,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                     <h4 className="text-sm font-medium mb-2">Keywords</h4>
                     <div className="flex flex-wrap gap-1">
                       {selectedTheme.keywords.map((keyword, i) => (
-                        <Badge key={i} variant="secondary">
+                        <Badge key={`modal-${selectedTheme.id || selectedTheme.name}-keyword-${i}-${keyword}`} variant="secondary">
                           {keyword}
                         </Badge>
                       ))}
@@ -453,7 +453,7 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                     <h4 className="text-sm font-medium mb-2">Associated Codes</h4>
                     <div className="flex flex-wrap gap-1">
                       {selectedTheme.codes.map((code, i) => (
-                        <Badge key={i} variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                        <Badge key={`modal-${selectedTheme.id || selectedTheme.name}-code-${i}-${code}`} variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
                           {code}
                         </Badge>
                       ))}
@@ -467,13 +467,13 @@ export function ThemeChart({ themes, showKeyInsights = true }: ThemeChartProps) 
                     <div className="rounded-md border p-4">
                       <ul className="space-y-2">
                         {selectedTheme.statements && selectedTheme.statements.map((statement, i) => (
-                          <li key={i} className="relative bg-muted/30 p-3 rounded-md">
+                          <li key={`modal-${selectedTheme.id || selectedTheme.name}-statement-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                             <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                             <p className="italic text-muted-foreground text-sm">"{statement}"</p>
                           </li>
                         ))}
                         {!selectedTheme.statements && selectedTheme.examples && selectedTheme.examples.map((example, i) => (
-                          <li key={i} className="relative bg-muted/30 p-3 rounded-md">
+                          <li key={`modal-${selectedTheme.id || selectedTheme.name}-example-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                             <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                             <p className="italic text-muted-foreground text-sm">"{example}"</p>
                           </li>
