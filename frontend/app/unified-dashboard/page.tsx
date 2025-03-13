@@ -39,6 +39,8 @@ declare global {
   interface Window {
     isUnmounting?: boolean;
     consolePatchApplied?: boolean;
+    reactWarningsShown?: Set<string>;
+    __inReactLifecycle?: boolean;
   }
 }
 
@@ -1052,15 +1054,27 @@ export default function UnifiedDashboard() {
               <Tabs 
                 value={visualizationTab} 
                 onValueChange={(value) => {
-                  // Use debounced version to prevent race conditions
-                  debouncedSetVisualizationTab(value as 'themes' | 'patterns' | 'sentiment' | 'personas');
-                  
-                  // Set special flag to prevent logging during tab transitions
-                  if (typeof window !== 'undefined') {
-                    window.isUnmounting = true;
-                    setTimeout(() => {
-                      window.isUnmounting = false;
-                    }, 200);
+                  try {
+                    // Use debounced version to prevent race conditions
+                    debouncedSetVisualizationTab(value as 'themes' | 'patterns' | 'sentiment' | 'personas');
+                    
+                    // Set special flag to prevent logging during tab transitions
+                    if (typeof window !== 'undefined') {
+                      window.isUnmounting = true;
+                      
+                      // Clear any React warnings shown
+                      if (window.reactWarningsShown) {
+                        window.reactWarningsShown.clear();
+                      }
+                      
+                      // Stop all console activity during tab switching
+                      setTimeout(() => {
+                        window.isUnmounting = false;
+                      }, 300);
+                    }
+                  } catch (err) {
+                    console.log('Error during tab change (safely handled):', 
+                      err instanceof Error ? err.message : 'Unknown error');
                   }
                 }}
                 className="w-full"
@@ -1103,9 +1117,10 @@ export default function UnifiedDashboard() {
                       type="patterns"
                       patternsData={(results.patterns || [])
                         .slice(0, 25)  // Limit to first 25 patterns for performance
-                        .map(pattern => ({
-                          id: pattern.id,
-                          name: pattern.name || 'Unnamed Pattern',
+                        .map((pattern, index) => ({
+                          // Parse string id to number or use a numeric fallback
+                          id: typeof pattern.id === 'number' ? pattern.id : (parseInt(String(pattern.id)) || index + 1000),
+                          name: pattern.name || `Unnamed Pattern ${index + 1}`,
                           description: pattern.description || '',
                           frequency: pattern.frequency || 0,
                           category: pattern.category || 'Uncategorized',

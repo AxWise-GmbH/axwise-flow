@@ -5,6 +5,10 @@
 // Extend Window interface
 declare interface Window {
   // Add any custom window properties here
+  isUnmounting?: boolean;
+  consolePatchApplied?: boolean;
+  reactWarningsShown?: Set<string>;
+  __inReactLifecycle?: boolean;
 }
 
 // Add support for importing CSS modules

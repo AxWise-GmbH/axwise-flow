@@ -133,65 +133,69 @@ export function PatternList({ patterns, className, onPatternClick }: PatternList
                     </TooltipProvider>
                   </div>
                   <div className="space-y-6">
-                    {groupedPatterns[category].map((pattern) => (
-                      <div key={`pattern-item-${pattern.id || pattern.name}`} id={`pattern-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
-                        <div className="w-full mb-4">
-                          <h2 className="text-lg font-bold text-foreground">{pattern.name}</h2>
-                        </div>
-                        
-                        {pattern.description && (
-                          <div className="mb-5 p-1.5 relative">
-                            <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
-                              <TooltipProvider key={`tooltip-${pattern.id || pattern.name}`} delayDuration={300}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge 
-                                      variant="outline"
-                                      className="absolute top-1/2 right-3 -translate-y-1/2 cursor-default"
+                    {groupedPatterns[category].map((pattern, categoryIndex) => {
+                      // Generate a unique key that includes category and index, protecting against duplicates
+                      const patternKey = `pattern-${category}-${categoryIndex}-${pattern.id || pattern.name}`;
+                      return (
+                        <div key={patternKey} id={`pattern-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
+                          <div className="w-full mb-4">
+                            <h2 className="text-lg font-bold text-foreground">{pattern.name}</h2>
+                          </div>
+                          
+                          {pattern.description && (
+                            <div className="mb-5 p-1.5 relative">
+                              <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
+                                <TooltipProvider key={`tooltip-${patternKey}`} delayDuration={300}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        variant="outline"
+                                        className="absolute top-1/2 right-3 -translate-y-1/2 cursor-default"
+                                      >
+                                        {Math.round((pattern.frequency || 0) * 100)}%
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent 
+                                      side="left" 
+                                      className="bg-white dark:bg-slate-900 border shadow-lg p-3"
+                                      align="center"
                                     >
-                                      {Math.round((pattern.frequency || 0) * 100)}%
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent 
-                                    side="left" 
-                                    className="bg-white dark:bg-slate-900 border shadow-lg p-3"
-                                    align="center"
-                                  >
-                                    <div className="space-y-1">
-                                      <h4 className="font-semibold">Pattern Frequency</h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {pattern.frequency >= 0.7 
-                                          ? "Strong presence in analysis" 
-                                          : "Moderate presence in analysis"}
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <p className="text-base leading-relaxed text-foreground pr-16">
-                                {pattern.description}
-                              </p>
+                                      <div className="space-y-1">
+                                        <h4 className="font-semibold">Pattern Frequency</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                          {pattern.frequency >= 0.7 
+                                            ? "Strong presence in analysis" 
+                                            : "Moderate presence in analysis"}
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <p className="text-base leading-relaxed text-foreground pr-16">
+                                  {pattern.description}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        
-                        {pattern.evidence && pattern.evidence.length > 0 && (
-                          <div className="mt-3">
-                            <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
-                            <div className="pl-3 border-l-2 border-primary/20">
-                              <ul className="space-y-3">
-                                {pattern.evidence.map((example, i) => (
-                                  <li key={`pattern-${pattern.id || pattern.name}-evidence-${i}-${example.slice(0, 10).replace(/\s+/g, '-')}`} className="relative bg-muted/30 p-3 rounded-md">
-                                    <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
-                                    <p className="text-muted-foreground text-sm">{example}</p>
-                                  </li>
-                                ))}
-                              </ul>
+                          )}
+                          
+                          {pattern.evidence && pattern.evidence.length > 0 && (
+                            <div className="mt-3">
+                              <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
+                              <div className="pl-3 border-l-2 border-primary/20">
+                                <ul className="space-y-3">
+                                  {pattern.evidence.map((example, i) => (
+                                    <li key={`${patternKey}-evidence-${i}-${example.slice(0, 10).replace(/\s+/g, '-')}`} className="relative bg-muted/30 p-3 rounded-md">
+                                      <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
+                                      <p className="text-muted-foreground text-sm">{example}</p>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

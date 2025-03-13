@@ -18,6 +18,9 @@ if (!window.consolePatchApplied) {
   // Track component mounting/unmounting state
   window.isUnmounting = false;
   
+  // Track React warnings already shown to prevent duplicates
+  window.reactWarningsShown = new Set();
+  
   // Track if we're currently in a React lifecycle method
   window.__inReactLifecycle = false;
   
@@ -39,6 +42,23 @@ if (!window.consolePatchApplied) {
     window.addEventListener('beforeunload', function() {
       window.isUnmounting = true;
     });
+    
+    // Track tab clicks to set unmounting mode proactively
+    document.addEventListener('click', function(e) {
+      // Check if clicking on a tab element (approximate detection)
+      const target = e.target;
+      const isTabClick = target && (
+        target.getAttribute('role') === 'tab' || 
+        target.getAttribute('data-state') === 'active' ||
+        target.closest('[role="tab"]') ||
+        (target.classList && target.classList.contains('TabsTrigger'))
+      );
+      
+      if (isTabClick) {
+        window.isUnmounting = true;
+        setTimeout(() => { window.isUnmounting = false; }, 300);
+      }
+    }, true);
     
     // Track page transitions by intercepting history state changes
     const originalPushState = history.pushState;
@@ -144,6 +164,49 @@ if (!window.consolePatchApplied) {
   }
   
   /**
+   * Check if a message is a React key warning
+   * These appear often during development and can trigger message channel errors
+   */
+  function isReactKeyWarning(args) {
+    if (!args || !args.length) return false;
+    
+    // Check for common patterns in React key warnings
+    const firstArg = String(args[0] || '');
+    const message = args.join(' ');
+    
+    return (
+      // React key warnings
+      firstArg.includes('Warning: Each child in a list should have a unique "key" prop') ||
+      message.includes('Key should be unique') ||
+      message.includes('encountered two children with the same key') ||
+      // Similar development warnings
+      message.includes('Invalid prop') ||
+      message.includes('React does not recognize') ||
+      message.includes('Unknown prop')
+    );
+  }
+
+  /**
+   * Get a simplified signature of the warning to avoid showing the same one repeatedly
+   */
+  function getWarningSignature(args) {
+    if (!args || !args.length) return '';
+    
+    const message = String(args[0] || '');
+    
+    // For key warnings, extract just the component name
+    if (message.includes('key prop')) {
+      const match = message.match(/Check the render method of `([^`]+)`/);
+      if (match) {
+        return `key-warning-${match[1]}`;
+      }
+    }
+    
+    // For other warnings, use the first 50 chars
+    return message.substring(0, 50);
+  }
+  
+  /**
    * Monitor React component lifecycle through console logging behavior
    * This helps us detect when components are being unmounted
    */
@@ -185,6 +248,19 @@ if (!window.consolePatchApplied) {
       }
       
       try {
+        // Check if this is a React warning we should deduplicate
+        if (isReactKeyWarning(arguments)) {
+          const warningSignature = getWarningSignature(arguments);
+          
+          // If we've already shown this warning, skip it
+          if (window.reactWarningsShown.has(warningSignature)) {
+            return;
+          }
+          
+          // Otherwise, remember we've shown it
+          window.reactWarningsShown.add(warningSignature);
+        }
+        
         const safeArgs = Array.from(arguments).map(arg => {
           if (typeof arg === 'string') return arg;
           if (typeof arg === 'number') return arg;
@@ -207,6 +283,19 @@ if (!window.consolePatchApplied) {
       }
       
       try {
+        // Check if this is a React warning we should deduplicate
+        if (isReactKeyWarning(arguments)) {
+          const warningSignature = getWarningSignature(arguments);
+          
+          // If we've already shown this warning, skip it
+          if (window.reactWarningsShown.has(warningSignature)) {
+            return;
+          }
+          
+          // Otherwise, remember we've shown it
+          window.reactWarningsShown.add(warningSignature);
+        }
+        
         const safeArgs = Array.from(arguments).map(arg => {
           if (typeof arg === 'string') return arg;
           if (typeof arg === 'number') return arg;
@@ -222,6 +311,11 @@ if (!window.consolePatchApplied) {
   
   // Apply our patches
   patchConsole();
+  
+  // Initialize reactWarningsShown if it doesn't exist
+  if (!window.reactWarningsShown) {
+    window.reactWarningsShown = new Set();
+  }
   
   console.log('Console patched to fix message channel errors');
 } 
