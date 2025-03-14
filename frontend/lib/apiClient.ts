@@ -10,13 +10,26 @@ declare module 'axios' {
 
 /**
  * API Client for interacting with the backend API
+ * 
+ * Implemented as a true singleton to ensure consistent API interaction across the application.
+ * Always import the pre-instantiated singleton instance:
+ * ```typescript
+ * import { apiClient } from '@/lib/apiClient';
+ * ```
+ * 
+ * DO NOT create new instances with `new ApiClient()` as the constructor is private.
  */
 class ApiClient {
+  private static instance: ApiClient | null = null;
   private client: AxiosInstance;
   private baseUrl: string;
   private tokenRefreshInProgress: boolean = false;
 
-  constructor() {
+  /**
+   * Private constructor to prevent direct instantiation.
+   * Use ApiClient.getInstance() instead.
+   */
+  private constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     this.client = axios.create({
       baseURL: this.baseUrl,
@@ -71,6 +84,17 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * Get the singleton instance of ApiClient.
+   * This is the only way to access the ApiClient.
+   */
+  public static getInstance(): ApiClient {
+    if (!ApiClient.instance) {
+      ApiClient.instance = new ApiClient();
+    }
+    return ApiClient.instance;
   }
 
   /**
@@ -561,5 +585,8 @@ class ApiClient {
   }
 }
 
-// Export a singleton instance
-export const apiClient = new ApiClient();
+/**
+ * The singleton instance of ApiClient.
+ * Always use this instance instead of creating a new one.
+ */
+export const apiClient = ApiClient.getInstance();
