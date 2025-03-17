@@ -29,6 +29,14 @@ LLM_CONFIG = {
     }
 }
 
+# LLM Provider Service Configuration
+# Maps provider names to their service class implementation paths
+LLM_PROVIDERS_CONFIG = {
+    "openai": "backend.services.llm.openai_service.OpenAIService",
+    "gemini": "backend.services.llm.gemini_service.GeminiService",
+    "anthropic": "backend.services.llm.anthropic_service.AnthropicService"
+}
+
 def validate_config() -> bool:
     """
     Validate the configuration.
