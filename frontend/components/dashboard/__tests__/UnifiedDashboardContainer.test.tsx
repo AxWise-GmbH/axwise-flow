@@ -1,116 +1,42 @@
 'use client';
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import UnifiedDashboardContainer from '../UnifiedDashboardContainer';
-import { useSearchParams } from 'next/navigation';
-import { apiClient } from '@/lib/apiClient';
 import { vi } from 'vitest';
 
-// Mock Next.js navigation
-vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(() => ({
-    push: vi.fn(),
-    prefetch: vi.fn()
-  })),
-  useSearchParams: vi.fn()
+// Mock the container components
+vi.mock('../containers/DashboardAuthProvider', () => ({
+  DashboardAuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="auth-provider">{children}</div>
+  )
 }));
 
-// Mock the API client
-vi.mock('@/lib/apiClient', () => ({
-  apiClient: {
-    setAuthToken: vi.fn(),
-    getAnalysisById: vi.fn()
-  }
+vi.mock('../containers/DashboardDataProvider', () => ({
+  DashboardDataProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="data-provider">{children}</div>
+  )
 }));
 
-// Mock the DashboardTabs component
-vi.mock('../DashboardTabs', () => ({
-  default: ({ currentAnalysis }: { currentAnalysis: any }) => (
-    <div data-testid="dashboard-tabs">
-      {currentAnalysis ? `Analysis ID: ${currentAnalysis.result_id}` : 'No analysis'}
-    </div>
+vi.mock('../containers/DashboardTabsContainer', () => ({
+  DashboardTabsContainer: () => (
+    <div data-testid="tabs-container">Tabs Container</div>
   )
 }));
 
 describe('UnifiedDashboardContainer', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (useSearchParams as any).mockReturnValue(new URLSearchParams());
-  });
-  
-  it('renders dashboard tabs without analysis by default', () => {
+  it('renders the dashboard with all providers and containers', () => {
     render(<UnifiedDashboardContainer />);
     
-    expect(screen.getByTestId('dashboard-tabs')).toBeInTheDocument();
-    expect(screen.getByText('No analysis')).toBeInTheDocument();
-  });
-  
-  it('fetches analysis when analysisId URL parameter is present', async () => {
-    // Mock URL params with analysis ID
-    (useSearchParams as any).mockReturnValue(new URLSearchParams('analysisId=123'));
+    // Verify the auth provider is rendered
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     
-    // Mock API response
-    const mockAnalysis = {
-      result_id: '123',
-      status: 'completed',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-01-01T00:00:00Z',
-      themes: [],
-      patterns: []
-    };
-    (apiClient.getAnalysisById as any).mockResolvedValue(mockAnalysis);
+    // Verify the data provider is rendered
+    expect(screen.getByTestId('data-provider')).toBeInTheDocument();
     
-    render(<UnifiedDashboardContainer />);
+    // Verify the tabs container is rendered
+    expect(screen.getByTestId('tabs-container')).toBeInTheDocument();
     
-    // Verify API was called with correct ID
-    expect(apiClient.getAnalysisById).toHaveBeenCalledWith('123');
-    
-    // Wait for analysis to be loaded
-    await waitFor(() => {
-      expect(screen.getByText('Analysis ID: 123')).toBeInTheDocument();
-    });
-  });
-  
-  it('handles API errors gracefully', async () => {
-    // Mock URL params with analysis ID
-    (useSearchParams as any).mockReturnValue(new URLSearchParams('analysisId=456'));
-    
-    // Mock API error
-    (apiClient.getAnalysisById as any).mockRejectedValue(new Error('API Error'));
-    
-    // Spy on console.error
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    render(<UnifiedDashboardContainer />);
-    
-    // Verify API was called
-    expect(apiClient.getAnalysisById).toHaveBeenCalledWith('456');
-    
-    // Should still render tabs without analysis
-    await waitFor(() => {
-      expect(screen.getByText('No analysis')).toBeInTheDocument();
-    });
-    
-    // Should log the error
-    expect(console.error).toHaveBeenCalled();
-  });
-  
-  it('sets auth token before making API requests', async () => {
-    // Mock URL params with analysis ID
-    (useSearchParams as any).mockReturnValue(new URLSearchParams('analysisId=789'));
-    
-    // Mock API response
-    (apiClient.getAnalysisById as any).mockResolvedValue({
-      result_id: '789',
-      status: 'completed'
-    });
-    
-    render(<UnifiedDashboardContainer />);
-    
-    // Verify auth token was set
-    expect(apiClient.setAuthToken).toHaveBeenCalled();
-    
-    // Verify API was called
-    expect(apiClient.getAnalysisById).toHaveBeenCalledWith('789');
+    // Verify the dashboard title is rendered
+    expect(screen.getByText('Interview Analysis Dashboard')).toBeInTheDocument();
   });
 });
