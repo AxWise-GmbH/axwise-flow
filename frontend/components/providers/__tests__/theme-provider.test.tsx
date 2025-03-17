@@ -1,15 +1,10 @@
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '../theme-provider';
-import { useTheme } from 'next-themes';
+import { ThemeProvider, useTheme } from '../theme-provider';
 
-// Mock next-themes
+// Create a mock for next-themes to avoid actual theme changes in test
 jest.mock('next-themes', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
-  useTheme: jest.fn(() => ({
-    theme: 'light',
-    setTheme: jest.fn(),
-  })),
 }));
 
 describe('ThemeProvider', () => {
@@ -30,16 +25,10 @@ describe('ThemeProvider', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId('current-theme')).toHaveTextContent('light');
+    expect(screen.getByTestId('current-theme')).toHaveTextContent('system');
   });
 
   it('allows theme changes', async () => {
-    const mockSetTheme = jest.fn();
-    (useTheme as jest.Mock).mockImplementation(() => ({
-      theme: 'light',
-      setTheme: mockSetTheme,
-    }));
-
     render(
       <ThemeProvider>
         <TestComponent />
@@ -51,7 +40,7 @@ describe('ThemeProvider', () => {
       await userEvent.click(button);
     });
 
-    expect(mockSetTheme).toHaveBeenCalledWith('dark');
+    expect(screen.getByTestId('current-theme')).toHaveTextContent('dark');
   });
 
   it('uses default theme from props', () => {
@@ -61,6 +50,25 @@ describe('ThemeProvider', () => {
       </ThemeProvider>
     );
 
-    expect(useTheme).toHaveBeenCalled();
+    expect(screen.getByTestId('current-theme')).toHaveTextContent('dark');
+  });
+  
+  it('respects forcedTheme prop', () => {
+    render(
+      <ThemeProvider forcedTheme="dark">
+        <TestComponent />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId('current-theme')).toHaveTextContent('dark');
+
+    // Try to change theme, but it should not change due to forcedTheme
+    const button = screen.getByRole('button');
+    act(() => {
+      button.click();
+    });
+
+    // Should still show the forced theme
+    expect(screen.getByTestId('current-theme')).toHaveTextContent('dark');
   });
 });

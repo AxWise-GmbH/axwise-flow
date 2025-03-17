@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeToggle } from '../theme-toggle';
+import { ThemeToggle } from '@/components/providers/theme-toggle';
 import { useTheme } from '@/components/providers/theme-provider';
 
 // Mock the theme provider hook
@@ -15,7 +15,7 @@ describe('ThemeToggle', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with light theme', () => {
+  it('renders with light theme in icon variant (default)', () => {
     (useTheme as jest.Mock).mockImplementation(() => ({
       theme: 'light',
       setTheme: mockSetTheme,
@@ -24,10 +24,10 @@ describe('ThemeToggle', () => {
     render(<ThemeToggle />);
     
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument();
-    expect(screen.getByText('Toggle dark mode')).toBeInTheDocument();
+    expect(screen.getByText(/Toggle dark mode/i, { selector: '.sr-only' })).toBeInTheDocument();
   });
 
-  it('renders with dark theme', () => {
+  it('renders with dark theme in icon variant', () => {
     (useTheme as jest.Mock).mockImplementation(() => ({
       theme: 'dark',
       setTheme: mockSetTheme,
@@ -36,7 +36,18 @@ describe('ThemeToggle', () => {
     render(<ThemeToggle />);
     
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument();
-    expect(screen.getByText('Toggle light mode')).toBeInTheDocument();
+    expect(screen.getByText(/Toggle light mode/i, { selector: '.sr-only' })).toBeInTheDocument();
+  });
+
+  it('renders button variant correctly', () => {
+    (useTheme as jest.Mock).mockImplementation(() => ({
+      theme: 'light',
+      setTheme: mockSetTheme,
+    }));
+
+    render(<ThemeToggle variant="button" />);
+    
+    expect(screen.getByRole('button')).toHaveTextContent('Dark Mode');
   });
 
   it('toggles theme when clicked', async () => {
@@ -77,5 +88,20 @@ describe('ThemeToggle', () => {
     
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument();
     expect(screen.getByTestId('theme-toggle')).toHaveAttribute('aria-label', 'Toggle theme');
+  });
+
+  it('supports keyboard navigation', async () => {
+    (useTheme as jest.Mock).mockImplementation(() => ({
+      theme: 'light',
+      setTheme: mockSetTheme,
+    }));
+
+    render(<ThemeToggle />);
+    
+    const button = screen.getByRole('button');
+    button.focus();
+    await userEvent.keyboard('{Enter}');
+    
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
 });
