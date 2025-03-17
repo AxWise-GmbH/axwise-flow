@@ -770,6 +770,58 @@ async def generate_persona_from_text(
         # Log request
         logger.info(f"Generating persona from text ({len(persona_request.text)} chars)")
         
+        # If we're in development mode (not using clerk validation), return a mock persona
+        if not ENABLE_CLERK_VALIDATION:
+            logger.info("Development mode: Returning mock persona")
+            
+            # Create a mock persona
+            mock_persona = {
+                "id": "mock-persona-1",
+                "name": "Design Lead Alex",
+                "description": "Alex is an experienced design leader who values user-centered processes and design systems. They struggle with ensuring design quality while meeting business demands and securing resources for proper research.",
+                "confidence": 0.85,
+                "evidence": [
+                    "Manages UX team of 5-7 designers", 
+                    "Responsible for design system implementation"
+                ],
+                "role_context": { 
+                    "value": "Design team lead at medium-sized technology company", 
+                    "confidence": 0.9, 
+                    "evidence": ["Manages UX team of 5-7 designers", "Responsible for design system implementation"] 
+                },
+                "key_responsibilities": { 
+                    "value": "Oversees design system implementation. Manages team of designers. Coordinates with product and engineering", 
+                    "confidence": 0.85, 
+                    "evidence": ["Mentioned regular design system review meetings", "Discussed designer performance reviews"] 
+                },
+                "tools_used": { 
+                    "value": "Figma, Sketch, Adobe Creative Suite, Jira, Confluence", 
+                    "confidence": 0.8, 
+                    "evidence": ["Referenced Figma components", "Mentioned Jira ticketing system"] 
+                },
+                "collaboration_style": { 
+                    "value": "Cross-functional collaboration with tight integration between design and development", 
+                    "confidence": 0.75, 
+                    "evidence": ["Weekly sync meetings with engineering", "Design hand-off process improvements"] 
+                },
+                "analysis_approach": { 
+                    "value": "Data-informed design decisions with emphasis on usability testing", 
+                    "confidence": 0.7, 
+                    "evidence": ["Conducts regular user testing sessions", "Analyzes usage metrics to inform design"] 
+                },
+                "pain_points": { 
+                    "value": "Limited resources for user research. Engineering-driven decision making. Maintaining design quality with tight deadlines", 
+                    "confidence": 0.9, 
+                    "evidence": ["Expressed frustration about research budget limitations", "Mentioned quality issues due to rushed timelines"] 
+                }
+            }
+            
+            return {
+                "success": True,
+                "message": "Mock persona generated successfully",
+                "persona": mock_persona
+            }
+        
         # Initialize LLM service
         llm_provider = persona_request.llm_provider or "gemini"
         llm_model = persona_request.llm_model or "gemini-2.0-flash"
