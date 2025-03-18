@@ -241,7 +241,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                           <ul className="list-disc pl-5">
                             {typeof activePersona.key_responsibilities.value === 'string' 
                               ? activePersona.key_responsibilities.value.split('. ').filter(item => item.trim().length > 0).map((item: string, i: number) => (
-                                  <li key={i}>{item.trim()}</li>
+                              <li key={i}>{item.trim()}</li>
                                 ))
                               : (Array.isArray(activePersona.key_responsibilities.value) 
                                   ? (activePersona.key_responsibilities.value as string[]).map((item: string, i: number) => (
@@ -294,7 +294,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                           <ul className="list-disc pl-5">
                             {typeof activePersona.tools_used.value === 'string' 
                               ? activePersona.tools_used.value.split('. ').filter(item => item.trim().length > 0).map((item: string, i: number) => (
-                                  <li key={i}>{item.trim()}</li>
+                              <li key={i}>{item.trim()}</li>
                                 ))
                               : (Array.isArray(activePersona.tools_used.value) 
                                   ? (activePersona.tools_used.value as string[]).map((item: string, i: number) => (
@@ -347,7 +347,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                           <ul className="list-disc pl-5">
                             {typeof activePersona.pain_points.value === 'string' 
                               ? activePersona.pain_points.value.split('. ').filter(item => item.trim().length > 0).map((item: string, i: number) => (
-                                  <li key={i}>{item.trim()}</li>
+                              <li key={i}>{item.trim()}</li>
                                 ))
                               : (Array.isArray(activePersona.pain_points.value) 
                                   ? (activePersona.pain_points.value as string[]).map((item: string, i: number) => (
@@ -400,7 +400,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                           <ul className="list-disc pl-5">
                             {typeof activePersona.collaboration_style.value === 'string' 
                               ? activePersona.collaboration_style.value.split('. ').filter(item => item.trim().length > 0).map((item: string, i: number) => (
-                                  <li key={i}>{item.trim()}</li>
+                              <li key={i}>{item.trim()}</li>
                                 ))
                               : (Array.isArray(activePersona.collaboration_style.value) 
                                   ? (activePersona.collaboration_style.value as string[]).map((item: string, i: number) => (
@@ -453,7 +453,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                           <ul className="list-disc pl-5">
                             {typeof activePersona.analysis_approach.value === 'string' 
                               ? activePersona.analysis_approach.value.split('. ').filter(item => item.trim().length > 0).map((item: string, i: number) => (
-                                  <li key={i}>{item.trim()}</li>
+                              <li key={i}>{item.trim()}</li>
                                 ))
                               : (Array.isArray(activePersona.analysis_approach.value) 
                                   ? (activePersona.analysis_approach.value as string[]).map((item: string, i: number) => (
