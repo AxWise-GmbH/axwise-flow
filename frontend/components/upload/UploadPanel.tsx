@@ -44,17 +44,15 @@ export default function UploadPanel() {
   };
   
   // Handle file upload
-  const handleUpload = async () => {
+  const handleUpload = React.useCallback(async () => {
     if (!file) {
       showToast('Please select a file to upload', { variant: 'error' });
       return;
     }
     
-    const response = await uploadFile();
-    if (response) {
-      showToast('File uploaded successfully', { variant: 'success' });
-    }
-  };
+    clearErrors();
+    await uploadFile();
+  }, [file, showToast, clearErrors, uploadFile]);
   
   // Handle analysis start
   const handleStartAnalysis = async () => {
