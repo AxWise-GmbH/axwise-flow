@@ -3,16 +3,22 @@
 /**
  * UnifiedVisualization Component
  * 
- * DEPRECATION WARNING: This component is being phased out in favor of the VisualizationTabs approach.
- * It should NOT be used for new development. The current architectural decision is to use:
- * - VisualizationTabs component as the container
- * - Individual visualization components (ThemeChart, PatternList, etc.) directly
+ * DEPRECATION WARNING: This component is DEPRECATED and should not be used in any new code.
  * 
- * This component creates duplicate UI elements when used with the newer implementation
- * where each specific visualization component (e.g., ThemeChart) now includes its own
- * Key Insights section.
+ * It has been replaced by direct usage of specialized visualization components:
+ * - ThemeChart for theme visualization 
+ * - PatternList for pattern visualization
+ * - SentimentGraph for sentiment visualization
+ * - PersonaList for personas visualization
  * 
- * For new routes or features, please use VisualizationTabs instead.
+ * For new development, use:
+ * 1. VisualizationTabs component as the container
+ * 2. Individual specialized components directly
+ * 
+ * All uses of this component in the application have been replaced with specialized components.
+ * This file is maintained only for historical reference and will be removed in a future release.
+ * 
+ * @deprecated Use specialized visualization components directly instead.
  */
 
 import React, { useMemo } from 'react';

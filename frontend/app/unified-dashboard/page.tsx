@@ -22,7 +22,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
-import UnifiedVisualization from '@/components/visualization/UnifiedVisualization';
+// Import specialized visualization components
+import ThemeChart from '@/components/visualization/ThemeChart';
+import PatternList from '@/components/visualization/PatternList';
+import SentimentGraph from '@/components/visualization/SentimentGraph';
+import PersonaList from '@/components/visualization/PersonaList';
 import { apiClient } from '@/lib/apiClient';
 import { UploadResponse, AnalysisResponse, DetailedAnalysisResult, SentimentData } from '@/types/api';
 import { useAuth } from '@clerk/nextjs';
@@ -1230,16 +1234,14 @@ export default function UnifiedDashboard() {
                 <div>
                   {/* Visualization Content */}
                   {visualizationTab === 'themes' && (
-                    <UnifiedVisualization
-                      type="themes"
-                      themesData={results.themes}
+                    <ThemeChart
+                      themes={results.themes}
                     />
                   )}
                   
                   {visualizationTab === 'patterns' && (
-                    <UnifiedVisualization
-                      type="patterns"
-                      patternsData={(results.patterns || [])
+                    <PatternList
+                      patterns={(results.patterns || [])
                         .slice(0, 25)  // Limit to first 25 patterns for performance
                         .map((pattern, index) => {
                           // Check if pattern has a description but no name
@@ -1291,42 +1293,38 @@ export default function UnifiedDashboard() {
                   )}
                   
                   {visualizationTab === 'sentiment' && (
-                    <UnifiedVisualization
-                      type="sentiment"
-                      sentimentData={{
-                        overview: results.sentimentOverview,
-                        // Limit the data and ensure we only use fields that exist in the SentimentData type
-                        details: (results.sentiment || [])
-                          .slice(0, 50)
-                          .map((item: any) => {
-                            // Create a properly typed SentimentData object
-                            const sentimentItem: SentimentData = {
-                              timestamp: item.timestamp || new Date().toISOString(),
-                              text: typeof item.text === 'string' ? item.text : 
-                                   typeof item.answer === 'string' ? item.answer : '',
-                              score: typeof item.score === 'number' ? item.score : 0
-                            };
-                            return sentimentItem;
-                          }),
-                        statements: results.sentimentStatements 
-                          ? {
-                              positive: (results.sentimentStatements.positive || []).slice(0, 10),
-                              neutral: (results.sentimentStatements.neutral || []).slice(0, 10),
-                              negative: (results.sentimentStatements.negative || []).slice(0, 10),
-                            } 
-                          : {
-                              positive: [],
-                              neutral: [],
-                              negative: []
-                            }
-                      }}
+                    <SentimentGraph 
+                      data={results.sentimentOverview}
+                      detailedData={(results.sentiment || [])
+                        .slice(0, 50)
+                        .map((item: any) => {
+                          // Create a properly typed SentimentData object
+                          const sentimentItem: SentimentData = {
+                            timestamp: item.timestamp || new Date().toISOString(),
+                            text: typeof item.text === 'string' ? item.text : 
+                                 typeof item.answer === 'string' ? item.answer : '',
+                            score: typeof item.score === 'number' ? item.score : 0
+                          };
+                          return sentimentItem;
+                        })}
+                      supportingStatements={results.sentimentStatements 
+                        ? {
+                            positive: (results.sentimentStatements.positive || []).slice(0, 10),
+                            neutral: (results.sentimentStatements.neutral || []).slice(0, 10),
+                            negative: (results.sentimentStatements.negative || []).slice(0, 10)
+                          }
+                        : {
+                            positive: [],
+                            neutral: [],
+                            negative: []
+                          }
+                      }
                     />
                   )}
 
                   {visualizationTab === 'personas' && (
-                    <UnifiedVisualization
-                      type="personas"
-                      personasData={(results.personas || [])
+                    <PersonaList
+                      personas={(results.personas || [])
                         .slice(0, 10)  // Limit to first 10 personas for performance
                         .map(persona => ({
                           name: persona.name || 'Unnamed Persona',

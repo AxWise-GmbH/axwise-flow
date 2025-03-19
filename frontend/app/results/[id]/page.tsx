@@ -17,9 +17,10 @@ import {
   useUIStore, 
   useSelectedTab
 } from '@/store/useUIStore';
-import { ThemeChart, PatternList, SentimentGraph } from '@/components/visualization';
-import UnifiedVisualization from '@/components/visualization/UnifiedVisualization';
-import { PersonaList } from '@/components/visualization/PersonaList';
+import ThemeChart from '@/components/visualization/ThemeChart';
+import PatternList from '@/components/visualization/PatternList';
+import SentimentGraph from '@/components/visualization/SentimentGraph';
+import PersonaList from '@/components/visualization/PersonaList';
 import type { DetailedAnalysisResult } from '@/types/api';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -225,35 +226,29 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }) {
         {/* Always use Unified View */}
         <div className="mt-4">
           {selectedTab === 'themes' && (
-            <UnifiedVisualization
-              type="themes"
-              themesData={data.themes}
+            <ThemeChart
+              themes={data.themes}
             />
           )}
           {selectedTab === 'patterns' && (
-            <UnifiedVisualization
-              type="patterns"
-              patternsData={data.patterns}
+            <PatternList
+              patterns={data.patterns}
             />
           )}
           {selectedTab === 'sentiment' && (
-            <UnifiedVisualization
-              type="sentiment"
-              sentimentData={{
-                overview: data.sentimentOverview,
-                details: data.sentiment,
-                statements: data.sentimentStatements || {
-                  positive: data.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
-                  neutral: data.sentiment.filter(s => s.score >= -0.2 && s.score <= 0.2).map(s => s.text).slice(0, 5),
-                  negative: data.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
-                }
+            <SentimentGraph
+              data={data.sentimentOverview}
+              detailedData={data.sentiment}
+              supportingStatements={data.sentimentStatements || {
+                positive: data.sentiment.filter(s => s.score > 0.2).map(s => s.text).slice(0, 5),
+                neutral: data.sentiment.filter(s => s.score > -0.2 && s.score < 0.2).map(s => s.text).slice(0, 5),
+                negative: data.sentiment.filter(s => s.score < -0.2).map(s => s.text).slice(0, 5)
               }}
             />
           )}
           {selectedTab === 'personas' && (
-            <UnifiedVisualization
-              type="personas"
-              personasData={data.personas || []}
+            <PersonaList
+              personas={data.personas || []}
             />
           )}
         </div>
