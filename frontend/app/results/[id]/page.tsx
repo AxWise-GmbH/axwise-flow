@@ -1,18 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { 
-  useAnalysisStore, 
-  useCurrentAnalysis, 
-  useAnalysisLoading, 
-  useAnalysisError, 
-  useFetchAnalysis 
-} from '@/store/useAnalysisStore';
+import { useAnalysisStore } from '@/store/useAnalysisStore';
 import { 
   useUIStore, 
   useSelectedTab
@@ -22,25 +15,24 @@ import PatternList from '@/components/visualization/PatternList';
 import SentimentGraph from '@/components/visualization/SentimentGraph';
 import PersonaList from '@/components/visualization/PersonaList';
 import type { DetailedAnalysisResult } from '@/types/api';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 
 export default function AnalysisResultsPage() {
   const params = useParams();
   const analysisId = params?.id as string;
   const { showToast } = useToast();
   
-  const fetchAnalysis = useFetchAnalysis();
-  const analysisData = useCurrentAnalysis();
-  const isLoading = useAnalysisLoading();
-  const error = useAnalysisError();
-  const clearError = useAnalysisStore(state => state.clearError);
+  const { 
+    fetchAnalysisById, 
+    currentAnalysis: analysisData, 
+    isLoadingAnalysis: isLoading, 
+    analysisError: error, 
+    clearErrors 
+  } = useAnalysisStore();
 
   useEffect(() => {
     async function loadAnalysis() {
       try {
-        const result = await fetchAnalysis(analysisId);
+        const result = await fetchAnalysisById(analysisId);
         if (!result) {
           showToast('Failed to load analysis data', { variant: 'error' });
         } else {
@@ -57,9 +49,9 @@ export default function AnalysisResultsPage() {
     }
 
     return () => {
-      clearError();
+      clearErrors();
     };
-  }, [analysisId, fetchAnalysis, showToast, clearError]);
+  }, [analysisId, fetchAnalysisById, showToast, clearErrors]);
 
   if (isLoading) {
     return (
@@ -78,8 +70,8 @@ export default function AnalysisResultsPage() {
           <button 
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
             onClick={() => {
-              clearError();
-              fetchAnalysis(analysisId);
+              clearErrors();
+              fetchAnalysisById(analysisId);
             }}
           >
             Try Again

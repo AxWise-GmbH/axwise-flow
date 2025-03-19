@@ -33,10 +33,7 @@ import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FileText } from 'lucide-react';
-import AnalysisProgress from '@/components/AnalysisProgress';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Add this type declaration at the top of the file, after imports
 declare global {
@@ -784,7 +781,7 @@ export default function UnifiedDashboard() {
         // Match pattern like [09:00 AM] Interviewer: text
         const match = line.match(/\[\d+:\d+ [AP]M\] ([^:]+): (.*)/);
         if (match) {
-          const speaker = match[1].trim();
+          // Speaker information not used, only extracting content
           const content = match[2].trim();
           
           // Include both interviewer and interviewee content, but prioritize interviewee
