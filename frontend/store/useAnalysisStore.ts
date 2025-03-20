@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient } from '@/lib/apiClient';
-import type { DetailedAnalysisResult, AnalysisResponse, ListAnalysesParams, DashboardData } from '@/types/api';
-import { useToast } from '@/components/providers/toast-provider';
+import type { DetailedAnalysisResult, ListAnalysesParams, DashboardData } from '@/types/api';
 
 /**
  * Analysis Store State Interface
@@ -248,17 +247,14 @@ export const useCurrentAnalysis = () => useAnalysisStore(state => ({
 /**
  * Selector to get analysis history
  */
-export const useAnalysisHistory = () => useAnalysisStore(state => {
-  // Use object destructuring and creating a new object
-  // to ensure consistent reference equality
-  const { 
-    analysisHistory: history, 
-    isLoadingHistory: isLoading, 
-    historyError: error,
-    historyFilters: filters,
-    setHistoryFilters: setFilters,
-    fetchAnalysisHistory: fetchHistory 
-  } = state;
+export const useAnalysisHistory = () => {
+  // Memoize each selector to prevent infinite re-renders
+  const history = useAnalysisStore(state => state.analysisHistory);
+  const isLoading = useAnalysisStore(state => state.isLoadingHistory);
+  const error = useAnalysisStore(state => state.historyError);
+  const filters = useAnalysisStore(state => state.historyFilters);
+  const setFilters = useAnalysisStore(state => state.setHistoryFilters);
+  const fetchHistory = useAnalysisStore(state => state.fetchAnalysisHistory);
   
   return {
     history,
@@ -268,12 +264,13 @@ export const useAnalysisHistory = () => useAnalysisStore(state => {
     setFilters,
     fetchHistory
   };
-});
+};
 
 /**
  * Selector to get and set the visualization tab
  */
 export const useVisualizationTab = () => {
+  // Memoize each selector to prevent infinite re-renders
   const tab = useAnalysisStore(state => state.visualizationTab);
   const setTab = useAnalysisStore(state => state.setVisualizationTab);
   return { tab, setTab };

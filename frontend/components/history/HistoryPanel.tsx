@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
  * Displays a list of past analyses and allows selecting one for visualization
  */
 export default function HistoryPanel() {
-  // Get history state from the store
+  // Get history state from the store - each value is now properly memoized by the hook
   const { 
     history, 
     isLoading, 
@@ -56,13 +56,13 @@ export default function HistoryPanel() {
   
   // Fetch history only when filters change or on mount
   useEffect(() => {
-    // Use a stable reference to the fetchHistory function
-    const fetchHistoryFn = fetchHistory;
-    fetchHistoryFn();
-  }, [filters]); // Remove fetchHistory from dependencies to prevent re-renders
+    fetchHistory();
+    // Intentionally omit fetchHistory from dependencies to prevent potential re-render cycles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
   
   // Format file size for display - memoize as it's a pure function
-  const formatFileSize = useCallback((bytes: number | undefined) => {
+  const formatFileSize = useMemo(() => (bytes: number | undefined) => {
     if (!bytes) return 'Unknown';
     const kb = bytes / 1024;
     if (kb < 1024) return `${kb.toFixed(2)} KB`;
@@ -71,7 +71,7 @@ export default function HistoryPanel() {
   }, []);
   
   // Get status badge with valid variants
-  const getStatusBadge = useCallback((status: string) => {
+  const getStatusBadge = useMemo(() => (status: string) => {
     switch (status) {
       case 'completed':
         return <Badge variant="secondary">Completed</Badge>;
@@ -262,4 +262,4 @@ export default function HistoryPanel() {
       </CardContent>
     </Card>
   );
-} 
+}
