@@ -3,8 +3,14 @@ Configuration for the backend application.
 """
 
 import os
+import sys
 import logging
 from typing import Dict, Any
+
+# Add project root to Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from infrastructure.config.settings import Settings
+settings = Settings()
 
 # Configure logging
 logger = logging.getLogger(__name__)

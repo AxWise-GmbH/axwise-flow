@@ -4,7 +4,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import QueuePool
 import os
 import logging
+import sys
 from urllib.parse import quote_plus
+
+# Add project root to Python path for imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from infrastructure.config.settings import Settings
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -13,12 +18,13 @@ logger = logging.getLogger(__name__)
 # Create Base instance
 Base = declarative_base()
 
-# Get database configuration from environment variables
-db_user = os.getenv("DB_USER", "postgres")
-db_REDACTED_PASSWORD = os.getenv("DB_PASSWORD", "")
-db_host = os.getenv("DB_HOST", "localhost")
-db_port = os.getenv("DB_PORT", "5432")
-db_name = os.getenv("DB_NAME", "interview_insights")
+# Get database configuration from centralized settings
+settings = Settings()
+db_user = settings.db_user
+db_REDACTED_PASSWORD = settings.db_REDACTED_PASSWORD
+db_host = settings.db_host
+db_port = settings.db_port
+db_name = settings.db_name
 
 # Construct database URL
 if db_REDACTED_PASSWORD:
@@ -27,8 +33,8 @@ if db_REDACTED_PASSWORD:
 else:
     REDACTED_DATABASE_URL=***REDACTED***
 
-# Override with full URL if provided
-REDACTED_DATABASE_URL=***REDACTED*** REDACTED_DATABASE_URL)
+# Override with full URL if provided in settings
+REDACTED_DATABASE_URL=***REDACTED*** if settings.database_url else REDACTED_DATABASE_URL
 
 # If no REDACTED_DATABASE_URL provided, fallback to file-based SQLite database
 if not REDACTED_DATABASE_URL:
@@ -36,9 +42,9 @@ if not REDACTED_DATABASE_URL:
     REDACTED_DATABASE_URL=***REDACTED***  # File-based instead of in-memory
 
 ***REMOVED*** engine configuration
-DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
-DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
-DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+DB_POOL_SIZE = settings.db_pool_size
+DB_MAX_OVERFLOW = settings.db_max_overflow
+DB_POOL_TIMEOUT = settings.db_pool_timeout
 
 # Engine creation
 try:
