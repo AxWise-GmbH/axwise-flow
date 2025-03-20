@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CustomErrorBoundary from './ErrorBoundary';
+import { apiClient } from '@/lib/apiClient';
 
 interface VisualizationTabsProps {
   analysisId?: string;
@@ -48,23 +49,10 @@ export default function VisualizationTabsRefactored({ analysisId }: Visualizatio
       try {
         if (!analysisId) return;
 
-        // API call to fetch analysis data would go here
-        // For now, use mock data
+        // Make actual API call to fetch the data instead of using mock data
         if (isMounted) {
-          setAnalysis({
-            id: analysisId,
-            themes: [],
-            patterns: [],
-            sentiment: {
-              sentimentOverview: { positive: 0, neutral: 0, negative: 0 },
-              sentimentData: [],
-              sentimentStatements: { positive: [], neutral: [], negative: [] }
-            },
-            personas: [],
-            fileName: "interview_data.txt",
-            createdAt: new Date().toISOString(),
-            llmProvider: "OpenAI"
-          });
+          const result = await apiClient.getAnalysisById(analysisId);
+          setAnalysis(result);
         }
       } catch (error) {
         console.error('Error fetching analysis:', error);
@@ -127,10 +115,6 @@ export default function VisualizationTabsRefactored({ analysisId }: Visualizatio
       keywords: theme.keywords || []
     }));
   }, [analysis?.themes]);
-
-  const analyzedPatterns = useMemo(() => {
-    return (analysis?.patterns || []);
-  }, [analysis?.patterns]);
 
   // Handle tab change
   const handleTabChange = (newTab: string) => {

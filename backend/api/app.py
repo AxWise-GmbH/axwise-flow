@@ -320,7 +320,8 @@ async def analyze_data(
     try:
         # Validate configuration
         try:
-            validate_config()
+            # Only validate the configuration for the provider we're using
+            validate_config(analysis_request.llm_provider)
         except Exception as e:
             logger.error(f"Configuration validation error: {str(e)}")
             raise HTTPException(

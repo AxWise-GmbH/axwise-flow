@@ -43,9 +43,13 @@ LLM_PROVIDERS_CONFIG = {
     "anthropic": "backend.services.llm.anthropic_service.AnthropicService"
 }
 
-def validate_config() -> bool:
+def validate_config(provider: str = None) -> bool:
     """
     Validate the configuration.
+    
+    Args:
+        provider: Optional provider name to validate only that provider's config.
+                 If None, validates all configurations.
     
     Returns:
         bool: True if the configuration is valid, False otherwise.
@@ -54,66 +58,73 @@ def validate_config() -> bool:
         ValueError: If any required configuration values are missing or invalid
     """
     try:
-        # Check OpenAI configuration
-        openai_config = LLM_CONFIG["openai"]
-        if not openai_config["REDACTED_API_KEY"]:
-            raise ValueError("OpenAI API key is required. Please set REDACTED_OPENAI_KEY environment variable.")
-            
-        if not openai_config["model"]:
-            raise ValueError("OpenAI model name is required. Please set OPENAI_MODEL environment variable.")
-            
-        # Validate OpenAI numeric parameters
-        if not (0 <= openai_config["temperature"] <= 2):
-            raise ValueError("OpenAI temperature must be between 0 and 2")
-            
-        if openai_config["max_tokens"] <= 0:
-            raise ValueError("OpenAI max_tokens must be positive")
-            
-        if openai_config["context_window"] <= 0:
-            raise ValueError("OpenAI context_window must be positive")
-            
-        # Check Gemini configuration
-        gemini_config = LLM_CONFIG["gemini"]
-        if not gemini_config["REDACTED_API_KEY"]:
-            raise ValueError("Gemini API key is required. Please set REDACTED_GEMINI_KEY environment variable.")
-            
-        if not gemini_config["model"]:
-            raise ValueError("Gemini model name is required. Please set GEMINI_MODEL environment variable.")
-            
-        # Validate Gemini numeric parameters
-        if not (0 <= gemini_config["temperature"] <= 1):
-            raise ValueError("Gemini temperature must be between 0 and 1")
-            
-        if gemini_config["max_tokens"] <= 0:
-            raise ValueError("Gemini max_tokens must be positive")
-            
-        if gemini_config["context_window"] <= 0:
-            raise ValueError("Gemini context_window must be positive")
-            
-        if not (0 < gemini_config["top_p"] <= 1):
-            raise ValueError("Gemini top_p must be between 0 and 1")
-            
-        if gemini_config["top_k"] <= 0:
-            raise ValueError("Gemini top_k must be positive")
-            
-        # Log validated configuration (with masked API keys)
-        logger.info("Configuration for openai:")
-        logger.info(f"  REDACTED_API_KEY: {openai_config['REDACTED_API_KEY'][:6]}...")
-        logger.info(f"  model: {openai_config['model']}")
-        logger.info(f"  temperature: {openai_config['temperature']}")
-        logger.info(f"  max_tokens: {openai_config['max_tokens']}")
-        logger.info(f"  context_window: {openai_config['context_window']}")
+        providers_to_check = [provider] if provider else ["openai", "gemini"] 
         
-        logger.info("Configuration for gemini:")
-        logger.info(f"  REDACTED_API_KEY: {gemini_config['REDACTED_API_KEY'][:6]}...")
-        logger.info(f"  model: {gemini_config['model']}")
-        logger.info(f"  temperature: {gemini_config['temperature']}")
-        logger.info(f"  max_tokens: {gemini_config['max_tokens']}")
-        logger.info(f"  context_window: {gemini_config['context_window']}")
-        logger.info(f"  top_p: {gemini_config['top_p']}")
-        logger.info(f"  top_k: {gemini_config['top_k']}")
+        for provider_name in providers_to_check:
+            if provider_name == "openai" and "openai" in providers_to_check:
+                # Check OpenAI configuration
+                openai_config = LLM_CONFIG["openai"]
+                if not openai_config["REDACTED_API_KEY"]:
+                    # Only raise an error for OpenAI if we're specifically trying to use it
+                    if provider == "openai":
+                        raise ValueError("OpenAI API key is required. Please set REDACTED_OPENAI_KEY environment variable.")
+                    else:
+                        logger.warning("OpenAI API key not found. OpenAI provider will not be available.")
+                        continue
+                    
+                if not openai_config["model"]:
+                    raise ValueError("OpenAI model name is required. Please set OPENAI_MODEL environment variable.")
+                    
+                # Validate OpenAI numeric parameters
+                if not (0 <= openai_config["temperature"] <= 2):
+                    raise ValueError("OpenAI temperature must be between 0 and 2")
+                    
+                if openai_config["max_tokens"] <= 0:
+                    raise ValueError("OpenAI max_tokens must be positive")
+                    
+                if openai_config["context_window"] <= 0:
+                    raise ValueError("OpenAI context_window must be positive")
+                
+                # Log validated configuration (with masked API keys)
+                logger.info("Configuration for openai:")
+                logger.info(f"  REDACTED_API_KEY: {openai_config['REDACTED_API_KEY'][:6] if openai_config['REDACTED_API_KEY'] else 'Not set'}...")
+                logger.info(f"  model: {openai_config['model']}")
+                
+            if provider_name == "gemini" and "gemini" in providers_to_check:
+                # Check Gemini configuration
+                gemini_config = LLM_CONFIG["gemini"]
+                if not gemini_config["REDACTED_API_KEY"]:
+                    # Only raise an error for Gemini if we're specifically trying to use it
+                    if provider == "gemini":
+                        raise ValueError("Gemini API key is required. Please set REDACTED_GEMINI_KEY environment variable.")
+                    else:
+                        logger.warning("Gemini API key not found. Gemini provider will not be available.")
+                        continue
+                    
+                if not gemini_config["model"]:
+                    raise ValueError("Gemini model name is required. Please set GEMINI_MODEL environment variable.")
+                    
+                # Validate Gemini numeric parameters
+                if not (0 <= gemini_config["temperature"] <= 1):
+                    raise ValueError("Gemini temperature must be between 0 and 1")
+                    
+                if gemini_config["max_tokens"] <= 0:
+                    raise ValueError("Gemini max_tokens must be positive")
+                    
+                if gemini_config["context_window"] <= 0:
+                    raise ValueError("Gemini context_window must be positive")
+                    
+                if not (0 < gemini_config["top_p"] <= 1):
+                    raise ValueError("Gemini top_p must be between 0 and 1")
+                    
+                if gemini_config["top_k"] <= 0:
+                    raise ValueError("Gemini top_k must be positive")
+                
+                # Log validated configuration (with masked API keys)
+                logger.info("Configuration for gemini:")
+                logger.info(f"  REDACTED_API_KEY: {gemini_config['REDACTED_API_KEY'][:6] if gemini_config['REDACTED_API_KEY'] else 'Not set'}...")
+                logger.info(f"  model: {gemini_config['model']}")
         
-        logger.info("Configuration validation successful")
         return True
         
     except Exception as e:
