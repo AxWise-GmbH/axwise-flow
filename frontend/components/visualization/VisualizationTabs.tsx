@@ -52,6 +52,22 @@ export default function VisualizationTabsRefactored({ analysisId }: Visualizatio
         // Make actual API call to fetch the data instead of using mock data
         if (isMounted) {
           const result = await apiClient.getAnalysisById(analysisId);
+          
+          // Debug: Log the raw theme data from API
+          console.log('Raw API theme data:', result.themes);
+          
+          // Debug: Check for statements, supporting_quotes, and examples in the first theme
+          if (result.themes && result.themes.length > 0) {
+            const firstTheme = result.themes[0];
+            console.log('First theme details:', {
+              name: firstTheme.name,
+              statements: firstTheme.statements,
+              supporting_quotes: (firstTheme as any).supporting_quotes,
+              examples: firstTheme.examples,
+              quotes: (firstTheme as any).quotes
+            });
+          }
+          
           setAnalysis(result);
         }
       } catch (error) {
@@ -111,8 +127,15 @@ export default function VisualizationTabsRefactored({ analysisId }: Visualizatio
       id: theme.id?.toString() || '',
       name: theme.name || '',
       prevalence: theme.frequency || 0,
-      supportingQuotes: theme.quotes || [],
-      keywords: theme.keywords || []
+      frequency: theme.frequency || 0,
+      sentiment: theme.sentiment,
+      keywords: theme.keywords || [],
+      statements: theme.statements || [],
+      examples: theme.examples || [],
+      definition: theme.definition || '',
+      reliability: theme.reliability,
+      process: theme.process,
+      codes: theme.codes || []
     }));
   }, [analysis?.themes]);
 

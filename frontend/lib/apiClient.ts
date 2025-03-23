@@ -363,6 +363,39 @@ class ApiClient {
         }
       }
 
+      // Ensure themes have statements if they exist as supporting_quotes or examples
+      if (Array.isArray(results.themes)) {
+        results.themes = results.themes.map((theme: {
+          statements?: string[];
+          supporting_quotes?: string[];
+          examples?: string[];
+          quotes?: string[];
+          [key: string]: any;
+        }) => {
+          // Initialize statements array if it doesn't exist
+          if (!theme.statements || !Array.isArray(theme.statements)) {
+            theme.statements = [];
+          }
+          
+          // Check for supporting_quotes field (API might return this format)
+          if (theme.supporting_quotes && Array.isArray(theme.supporting_quotes) && theme.supporting_quotes.length > 0) {
+            theme.statements = [...theme.statements, ...theme.supporting_quotes];
+          }
+          
+          // Check for examples field (backward compatibility)
+          if (theme.examples && Array.isArray(theme.examples) && theme.examples.length > 0 && theme.statements.length === 0) {
+            theme.statements = [...theme.statements, ...theme.examples];
+          }
+          
+          // Check for quotes field (another possible format)
+          if (theme.quotes && Array.isArray(theme.quotes) && theme.quotes.length > 0 && theme.statements.length === 0) {
+            theme.statements = [...theme.statements, ...theme.quotes];
+          }
+          
+          return theme;
+        });
+      }
+
       // Calculate sentimentOverview if missing
       if (!results.sentimentOverview) {
         const scores = results.sentiment
