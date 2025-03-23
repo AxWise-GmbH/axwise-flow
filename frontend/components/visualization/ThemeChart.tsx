@@ -339,7 +339,7 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                                   <p className="italic text-muted-foreground text-sm">"{statement}"</p>
                                 </li>
                               ))}
-                              {!theme.statements && theme.examples && theme.examples.map((example, i) => (
+                              {(!theme.statements || theme.statements.length === 0) && theme.examples && theme.examples.map((example, i) => (
                                 <li key={`${theme.id || theme.name}-example-${i}`} className="relative bg-muted/30 p-3 rounded-md">
                                   <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
                                   <p className="italic text-muted-foreground text-sm">"{example}"</p>
@@ -461,9 +461,9 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                   </div>
                 )}
                 
-                {selectedTheme.examples && selectedTheme.examples.length > 0 && (
+                {(!selectedTheme.statements || selectedTheme.statements.length === 0) && selectedTheme.examples && selectedTheme.examples.length > 0 && (
                   <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Examples</h4>
+                    <h4 className="text-sm font-semibold mb-1">Supporting Statements</h4>
                     <div className="space-y-1 mt-1 text-sm">
                       {selectedTheme.examples.map((example: string, i: number) => (
                         <div key={`example-${i}`} className="p-2 bg-muted/50 rounded text-xs">
