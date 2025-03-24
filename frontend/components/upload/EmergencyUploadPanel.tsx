@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+// Keep the import for now, will be fully removed in subsequent steps
 import { useUploadStore } from '@/store/useUploadStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,14 +12,13 @@ import { AlertCircle, CheckCircle2, FileUp, FileText, FilePen, X } from 'lucide-
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { UploadResponse } from '@/types/api';
-import { apiClient } from '@/lib/apiClient'; // Fix the import path
+import { uploadAction, analyzeAction } from '@/app/actions';
 
 /**
- * Emergency UploadPanel Component (Loop-Free Version)
+ * Emergency UploadPanel Component - Refactored for Server Actions
  * 
- * This component completely bypasses Zustand subscription mechanisms
- * that were causing infinite loops and instead uses React's useState
- * for local state management with manual synchronization to the store.
+ * This component uses React's useState for local state management with
+ * Next.js server actions for form submission.
  */
 export default function EmergencyUploadPanel() {
   const { showToast } = useToast();
@@ -24,7 +26,7 @@ export default function EmergencyUploadPanel() {
   // Reference to file input
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Local state instead of store subscription
+  // Local state
   const [localFile, setLocalFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileSize, setFileSize] = useState<number>(0);
@@ -54,39 +56,7 @@ export default function EmergencyUploadPanel() {
     }
   }, []);
   
-  // Set auth token for API calls
-  useEffect(() => {
-    // Set auth token when component mounts (important for direct API calls)
-    // Using hardcoded token for development - this should be replaced with proper auth in production
-    apiClient.setAuthToken('dev-token-12345');
-  }, []);
-
-  // When the file is selected, update our local state
-  useEffect(() => {
-    if (localFile) {
-      // Don't directly update the store's file property
-      // Just set other relevant properties and let the store handle the file
-      
-      // Create a FormData object directly to provide to the store
-      const formData = new FormData();
-      formData.append('file', localFile);
-      formData.append('is_free_text', String(isTextFile));
-      formData.append('filename', localFile.name);
-      formData.append('content_type', localFile.type);
-      
-      // Instead of setting the file directly, we'll prepare for upload
-      useUploadStore.setState({
-        // Don't set the file property at all
-        isTextFile: isTextFile,
-        filePreview: null,
-        uploadError: null, 
-        analysisError: null,
-        uploadResponse: null
-      });
-    }
-  }, [localFile, isTextFile]);
-  
-  // Handle file upload
+  // Handle file upload using server action
   const handleUpload = useCallback(async () => {
     if (!localFile) {
       setUploadError(new Error('Please select a file to upload'));
@@ -98,63 +68,46 @@ export default function EmergencyUploadPanel() {
     setUploadError(null);
     
     try {
-      console.log('Starting upload in EmergencyUploadPanel...');
+      console.log('Starting upload with server action...');
       
-      // Call the API client directly instead of going through the store
-      // This bypasses the type issues in the store
-      const response = await apiClient.uploadData(localFile, isTextFile);
-      console.log('Upload response in EmergencyUploadPanel:', response);
+      // Create form data for server action
+      const formData = new FormData();
+      formData.append('file', localFile);
+      formData.append('isTextFile', String(isTextFile));
       
-      if (response) {
+      // Call the server action
+      const result = await uploadAction(formData);
+      
+      if (result.success && result.uploadResponse) {
         setUploadComplete(true);
-        setUploadResponse(response);
+        setUploadResponse(result.uploadResponse);
         showToast('File uploaded successfully', { variant: 'success' });
         
-        // Update the store with the response so other components can access it
+        // Temporary: Update the Zustand store for components that still depend on it
         useUploadStore.setState({
-          uploadResponse: response,
+          uploadResponse: result.uploadResponse,
           isUploading: false
         });
       } else {
-        // If we don't have a response but also no error thrown, show a generic message
-        setUploadError(new Error('Upload completed but no response received'));
-        showToast('Upload issue: No response from server', { variant: 'info' });
+        // Handle error from server action
+        const errorMessage = result.error || 'Upload failed';
+        setUploadError(new Error(errorMessage));
+        showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
       }
     } catch (error) {
-      console.error('Upload error in EmergencyUploadPanel:', error);
+      console.error('Upload error:', error);
       
-      // Enhanced server error debugging
-      if (error && (error as any).response && (error as any).response.data) {
-        const serverError = (error as any).response.data;
-        console.error('Server error details:', serverError);
-        
-        // Verbose error logging for debugging
-        console.error('Full error object:', JSON.stringify(error, (key, value) => {
-          if (key === 'request') return undefined; // Exclude request object to avoid circular references
-          return value;
-        }, 2));
-        
-        // Extract detailed error message if available
-        const errorDetail = serverError.detail;
-        const errorMessage = typeof errorDetail === 'string' 
-          ? errorDetail 
-          : JSON.stringify(errorDetail);
-          
-        setUploadError(new Error(`Server error: ${errorMessage}`));
-        showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
-      } else {
-        setUploadError(error instanceof Error ? error : new Error('Unknown upload error'));
-        
-        // Show a more user-friendly error message
-        const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
-        showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
-      }
+      setUploadError(error instanceof Error ? error : new Error('Unknown upload error'));
+      
+      // Show a more user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
+      showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
     } finally {
       setIsUploading(false);
     }
   }, [localFile, isTextFile, showToast]);
   
-  // Handle analysis
+  // Handle analysis using server action
   const handleAnalysis = useCallback(async () => {
     if (!uploadComplete || !uploadResponse) {
       setAnalysisError(new Error('Please upload a file first'));
@@ -166,61 +119,34 @@ export default function EmergencyUploadPanel() {
     setAnalysisError(null);
     
     try {
-      console.log('Starting analysis in EmergencyUploadPanel...');
+      console.log('Starting analysis with server action...');
       
-      // Call the API client directly with required parameters
-      // Explicitly use gemini for the LLM provider to avoid OpenAI API key issues
-      const response = await apiClient.analyzeData(
-        uploadResponse.data_id, // data_id is already a number according to UploadResponse
-        'gemini', // Hard-code gemini as the provider to avoid OpenAI key issues
-        'gemini-2.0-flash', // Use gemini-2.0-flash model
-        isTextFile  // Pass the isTextFile flag
-      );
+      // Call the analyze action
+      const result = await analyzeAction(uploadResponse.data_id, isTextFile);
       
-      console.log('Analysis response in EmergencyUploadPanel:', response);
-      
-      if (response) {
-        setResultId(response.result_id.toString());
+      if (result.success && result.analysisResponse) {
+        setResultId(result.analysisResponse.result_id.toString());
         showToast('Analysis completed successfully', { variant: 'success' });
         
-        // Update the store with the response
+        // Temporary: Update the Zustand store for components that still depend on it
         useUploadStore.setState({
-          analysisResponse: response,
+          analysisResponse: result.analysisResponse,
           isAnalyzing: false
         });
       } else {
-        setAnalysisError(new Error('Analysis completed but no result ID received'));
-        showToast('Analysis issue: No result ID received', { variant: 'info' });
+        // Handle error from server action
+        const errorMessage = result.error || 'Analysis failed';
+        setAnalysisError(new Error(errorMessage));
+        showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
       }
     } catch (error) {
-      console.error('Analysis error in EmergencyUploadPanel:', error);
+      console.error('Analysis error:', error);
       
-      // Enhanced server error debugging
-      if (error && (error as any).response && (error as any).response.data) {
-        const serverError = (error as any).response.data;
-        console.error('Server error details:', serverError);
-        
-        // Verbose error logging for debugging
-        console.error('Full error object:', JSON.stringify(error, (key, value) => {
-          if (key === 'request') return undefined; // Exclude request object to avoid circular references
-          return value;
-        }, 2));
-        
-        // Extract detailed error message if available
-        const errorDetail = serverError.detail;
-        const errorMessage = typeof errorDetail === 'string' 
-          ? errorDetail 
-          : JSON.stringify(errorDetail);
-          
-        setAnalysisError(new Error(`Server error: ${errorMessage}`));
-        showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
-      } else {
-        setAnalysisError(error instanceof Error ? error : new Error('Unknown analysis error'));
-        
-        // Show a more user-friendly error message
-        const errorMessage = error instanceof Error ? error.message : 'Unknown analysis error';
-        showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
-      }
+      setAnalysisError(error instanceof Error ? error : new Error('Unknown analysis error'));
+      
+      // Show a more user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown analysis error';
+      showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
     } finally {
       setIsAnalyzing(false);
     }
@@ -246,9 +172,8 @@ export default function EmergencyUploadPanel() {
       fileInputRef.current.value = '';
     }
     
-    // Manual store update without subscription
-    useUploadStore.setState(state => ({
-      ...state,
+    // Temporary: Update the Zustand store for components that still depend on it
+    useUploadStore.setState({
       file: undefined,
       isTextFile: false,
       filePreview: null,
@@ -256,7 +181,7 @@ export default function EmergencyUploadPanel() {
       analysisResponse: null,
       uploadError: null,
       analysisError: null
-    }));
+    });
   }, []);
   
   // Toggle text file setting
@@ -264,11 +189,10 @@ export default function EmergencyUploadPanel() {
     const isText = value === 'text';
     setIsTextFile(isText);
     
-    // Also update the store setting
-    useUploadStore.setState(state => ({
-      ...state,
+    // Temporary: Update the Zustand store for components that still depend on it
+    useUploadStore.setState({
       isTextFile: isText
-    }));
+    });
   }, []);
   
   // Format file size for display
