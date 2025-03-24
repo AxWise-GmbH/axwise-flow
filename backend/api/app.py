@@ -1,5 +1,7 @@
 """
 FastAPI application for handling interview data and analysis.
+
+Last Updated: 2025-03-24
 """
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, Form
@@ -27,6 +29,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy.sql import text
 
+# Import centralized settings
+from infrastructure.config.settings import settings
+
 from backend.schemas import (
     AnalysisRequest, UploadResponse, AnalysisResponse,
     ResultResponse, HealthCheckResponse, DetailedAnalysisResult, PersonaGenerationRequest
@@ -37,7 +42,7 @@ from backend.services.llm import LLMServiceFactory
 from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
 from backend.models import User, InterviewData, AnalysisResult
-from backend.config import validate_config, LLM_CONFIG
+from backend.config import validate_config
 from backend.services.processing.persona_formation import PersonaFormationService
 
 # Configure logging
@@ -126,10 +131,10 @@ app = FastAPI(
         }
 )
 
-# Get CORS settings from environment or use defaults
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
-CORS_METHODS = os.getenv("CORS_METHODS", "GET,POST,PUT,DELETE,OPTIONS").split(",")
-CORS_HEADERS = os.getenv("CORS_HEADERS", "*").split(",")
+# Get CORS settings from centralized configuration
+CORS_ORIGINS = settings.cors_origins
+CORS_METHODS = settings.cors_methods
+CORS_HEADERS = settings.cors_headers
 
 # Add CORS middleware
 app.add_middleware(
@@ -168,7 +173,7 @@ def get_persona_service():
                 self.llm = type('obj', (object,), {
                     'provider': "gemini",
                     'model': "gemini-2.0-flash",
-                    'REDACTED_API_KEY': LLM_CONFIG["gemini"].get('REDACTED_API_KEY', ''),
+                    'REDACTED_API_KEY': settings.llm_providers["gemini"].get('REDACTED_API_KEY', ''),
                     'temperature': 0.3,
                     'max_tokens': 2000
                 })
@@ -180,10 +185,8 @@ def get_persona_service():
                     'min_confidence': 0.4
                 })
         
-        # Create LLM service
-        llm_config = dict(LLM_CONFIG["gemini"])
-        llm_config['model'] = "gemini-2.0-flash"
-        llm_service = LLMServiceFactory.create("gemini", llm_config)
+        # Create LLM service using centralized settings
+        llm_service = LLMServiceFactory.create("gemini")
         
         # Create and return the persona service
         system_config = MinimalSystemConfig()
@@ -333,7 +336,7 @@ async def analyze_data(
         data_id = analysis_request.data_id
         llm_provider = analysis_request.llm_provider
         llm_model = analysis_request.llm_model or (
-            "gpt-4o-2024-08-06" if llm_provider == "openai" else "gemini-2.0-flash"
+            settings.llm_providers["openai"]["model"] if llm_provider == "openai" else settings.llm_providers["gemini"]["model"]
         )
         is_free_text = analysis_request.is_free_text
         use_enhanced_theme_analysis = analysis_request.use_enhanced_theme_analysis
@@ -345,7 +348,8 @@ async def analyze_data(
 
         # Initialize services
         try:
-            llm_service = LLMServiceFactory.create(llm_provider, LLM_CONFIG[llm_provider])
+            # Use the LLMServiceFactory with provider-specific settings from centralized config
+            llm_service = LLMServiceFactory.create(llm_provider)
             nlp_processor = get_nlp_processor()()
         except Exception as e:
             logger.error(f"Error initializing services: {str(e)}")
@@ -936,7 +940,7 @@ async def generate_persona_from_text(
         
         try:
             # Update this line to use the create_llm_service method correctly
-            llm_config = dict(LLM_CONFIG[llm_provider])
+            llm_config = dict(settings.llm_providers[llm_provider])
             llm_config['model'] = llm_model
             llm_service = LLMServiceFactory.create(llm_provider, llm_config)
             
@@ -949,7 +953,7 @@ async def generate_persona_from_text(
                     self.llm = type('obj', (object,), {
                         'provider': llm_provider,
                         'model': llm_model,
-                        'REDACTED_API_KEY': LLM_CONFIG[llm_provider].get('REDACTED_API_KEY', ''),
+                        'REDACTED_API_KEY': settings.llm_providers[llm_provider].get('REDACTED_API_KEY', ''),
                         'temperature': 0.3,
                         'max_tokens': 2000
                     })
