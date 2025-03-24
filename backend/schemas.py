@@ -173,9 +173,9 @@ class PersonaTrait(BaseModel):
     """
     Model representing a trait of a persona with evidence and confidence.
     """
-    value: str
-    confidence: float
-    evidence: List[str]
+    value: Union[str, dict, list] = Field(default_factory=dict)
+    confidence: float = Field(..., ge=0, le=1)
+    evidence: List[str] = Field(default_factory=list)
 
     class Config:
         json_schema_extra = {
@@ -192,17 +192,17 @@ class Persona(BaseModel):
     Model representing a user persona derived from interview analysis.
     """
     name: str
-    description: str
+    description: str = ""
     role_context: PersonaTrait
     key_responsibilities: PersonaTrait
     tools_used: PersonaTrait
     collaboration_style: PersonaTrait
     analysis_approach: PersonaTrait
     pain_points: PersonaTrait
-    patterns: List[str]
-    confidence: float
-    evidence: List[str]
-    metadata: Optional[Dict[str, Any]] = None
+    patterns: List[str] = Field(default_factory=list)
+    confidence: float = Field(..., ge=0, le=1)
+    evidence: List[str] = Field(default_factory=list)
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     class Config:
         json_schema_extra = {

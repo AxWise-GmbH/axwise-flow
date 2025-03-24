@@ -60,5 +60,12 @@ class Persona(Base):
     behaviors = Column(JSON)
     quotes = Column(JSON)
     confidence_score = Column(Float)
+    
+    # New fields to match schema expectations
+    collaboration_style = Column(JSON, nullable=True)
+    analysis_approach = Column(JSON, nullable=True)
+    patterns = Column(JSON, nullable=True)
+    evidence = Column(JSON, nullable=True)
+    persona_metadata = Column(JSON, nullable=True)
 
     analysis_result = relationship("AnalysisResult", back_populates="personas")

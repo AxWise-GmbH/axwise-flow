@@ -91,7 +91,39 @@ class ResultsService:
                 
                 # Enhanced logging for personas debug
                 logger.info(f"Results keys available: {list(results_dict.keys())}")
+                
+                # Ensure personas are present in the results dictionary
+                # Using direct personas from results JSON instead of database
                 self._ensure_personas_present(results_dict, result_id)
+                
+                # Get personas from the results JSON (current approach)
+                persona_list = []
+                if "personas" in results_dict and isinstance(results_dict["personas"], list):
+                    from backend.schemas import PersonaTrait, Persona as PersonaSchema
+                    # Log persona count for debugging
+                    logger.info(f"Found {len(results_dict['personas'])} personas in results JSON")
+                    
+                    # Process each persona from JSON
+                    for p_data in results_dict["personas"]:
+                        try:
+                            if not isinstance(p_data, dict):
+                                logger.warning(f"Skipping non-dict persona data: {type(p_data)}")
+                                continue
+                                
+                            # Create proper persona schema object
+                            persona = self._map_json_to_persona_schema(p_data)
+                            persona_list.append(persona)
+                            
+                            # Store this persona in the database for future use
+                            # This won't affect current request but prepares for future schema changes
+                            # Not blocking the request if this fails, just logging errors
+                            try:
+                                self._store_persona_in_db(p_data, result_id)
+                            except Exception as store_err:
+                                logger.error(f"Error storing persona in DB: {str(store_err)}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error mapping persona from JSON: {str(e)}")
                 
                 # Create formatted response
                 formatted_results = {
@@ -104,7 +136,7 @@ class ResultsService:
                         "sentiment": results_dict.get("sentiment", []),
                         "sentimentOverview": results_dict.get("sentimentOverview", DEFAULT_SENTIMENT_OVERVIEW),
                         "insights": results_dict.get("insights", []),
-                        "personas": results_dict.get("personas", []),
+                        "personas": persona_list,  # Use personas from the results JSON
                     },
                     "llm_provider": analysis_result.llm_provider,
                     "llm_model": analysis_result.llm_model
@@ -283,3 +315,148 @@ class ResultsService:
             formatted_result["status"] = "failed"  # Match schema requirements
             
         return formatted_result 
+    
+    def _map_json_to_persona_schema(self, p_data: Dict[str, Any]):
+        """
+        Map JSON persona data to a proper PersonaSchema object
+        
+        Args:
+            p_data: Persona data from JSON
+            
+        Returns:
+            PersonaSchema object
+        """
+        from backend.schemas import PersonaTrait, Persona as PersonaSchema
+        
+        # Extract fields with safe fallbacks
+        name = p_data.get("name", "Unknown")
+        description = p_data.get("description", name)
+        confidence = p_data.get("confidence", 0.5)
+        patterns = p_data.get("patterns", [])
+        evidence = p_data.get("evidence", [])
+        metadata = p_data.get("metadata", {})
+        
+        # Extract nested traits or use empty defaults
+        role_context_data = p_data.get("role_context", {})
+        key_resp_data = p_data.get("key_responsibilities", {})
+        tools_data = p_data.get("tools_used", {})
+        collab_style_data = p_data.get("collaboration_style", {})
+        analysis_approach_data = p_data.get("analysis_approach", {})
+        pain_points_data = p_data.get("pain_points", {})
+        
+        # Create and return persona schema object
+        persona = PersonaSchema(
+            name=name,
+            description=description,
+            role_context=PersonaTrait(
+                value=role_context_data.get("value", {}),
+                confidence=role_context_data.get("confidence", confidence),
+                evidence=role_context_data.get("evidence", evidence)
+            ),
+            key_responsibilities=PersonaTrait(
+                value=key_resp_data.get("value", []),
+                confidence=key_resp_data.get("confidence", confidence),
+                evidence=key_resp_data.get("evidence", evidence)
+            ),
+            tools_used=PersonaTrait(
+                value=tools_data.get("value", {}),
+                confidence=tools_data.get("confidence", confidence),
+                evidence=tools_data.get("evidence", evidence)
+            ),
+            collaboration_style=PersonaTrait(
+                value=collab_style_data.get("value", {}),
+                confidence=collab_style_data.get("confidence", confidence),
+                evidence=collab_style_data.get("evidence", evidence)
+            ),
+            analysis_approach=PersonaTrait(
+                value=analysis_approach_data.get("value", {}),
+                confidence=analysis_approach_data.get("confidence", confidence),
+                evidence=analysis_approach_data.get("evidence", evidence)
+            ),
+            pain_points=PersonaTrait(
+                value=pain_points_data.get("value", []),
+                confidence=pain_points_data.get("confidence", confidence),
+                evidence=pain_points_data.get("evidence", evidence)
+            ),
+            patterns=patterns,
+            confidence=confidence,
+            evidence=evidence,
+            metadata=metadata
+        )
+        return persona
+    
+    def _store_persona_in_db(self, p_data: Dict[str, Any], result_id: int) -> None:
+        """
+        Store persona data in the database for future retrieval.
+        This is a background process that doesn't affect the current request.
+        
+        Args:
+            p_data: Persona data from JSON
+            result_id: Analysis result ID
+        """
+        from backend.models import Persona
+        
+        # Extract fields with safe fallbacks
+        name = p_data.get("name", "Unknown")
+        
+        # Check if this persona already exists in the database
+        existing = self.db.query(Persona).filter(
+            Persona.result_id == result_id,
+            Persona.name == name
+        ).first()
+        
+        if existing:
+            logger.info(f"Persona '{name}' already exists in database for result_id: {result_id}")
+            return
+            
+        # Extract data for DB fields
+        role_context = p_data.get("role_context", {})
+        demographics = role_context.get("value", {}) if isinstance(role_context, dict) else {}
+        
+        key_resp = p_data.get("key_responsibilities", {})
+        goals = key_resp.get("value", []) if isinstance(key_resp, dict) else []
+        
+        tools = p_data.get("tools_used", {})
+        behaviors = tools.get("value", {}) if isinstance(tools, dict) else {}
+        
+        pain_points = p_data.get("pain_points", {})
+        pain_points_value = pain_points.get("value", []) if isinstance(pain_points, dict) else []
+        
+        quotes = p_data.get("quotes", [])
+        confidence = p_data.get("confidence", 0.5)
+        
+        collab_style = p_data.get("collaboration_style", {})
+        collab_style_value = collab_style.get("value", {}) if isinstance(collab_style, dict) else {}
+        
+        analysis_approach = p_data.get("analysis_approach", {})
+        analysis_approach_value = analysis_approach.get("value", {}) if isinstance(analysis_approach, dict) else {}
+        
+        patterns = p_data.get("patterns", [])
+        evidence = p_data.get("evidence", [])
+        metadata = p_data.get("metadata", {})
+        
+        # Create new persona record
+        new_persona = Persona(
+            result_id=result_id,
+            name=name,
+            demographics=json.dumps(demographics),
+            goals=json.dumps(goals),
+            pain_points=json.dumps(pain_points_value),
+            behaviors=json.dumps(behaviors),
+            quotes=json.dumps(quotes),
+            confidence_score=confidence,
+            collaboration_style=json.dumps(collab_style_value),
+            analysis_approach=json.dumps(analysis_approach_value),
+            patterns=json.dumps(patterns),
+            evidence=json.dumps(evidence),
+            persona_metadata=json.dumps(metadata)
+        )
+        
+        # Add to database
+        try:
+            self.db.add(new_persona)
+            self.db.commit()
+            logger.info(f"Persona '{name}' saved to database for result_id: {result_id}")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error saving persona '{name}' to database: {str(e)}") 
