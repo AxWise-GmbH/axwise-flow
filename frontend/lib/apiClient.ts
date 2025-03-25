@@ -985,6 +985,64 @@ class ApiClient {
       throw error;
     }
   }
+
+  /**
+   * Check if analysis is complete for a given result ID
+   * 
+   * This method polls the backend API to determine if the analysis process 
+   * has been completed for a specific analysis result.
+   */
+  async checkAnalysisStatus(resultId: string): Promise<{ status: 'pending' | 'completed' | 'failed', analysis?: any }> {
+    try {
+      console.log(`Checking status for analysis ID: ${resultId}`);
+      
+      try {
+        // First try the dedicated status endpoint
+        const response = await this.client.get(`/api/analyses/${resultId}/status`);
+        
+        // If we get a 404, the status endpoint doesn't exist, so we'll use getAnalysisById instead
+        if (response.status === 404) {
+          throw new Error('Status endpoint not found');
+        }
+        
+        // Extract status from response
+        const status = response.data?.status || 'pending';
+        
+        // If completed, also return the analysis data
+        if (status === 'completed') {
+          return { 
+            status: 'completed',
+            analysis: response.data
+          };
+        }
+        
+        // Return the status
+        return { status: status === 'failed' ? 'failed' : 'pending' };
+      } catch (error) {
+        // Status endpoint not available, fall back to checking full analysis
+        console.log('Status endpoint not available, falling back to full analysis check');
+        
+        // Try to get the full analysis - if successful, it means the analysis is complete
+        const analysis = await this.getAnalysisById(resultId);
+        
+        // Check if the analysis has themes, which indicates completion
+        if (analysis && analysis.themes && analysis.themes.length > 0) {
+          return { 
+            status: 'completed',
+            analysis
+          };
+        }
+        
+        // If we got a response but no themes, it's likely still processing
+        return { status: 'pending' };
+      }
+    } catch (error) {
+      console.error(`Error checking analysis status for ID ${resultId}:`, error);
+      
+      // If we can't reach the server, assume it's still pending
+      return { status: 'pending' };
+    }
+  }
 }
 
 /**

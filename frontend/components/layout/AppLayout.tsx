@@ -1,7 +1,8 @@
 'use client';
 
-import { type PropsWithChildren } from 'react';
+import { type PropsWithChildren, useEffect } from 'react';
 import Header from './Header';
+import { initializeAuth } from '@/lib/authUtils';
 
 interface AppLayoutProps extends PropsWithChildren {
   className?: string;
@@ -12,6 +13,13 @@ interface AppLayoutProps extends PropsWithChildren {
  * Provides consistent layout structure and theme support
  */
 export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Element {
+  // Initialize authentication on component mount
+  useEffect(() => {
+    initializeAuth().catch(error => {
+      console.error('Failed to initialize authentication:', error);
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />

@@ -1,5 +1,7 @@
 """
 Authentication middleware for the FastAPI application.
+
+Last Updated: 2025-03-25
 """
 
 from fastapi import Depends, HTTPException, status
@@ -28,6 +30,9 @@ CLERK_...=***REMOVED***
 # Enable/disable Clerk JWT validation based on environment
 ENABLE_CLERK_...=***REMOVED***"ENABLE_CLERK_VALIDATION", "false").lower() == "true"
 
+# Development token prefix for easier identification
+DEV_TOKEN_PREFIX = "dev_test_token_"
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -36,7 +41,8 @@ async def get_current_user(
     Dependency to get the current authenticated user.
     
     When ENABLE_CLERK_VALIDATION is True, validates the JWT token using Clerk.
-    Otherwise, always uses "testuser123" for development.
+    When using a development token (starts with dev_test_token_), extracts user_id from the token.
+    Otherwise, uses "testuser123" for development.
     
     Args:
         credentials: The HTTP Authorization credentials
@@ -58,9 +64,13 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # IMPORTANT: Always use the same user ID for development
-    # This ensures access to all data in the development database
-    if not ENABLE_CLERK_VALIDATION:
+    # Handle development token case
+    if token.startswith(DEV_TOKEN_PREFIX) and not ENABLE_CLERK_VALIDATION:
+        # Extract user_id from the development token
+        user_id = token[len(DEV_TOKEN_PREFIX):]
+        logger.info(f"Development token used with user_id: {user_id}")
+    # IMPORTANT: Always use the same user ID for development if not using dev token
+    elif not ENABLE_CLERK_VALIDATION:
         # For development, always use testuser123 to access all analyses
         user_id = "testuser123"
         logger.info(f"Development mode: Using fixed user_id: {user_id}")

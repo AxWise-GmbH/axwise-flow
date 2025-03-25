@@ -39,6 +39,8 @@ export default function EmergencyUploadPanel() {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<Error | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
+  const [pollingActive, setPollingActive] = useState<boolean>(false);
   
   // Effect to get and set auth token in cookie
   useEffect(() => {
@@ -61,6 +63,64 @@ export default function EmergencyUploadPanel() {
     
     storeAuthToken();
   }, []);
+  
+  // Effect to poll for analysis completion
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout | null = null;
+    
+    if (pollingActive && resultId) {
+      // Increase the progress bar during polling to provide visual feedback
+      const progressIncrement = setInterval(() => {
+        setAnalysisProgress(prev => {
+          // Cap at 95% until we confirm completion
+          const next = prev + 5;
+          return next > 95 ? 95 : next;
+        });
+      }, 3000);
+      
+      // Poll for analysis completion every 3 seconds
+      pollInterval = setInterval(async () => {
+        try {
+          const statusResult = await apiClient.checkAnalysisStatus(resultId);
+          
+          console.log(`Poll status for ${resultId}:`, statusResult.status);
+          
+          if (statusResult.status === 'completed') {
+            // Analysis is complete
+            clearInterval(pollInterval!);
+            clearInterval(progressIncrement);
+            setPollingActive(false);
+            setIsAnalyzing(false);
+            setAnalysisProgress(100);
+            
+            showToast('Analysis completed successfully', { variant: 'success' });
+            
+            // Redirect after a short delay to show the 100% progress
+            setTimeout(async () => {
+              const redirectUrl = await getRedirectUrl(resultId);
+              window.location.href = redirectUrl;
+            }, 800);
+          } else if (statusResult.status === 'failed') {
+            // Analysis failed
+            clearInterval(pollInterval!);
+            clearInterval(progressIncrement);
+            setPollingActive(false);
+            setIsAnalyzing(false);
+            setAnalysisProgress(0);
+            
+            setAnalysisError(new Error('Analysis failed during processing'));
+            showToast('Analysis failed during processing', { variant: 'error' });
+          }
+        } catch (error) {
+          console.error('Error polling for analysis status:', error);
+        }
+      }, 3000);
+    }
+    
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [pollingActive, resultId, showToast]);
   
   // Handle file selection
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,6 +194,7 @@ export default function EmergencyUploadPanel() {
     
     setIsAnalyzing(true);
     setAnalysisError(null);
+    setAnalysisProgress(10); // Start progress at 10%
     
     try {
       console.log('Starting analysis with server action...');
@@ -142,17 +203,20 @@ export default function EmergencyUploadPanel() {
       const result = await analyzeAction(uploadResponse.data_id, isTextFile);
       
       if (result.success && result.analysisResponse) {
-        setResultId(result.analysisResponse.result_id.toString());
-        showToast('Analysis completed successfully', { variant: 'success' });
+        const analysisId = result.analysisResponse.result_id.toString();
+        setResultId(analysisId);
         
-        // Redirect to visualization tab with the result ID
-        const redirectUrl = await getRedirectUrl(result.analysisResponse.result_id.toString());
-        window.location.href = redirectUrl;
+        // Start polling for completion instead of immediate redirect
+        setPollingActive(true);
+        setAnalysisProgress(30); // Set to 30% after initial response
+        
+        showToast('Analysis started successfully. This may take a few moments...', { variant: 'info' });
       } else {
         // Handle error from server action
         const errorMessage = result.error || 'Analysis failed';
         setAnalysisError(new Error(errorMessage));
         showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
+        setIsAnalyzing(false);
       }
     } catch (error) {
       console.error('Analysis error:', error);
@@ -162,7 +226,6 @@ export default function EmergencyUploadPanel() {
       // Show a more user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown analysis error';
       showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
-    } finally {
       setIsAnalyzing(false);
     }
   }, [uploadResponse, uploadComplete, showToast, isTextFile]);
@@ -325,9 +388,12 @@ export default function EmergencyUploadPanel() {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-xs">
                 <span>Analyzing...</span>
-                <span>This may take a moment</span>
+                <span>{analysisProgress < 100 ? 'This may take a moment' : 'Redirecting...'}</span>
               </div>
-              <Progress value={60} className="h-2" />
+              <Progress value={analysisProgress} className="h-2" />
+              <div className="text-right text-xs text-muted-foreground">
+                {analysisProgress}%
+              </div>
             </div>
           )}
         </div>
