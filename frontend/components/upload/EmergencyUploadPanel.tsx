@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useEffect, useTransition } from 'react';
-// Keep the import for now, will be fully removed in subsequent steps
-// import { useUploadStore } from '@/store/useUploadStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
