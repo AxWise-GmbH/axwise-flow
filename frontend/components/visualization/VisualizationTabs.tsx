@@ -262,11 +262,76 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="sentiment" className="mt-6">
+                {console.log("Sentiment tab rendering with data:", analysis.sentiment)}
+                {console.log("SentimentStatements available:", 
+                  analysis.sentimentStatements || 
+                  (analysis.sentiment && analysis.sentiment.sentimentStatements) || 
+                  "MISSING")}
+                
+                {/* Add debugging button to manually check data structure */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mb-4 p-2 border border-blue-200 rounded-md bg-blue-50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-blue-700">Developer Debug</span>
+                      <button 
+                        onClick={() => {
+                          console.log("Full analysis object:", analysis);
+                          console.log("Results property:", analysis.results);
+                          console.log("Sentiment object:", analysis.sentiment);
+                          console.log("SentimentStatements:", 
+                            analysis.sentimentStatements || 
+                            (analysis.sentiment && analysis.sentiment.sentimentStatements) ||
+                            (analysis.results && analysis.results.sentimentStatements) ||
+                            "Not found in any expected location"
+                          );
+                        }}
+                        className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded-md"
+                      >
+                        Log Sentiment Data
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 {analysis.sentiment && (
                   <SentimentGraph 
-                    data={analysis.sentiment.sentimentOverview} 
+                    data={analysis.sentiment.sentimentOverview || analysis.sentimentOverview} 
                     detailedData={[]} 
-                    supportingStatements={analysis.sentiment.sentimentStatements}
+                    supportingStatements={
+                      // First try to get real sentimentStatements from various possible locations
+                      (analysis.sentimentStatements && 
+                       analysis.sentimentStatements.positive && 
+                       analysis.sentimentStatements.positive.length > 0) 
+                        ? analysis.sentimentStatements
+                        : (analysis.sentiment && 
+                           analysis.sentiment.sentimentStatements && 
+                           analysis.sentiment.sentimentStatements.positive && 
+                           analysis.sentiment.sentimentStatements.positive.length > 0)
+                          ? analysis.sentiment.sentimentStatements
+                          : (analysis.results && 
+                             analysis.results.sentimentStatements && 
+                             analysis.results.sentimentStatements.positive && 
+                             analysis.results.sentimentStatements.positive.length > 0)
+                            ? analysis.results.sentimentStatements
+                            // If no real data is found, use explicit sample data for development
+                            : process.env.NODE_ENV === 'development'
+                              ? {
+                                  positive: [
+                                    "I really appreciated how intuitive the interface was.",
+                                    "The new features save me a lot of time on my daily tasks."
+                                  ],
+                                  neutral: [
+                                    "It works as expected for the most part.",
+                                    "The application performs standard functions adequately."
+                                  ],
+                                  negative: [
+                                    "The system occasionally freezes when processing large files.",
+                                    "Error messages could be more descriptive."
+                                  ]
+                                }
+                              // In production, use empty arrays
+                              : {positive: [], neutral: [], negative: []}
+                    }
                   />
                 )}
                 {!analysis.sentiment && (
@@ -321,6 +386,10 @@ export default function VisualizationTabsRefactored({
               <p><strong>Analysis ID:</strong> {effectiveAnalysisId || 'None'}</p>
               <p><strong>Active Tab:</strong> {activeTab}</p>
               <p><strong>Theme Count:</strong> {analysis?.themes?.length || 0}</p>
+              <p><strong>Has Sentiment Statements:</strong> {
+                (analysis?.sentimentStatements || 
+                (analysis?.sentiment?.sentimentStatements)) ? 'Yes' : 'No'
+              }</p>
               <p><strong>Has Results Property:</strong> {analysis?.results ? 'Yes' : 'No'}</p>
               
               <details className="mt-2">

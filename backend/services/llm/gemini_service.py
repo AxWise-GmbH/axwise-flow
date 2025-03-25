@@ -1221,3 +1221,156 @@ class GeminiService:
             "evidence": ["Generated from text analysis fallback"],
             "source": "text_fallback"
         }
+
+    async def analyze_sentiment(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+        """
+        Analyze sentiment in interview data with explicit supporting statements.
+        
+        Args:
+            interviews: List of interview data.
+            **kwargs: Additional parameters for the LLM service.
+            
+        Returns:
+            Dictionary containing sentiment analysis results including supporting statements.
+        """
+        try:
+            self.logger.info(f"Starting sentiment analysis with {len(interviews)} interview segments")
+            
+            # Format the interview data for analysis
+            interview_text = ""
+            for i, interview in enumerate(interviews):
+                answer = interview.get('answer', interview.get('response', interview.get('text', '')))
+                if answer:
+                    interview_text += f"Statement {i+1}: {answer}\n\n"
+            
+            # Truncate text if too long
+            max_length = 32000
+            if len(interview_text) > max_length:
+                self.logger.warning(f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}")
+                interview_text = interview_text[:max_length]
+            
+            prompt = f"""
+            Analyze the sentiment in these interview statements. For each sentiment category (positive, neutral, negative), 
+            identify representative statements from the interview that reflect that sentiment.
+            
+            INTERVIEW TEXT:
+            {interview_text}
+            
+            INSTRUCTIONS:
+            1. Calculate the overall sentiment distribution as percentages
+            2. Find 3-5 direct quotes from the interview for each sentiment category
+            3. Ensure quotes are taken verbatim from the text
+            
+            FORMAT YOUR RESPONSE AS JSON:
+            {{
+              "sentimentOverview": {{
+                "positive": 0.XX, // percentage as decimal (0.0-1.0)
+                "neutral": 0.XX,  // percentage as decimal (0.0-1.0)
+                "negative": 0.XX  // percentage as decimal (0.0-1.0)
+              }},
+              "sentiment": [
+                {{
+                  "text": "Statement text",
+                  "score": 0.XX  // sentiment score between -1.0 and 1.0
+                }},
+                // additional sentiment items
+              ],
+              "supporting_statements": {{
+                "positive": ["direct quote 1", "direct quote 2", ...],
+                "neutral": ["direct quote 1", "direct quote 2", ...],
+                "negative": ["direct quote 1", "direct quote 2", ...]
+              }}
+            }}
+            
+            Make sure your response contains ONLY valid JSON without any explanation text.
+            """
+            
+            # Call the LLM with the sentiment analysis prompt
+            response = await self._call_llm({
+                'role': 'user',
+                'content': prompt
+            })
+            
+            try:
+                # Extract the content from the response
+                content = response.get('content', '')
+                
+                # Parse the JSON result
+                result = self._parse_json_response(content)
+                
+                # Validate the sentiment data
+                if not isinstance(result, dict):
+                    raise ValueError("Expected a dictionary result from sentiment analysis")
+                
+                # Ensure sentimentOverview exists
+                if 'sentimentOverview' not in result:
+                    self.logger.warning("No sentimentOverview in result, using default")
+                    result['sentimentOverview'] = {
+                        "positive": 0.33,
+                        "neutral": 0.34,
+                        "negative": 0.33
+                    }
+                
+                # Ensure supporting_statements exists and is properly formatted
+                if 'supporting_statements' not in result:
+                    self.logger.warning("No supporting_statements in result, using empty arrays")
+                    result['supporting_statements'] = {
+                        "positive": [],
+                        "neutral": [],
+                        "negative": []
+                    }
+                
+                # Also set sentimentStatements for direct access
+                result['sentimentStatements'] = result['supporting_statements']
+                
+                # Log the sentiment results
+                self.logger.info(f"Sentiment analysis complete. Overview: {result['sentimentOverview']}")
+                self.logger.info(f"Supporting statements: positive={len(result['supporting_statements']['positive'])}, " +
+                               f"neutral={len(result['supporting_statements']['neutral'])}, " +
+                               f"negative={len(result['supporting_statements']['negative'])}")
+                
+                return result
+                
+            except Exception as e:
+                self.logger.error(f"Error parsing sentiment analysis result: {str(e)}")
+                # Return a default structure on error
+                return {
+                    "sentimentOverview": {
+                        "positive": 0.33,
+                        "neutral": 0.34,
+                        "negative": 0.33
+                    },
+                    "sentiment": [],
+                    "supporting_statements": {
+                        "positive": [],
+                        "neutral": [],
+                        "negative": []
+                    },
+                    "sentimentStatements": {
+                        "positive": [],
+                        "neutral": [],
+                        "negative": []
+                    },
+                    "error": f"Error parsing sentiment analysis: {str(e)}"
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error in sentiment analysis: {str(e)}")
+            return {
+                "error": f"Sentiment analysis error: {str(e)}",
+                "sentimentOverview": {
+                    "positive": 0.33,
+                    "neutral": 0.34,
+                    "negative": 0.33
+                },
+                "supporting_statements": {
+                    "positive": [],
+                    "neutral": [],
+                    "negative": []
+                },
+                "sentimentStatements": {
+                    "positive": [],
+                    "neutral": [],
+                    "negative": []
+                }
+            }

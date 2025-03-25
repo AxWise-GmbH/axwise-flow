@@ -135,12 +135,34 @@ class ResultsService:
                         "patterns": results_dict.get("patterns", []),
                         "sentiment": results_dict.get("sentiment", []),
                         "sentimentOverview": results_dict.get("sentimentOverview", DEFAULT_SENTIMENT_OVERVIEW),
+                        "sentimentStatements": results_dict.get("sentimentStatements", {"positive": [], "neutral": [], "negative": []}),
                         "insights": results_dict.get("insights", []),
                         "personas": persona_list,  # Use personas from the results JSON
                     },
                     "llm_provider": analysis_result.llm_provider,
                     "llm_model": analysis_result.llm_model
                 }
+                
+                # Log whether sentimentStatements were found
+                has_sentiment_statements = "sentimentStatements" in results_dict
+                logger.info(f"SentimentStatements found in results_dict: {has_sentiment_statements}")
+                
+                # If no sentiment statements are provided, extract them from themes and patterns
+                sentimentStatements = formatted_results["results"]["sentimentStatements"]
+                if (not sentimentStatements["positive"] and 
+                    not sentimentStatements["neutral"] and 
+                    not sentimentStatements["negative"]):
+                    logger.info("No sentiment statements found, extracting from themes and patterns")
+                    
+                    sentimentStatements = self._extract_sentiment_statements_from_data(
+                        formatted_results["results"]["themes"],
+                        formatted_results["results"]["patterns"]
+                    )
+                    
+                    formatted_results["results"]["sentimentStatements"] = sentimentStatements
+                    logger.info(f"Extracted sentiment statements: positive={len(sentimentStatements['positive'])}, " +
+                              f"neutral={len(sentimentStatements['neutral'])}, " +
+                              f"negative={len(sentimentStatements['negative'])}")
                 
                 return formatted_results
                 
@@ -459,4 +481,67 @@ class ResultsService:
             logger.info(f"Persona '{name}' saved to database for result_id: {result_id}")
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error saving persona '{name}' to database: {str(e)}") 
+            logger.error(f"Error saving persona '{name}' to database: {str(e)}")
+    
+    def _extract_sentiment_statements_from_data(self, themes, patterns) -> Dict[str, List[str]]:
+        """
+        Extract sentiment statements from themes and patterns data.
+        This is a fallback when the LLM doesn't directly generate sentiment statements.
+        
+        Args:
+            themes: List of theme objects
+            patterns: List of pattern objects
+            
+        Returns:
+            Dictionary with lists of positive, neutral, and negative statements
+        """
+        sentiment_statements = {
+            "positive": [],
+            "neutral": [],
+            "negative": []
+        }
+        
+        # Process themes based on their sentiment scores
+        for theme in themes:
+            # Skip themes without statements or sentiment
+            if not theme.get("statements") or "sentiment" not in theme:
+                continue
+                
+            sentiment_score = theme.get("sentiment", 0)
+            statements = theme.get("statements", []) or theme.get("examples", [])
+            
+            # Take up to 2 statements from each theme based on sentiment
+            sample_statements = statements[:2] if statements else []
+            for statement in sample_statements:
+                if sentiment_score > 0.3:
+                    sentiment_statements["positive"].append(statement)
+                elif sentiment_score < -0.3:
+                    sentiment_statements["negative"].append(statement)
+                else:
+                    sentiment_statements["neutral"].append(statement)
+        
+        # Process patterns to supplement the statements
+        for pattern in patterns:
+            # Skip patterns without examples or sentiment
+            if not pattern.get("examples") or "sentiment" not in pattern:
+                continue
+                
+            sentiment_score = pattern.get("sentiment", 0)
+            statements = pattern.get("examples", []) or pattern.get("evidence", [])
+            
+            # Take 1 statement from each pattern based on sentiment
+            sample_statement = statements[0] if statements else None
+            if sample_statement:
+                if sentiment_score > 0.3:
+                    sentiment_statements["positive"].append(sample_statement)
+                elif sentiment_score < -0.3:
+                    sentiment_statements["negative"].append(sample_statement)
+                else:
+                    sentiment_statements["neutral"].append(sample_statement)
+        
+        # Limit to 5 statements per category
+        sentiment_statements["positive"] = sentiment_statements["positive"][:5]
+        sentiment_statements["neutral"] = sentiment_statements["neutral"][:5]
+        sentiment_statements["negative"] = sentiment_statements["negative"][:5]
+        
+        return sentiment_statements 

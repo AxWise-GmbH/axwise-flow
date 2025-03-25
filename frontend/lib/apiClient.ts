@@ -294,6 +294,12 @@ class ApiClient {
       
       const results = response.data.results;
       
+      // Add specific logging for sentimentStatements
+      console.log('SentimentStatements from API (direct):', 
+                 results.sentimentStatements ? 
+                 JSON.stringify(results.sentimentStatements, null, 2) : 
+                 'MISSING');
+      
       // Check if results.sentimentStatements exists directly
       console.log('Raw sentimentStatements from API:', 
                  results.sentimentStatements ? 
@@ -301,8 +307,8 @@ class ApiClient {
                  'MISSING');
       
       // Make sure sentimentStatements are properly extracted and preserved
-      if (response.data.results.sentimentStatements) {
-        console.log("Found sentiment statements in API response:", JSON.stringify(response.data.results.sentimentStatements, null, 2));
+      if (results.sentimentStatements) {
+        console.log("Found sentiment statements in API response:", JSON.stringify(results.sentimentStatements, null, 2));
       } else {
         console.warn("No sentiment statements found in API response");
       }
@@ -421,98 +427,37 @@ class ApiClient {
       if (!results.sentimentStatements || 
           !results.sentimentStatements.positive || 
           !results.sentimentStatements.neutral || 
-          !results.sentimentStatements.negative ||
-          (results.sentimentStatements.positive.length === 0 && 
-           results.sentimentStatements.neutral.length === 0 && 
-           results.sentimentStatements.negative.length === 0)) {
+          !results.sentimentStatements.negative) {
         
-        // Check if we have preliminary sentiment data from the backend
-        const sentimentData = results.sentiment || {};
+        console.log("Initializing sentimentStatements with empty structure");
         
-        // Only trigger fallback if sentiment data exists but sentimentStatements are missing
-        // This prevents premature fallback when entire analysis hasn't completed
-        if (sentimentData.positive || sentimentData.neutral || sentimentData.negative) {
-          console.log("Using sentiment data directly from backend without fallback", sentimentData);
-          
-          // Use sentiment data directly as statements if available
-          results.sentimentStatements = {
-            positive: Array.isArray(sentimentData.positive) ? sentimentData.positive : [],
-            neutral: Array.isArray(sentimentData.neutral) ? sentimentData.neutral : [],
-            negative: Array.isArray(sentimentData.negative) ? sentimentData.negative : []
-          };
-        } else if (results.themes && results.themes.length > 0 && results.patterns && results.patterns.length > 0) {
-          // Only trigger the keyword fallback if we have complete analysis results but missing sentiment statements
-          console.warn("Complete analysis but missing sentiment statements - implementing keyword fallback");
-        
-        // Initialize empty statements structure
+        // Initialize with empty arrays
         results.sentimentStatements = {
           positive: [],
           neutral: [],
           negative: []
         };
         
-          // Check if results contains raw data with interview responses
-        if (results.data && Array.isArray(results.data)) {
-          console.log("Extracting sentiment statements from raw interview data");
+        // Check if we have preliminary sentiment data from the backend
+        const sentimentData = results.sentiment || {};
+        
+        // Use sentiment data directly as statements if available in alternative formats
+        if (sentimentData.positive || sentimentData.neutral || sentimentData.negative) {
+          console.log("Using sentiment data directly from backend", sentimentData);
           
-            // Process each interview response using more sophisticated rules
-          results.data.forEach((item: any) => {
-            const response = item.answer || item.response || item.text || '';
-              if (!response || typeof response !== 'string' || !response.trim() || response.length < 20) {
-              return;
-            }
-            
-              // Skip metadata and headers
-              if (response.includes("Transcript") || 
-                  response.includes("Interview") && (response.includes("Date") || response.includes("Time")) ||
-                  /^\d{2,4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,4}/.test(response) || // Date patterns
-                  /^\d{1,2}:\d{2}/.test(response)) { // Time patterns
-              return;
-            }
-            
-              // Better sentiment analysis with context awareness
-              const lowercaseResponse = response.toLowerCase();
-              
-              // More comprehensive keyword lists
-              const posWords = ['good', 'great', 'excellent', 'love', 'like', 'best', 'enjoy', 'helpful', 'easy', 'intuitive', 
-                               'impressive', 'satisfied', 'convenient', 'efficient', 'effective', 'simple', 'clear'];
-              const negWords = ['bad', 'poor', 'terrible', 'hate', 'dislike', 'worst', 'difficult', 'confusing', 'slow', 
-                               'frustrating', 'complicated', 'annoying', 'disappointing', 'inconsistent', 'useless', 'broken'];
-              
-              // Look for sentiment keywords in context
-              const hasPositive = posWords.some(word => lowercaseResponse.includes(word));
-              const hasNegative = negWords.some(word => lowercaseResponse.includes(word));
-              
-              // More nuanced classification
-              if (hasPositive && !hasNegative) {
-                results.sentimentStatements.positive.push(response);
-              } else if (hasNegative && !hasPositive) {
-                results.sentimentStatements.negative.push(response);
-              } else if (hasPositive && hasNegative) {
-                // Look at surrounding context to determine whether positive or negative dominates
-                // For mixed sentiment, classify based on which appears later or is more emphasized
-                const lastPosIndex = Math.max(...posWords.map(word => lowercaseResponse.lastIndexOf(word)).filter(i => i >= 0));
-                const lastNegIndex = Math.max(...negWords.map(word => lowercaseResponse.lastIndexOf(word)).filter(i => i >= 0));
-                
-                if (lastPosIndex > lastNegIndex) {
-                  results.sentimentStatements.positive.push(response);
-                } else {
-                  results.sentimentStatements.negative.push(response);
-                }
-            } else {
-                // If no strong sentiment, classify as neutral
-                results.sentimentStatements.neutral.push(response);
-            }
-          });
-        }
-        } else {
-          // If analysis is incomplete, initialize empty structure but don't run fallback
-          console.warn("Analysis incomplete - initializing empty sentiment statements without fallback");
           results.sentimentStatements = {
-            positive: [],
-            neutral: [],
-            negative: []
+            positive: Array.isArray(sentimentData.positive) ? sentimentData.positive : [],
+            neutral: Array.isArray(sentimentData.neutral) ? sentimentData.neutral : [],
+            negative: Array.isArray(sentimentData.negative) ? sentimentData.negative : []
           };
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using provided sentimentStatements from backend:', {
+            positive: results.sentimentStatements.positive.length,
+            neutral: results.sentimentStatements.neutral.length,
+            negative: results.sentimentStatements.negative.length
+          });
         }
       }
       
@@ -524,8 +469,18 @@ class ApiClient {
       if (!results.createdAt) results.createdAt = new Date().toISOString();
       if (!results.fileName) results.fileName = 'Unknown File';
 
-      console.log('Processed analysis data:', results);
-      return results;
+      // IMPORTANT: Extract sentimentStatements to top-level of returned object
+      // This ensures it's available directly on the analysis object
+      const finalResult = {
+        ...results,
+        // Extract sentimentStatements to top level if available
+        sentimentStatements: results.sentimentStatements || 
+                            (results.sentiment && results.sentiment.sentimentStatements) || 
+                            {positive: [], neutral: [], negative: []}
+      };
+
+      console.log('Processed analysis data:', finalResult);
+      return finalResult;
 
     } catch (error: any) {
       console.error('API error:', error);

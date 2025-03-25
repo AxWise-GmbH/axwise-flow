@@ -246,10 +246,15 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   // Process supporting statements safely
   const processedStatements = useMemo(() => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Processing supporting statements:', 
-          supportingStatements ? 'Object' : 'undefined');
-      }
+      // Enhanced logging for debugging
+      console.log('Processing supporting statements:', JSON.stringify({
+        positive: supportingStatements?.positive?.length || 0,
+        neutral: supportingStatements?.neutral?.length || 0,
+        negative: supportingStatements?.negative?.length || 0
+      }));
+      
+      // Examine raw statements for debugging
+      console.log('Raw supportingStatements:', supportingStatements);
       
       // Ensure all categories exist and contain arrays
       const processed = {
@@ -266,38 +271,12 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
       processed.neutral = processed.neutral.slice(0, 5);
       processed.negative = processed.negative.slice(0, 5);
       
-      // Add placeholder statements if empty
-      if (processed.positive.length === 0) {
-        processed.positive = [
-          "The application is intuitive and easy to use.",
-          "I appreciate the responsive design and quick loading times.",
-          "The features are exactly what I needed."
-        ];
-      }
-      
-      if (processed.neutral.length === 0) {
-        processed.neutral = [
-          "The application has standard functionality.",
-          "The interface is neither exceptional nor poor.",
-          "It performs as expected for this type of tool."
-        ];
-      }
-      
-      if (processed.negative.length === 0) {
-        processed.negative = [
-          "The loading times were too slow for my needs.",
-          "I found some error messages confusing.",
-          "The navigation could be more intuitive."
-        ];
-      }
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Processed supporting statements:', {
-          positive: processed.positive.length,
-          neutral: processed.neutral.length,
-          negative: processed.negative.length
-        });
-      }
+      // Log final processed statements count
+      console.log('Final processed statements count:', {
+        positive: processed.positive.length,
+        neutral: processed.neutral.length,
+        negative: processed.negative.length
+      });
       
       return processed;
     } catch (error) {
@@ -494,6 +473,25 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
 
       {/* Supporting Statements Section */}
       {renderStatements()}
+      
+      {/* Debug section - only visible in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-8 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50">
+          <h3 className="text-base font-semibold mb-2">Debug Information</h3>
+          <div className="space-y-2 text-xs">
+            <p><strong>Has Supporting Statements:</strong> {supportingStatements ? 'Yes' : 'No'}</p>
+            <p><strong>Positive Statements:</strong> {processedStatements.positive.length}</p>
+            <p><strong>Neutral Statements:</strong> {processedStatements.neutral.length}</p>
+            <p><strong>Negative Statements:</strong> {processedStatements.negative.length}</p>
+            <details>
+              <summary className="cursor-pointer font-medium">Raw Supporting Statements</summary>
+              <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-60">
+                {JSON.stringify(supportingStatements, null, 2)}
+              </pre>
+            </details>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
