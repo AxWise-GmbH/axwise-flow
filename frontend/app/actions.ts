@@ -1,44 +1,54 @@
 'use server';
 
-import { apiClient } from '@/lib/apiClient';
-import type { UploadResponse } from '@/types/api';
+/**
+ * Server Actions for Upload and Analysis
+ * 
+ * These actions replace Zustand state management by handling
+ * form submissions server-side.
+ */
 
-interface UploadResult {
-  success: boolean;
-  uploadResponse?: UploadResponse;
-  error?: string;
-}
+import { apiClient } from '@/lib/apiClient';
+import type { UploadResponse, AnalysisResponse } from '@/types/api';
+import { cookies } from 'next/headers';
 
 /**
- * Server action to handle file uploads
- * 
- * @param formData - The form data containing the file
- * @returns UploadResult with success status and data or error
+ * Upload Action
+ * Handles file uploads using server action
  */
-export async function uploadAction(formData: FormData): Promise<UploadResult> {
+export async function uploadAction(formData: FormData) {
   try {
     const file = formData.get('file') as File;
+    const isTextFile = formData.get('isTextFile') === 'true';
+    
     if (!file) {
       return {
         success: false,
-        error: 'No file selected'
+        error: 'No file provided'
       };
     }
-
-    const isTextFile = formData.get('isTextFile') === 'true';
     
-    // Set auth token - this should be handled differently in production
-    apiClient.setAuthToken('dev-token-12345');
+    // Get auth token from cookie
+    const cookieStore = cookies();
+    const authToken = cookieStore.get('auth_token')?.value;
     
-    const response = await apiClient.uploadData(file, isTextFile);
+    if (!authToken) {
+      return {
+        success: false,
+        error: 'Not authenticated'
+      };
+    }
+    
+    // Set the token on the API client
+    apiClient.setAuthToken(authToken);
+    
+    const uploadResponse = await apiClient.uploadData(file, isTextFile);
     
     return {
       success: true,
-      uploadResponse: response
+      uploadResponse
     };
   } catch (error) {
-    console.error('Upload action error:', error);
-    
+    console.error('Upload error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown upload error'
@@ -47,34 +57,48 @@ export async function uploadAction(formData: FormData): Promise<UploadResult> {
 }
 
 /**
- * Server action to analyze uploaded data
- * 
- * @param dataId - The ID of the uploaded data
- * @param isTextFile - Whether the file is a text file
- * @returns Analysis result with success status and data or error
+ * Analyze Action
+ * Handles starting analysis using server action
  */
-export async function analyzeAction(dataId: number, isTextFile: boolean) {
+export async function analyzeAction(
+  dataId: number,
+  isTextFile: boolean,
+  llmProvider: 'openai' | 'gemini' = 'gemini'
+) {
   try {
-    // Set auth token - this should be handled differently in production
-    apiClient.setAuthToken('dev-token-12345');
+    // Get auth token from cookie
+    const cookieStore = cookies();
+    const authToken = cookieStore.get('auth_token')?.value;
     
-    const response = await apiClient.analyzeData(
-      dataId,
-      'gemini', // Hard-code gemini as the provider to avoid OpenAI key issues
-      'gemini-2.0-flash', // Use gemini-2.0-flash model
-      isTextFile
-    );
+    if (!authToken) {
+      return {
+        success: false,
+        error: 'Not authenticated'
+      };
+    }
+    
+    // Set the token on the API client
+    apiClient.setAuthToken(authToken);
+    
+    const analysisResponse = await apiClient.analyzeData(dataId, llmProvider, undefined, isTextFile);
     
     return {
       success: true,
-      analysisResponse: response
+      analysisResponse
     };
   } catch (error) {
-    console.error('Analysis action error:', error);
-    
+    console.error('Analysis error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown analysis error'
     };
   }
+}
+
+/**
+ * Redirect after successful analysis
+ * Helper function to generate URL for redirection
+ */
+export async function getRedirectUrl(analysisId: string) {
+  return `/unified-dashboard/visualize?analysisId=${analysisId}`;
 } 

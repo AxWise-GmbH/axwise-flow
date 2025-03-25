@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 // Keep the import for now, will be fully removed in subsequent steps
-import { useUploadStore } from '@/store/useUploadStore';
+// import { useUploadStore } from '@/store/useUploadStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -12,13 +12,14 @@ import { AlertCircle, CheckCircle2, FileUp, FileText, FilePen, X } from 'lucide-
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { UploadResponse } from '@/types/api';
-import { uploadAction, analyzeAction } from '@/app/actions';
+import { uploadAction, analyzeAction, getRedirectUrl } from '@/app/actions';
+import { apiClient } from '@/lib/apiClient';
 
 /**
  * Emergency UploadPanel Component - Refactored for Server Actions
  * 
  * This component uses React's useState for local state management with
- * Next.js server actions for form submission.
+ * Next.js server actions for form submission, eliminating Zustand dependency.
  */
 export default function EmergencyUploadPanel() {
   const { showToast } = useToast();
@@ -38,6 +39,28 @@ export default function EmergencyUploadPanel() {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisError, setAnalysisError] = useState<Error | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  
+  // Effect to get and set auth token in cookie
+  useEffect(() => {
+    const storeAuthToken = async () => {
+      try {
+        // This uses the apiClient's method to get a token from Clerk
+        const token = await apiClient.getAuthToken();
+        
+        if (token) {
+          // Store token in a cookie for server actions
+          document.cookie = `auth_token=${token}; path=/; max-age=3600; SameSite=Strict`;
+          console.log('Auth token stored in cookie for server actions');
+        } else {
+          console.warn('No auth token available to store in cookie');
+        }
+      } catch (error) {
+        console.error('Error storing auth token:', error);
+      }
+    };
+    
+    storeAuthToken();
+  }, []);
   
   // Handle file selection
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,12 +105,6 @@ export default function EmergencyUploadPanel() {
         setUploadComplete(true);
         setUploadResponse(result.uploadResponse);
         showToast('File uploaded successfully', { variant: 'success' });
-        
-        // Temporary: Update the Zustand store for components that still depend on it
-        useUploadStore.setState({
-          uploadResponse: result.uploadResponse,
-          isUploading: false
-        });
       } else {
         // Handle error from server action
         const errorMessage = result.error || 'Upload failed';
@@ -128,11 +145,9 @@ export default function EmergencyUploadPanel() {
         setResultId(result.analysisResponse.result_id.toString());
         showToast('Analysis completed successfully', { variant: 'success' });
         
-        // Temporary: Update the Zustand store for components that still depend on it
-        useUploadStore.setState({
-          analysisResponse: result.analysisResponse,
-          isAnalyzing: false
-        });
+        // Redirect to visualization tab with the result ID
+        const redirectUrl = await getRedirectUrl(result.analysisResponse.result_id.toString());
+        window.location.href = redirectUrl;
       } else {
         // Handle error from server action
         const errorMessage = result.error || 'Analysis failed';
@@ -171,28 +186,12 @@ export default function EmergencyUploadPanel() {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    
-    // Temporary: Update the Zustand store for components that still depend on it
-    useUploadStore.setState({
-      file: undefined,
-      isTextFile: false,
-      filePreview: null,
-      uploadResponse: null,
-      analysisResponse: null,
-      uploadError: null,
-      analysisError: null
-    });
   }, []);
   
   // Toggle text file setting
   const handleToggleTextFile = useCallback((value: string) => {
     const isText = value === 'text';
     setIsTextFile(isText);
-    
-    // Temporary: Update the Zustand store for components that still depend on it
-    useUploadStore.setState({
-      isTextFile: isText
-    });
   }, []);
   
   // Format file size for display

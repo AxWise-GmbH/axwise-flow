@@ -135,7 +135,7 @@ class ApiClient {
   /**
    * Get an authentication token from Clerk if available
    */
-  private async getAuthToken(): Promise<string | null> {
+  public async getAuthToken(): Promise<string | null> {
     try {
       // This assumes Clerk is loaded and available in the global window object
       // @ts-ignore - Clerk types will be available in window at runtime

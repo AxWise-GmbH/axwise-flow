@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useCallback, useMemo } from 'react';
 import { useAnalysisStore, useAnalysisHistory } from '@/store/useAnalysisStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,12 +12,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { DetailedAnalysisResult } from '@/types/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
 
 /**
  * HistoryPanel Component
  * Displays a list of past analyses and allows selecting one for visualization
  */
 export default function HistoryPanel() {
+  const router = useRouter();
+  
   // Get history state from the store - each value is now properly memoized by the hook
   const { 
     history, 
@@ -48,11 +53,15 @@ export default function HistoryPanel() {
   
   // Memoize the handleSelectAnalysis function
   const handleSelectAnalysis = useCallback((analysis: DetailedAnalysisResult) => {
+    // Set the analysis in the store for components that still use Zustand
     setCurrentAnalysis(analysis);
     
-    // Navigate programmatically to visualize tab if needed
-    // You could use router.push or a similar method here
-  }, [setCurrentAnalysis]);
+    // Navigate to visualization tab with the analysis ID
+    const analyzeUrl = `/unified-dashboard/visualize?analysisId=${analysis.id}&timestamp=${Date.now()}`;
+    
+    // Use Next.js router for navigation
+    router.push(analyzeUrl);
+  }, [setCurrentAnalysis, router]);
   
   // Fetch history only when filters change or on mount
   useEffect(() => {
