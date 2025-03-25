@@ -1,19 +1,21 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useTransition } from 'react';
 // Keep the import for now, will be fully removed in subsequent steps
 // import { useUploadStore } from '@/store/useUploadStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/providers/toast-provider';
+import { useToast } from '@/components/ui/use-toast';
 import { AlertCircle, CheckCircle2, FileUp, FileText, FilePen, X } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { UploadResponse } from '@/types/api';
 import { uploadAction, analyzeAction, getRedirectUrl } from '@/app/actions';
 import { apiClient } from '@/lib/apiClient';
+import { useRouter } from 'next/navigation';
+import { setCookie } from 'cookies-next';
 
 /**
  * Emergency UploadPanel Component - Refactored for Server Actions
@@ -22,23 +24,26 @@ import { apiClient } from '@/lib/apiClient';
  * Next.js server actions for form submission, eliminating Zustand dependency.
  */
 export default function EmergencyUploadPanel() {
-  const { showToast } = useToast();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
   
   // Reference to file input
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Local state
-  const [localFile, setLocalFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [fileSize, setFileSize] = useState<number>(0);
   const [isTextFile, setIsTextFile] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadComplete, setUploadComplete] = useState<boolean>(false);
-  const [uploadError, setUploadError] = useState<Error | null>(null);
-  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<Error | null>(null);
   const [analysisError, setAnalysisError] = useState<Error | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  const [analysisComplete, setAnalysisComplete] = useState<boolean>(false);
+  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [pollingActive, setPollingActive] = useState<boolean>(false);
   
@@ -93,12 +98,16 @@ export default function EmergencyUploadPanel() {
             setIsAnalyzing(false);
             setAnalysisProgress(100);
             
-            showToast('Analysis completed successfully', { variant: 'success' });
+            toast({
+              title: "Analysis completed",
+              description: "Redirecting to visualization...",
+              variant: "default",
+            });
             
             // Redirect after a short delay to show the 100% progress
             setTimeout(async () => {
               const redirectUrl = await getRedirectUrl(resultId);
-              window.location.href = redirectUrl;
+              router.push(redirectUrl);
             }, 800);
           } else if (statusResult.status === 'failed') {
             // Analysis failed
@@ -109,7 +118,11 @@ export default function EmergencyUploadPanel() {
             setAnalysisProgress(0);
             
             setAnalysisError(new Error('Analysis failed during processing'));
-            showToast('Analysis failed during processing', { variant: 'error' });
+            toast({
+              title: "Analysis failed",
+              description: "Analysis failed during processing",
+              variant: "destructive",
+            });
           }
         } catch (error) {
           console.error('Error polling for analysis status:', error);
@@ -120,19 +133,19 @@ export default function EmergencyUploadPanel() {
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [pollingActive, resultId, showToast]);
+  }, [pollingActive, resultId, router, toast]);
   
   // Handle file selection
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setLocalFile(file);
+      setFile(file);
       setFileName(file.name);
       setFileSize(file.size);
       setIsTextFile(file.type.includes('text') || file.name.endsWith('.txt'));
       
       // Reset states when file changes
-      setUploadComplete(false);
+      setUploadProgress(0);
       setResultId(null);
       setUploadError(null);
       setAnalysisError(null);
@@ -140,36 +153,59 @@ export default function EmergencyUploadPanel() {
   }, []);
   
   // Handle file upload using server action
-  const handleUpload = useCallback(async () => {
-    if (!localFile) {
+  const handleUpload = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) {
       setUploadError(new Error('Please select a file to upload'));
-      showToast('Please select a file to upload', { variant: 'error' });
+      toast({
+        title: "Upload failed",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
       return;
     }
     
     setIsUploading(true);
     setUploadError(null);
+    setUploadProgress(10);
     
     try {
       console.log('Starting upload with server action...');
       
+      // Store auth token in cookie for server action
+      const authToken = await apiClient.getAuthToken();
+      if (authToken) {
+        setCookie('auth-token', authToken);
+      }
+
       // Create form data for server action
       const formData = new FormData();
-      formData.append('file', localFile);
+      formData.append('file', file);
       formData.append('isTextFile', String(isTextFile));
       
       // Call the server action
       const result = await uploadAction(formData);
       
       if (result.success && result.uploadResponse) {
-        setUploadComplete(true);
+        setUploadProgress(100);
         setUploadResponse(result.uploadResponse);
-        showToast('File uploaded successfully', { variant: 'success' });
+        toast({
+          title: "Upload successful",
+          description: `File ${fileName} uploaded successfully.`,
+          variant: "default",
+        });
+        
+        // Start analysis
+        await handleAnalysis(result.uploadResponse.data_id);
       } else {
         // Handle error from server action
         const errorMessage = result.error || 'Upload failed';
         setUploadError(new Error(errorMessage));
-        showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
+        toast({
+          title: "Upload failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -178,17 +214,25 @@ export default function EmergencyUploadPanel() {
       
       // Show a more user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
-      showToast(`Upload failed: ${errorMessage}`, { variant: 'error' });
+      toast({
+        title: "Upload failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
-  }, [localFile, isTextFile, showToast]);
+  }, [file, isTextFile, toast, router]);
   
   // Handle analysis using server action
-  const handleAnalysis = useCallback(async () => {
-    if (!uploadComplete || !uploadResponse) {
+  const handleAnalysis = useCallback(async (dataId: number) => {
+    if (!file) {
       setAnalysisError(new Error('Please upload a file first'));
-      showToast('Please upload a file first', { variant: 'error' });
+      toast({
+        title: "Analysis failed",
+        description: "Please upload a file first",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -199,8 +243,8 @@ export default function EmergencyUploadPanel() {
     try {
       console.log('Starting analysis with server action...');
       
-      // Call the analyze action
-      const result = await analyzeAction(uploadResponse.data_id, isTextFile);
+      // Call the analyze action with the isTextFile parameter
+      const result = await analyzeAction(dataId, isTextFile);
       
       if (result.success && result.analysisResponse) {
         const analysisId = result.analysisResponse.result_id.toString();
@@ -210,12 +254,20 @@ export default function EmergencyUploadPanel() {
         setPollingActive(true);
         setAnalysisProgress(30); // Set to 30% after initial response
         
-        showToast('Analysis started successfully. This may take a few moments...', { variant: 'info' });
+        toast({
+          title: "Analysis started",
+          description: "Analysis started successfully. This may take a few moments...",
+          variant: "default",
+        });
       } else {
         // Handle error from server action
         const errorMessage = result.error || 'Analysis failed';
         setAnalysisError(new Error(errorMessage));
-        showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
         setIsAnalyzing(false);
       }
     } catch (error) {
@@ -225,10 +277,14 @@ export default function EmergencyUploadPanel() {
       
       // Show a more user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown analysis error';
-      showToast(`Analysis failed: ${errorMessage}`, { variant: 'error' });
+      toast({
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       setIsAnalyzing(false);
     }
-  }, [uploadResponse, uploadComplete, showToast, isTextFile]);
+  }, [file, isTextFile, toast]);
   
   // Trigger file input click
   const handleSelectFileClick = useCallback(() => {
@@ -237,10 +293,10 @@ export default function EmergencyUploadPanel() {
   
   // Handle clear file
   const handleClearFile = useCallback(() => {
-    setLocalFile(null);
+    setFile(null);
     setFileName('');
     setFileSize(0);
-    setUploadComplete(false);
+    setUploadProgress(0);
     setResultId(null);
     setUploadError(null);
     setAnalysisError(null);
@@ -362,16 +418,6 @@ export default function EmergencyUploadPanel() {
             </Alert>
           )}
           
-          {/* Success message */}
-          {uploadComplete && !uploadError && (
-            <Alert variant="default" className="mt-4 bg-green-50 text-green-800 border-green-200">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                File uploaded successfully {resultId && `(ID: ${resultId})`}
-              </AlertDescription>
-            </Alert>
-          )}
-          
           {/* Upload progress */}
           {isUploading && (
             <div className="mt-4 space-y-2">
@@ -379,7 +425,7 @@ export default function EmergencyUploadPanel() {
                 <span>Uploading...</span>
                 <span>Please wait</span>
               </div>
-              <Progress value={80} className="h-2" />
+              <Progress value={uploadProgress} className="h-2" />
             </div>
           )}
           
@@ -411,13 +457,13 @@ export default function EmergencyUploadPanel() {
           <Button
             variant="secondary"
             onClick={handleUpload}
-            disabled={isUploading || isAnalyzing || !fileName || uploadComplete}
+            disabled={isUploading || isAnalyzing || !fileName}
           >
             {isUploading ? 'Uploading...' : 'Upload'}
           </Button>
           <Button
-            onClick={handleAnalysis}
-            disabled={isUploading || isAnalyzing || !uploadComplete}
+            onClick={() => handleAnalysis(uploadResponse?.data_id || 0)}
+            disabled={isUploading || isAnalyzing || !file}
           >
             {isAnalyzing ? 'Analyzing...' : 'Analyze'}
           </Button>
