@@ -1,3 +1,9 @@
+/**
+ * @deprecated This store is deprecated and scheduled for removal.
+ * Use server actions instead: uploadAction and analyzeAction in /app/actions.ts.
+ * Last Updated: 2025-03-25
+ */
+
 import { create } from 'zustand';
 import { shallow } from 'zustand/shallow';
 import { apiClient } from '@/lib/apiClient';

@@ -1,3 +1,10 @@
+/**
+ * @deprecated This store is deprecated and scheduled for removal.
+ * Use server actions and React context instead.
+ * For dashboard state, use URL params and server components.
+ * Last Updated: 2025-03-25
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient } from '@/lib/apiClient';

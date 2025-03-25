@@ -1,3 +1,9 @@
+/**
+ * @deprecated This store is deprecated and scheduled for removal.
+ * Use React context and URL parameters for UI state.
+ * Last Updated: 2025-03-25
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
