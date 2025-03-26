@@ -422,40 +422,81 @@ class ApiClient {
         };
       }
       
-      // Ensure proper sentimentStatements structure
+      // IMPORTANT: This is where we need to handle the raw sentiment data vs. sentimentStatements
+      // Check if we need to initialize sentimentStatements structure
       if (!results.sentimentStatements || 
           !results.sentimentStatements.positive || 
           !results.sentimentStatements.neutral || 
           !results.sentimentStatements.negative) {
         
-        console.log("Initializing sentimentStatements with empty structure");
+        console.log("Initializing sentimentStatements structure");
         
-        // Initialize with empty arrays
-        results.sentimentStatements = {
-          positive: [],
-          neutral: [],
-          negative: []
-        };
-        
-        // Check if we have preliminary sentiment data from the backend
-        const sentimentData = results.sentiment || {};
-        
-        // Use sentiment data directly as statements if available in alternative formats
-        if (sentimentData.positive || sentimentData.neutral || sentimentData.negative) {
-          console.log("Using sentiment data directly from backend", sentimentData);
-          
+        // Initialize with empty arrays if needed
+        if (!results.sentimentStatements) {
           results.sentimentStatements = {
-            positive: Array.isArray(sentimentData.positive) ? sentimentData.positive : [],
-            neutral: Array.isArray(sentimentData.neutral) ? sentimentData.neutral : [],
-            negative: Array.isArray(sentimentData.negative) ? sentimentData.negative : []
+            positive: [],
+            neutral: [],
+            negative: []
           };
         }
+        
+        // Ensure all arrays exist
+        if (!Array.isArray(results.sentimentStatements.positive)) results.sentimentStatements.positive = [];
+        if (!Array.isArray(results.sentimentStatements.neutral)) results.sentimentStatements.neutral = [];
+        if (!Array.isArray(results.sentimentStatements.negative)) results.sentimentStatements.negative = [];
+      }
+      
+      // Check for raw sentiment data to combine with sentimentStatements
+      // This handles the case where sentiment contains the raw arrays directly
+      if (results.sentiment && typeof results.sentiment === 'object') {
+        const sentimentObj = results.sentiment;
+        
+        // Check if sentiment has direct positive/neutral/negative arrays
+        if (Array.isArray(sentimentObj.positive) && sentimentObj.positive.length > 0) {
+          console.log(`Found ${sentimentObj.positive.length} positive statements in sentiment object`);
+          
+          // Merge unique statements from sentiment.positive into sentimentStatements.positive
+          sentimentObj.positive.forEach((statement: string) => {
+            if (!results.sentimentStatements.positive.includes(statement)) {
+              results.sentimentStatements.positive.push(statement);
+            }
+          });
+        }
+        
+        if (Array.isArray(sentimentObj.neutral) && sentimentObj.neutral.length > 0) {
+          console.log(`Found ${sentimentObj.neutral.length} neutral statements in sentiment object`);
+          
+          // Merge unique statements from sentiment.neutral into sentimentStatements.neutral
+          sentimentObj.neutral.forEach((statement: string) => {
+            if (!results.sentimentStatements.neutral.includes(statement)) {
+              results.sentimentStatements.neutral.push(statement);
+            }
+          });
+        }
+        
+        if (Array.isArray(sentimentObj.negative) && sentimentObj.negative.length > 0) {
+          console.log(`Found ${sentimentObj.negative.length} negative statements in sentiment object`);
+          
+          // Merge unique statements from sentiment.negative into sentimentStatements.negative
+          sentimentObj.negative.forEach((statement: string) => {
+            if (!results.sentimentStatements.negative.includes(statement)) {
+              results.sentimentStatements.negative.push(statement);
+            }
+          });
+        }
+        
+        // Log combined results
+        console.log('Combined sentiment statements:', {
+          positive: results.sentimentStatements.positive.length,
+          neutral: results.sentimentStatements.neutral.length,
+          negative: results.sentimentStatements.negative.length
+        });
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.log('Using provided sentimentStatements from backend:', {
-            positive: results.sentimentStatements.positive.length,
-            neutral: results.sentimentStatements.neutral.length,
-            negative: results.sentimentStatements.negative.length
+          console.log('Using provided sentimentStatements without merging:', {
+            positive: results.sentimentStatements.positive?.length || 0,
+            neutral: results.sentimentStatements.neutral?.length || 0,
+            negative: results.sentimentStatements.negative?.length || 0
           });
         }
       }

@@ -510,38 +510,38 @@ class ResultsService:
             sentiment_score = theme.get("sentiment", 0)
             statements = theme.get("statements", []) or theme.get("examples", [])
             
-            # Take up to 2 statements from each theme based on sentiment
-            sample_statements = statements[:2] if statements else []
-            for statement in sample_statements:
-                if sentiment_score > 0.3:
+            # Use all statements from each theme, not just 2
+            for statement in statements:
+                # Only add unique statements
+                if sentiment_score > 0.3 and statement not in sentiment_statements["positive"]:
                     sentiment_statements["positive"].append(statement)
-                elif sentiment_score < -0.3:
+                elif sentiment_score < -0.3 and statement not in sentiment_statements["negative"]:
                     sentiment_statements["negative"].append(statement)
-                else:
+                elif statement not in sentiment_statements["neutral"]:
                     sentiment_statements["neutral"].append(statement)
         
         # Process patterns to supplement the statements
         for pattern in patterns:
             # Skip patterns without examples or sentiment
-            if not pattern.get("examples") or "sentiment" not in pattern:
+            if not pattern.get("examples") and not pattern.get("evidence"):
                 continue
                 
             sentiment_score = pattern.get("sentiment", 0)
             statements = pattern.get("examples", []) or pattern.get("evidence", [])
             
-            # Take 1 statement from each pattern based on sentiment
-            sample_statement = statements[0] if statements else None
-            if sample_statement:
-                if sentiment_score > 0.3:
-                    sentiment_statements["positive"].append(sample_statement)
-                elif sentiment_score < -0.3:
-                    sentiment_statements["negative"].append(sample_statement)
-                else:
-                    sentiment_statements["neutral"].append(sample_statement)
+            # Use all statements from each pattern, not just 1
+            for statement in statements:
+                # Only add unique statements
+                if sentiment_score > 0.3 and statement not in sentiment_statements["positive"]:
+                    sentiment_statements["positive"].append(statement)
+                elif sentiment_score < -0.3 and statement not in sentiment_statements["negative"]:
+                    sentiment_statements["negative"].append(statement)
+                elif statement not in sentiment_statements["neutral"]:
+                    sentiment_statements["neutral"].append(statement)
         
-        # Limit to 5 statements per category
-        sentiment_statements["positive"] = sentiment_statements["positive"][:5]
-        sentiment_statements["neutral"] = sentiment_statements["neutral"][:5]
-        sentiment_statements["negative"] = sentiment_statements["negative"][:5]
+        # Limit to 15 statements per category (instead of 5)
+        sentiment_statements["positive"] = sentiment_statements["positive"][:15]
+        sentiment_statements["neutral"] = sentiment_statements["neutral"][:15]
+        sentiment_statements["negative"] = sentiment_statements["negative"][:15]
         
         return sentiment_statements 

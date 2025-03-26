@@ -1416,23 +1416,92 @@ class GeminiService:
                         "negative": 0.33
                     }
                 
-                # Ensure supporting_statements exists and is properly formatted
-                if 'supporting_statements' not in result:
-                    self.logger.warning("No supporting_statements in result, using empty arrays")
+                # Initialize sentimentStatements if not present
+                if 'supporting_statements' not in result and 'sentimentStatements' not in result:
+                    self.logger.warning("No supporting_statements or sentimentStatements in result, using empty arrays")
                     result['supporting_statements'] = {
                         "positive": [],
                         "neutral": [],
                         "negative": []
                     }
                 
-                # Also set sentimentStatements for direct access
-                result['sentimentStatements'] = result['supporting_statements']
+                # If we have supporting_statements, copy them to sentimentStatements
+                if 'supporting_statements' in result and 'sentimentStatements' not in result:
+                    self.logger.info("Copying supporting_statements to sentimentStatements")
+                    result['sentimentStatements'] = result['supporting_statements']
+                
+                # If we have sentimentStatements but no supporting_statements, copy in the other direction
+                if 'sentimentStatements' in result and 'supporting_statements' not in result:
+                    self.logger.info("Copying sentimentStatements to supporting_statements")
+                    result['supporting_statements'] = result['sentimentStatements']
+                
+                # Extract direct sentiment lists if they exist in the result
+                direct_sentiment = {}
+                if 'positive' in result and isinstance(result['positive'], list):
+                    direct_sentiment['positive'] = result['positive']
+                if 'neutral' in result and isinstance(result['neutral'], list):
+                    direct_sentiment['neutral'] = result['neutral']
+                if 'negative' in result and isinstance(result['negative'], list):
+                    direct_sentiment['negative'] = result['negative']
+                
+                # If we have direct sentiment, merge it into sentimentStatements
+                if direct_sentiment:
+                    self.logger.info("Found direct sentiment lists in result, merging into sentimentStatements")
+                    
+                    # Ensure sentimentStatements exists
+                    if 'sentimentStatements' not in result:
+                        result['sentimentStatements'] = {
+                            "positive": [],
+                            "neutral": [],
+                            "negative": []
+                        }
+                    
+                    # Merge positive statements
+                    if 'positive' in direct_sentiment:
+                        if not isinstance(result['sentimentStatements']['positive'], list):
+                            result['sentimentStatements']['positive'] = []
+                        for statement in direct_sentiment['positive']:
+                            if statement not in result['sentimentStatements']['positive']:
+                                result['sentimentStatements']['positive'].append(statement)
+                    
+                    # Merge neutral statements
+                    if 'neutral' in direct_sentiment:
+                        if not isinstance(result['sentimentStatements']['neutral'], list):
+                            result['sentimentStatements']['neutral'] = []
+                        for statement in direct_sentiment['neutral']:
+                            if statement not in result['sentimentStatements']['neutral']:
+                                result['sentimentStatements']['neutral'].append(statement)
+                    
+                    # Merge negative statements
+                    if 'negative' in direct_sentiment:
+                        if not isinstance(result['sentimentStatements']['negative'], list):
+                            result['sentimentStatements']['negative'] = []
+                        for statement in direct_sentiment['negative']:
+                            if statement not in result['sentimentStatements']['negative']:
+                                result['sentimentStatements']['negative'].append(statement)
+                
+                # Final check to ensure sentimentStatements is properly formatted
+                if 'sentimentStatements' in result:
+                    if not isinstance(result['sentimentStatements'], dict):
+                        result['sentimentStatements'] = {
+                            "positive": [],
+                            "neutral": [],
+                            "negative": []
+                        }
+                    else:
+                        # Ensure each category exists
+                        if 'positive' not in result['sentimentStatements']:
+                            result['sentimentStatements']['positive'] = []
+                        if 'neutral' not in result['sentimentStatements']:
+                            result['sentimentStatements']['neutral'] = []
+                        if 'negative' not in result['sentimentStatements']:
+                            result['sentimentStatements']['negative'] = []
                 
                 # Log the sentiment results
                 self.logger.info(f"Sentiment analysis complete. Overview: {result['sentimentOverview']}")
-                self.logger.info(f"Supporting statements: positive={len(result['supporting_statements']['positive'])}, " +
-                               f"neutral={len(result['supporting_statements']['neutral'])}, " +
-                               f"negative={len(result['supporting_statements']['negative'])}")
+                self.logger.info(f"Supporting statements: positive={len(result['sentimentStatements']['positive'])}, " +
+                               f"neutral={len(result['sentimentStatements']['neutral'])}, " +
+                               f"negative={len(result['sentimentStatements']['negative'])}")
                 
                 return result
                 
