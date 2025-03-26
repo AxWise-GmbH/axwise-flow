@@ -292,6 +292,8 @@ export default function VisualizationTabsRefactored({
                     }
                     // Pass industry context from multiple possible locations 
                     industry={analysis.industry || (analysis.sentimentStatements && analysis.sentimentStatements.industry) || null}
+                    // Pass themes for topic clustering
+                    themes={analysis.themes || []}
                     // Simplify visualization by hiding redundant elements
                     showLegend={false}
                   />

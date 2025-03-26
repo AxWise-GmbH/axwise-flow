@@ -1396,7 +1396,14 @@ class GeminiService:
                - Transcript metadata
                - Interviewer questions (focus on interviewee responses)
                - Generic greetings and farewells with no sentiment content
+               - Short acknowledgments like "right", "okay", "sure", "exactly"
+               - Single-word or very short responses that lack clear meaning
+               - Statements that don't express complete thoughts
+               - Repetitive phrases or unnecessary verbal fillers
+               - Statements with no clear sentiment or informational value
             7. Prioritize meaningful, complete statements that express clear opinions or experiences
+            8. Include only statements that are at least 10 words long and form complete thoughts
+            9. For neutral statements, focus on factual descriptions rather than conversational fillers
             
             FORMAT YOUR RESPONSE AS JSON:
             {

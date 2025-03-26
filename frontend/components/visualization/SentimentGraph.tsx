@@ -1,16 +1,21 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { SentimentOverview, SentimentData } from '@/types/api';
-import { ChartLegend, createCustomTooltip } from './common';
+import React, { useMemo, useState } from 'react';
+import { SentimentOverview, SentimentData, Theme } from '@/types/api';
 import {
-  PieChart,
-  Pie,
-  Cell,
+  BarChart,
+  Bar,
+  XAxis,
   Tooltip,
-  Sector,
-  ResponsiveContainer
+  ResponsiveContainer,
+  LabelList,
 } from 'recharts';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 /**
  * Props for the SentimentGraph component
@@ -27,9 +32,9 @@ interface SentimentGraphProps {
     negative: string[];
     industry?: string;
   };
-  /** The height of the chart (default: 400) */
+  /** The height of the chart (default: 300) */
   height?: number;
-  /** Whether to show the legend (default: true) */
+  /** Whether to show the legend (default: false) */
   showLegend?: boolean;
   /** Additional CSS class names */
   className?: string;
@@ -39,6 +44,8 @@ interface SentimentGraphProps {
   sentimentData?: SentimentOverview;
   /** Industry context detected for the analysis */
   industry?: string;
+  /** Themes for connecting sentiment to topics */
+  themes?: Theme[];
 }
 
 /**
@@ -60,19 +67,19 @@ const DEFAULT_SENTIMENT = {
 };
 
 /**
- * Component for visualizing sentiment data
- * Shows a pie chart for overall sentiment distribution and supporting statements
+ * Simplified component for visualizing sentiment data with a focus on actionable insights
  */
 export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   data,
   detailedData = [],
   supportingStatements = { positive: [], neutral: [], negative: [] },
-  height = 400,
-  showLegend = true,
+  height = 300,
+  showLegend = false,
   showStatements = true,
   className,
   sentimentData,
   industry,
+  themes = [],
 }) => {
   // Use sentimentData prop if provided, otherwise fall back to data prop
   const actualData = sentimentData || data;
@@ -80,67 +87,28 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   // Get industry from props or from supporting statements
   const detectedIndustry = industry || supportingStatements?.industry;
   
+  // State for currently selected sentiment filter and search
+  const [sentimentFilter, setSentimentFilter] = useState<'all' | 'positive' | 'neutral' | 'negative'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  
   // Validate and normalize sentiment data
   const sentimentValues = useMemo(() => {
     try {
-      // Safely log sentiment data
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Received sentiment data:', 
-          actualData ? typeof actualData : 'undefined');
-        console.log('Supporting statements:', 
-          supportingStatements ? 'Object' : 'undefined');
-      }
-
-      // Check if we have supporting statements to calculate more accurate percentages
-      if (supportingStatements && 
-          Array.isArray(supportingStatements.positive) && 
-          Array.isArray(supportingStatements.neutral) && 
-          Array.isArray(supportingStatements.negative)) {
-        
-        const positiveCount = supportingStatements.positive.length;
-        const neutralCount = supportingStatements.neutral.length;
-        const negativeCount = supportingStatements.negative.length;
-        const total = positiveCount + neutralCount + negativeCount;
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Calculating sentiment from statement counts:', {
-            positiveCount,
-            neutralCount,
-            negativeCount,
-            total
-          });
-        }
-        
-        if (total > 0) {
-          return {
-            positive: positiveCount / total,
-            neutral: neutralCount / total,
-            negative: negativeCount / total,
-          };
-        }
-      }
-
       // Check if data is undefined or has invalid values
       if (!actualData || 
           typeof actualData.positive !== 'number' || 
           typeof actualData.neutral !== 'number' || 
           typeof actualData.negative !== 'number') {
-        console.warn('Invalid sentiment data, using defaults:', DEFAULT_SENTIMENT);
         return DEFAULT_SENTIMENT;
       }
 
       // Normalize values to ensure they sum to 1
       const total = actualData.positive + actualData.neutral + actualData.negative;
       if (total === 0) {
-        console.warn('All sentiment values are 0, using defaults');
         return DEFAULT_SENTIMENT;
       }
 
       if (Math.abs(total - 1) > 0.01) { // Allow for small floating-point differences
-        console.warn('Sentiment values do not sum to 1, normalizing:', { 
-          total, 
-          data: actualData ? 'Object' : 'undefined'
-        });
         return {
           positive: actualData.positive / total,
           neutral: actualData.neutral / total,
@@ -153,432 +121,517 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
       console.error('Error processing sentiment data:', error);
       return DEFAULT_SENTIMENT;
     }
-  }, [actualData, supportingStatements]);
-
-  // Process detailed sentiment data for trends
-  const detailedStats = useMemo(() => {
-    if (!detailedData || detailedData.length === 0) return null;
-
-    const total = detailedData.length;
-    const positiveCount = detailedData.filter(d => d.score > 0.2).length;
-    const negativeCount = detailedData.filter(d => d.score < -0.2).length;
-    const neutralCount = total - positiveCount - negativeCount;
-
-    return {
-      totalResponses: total,
-      averageScore: detailedData.reduce((sum, d) => sum + d.score, 0) / total,
-      positiveCount,
-      neutralCount,
-      negativeCount,
-    };
-  }, [detailedData]);
+  }, [actualData]);
   
   // Calculate percentages for display
   const positivePercent = Math.round(sentimentValues.positive * 100);
   const neutralPercent = Math.round(sentimentValues.neutral * 100);
   const negativePercent = Math.round(sentimentValues.negative * 100);
 
-  // Transform data for the pie chart
-  const pieData = useMemo(() => [
-    { name: 'Positive', value: positivePercent, color: SENTIMENT_COLORS.positive },
-    { name: 'Neutral', value: neutralPercent, color: SENTIMENT_COLORS.neutral },
-    { name: 'Negative', value: negativePercent, color: SENTIMENT_COLORS.negative },
+  // Format data for horizontal bar chart
+  const barData = useMemo(() => [
+    { name: 'Sentiment Distribution', positive: positivePercent, neutral: neutralPercent, negative: negativePercent }
   ], [positivePercent, neutralPercent, negativePercent]);
 
-  // Active sector state for hover effect
-  const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined);
-  
-  // Safely handle pie chart events
-  const onPieEnter = React.useCallback((_: any, index: number) => {
-    try {
-      setActiveIndex(index);
-    } catch (error) {
-      console.error('Error in pie chart hover:', error);
-    }
-  }, []);
-  
-  const onPieLeave = React.useCallback(() => {
-    try {
-      setActiveIndex(undefined);
-    } catch (error) {
-      console.error('Error in pie chart leave:', error);
-    }
-  }, []);
-
-  // Create legend items
-  const legendItems = useMemo(() => {
-    return [
-      { value: `Positive (${positivePercent}%)`, color: SENTIMENT_COLORS.positive, type: 'circle' as const },
-      { value: `Neutral (${neutralPercent}%)`, color: SENTIMENT_COLORS.neutral, type: 'circle' as const },
-      { value: `Negative (${negativePercent}%)`, color: SENTIMENT_COLORS.negative, type: 'circle' as const },
-    ];
-  }, [positivePercent, neutralPercent, negativePercent]);
-
-  // Custom tooltip
-  const customTooltip = useMemo(
-    () =>
-      createCustomTooltip({
-        formatter: (value) => `${value}%`,
-        labelFormatter: (label) => <span className="font-medium">{label}</span>,
-      }),
-    []
-  );
-
-  // Render active shape with hover effect
-  const renderActiveShape = (props: any) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
-    
-    return (
-      <g>
-        <text x={cx} y={cy} dy={-20} textAnchor="middle" fill={fill} className="text-sm font-medium">
-          {payload.name}
-        </text>
-        <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} className="text-lg font-bold">
-          {value}%
-        </text>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius + 6}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-          opacity={0.8}
-        />
-      </g>
-    );
-  };
-
-  // Process supporting statements safely
-  const processedStatements = useMemo(() => {
-    try {
-      // Enhanced logging for debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Processing supporting statements:', JSON.stringify({
-          positive: supportingStatements?.positive?.length || 0,
-          neutral: supportingStatements?.neutral?.length || 0,
-          negative: supportingStatements?.negative?.length || 0
-        }));
-      }
-      
-      // Ensure all categories exist and contain arrays
-      const processed = {
-        positive: Array.isArray(supportingStatements?.positive) ? 
-          [...supportingStatements.positive] : [],
-        neutral: Array.isArray(supportingStatements?.neutral) ? 
-          [...supportingStatements.neutral] : [],
-        negative: Array.isArray(supportingStatements?.negative) ? 
-          [...supportingStatements.negative] : []
-      };
-      
-      // Only attempt to sort if we have detailed sentiment data with scores
-      // Otherwise, keep the original order from the API
-      if (detailedData && detailedData.length > 0) {
-        // Create a map of statements to their sentiment scores
-        const statementScores = new Map<string, number>();
-        detailedData.forEach(item => {
-          if (item.text) {
-            statementScores.set(item.text, item.score);
-          }
-        });
-
-        // Only attempt to sort if we have matches in our map
-        const hasScores = processed.positive.some(text => statementScores.has(text)) ||
-                          processed.neutral.some(text => statementScores.has(text)) ||
-                          processed.negative.some(text => statementScores.has(text));
-        
-        if (hasScores) {
-          // Sort each category by sentiment strength
-          processed.positive.sort((a, b) => {
-            const scoreA = statementScores.get(a) || 0;
-            const scoreB = statementScores.get(b) || 0;
-            return scoreB - scoreA; // Higher scores first
-          });
-
-          processed.negative.sort((a, b) => {
-            const scoreA = statementScores.get(a) || 0;
-            const scoreB = statementScores.get(b) || 0;
-            return scoreA - scoreB; // Lower scores first (more negative)
-          });
-
-          // For neutral, sort by proximity to 0
-          processed.neutral.sort((a, b) => {
-            const scoreA = Math.abs(statementScores.get(a) || 0);
-            const scoreB = Math.abs(statementScores.get(b) || 0);
-            return scoreA - scoreB; // Closer to 0 first
-          });
-        } else if (process.env.NODE_ENV === 'development') {
-          console.log('No statement scores available for sorting');
-        }
-      } else if (process.env.NODE_ENV === 'development') {
-        console.log('No detailed sentiment data available for sorting');
-      }
-      
-      // Limit to 10 statements per category for better UI
-      processed.positive = processed.positive.slice(0, 10);
-      processed.neutral = processed.neutral.slice(0, 10);
-      processed.negative = processed.negative.slice(0, 10);
-      
-      return processed;
-    } catch (error) {
-      console.error('Error processing statements:', error);
+  // Group statements by topic if themes are available
+  const topicGroupedStatements = useMemo(() => {
+    if (!themes || themes.length === 0) {
       return {
-        positive: [],
-        neutral: [],
-        negative: []
+        positive: supportingStatements.positive.map(s => ({ statement: s, topic: 'General', intensity: 1 })),
+        neutral: supportingStatements.neutral.map(s => ({ statement: s, topic: 'General', intensity: 0 })),
+        negative: supportingStatements.negative.map(s => ({ statement: s, topic: 'General', intensity: -1 })),
       };
     }
-  }, [supportingStatements, detailedData]);
-
-  // Render statements section with proper colors and ranking
-  const renderStatements = () => {
-    if (!showStatements) return null;
-
-    // Use the processed statements directly - no fallbacks to synthetic data
-    const safeStatements = processedStatements;
-
-    // Make sure we have rendering keys that won't cause runtime errors
-    const getStatementKey = (type: string, index: number, text: string) => {
-      let key = `${type}-statement-${index}`;
-      try {
-        // Try to add some text from the statement if available
-        if (text && typeof text === 'string') {
-          key += `-${text.slice(0, 10).replace(/\s+/g, '-')}`;
+    
+    // Try to match statements to themes
+    const matchStatementToTheme = (statement: string) => {
+      // First try exact keyword matches
+      for (const theme of themes) {
+        if (!theme.keywords) continue;
+        
+        for (const keyword of theme.keywords) {
+          if (statement.toLowerCase().includes(keyword.toLowerCase())) {
+            return theme.name;
+          }
         }
-      } catch (e) {
-        // Ignore any errors in key generation
       }
-      return key;
+      
+      // If no keyword match, try fuzzy matching with the theme name
+      for (const theme of themes) {
+        if (statement.toLowerCase().includes(theme.name.toLowerCase())) {
+          return theme.name;
+        }
+      }
+      
+      return 'General';
     };
-
+    
+    return {
+      positive: supportingStatements.positive.map(s => ({ 
+        statement: s, 
+        topic: matchStatementToTheme(s),
+        intensity: 1,
+      })),
+      neutral: supportingStatements.neutral.map(s => ({ 
+        statement: s, 
+        topic: matchStatementToTheme(s),
+        intensity: 0,
+      })),
+      negative: supportingStatements.negative.map(s => ({ 
+        statement: s, 
+        topic: matchStatementToTheme(s),
+        intensity: -1,
+      })),
+    };
+  }, [supportingStatements, themes]);
+  
+  // Filter statements based on search term and sentiment filter
+  const filteredStatements = useMemo(() => {
+    type StatementWithType = {
+      statement: string;
+      topic: string;
+      intensity: number;
+      type: 'positive' | 'neutral' | 'negative';
+    };
+    
+    let statements: StatementWithType[] = [];
+    
+    if (sentimentFilter === 'all' || sentimentFilter === 'positive') {
+      statements = [...statements, ...topicGroupedStatements.positive.map(s => ({
+        ...s,
+        type: 'positive' as const
+      }))];
+    }
+    
+    if (sentimentFilter === 'all' || sentimentFilter === 'neutral') {
+      statements = [...statements, ...topicGroupedStatements.neutral.map(s => ({
+        ...s,
+        type: 'neutral' as const
+      }))];
+    }
+    
+    if (sentimentFilter === 'all' || sentimentFilter === 'negative') {
+      statements = [...statements, ...topicGroupedStatements.negative.map(s => ({
+        ...s,
+        type: 'negative' as const
+      }))];
+    }
+    
+    if (searchTerm.trim() === '') return statements;
+    
+    return statements.filter(s => 
+      s.statement.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.topic.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [topicGroupedStatements, sentimentFilter, searchTerm]);
+  
+  // Group the filtered statements by topic
+  const statementsByTopic = useMemo(() => {
+    const topics: Record<string, typeof filteredStatements> = {};
+    
+    for (const statement of filteredStatements) {
+      if (!topics[statement.topic]) {
+        topics[statement.topic] = [];
+      }
+      
+      topics[statement.topic].push(statement);
+    }
+    
+    // Sort topics by number of statements
+    return Object.entries(topics)
+      .sort(([_, statementsA], [__, statementsB]) => statementsB.length - statementsA.length)
+      .map(([topic, statements]) => ({
+        topic,
+        statements,
+        count: statements.length,
+      }));
+  }, [filteredStatements]);
+  
+  // Generate key insights based on sentiment analysis
+  const keyInsights = useMemo(() => {
+    const insights: string[] = [];
+    
+    // Overall sentiment distribution
+    insights.push(`Overall sentiment is ${positivePercent}% positive, ${neutralPercent}% neutral, and ${negativePercent}% negative.`);
+    
+    // Most prevalent topics in positive statements
+    const positiveTopics = [...new Set(topicGroupedStatements.positive.map(s => s.topic))];
+    if (positiveTopics.length > 0 && positiveTopics[0] !== 'General') {
+      insights.push(`Positive sentiment is most associated with: ${positiveTopics.slice(0, 3).join(', ')}.`);
+    }
+    
+    // Most prevalent topics in negative statements
+    const negativeTopics = [...new Set(topicGroupedStatements.negative.map(s => s.topic))];
+    if (negativeTopics.length > 0 && negativeTopics[0] !== 'General') {
+      insights.push(`Negative sentiment is most associated with: ${negativeTopics.slice(0, 3).join(', ')}.`);
+    }
+    
+    // If we have an industry context
+    if (detectedIndustry) {
+      insights.push(`Analysis was performed with ${detectedIndustry} industry context.`);
+    }
+    
+    return insights;
+  }, [positivePercent, neutralPercent, negativePercent, topicGroupedStatements, detectedIndustry]);
+  
+  // Render the copy button for a statement
+  const renderCopyButton = (text: string) => {
     return (
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Positive Statements */}
-        <div 
-          className="p-4 rounded-md border"
-          style={{ borderColor: SENTIMENT_COLORS.positive, backgroundColor: `${SENTIMENT_COLORS.positive}10` }}
-        >
-          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.positive }}>
-            Positive Statements
-          </h3>
-          <ul className="space-y-2">
-            {safeStatements.positive.map((statement, index) => (
-              <li key={getStatementKey('positive', index, statement)} 
-                  className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-xs font-medium" style={{ color: SENTIMENT_COLORS.positive }}>
-                  #{index + 1}
-                </span>
-                {statement}
-              </li>
-            ))}
-            {safeStatements.positive.length === 0 && (
-              <li className="text-sm text-muted-foreground italic">No positive statements found</li>
-            )}
-          </ul>
-        </div>
-
-        {/* Neutral Statements */}
-        <div 
-          className="p-4 rounded-md border"
-          style={{ borderColor: SENTIMENT_COLORS.neutral, backgroundColor: `${SENTIMENT_COLORS.neutral}10` }}
-        >
-          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.neutral }}>
-            Neutral Statements
-          </h3>
-          <ul className="space-y-2">
-            {safeStatements.neutral.map((statement, index) => (
-              <li key={getStatementKey('neutral', index, statement)}
-                  className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-xs font-medium" style={{ color: SENTIMENT_COLORS.neutral }}>
-                  #{index + 1}
-                </span>
-                {statement}
-              </li>
-            ))}
-            {safeStatements.neutral.length === 0 && (
-              <li className="text-sm text-muted-foreground italic">No neutral statements found</li>
-            )}
-          </ul>
-        </div>
-
-        {/* Negative Statements */}
-        <div 
-          className="p-4 rounded-md border"
-          style={{ borderColor: SENTIMENT_COLORS.negative, backgroundColor: `${SENTIMENT_COLORS.negative}10` }}
-        >
-          <h3 className="text-base font-semibold mb-2" style={{ color: SENTIMENT_COLORS.negative }}>
-            Negative Statements
-          </h3>
-          <ul className="space-y-2">
-            {safeStatements.negative.map((statement, index) => (
-              <li key={getStatementKey('negative', index, statement)}
-                  className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="text-xs font-medium" style={{ color: SENTIMENT_COLORS.negative }}>
-                  #{index + 1}
-                </span>
-                {statement}
-              </li>
-            ))}
-            {safeStatements.negative.length === 0 && (
-              <li className="text-sm text-muted-foreground italic">No negative statements found</li>
-            )}
-          </ul>
-        </div>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+        onClick={() => {
+          navigator.clipboard.writeText(text);
+          // Could add a toast notification here
+        }}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+        </svg>
+      </Button>
     );
   };
-
+  
+  // Add helper methods for statement filtering and grouping
+  const isLowQualityStatement = (statement: string): boolean => {
+    // Filter out statements that are likely meaningless
+    if (statement.length < 10) return true; // Too short
+    
+    // Filter out statements ending with ellipsis
+    if (statement.trim().endsWith('...')) return true;
+    
+    // Filter common conversation fillers
+    const fillers = [
+      'yeah', 'like', 'so', 'you know', 'I mean', 'basically', 'just', 
+      'and...', 'or...', 'whatnot', 'blah', 'etc', 'yeah yeah'
+    ];
+    
+    if (fillers.some(filler => 
+      statement.toLowerCase().trim() === filler || 
+      statement.toLowerCase().startsWith(`${filler}.`) ||
+      statement.toLowerCase().startsWith(`${filler},`)
+    )) return true;
+    
+    // Filter statements that are just acknowledgments
+    const acknowledgments = [
+      'uh-huh', 'mhm', 'right', 'okay', 'sure', 'nice', 'cool', 'great', 'exactly',
+      'yeah you\'re right', 'yeah, right', 'you\'re right', 'that\'s right',
+      'sounds good', 'that sounds good', 'sounds nice', 'for sure'
+    ];
+    
+    if (acknowledgments.some(ack => statement.toLowerCase().trim() === ack)) return true;
+    
+    // Sentence fragments that don't convey complete thoughts
+    if (statement.split(' ').length <= 3 && !statement.includes('.')) return true;
+    
+    return false;
+  };
+  
+  const getHighQualityStatements = () => {
+    // Only keep statements that pass quality filters
+    return filteredStatements.filter(s => !isLowQualityStatement(s.statement));
+  };
+  
+  const getHighQualityStatementsForType = (type: 'positive' | 'neutral' | 'negative') => {
+    // Return filtered statements by sentiment type
+    return filteredStatements
+      .filter(s => s.type === type && !isLowQualityStatement(s.statement))
+      .slice(0, 10); // Limit to 10 per category
+  };
+  
   return (
     <div className={className}>
+      {/* Industry Context Badge */}
       {detectedIndustry && (
-        <div className="mb-4 flex justify-center">
-          <span className="inline-flex items-center rounded-md bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="flex items-center mb-4">
+          <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-800 hover:bg-blue-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-building-2">
+              <path d="M6 22V2a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v20"/>
+              <path d="M2 11V2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v9"/>
+              <path d="M18 22V6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v16"/>
+              <path d="M4 22H2"/>
+              <path d="M10 22H8"/>
+              <path d="M16 22h-2"/>
+              <path d="M22 22h-2"/>
             </svg>
-            Industry Context: {detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1)}
-          </span>
+            Industry: {detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1)}
+          </Badge>
         </div>
       )}
       
-      <div className="flex flex-col md:flex-row items-center justify-between">
-        <div className="w-full md:w-1/2">
-          <ResponsiveContainer height={height}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={2}
-                dataKey="value"
-                activeIndex={activeIndex}
-                activeShape={renderActiveShape}
-                onMouseEnter={onPieEnter}
-                onMouseLeave={onPieLeave}
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`sentiment-cell-${entry.name}-${index}`} fill={entry.color} />
+      {/* Sentiment Distribution Bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            {/* Key Insights Section */}
+            <div className="mb-2">
+              <h3 className="text-sm font-medium mb-2">Key Insights</h3>
+              <ul className="space-y-1 list-disc pl-5">
+                {keyInsights.map((insight, idx) => (
+                  <li key={`insight-${idx}`} className="text-sm text-muted-foreground">{insight}</li>
                 ))}
-              </Pie>
-              <text 
-                x="50%" 
-                y="50%" 
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="text-lg font-semibold fill-foreground"
-              >
-                Sentiment
-              </text>
-              <Tooltip content={customTooltip} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="w-full md:w-1/2 mt-6 md:mt-0">
-          <div className="grid grid-cols-1 gap-4">
-            {/* Positive Sentiment Card */}
-            <div 
-              className="p-4 rounded-md"
-              style={{ backgroundColor: `${SENTIMENT_COLORS.positive}20` }}
-            >
-              <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.positive }}>
-                Positive
-              </h3>
-              <div className="flex justify-between items-baseline">
-                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.positive }}>
-                  {positivePercent}%
-                </p>
-                {detailedStats && (
-                  <p className="text-sm text-muted-foreground">
-                    {detailedStats.positiveCount} responses
-                  </p>
-                )}
-              </div>
+              </ul>
             </div>
-
-            {/* Neutral Sentiment Card */}
-            <div 
-              className="p-4 rounded-md"
-              style={{ backgroundColor: `${SENTIMENT_COLORS.neutral}20` }}
-            >
-              <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.neutral }}>
-                Neutral
-              </h3>
-              <div className="flex justify-between items-baseline">
-                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.neutral }}>
-                  {neutralPercent}%
-                </p>
-                {detailedStats && (
-                  <p className="text-sm text-muted-foreground">
-                    {detailedStats.neutralCount} responses
-                  </p>
-                )}
+            
+            {/* Horizontal Stacked Bar Chart */}
+            <div className="mt-2">
+              <h3 className="text-sm font-medium mb-2">Sentiment Distribution</h3>
+              <div className="h-12">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    layout="vertical"
+                    data={barData}
+                    margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                    barSize={24}
+                  >
+                    <XAxis type="number" domain={[0, 100]} hide />
+                    <Tooltip
+                      formatter={(value: any, name: any) => [`${value}%`, typeof name === 'string' ? name.charAt(0).toUpperCase() + name.slice(1) : name]}
+                      cursor={false}
+                    />
+                    <Bar
+                      dataKey="positive"
+                      stackId="sentiment"
+                      fill={SENTIMENT_COLORS.positive}
+                      radius={[4, 0, 0, 4]}
+                    >
+                      <LabelList 
+                        dataKey="positive" 
+                        position="center" 
+                        fill="#fff" 
+                        formatter={(value: number) => (value >= 15 ? `${value}%` : '')} 
+                      />
+                    </Bar>
+                    <Bar 
+                      dataKey="neutral" 
+                      stackId="sentiment" 
+                      fill={SENTIMENT_COLORS.neutral}
+                    >
+                      <LabelList 
+                        dataKey="neutral" 
+                        position="center" 
+                        fill="#fff" 
+                        formatter={(value: number) => (value >= 15 ? `${value}%` : '')} 
+                      />
+                    </Bar>
+                    <Bar 
+                      dataKey="negative" 
+                      stackId="sentiment" 
+                      fill={SENTIMENT_COLORS.negative}
+                      radius={[0, 4, 4, 0]}
+                    >
+                      <LabelList 
+                        dataKey="negative" 
+                        position="center" 
+                        fill="#fff" 
+                        formatter={(value: number) => (value >= 15 ? `${value}%` : '')} 
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-
-            {/* Negative Sentiment Card */}
-            <div 
-              className="p-4 rounded-md"
-              style={{ backgroundColor: `${SENTIMENT_COLORS.negative}20` }}
-            >
-              <h3 className="font-medium" style={{ color: SENTIMENT_COLORS.negative }}>
-                Negative
-              </h3>
-              <div className="flex justify-between items-baseline">
-                <p className="text-2xl font-bold" style={{ color: SENTIMENT_COLORS.negative }}>
-                  {negativePercent}%
-                </p>
-                {detailedStats && (
-                  <p className="text-sm text-muted-foreground">
-                    {detailedStats.negativeCount} responses
-                  </p>
-                )}
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 mt-2">
+                <div className="flex items-center text-xs">
+                  <div className="w-3 h-3 rounded-sm mr-1" style={{ backgroundColor: SENTIMENT_COLORS.positive }}></div>
+                  <span>Positive ({positivePercent}%)</span>
+                </div>
+                <div className="flex items-center text-xs">
+                  <div className="w-3 h-3 rounded-sm mr-1" style={{ backgroundColor: SENTIMENT_COLORS.neutral }}></div>
+                  <span>Neutral ({neutralPercent}%)</span>
+                </div>
+                <div className="flex items-center text-xs">
+                  <div className="w-3 h-3 rounded-sm mr-1" style={{ backgroundColor: SENTIMENT_COLORS.negative }}></div>
+                  <span>Negative ({negativePercent}%)</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {showLegend && (
-        <div className="mt-6">
-          <ChartLegend
-            items={legendItems}
-            position="bottom"
-            align="center"
-            layout="horizontal"
-          />
-        </div>
-      )}
-
-      {showStatements && renderStatements()}
+        </CardContent>
+      </Card>
       
-      {/* Debug panel for development - hidden in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="space-y-2 text-xs mt-8 p-2 border border-gray-200 rounded-md bg-gray-50">
-          <p><strong>Has Supporting Statements:</strong> {supportingStatements && 
-            (supportingStatements.positive.length > 0 || 
-             supportingStatements.neutral.length > 0 || 
-             supportingStatements.negative.length > 0) ? 'Yes' : 'No'}</p>
-          <p><strong>Positive Statements:</strong> {processedStatements.positive.length}</p>
-          <p><strong>Neutral Statements:</strong> {processedStatements.neutral.length}</p>
-          <p><strong>Negative Statements:</strong> {processedStatements.negative.length}</p>
-          <p><strong>Has Detailed Data:</strong> {detailedData && detailedData.length > 0 ? 'Yes' : 'No'}</p>
-          <p><strong>Detailed Data Count:</strong> {detailedData ? detailedData.length : 0}</p>
-          <details>
-            <summary className="cursor-pointer font-medium">Raw Supporting Statements</summary>
-            <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-60">
-              {JSON.stringify(supportingStatements, null, 2)}
-            </pre>
-          </details>
-          <details>
-            <summary className="cursor-pointer font-medium">Raw Detailed Data (First 3 items)</summary>
-            <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto max-h-60">
-              {JSON.stringify(detailedData?.slice(0, 3) || [], null, 2)}
-            </pre>
-          </details>
+      {/* Statements Section */}
+      {showStatements && (
+        <div className="mt-6">
+          <div className="flex flex-col sm:flex-row justify-between mb-4 gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Search statements..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <Tabs 
+              defaultValue="all" 
+              className="w-full sm:w-auto"
+              onValueChange={(value) => setSentimentFilter(value as any)}
+            >
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="positive" className="text-green-600">Positive</TabsTrigger>
+                <TabsTrigger value="neutral" className="text-slate-600">Neutral</TabsTrigger>
+                <TabsTrigger value="negative" className="text-red-600">Negative</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          {/* Results summary */}
+          <div className="text-sm text-muted-foreground mb-3">
+            {searchTerm && filteredStatements.length > 0 ? (
+              <span>Found {filteredStatements.length} statements matching "{searchTerm}"</span>
+            ) : searchTerm ? (
+              <span>No statements found matching "{searchTerm}"</span>
+            ) : (
+              <span>Showing {getHighQualityStatements().length} meaningful statements {sentimentFilter !== 'all' ? `(${sentimentFilter} only)` : ''}</span>
+            )}
+          </div>
+          
+          {/* 3-Column Layout for Statements */}
+          {sentimentFilter === 'all' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Positive Statements */}
+              <div className="border rounded-md p-4" style={{ borderColor: SENTIMENT_COLORS.positive, backgroundColor: `${SENTIMENT_COLORS.positive}10` }}>
+                <h3 className="font-medium mb-3" style={{ color: SENTIMENT_COLORS.positive }}>
+                  Positive Statements
+                </h3>
+                <div className="space-y-2">
+                  {getHighQualityStatementsForType('positive').map((item, index) => (
+                    <div 
+                      key={`positive-statement-${index}`}
+                      className="flex gap-2 items-start p-2 rounded-sm"
+                    >
+                      <div className="w-2 h-2 mt-1.5 rounded-full flex-shrink-0 bg-green-500" />
+                      <div className="flex-1 text-sm">{item.statement}</div>
+                      <div className="flex-shrink-0">
+                        {renderCopyButton(item.statement)}
+                      </div>
+                    </div>
+                  ))}
+                  {getHighQualityStatementsForType('positive').length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">No positive statements found</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Neutral Statements */}
+              <div className="border rounded-md p-4" style={{ borderColor: SENTIMENT_COLORS.neutral, backgroundColor: `${SENTIMENT_COLORS.neutral}10` }}>
+                <h3 className="font-medium mb-3" style={{ color: SENTIMENT_COLORS.neutral }}>
+                  Neutral Statements
+                </h3>
+                <div className="space-y-2">
+                  {getHighQualityStatementsForType('neutral').map((item, index) => (
+                    <div 
+                      key={`neutral-statement-${index}`}
+                      className="flex gap-2 items-start p-2 rounded-sm"
+                    >
+                      <div className="w-2 h-2 mt-1.5 rounded-full flex-shrink-0 bg-slate-500" />
+                      <div className="flex-1 text-sm">{item.statement}</div>
+                      <div className="flex-shrink-0">
+                        {renderCopyButton(item.statement)}
+                      </div>
+                    </div>
+                  ))}
+                  {getHighQualityStatementsForType('neutral').length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">No neutral statements found</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Negative Statements */}
+              <div className="border rounded-md p-4" style={{ borderColor: SENTIMENT_COLORS.negative, backgroundColor: `${SENTIMENT_COLORS.negative}10` }}>
+                <h3 className="font-medium mb-3" style={{ color: SENTIMENT_COLORS.negative }}>
+                  Negative Statements
+                </h3>
+                <div className="space-y-2">
+                  {getHighQualityStatementsForType('negative').map((item, index) => (
+                    <div 
+                      key={`negative-statement-${index}`}
+                      className="flex gap-2 items-start p-2 rounded-sm"
+                    >
+                      <div className="w-2 h-2 mt-1.5 rounded-full flex-shrink-0 bg-red-500" />
+                      <div className="flex-1 text-sm">{item.statement}</div>
+                      <div className="flex-shrink-0">
+                        {renderCopyButton(item.statement)}
+                      </div>
+                    </div>
+                  ))}
+                  {getHighQualityStatementsForType('negative').length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">No negative statements found</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // When a specific sentiment is selected, show it in the topic-grouped view
+            <div className="space-y-4 mb-6">
+              {statementsByTopic.length > 0 ? (
+                statementsByTopic.map((topicGroup) => (
+                  <Collapsible key={topicGroup.topic} defaultOpen={true}>
+                    <div className="border rounded-md">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{topicGroup.topic}</h3>
+                          <Badge variant="outline">{topicGroup.count}</Badge>
+                        </div>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="chevron"
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <div className="px-3 pb-3 pt-0 space-y-1">
+                          {topicGroup.statements.map((item, index) => (
+                            <div 
+                              key={`${topicGroup.topic}-statement-${index}`}
+                              className={`p-2 rounded-sm flex gap-2 items-start ${
+                                item.type === 'positive' 
+                                  ? 'bg-green-50' 
+                                  : item.type === 'negative' 
+                                    ? 'bg-red-50' 
+                                    : 'bg-slate-50'
+                              }`}
+                            >
+                              <div 
+                                className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                                  item.type === 'positive' 
+                                    ? 'bg-green-500' 
+                                    : item.type === 'negative' 
+                                      ? 'bg-red-500' 
+                                      : 'bg-slate-500'
+                                }`}
+                              />
+                              <div className="flex-1 text-sm">{item.statement}</div>
+                              <div className="flex-shrink-0">
+                                {renderCopyButton(item.statement)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                ))
+              ) : (
+                <div className="text-center p-6 border border-dashed rounded-md">
+                  <p className="text-muted-foreground">No statements found</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
