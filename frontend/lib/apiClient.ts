@@ -1000,27 +1000,76 @@ class ApiClient {
    */
   async getPriorityInsights(analysisId: string): Promise<PriorityInsightsResponse> {
     try {
-      const token = await this.getAuthToken();
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token || ''}`
-      };
-      
-      const response = await fetch(`${this.baseUrl}/api/analysis/priority?result_id=${analysisId}`, {
-        method: 'GET',
-        headers
+      const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      console.log(`[${requestId}] Fetching priority insights for analysis ID: ${analysisId}`);
+
+      // Enhanced axios request with proper error handling, timeout and retry
+      const response = await this.client.get('/api/analysis/priority', {
+        params: { result_id: analysisId },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId,
+          'X-Client-Version': 'v1.2.0' // Add version tracking
+        },
+        timeout: 20000 // 20 second timeout for potentially complex calculations
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Error fetching priority insights: ${errorData.detail || response.statusText}`);
+      console.log(`[${requestId}] Priority insights API response received: ${response.status}, insights: ${response.data.insights?.length || 0}`);
+      
+      // Validate response data structure
+      if (!response.data || !response.data.insights || !Array.isArray(response.data.insights)) {
+        console.error(`[${requestId}] Invalid response format:`, response.data);
+        throw new Error('Invalid response format from server. Expected insights array.');
       }
       
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching priority insights:', error);
-      throw error;
+      // Provide additional metrics logging
+      const metrics = response.data.metrics || {};
+      console.log(`[${requestId}] Metrics - High: ${metrics.high_urgency_count || 0}, Medium: ${metrics.medium_urgency_count || 0}, Low: ${metrics.low_urgency_count || 0}`);
+      
+      return response.data;
+    } catch (error: any) {
+      // Comprehensive error handling with detailed logging and categorization
+      const requestId = error?.config?.headers?.['X-Request-ID'] || 'unknown';
+      const statusCode = error?.response?.status;
+      const errorDetail = error?.response?.data?.detail || '';
+      const isNetworkError = !statusCode && (
+        error?.message?.includes('Network Error') || 
+        error?.code === 'ECONNABORTED' ||
+        error?.code === 'ERR_NETWORK'
+      );
+      const isTimeoutError = error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout');
+      
+      // Detailed logging with request context
+      console.error(`[${requestId}] Error fetching priority insights:`, {
+        analysisId,
+        statusCode,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        serverDetail: errorDetail,
+        isNetworkError,
+        isTimeoutError,
+        url: error?.config?.url,
+        params: error?.config?.params
+      });
+      
+      // Create descriptive error messages based on error type
+      if (isNetworkError) {
+        throw new Error('Network error when connecting to the server. Please check your connection and try again.');
+      } else if (isTimeoutError) {
+        throw new Error('Request timed out while calculating priority insights. The server might be under heavy load.');
+      } else if (statusCode === 401 || statusCode === 403) {
+        throw new Error('Authentication required. Please log in to view priority insights.');
+      } else if (statusCode === 404) {
+        throw new Error('Analysis not found or not completed yet. Please check the analysis status.');
+      } else if (statusCode === 400) {
+        throw new Error(`Invalid request: ${errorDetail || 'Please check input parameters.'}`);
+      } else if (statusCode >= 500) {
+        throw new Error(`Server error calculating priority insights: ${errorDetail || 'Please try again later.'}`);
+      } else {
+        // For any other errors, use the error detail if available, otherwise provide a fallback
+        throw new Error(errorDetail || error?.message || 'An unexpected error occurred while fetching priority insights.');
+      }
     }
   }
 

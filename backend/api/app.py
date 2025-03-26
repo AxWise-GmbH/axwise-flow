@@ -52,6 +52,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import API routers
+from backend.api.endpoints.priority_insights import router as priority_insights_router
+
 DEFAULT_SENTIMENT_OVERVIEW = {
     "positive": 0.33,
     "neutral": 0.34,
@@ -144,6 +147,9 @@ app.add_middleware(
     allow_methods=CORS_METHODS,
     allow_headers=CORS_HEADERS,
 )
+
+# Include routers
+app.include_router(priority_insights_router, prefix="/api/analysis")
 
 # Initialize database tables
 create_tables()
@@ -552,121 +558,4 @@ async def detailed_health_check(db: Session = Depends(get_db)):
             "timestamp": datetime.utcnow().isoformat()
         }
 
-@app.get(
-    "/api/analysis/priority",
-    tags=["Analysis"],
-    summary="Get prioritized insights",
-    description="Get themes and patterns prioritized by sentiment impact for actionable insights"
-)
-async def get_priority_insights(
-    request: Request,
-    result_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Returns themes and patterns prioritized by sentiment impact for actionable insights.
-    
-    This endpoint helps identify which findings should be addressed first based on:
-    1. Sentiment intensity
-    2. Frequency of occurrence
-    3. Evidence strength
-    """
-    try:
-        # Get analysis result from database
-        analysis_result = db.query(AnalysisResult).filter(
-            AnalysisResult.result_id == result_id,
-            AnalysisResult.user_id == current_user.id,
-            AnalysisResult.status == "completed"
-        ).first()
-        
-        if not analysis_result:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Analysis result {result_id} not found or not completed"
-            )
-            
-        # Parse stored results
-        results_dict = (
-            json.loads(analysis_result.results) 
-            if isinstance(analysis_result.results, str)
-            else analysis_result.results
-        )
-        
-        # Extract themes and patterns
-        themes = results_dict.get("themes", [])
-        patterns = results_dict.get("patterns", [])
-        
-        # Calculate priority scores
-        prioritized_insights = []
-        
-        # Process themes with priority scoring
-        for theme in themes:
-            # Base priority on sentiment and frequency
-            sentiment_impact = abs(theme.get("sentiment", 0)) * 0.7  # Higher impact for stronger sentiment (positive or negative)
-            frequency_impact = theme.get("frequency", 0) * 0.3  # Higher impact for more frequent themes
-            
-            # Calculate overall priority score (0-1 scale)
-            priority_score = sentiment_impact + frequency_impact
-            
-            # Determine urgency level
-            urgency_level = "high" if priority_score > 0.6 else ("medium" if priority_score > 0.3 else "low")
-            
-            # Add to prioritized insights
-            prioritized_insights.append({
-                "type": "theme",
-                "name": theme.get("name", ""),
-                "description": theme.get("definition", ""),
-                "priority_score": round(priority_score, 2),
-                "urgency": urgency_level,
-                "sentiment": theme.get("sentiment", 0),
-                "frequency": theme.get("frequency", 0),
-                "original": theme
-            })
-        
-        # Process patterns with priority scoring
-        for pattern in patterns:
-            # Base priority on sentiment and frequency
-            sentiment_impact = abs(pattern.get("sentiment", 0)) * 0.6  # Higher impact for stronger sentiment
-            frequency_impact = pattern.get("frequency", 0) * 0.3  # Higher impact for more frequent patterns
-            evidence_impact = min(len(pattern.get("evidence", [])) / 5, 1) * 0.1  # More evidence increases priority, capped at 1
-            
-            # Calculate overall priority score (0-1 scale)
-            priority_score = sentiment_impact + frequency_impact + evidence_impact
-            
-            # Determine urgency level
-            urgency_level = "high" if priority_score > 0.6 else ("medium" if priority_score > 0.3 else "low")
-            
-            # Add to prioritized insights
-            prioritized_insights.append({
-                "type": "pattern",
-                "name": pattern.get("name", ""),
-                "description": pattern.get("description", ""),
-                "priority_score": round(priority_score, 2),
-                "urgency": urgency_level,
-                "sentiment": pattern.get("sentiment", 0),
-                "frequency": pattern.get("frequency", 0),
-                "category": pattern.get("category", "Uncategorized"),
-                "original": pattern
-            })
-        
-        # Sort by priority score (descending)
-        prioritized_insights.sort(key=lambda x: x["priority_score"], reverse=True)
-        
-        return {
-            "insights": prioritized_insights,
-            "metrics": {
-                "high_urgency_count": sum(1 for i in prioritized_insights if i["urgency"] == "high"),
-                "medium_urgency_count": sum(1 for i in prioritized_insights if i["urgency"] == "medium"),
-                "low_urgency_count": sum(1 for i in prioritized_insights if i["urgency"] == "low")
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error calculating priority insights: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error calculating priority insights: {str(e)}"
-        )
+# Priority insights endpoint moved to dedicated router module in backend/api/endpoints/priority_insights.py
