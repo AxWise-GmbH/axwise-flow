@@ -96,6 +96,7 @@ export interface SentimentStatements {
   positive: string[];
   neutral: string[];
   negative: string[];
+  industry?: string; // The detected industry for context-aware analysis
 }
 
 /**
@@ -152,6 +153,7 @@ export interface DetailedAnalysisResult {
   sentiment: SentimentData[];
   sentimentOverview: SentimentOverview;
   sentimentStatements?: SentimentStatements;  // Supporting statements for sentiment categories
+  industry?: string; // Industry context detected from content
   personas?: Persona[];
   llmProvider?: string;
   llmModel?: string;
@@ -178,6 +180,7 @@ export interface DashboardData {
   sentiment: SentimentData[];
   sentimentOverview: SentimentOverview;
   sentimentStatements?: SentimentStatements;
+  industry?: string; // Industry context for sentiment analysis
   personas?: Persona[];
   
   // Error Information

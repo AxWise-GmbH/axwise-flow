@@ -31,6 +31,28 @@ interface VisualizationTabsProps {
 // Define a type for the tab values
 export type TabValue = 'themes' | 'patterns' | 'sentiment' | 'personas' | 'priority';
 
+// Add the helper function
+// Helper function to consolidate supporting statements from various sources
+const getConsolidatedSupportingStatements = (analysis: any) => {
+  return {
+    positive: [
+      ...(analysis.sentiment && Array.isArray(analysis.sentiment.positive) ? analysis.sentiment.positive : []),
+      ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.positive) ? analysis.supporting_statements.positive : []),
+      ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.positive) ? analysis.results.sentimentStatements.positive : [])
+    ].filter((v, i, a) => a.indexOf(v) === i), // Remove duplicates
+    neutral: [
+      ...(analysis.sentiment && Array.isArray(analysis.sentiment.neutral) ? analysis.sentiment.neutral : []),
+      ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.neutral) ? analysis.supporting_statements.neutral : []),
+      ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.neutral) ? analysis.results.sentimentStatements.neutral : [])
+    ].filter((v, i, a) => a.indexOf(v) === i), // Remove duplicates
+    negative: [
+      ...(analysis.sentiment && Array.isArray(analysis.sentiment.negative) ? analysis.sentiment.negative : []),
+      ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.negative) ? analysis.supporting_statements.negative : []),
+      ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.negative) ? analysis.results.sentimentStatements.negative : [])
+    ].filter((v, i, a) => a.indexOf(v) === i) // Remove duplicates
+  };
+};
+
 /**
  * VisualizationTabs Component (Refactored)
  * Displays visualization tabs for themes, patterns, sentiment, and personas
@@ -266,32 +288,15 @@ export default function VisualizationTabsRefactored({
                       Array.isArray(analysis.sentimentStatements.neutral) && 
                       Array.isArray(analysis.sentimentStatements.negative)
                         ? analysis.sentimentStatements
-                        : // Use combined statements only as fallback
-                        {
-                          positive: [
-                            ...(analysis.sentiment && Array.isArray(analysis.sentiment.positive) ? analysis.sentiment.positive : []),
-                            ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.positive) ? analysis.supporting_statements.positive : []),
-                            ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.positive) ? analysis.results.sentimentStatements.positive : [])
-                          ].filter((v, i, a) => a.indexOf(v) === i), // Remove duplicates
-                          neutral: [
-                            ...(analysis.sentiment && Array.isArray(analysis.sentiment.neutral) ? analysis.sentiment.neutral : []),
-                            ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.neutral) ? analysis.supporting_statements.neutral : []),
-                            ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.neutral) ? analysis.results.sentimentStatements.neutral : [])
-                          ].filter((v, i, a) => a.indexOf(v) === i), // Remove duplicates
-                          negative: [
-                            ...(analysis.sentiment && Array.isArray(analysis.sentiment.negative) ? analysis.sentiment.negative : []),
-                            ...(analysis.supporting_statements && Array.isArray(analysis.supporting_statements.negative) ? analysis.supporting_statements.negative : []),
-                            ...(analysis.results && analysis.results.sentimentStatements && Array.isArray(analysis.results.sentimentStatements.negative) ? analysis.results.sentimentStatements.negative : [])
-                          ].filter((v, i, a) => a.indexOf(v) === i) // Remove duplicates
-                        }
+                        : getConsolidatedSupportingStatements(analysis)
                     }
+                    // Pass industry context from multiple possible locations 
+                    industry={analysis.industry || (analysis.sentimentStatements && analysis.sentimentStatements.industry) || null}
+                    // Simplify visualization by hiding redundant elements
+                    showLegend={false}
                   />
                 )}
-                {!analysis.sentiment && (
-                  <div className="text-center text-muted-foreground">
-                    No sentiment data available
-                  </div>
-                )}
+                {!analysis.sentiment && <div>No sentiment data available</div>}
               </TabsContent>
             </CustomErrorBoundary>
 

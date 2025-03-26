@@ -535,13 +535,38 @@ class GeminiService:
             
         elif task == 'sentiment_analysis':
             return """
-            You are an expert sentiment analyst. Analyze the provided text and determine the overall sentiment.
-            Provide:
+            You are an expert sentiment analyst working with interview transcripts across all industries. Analyze the provided text and determine the overall sentiment.
+
+            Industry-Agnostic Guidelines:
+            1. This analysis should work equally well for any professional domain: healthcare, tech, finance, military, education, hospitality, manufacturing, etc.
+            2. Recognize domain-specific terminology and understand it in proper context
+            3. Focus on emotional markers rather than technical language
+            4. Distinguish between process descriptions (neutral) and actual pain points (negative)
+            5. Identify enthusiasm for solutions (positive) vs frustration with problems (negative)
+
+            Key Instructions:
             1. An overall sentiment score between 0 (negative) and 1 (positive)
-            2. A breakdown of positive, neutral, and negative sentiment proportions (should sum to 1.0)
+            2. A breakdown of positive, neutral, and negative sentiment proportions (must sum to 1.0)
             3. Detailed sentiment analysis for specific topics mentioned in the text
-            4. Supporting statements for each sentiment category - these MUST be EXACT quotes from the text
-            
+            4. 15-20 supporting statements for EACH sentiment category - these MUST be EXACT quotes
+
+            Noise Filtering Rules:
+            1. EXCLUDE the following from your supporting statements:
+               - Interview metadata and headers (e.g., "Interview // Person - Date", "Transcript", "Attendees")
+               - Procedural statements (e.g., "I consent to recording", "Let's move to next question")
+               - Truncated thoughts that don't express complete ideas (e.g., "I think maybe...")
+               - Conversation fillers with no sentiment (e.g., "Mhm", "Yeah, yeah", "Okay", "Uh-huh")
+               - Interviewer questions (focus on interviewee responses)
+               - Generic greetings/farewells with no sentiment (e.g., "Nice to meet you", "Have a good day")
+               - Transcript metadata (e.g., "This editable transcript was computer generated")
+
+            2. INCLUDE statements that:
+               - Express clear opinions or experiences
+               - Describe challenges or successes
+               - Reflect feelings about tools, processes, or situations
+               - Provide context about work methods (neutral)
+               - Explain problems or solutions
+
             Return your analysis in the following JSON format:
             {
                 "sentiment": {
@@ -562,67 +587,28 @@ class GeminiService:
                         "positive": [
                             "EXACT POSITIVE QUOTE FROM TEXT 1",
                             "EXACT POSITIVE QUOTE FROM TEXT 2",
-                            "EXACT POSITIVE QUOTE FROM TEXT 3",
-                            "EXACT POSITIVE QUOTE FROM TEXT 4",
-                            "EXACT POSITIVE QUOTE FROM TEXT 5",
-                            "EXACT POSITIVE QUOTE FROM TEXT 6",
-                            "EXACT POSITIVE QUOTE FROM TEXT 7",
-                            "EXACT POSITIVE QUOTE FROM TEXT 8",
-                            "EXACT POSITIVE QUOTE FROM TEXT 9",
-                            "EXACT POSITIVE QUOTE FROM TEXT 10",
-                            "EXACT POSITIVE QUOTE FROM TEXT 11",
-                            "EXACT POSITIVE QUOTE FROM TEXT 12",
-                            "EXACT POSITIVE QUOTE FROM TEXT 13",
-                            "EXACT POSITIVE QUOTE FROM TEXT 14",
-                            "EXACT POSITIVE QUOTE FROM TEXT 15"
+                            // Include 15-20 positive statements
                         ],
                         "neutral": [
                             "EXACT NEUTRAL QUOTE FROM TEXT 1",
                             "EXACT NEUTRAL QUOTE FROM TEXT 2",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 3",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 4",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 5",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 6",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 7",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 8",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 9",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 10",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 11",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 12",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 13",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 14",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 15"
+                            // Include 15-20 neutral statements
                         ],
                         "negative": [
                             "EXACT NEGATIVE QUOTE FROM TEXT 1",
                             "EXACT NEGATIVE QUOTE FROM TEXT 2",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 3",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 4",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 5",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 6",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 7",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 8",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 9",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 10",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 11",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 12",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 13",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 14",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 15"
+                            // Include 15-20 negative statements
                         ]
                     }
                 }
             }
-            
-            Ensure that:
-            - The sentiment scores are between 0 and 1
-            - The breakdown percentages sum to 1.0
-            - Each statement category should include 15-20 supporting statements (find as many as possible)
-            - Statements are EXACT QUOTES from the text - do not rewrite, summarize, or paraphrase anything
-            - Each statement is a complete sentence or paragraph from the original text
-            - Extract diverse statements that represent different aspects or topics discussed
-            
-            IMPORTANT: Use EXACT quotes from the text. Do not rewrite, summarize, or paraphrase anything.
+
+            IMPORTANT: 
+            - Each statement must be an EXACT quote from the text - do not rewrite, summarize, or paraphrase
+            - Ensure statements are diverse, covering different topics mentioned in the interview
+            - Each statement should be meaningful and express complete thoughts
+            - Filter out all noise using the rules above
+            - Extract statements from interviewee responses, not interviewer questions
             """
             
         elif task == 'insight_generation':
@@ -1320,6 +1306,7 @@ class GeminiService:
         Args:
             interviews: List of interview data.
             **kwargs: Additional parameters for the LLM service.
+                industry: Optional string specifying the industry context (e.g., "healthcare", "tech", "military")
             
         Returns:
             Dictionary containing sentiment analysis results including supporting statements.
@@ -1340,9 +1327,57 @@ class GeminiService:
                 self.logger.warning(f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}")
                 interview_text = interview_text[:max_length]
             
+            # Check if industry was provided in kwargs
+            industry = kwargs.get('industry')
+            
+            # If no industry provided, detect it from the content
+            if not industry:
+                # Create a small prompt to detect the industry
+                industry_detection_prompt = f"""
+                Determine the most likely industry context for this interview transcript.
+                Choose one from: healthcare, tech, finance, military, education, hospitality, retail, manufacturing, legal, insurance, agriculture, non_profit.
+                
+                INTERVIEW SAMPLE:
+                {interview_text[:3000]}...
+                
+                Return only the industry name, nothing else.
+                """
+                
+                industry_response = await self._call_llm({
+                    'role': 'user',
+                    'content': industry_detection_prompt
+                })
+                
+                industry = industry_response.get('content', '').strip().lower()
+                
+                # Clean up the response to ensure it's just the industry name
+                for valid_industry in ["healthcare", "tech", "finance", "military", "education", 
+                                       "hospitality", "retail", "manufacturing", "legal", 
+                                       "insurance", "agriculture", "non_profit"]:
+                    if valid_industry in industry:
+                        industry = valid_industry
+                        break
+                
+                self.logger.info(f"Detected industry context: {industry}")
+            else:
+                self.logger.info(f"Using provided industry context: {industry}")
+            
+            # Now create the sentiment analysis prompt with industry context
+            industry_specific_guidance = self._get_industry_specific_guidance(industry)
+            
             prompt = f"""
-            Analyze the sentiment in these interview statements comprehensively. For each sentiment category (positive, neutral, negative), 
-            identify a robust set of representative statements from the interview that reflect that sentiment.
+            Analyze the sentiment in these interview statements comprehensively.
+            
+            INDUSTRY CONTEXT: {industry}
+            
+            {industry_specific_guidance}
+            
+            GENERAL GUIDELINES:
+            1. Provide analysis that works for this specific industry context.
+            2. Recognize domain-specific terminology and understand it in proper context.
+            3. Focus on emotional markers rather than technical language.
+            4. Distinguish between process descriptions (neutral) and actual pain points (negative).
+            5. Identify enthusiasm for solutions (positive) vs frustration with problems (negative).
             
             INTERVIEW TEXT:
             {interview_text}
@@ -1354,30 +1389,30 @@ class GeminiService:
             4. Extract diverse statements that represent different aspects or topics discussed
             5. Include the most representative and sentiment-rich statements for each category
             6. Filter out the following types of noise from the statements:
-               - Interview metadata, headers, or labels (e.g., "Interview // Person - Interviewer - Date")
-               - Procedural statements (e.g., "I consent to all three", "You're free to go")
+               - Interview metadata, headers, or labels
+               - Procedural statements (e.g., "I consent to all three")
                - Truncated sentences ending with "..." unless they express complete thoughts
-               - Simple conversation fillers (e.g., "Mhm", "Yeah", "Looks like it's on")
-               - Transcript metadata (e.g., "This editable transcript was computer generated")
+               - Simple conversation fillers (e.g., "Mhm", "Yeah")
+               - Transcript metadata
                - Interviewer questions (focus on interviewee responses)
                - Generic greetings and farewells with no sentiment content
             7. Prioritize meaningful, complete statements that express clear opinions or experiences
             
             FORMAT YOUR RESPONSE AS JSON:
-            {{
-              "sentimentOverview": {{
+            {
+              "sentimentOverview": {
                 "positive": 0.XX, // percentage as decimal (0.0-1.0)
                 "neutral": 0.XX,  // percentage as decimal (0.0-1.0)
                 "negative": 0.XX  // percentage as decimal (0.0-1.0)
-              }},
+              },
               "sentiment": [
-                {{
+                {
                   "text": "Statement text",
                   "score": 0.XX  // sentiment score between -1.0 and 1.0
-                }},
+                },
                 // additional sentiment items
               ],
-              "supporting_statements": {{
+              "supporting_statements": {
                 "positive": [
                   "direct positive quote 1", 
                   "direct positive quote 2",
@@ -1393,8 +1428,8 @@ class GeminiService:
                   "direct negative quote 2",
                   // Include up to 15-20 negative statements
                 ]
-              }}
-            }}
+              }
+            }
             
             Make sure your response contains ONLY valid JSON without any explanation text.
             """
@@ -1411,6 +1446,9 @@ class GeminiService:
                 
                 # Parse the JSON result
                 result = self._parse_json_response(content)
+                
+                # Add the detected industry to the result
+                result['industry'] = industry
                 
                 # Validate the sentiment data
                 if not isinstance(result, dict):
@@ -1506,11 +1544,38 @@ class GeminiService:
                         if 'negative' not in result['sentimentStatements']:
                             result['sentimentStatements']['negative'] = []
                 
+                # Check if result has raw sentiment object
+                if 'sentiment' in result:
+                    # Ensure supporting_statements exists and is properly formatted in sentiment object
+                    if isinstance(result['sentiment'], dict) and 'supporting_statements' not in result['sentiment']:
+                        self.logger.info("Adding supporting_statements to sentiment object")
+                        result['sentiment']['supporting_statements'] = result.get('supporting_statements', {
+                            "positive": [],
+                            "neutral": [],
+                            "negative": []
+                        })
+                else:
+                    # Create sentiment object if not present
+                    self.logger.info("Creating sentiment object from sentimentOverview and supporting_statements")
+                    result['sentiment'] = {
+                        "overall": 0.5,  # Default neutral
+                        "breakdown": result.get('sentimentOverview', {
+                            "positive": 0.33,
+                            "neutral": 0.34,
+                            "negative": 0.33
+                        }),
+                        "supporting_statements": result.get('supporting_statements', {
+                            "positive": [],
+                            "neutral": [],
+                            "negative": []
+                        })
+                    }
+                
                 # Log the sentiment results
                 self.logger.info(f"Sentiment analysis complete. Overview: {result['sentimentOverview']}")
-                self.logger.info(f"Supporting statements: positive={len(result['sentimentStatements']['positive'])}, " +
-                               f"neutral={len(result['sentimentStatements']['neutral'])}, " +
-                               f"negative={len(result['sentimentStatements']['negative'])}")
+                self.logger.info(f"Supporting statements: positive={len(result.get('sentimentStatements', {}).get('positive', []))}, " +
+                               f"neutral={len(result.get('sentimentStatements', {}).get('neutral', []))}, " +
+                               f"negative={len(result.get('sentimentStatements', {}).get('negative', []))}")
                 
                 return result
                 
@@ -1518,6 +1583,7 @@ class GeminiService:
                 self.logger.error(f"Error parsing sentiment analysis result: {str(e)}")
                 # Return a default structure on error
                 return {
+                    "industry": industry,
                     "sentimentOverview": {
                         "positive": 0.33,
                         "neutral": 0.34,
@@ -1541,6 +1607,7 @@ class GeminiService:
             self.logger.error(f"Error in sentiment analysis: {str(e)}")
             return {
                 "error": f"Sentiment analysis error: {str(e)}",
+                "industry": kwargs.get('industry', 'unknown'),
                 "sentimentOverview": {
                     "positive": 0.33,
                     "neutral": 0.34,
@@ -1557,3 +1624,119 @@ class GeminiService:
                     "negative": []
                 }
             }
+            
+    def _get_industry_specific_guidance(self, industry: str) -> str:
+        """
+        Get industry-specific guidance for sentiment analysis.
+        
+        Args:
+            industry: The industry context for the analysis.
+            
+        Returns:
+            String containing guidance specific to the given industry.
+        """
+        industry_guidance = {
+            "healthcare": """
+                HEALTHCARE-SPECIFIC GUIDELINES:
+                - Neutral terms include: "HIPAA compliance", "patient intake", "treatment protocol"
+                - Positive indicators include: improved patient outcomes, reduced errors, enhanced care coordination
+                - Negative indicators include: staffing challenges, regulatory burdens, patient safety concerns
+                - Consider medical terminology as neutral unless clearly associated with sentiment
+            """,
+            
+            "tech": """
+                TECHNOLOGY-SPECIFIC GUIDELINES:
+                - Neutral terms include: "CI/CD pipeline", "code review", "sprints"
+                - Positive indicators include: increased performance, reduced bugs, improved developer experience
+                - Negative indicators include: technical debt, integration challenges, legacy system limitations
+                - Technical terminology is generally neutral unless attached to outcomes or obstacles
+            """,
+            
+            "finance": """
+                FINANCE-SPECIFIC GUIDELINES:
+                - Neutral terms include: "compliance review", "transaction verification", "quarterly reporting"
+                - Positive indicators include: improved accuracy, fraud reduction, process automation benefits
+                - Negative indicators include: regulatory burden, system integration issues, customer friction points
+                - Financial terminology should be treated as neutral process language
+            """,
+            
+            "military": """
+                MILITARY-SPECIFIC GUIDELINES:
+                - Neutral terms include: "chain of command", "standard operating procedure", "mission briefing"
+                - Positive indicators include: improved safety, enhanced equipment effectiveness, better coordination
+                - Negative indicators include: equipment failures, logistics challenges, operational risks
+                - Military jargon and process descriptions should be considered neutral
+            """,
+            
+            "education": """
+                EDUCATION-SPECIFIC GUIDELINES:
+                - Neutral terms include: "curriculum review", "assessment schedule", "learning objectives"
+                - Positive indicators include: improved student outcomes, teacher satisfaction, resource availability
+                - Negative indicators include: funding limitations, administrative burdens, resource constraints
+                - Educational terminology and process descriptions are neutral by default
+            """,
+            
+            "hospitality": """
+                HOSPITALITY-SPECIFIC GUIDELINES:
+                - Neutral terms include: "guest check-in", "housekeeping protocol", "reservation system"
+                - Positive indicators include: guest satisfaction, service efficiency, staff performance
+                - Negative indicators include: service delays, maintenance issues, staffing shortages
+                - Operational process descriptions should be treated as neutral
+            """,
+            
+            "retail": """
+                RETAIL-SPECIFIC GUIDELINES:
+                - Neutral terms include: "inventory management", "POS system", "merchandising"
+                - Positive indicators include: sales increases, customer loyalty, operational efficiency
+                - Negative indicators include: stockouts, high return rates, customer complaints
+                - Retail operations terminology should be treated as neutral
+            """,
+            
+            "manufacturing": """
+                MANUFACTURING-SPECIFIC GUIDELINES:
+                - Neutral terms include: "quality control", "production line", "supply chain"
+                - Positive indicators include: efficiency gains, quality improvements, reduced downtime
+                - Negative indicators include: equipment failures, production delays, quality issues
+                - Manufacturing process terminology should be considered neutral
+            """,
+            
+            "legal": """
+                LEGAL-SPECIFIC GUIDELINES:
+                - Neutral terms include: "discovery process", "case management", "filing procedure"
+                - Positive indicators include: case resolution success, efficiency improvements, client satisfaction
+                - Negative indicators include: procedural delays, work-life balance issues, administrative burdens
+                - Legal terminology and procedural descriptions are neutral by default
+            """,
+            
+            "insurance": """
+                INSURANCE-SPECIFIC GUIDELINES:
+                - Neutral terms include: "policy underwriting", "claims processing", "risk assessment"
+                - Positive indicators include: faster claims settlement, improved customer satisfaction, better risk modeling
+                - Negative indicators include: claim denials, policy misunderstandings, processing delays
+                - Insurance terminology and process descriptions should be treated as neutral
+            """,
+            
+            "agriculture": """
+                AGRICULTURE-SPECIFIC GUIDELINES:
+                - Neutral terms include: "crop rotation", "irrigation scheduling", "pest management"
+                - Positive indicators include: yield improvements, resource efficiency, successful harvests
+                - Negative indicators include: weather challenges, equipment failures, labor shortages
+                - Agricultural terminology and seasonal descriptions are neutral by default
+            """,
+            
+            "non_profit": """
+                NON-PROFIT-SPECIFIC GUIDELINES:
+                - Neutral terms include: "donor management", "grant application", "program evaluation"
+                - Positive indicators include: mission impact, successful fundraising, volunteer engagement
+                - Negative indicators include: funding challenges, administrative burdens, resource limitations
+                - Mission-related terminology should be treated as neutral unless clearly tied to outcomes
+            """
+        }
+        
+        # Return industry-specific guidance or general guidance if industry not found
+        return industry_guidance.get(industry, """
+            GENERAL GUIDELINES:
+            - Consider industry-specific terminology as neutral unless clearly tied to outcomes or challenges
+            - Focus on emotional indicators and expressions of satisfaction/dissatisfaction
+            - Distinguish between process descriptions (neutral) and process challenges (negative)
+        """)

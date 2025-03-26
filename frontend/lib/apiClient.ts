@@ -433,11 +433,11 @@ class ApiClient {
         
         // Initialize with empty arrays if needed
         if (!results.sentimentStatements) {
-          results.sentimentStatements = {
-            positive: [],
-            neutral: [],
-            negative: []
-          };
+        results.sentimentStatements = {
+          positive: [],
+          neutral: [],
+          negative: []
+        };
         }
         
         // Ensure all arrays exist
@@ -528,9 +528,9 @@ class ApiClient {
         
         // Log combined results
         console.log('Combined sentiment statements:', {
-          positive: results.sentimentStatements.positive.length,
-          neutral: results.sentimentStatements.neutral.length,
-          negative: results.sentimentStatements.negative.length
+            positive: results.sentimentStatements.positive.length,
+            neutral: results.sentimentStatements.neutral.length,
+            negative: results.sentimentStatements.negative.length
         });
       } else {
         if (process.env.NODE_ENV === 'development') {

@@ -25,6 +25,7 @@ interface SentimentGraphProps {
     positive: string[];
     neutral: string[];
     negative: string[];
+    industry?: string;
   };
   /** The height of the chart (default: 400) */
   height?: number;
@@ -36,6 +37,8 @@ interface SentimentGraphProps {
   showStatements?: boolean;
   /** Alternative prop name for data to match VisualizationTabs component */
   sentimentData?: SentimentOverview;
+  /** Industry context detected for the analysis */
+  industry?: string;
 }
 
 /**
@@ -69,9 +72,13 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   showStatements = true,
   className,
   sentimentData,
+  industry,
 }) => {
   // Use sentimentData prop if provided, otherwise fall back to data prop
   const actualData = sentimentData || data;
+  
+  // Get industry from props or from supporting statements
+  const detectedIndustry = industry || supportingStatements?.industry;
   
   // Validate and normalize sentiment data
   const sentimentValues = useMemo(() => {
@@ -424,6 +431,17 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
 
   return (
     <div className={className}>
+      {detectedIndustry && (
+        <div className="mb-4 flex justify-center">
+          <span className="inline-flex items-center rounded-md bg-blue-100 px-3 py-1.5 text-sm font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Industry Context: {detectedIndustry.charAt(0).toUpperCase() + detectedIndustry.slice(1)}
+          </span>
+        </div>
+      )}
+      
       <div className="flex flex-col md:flex-row items-center justify-between">
         <div className="w-full md:w-1/2">
           <ResponsiveContainer height={height}>
