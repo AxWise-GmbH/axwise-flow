@@ -268,31 +268,6 @@ export default function VisualizationTabsRefactored({
                   (analysis.sentiment && analysis.sentiment.sentimentStatements) || 
                   "MISSING")}
                 
-                {/* Add debugging button to manually check data structure */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="mb-4 p-2 border border-blue-200 rounded-md bg-blue-50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-blue-700">Developer Debug</span>
-                      <button 
-                        onClick={() => {
-                          console.log("Full analysis object:", analysis);
-                          console.log("Results property:", analysis.results);
-                          console.log("Sentiment object:", analysis.sentiment);
-                          console.log("SentimentStatements:", 
-                            analysis.sentimentStatements || 
-                            (analysis.sentiment && analysis.sentiment.sentimentStatements) ||
-                            (analysis.results && analysis.results.sentimentStatements) ||
-                            "Not found in any expected location"
-                          );
-                        }}
-                        className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded-md"
-                      >
-                        Log Sentiment Data
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
                 {analysis.sentiment && (
                   <SentimentGraph 
                     data={analysis.sentiment.sentimentOverview || analysis.sentimentOverview} 
