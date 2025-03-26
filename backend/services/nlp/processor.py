@@ -216,18 +216,26 @@ class NLPProcessor:
                     'text': answer_only_text,  # Use answer-only text for themes
                     'use_answer_only': True  # Flag to indicate answer-only processing
                 })
+            
+            # Get themes first so we can use them for sentiment analysis
+            themes_result = await themes_task
+            
+            # Run pattern recognition and sentiment analysis with theme data
             patterns_task = llm_service.analyze({
                 'task': 'pattern_recognition',
                 'text': combined_text
             })
+            
+            # Pass themes to sentiment analysis to leverage their statements if needed
             sentiment_task = llm_service.analyze({
                 'task': 'sentiment_analysis',
-                'text': self._preprocess_transcript_for_sentiment(combined_text)
+                'text': self._preprocess_transcript_for_sentiment(combined_text),
+                'themes': themes_result.get('themes', [])
             })
             
-            # Wait for all parallel tasks to complete
-            themes_result, patterns_result, sentiment_result = await asyncio.gather(
-                themes_task, patterns_task, sentiment_task
+            # Wait for remaining tasks to complete
+            patterns_result, sentiment_result = await asyncio.gather(
+                patterns_task, sentiment_task
             )
             
             parallel_duration = asyncio.get_event_loop().time() - start_time
@@ -548,7 +556,19 @@ class NLPProcessor:
                 return {'positive': [], 'neutral': [], 'negative': []}
             
             # Extract statements - handle different response formats safely
-            if 'positive' in sentiment_result and 'negative' in sentiment_result:
+            if 'sentimentStatements' in sentiment_result:
+                # Preferred format (direct statements)
+                statements = sentiment_result.get('sentimentStatements', {})
+                positive = statements.get('positive', [])
+                neutral = statements.get('neutral', [])
+                negative = statements.get('negative', [])
+            elif 'supporting_statements' in sentiment_result:
+                # Alternative format
+                statements = sentiment_result.get('supporting_statements', {})
+                positive = statements.get('positive', [])
+                neutral = statements.get('neutral', [])
+                negative = statements.get('negative', [])
+            elif 'positive' in sentiment_result and 'negative' in sentiment_result:
                 # Direct format
                 positive = sentiment_result.get('positive', [])
                 neutral = sentiment_result.get('neutral', [])
@@ -556,9 +576,15 @@ class NLPProcessor:
             elif 'sentiment' in sentiment_result and isinstance(sentiment_result['sentiment'], dict):
                 # Nested format
                 sentiment_data = sentiment_result['sentiment']
-                positive = sentiment_data.get('positive', [])
-                neutral = sentiment_data.get('neutral', [])
-                negative = sentiment_data.get('negative', [])
+                if 'supporting_statements' in sentiment_data:
+                    statements = sentiment_data.get('supporting_statements', {})
+                    positive = statements.get('positive', [])
+                    neutral = statements.get('neutral', [])
+                    negative = statements.get('negative', [])
+                else:
+                    positive = sentiment_data.get('positive', [])
+                    neutral = sentiment_data.get('neutral', [])
+                    negative = sentiment_data.get('negative', [])
             else:
                 # Unknown format - log and use empty lists
                 logger.warning(f"Unknown sentiment result format: {type(sentiment_result)}")
@@ -576,6 +602,35 @@ class NLPProcessor:
             if not isinstance(negative, list):
                 logger.warning(f"Negative sentiment is not a list: {type(negative)}")
                 negative = []
+            
+            # Extract from themes if available and needed
+            if (len(positive) < 5 or len(neutral) < 5 or len(negative) < 5) and 'themes' in sentiment_result:
+                logger.info("Extracting additional sentiment statements from themes")
+                themes = sentiment_result.get('themes', [])
+                
+                # Collect statements from themes based on their sentiment scores
+                for theme in themes:
+                    statements = theme.get('statements', []) or theme.get('examples', [])
+                    sentiment_score = theme.get('sentiment', 0)
+                    
+                    # Skip themes without statements
+                    if not statements:
+                        continue
+                        
+                    # Add statements to the appropriate category based on theme sentiment
+                    for statement in statements:
+                        if isinstance(statement, str) and statement.strip():
+                            if sentiment_score > 0.2 and len(positive) < 15:  # Positive theme
+                                if statement not in positive:
+                                    positive.append(statement)
+                            elif sentiment_score < -0.2 and len(negative) < 15:  # Negative theme
+                                if statement not in negative:
+                                    negative.append(statement)
+                            elif len(neutral) < 15:  # Neutral theme
+                                if statement not in neutral:
+                                    neutral.append(statement)
+                
+                logger.info(f"After theme extraction - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}")
             
             # Filter out low-quality statements
             def filter_low_quality(statements):

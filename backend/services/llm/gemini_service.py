@@ -304,13 +304,65 @@ class GeminiService:
                             transformed['sentimentStatements'] = statements
                             logger.info("Successfully extracted statements through deeper inspection")
                         else:
-                            # Last resort - create empty structure
-                            logger.warning("No statements found through any method, using empty structure")
+                            # Last resort - extract statements from contextual data if provided
+                            logger.warning("No statements found through direct methods, will rely on extraction from themes during post-processing")
                             transformed['sentimentStatements'] = {
                                 'positive': [],
                                 'neutral': [],
                                 'negative': []
                             }
+                            # Note: The ResultsService._extract_sentiment_statements_from_data method 
+                            # will extract statements from themes if none are found here
+                
+                # Check if we need to enhance the sentiment statements based on theme data provided in the request
+                # This allows us to leverage the high-quality sentiment data already present in themes
+                if data.get('themes') and (
+                    len(transformed.get('sentimentStatements', {}).get('positive', [])) < 5 or
+                    len(transformed.get('sentimentStatements', {}).get('neutral', [])) < 5 or
+                    len(transformed.get('sentimentStatements', {}).get('negative', [])) < 5
+                ):
+                    logger.info("Enhancing sentiment statements with theme data")
+                    themes = data.get('themes', [])
+                    
+                    # Extract statements from themes based on sentiment scores
+                    theme_sentiment_statements = {
+                        'positive': [],
+                        'neutral': [],
+                        'negative': []
+                    }
+                    
+                    for theme in themes:
+                        statements = theme.get('statements', []) or theme.get('examples', [])
+                        sentiment_score = theme.get('sentiment', 0)
+                        
+                        # Skip themes without statements
+                        if not statements:
+                            continue
+                            
+                        # Classify statements based on theme sentiment
+                        for statement in statements:
+                            if sentiment_score > 0.2:  # Positive theme
+                                theme_sentiment_statements['positive'].append(statement)
+                            elif sentiment_score < -0.2:  # Negative theme
+                                theme_sentiment_statements['negative'].append(statement)
+                            else:  # Neutral theme
+                                theme_sentiment_statements['neutral'].append(statement)
+                    
+                    # Merge with existing statements, prioritizing original statements
+                    for category in ['positive', 'neutral', 'negative']:
+                        existing = transformed.get('sentimentStatements', {}).get(category, [])
+                        from_themes = theme_sentiment_statements.get(category, [])
+                        
+                        # Only add unique statements from themes
+                        unique_theme_statements = [s for s in from_themes if s not in existing]
+                        
+                        # Limit to 15 statements per category after combining
+                        combined = existing + unique_theme_statements
+                        transformed.setdefault('sentimentStatements', {})[category] = combined[:15]
+                    
+                    logger.info(f"After enhancement - positive: {len(transformed['sentimentStatements']['positive'])}, " +
+                              f"neutral: {len(transformed['sentimentStatements']['neutral'])}, " +
+                              f"negative: {len(transformed['sentimentStatements']['negative'])}")
                 
                 result = transformed
             
@@ -1051,14 +1103,19 @@ class GeminiService:
             'text': combined_text
         })
         
+        # First get themes so we can use them for sentiment analysis if needed
+        theme_result = await theme_task
+        
+        # Then run sentiment analysis with themes available for context
         sentiment_task = self.analyze({
             'task': 'sentiment_analysis',
-            'text': combined_text
+            'text': combined_text,
+            'themes': theme_result.get('themes', [])  # Pass themes for sentiment statements enhancement
         })
         
-        # Wait for all tasks to complete
-        theme_result, pattern_result, sentiment_result = await asyncio.gather(
-            theme_task, pattern_task, sentiment_task
+        # Wait for remaining tasks to complete
+        pattern_result, sentiment_result = await asyncio.gather(
+            pattern_task, sentiment_task
         )
         
         # Generate insights based on the analysis results
