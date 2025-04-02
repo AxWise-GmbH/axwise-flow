@@ -83,9 +83,6 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
    timeSeriesData = [], // Destructure with default value
   themes = [],
 }) => {
-  // DEBUG LOG: Check received props
-  console.log('[SentimentGraph] Props received:', { data, supportingStatements, sentimentData, industry, timeSeriesData, themes });
-
   // Use sentimentData prop if provided, otherwise fall back to data prop
   const actualData = sentimentData || data;
   
@@ -137,9 +134,6 @@ export const SentimentGraph: React.FC<SentimentGraphProps> = ({
   const barData = useMemo(() => [
     { name: 'Sentiment Distribution', positive: positivePercent, neutral: neutralPercent, negative: negativePercent }
   ], [positivePercent, neutralPercent, negativePercent]);
-  // DEBUG LOG: Check formatted bar data
-  console.log('[SentimentGraph] Formatted barData:', barData);
-
 
   // Group statements by topic if themes are available
   const topicGroupedStatements = useMemo(() => {

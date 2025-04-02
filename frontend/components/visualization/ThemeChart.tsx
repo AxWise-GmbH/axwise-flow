@@ -13,7 +13,7 @@
  * If using UnifiedVisualization in the future, modify this component to accept a `showKeyInsights` prop.
  */
 
-import React, { useState, useMemo, useEffect } from 'react'; // Add useEffect
+import React, { useState, useMemo } from 'react';
 import { AnalyzedTheme } from '@/types/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,6 @@ interface ThemeChartProps {
 export function ThemeChart({ themes }: ThemeChartProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<AnalyzedTheme | null>(null);
-  const [isMounted, setIsMounted] = useState(false); // Add mounted state
 
   // Debug: Log themes data to console
   console.log('ThemeChart received themes:', themes);
@@ -46,11 +45,6 @@ export function ThemeChart({ themes }: ThemeChartProps) {
     } : 'No themes available');
 
   // Filter themes based on search term
-  // Set mounted state after initial render
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   const filteredThemes = themes.filter(theme => 
     theme.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (theme.keywords && theme.keywords.some((keyword: string) => 
@@ -227,19 +221,12 @@ export function ThemeChart({ themes }: ThemeChartProps) {
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="w-full sm:w-64">
-          {/* Conditionally render the Input only when mounted */}
-          {isMounted ? (
-            <Input
-              placeholder="Search themes or keywords..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-              // No need for suppressHydrationWarning here
-            />
-          ) : (
-            // Optional: Render a placeholder or skeleton while not mounted
-            <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-          )}
+          <Input
+            placeholder="Search themes or keywords..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
           {searchTerm && (
             <p className="text-xs text-muted-foreground mt-1">
               Showing {filteredThemes.length} of {themes.length} themes
@@ -260,7 +247,7 @@ export function ThemeChart({ themes }: ThemeChartProps) {
           {sortedThemes.length > 0 ? (
             <Accordion type="multiple" className="w-full">
               {sortedThemes.map((theme) => (
-                <AccordionItem key={theme.id} value={`theme-${theme.id}`}>
+                <AccordionItem key={`theme-${theme.id || theme.name}`} value={`theme-${theme.id || theme.name}`}>
                   <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center justify-between w-full pr-4">
                       <span className="font-medium text-left flex items-center">

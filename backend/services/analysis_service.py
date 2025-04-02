@@ -266,20 +266,6 @@ class AnalysisService:
             
             # Update database record with results (but not status yet)
             logger.info(f"Analysis pipeline finished for result_id: {result_id}. Saving results...")
-            # Add Logging: Confirm structure before saving
-            logger.info(f"[_process_data_task] Final result structure before saving (keys): {list(result.keys())}")
-            # Log sentimentStatements specifically
-            if 'sentimentStatements' in result:
-                 logger.info(f"[_process_data_task] sentimentStatements content before saving: positive={len(result['sentimentStatements'].get('positive',[]))}, neutral={len(result['sentimentStatements'].get('neutral',[]))}, negative={len(result['sentimentStatements'].get('negative',[]))}")
-            else:
-                 logger.warning("[_process_data_task] sentimentStatements key MISSING before saving!")
-            # Log sentimentOverview as well
-            if 'sentimentOverview' in result:
-                 logger.info(f"[_process_data_task] sentimentOverview content before saving: {result['sentimentOverview']}")
-            else:
-                 logger.warning("[_process_data_task] sentimentOverview key MISSING before saving!")
-
-            # --- The saving logic ---
             task_result.results = json.dumps(result)
             task_result.completed_at = datetime.utcnow()
             

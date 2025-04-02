@@ -1,27 +1,34 @@
-// File: frontend/components/upload/EmergencyUploadPanel.tsx
 'use client';
 
-import React, { useRef, useState, useCallback, useEffect } from 'react'; // Ensure useRef is imported
+import React, { useRef, useState, useCallback, useEffect } from 'react'; // Removed unused useTransition
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
-import { AlertCircle, FileUp, FileText, FilePen, X } from 'lucide-react';
+import { AlertCircle, FileUp, FileText, FilePen, X } from 'lucide-react'; // Removed unused CheckCircle2
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { UploadResponse, DetailedAnalysisResult } from '@/types/api';
+import type { UploadResponse } from '@/types/api';
 import { uploadAction, analyzeAction, getRedirectUrl } from '@/app/actions';
 import { apiClient } from '@/lib/apiClient';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
 
+/**
+ * Emergency UploadPanel Component - Refactored for Server Actions
+ * 
+ * This component uses React's useState for local state management with
+ * Next.js server actions for form submission, eliminating Zustand dependency.
+ */
 export default function EmergencyUploadPanel() {
   const router = useRouter();
   const { toast } = useToast();
+  // const [isPending, startTransition] = useTransition(); // Removed unused variables
+  
+  // Reference to file input
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMounted = useRef(true); // Moved useRef to top level
-
+  
   // Local state
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
@@ -29,33 +36,23 @@ export default function EmergencyUploadPanel() {
   const [isTextFile, setIsTextFile] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false); // Tracks if analysis *or* polling is active
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<Error | null>(null);
   const [analysisError, setAnalysisError] = useState<Error | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [pollingActive, setPollingActive] = useState<boolean>(false);
-  const [pollAttempts, setPollAttempts] = useState(0);
-  const MAX_POLL_ATTEMPTS = 20;
-  const POLLING_INTERVAL = 3000;
-  const [llmProvider, setLlmProvider] = useState<'openai' | 'gemini'>('gemini');
-
-  // Effect to track mount status
-  useEffect(() => {
-    isMounted.current = true;
-    // Cleanup function to set isMounted to false when component unmounts
-    return () => {
-      isMounted.current = false;
-    };
-  }, []); // Empty dependency array ensures this runs only on mount and unmount
-
-
+  
   // Effect to get and set auth token in cookie
   useEffect(() => {
     const storeAuthToken = async () => {
       try {
+        // This uses the apiClient's method to get a token from Clerk
         const token = await apiClient.getAuthToken();
+        
         if (token) {
+          // Store token in a cookie for server actions
           document.cookie = `auth_token=${token}; path=/; max-age=3600; SameSite=Strict`;
           console.log('Auth token stored in cookie for server actions');
         } else {
@@ -65,151 +62,76 @@ export default function EmergencyUploadPanel() {
         console.error('Error storing auth token:', error);
       }
     };
+    
     storeAuthToken();
   }, []);
-
+  
   // Effect to poll for analysis completion
   useEffect(() => {
-    let pollTimeoutId: NodeJS.Timeout | null = null;
-
-    const stopPolling = () => {
-      if (pollTimeoutId) {
-        clearTimeout(pollTimeoutId);
-        pollTimeoutId = null;
-        console.log("[Polling] Polling timer cleared.");
-      }
-    };
-
-    const pollStatus = async () => {
-      // Stop conditions
-      if (!resultId || !pollingActive || pollAttempts >= MAX_POLL_ATTEMPTS || !isMounted.current) {
-        if (pollAttempts >= MAX_POLL_ATTEMPTS && pollingActive) { // Check pollingActive to avoid duplicate toasts
-          console.error(`Polling timed out after ${MAX_POLL_ATTEMPTS} attempts for result ID: ${resultId}.`);
-          setAnalysisError(new Error('Analysis took too long to complete. Please check history later.'));
-          setPollingActive(false);
-          setIsAnalyzing(false); // Stop overall analyzing state
-          setAnalysisProgress(0); // Reset progress on timeout
-          toast({
-            title: "Analysis Timeout",
-            description: "Analysis is taking longer than expected. Please check the history tab later.",
-            variant: "destructive",
-          });
-        }
-        stopPolling(); // Ensure timer is cleared if conditions not met
-        return;
-      }
-
-      // Increment attempts immediately before the API call
-      const currentAttempt = pollAttempts + 1;
-      setPollAttempts(currentAttempt); // Update state for next potential run
-
-      try {
-        console.log(`[Polling Attempt ${currentAttempt}/${MAX_POLL_ATTEMPTS}] Checking analysis ID: ${resultId}`);
-        // Poll the full results endpoint
-        const analysisResult: DetailedAnalysisResult | null = await apiClient.getAnalysisById(resultId);
-
-        // Check if polling should continue (component might have unmounted or polling stopped)
-        if (!pollingActive || !isMounted.current) {
-             console.log("[Polling] Polling stopped or component unmounted during fetch.");
-             stopPolling();
-             return;
-        }
-
-        if (analysisResult) {
-          console.log(`[Polling] Received status: ${analysisResult.status}`);
-          // Check for completion AND presence of essential data
-          const isDataReady = analysisResult.themes && analysisResult.themes.length > 0;
-
-          if (analysisResult.status === 'completed' && isDataReady) {
-            console.log(`[Polling] Analysis ${resultId} completed and data is ready.`);
-            stopPolling(); // Stop polling on success
+    let pollInterval: NodeJS.Timeout | null = null;
+    
+    if (pollingActive && resultId) {
+      // Increase the progress bar during polling to provide visual feedback
+      const progressIncrement = setInterval(() => {
+        setAnalysisProgress(prev => {
+          // Cap at 95% until we confirm completion
+          const next = prev + 5;
+          return next > 95 ? 95 : next;
+        });
+      }, 3000);
+      
+      // Poll for analysis completion every 3 seconds
+      pollInterval = setInterval(async () => {
+        try {
+          const statusResult = await apiClient.checkAnalysisStatus(resultId);
+          
+          console.log(`Poll status for ${resultId}:`, statusResult.status);
+          
+          if (statusResult.status === 'completed') {
+            // Analysis is complete
+            clearInterval(pollInterval!);
+            clearInterval(progressIncrement);
             setPollingActive(false);
-            setIsAnalyzing(false); // Stop overall analyzing state
+            setIsAnalyzing(false);
             setAnalysisProgress(100);
+            
             toast({
               title: "Analysis completed",
               description: "Redirecting to visualization...",
               variant: "default",
             });
+            
+            // Redirect after a short delay to show the 100% progress
             setTimeout(async () => {
-              // Check again if component is still mounted before routing
-              if (isMounted.current) {
-                  const redirectUrl = await getRedirectUrl(resultId);
-                  router.push(redirectUrl);
-              }
+              const redirectUrl = await getRedirectUrl(resultId);
+              router.push(redirectUrl);
             }, 800);
-          } else if (analysisResult.status === 'failed') {
-            console.error(`[Polling] Analysis ${resultId} failed.`);
-            stopPolling(); // Stop polling on failure
+          } else if (statusResult.status === 'failed') {
+            // Analysis failed
+            clearInterval(pollInterval!);
+            clearInterval(progressIncrement);
             setPollingActive(false);
-            setIsAnalyzing(false); // Stop overall analyzing state
+            setIsAnalyzing(false);
             setAnalysisProgress(0);
-            setAnalysisError(new Error(analysisResult.error || 'Analysis failed during processing'));
+            
+            setAnalysisError(new Error('Analysis failed during processing'));
             toast({
               title: "Analysis failed",
-              description: analysisResult.error || "Analysis failed during processing",
+              description: "Analysis failed during processing",
               variant: "destructive",
             });
-          } else {
-            // Still processing or data not ready, update progress visually
-            setAnalysisProgress(prev => Math.min(prev + 5, 95)); // Increment progress visually
-            // Schedule next poll only if still active
-            if (pollingActive && isMounted.current) {
-                pollTimeoutId = setTimeout(pollStatus, POLLING_INTERVAL);
-            } else {
-                stopPolling();
-            }
           }
-        } else {
-           // Result was null, likely still processing or temporary error
-           console.warn(`[Polling] getAnalysisById returned null for ${resultId}. Continuing poll.`);
-           // Schedule next poll only if still active
-           if (pollingActive && isMounted.current) {
-               pollTimeoutId = setTimeout(pollStatus, POLLING_INTERVAL);
-           } else {
-               stopPolling();
-           }
+        } catch (error) {
+          console.error('Error polling for analysis status:', error);
         }
-      } catch (error) {
-        console.error(`[Polling] Error polling status for ${resultId}:`, error);
-        // Optional: Implement retry logic for polling errors or stop polling
-        // For now, continue polling up to max attempts
-        if (currentAttempt < MAX_POLL_ATTEMPTS && pollingActive && isMounted.current) { // Use currentAttempt for check
-            pollTimeoutId = setTimeout(pollStatus, POLLING_INTERVAL);
-        } else if (pollingActive) { // Only show error if polling was still supposed to be active
-            // Handle final polling error after max attempts
-            stopPolling(); // Stop polling on final error
-            setAnalysisError(new Error('Failed to get analysis status after multiple attempts.'));
-            setPollingActive(false);
-            setIsAnalyzing(false); // Stop overall analyzing state
-            toast({
-                title: "Status Check Failed",
-                description: "Could not confirm analysis status. Please check history.",
-                variant: "destructive",
-            });
-        } else {
-            stopPolling(); // Ensure stopped if pollingActive became false during error handling
-        }
-      }
-    };
-
-    if (pollingActive && resultId) {
-      // Reset attempts only when polling becomes active for a *new* ID or explicitly restarted
-      // This check prevents resetting attempts on every render while polling is active
-      if (pollAttempts === 0) {
-          console.log("[Polling] Starting polling sequence...");
-          pollStatus(); // Start the first poll
-      }
-    } else {
-        stopPolling(); // Ensure polling stops if pollingActive becomes false or resultId is null
+      }, 3000);
     }
-
-    // Cleanup function for this useEffect
+    
     return () => {
-      stopPolling(); // Clear timeout on effect cleanup
+      if (pollInterval) clearInterval(pollInterval);
     };
-  }, [pollingActive, resultId, router, toast, pollAttempts]); // Keep pollAttempts dependency
-
+  }, [pollingActive, resultId, router, toast]);
+  
   // Handle file selection
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -218,105 +140,154 @@ export default function EmergencyUploadPanel() {
       setFileName(file.name);
       setFileSize(file.size);
       setIsTextFile(file.type.includes('text') || file.name.endsWith('.txt'));
+      
+      // Reset states when file changes
       setUploadProgress(0);
       setResultId(null);
       setUploadError(null);
       setAnalysisError(null);
-      setPollingActive(false);
-      setPollAttempts(0);
-      setIsAnalyzing(false);
-      setAnalysisProgress(0);
     }
   }, []);
-
-  // Handle file upload and analysis trigger
-  const handleUploadAndAnalyze = useCallback(async (e: React.FormEvent) => {
+  
+  // Handle file upload using server action
+  const handleUpload = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
       setUploadError(new Error('Please select a file to upload'));
-      toast({ title: "Upload failed", description: "Please select a file to upload", variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
       return;
     }
+    
     setIsUploading(true);
-    setIsAnalyzing(true); // Set analyzing state immediately for combined action
     setUploadError(null);
-    setAnalysisError(null);
-    setPollingActive(false);
-    setPollAttempts(0);
-    setAnalysisProgress(0); // Reset progress
     setUploadProgress(10);
-    setResultId(null); // Clear previous result ID
-
-    let currentDataId: number | null = null; // To track which phase the error occurred in
-
+    
     try {
-      // 1. Upload
-      console.log("Starting upload...");
+      console.log('Starting upload with server action...');
+      
+      // Store auth token in cookie for server action
       const authToken = await apiClient.getAuthToken();
-      if (authToken) setCookie('auth-token', authToken);
+      if (authToken) {
+        setCookie('auth-token', authToken);
+      }
+
+      // Create form data for server action
       const formData = new FormData();
       formData.append('file', file);
       formData.append('isTextFile', String(isTextFile));
-      const uploadResult = await uploadAction(formData);
-
-      if (!uploadResult.success) {
-        // Use type guard to access error property safely
-        const errorMessage = 'error' in uploadResult ? uploadResult.error : 'Upload failed';
-        throw new Error(errorMessage); // Throw error to be caught below
+      
+      // Call the server action
+      const result = await uploadAction(formData);
+      
+      if (result.success && result.uploadResponse) {
+        setUploadProgress(100);
+        setUploadResponse(result.uploadResponse);
+        toast({
+          title: "Upload successful",
+          description: `File ${fileName} uploaded successfully.`,
+          variant: "default",
+        });
+        
+        // Start analysis
+        await handleAnalysis(result.uploadResponse.data_id);
+      } else {
+        // Handle error from server action
+        const errorMessage = result.error || 'Upload failed';
+        setUploadError(new Error(errorMessage));
+        toast({
+          title: "Upload failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-
-      setUploadProgress(100);
-      currentDataId = uploadResult.uploadResponse.data_id; // Store dataId after successful upload
-      toast({ title: "Upload successful", description: `File ${fileName} uploaded. Starting analysis...`, variant: "default" });
-      setIsUploading(false); // Upload finished
-
-      // 2. Analyze (immediately after successful upload)
-      console.log(`Starting analysis for data ID: ${currentDataId}...`);
-      setAnalysisProgress(10); // Show analysis starting progress
-      const analysisActionResult = await analyzeAction(currentDataId, isTextFile, llmProvider);
-
-      if (!analysisActionResult.success) {
-         // Use type guard
-         const errorMessage = 'error' in analysisActionResult ? analysisActionResult.error : 'Analysis initiation failed';
-         throw new Error(errorMessage); // Throw error to be caught below
-      }
-
-      const analysisId = analysisActionResult.analysisResponse.result_id.toString();
-      setResultId(analysisId);
-      setPollAttempts(0); // Reset poll attempts for the new analysis
-      setPollingActive(true); // Start polling
-      setAnalysisProgress(30); // Show initial analysis progress
-      toast({
-        title: "Analysis started",
-        description: "Analysis processing initiated. This may take a few moments...",
-        variant: "default",
-      });
-      // isAnalyzing remains true while polling
-
     } catch (error) {
-      console.error('Upload & Analyze error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      // Determine if error happened during upload or analysis phase
-      if (currentDataId === null) { // Error happened during upload
-          setUploadError(new Error(errorMessage));
-          toast({ title: "Upload Failed", description: errorMessage, variant: "destructive" });
-      } else { // Error happened during analysis trigger
-          setAnalysisError(new Error(errorMessage));
-          toast({ title: "Analysis Failed", description: errorMessage, variant: "destructive" });
-      }
+      console.error('Upload error:', error);
+      
+      setUploadError(error instanceof Error ? error : new Error('Unknown upload error'));
+      
+      // Show a more user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
+      toast({
+        title: "Upload failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
       setIsUploading(false);
-      setIsAnalyzing(false); // Ensure analyzing state is reset on any error
-      setPollingActive(false);
-      setAnalysisProgress(0);
     }
-  }, [file, isTextFile, toast, apiClient, fileName, llmProvider, router]); // Added dependencies
-
-
+  }, [file, isTextFile, toast, router]);
+  
+  // Handle analysis using server action
+  const handleAnalysis = useCallback(async (dataId: number) => {
+    if (!file) {
+      setAnalysisError(new Error('Please upload a file first'));
+      toast({
+        title: "Analysis failed",
+        description: "Please upload a file first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisProgress(10); // Start progress at 10%
+    
+    try {
+      console.log('Starting analysis with server action...');
+      
+      // Call the analyze action with the isTextFile parameter
+      const result = await analyzeAction(dataId, isTextFile);
+      
+      if (result.success && result.analysisResponse) {
+        const analysisId = result.analysisResponse.result_id.toString();
+        setResultId(analysisId);
+        
+        // Start polling for completion instead of immediate redirect
+        setPollingActive(true);
+        setAnalysisProgress(30); // Set to 30% after initial response
+        
+        toast({
+          title: "Analysis started",
+          description: "Analysis started successfully. This may take a few moments...",
+          variant: "default",
+        });
+      } else {
+        // Handle error from server action
+        const errorMessage = result.error || 'Analysis failed';
+        setAnalysisError(new Error(errorMessage));
+        toast({
+          title: "Analysis failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setIsAnalyzing(false);
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      
+      setAnalysisError(error instanceof Error ? error : new Error('Unknown analysis error'));
+      
+      // Show a more user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown analysis error';
+      toast({
+        title: "Analysis failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      setIsAnalyzing(false);
+    }
+  }, [file, isTextFile, toast]);
+  
   // Trigger file input click
   const handleSelectFileClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
-
+  
   // Handle clear file
   const handleClearFile = useCallback(() => {
     setFile(null);
@@ -326,21 +297,19 @@ export default function EmergencyUploadPanel() {
     setResultId(null);
     setUploadError(null);
     setAnalysisError(null);
-    setIsUploading(false);
-    setIsAnalyzing(false);
-    setPollingActive(false);
-    setPollAttempts(0);
-    setAnalysisProgress(0);
+    
+    // Also clear the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
-
+  
   // Toggle text file setting
   const handleToggleTextFile = useCallback((value: string) => {
-    setIsTextFile(value === 'text');
+    const isText = value === 'text';
+    setIsTextFile(isText);
   }, []);
-
+  
   // Format file size for display
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -355,109 +324,114 @@ export default function EmergencyUploadPanel() {
       <CardHeader>
         <CardTitle>Upload Data for Analysis</CardTitle>
         <CardDescription>
-          Upload a file to analyze with design thinking frameworks. Select the LLM provider below.
+          Upload a file to analyze with design thinking frameworks.
         </CardDescription>
       </CardHeader>
-
+      
       <CardContent>
-        <form onSubmit={handleUploadAndAnalyze} className="space-y-4"> {/* Use form onSubmit */}
-          {/* LLM Provider Selection */}
-           <div className="mb-4">
-             <Label htmlFor="llm-provider" className="mb-2 block">LLM Provider</Label>
-             <RadioGroup
-               defaultValue={llmProvider}
-               onValueChange={(value: 'openai' | 'gemini') => setLlmProvider(value)}
-               className="flex space-x-4"
-               id="llm-provider"
-             >
-               <div className="flex items-center space-x-2">
-                 <RadioGroupItem value="gemini" id="gemini" />
-                 <Label htmlFor="gemini">Gemini</Label>
-               </div>
-               <div className="flex items-center space-x-2">
-                 <RadioGroupItem value="openai" id="openai" />
-                 <Label htmlFor="openai">OpenAI</Label>
-               </div>
-             </RadioGroup>
-           </div>
-
+        <div className="space-y-4">
           {/* File Type Selection */}
           <div className="mb-4">
-             <Label htmlFor="data-type" className="mb-2 block">Data Type</Label>
-             <RadioGroup
-               defaultValue={isTextFile ? 'text' : 'structured'}
-               onValueChange={handleToggleTextFile}
-               className="flex space-x-4"
-               id="data-type"
-             >
-               <div className="flex items-center space-x-2">
-                 <RadioGroupItem value="structured" id="structured" />
-                 <Label htmlFor="structured">Structured Data (CSV, Excel)</Label>
-               </div>
-               <div className="flex items-center space-x-2">
-                 <RadioGroupItem value="text" id="text" />
-                 <Label htmlFor="text">Free Text</Label>
-               </div>
-             </RadioGroup>
-           </div>
-
+            <Label htmlFor="data-type" className="mb-2 block">Data Type</Label>
+            <RadioGroup 
+              defaultValue={isTextFile ? 'text' : 'structured'} 
+              onValueChange={handleToggleTextFile}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="structured" id="structured" />
+                <Label htmlFor="structured">Structured Data (CSV, Excel)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="text" id="text" />
+                <Label htmlFor="text">Free Text</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          
           {/* File Upload Area */}
-          <div
+          <div 
             className="border-2 border-dashed rounded-lg p-6 text-center hover:bg-gray-50 cursor-pointer transition-colors"
             onClick={handleSelectFileClick}
           >
-             <input
-               ref={fileInputRef}
-               type="file"
-               data-testid="file-input"
-               className="hidden"
-               onChange={handleFileChange}
-               accept={isTextFile ? ".txt,.md,.doc,.docx" : ".csv,.xlsx,.xls,.json"}
-             />
-             {!fileName ? (
-               <div className="flex flex-col items-center justify-center text-muted-foreground">
-                 <FileUp className="h-10 w-10 mb-2" />
-                 <p className="text-sm mb-1">Click to upload or drag and drop</p>
-                 <p className="text-xs">
-                   {isTextFile ? "TXT, DOC, DOCX or MD files" : "CSV, XLSX or JSON files"}
-                 </p>
-               </div>
-             ) : (
-               <div className="flex items-center justify-between">
-                 <div className="flex items-center">
-                   {isTextFile ? <FileText className="h-8 w-8 mr-2" /> : <FilePen className="h-8 w-8 mr-2" />}
-                   <div className="text-left">
-                     <p className="text-sm font-medium text-foreground">{fileName}</p>
-                     <p className="text-xs text-muted-foreground">{formatFileSize(fileSize)}</p>
-                   </div>
-                 </div>
-                 <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleClearFile(); }}>
-                   <X className="h-4 w-4" />
-                 </Button>
-               </div>
-             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              data-testid="file-input" // Add test ID
+              className="hidden"
+              onChange={handleFileChange}
+              accept={isTextFile ? ".txt,.md,.doc,.docx" : ".csv,.xlsx,.xls,.json"}
+            />
+            
+            {!fileName ? (
+              <div className="flex flex-col items-center justify-center text-muted-foreground">
+                <FileUp className="h-10 w-10 mb-2" />
+                <p className="text-sm mb-1">Click to upload or drag and drop</p>
+                <p className="text-xs">
+                  {isTextFile ? 
+                    "TXT, DOC, DOCX or MD files" : 
+                    "CSV, XLSX or JSON files"}
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {isTextFile ? <FileText className="h-8 w-8 mr-2" /> : <FilePen className="h-8 w-8 mr-2" />}
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">{fileName}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(fileSize)}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClearFile();
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
-
-          {/* Error messages */}
-          {uploadError && ( <Alert variant="destructive" className="mt-4"><AlertCircle className="h-4 w-4" /><AlertDescription>{uploadError.message}</AlertDescription></Alert> )}
-          {analysisError && ( <Alert variant="destructive" className="mt-4"><AlertCircle className="h-4 w-4" /><AlertDescription>{analysisError.message}</AlertDescription></Alert> )}
-
+          
+          {/* Error message */}
+          {uploadError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {uploadError.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Analysis error message */}
+          {analysisError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {analysisError.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {/* Upload progress */}
           {isUploading && (
-             <div className="mt-4 space-y-2">
-               <div className="flex justify-between text-xs">
-                 <span>Uploading...</span>
-                 <span>Please wait</span>
-               </div>
-               <Progress value={uploadProgress} className="h-2" />
-             </div>
-           )}
-
-          {/* Analysis progress */}
-          {isAnalyzing && !isUploading && ( // Show only after upload completes or if analysis started separately
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-xs">
-                <span>{pollingActive ? `Polling Status (Attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS})...` : 'Analyzing...'}</span>
+                <span>Uploading...</span>
+                <span>Please wait</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+          )}
+          
+          {/* Analysis progress */}
+          {isAnalyzing && (
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span>Analyzing...</span>
                 <span>{analysisProgress < 100 ? 'This may take a moment' : 'Redirecting...'}</span>
               </div>
               <Progress value={analysisProgress} className="h-2" />
@@ -466,27 +440,33 @@ export default function EmergencyUploadPanel() {
               </div>
             </div>
           )}
-
-           {/* Footer Buttons within the form */}
-           <CardFooter className="flex justify-between p-0 pt-4">
-             <Button
-               type="button" // Prevent form submission
-               variant="outline"
-               onClick={handleClearFile}
-               disabled={isUploading || isAnalyzing || !fileName}
-             >
-               Clear
-             </Button>
-             <Button
-               type="submit" // Submit the form
-               disabled={isUploading || isAnalyzing || !fileName}
-             >
-               {isUploading ? 'Uploading...' : (isAnalyzing ? 'Analyzing...' : 'Upload & Analyze')}
-             </Button>
-           </CardFooter>
-        </form> {/* Close form */}
+        </div>
       </CardContent>
-      {/* Footer moved inside the form */}
+      
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline" 
+          onClick={handleClearFile}
+          disabled={isUploading || isAnalyzing || !fileName}
+        >
+          Clear
+        </Button>
+        <div className="space-x-2">
+          <Button
+            variant="secondary"
+            onClick={handleUpload}
+            disabled={isUploading || isAnalyzing || !fileName}
+          >
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </Button>
+          <Button
+            onClick={() => handleAnalysis(uploadResponse?.data_id || 0)}
+            disabled={isUploading || isAnalyzing || !file}
+          >
+            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

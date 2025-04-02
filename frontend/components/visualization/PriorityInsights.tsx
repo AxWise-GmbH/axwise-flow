@@ -1,7 +1,6 @@
-// frontend/components/visualization/PriorityInsights.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PrioritizedInsight, PriorityInsightsResponse } from '@/types/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiClient } from '@/lib/apiClient';
 import { AlertCircle, AlertTriangle, CheckCircle, RefreshCw, WifiOff } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Skeleton } from '@/components/ui/skeleton'; // Assuming this now exists via shadcn
-import { Button } from '@/components/ui/button';
+
+// Simple skeleton component for loading state
+const Skeleton = ({ className }: { className: string }) => (
+  <div className={`animate-pulse bg-slate-200 rounded ${className}`}></div>
+);
 
 // Error types for more semantic error handling
 type ErrorType = 'auth' | 'network' | 'server' | 'notFound' | 'parsing' | 'unknown';
 
-// Enhanced type definitions (Keep these)
+// Enhanced type definitions for pattern and theme original data
 interface PatternOriginal {
   name?: string;
   description?: string;
@@ -25,6 +27,7 @@ interface PatternOriginal {
   evidence?: string[];
   [key: string]: any; // Allow for additional properties
 }
+
 interface ThemeOriginal {
   name?: string;
   definition?: string;
@@ -33,7 +36,10 @@ interface ThemeOriginal {
   examples?: string[];
   [key: string]: any; // Allow for additional properties
 }
+
+// Enhanced types for PrioritizedInsight to include proper original data typing
 type PrioritizedInsightWithOriginal = PrioritizedInsight & { original: ThemeOriginal | PatternOriginal };
+
 interface ErrorState {
   message: string;
   type: ErrorType;
@@ -41,9 +47,10 @@ interface ErrorState {
   statusCode?: number;
 }
 
-// Utility function to categorize errors (Keep this)
+// Utility function to categorize errors
 const categorizeError = (err: any): ErrorState => {
   if (err.response) {
+    // HTTP error response from server
     const statusCode = err.response.status;
     if (statusCode === 401 || statusCode === 403) {
       return { message: 'Authentication error. Please ensure you are logged in.', type: 'auth', retryable: false, statusCode };
@@ -55,300 +62,332 @@ const categorizeError = (err: any): ErrorState => {
       return { message: err.response.data.detail, type: 'unknown', retryable: true, statusCode };
     }
   } else if (err.request) {
+    // Request was made but no response received
     return { message: 'Network error. Please check your connection.', type: 'network', retryable: true };
   } else if (err.message && err.message.includes('JSON')) {
+    // JSON parsing error
     return { message: 'Error parsing response data. Please try again.', type: 'parsing', retryable: true };
   }
+  
+  // Fallback for generic errors
   return { message: err.message || 'An unknown error occurred.', type: 'unknown', retryable: true };
 };
 
 export interface PriorityInsightsProps {
   analysisId: string;
-  initialData?: PriorityInsightsResponse | null; // Add optional initialData prop
 }
 
-export function PriorityInsights({ analysisId, initialData }: PriorityInsightsProps) {
-  // Determine initial state based on initialData
-  const getInitialLoadingState = () => {
-    if (initialData) return 'loaded';
-    if (!analysisId) return 'error'; // Error if no ID and no initial data
-    return 'initial'; // Start fetching if ID exists but no initial data
-  };
-
-  const [loadingState, setLoadingState] = useState<'initial' | 'loading' | 'retrying' | 'loaded' | 'error'>(getInitialLoadingState);
-  const [errorDetails, setErrorDetails] = useState<ErrorState | null>(!analysisId && !initialData ? { message: 'No Analysis ID provided.', type: 'unknown', retryable: false } : null);
-  const [priorityData, setPriorityData] = useState<PriorityInsightsResponse | null>(initialData ?? null); // Use initialData if provided
-  const [retryAttempt, setRetryAttempt] = useState(0);
+export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorState | null>(null);
+  const [priorityData, setPriorityData] = useState<PriorityInsightsResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'high' | 'medium' | 'low'>('all');
-  const MAX_AUTO_RETRIES = 2;
-  const RETRY_DELAY_MS = 1500;
-
+  const [retryCount, setRetryCount] = useState(0);
+  const [autoRetryAttempts, setAutoRetryAttempts] = useState(0);
+  const [autoRetrying, setAutoRetrying] = useState(false);
   const { toast } = useToast();
 
-  const fetchData = useCallback(async (isRetry = false, attemptNumber: number) => {
-    // Skip fetch if data was provided initially or no analysisId
-    if (initialData || !analysisId) {
-      // If initialData was provided, state is already 'loaded'.
-      // If no analysisId, state is already 'error'.
-      return;
-    }
-
-    setLoadingState(isRetry ? 'retrying' : 'loading');
-    setErrorDetails(null);
-
-    try {
-      console.log(`[PriorityInsights] Fetching data internally for analysis ID: ${analysisId}, Attempt: ${attemptNumber}`);
-      const data = await apiClient.getPriorityInsights(analysisId);
-      console.log(`[PriorityInsights] Internal fetch success: ${data.insights.length} insights found`);
-      setPriorityData(data);
-      setLoadingState('loaded');
-    } catch (err: any) {
-      console.error('[PriorityInsights] Internal fetch error:', err);
-      const errorInfo = categorizeError(err);
-      setErrorDetails(errorInfo);
-      setLoadingState('error');
-
-      if (attemptNumber <= MAX_AUTO_RETRIES && errorInfo.retryable) {
-        console.log(`[PriorityInsights] Scheduling auto-retry #${attemptNumber + 1} in ${RETRY_DELAY_MS}ms`);
-        setTimeout(() => {
-          setRetryAttempt(prev => prev + 1);
-        }, RETRY_DELAY_MS);
-      } else if (attemptNumber > MAX_AUTO_RETRIES) {
-        toast({
-          title: "Error Loading Priority Insights",
-          description: errorInfo.message,
-          variant: errorInfo.type === 'auth' || errorInfo.type === 'server' ? 'destructive' : 'default',
-        });
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisId, toast, initialData]); // Add initialData dependency
-
-  // Fetch data only if initialData is not provided and we are in initial/retry state
   useEffect(() => {
-    // Use a flag to prevent fetching if initialData was just set
-    let shouldFetch = !initialData && analysisId && (loadingState === 'initial' || loadingState === 'retrying' || retryAttempt > 0);
+    const fetchPriorityData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setErrorDetails(null);
+        setAutoRetrying(false);
+        
+        console.log(`[PriorityInsights] Fetching data for analysis ID: ${analysisId}, attempt ${retryCount + 1}, auto-retry: ${autoRetryAttempts}`);
+        const data = await apiClient.getPriorityInsights(analysisId);
+        
+        console.log(`[PriorityInsights] Success: ${data.insights.length} insights found, high: ${data.metrics.high_urgency_count}, medium: ${data.metrics.medium_urgency_count}, low: ${data.metrics.low_urgency_count}`);
+        setPriorityData(data);
+        
+        // If we successfully load data after errors, show a success toast
+        if (retryCount > 0 || autoRetryAttempts > 0) {
+          toast({
+            title: "Priority Insights Loaded",
+            description: `Successfully loaded ${data.insights.length} insights after retry.`,
+            variant: "default",
+          });
+        }
+      } catch (err: any) { // Use 'any' type to access error properties
+        console.error('Error fetching priority data:', err);
+        
+        // Use the categorization utility function
+        const errorInfo = categorizeError(err);
+        setError(errorInfo.message);
+        setErrorDetails(errorInfo);
+        
+        // Log with detailed error information
+        console.error(`[PriorityInsights] Error type: ${errorInfo.type}, Status: ${errorInfo.statusCode || 'N/A'}, Message: ${errorInfo.message}`);
+        
+        // Show toast notification with appropriate variant
+        const errorVariant: 'destructive' | 'default' = 
+          (errorInfo.type === 'auth' || errorInfo.type === 'server') ? 'destructive' : 'default';
+        
+        // Custom title based on error type
+        let toastTitle = "Error Loading Priority Insights";
+        if (errorInfo.type === 'auth') toastTitle = "Authentication Error";
+        else if (errorInfo.type === 'network') toastTitle = "Network Error";
+        else if (errorInfo.type === 'notFound') toastTitle = "Data Not Found";
+        
+        toast({
+          title: toastTitle,
+          description: errorInfo.message,
+          variant: errorVariant,
+        });
+        
+        // Implement automatic retry for retryable errors (except auth errors)
+        if (errorInfo.retryable && autoRetryAttempts < 2 && errorInfo.type !== 'auth') {
+          console.log(`[PriorityInsights] Scheduling auto-retry #${autoRetryAttempts + 1} in 3 seconds...`);
+          setAutoRetrying(true);
+          setTimeout(() => setAutoRetryAttempts(prev => prev + 1), 3000);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    if (shouldFetch) {
-      fetchData(retryAttempt > 0, retryAttempt + 1);
+    if (analysisId) {
+      fetchPriorityData();
     }
-    // If initialData is provided, ensure loading state is set correctly
-    else if (initialData && loadingState !== 'loaded') {
-        setLoadingState('loaded');
-        setPriorityData(initialData);
-    }
-    // If no ID and no initial data, ensure error state
-    else if (!analysisId && !initialData && loadingState !== 'error') {
-        setLoadingState('error');
-        setErrorDetails({ message: 'No Analysis ID provided.', type: 'unknown', retryable: false });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisId, fetchData, retryAttempt, initialData]); // Keep initialData dependency
+  }, [analysisId, retryCount, autoRetryAttempts, toast]);
 
-  const handleManualRetry = () => {
-    // Reset retry attempt count for manual retry? Or just increment? Let's increment.
-    setRetryAttempt(prev => prev + 1);
-    // Explicitly trigger fetch for manual retry - handled by useEffect now
+  // Reset state for manual retry
+  const handleRetry = () => {
+    setAutoRetryAttempts(0);
+    setRetryCount(prev => prev + 1);
+  };
+  
+  // Filter insights based on active tab
+  const filteredInsights = priorityData?.insights.filter(insight => {
+    if (activeTab === 'all') return true;
+    return insight.urgency === activeTab;
+  }) || [];
+
+  // Get urgency icon based on level
+  const getUrgencyIcon = (urgency: string) => {
+    switch (urgency) {
+      case 'high':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'medium':
+        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+      case 'low':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default:
+        return null;
+    }
   };
 
-  // --- RENDER LOGIC ---
+  // Get urgency color class
+  const getUrgencyColorClass = (urgency: string) => {
+    switch (urgency) {
+      case 'high':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'medium':
+        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'low':
+        return 'bg-green-50 text-green-700 border-green-200';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
 
-  // Render Loading state
-  if (loadingState === 'loading' || loadingState === 'retrying') {
-      return (
-          <Card>
-              <CardHeader>
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-4 w-64" />
-              </CardHeader>
-              <CardContent>
-                  <div className="flex justify-center items-center py-8">
-                      <RefreshCw className="h-6 w-6 mr-2 animate-spin" />
-                      <span>{loadingState === 'retrying' ? `Retrying (Attempt ${retryAttempt + 1})...` : 'Loading Priority Insights...'}</span>
-                  </div>
-                  {/* Skeletons for content */}
-                  <Skeleton className="h-10 w-full mb-4" />
-                  <div className="space-y-4">
-                      <Skeleton className="h-20 w-full" />
-                      <Skeleton className="h-20 w-full" />
-                  </div>
-              </CardContent>
-          </Card>
-      );
-  }
+  // Get type badge
+  const getTypeBadge = (type: 'theme' | 'pattern') => {
+    return (
+      <Badge
+        variant="outline"
+        className={type === 'theme' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}
+      >
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </Badge>
+    );
+  };
 
-  // Render Error state
-  if (loadingState === 'error' && errorDetails) {
-      const ErrorIcon = errorDetails.type === 'network' ? WifiOff : AlertTriangle;
-      return (
-          <Card>
-              <CardHeader>
-                  <CardTitle>Priority Insights</CardTitle>
-                  <CardDescription>Unable to load insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700 mb-4">
-                      <div className="flex items-center gap-2 mb-3">
-                          <ErrorIcon className="h-5 w-5" />
-                          <span className="font-semibold">Error Loading Data</span>
-                      </div>
-                      <p>{errorDetails.message}</p>
-                      {errorDetails.statusCode && (
-                          <p className="mt-2 text-sm text-red-600">Status code: {errorDetails.statusCode}</p>
-                      )}
-                  </div>
-                  {errorDetails.retryable && (
-                      <div className="flex justify-end">
-                          <Button onClick={handleManualRetry}>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Retry Now
-                          </Button>
-                      </div>
-                  )}
-              </CardContent>
-          </Card>
-      );
-  }
+  // Get error icon based on error type
+  const getErrorIcon = () => {
+    if (!errorDetails) return <AlertCircle className="h-5 w-5" />;
+    
+    switch (errorDetails.type) {
+      case 'auth':
+        return <AlertCircle className="h-5 w-5" />;
+      case 'network':
+        return <WifiOff className="h-5 w-5" />;
+      case 'server':
+        return <AlertTriangle className="h-5 w-5" />;
+      default:
+        return <AlertTriangle className="h-5 w-5" />;
+    }
+  };
 
-  // Loaded State (Success)
-  if (loadingState === 'loaded' && priorityData) {
-    const filteredInsights = priorityData.insights.filter(insight => {
-      if (activeTab === 'all') return true;
-      return insight.urgency === activeTab;
-    }) || [];
-    // Keep helper functions: getUrgencyIcon, getUrgencyColorClass, getTypeBadge
-    const getUrgencyIcon = (urgency: string) => {
-        switch (urgency) {
-          case 'high': return <AlertCircle className="h-4 w-4 text-red-500" />;
-          case 'medium': return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-          case 'low': return <CheckCircle className="h-4 w-4 text-green-500" />;
-          default: return null;
-        }
-      };
-    const getUrgencyColorClass = (urgency: string) => {
-        switch (urgency) {
-          case 'high': return 'bg-red-50 text-red-700 border-red-200';
-          case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200';
-          case 'low': return 'bg-green-50 text-green-700 border-green-200';
-          default: return 'bg-slate-50 text-slate-700 border-slate-200';
-        }
-      };
-    const getTypeBadge = (type: 'theme' | 'pattern') => {
-        return (
-          <Badge variant="outline" className={type === 'theme' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}>
-            {type.charAt(0).toUpperCase() + type.slice(1)}
-          </Badge>
-        );
-      };
-
+  if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Priority Insights</CardTitle>
-          <CardDescription>
-            Actionable insights prioritized by sentiment impact ({priorityData.insights.length} total)
-          </CardDescription>
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="all">All ({priorityData?.insights.length || 0})</TabsTrigger>
-              <TabsTrigger value="high">High Priority ({priorityData?.metrics.high_urgency_count || 0})</TabsTrigger>
-              <TabsTrigger value="medium">Medium ({priorityData?.metrics.medium_urgency_count || 0})</TabsTrigger>
-              <TabsTrigger value="low">Low ({priorityData?.metrics.low_urgency_count || 0})</TabsTrigger>
-            </TabsList>
-            <TabsContent value={activeTab} className="mt-4">
-              {filteredInsights.length === 0 ? (
-                 <div className="text-center py-8 text-muted-foreground">No {activeTab !== 'all' ? activeTab + ' priority' : ''} insights found</div>
-               ) : (
-                 <div className="space-y-4">
-                   {filteredInsights.map((insight: PrioritizedInsightWithOriginal, index) => (
-                    <div
-                      key={`${insight.type}-${insight.name}-${index}`}
-                      className={`border rounded-lg p-4 ${getUrgencyColorClass(insight.urgency)}`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {getUrgencyIcon(insight.urgency)}
-                          <span className="font-medium capitalize">{insight.urgency} Priority</span>
-                          {getTypeBadge(insight.type)}
-                          {insight.category && (
-                            <Badge variant="outline" className="bg-white">
-                              {insight.category}
-                            </Badge>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="bg-white">
-                          Score: {insight.priority_score}
-                        </Badge>
-                      </div>
-
-                      <h3 className="text-base font-semibold mb-1">
-                        {insight.type === 'pattern' && insight.name.startsWith('Unnamed Pattern')
-                          ? insight.description
-                          : insight.name}
-                      </h3>
-
-                      {!(insight.type === 'pattern' && insight.name.startsWith('Unnamed Pattern')) && (
-                        <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
-                      )}
-
-                      {/* Display supporting statements (evidence/examples) */}
-                      {insight.type === 'pattern' && (insight.original as PatternOriginal).evidence && (insight.original as PatternOriginal).evidence!.length > 0 && (
-                        <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
-                          {(insight.original as PatternOriginal).evidence!.map((evidence: string, i: number) => (
-                            <p key={i} className="text-sm text-muted-foreground italic mb-2">{evidence}</p>
-                          ))}
-                        </div>
-                      )}
-                      {insight.type === 'theme' && (insight.original as ThemeOriginal).examples && (insight.original as ThemeOriginal).examples!.length > 0 && (
-                        <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
-                          {(insight.original as ThemeOriginal).examples!.map((example: string, i: number) => (
-                            <p key={i} className="text-sm text-muted-foreground italic mb-2">{example}</p>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 text-xs">
-                        <span className="flex items-center gap-1">
-                          <span className="font-medium">Sentiment:</span>
-                          <Badge variant="outline" className={insight.sentiment > 0 ? 'bg-green-50' : (insight.sentiment < 0 ? 'bg-red-50' : 'bg-blue-50')}>
-                            {insight.sentiment > 0 ? 'Positive' : (insight.sentiment < 0 ? 'Negative' : 'Neutral')}
-                          </Badge>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="font-medium">Frequency:</span>
-                          <Badge variant="outline" className="bg-white">
-                            {Math.round(insight.frequency * 100)}%
-                          </Badge>
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                 </div>
-               )}
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Fallback / Initial state before fetch triggered (or if analysisId is missing)
-   return (
+  if (error) {
+    return (
       <Card>
-         <CardHeader>
-           <CardTitle>Priority Insights</CardTitle>
-           <CardDescription>Initializing...</CardDescription>
-         </CardHeader>
-         <CardContent>
-           <Skeleton className="h-10 w-full mb-4" />
-           <div className="space-y-4">
-             <Skeleton className="h-20 w-full" />
-           </div>
-         </CardContent>
+        <CardHeader>
+          <CardTitle>Priority Insights</CardTitle>
+          <CardDescription>Unable to load insights</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              {getErrorIcon()}
+              <span className="font-semibold">
+                {errorDetails?.type === 'auth' ? 'Authentication Error' :
+                 errorDetails?.type === 'network' ? 'Network Error' :
+                 errorDetails?.type === 'server' ? 'Server Error' :
+                 errorDetails?.type === 'notFound' ? 'Not Found' : 'Error'}
+              </span>
+            </div>
+            <p>{error}</p>
+            {errorDetails?.statusCode && (
+              <p className="mt-2 text-sm text-red-600">Status code: {errorDetails.statusCode}</p>
+            )}
+            {autoRetrying && (
+              <p className="mt-2 text-sm flex items-center">
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Automatically retrying in a moment...
+              </p>
+            )}
+          </div>
+          {(!autoRetrying && errorDetails?.retryable) && (
+            <div className="flex justify-end">
+              <button 
+                onClick={handleRetry}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4 mr-2 inline" />
+                Retry Now
+              </button>
+            </div>
+          )}
+        </CardContent>
       </Card>
-   );
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Priority Insights</CardTitle>
+        <CardDescription>
+          Actionable insights prioritized by sentiment impact
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all">
+              All ({priorityData?.insights.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="high">
+              High Priority ({priorityData?.metrics.high_urgency_count || 0})
+            </TabsTrigger>
+            <TabsTrigger value="medium">
+              Medium ({priorityData?.metrics.medium_urgency_count || 0})
+            </TabsTrigger>
+            <TabsTrigger value="low">
+              Low ({priorityData?.metrics.low_urgency_count || 0})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={activeTab} className="mt-4">
+            {filteredInsights.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No {activeTab !== 'all' ? activeTab + ' priority' : ''} insights found
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredInsights.map((insight: PrioritizedInsightWithOriginal, index) => (
+                  <div
+                    key={`${insight.type}-${insight.name}-${index}`}
+                    className={`border rounded-lg p-4 ${getUrgencyColorClass(insight.urgency)}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getUrgencyIcon(insight.urgency)}
+                        <span className="font-medium capitalize">{insight.urgency} Priority</span>
+                        {getTypeBadge(insight.type)}
+                        {insight.category && (
+                          <Badge variant="outline" className="bg-white">
+                            {insight.category}
+                          </Badge>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="bg-white">
+                        Score: {insight.priority_score}
+                      </Badge>
+                    </div>
+                    
+                    <h3 className="text-base font-semibold mb-1">
+                      {/* Use description for pattern name if it starts with "Unnamed Pattern" */}
+                      {insight.type === 'pattern' && insight.name.startsWith('Unnamed Pattern') 
+                        ? insight.description 
+                        : insight.name}
+                    </h3>
+                    
+                    {/* Show description only if it's different from the displayed name */}
+                    {!(insight.type === 'pattern' && insight.name.startsWith('Unnamed Pattern')) && (
+                      <p className="text-sm text-muted-foreground mb-3">{insight.description}</p>
+                    )}
+                    
+                    {/* Display supporting statements (evidence for patterns, examples for themes) */}
+                    {insight.type === 'pattern' && (insight.original as PatternOriginal).evidence && (insight.original as PatternOriginal).evidence!.length > 0 && (
+                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
+                        {(insight.original as PatternOriginal).evidence!.map((evidence: string, i: number) => (
+                          <p key={i} className="text-sm text-muted-foreground italic mb-2">{evidence}</p>
+                        ))}
+                      </div>
+                    )}
+                    {insight.type === 'theme' && (insight.original as ThemeOriginal).examples && (insight.original as ThemeOriginal).examples!.length > 0 && (
+                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
+                        {(insight.original as ThemeOriginal).examples!.map((example: string, i: number) => (
+                          <p key={i} className="text-sm text-muted-foreground italic mb-2">{example}</p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="flex items-center gap-1">
+                        <span className="font-medium">Sentiment:</span>
+                        <Badge variant="outline" className={insight.sentiment > 0 ? 'bg-green-50' : (insight.sentiment < 0 ? 'bg-red-50' : 'bg-blue-50')}>
+                          {insight.sentiment > 0 ? 'Positive' : (insight.sentiment < 0 ? 'Negative' : 'Neutral')}
+                        </Badge>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="font-medium">Frequency:</span>
+                        <Badge variant="outline" className="bg-white">
+                          {Math.round(insight.frequency * 100)}%
+                        </Badge>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default PriorityInsights;

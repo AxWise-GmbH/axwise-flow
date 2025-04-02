@@ -18,8 +18,6 @@ export default async function VisualizePage({ searchParams }: VisualizePageProps
   
   // Fetch analysis data server-side
   const analysisData = analysisId ? await getServerSideAnalysis(analysisId) : null;
-  console.log(`[VisualizePage] Server fetched data: ${analysisData ? `ID: ${analysisData.id}, Status: ${analysisData.status}` : 'null'}`); // DEBUG LOG
-
   
   return (
     <Suspense fallback={<Loading />}>
