@@ -4,7 +4,7 @@ import Script from 'next/script';
 import { Providers } from './providers';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
-import '@/styles/globals.css';
+import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
