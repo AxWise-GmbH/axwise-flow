@@ -1,6 +1,6 @@
 /**
  * VisualizationTabs Component (Refactored)
- * 
+ *
  * ARCHITECTURAL NOTE: This is the refactored visualization tabs component that:
  * 1. Consumes data from context instead of props
  * 2. Uses a context provider for data
@@ -15,6 +15,7 @@ import { ThemeChart } from './ThemeChart';
 import { PatternList } from './PatternList';
 import { SentimentGraph } from './SentimentGraph';
 import { PersonaList } from './PersonaList';
+import { InsightList } from './InsightList';
 import { PriorityInsights } from './PriorityInsights'; // Uncomment original component
 // import { PriorityInsightsDisplay } from './PriorityInsightsDisplay'; // Remove new display component import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +33,7 @@ interface VisualizationTabsProps {
 }
 
 // Define a type for the tab values
-export type TabValue = 'themes' | 'patterns' | 'sentiment' | 'personas' | 'priority';
+export type TabValue = 'themes' | 'patterns' | 'sentiment' | 'personas' | 'insights' | 'priority';
 
 // Add the helper function
 // Helper function to consolidate supporting statements from various sources
@@ -61,9 +62,9 @@ const getConsolidatedSupportingStatements = (analysis: any) => {
  * Displays visualization tabs for themes, patterns, sentiment, and personas
  * Can consume data from props (server-fetched) or client-side fetch as fallback
  */
-export default function VisualizationTabsRefactored({ 
+export default function VisualizationTabsRefactored({
   analysisId,
-  analysisData: serverAnalysisData 
+  analysisData: serverAnalysisData
 }: VisualizationTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,14 +88,14 @@ export default function VisualizationTabsRefactored({
     if (serverAnalysisData) {
       return;
     }
-    
+
     let isMounted = true;
-    
+
     // Skip if no analysis ID is available
     if (!effectiveAnalysisId) {
       return;
     }
-    
+
     // Skip duplicate fetches for the same ID
     if (lastFetchedId.current === effectiveAnalysisId) {
       return;
@@ -104,15 +105,15 @@ export default function VisualizationTabsRefactored({
       try {
         setLoading(true);
         setFetchError(null);
-        
+
         // Reset analysis data first to avoid mixing with previous data
         if (isMounted) {
           setLocalAnalysis({ themes: [], patterns: [], sentiment: null, personas: [] });
         }
-        
+
         // Make actual API call to fetch the data
         const result = await apiClient.getAnalysisById(effectiveAnalysisId);
-        
+
         if (isMounted) {
           setLocalAnalysis(result);
           lastFetchedId.current = effectiveAnalysisId;
@@ -212,25 +213,26 @@ export default function VisualizationTabsRefactored({
         {loading && (
           <div className="text-center py-8">
             {/* Use LoadingSpinner component */}
-            <LoadingSpinner label="Loading analysis data..." /> 
+            <LoadingSpinner label="Loading analysis data..." />
             <p className="mt-4 text-muted-foreground">Loading analysis data...</p>
           </div>
         )}
-        
+
         {fetchError && !loading && ( // Show error only if not loading
           <div className="p-4 border border-red-300 bg-red-50 rounded-md">
             <h3 className="text-lg font-semibold text-red-700">Error</h3>
             <p className="text-red-600">{fetchError}</p>
           </div>
         )}
-        
+
         {!loading && !fetchError && analysis && ( // Ensure analysis data exists
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full grid grid-cols-5">
+            <TabsList className="w-full grid grid-cols-6">
               <TabsTrigger value="themes">Themes</TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
               <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
               <TabsTrigger value="personas">Personas</TabsTrigger>
+              <TabsTrigger value="insights">Insights</TabsTrigger>
               <TabsTrigger value="priority">Priority</TabsTrigger>
             </TabsList>
 
@@ -282,20 +284,20 @@ export default function VisualizationTabsRefactored({
             >
               <TabsContent value="sentiment" className="mt-6">
                 {analysis.sentiment && (
-                  <SentimentGraph 
-                    data={analysis.sentiment.sentimentOverview || analysis.sentimentOverview} 
+                  <SentimentGraph
+                    data={analysis.sentiment.sentimentOverview || analysis.sentimentOverview}
                     timeSeriesData={Array.isArray(analysis.sentiment) ? analysis.sentiment : []} // Use timeSeriesData prop
                     supportingStatements={
                       // Always prioritize sentimentStatements as it's more reliable and comprehensive
-                      analysis.sentimentStatements && 
+                      analysis.sentimentStatements &&
                       typeof analysis.sentimentStatements === 'object' &&
-                      Array.isArray(analysis.sentimentStatements.positive) && 
-                      Array.isArray(analysis.sentimentStatements.neutral) && 
+                      Array.isArray(analysis.sentimentStatements.positive) &&
+                      Array.isArray(analysis.sentimentStatements.neutral) &&
                       Array.isArray(analysis.sentimentStatements.negative)
                         ? analysis.sentimentStatements
                         : getConsolidatedSupportingStatements(analysis)
                     }
-                    // Pass industry context from multiple possible locations 
+                    // Pass industry context from multiple possible locations
                     industry={analysis.industry || (analysis.sentimentStatements && analysis.sentimentStatements.industry) || null}
                     // Pass themes for topic clustering
                     themes={analysis.themes || []}
@@ -329,6 +331,25 @@ export default function VisualizationTabsRefactored({
             <CustomErrorBoundary
               fallback={
                 <div className="p-4 border border-red-300 bg-red-50 rounded-md mt-6">
+                  <h3 className="text-lg font-semibold text-red-700">Error in Insights Visualization</h3>
+                  <p className="text-red-600">There was an error rendering the insights visualization.</p>
+                </div>
+              }
+            >
+              <TabsContent value="insights" className="mt-6">
+                {analysis?.insights?.length ? (
+                  <InsightList insights={analysis.insights || []} />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No insights detected in this interview.
+                  </div>
+                )}
+              </TabsContent>
+            </CustomErrorBoundary>
+
+            <CustomErrorBoundary
+              fallback={
+                <div className="p-4 border border-red-300 bg-red-50 rounded-md mt-6">
                   <h3 className="text-lg font-semibold text-red-700">Error in Priority Visualization</h3>
                   <p className="text-red-600">There was an error rendering the priority visualization.</p>
                 </div>
@@ -336,28 +357,28 @@ export default function VisualizationTabsRefactored({
             >
               <TabsContent value="priority" className="mt-6">
                 {/* Revert to using the original PriorityInsights component */}
-                <PriorityInsights analysisId={effectiveAnalysisId || ''} /> 
+                <PriorityInsights analysisId={effectiveAnalysisId || ''} />
               </TabsContent>
             </CustomErrorBoundary>
           </Tabs>
         )}
-        
+
         {/* Debug panel for development - hidden in production */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-8 p-4 border border-gray-200 rounded-md bg-gray-50">
             <h3 className="font-medium mb-2">Debug Information</h3>
             <div className="space-y-2">
               <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
-              <p><strong>Error:</strong> {fetchError || 'None'}</p> 
+              <p><strong>Error:</strong> {fetchError || 'None'}</p>
               <p><strong>Analysis ID:</strong> {effectiveAnalysisId || 'None'}</p>
               <p><strong>Active Tab:</strong> {activeTab}</p>
               <p><strong>Theme Count:</strong> {analysis?.themes?.length || 0}</p>
               <p><strong>Has Sentiment Statements:</strong> {
-                (analysis?.sentimentStatements || 
+                (analysis?.sentimentStatements ||
                 (analysis?.sentiment?.sentimentStatements)) ? 'Yes' : 'No'
               }</p>
               <p><strong>Has Results Property:</strong> {analysis?.results ? 'Yes' : 'No'}</p>
-              
+
               <details className="mt-2">
                 <summary className="cursor-pointer text-sm font-medium">Raw Analysis Data</summary>
                 <pre className="text-xs p-2 bg-gray-100 rounded mt-2 overflow-auto max-h-96">

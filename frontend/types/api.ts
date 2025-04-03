@@ -116,6 +116,15 @@ export type PersonaTrait = {
   evidence: string[];
 };
 
+/**
+ * Insight data structure
+ */
+export interface Insight {
+  topic: string;
+  observation: string;
+  evidence: string[];
+}
+
 export type Persona = {
   name: string;
   description: string;
@@ -155,6 +164,7 @@ export interface DetailedAnalysisResult {
   sentimentStatements?: SentimentStatements;  // Supporting statements for sentiment categories
   industry?: string; // Industry context detected from content
   personas?: Persona[];
+  insights?: Insight[];
   llmProvider?: string;
   llmModel?: string;
   error?: string;
@@ -173,7 +183,7 @@ export interface DashboardData {
   fileSize?: number;
   llmProvider?: string;
   llmModel?: string;
-  
+
   // Analysis Data
   themes: Theme[];
   patterns: Pattern[];
@@ -182,7 +192,8 @@ export interface DashboardData {
   sentimentStatements?: SentimentStatements;
   industry?: string; // Industry context for sentiment analysis
   personas?: Persona[];
-  
+  insights?: Insight[];
+
   // Error Information
   error?: string;
 }
