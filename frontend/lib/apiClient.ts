@@ -948,6 +948,35 @@ class ApiClient {
     throw new Error(`Analysis processing timed out after ${maxAttempts} attempts`);
   }
 
+
+  /**
+   * Get analysis history with pagination
+   */
+  async getAnalysisHistory(skip: number = 0, limit: number = 10): Promise<{ items: DetailedAnalysisResult[], totalCount: number }> {
+    try {
+      console.log(`[getAnalysisHistory] Fetching history with skip: ${skip}, limit: ${limit}`);
+      const response = await this.client.get('/api/analyses/history', { // Assuming this endpoint exists
+        params: {
+          offset: skip,
+          limit: limit
+        },
+        timeout: 15000 // 15 second timeout
+      });
+
+      // Assuming the backend returns { items: [...], total_count: number }
+      const items = response.data?.items || [];
+      const totalCount = response.data?.total_count || 0;
+
+      console.log(`[getAnalysisHistory] Received ${items.length} history items, total count: ${totalCount}`);
+      return { items, totalCount };
+
+    } catch (error: any) {
+      console.error(`[getAnalysisHistory] Error fetching analysis history:`, error);
+      // Provide a more specific error or fallback
+      throw new Error(`Failed to fetch analysis history: ${error.message || 'Unknown error'}`);
+    }
+  }
+
   // Add a personaGeneration method to handle the API call
   async generatePersonaFromText(text: string, options?: { 
     llmProvider?: string; 
@@ -1082,53 +1111,46 @@ class ApiClient {
    * This method polls the backend API to determine if the analysis process 
    * has been completed for a specific analysis result.
    */
-  async checkAnalysisStatus(resultId: string): Promise<{ status: 'pending' | 'completed' | 'failed', analysis?: any }> {
+  async checkAnalysisStatus(resultId: string): Promise<{ status: 'pending' | 'completed' | 'failed', analysis?: any, error?: string }> {
+    // Define the expected response type from the status endpoint
+    type StatusResponse = {
+      status: 'processing' | 'completed' | 'failed';
+      error?: string;
+    };
+
     try {
       console.log(`[checkAnalysisStatus] Checking status for analysis ID: ${resultId}`); // DEBUG LOG
 
-      try { // Keep the outer try...catch for general errors
-        // Status endpoint not available, fall back to checking full analysis
-        console.log('[checkAnalysisStatus] Status endpoint not available, falling back to full analysis check');
-        
-        // Try to get the full analysis - if successful, it means the analysis is complete
-        const analysis = await this.getAnalysisById(resultId);
-        console.log(`[checkAnalysisStatus] Fallback check - fetched analysis:`, analysis ? `Status: ${analysis.status}, Themes: ${analysis.themes?.length}, Patterns: ${analysis.patterns?.length}, Personas: ${analysis.personas?.length}` : 'null'); // DEBUG LOG
-        
-        // Check if the analysis has themes, patterns, and personas which indicates completion
-        // Also check the explicit status field if available
-        const isDataPresent = analysis && 
-                              analysis.themes && analysis.themes.length > 0 &&
-                              analysis.patterns && analysis.patterns.length > 0 &&
-                              analysis.personas && analysis.personas.length > 0; // Check for personas too
-                              
-        const determinedStatus = (analysis?.status === 'completed' || isDataPresent) ? 'completed' 
-                               : (analysis?.status === 'failed') ? 'failed' 
-                               : 'pending';
-                               
-        console.log(`[checkAnalysisStatus] Determined status for ${resultId}: ${determinedStatus}`); // DEBUG LOG
+      // Call the new status endpoint
+      const response = await this.client.get<StatusResponse>(`/api/analysis/${resultId}/status`);
+      const statusData = response.data;
 
-        if (determinedStatus === 'completed') {
-          return { 
-            status: 'completed',
-            analysis
-          };
-        } else if (determinedStatus === 'failed') {
-             return { status: 'failed' };
-        }
-        
-        // If we got a response but no themes/completed status, it's likely still processing
-        return { status: 'pending' };
-      } catch (error) { // Catch errors from getAnalysisById or other issues
-        // Re-throw the error if needed, or handle specific cases
-        console.error(`[checkAnalysisStatus] Error during fallback analysis check for ID ${resultId}:`, error); // DEBUG LOG
-        // Decide if this should be treated as 'pending' or 'failed' based on the error
-        // For now, assume pending if the fetch itself failed (e.g., network error during fallback)
-        return { status: 'pending' }; 
+      console.log(`[checkAnalysisStatus] Received status for ${resultId}:`, statusData); // DEBUG LOG
+
+      // Map 'processing' to 'pending' for frontend consistency if needed,
+      // or handle 'processing' directly in the frontend hook.
+      // For now, return the status as received.
+      const frontendStatus = statusData.status === 'processing' ? 'pending' : statusData.status;
+
+      return {
+        status: frontendStatus,
+        // Include error message if status is 'failed'
+        ...(frontendStatus === 'failed' && statusData.error && { error: statusData.error })
+      };
+
+    } catch (error: any) {
+      console.error(`[checkAnalysisStatus] Error checking analysis status for ID ${resultId}:`, error);
+
+      // If the status endpoint returns 404, it might mean the analysis ID is invalid
+      // or doesn't belong to the user. Treat as failed for polling purposes.
+      if (error.response && error.response.status === 404) {
+        return { status: 'failed', error: 'Analysis not found or access denied.' };
       }
-    } catch (error) { // Catch errors from the outer try (less likely now)
-      console.error(`[checkAnalysisStatus] Outer error checking analysis status for ID ${resultId}:`, error); // DEBUG LOG
-      
-      // If we can't reach the server, assume it's still pending
+
+      // For other errors (network, server error on status endpoint),
+      // it's safer to return 'pending' to allow polling to retry,
+      // unless we want to fail fast. Let's return 'pending' for now.
+      // Consider adding specific error handling if needed (e.g., fail after N consecutive errors).
       return { status: 'pending' };
     }
   }

@@ -1,30 +1,40 @@
 # FastAPI and web server
-fastapi==0.109.1
-uvicorn[standard]==0.25.0
-python-multipart==0.0.6
+fastapi==0.110.0
+uvicorn==0.27.1
+python-multipart==0.0.9
 
 ***REMOVED***
-sqlalchemy==2.0.25
+sqlalchemy==2.0.27
 psycopg2-binary==2.9.9
-alembic==1.12.1
+alembic==1.13.1
 
-# Authentication
+# Authentication & Security
 python-jose[cryptography]==3.3.0
-httpx==0.25.2
-requests==2.31.0
+passlib[bcrypt]==1.7.4 # Added from root requirements
+httpx==0.26.0
+requests==2.31.0 # Kept from original backend file
 
 # LLM Services
 openai==1.12.0
 google-generativeai==0.3.2
 
 # Utilities
-python-dotenv==1.0.0
-pydantic==2.5.3
-numpy==1.26.3
-pandas==2.1.4
-beautifulsoup4==4.12.2
+python-dotenv==1.0.1
+pydantic==2.6.1
+numpy==1.26.3 # Kept from original backend file
+pandas==2.1.4 # Kept from original backend file
+beautifulsoup4==4.12.2 # Kept from original backend file
+
+# Monitoring and logging
+structlog==24.1.0 # Added from root requirements
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.23.2
-pytest-mock==3.12.0 
+pytest==8.0.0
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0 # Added from root requirements
+pytest-mock==3.12.0 # Kept from original backend file
+
+# --- Development Tools (from root requirements.txt - often managed separately) ---
+# black==24.1.1
+# isort==5.13.2
+# flake8==7.0.0

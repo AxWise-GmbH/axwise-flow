@@ -351,6 +351,64 @@ async def get_results(
             detail=f"Internal server error: {str(e)}"
         )
 
+
+@app.get(
+    "/api/analysis/{result_id}/status",
+    response_model=Dict[str, Any], # Define a more specific schema later if needed
+    tags=["Analysis"],
+    summary="Get analysis status",
+    description="Check the current status (processing, completed, failed) of an analysis."
+)
+async def get_analysis_status(
+    result_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retrieves the current status of an analysis.
+    """
+    logger.info(f"[GetStatus - Start] User: {current_user.user_id}, ResultID: {result_id}")
+    try:
+        analysis_result = db.query(AnalysisResult).filter(
+            AnalysisResult.result_id == result_id,
+            AnalysisResult.user_id == current_user.user_id # Ensure user owns the result
+        ).first()
+
+        if not analysis_result:
+            logger.warning(f"[GetStatus - NotFound] User: {current_user.user_id}, ResultID: {result_id}")
+            raise HTTPException(status_code=404, detail="Analysis result not found")
+
+        status = analysis_result.status
+        error_message = None
+
+        if status == "failed":
+            try:
+                # Attempt to parse the results JSON to find an error message
+                results_data = json.loads(analysis_result.results or '{}')
+                error_message = results_data.get("error_details") or results_data.get("message") or "Analysis failed with an unspecified error."
+            except json.JSONDecodeError:
+                error_message = "Analysis failed, and error details could not be parsed."
+            except Exception:
+                 error_message = "Analysis failed with an unknown error structure."
+
+        logger.info(f"[GetStatus - Success] User: {current_user.user_id}, ResultID: {result_id}, Status: {status}")
+        response_data = {"status": status}
+        if error_message:
+            response_data["error"] = error_message
+        return response_data
+
+    except HTTPException:
+        # Re-raise HTTP exceptions directly
+        raise
+    except Exception as e:
+        logger.error(f"[GetStatus - Error] User: {current_user.user_id}, ResultID: {result_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error checking status: {str(e)}"
+        )
+
+
 @app.get(
     "/health",
     response_model=HealthCheckResponse,

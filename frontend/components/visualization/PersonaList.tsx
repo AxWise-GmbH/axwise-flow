@@ -5,52 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-// import { ScrollArea } from '@/components/ui/scroll-area';
- // Unused
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { Tooltip } from 'react-tooltip';
-// Removed unused Tooltip compoten
-// components from @/components/ui/tooltip
-
-// Define types for Persona data structure
-// Define the nested object structure for trait values
-type PersonaTraitValueObject = {
-  description: string;
-  evidence?: string[]; // Optional based on provided JSON
-  confidence?: number; // Optional based on provided JSON
-};
-
-// Update PersonaTrait to allow value to be the nested object
-type PersonaTrait = {
-  // Allow value to be the nested object, string, array, or other primitives
-  value: string | string[] | number | boolean | null | PersonaTraitValueObject; 
-  confidence: number;
-  evidence: string[];
-};
-
-export type Persona = {
-  name: string;
-  description: string;
-  role_context: PersonaTrait;
-  key_responsibilities: PersonaTrait;
-  tools_used: PersonaTrait;
-  collaboration_style: PersonaTrait;
-  analysis_approach: PersonaTrait;
-  pain_points: PersonaTrait;
-  patterns: string[];
-  confidence: number;
-  evidence: string[];
-  metadata?: {
-    sample_size?: number;
-    timestamp?: string;
-    validation_metrics?: {
-      pattern_confidence?: number;
-      evidence_count?: number;
-      attribute_coverage?: Record<string, number>;
-    };
-  };
-};
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { type Persona } from '@/types/api';
 
 type PersonaListProps = {
   personas: Persona[];
@@ -60,7 +19,6 @@ type PersonaListProps = {
 export function PersonaList({ personas, className }: PersonaListProps) {
   // Use the personas prop directly without fallbacks
   const [activePersonaIndex, setActivePersonaIndex] = useState(0);
-  const [expandedTraits, setExpandedTraits] = useState<Record<string, boolean>>({});
   
   // Select the first persona if the list changes
   useEffect(() => {
@@ -80,13 +38,6 @@ export function PersonaList({ personas, className }: PersonaListProps) {
   
   // Active persona is the one at the selected index
   const activePersona = personas[activePersonaIndex];
-  
-  const toggleEvidence = (trait: string) => {
-    setExpandedTraits(prev => ({
-      ...prev,
-      [trait]: !prev[trait]
-    }));
-  };
   
   // Get initials for avatar
   const getInitials = (name: string) => {
@@ -112,531 +63,196 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     return 'Limited confidence: Based on inferences with minimal evidence';
   };
 
-  // Helper function to render trait values consistently for the Card view (split sentences)
-  const renderTraitList = (trait: PersonaTrait): React.ReactNode => {
-    let textToRender: string | null = null;
-
-    // Check if value is an object with a description property first
-    if (typeof trait.value === 'object' && trait.value !== null && 'description' in trait.value && typeof trait.value.description === 'string') {
-      textToRender = trait.value.description.trim();
-    } 
-    // Then check if value is a direct string
-    else if (typeof trait.value === 'string') {
-      textToRender = trait.value.trim();
-    }
-    // Then check if value is an array
-    else if (Array.isArray(trait.value)) {
-      // Filter out non-string items just in case
-      const stringItems = trait.value.filter(item => typeof item === 'string');
-      if (stringItems.length > 0) {
-        return stringItems.map((item: string, i: number) => (
-          <li key={i}>{item}</li>
+  // Helper function to render trait values consistently
+  const renderTraitValue = (value: any): React.ReactNode => {
+    if (typeof value === 'string') {
+      // Split string into sentences for list items if it contains periods
+      if (value.includes('. ')) {
+        return value.split('. ').filter(s => s.trim().length > 0).map((sentence, i) => (
+          <li key={i}>{sentence.trim()}{value?.endsWith(sentence.trim()) ? '' : '.'}</li>
         ));
       } else {
-         textToRender = null; // Treat empty array or array of non-strings as N/A
+        // Render as single list item if no periods
+        return <li>{value}</li>;
       }
-    }
-
-    // If we have text, split it into sentences for list items
-    if (textToRender && textToRender.length > 0) {
-      return textToRender.split('. ').filter(s => s.trim().length > 0).map((sentence, i) => (
-        // Add period back if split removed it and it wasn't the last character
-        <li key={i}>{sentence.trim()}{textToRender?.endsWith(sentence.trim()) ? '' : '.'}</li> 
+    } else if (Array.isArray(value)) {
+      // Render array items as list items
+      return value.filter(item => typeof item === 'string' || typeof item === 'number').map((item, i) => (
+        <li key={i}>{String(item)}</li>
       ));
+    } else if (typeof value === 'object' && value !== null) {
+      // Try to render simple key-value pairs from a dict
+      try {
+        // Limit the number of key-value pairs shown initially
+        const entries = Object.entries(value);
+        const displayLimit = 5;
+        return entries.slice(0, displayLimit).map(([key, val]) => (
+          <li key={key}><strong>{key}:</strong> {String(val)}</li>
+        )).concat(entries.length > displayLimit ? [<li key="more" className="text-muted-foreground italic">...and more</li>] : []);
+      } catch (e) {
+        return <li className="text-muted-foreground italic">[Complex Object]</li>;
+      }
+    } else if (value !== null && value !== undefined) {
+      // Render other primitive types as a single list item
+      return <li>{String(value)}</li>;
     }
+    // Fallback for null, undefined, or empty values
+    return <li className="text-muted-foreground italic">N/A</li>;
+  };
+
+  // Render a trait card with confidence badge and evidence
+  const renderTraitCard = (label: string, trait: any) => {
+    if (!trait) return null;
     
-    // Fallback for null, empty string, boolean, number, or unexpected object structure
-    return <li className="text-muted-foreground italic">N/A</li>; 
+    const { value, confidence, evidence } = trait;
+    
+    return (
+      <div className="mb-4 border rounded-lg p-4">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-sm font-medium">{label}</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge className={getConfidenceColor(confidence)}>
+                  {Math.round(confidence * 100)}%
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getConfidenceTooltip(confidence)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
+        <div className="mt-2">
+          <ul className="list-disc pl-5 space-y-1">
+            {renderTraitValue(value)}
+          </ul>
+        </div>
+        
+        {evidence && evidence.length > 0 && (
+          <Accordion type="single" collapsible className="mt-2">
+            <AccordionItem value="evidence">
+              <AccordionTrigger className="text-xs text-muted-foreground">
+                Supporting Evidence
+              </AccordionTrigger>
+              <AccordionContent>
+                <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                  {evidence.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+      </div>
+    );
   };
-
-  // Helper function to get the display value for the comparison table (no splitting)
-  const getComparisonValue = (trait: PersonaTrait): string => {
-      // Check for nested description object
-      if (typeof trait.value === 'object' && trait.value !== null && 'description' in trait.value && typeof trait.value.description === 'string') {
-          return trait.value.description.trim() || 'N/A';
-      } 
-      // Check for direct string
-      else if (typeof trait.value === 'string') {
-          return trait.value.trim() || 'N/A';
-      } 
-      // Check for array
-      else if (Array.isArray(trait.value)) {
-          // Filter only strings and join
-          return trait.value.filter(item => typeof item === 'string').join(', ') || 'N/A';
-      }
-      // Handle potential nested value object in comparison table as well
-      else if (typeof trait.value === 'object' && trait.value !== null) {
-          // Attempt to stringify, but might still result in [object Object] if complex
-          try {
-            // Check specifically for the nested description object structure
-            if ('description' in trait.value && typeof trait.value.description === 'string') {
-                return trait.value.description.trim() || 'N/A';
-            }
-            const strVal = JSON.stringify(trait.value);
-            // Avoid showing empty object string representation
-            return strVal === '{}' ? 'N/A' : strVal; 
-          } catch (e) {
-            return '[Object]'; // Fallback if stringify fails
-          }
-      }
-      return String(trait.value ?? 'N/A'); // Handle null/undefined/other primitives
-  };
-
 
   return (
     <Card className={cn("w-full", className)}>
       <CardHeader>
         <CardTitle>User Personas</CardTitle>
         <CardDescription>
-          Identified user personas based on the interview analysis
+          {personas.length} persona{personas.length !== 1 ? 's' : ''} identified from the analysis
         </CardDescription>
       </CardHeader>
+      
       <CardContent>
-        <Tabs defaultValue="personas" className="w-full">
-          <TabsList className="grid grid-cols-2 mb-6 w-full">
-            <TabsTrigger value="personas">Persona Cards</TabsTrigger>
-            <TabsTrigger value="comparison">Comparison</TabsTrigger>
+        <Tabs defaultValue={personas[0]?.name} className="w-full">
+          <TabsList className="mb-4 w-full flex overflow-x-auto">
+            {personas.map((persona, index) => (
+              <TabsTrigger
+                key={`persona-tab-${index}`}
+                value={persona.name}
+                onClick={() => setActivePersonaIndex(index)}
+                className="flex items-center"
+              >
+                <Avatar className="h-6 w-6 mr-2">
+                  <AvatarFallback>{getInitials(persona.name)}</AvatarFallback>
+                </Avatar>
+                <span>{persona.name}</span>
+              </TabsTrigger>
+            ))}
           </TabsList>
           
-          <TabsContent value="personas" className="space-y-6">
-            {/* Persona tabs navigation */}
-            <div className="flex flex-nowrap overflow-x-auto pb-2 mb-4 gap-2">
-              {personas.map((persona, index) => (
-                <div 
-                  key={`persona-tab-${index}`}
-                  onClick={() => setActivePersonaIndex(index)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer whitespace-nowrap",
-                    activePersonaIndex === index 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted hover:bg-secondary"
-                  )}
-                >
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-xs">
-                      {getInitials(persona.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{persona.name}</span>
+          {personas.map((persona, index) => (
+            <TabsContent key={`persona-content-${index}`} value={persona.name} className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">{persona.name}</h2>
+                  <p className="text-muted-foreground">{persona.description}</p>
                 </div>
-              ))}
-            </div>
-            
-            {/* Active persona details */}
-            {activePersona && (
-              <div className="md:col-span-3">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold">{activePersona.name}</h2>
-                    <p className="text-muted-foreground">{activePersona.description}</p>
-                  </div>
-                  <Badge className={getConfidenceColor(activePersona.confidence)}>
-                    {Math.round(activePersona.confidence * 100)}% Confidence
-                    <Tooltip>{getConfidenceTooltip(activePersona.confidence)}</Tooltip>
-                  </Badge>
-                </div>
-                
-                <Tabs defaultValue="overview">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="evidence">Evidence</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Confidence Guide Panel */}
-                      <Card className="col-span-1 md:col-span-2 bg-blue-50 dark:bg-blue-900/20">
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-base">Confidence Score Guide</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <div className="text-sm">
-                            <p className="mb-2">Our confidence scores reflect the strength of evidence:</p>
-                            <ul className="space-y-1 list-disc list-inside">
-                              <li><strong>90-100%:</strong> Direct statements from interview</li>
-                              <li><strong>70-80%:</strong> Strong evidence across multiple mentions</li>
-                              <li><strong>50-60%:</strong> Contextual clues and moderate evidence</li>
-                              {/* Escaped the less than sign */}
-                              <li><strong>&lt;50%:</strong> Limited evidence based on inferences</li> 
-                            </ul>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Role Context</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.role_context.confidence)} id="role-context-badge">
-                              {Math.round(activePersona.role_context.confidence * 100)}%
-                              <Tooltip anchorId="role-context-badge" place="top">
-                                {getConfidenceTooltip(activePersona.role_context.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Role context seems to be direct string, render as paragraph */}
-                          <p>{typeof activePersona.role_context.value === 'string' ? activePersona.role_context.value : 'N/A'}</p>
-                          
-                          {activePersona.role_context.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('role_context')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['role_context'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['role_context'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.role_context.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Key Responsibilities</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.key_responsibilities.confidence)} id="key-responsibilities-badge">
-                              {Math.round(activePersona.key_responsibilities.confidence * 100)}%
-                              <Tooltip anchorId="key-responsibilities-badge" place="top">
-                                {getConfidenceTooltip(activePersona.key_responsibilities.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="list-disc pl-5">
-                            {renderTraitList(activePersona.key_responsibilities)}
-                          </ul>
-                          
-                          {activePersona.key_responsibilities.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('key_responsibilities')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['key_responsibilities'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['key_responsibilities'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.key_responsibilities.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Tools Used</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.tools_used.confidence)} id="tools-used-badge">
-                              {Math.round(activePersona.tools_used.confidence * 100)}%
-                              <Tooltip anchorId="tools-used-badge" place="top">
-                                {getConfidenceTooltip(activePersona.tools_used.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="list-disc pl-5">
-                            {renderTraitList(activePersona.tools_used)}
-                          </ul>
-                          
-                          {activePersona.tools_used.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('tools_used')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['tools_used'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['tools_used'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.tools_used.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Pain Points</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.pain_points.confidence)} id="pain-points-badge">
-                              {Math.round(activePersona.pain_points.confidence * 100)}%
-                              <Tooltip anchorId="pain-points-badge" place="top">
-                                {getConfidenceTooltip(activePersona.pain_points.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="list-disc pl-5">
-                            {renderTraitList(activePersona.pain_points)}
-                          </ul>
-                          
-                          {activePersona.pain_points.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('pain_points')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['pain_points'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['pain_points'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.pain_points.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Collaboration Style</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.collaboration_style.confidence)} id="collaboration-style-badge">
-                              {Math.round(activePersona.collaboration_style.confidence * 100)}%
-                              <Tooltip anchorId="collaboration-style-badge" place="top">
-                                {getConfidenceTooltip(activePersona.collaboration_style.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="list-disc pl-5">
-                            {renderTraitList(activePersona.collaboration_style)}
-                          </ul>
-                          
-                          {activePersona.collaboration_style.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('collaboration_style')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['collaboration_style'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['collaboration_style'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.collaboration_style.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-base">Analysis Approach</CardTitle>
-                            <Badge variant="outline" className={getConfidenceColor(activePersona.analysis_approach.confidence)} id="analysis-approach-badge">
-                              {Math.round(activePersona.analysis_approach.confidence * 100)}%
-                              <Tooltip anchorId="analysis-approach-badge" place="top">
-                                {getConfidenceTooltip(activePersona.analysis_approach.confidence)}
-                              </Tooltip>
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="list-disc pl-5">
-                            {renderTraitList(activePersona.analysis_approach)}
-                          </ul>
-                          
-                          {activePersona.analysis_approach.evidence.length > 0 && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium">Evidence:</h4>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  onClick={() => toggleEvidence('analysis_approach')}
-                                  className="h-6 text-xs"
-                                >
-                                  {expandedTraits['analysis_approach'] ? 'Hide evidence' : 'Show evidence'}
-                                </Button>
-                              </div>
-                              
-                              {expandedTraits['analysis_approach'] && (
-                                <ul className="list-disc pl-5 mt-1 text-sm text-muted-foreground">
-                                  {activePersona.analysis_approach.evidence.map((item, i) => (
-                                    <li key={i}>{item}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Common Patterns</h3>
-                      {activePersona.patterns && activePersona.patterns.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {activePersona.patterns.map((pattern, index) => (
-                            <Badge key={index} variant="outline">{pattern}</Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No common patterns identified for this persona.</p>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="evidence">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Supporting Evidence</h3>
-                        <ul className="list-disc pl-5 space-y-2">
-                          {/* Parse evidence for the main persona evidence list as well */}
-                          {activePersona.evidence.map((item, index) => (
-                            <li key={index}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      {activePersona.metadata && (
-                        <div>
-                          <h3 className="text-sm font-medium mb-2">Metadata</h3>
-                          <div className="bg-muted p-3 rounded text-sm">
-                            <p>Sample Size: {activePersona.metadata.sample_size || 'N/A'}</p>
-                            {activePersona.metadata.timestamp && (
-                              <p>Generated: {new Date(activePersona.metadata.timestamp).toLocaleString()}</p>
-                            )}
-                            {activePersona.metadata.validation_metrics && (
-                              <>
-                                <p>Pattern Confidence: {Math.round((activePersona.metadata.validation_metrics.pattern_confidence || 0) * 100)}%</p>
-                                <p>Evidence Count: {activePersona.metadata.validation_metrics.evidence_count || 0}</p>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className={getConfidenceColor(persona.confidence)}>
+                        {Math.round(persona.confidence * 100)}% Overall Confidence
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{getConfidenceTooltip(persona.confidence)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="comparison">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Attribute</th>
-                    {personas.map((persona, index) => (
-                      <th key={index} className="text-left p-2">{persona.name}</th>
+              
+              {/* Persona Traits */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {renderTraitCard('Role Context', persona.role_context)}
+                {renderTraitCard('Key Responsibilities', persona.key_responsibilities)}
+                {renderTraitCard('Tools Used', persona.tools_used)}
+                {renderTraitCard('Collaboration Style', persona.collaboration_style)}
+                {renderTraitCard('Analysis Approach', persona.analysis_approach)}
+                {renderTraitCard('Pain Points', persona.pain_points)}
+              </div>
+              
+              {/* Patterns */}
+              {persona.patterns && persona.patterns.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium mb-2">Associated Patterns</h3>
+                  <ul className="list-disc pl-5">
+                    {persona.patterns.map((pattern, i) => (
+                      <li key={i} className="text-sm">{pattern}</li>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Role Context</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">{getComparisonValue(persona.role_context)}</td>
-                    ))}
-                  </tr>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Key Responsibilities</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">
-                        {getComparisonValue(persona.key_responsibilities)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Tools Used</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">
-                        {getComparisonValue(persona.tools_used)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Pain Points</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">
-                        {getComparisonValue(persona.pain_points)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Collaboration Style</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">
-                        {getComparisonValue(persona.collaboration_style)}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-medium">Analysis Approach</td>
-                    {personas.map((persona, index) => (
-                      <td key={index} className="p-2">
-                        {getComparisonValue(persona.analysis_approach)}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
+                  </ul>
+                </div>
+              )}
+              
+              {/* Overall Evidence */}
+              {persona.evidence && persona.evidence.length > 0 && (
+                <Accordion type="single" collapsible className="mt-4">
+                  <AccordionItem value="overall-evidence">
+                    <AccordionTrigger className="text-sm">
+                      Overall Supporting Evidence
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                        {persona.evidence.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
+              
+              {/* Metadata */}
+              {persona.metadata && (
+                <div className="mt-4 text-xs text-muted-foreground">
+                  {persona.metadata.sample_size && (
+                    <p>Sample size: {persona.metadata.sample_size}</p>
+                  )}
+                  {persona.metadata.timestamp && (
+                    <p>Generated: {new Date(persona.metadata.timestamp).toLocaleString()}</p>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          ))}
         </Tabs>
       </CardContent>
     </Card>
   );
 }
-
-export default PersonaList;

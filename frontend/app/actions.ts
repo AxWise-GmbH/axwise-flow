@@ -138,3 +138,51 @@ export async function getServerSideAnalysis(analysisId: string): Promise<Detaile
     return null;
   }
 }
+
+/**
+ * Fetch analysis history from the database
+ */
+export async function fetchAnalysisHistory(page: number = 1, pageSize: number = 10) {
+  try {
+    // Get auth token from cookie
+    const cookieStore = cookies();
+    const authToken = cookieStore.get('auth_token')?.value;
+
+    if (!authToken) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+        items: [],
+        totalItems: 0,
+        currentPage: page
+      };
+    }
+
+    // Set the token on the API client
+    apiClient.setAuthToken(authToken);
+
+    // Set up pagination parameters
+    const skip = (page - 1) * pageSize;
+
+    // Call API to fetch history data
+    // NOTE: Assumes apiClient.getAnalysisHistory exists and takes (skip, limit)
+    // Also assumes the response format matches { items: [], totalCount: number }
+    const response = await apiClient.getAnalysisHistory(skip, pageSize);
+
+    return {
+      success: true,
+      items: response.items || [],
+      totalItems: response.totalCount || 0,
+      currentPage: page
+    };
+  } catch (error) {
+    console.error('Error fetching analysis history:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error fetching history',
+      items: [],
+      totalItems: 0,
+      currentPage: page
+    };
+  }
+}
