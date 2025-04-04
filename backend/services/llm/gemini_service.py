@@ -198,6 +198,38 @@ class GeminiService:
                         theme["keywords"] = [word for word in words if len(word) > 3 and word.lower() not in
                                            ["and", "the", "with", "that", "this", "for", "from"]]
 
+                    # Ensure codes field exists
+                    if "codes" not in theme:
+                        # Generate codes based on keywords and theme name
+                        theme["codes"] = []
+                        if "keywords" in theme and len(theme["keywords"]) > 0:
+                            # Convert first two keywords to codes
+                            for keyword in theme["keywords"][:2]:
+                                code = keyword.upper().replace(" ", "_")
+                                if code not in theme["codes"]:
+                                    theme["codes"].append(code)
+
+                        # Add a code based on sentiment if not enough codes
+                        if len(theme["codes"]) < 2 and "sentiment" in theme:
+                            sentiment = theme["sentiment"]
+                            if sentiment >= 0.3:
+                                theme["codes"].append("POSITIVE_ASPECT")
+                            elif sentiment <= -0.3:
+                                theme["codes"].append("PAIN_POINT")
+                            else:
+                                theme["codes"].append("NEUTRAL_OBSERVATION")
+
+                    # Ensure reliability field exists
+                    if "reliability" not in theme:
+                        # Calculate reliability based on number of statements and their length
+                        statements = theme.get("statements", [])
+                        if len(statements) >= 4:
+                            theme["reliability"] = 0.85  # Well-supported with many statements
+                        elif len(statements) >= 2:
+                            theme["reliability"] = 0.7   # Moderately supported
+                        else:
+                            theme["reliability"] = 0.5   # Minimally supported
+
             elif task == 'pattern_recognition':
                 # If response is a list of patterns directly
                 if isinstance(result, list):
@@ -427,6 +459,8 @@ class GeminiService:
                 4. Supporting statements as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
                 5. Keywords that represent key terms related to the theme
                 6. A concise definition that explains what the theme encompasses
+                7. Associated codes that categorize the theme (e.g., "UX_CHALLENGE", "RESOURCE_CONSTRAINT", "DESIGN_PROCESS")
+                8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
                 Format your response as a JSON object with this structure:
                 [
@@ -436,7 +470,9 @@ class GeminiService:
                     "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
                     "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
                     "keywords": ["keyword1", "keyword2", "keyword3"],
-                    "definition": "A concise one-sentence description of what this theme encompasses"
+                    "definition": "A concise one-sentence description of what this theme encompasses",
+                    "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+                    "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
                   },
                   ...
                 ]
@@ -445,6 +481,8 @@ class GeminiService:
                 - Use EXACT sentences from the ORIGINAL ANSWERS for the statements. Do not summarize or paraphrase.
                 - Include 3-5 relevant keywords for each theme.
                 - Provide a clear, concise definition for each theme.
+                - Include 2-4 codes for each theme using UPPERCASE_WITH_UNDERSCORES format.
+                - Assign a reliability score based on how confident you are in the theme (0.7-0.9 for well-supported themes, 0.5-0.7 for moderately supported themes, below 0.5 for weakly supported themes).
                 - Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
                 - Ensure 100% of your response is in valid JSON format.
                 """
@@ -459,6 +497,8 @@ class GeminiService:
                 4. Supporting statements as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
                 5. Keywords that represent key terms related to the theme
                 6. A concise definition that explains what the theme encompasses
+                7. Associated codes that categorize the theme (e.g., "UX_CHALLENGE", "RESOURCE_CONSTRAINT", "DESIGN_PROCESS")
+                8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
                 Format your response as a JSON object with this structure:
                 [
@@ -468,7 +508,9 @@ class GeminiService:
                     "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
                     "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
                     "keywords": ["keyword1", "keyword2", "keyword3"],
-                    "definition": "A concise one-sentence description of what this theme encompasses"
+                    "definition": "A concise one-sentence description of what this theme encompasses",
+                    "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+                    "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
                   },
                   ...
                 ]
@@ -477,6 +519,8 @@ class GeminiService:
                 - Use EXACT sentences from the text for the statements. Do not summarize or paraphrase.
                 - Include 3-5 relevant keywords for each theme.
                 - Provide a clear, concise definition for each theme.
+                - Include 2-4 codes for each theme using UPPERCASE_WITH_UNDERSCORES format.
+                - Assign a reliability score based on how confident you are in the theme (0.7-0.9 for well-supported themes, 0.5-0.7 for moderately supported themes, below 0.5 for weakly supported themes).
                 - Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
                 - Ensure 100% of your response is in valid JSON format.
                 """
@@ -1026,6 +1070,44 @@ class GeminiService:
                     {}
                 )
 
+                # Generate codes if none exist
+                codes = matching_refined_theme.get('codes', [])
+                if not codes:
+                    # Extract from keywords if available
+                    keywords = theme.get('keywords', [])
+                    if keywords:
+                        for keyword in keywords[:2]:
+                            code = keyword.upper().replace(" ", "_")
+                            if code not in codes:
+                                codes.append(code)
+
+                    # Add sentiment-based code if needed
+                    if len(codes) < 2:
+                        sentiment = theme.get('sentiment_estimate', 0.0)
+                        if sentiment >= 0.3:
+                            codes.append("POSITIVE_ASPECT")
+                        elif sentiment <= -0.3:
+                            codes.append("PAIN_POINT")
+                        else:
+                            codes.append("NEUTRAL_OBSERVATION")
+
+                # Extract keywords from codes if none exist
+                keywords = theme.get('keywords', [])
+                if not keywords:
+                    keywords = self._extract_keywords_from_codes(codes)
+
+                # Calculate reliability if not provided
+                reliability = reliability_data.get('agreement_statistics', {}).get('cohen_kappa', 0.0) if reliability_data else None
+                if reliability is None:
+                    # Calculate based on number of statements
+                    statements = theme.get('example_quotes', [])
+                    if len(statements) >= 4:
+                        reliability = 0.85  # Well-supported with many statements
+                    elif len(statements) >= 2:
+                        reliability = 0.7   # Moderately supported
+                    else:
+                        reliability = 0.5   # Minimally supported
+
                 final_themes.append({
                     'id': theme_id,
                     'name': theme.get('name', f"Theme {theme_id}"),
@@ -1034,9 +1116,9 @@ class GeminiService:
                     'sentiment': theme.get('sentiment_estimate', 0.0),
                     'statements': theme.get('example_quotes', []),
                     'examples': theme.get('example_quotes', []),  # For backward compatibility
-                    'codes': matching_refined_theme.get('codes', []),
-                    'keywords': self._extract_keywords_from_codes(matching_refined_theme.get('codes', [])) if not theme.get('keywords') else theme.get('keywords', []),
-                    'reliability': reliability_data.get('agreement_statistics', {}).get('cohen_kappa', 0.0) if reliability_data else None,
+                    'codes': codes,
+                    'keywords': keywords,
+                    'reliability': reliability,
                     'process': 'enhanced'
                 })
                 theme_id += 1
