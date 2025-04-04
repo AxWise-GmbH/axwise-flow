@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -16,15 +16,7 @@ type PersonaListProps = {
 };
 
 export function PersonaList({ personas, className }: PersonaListProps) {
-  // Use the personas prop directly without fallbacks
-  const [activePersonaIndex, setActivePersonaIndex] = useState(0);
-
-  // Select the first persona if the list changes
-  useEffect(() => {
-    if (personas && personas.length > 0) {
-      setActivePersonaIndex(0);
-    }
-  }, [personas]);
+  // No need to track active persona index as the Tabs component handles the active state
 
   // Ensure we have valid personas data
   if (!personas || personas.length === 0) {
@@ -165,7 +157,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
               <TabsTrigger
                 key={`persona-tab-${index}`}
                 value={persona.name}
-                onClick={() => setActivePersonaIndex(index)}
+                // TabsTrigger handles selection state automatically
                 className="flex items-center"
               >
                 <Avatar className="h-6 w-6 mr-2">
