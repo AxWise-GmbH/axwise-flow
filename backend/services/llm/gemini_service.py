@@ -168,16 +168,35 @@ class GeminiService:
 
                 # Ensure each theme has required fields
                 for theme in result["themes"]:
+                    # Ensure required fields with default values
                     if "sentiment" not in theme:
-                        theme["sentiment"] = 0.5  # neutral
+                        theme["sentiment"] = 0.0  # neutral
                     if "frequency" not in theme:
                         theme["frequency"] = 0.5  # medium
-                    if "examples" not in theme and "statements" not in theme:
-                        theme["examples"] = []
 
-                    # Copy statements to examples for consistency
-                    if "statements" in theme and "examples" not in theme:
+                    # Handle statements/examples for backward compatibility
+                    if "statements" not in theme:
+                        if "examples" in theme:
+                            # Copy examples to statements (preferred field)
+                            theme["statements"] = theme["examples"]
+                        else:
+                            theme["statements"] = []
+
+                    # Ensure examples exists for backward compatibility
+                    if "examples" not in theme:
                         theme["examples"] = theme["statements"]
+
+                    # Ensure keywords exists
+                    if "keywords" not in theme:
+                        theme["keywords"] = []
+
+                    # Extract keywords from name if none provided
+                    if len(theme["keywords"]) == 0 and "name" in theme:
+                        # Simple extraction of potential keywords from the theme name
+                        words = theme["name"].split()
+                        # Filter out common words and keep only substantive ones (length > 3)
+                        theme["keywords"] = [word for word in words if len(word) > 3 and word.lower() not in
+                                           ["and", "the", "with", "that", "this", "for", "from"]]
 
             elif task == 'pattern_recognition':
                 # If response is a list of patterns directly
@@ -405,7 +424,9 @@ class GeminiService:
                 1. Clear, specific themes (not vague categories)
                 2. Quantify frequency as a decimal between 0.0-1.0
                 3. Sentiment association with each theme (as a decimal between -1.0 and 1.0, where -1.0 is negative, 0.0 is neutral, and 1.0 is positive)
-                4. Supporting examples as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
+                4. Supporting statements as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
+                5. Keywords that represent key terms related to the theme
+                6. A concise definition that explains what the theme encompasses
 
                 Format your response as a JSON object with this structure:
                 [
@@ -413,14 +434,19 @@ class GeminiService:
                     "name": "Theme name - be specific and concrete",
                     "frequency": 0.XX, (decimal between 0-1 representing prevalence)
                     "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-                    "examples": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"]
+                    "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+                    "keywords": ["keyword1", "keyword2", "keyword3"],
+                    "definition": "A concise one-sentence description of what this theme encompasses"
                   },
                   ...
                 ]
 
-                IMPORTANT: Use EXACT sentences from the ORIGINAL ANSWERS for the examples. Do not summarize or paraphrase.
-                Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
-                Ensure 100% of your response is in valid JSON format.
+                IMPORTANT:
+                - Use EXACT sentences from the ORIGINAL ANSWERS for the statements. Do not summarize or paraphrase.
+                - Include 3-5 relevant keywords for each theme.
+                - Provide a clear, concise definition for each theme.
+                - Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
+                - Ensure 100% of your response is in valid JSON format.
                 """
             else:
                 return """
@@ -430,7 +456,9 @@ class GeminiService:
                 1. Clear, specific themes (not vague categories)
                 2. Quantify frequency as a decimal between 0.0-1.0
                 3. Sentiment association with each theme (as a decimal between -1.0 and 1.0, where -1.0 is negative, 0.0 is neutral, and 1.0 is positive)
-                4. Supporting examples as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
+                4. Supporting statements as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
+                5. Keywords that represent key terms related to the theme
+                6. A concise definition that explains what the theme encompasses
 
                 Format your response as a JSON object with this structure:
                 [
@@ -438,14 +466,19 @@ class GeminiService:
                     "name": "Theme name - be specific and concrete",
                     "frequency": 0.XX, (decimal between 0-1 representing prevalence)
                     "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-                    "examples": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"]
+                    "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+                    "keywords": ["keyword1", "keyword2", "keyword3"],
+                    "definition": "A concise one-sentence description of what this theme encompasses"
                   },
                   ...
                 ]
 
-                IMPORTANT: Use EXACT sentences from the text for the examples. Do not summarize or paraphrase.
-                Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
-                Ensure 100% of your response is in valid JSON format.
+                IMPORTANT:
+                - Use EXACT sentences from the text for the statements. Do not summarize or paraphrase.
+                - Include 3-5 relevant keywords for each theme.
+                - Provide a clear, concise definition for each theme.
+                - Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
+                - Ensure 100% of your response is in valid JSON format.
                 """
 
         elif task == 'pattern_recognition':
@@ -998,10 +1031,11 @@ class GeminiService:
                     'name': theme.get('name', f"Theme {theme_id}"),
                     'definition': theme.get('definition', ''),
                     'frequency': theme.get('frequency', 0.0),
-                    'statements': theme.get('example_quotes', []),
                     'sentiment': theme.get('sentiment_estimate', 0.0),
+                    'statements': theme.get('example_quotes', []),
+                    'examples': theme.get('example_quotes', []),  # For backward compatibility
                     'codes': matching_refined_theme.get('codes', []),
-                    'keywords': self._extract_keywords_from_codes(matching_refined_theme.get('codes', [])),
+                    'keywords': self._extract_keywords_from_codes(matching_refined_theme.get('codes', [])) if not theme.get('keywords') else theme.get('keywords', []),
                     'reliability': reliability_data.get('agreement_statistics', {}).get('cohen_kappa', 0.0) if reliability_data else None,
                     'process': 'enhanced'
                 })

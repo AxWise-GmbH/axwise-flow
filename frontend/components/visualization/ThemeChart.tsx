@@ -13,7 +13,7 @@
  * If using UnifiedVisualization in the future, modify this component to accept a `showKeyInsights` prop.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { AnalyzedTheme } from '@/types/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,20 +29,16 @@ interface ThemeChartProps {
 export function ThemeChart({ themes }: ThemeChartProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTheme, setSelectedTheme] = useState<AnalyzedTheme | null>(null);
+  const modalRef = React.useRef<HTMLDivElement>(null);
 
-  // Debug: Log themes data to console
-  console.log('ThemeChart received themes:', themes);
+  // Focus the modal when it opens
+  React.useEffect(() => {
+    if (selectedTheme && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [selectedTheme]);
 
-  // Debug: Inspect for statements or supporting quotes
-  console.log('Checking for statements in first theme:',
-    themes.length > 0 ?
-    {
-      name: themes[0].name,
-      statements: themes[0].statements,
-      examples: themes[0].examples,
-      sentimentValue: themes[0].sentiment,
-      supportingData: themes[0]
-    } : 'No themes available');
+  // Themes data received via props
 
   // Filter themes based on search term
   const filteredThemes = themes.filter(theme =>
@@ -80,6 +76,107 @@ export function ThemeChart({ themes }: ThemeChartProps) {
     return 'secondary';
   };
 
+  // Helper function for rendering theme values with better handling of missing data
+  const renderThemeValue = (value: any, fallback: string = "Not available"): React.ReactNode => {
+    if (value === undefined || value === null) {
+      return <span className="text-muted-foreground text-sm italic">{fallback}</span>;
+    }
+
+    if (typeof value === 'string') {
+      // Split string into sentences for list items if it contains periods
+      // Only split if there are multiple sentences ending with a period followed by a space
+      const sentences = value.split('. ').filter(s => s.trim().length > 0);
+      if (sentences.length > 1) {
+        return (
+          <ul className="list-disc pl-5 text-sm space-y-1">
+            {sentences.map((sentence, i) => (
+              // Add the period back unless it's the last sentence and already has punctuation
+              <li key={i}>{sentence.trim()}{/[.!?]$/.test(sentence.trim()) || i === sentences.length - 1 ? '' : '.'}</li>
+            ))}
+          </ul>
+        );
+      } else {
+        // Render as single text if no periods or only one sentence
+        return <span className="text-sm">{value}</span>;
+      }
+    }
+
+    if (typeof value === 'number') {
+      return <span className="text-sm">{value.toString()}</span>;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0 ? (
+        <ul className="list-disc pl-5 text-sm space-y-1">
+          {value.filter(item => typeof item === 'string' || typeof item === 'number').map((item, i) => (
+            <li key={i}>{String(item)}</li>
+          ))}
+        </ul>
+      ) : (
+        <span className="text-muted-foreground text-sm italic">{fallback}</span>
+      );
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      // Try to render simple key-value pairs from a dict
+      try {
+        const entries = Object.entries(value);
+        // Limit the number of key-value pairs shown initially for brevity
+        const displayLimit = 5;
+
+        if (entries.length === 0) {
+          return <span className="text-muted-foreground text-sm italic">{fallback}</span>;
+        }
+
+        return (
+          <ul className="list-disc pl-5 text-sm space-y-1">
+            {entries.slice(0, displayLimit).map(([key, val]) => (
+              // Format key nicely (e.g., 'experience_years' -> 'Experience Years')
+              <li key={key}>
+                <strong>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {String(val)}
+              </li>
+            ))}
+            {entries.length > displayLimit && (
+              <li key="more" className="text-muted-foreground italic">...and {entries.length - displayLimit} more</li>
+            )}
+          </ul>
+        );
+      } catch (e) {
+        // Fallback for complex objects that can't be easily rendered
+        return <span className="text-muted-foreground text-sm italic">[Complex Object Data]</span>;
+      }
+    }
+
+    // Render other primitive types (boolean) as a string
+    if (value !== null && value !== undefined) {
+      return <span className="text-sm">{String(value)}</span>;
+    }
+
+    // Default fallback
+    return <span className="text-muted-foreground text-sm italic">{fallback}</span>;
+  };
+
+  // Helper function for consistent tooltip rendering
+  const renderTooltip = (trigger: React.ReactNode, title: string, description: string) => (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {trigger}
+        </TooltipTrigger>
+        <TooltipContent
+          side="right"
+          className="bg-white dark:bg-slate-900 border shadow-lg p-3"
+          align="center"
+        >
+          <div className="space-y-1">
+            <h4 className="font-semibold">{title}</h4>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
     <div className="space-y-6">
       {/* Key Insights Section */}
@@ -104,30 +201,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                         (typeof theme.sentiment === 'number' && theme.sentiment <= -0.1) ? 'border-red-300 bg-red-50' :
                         'border-slate-300 bg-slate-50'
                       } transition-all duration-150`}>
-                        <TooltipProvider key={theme.id} delayDuration={300}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className="absolute top-3 right-3 cursor-default"
-                              >
-                                {Math.round((theme.frequency || 0) * 100)}%
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="left"
-                              className="bg-white dark:bg-slate-900 border shadow-lg p-3"
-                              align="center"
-                            >
-                              <div className="space-y-1">
-                                <h4 className="font-semibold">Theme Frequency</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Appears in {Math.round((theme.frequency || 0) * 100)}% of analyzed content
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {renderTooltip(
+                          <Badge
+                            variant="outline"
+                            className="absolute top-3 right-3 cursor-default"
+                          >
+                            {Math.round((theme.frequency || 0) * 100)}%
+                          </Badge>,
+                          "Theme Frequency",
+                          `Appears in ${Math.round((theme.frequency || 0) * 100)}% of analyzed content`
+                        )}
                         <div className="relative pr-4">
                           <p className="text-sm leading-relaxed font-medium">
                             {theme.name}
@@ -159,6 +242,8 @@ export function ThemeChart({ themes }: ThemeChartProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full"
+            aria-label="Search themes"
+            id="theme-search"
           />
           {searchTerm && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -192,30 +277,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                         )}
                       </span>
                       <div className="flex items-center gap-2">
-                        <TooltipProvider delayDuration={300}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant={getSentimentVariant(theme.sentiment)}
-                                className="cursor-default"
-                              >
-                                {getSentimentLabel(theme.sentiment)}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="right"
-                              className="bg-white dark:bg-slate-900 border shadow-lg p-3"
-                              align="center"
-                            >
-                              <div className="space-y-1">
-                                <h4 className="font-semibold">Sentiment Analysis</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {getSentimentDescription(theme.sentiment)}
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {renderTooltip(
+                          <Badge
+                            variant={getSentimentVariant(theme.sentiment)}
+                            className="cursor-default"
+                          >
+                            {getSentimentLabel(theme.sentiment)}
+                          </Badge>,
+                          "Sentiment Analysis",
+                          getSentimentDescription(theme.sentiment)
+                        )}
                         <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
                           {Math.round((theme.frequency || 0) * 100)}%
                         </Badge>
@@ -224,16 +295,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3 pt-2">
-                      {theme.definition && (
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">Definition:</h4>
-                          <p className="text-sm p-2 bg-muted rounded-md">{theme.definition}</p>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Definition:</h4>
+                        <div className="p-2 bg-muted rounded-md">
+                          {renderThemeValue(theme.definition, "No definition available")}
                         </div>
-                      )}
+                      </div>
 
-                      {theme.keywords && theme.keywords.length > 0 && (
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">Keywords:</h4>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Keywords:</h4>
+                        {theme.keywords && theme.keywords.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {theme.keywords.map((keyword, i) => (
                               <Badge key={`${theme.id || theme.name}-keyword-${i}-${keyword}`} variant="secondary" className="text-xs">
@@ -241,12 +312,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                               </Badge>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="p-2 bg-muted/50 rounded-md">
+                            {renderThemeValue(null, "No keywords available")}
+                          </div>
+                        )}
+                      </div>
 
-                      {theme.codes && theme.codes.length > 0 && (
-                        <div className="mt-3">
-                          <h4 className="text-sm font-semibold mb-1">Associated Codes</h4>
+                      <div className="mt-3">
+                        <h4 className="text-sm font-semibold mb-1">Associated Codes</h4>
+                        {theme.codes && theme.codes.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {theme.codes.map((code: string, i: number) => (
                               <Badge key={`code-${i}`} variant="outline" className="text-xs">
@@ -254,12 +329,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                               </Badge>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="p-2 bg-muted/50 rounded-md">
+                            {renderThemeValue(null, "No associated codes available")}
+                          </div>
+                        )}
+                      </div>
 
-                      {theme.reliability !== undefined && (
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">Reliability Score:</h4>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium">Reliability Score:</h4>
+                        {theme.reliability !== undefined ? (
                           <div className="flex items-center">
                             <span className={`text-sm ${
                               theme.reliability >= 0.7 ? 'text-green-600' :
@@ -272,13 +351,18 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                               ({theme.reliability >= 0.7 ? 'High' : theme.reliability >= 0.5 ? 'Moderate' : 'Low'} agreement between raters)
                             </span>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="p-2 bg-muted/50 rounded-md">
+                            {renderThemeValue(null, "No reliability score available")}
+                          </div>
+                        )}
+                      </div>
 
-                      {(theme.statements && theme.statements.length > 0) || (theme.examples && theme.examples.length > 0) ? (
-                        <div>
-                          <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
-                          <div className="rounded-md border p-4">
+                      <div>
+                        <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
+                        <div className="rounded-md border p-4">
+                          {/* Handle both statements and examples fields for backward compatibility */}
+                          {(theme.statements && theme.statements.length > 0) || (theme.examples && theme.examples.length > 0) ? (
                             <ul className="space-y-2 text-sm">
                               {theme.statements && theme.statements.map((statement, i) => (
                                 <li key={`${theme.id || theme.name}-statement-${i}`} className="relative bg-muted/30 p-3 rounded-md">
@@ -293,11 +377,13 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                                 </li>
                               ))}
                             </ul>
-                          </div>
+                          ) : (
+                            <div className="p-2 bg-muted/50 rounded-md">
+                              {renderThemeValue(null, "No supporting statements available")}
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-muted-foreground">No supporting statements available.</p>
-                      )}
+                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -311,13 +397,27 @@ export function ThemeChart({ themes }: ThemeChartProps) {
 
       {/* Theme Details Modal */}
       {selectedTheme && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTheme(null)}>
+        <div
+          ref={modalRef}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedTheme(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="theme-detail-title"
+          onKeyDown={(e) => {
+            // Close modal on Escape key press
+            if (e.key === 'Escape') {
+              setSelectedTheme(null);
+            }
+          }}
+          tabIndex={0} // Make div focusable for keyboard navigation
+        >
           <div className="w-full max-w-3xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="flex items-center">
+                    <CardTitle className="flex items-center" id="theme-detail-title">
                       {selectedTheme.name}
                       {selectedTheme.process === 'enhanced' && (
                         <Badge variant="outline" className="ml-2 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
@@ -362,16 +462,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                   )}
                 </div>
 
-                {selectedTheme.definition && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Definition</h4>
-                    <p className="text-sm p-2 bg-muted rounded-md">{selectedTheme.definition}</p>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Definition</h4>
+                  <div className="p-2 bg-muted rounded-md">
+                    {renderThemeValue(selectedTheme.definition, "No definition available")}
                   </div>
-                )}
+                </div>
 
-                {selectedTheme.keywords && selectedTheme.keywords.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Keywords</h4>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Keywords</h4>
+                  {selectedTheme.keywords && selectedTheme.keywords.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {selectedTheme.keywords.map((keyword, i) => (
                         <Badge key={`modal-${selectedTheme.id || selectedTheme.name}-keyword-${i}-${keyword}`} variant="secondary">
@@ -379,12 +479,16 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-2 bg-muted/50 rounded-md">
+                      {renderThemeValue(null, "No keywords available")}
+                    </div>
+                  )}
+                </div>
 
-                {selectedTheme.codes && selectedTheme.codes.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Associated Codes</h4>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold mb-1">Associated Codes</h4>
+                  {selectedTheme.codes && selectedTheme.codes.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {selectedTheme.codes.map((code: string, i: number) => (
                         <Badge key={`code-${i}`} variant="outline" className="text-xs">
@@ -392,12 +496,17 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                         </Badge>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-2 bg-muted/50 rounded-md">
+                      {renderThemeValue(null, "No associated codes available")}
+                    </div>
+                  )}
+                </div>
 
-                {selectedTheme.statements && selectedTheme.statements.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Supporting Statements</h4>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold mb-1">Supporting Statements</h4>
+                  {/* Handle statements field */}
+                  {selectedTheme.statements && selectedTheme.statements.length > 0 ? (
                     <div className="space-y-1 mt-1 text-sm">
                       {selectedTheme.statements.map((statement: string, i: number) => (
                         <div key={`statement-${i}`} className="p-2 bg-muted/50 rounded text-xs">
@@ -405,24 +514,28 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {selectedTheme.examples && selectedTheme.examples.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-semibold mb-1">Examples</h4>
+                  ) : selectedTheme.examples && selectedTheme.examples.length > 0 ? (
                     <div className="space-y-1 mt-1 text-sm">
+                      {/* Handle examples field for backward compatibility */}
                       {selectedTheme.examples.map((example: string, i: number) => (
                         <div key={`example-${i}`} className="p-2 bg-muted/50 rounded text-xs">
                           &quot;{example}&quot; {/* Escape quotes */}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="p-2 bg-muted/50 rounded-md">
+                      {renderThemeValue(null, "No supporting statements or examples available")}
+                    </div>
+                  )}
+                </div>
 
                 <div className="mt-4 flex justify-end">
-                  <Button variant="outline" onClick={() => setSelectedTheme(null)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedTheme(null)}
+                    aria-label="Close theme details"
+                  >
                     Close
                   </Button>
                 </div>

@@ -112,19 +112,34 @@ class Theme(BaseModel):
     Model representing a theme identified in the analysis.
     """
     name: str
-    count: Optional[int] = None
-    frequency: Optional[float] = None
-    sentiment: Optional[float] = None
-    examples: Optional[List[str]] = None
+    frequency: float = Field(default=0.5, ge=0.0, le=1.0, description="Frequency score (0-1 representing prevalence)")
+    sentiment: float = Field(default=0.0, ge=-1.0, le=1.0, description="Sentiment score (-1 to 1, where -1 is negative, 0 is neutral, 1 is positive)")
+
+    # Supporting quotes (statements is preferred, examples is for backward compatibility)
+    statements: List[str] = Field(default_factory=list, description="Supporting statements from the text")
+    examples: Optional[List[str]] = Field(default=None, description="Legacy field for backward compatibility. Use statements instead.")
+
+    # Additional theme details
+    definition: Optional[str] = Field(default=None, description="One-sentence description of the theme")
+    keywords: List[str] = Field(default_factory=list, description="Related keywords or terms")
+    codes: Optional[List[str]] = Field(default=None, description="Associated codes from the coding process")
+    reliability: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Inter-rater reliability score (0-1)")
+    process: Optional[Literal["basic", "enhanced"]] = Field(default=None, description="Identifies which analysis process was used")
+
+    # Legacy fields
+    count: Optional[int] = Field(default=None, description="Legacy field. Use frequency instead.")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "User Interface",
-                "count": 12,
                 "frequency": 0.25,
                 "sentiment": 0.8,
-                "examples": ["The UI is very intuitive", "I love the design"]
+                "statements": ["The UI is very intuitive", "I love the design"],
+                "keywords": ["UI", "design", "interface", "usability"],
+                "definition": "The visual and interactive elements of the application that users engage with",
+                "reliability": 0.85,
+                "process": "enhanced"
             }
         }
 

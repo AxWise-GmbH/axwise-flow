@@ -4,20 +4,30 @@
 
 /**
  * AnalyzedTheme structure used in visualization components
+ *
+ * This interface represents a theme identified during analysis.
+ * It aligns with the backend Theme schema and includes fields for
+ * visualization and detailed information.
  */
 export interface AnalyzedTheme {
   id: string;
   name: string;
-  prevalence: number;
-  sentiment?: number;
-  frequency?: number;
-  keywords?: string[];
-  statements?: string[];
-  examples?: string[];
-  definition?: string;
-  codes?: string[];
-  reliability?: number;
-  process?: 'basic' | 'enhanced';
+  frequency: number;  // Main frequency field (0-1 representing prevalence)
+  sentiment: number;  // Sentiment score (-1 to 1, where -1 is negative, 0 is neutral, 1 is positive)
+
+  // Supporting quotes (statements is the preferred field, examples is for backward compatibility)
+  statements: string[];
+  examples?: string[];  // Deprecated: Use statements instead
+
+  // Additional theme details
+  definition?: string;  // One-sentence description of the theme
+  keywords?: string[];  // Related keywords or terms
+  codes?: string[];     // Associated codes from the coding process
+  reliability?: number; // Inter-rater reliability score (0-1)
+  process?: 'basic' | 'enhanced';  // Identifies which analysis process was used
+
+  // Legacy field - will be removed in future versions
+  prevalence?: number;  // Deprecated: Use frequency instead
 }
 
 /**
@@ -43,16 +53,23 @@ export interface AnalysisResponse {
 
 /**
  * Theme data structure
+ *
+ * This interface represents a theme as returned by the backend API.
+ * It's similar to AnalyzedTheme but with some differences in field types.
  */
 export interface Theme {
-  id: number;
+  id: number;               // Note: This is a number in the API but converted to string in AnalyzedTheme
   name: string;
-  frequency: number;
-  keywords: string[];
-  statements?: string[];    // Supporting statements from the LLM
-  examples?: string[];      // Legacy field for backward compatibility
-  sentiment?: number;
+  frequency: number;        // Frequency score (0-1)
+  sentiment: number;        // Sentiment score (-1 to 1)
+
+  // Supporting quotes
+  statements: string[];     // Supporting statements from the LLM
+  examples?: string[];      // Deprecated: Use statements instead
+
+  // Additional theme details
   definition?: string;      // One-sentence description of the theme
+  keywords: string[];       // Related keywords or terms
   codes?: string[];         // Associated codes from the coding process
   reliability?: number;     // Inter-rater reliability score (0-1)
   process?: 'basic' | 'enhanced';  // Identifies which analysis process was used
