@@ -3,18 +3,46 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy import create_engine
 
 from alembic import context
 
 import os
 import sys
+from pathlib import Path
+
+# Add the parent directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Add the project root to the Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
+# Import database models
 from database import Base
+
+# Import load_env to load environment variables
+try:
+    from load_env import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override sqlalchemy.url with environment variable if available
+DATABASE_URL=***REDACTED***
+
+# Check if we should use SQLite
+use_sqlite = os.getenv("ALEMBIC_USE_SQLITE", "false").lower() == "true"
+if use_sqlite:
+    DATABASE_URL=***REDACTED*** + str(project_root / "app.db")
+
+# Set the sqlalchemy.url in the config
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -69,18 +97,34 @@ def run_migrations_online() -> None:
     try:
         # Log the configuration being used
         logger.info("Starting online migrations")
-        logger.info(f"Using database URL: {config.get_main_option('sqlalchemy.url')}")
-        
-        connectable = engine_from_config(
-            config.get_section(config.config_ini_section, {}),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-        )
+        DATABASE_URL=***REDACTED***
+        logger.info(f"Using database URL: {database_url}")
+
+        # Check if using SQLite
+        is_sqlite = database_url.startswith('sqlite:')
+
+        if is_sqlite:
+            # Special handling for SQLite
+            logger.info("Using SQLite database")
+            connectable = create_engine(
+                database_url,
+                connect_args={"check_same_thread": False} if is_sqlite else {},
+            )
+        else:
+            # Standard handling for PostgreSQL and other databases
+            connectable = engine_from_config(
+                config.get_section(config.config_ini_section, {}),
+                prefix="sqlalchemy.",
+                poolclass=pool.NullPool,
+            )
 
         with connectable.connect() as connection:
             context.configure(
                 connection=connection,
-                target_metadata=target_metadata
+                target_metadata=target_metadata,
+                # These options help with SQLite foreign key support
+                render_as_batch=is_sqlite,
+                compare_type=True
             )
 
             with context.begin_transaction():
