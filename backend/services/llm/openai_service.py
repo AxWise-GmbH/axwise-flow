@@ -19,6 +19,7 @@ from backend.schemas import Theme
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Set to DEBUG for more detailed logging
 
+
 class OpenAIService:
     """Service for interacting with OpenAI's API."""
 
@@ -36,13 +37,13 @@ class OpenAIService:
 
     async def analyze(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze data using OpenAI."""
-        task = data.get('task', '')
-        text = data.get('text', '')
-        use_answer_only = data.get('use_answer_only', False)
+        task = data.get("task", "")
+        text = data.get("text", "")
+        use_answer_only = data.get("use_answer_only", False)
 
         if not text:
             logger.warning("Empty text provided for analysis")
-            return {'error': 'No text provided'}
+            return {"error": "No text provided"}
 
         if use_answer_only:
             logger.info(f"Running {task} on answer-only text length: {len(text)}")
@@ -61,11 +62,11 @@ class OpenAIService:
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_message},
-                    {"role": "user", "content": text}
+                    {"role": "user", "content": text},
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
             # Extract and parse response
@@ -75,7 +76,7 @@ class OpenAIService:
             result = json.loads(result_text)
 
             # Post-process results if needed
-            if task == 'theme_analysis':
+            if task == "theme_analysis":
                 # If response is a list of themes directly (not wrapped in an object)
                 if isinstance(result, list):
                     result = {"themes": result}
@@ -138,78 +139,119 @@ class OpenAIService:
                         # Calculate reliability based on number of statements and their length
                         statements = theme.get("statements", [])
                         if len(statements) >= 4:
-                            theme["reliability"] = 0.85  # Well-supported with many statements
+                            theme["reliability"] = (
+                                0.85  # Well-supported with many statements
+                            )
                         elif len(statements) >= 2:
-                            theme["reliability"] = 0.7   # Moderately supported
+                            theme["reliability"] = 0.7  # Moderately supported
                         else:
-                            theme["reliability"] = 0.5   # Minimally supported
+                            theme["reliability"] = 0.5  # Minimally supported
 
                     # Add process field if not present
                     if "process" not in theme:
                         theme["process"] = "basic"
 
                 # Validate themes against Pydantic model
-                validated_themes = []
-                for theme_data in result["themes"]:
-                    try:
-                        # Validate theme data against Pydantic model
-                        validated_theme = Theme(**theme_data).model_dump()
-                        validated_themes.append(validated_theme)
-                    except ValidationError as e:
-                        logger.warning(f"Theme validation error: {str(e)}")
-                        # Keep the theme but log the validation error
-                        validated_themes.append(theme_data)
+                validated_themes_list = []
+                if (
+                    isinstance(result, dict)
+                    and "themes" in result
+                    and isinstance(result["themes"], list)
+                ):
+                    for theme_data in result["themes"]:
+                        try:
+                            # Validate each theme dictionary against the Pydantic model
+                            validated_theme = Theme(**theme_data)
+                            # Append the validated data (as dict) to the list
+                            validated_themes_list.append(validated_theme.model_dump())
+                            logger.debug(
+                                f"Successfully validated theme: {theme_data.get('name', 'Unnamed')}"
+                            )
+                        except ValidationError as e:
+                            logger.warning(
+                                f"Theme validation failed for theme '{theme_data.get('name', 'Unnamed')}': {e}. Skipping this theme."
+                            )
+                            # Invalid themes are skipped to ensure data integrity downstream
+                        except Exception as general_e:
+                            logger.error(
+                                f"Unexpected error during theme validation for '{theme_data.get('name', 'Unnamed')}': {general_e}",
+                                exc_info=True,
+                            )
+                            # Skip this theme due to unexpected error
 
-                # Replace themes with validated themes
-                result["themes"] = validated_themes
+                    # Replace the original themes list with the validated list
+                    result["themes"] = validated_themes_list
+                    logger.info(
+                        f"Validated {len(validated_themes_list)} themes successfully for task: {task}"
+                    )
+                    logger.debug(
+                        f"Validated theme result: {json.dumps(result, indent=2)}"
+                    )
+                else:
+                    logger.warning(
+                        f"LLM response for theme_analysis was not in the expected format (dict with 'themes' list). Raw response: {result}"
+                    )
+                    result = {"themes": []}  # Return empty list if structure is wrong
 
-            elif task == 'pattern_recognition':
+            elif task == "pattern_recognition":
                 # Ensure each pattern has evidence and sentiment
-                if 'patterns' in result:
-                    for pattern in result['patterns']:
-                        if 'evidence' not in pattern:
-                            pattern['evidence'] = []
+                if "patterns" in result:
+                    for pattern in result["patterns"]:
+                        if "evidence" not in pattern:
+                            pattern["evidence"] = []
                         # Convert sentiment from 0-1 to -1 to 1 scale
-                        if 'sentiment' in pattern:
-                            pattern['sentiment'] = (pattern['sentiment'] - 0.5) * 2
+                        if "sentiment" in pattern:
+                            pattern["sentiment"] = (pattern["sentiment"] - 0.5) * 2
                         else:
-                            pattern['sentiment'] = 0.0
+                            pattern["sentiment"] = 0.0
 
-            elif task == 'sentiment_analysis':
+            elif task == "sentiment_analysis":
                 # Ensure sentiment has proper structure with supporting statements
-                if 'sentiment' in result:
-                    sentiment = result['sentiment']
+                if "sentiment" in result:
+                    sentiment = result["sentiment"]
                     # Convert overall sentiment from 0-1 to -1 to 1 scale
-                    if 'overall' in sentiment:
-                        sentiment['overall'] = (sentiment['overall'] - 0.5) * 2
+                    if "overall" in sentiment:
+                        sentiment["overall"] = (sentiment["overall"] - 0.5) * 2
 
                     # Ensure breakdown sums to 1.0
-                    if 'breakdown' in sentiment:
-                        total = sum(sentiment['breakdown'].values())
+                    if "breakdown" in sentiment:
+                        total = sum(sentiment["breakdown"].values())
                         if total > 0:
-                            for key in sentiment['breakdown']:
-                                sentiment['breakdown'][key] = round(sentiment['breakdown'][key] / total, 3)
+                            for key in sentiment["breakdown"]:
+                                sentiment["breakdown"][key] = round(
+                                    sentiment["breakdown"][key] / total, 3
+                                )
                     else:
-                        sentiment['breakdown'] = {
-                            'positive': 0.33,
-                            'neutral': 0.34,
-                            'negative': 0.33
+                        sentiment["breakdown"] = {
+                            "positive": 0.33,
+                            "neutral": 0.34,
+                            "negative": 0.33,
                         }
 
                     # Ensure supporting statements exist
-                    if 'supporting_statements' not in sentiment:
-                        logger.warning("No supporting_statements found in sentiment data, checking alternative fields")
+                    if "supporting_statements" not in sentiment:
+                        logger.warning(
+                            "No supporting_statements found in sentiment data, checking alternative fields"
+                        )
 
                         # Check for alternative fields that might contain statements
-                        if 'positive' in sentiment and isinstance(sentiment['positive'], list):
-                            logger.info(f"Found {len(sentiment['positive'])} statements in 'positive' field")
-                            positive_statements = sentiment['positive']
+                        if "positive" in sentiment and isinstance(
+                            sentiment["positive"], list
+                        ):
+                            logger.info(
+                                f"Found {len(sentiment['positive'])} statements in 'positive' field"
+                            )
+                            positive_statements = sentiment["positive"]
                         else:
                             positive_statements = []
 
-                        if 'negative' in sentiment and isinstance(sentiment['negative'], list):
-                            logger.info(f"Found {len(sentiment['negative'])} statements in 'negative' field")
-                            negative_statements = sentiment['negative']
+                        if "negative" in sentiment and isinstance(
+                            sentiment["negative"], list
+                        ):
+                            logger.info(
+                                f"Found {len(sentiment['negative'])} statements in 'negative' field"
+                            )
+                            negative_statements = sentiment["negative"]
                         else:
                             negative_statements = []
 
@@ -217,12 +259,22 @@ class OpenAIService:
                         neutral_statements = []
 
                         # Extract from details if available and other fields were empty
-                        if not positive_statements and not negative_statements and 'details' in sentiment:
-                            logger.info(f"Attempting to extract statements from {len(sentiment['details'])} details")
-                            for detail in sentiment['details']:
-                                if isinstance(detail, dict) and 'evidence' in detail and 'score' in detail:
-                                    evidence = detail['evidence']
-                                    score = detail['score']
+                        if (
+                            not positive_statements
+                            and not negative_statements
+                            and "details" in sentiment
+                        ):
+                            logger.info(
+                                f"Attempting to extract statements from {len(sentiment['details'])} details"
+                            )
+                            for detail in sentiment["details"]:
+                                if (
+                                    isinstance(detail, dict)
+                                    and "evidence" in detail
+                                    and "score" in detail
+                                ):
+                                    evidence = detail["evidence"]
+                                    score = detail["score"]
 
                                     if isinstance(evidence, str) and evidence.strip():
                                         if score >= 0.6:
@@ -232,39 +284,59 @@ class OpenAIService:
                                         else:
                                             neutral_statements.append(evidence)
 
-                        sentiment['supporting_statements'] = {
-                            'positive': positive_statements,
-                            'neutral': neutral_statements,
-                            'negative': negative_statements
+                        sentiment["supporting_statements"] = {
+                            "positive": positive_statements,
+                            "neutral": neutral_statements,
+                            "negative": negative_statements,
                         }
 
-                        logger.info(f"Created supporting_statements with {len(positive_statements)} positive, {len(neutral_statements)} neutral, and {len(negative_statements)} negative statements")
+                        logger.info(
+                            f"Created supporting_statements with {len(positive_statements)} positive, {len(neutral_statements)} neutral, and {len(negative_statements)} negative statements"
+                        )
                     else:
-                        logger.info(f"Found existing supporting_statements in sentiment data")
+                        logger.info(
+                            f"Found existing supporting_statements in sentiment data"
+                        )
                         # Log samples of the first statement in each category if available
-                        if sentiment['supporting_statements'].get('positive', []):
-                            logger.info(f"Sample positive statement: {sentiment['supporting_statements']['positive'][0]}")
-                        if sentiment['supporting_statements'].get('neutral', []):
-                            logger.info(f"Sample neutral statement: {sentiment['supporting_statements']['neutral'][0]}")
-                        if sentiment['supporting_statements'].get('negative', []):
-                            logger.info(f"Sample negative statement: {sentiment['supporting_statements']['negative'][0]}")
+                        if sentiment["supporting_statements"].get("positive", []):
+                            logger.info(
+                                f"Sample positive statement: {sentiment['supporting_statements']['positive'][0]}"
+                            )
+                        if sentiment["supporting_statements"].get("neutral", []):
+                            logger.info(
+                                f"Sample neutral statement: {sentiment['supporting_statements']['neutral'][0]}"
+                            )
+                        if sentiment["supporting_statements"].get("negative", []):
+                            logger.info(
+                                f"Sample negative statement: {sentiment['supporting_statements']['negative'][0]}"
+                            )
 
                     # Ensure details have proper sentiment scores
-                    if 'details' in sentiment:
-                        for detail in sentiment['details']:
-                            if 'score' in detail:
-                                detail['score'] = (detail['score'] - 0.5) * 2
+                    if "details" in sentiment:
+                        for detail in sentiment["details"]:
+                            if "score" in detail:
+                                detail["score"] = (detail["score"] - 0.5) * 2
 
                     # Create sentimentStatements field for frontend compatibility
-                    result['sentimentStatements'] = {
-                        'positive': sentiment['supporting_statements'].get('positive', []),
-                        'neutral': sentiment['supporting_statements'].get('neutral', []),
-                        'negative': sentiment['supporting_statements'].get('negative', [])
+                    result["sentimentStatements"] = {
+                        "positive": sentiment["supporting_statements"].get(
+                            "positive", []
+                        ),
+                        "neutral": sentiment["supporting_statements"].get(
+                            "neutral", []
+                        ),
+                        "negative": sentiment["supporting_statements"].get(
+                            "negative", []
+                        ),
                     }
-                    logger.info(f"Added sentimentStatements field with {len(result['sentimentStatements']['positive'])} positive, {len(result['sentimentStatements']['neutral'])} neutral, and {len(result['sentimentStatements']['negative'])} negative statements")
+                    logger.info(
+                        f"Added sentimentStatements field with {len(result['sentimentStatements']['positive'])} positive, {len(result['sentimentStatements']['neutral'])} neutral, and {len(result['sentimentStatements']['negative'])} negative statements"
+                    )
 
             logger.info(f"Successfully analyzed data with OpenAI for task: {task}")
-            logger.debug(f"Processed result for task {task}:\n{json.dumps(result, indent=2)}")
+            logger.debug(
+                f"Processed result for task {task}:\n{json.dumps(result, indent=2)}"
+            )
             return result
 
         except Exception as e:
@@ -273,9 +345,9 @@ class OpenAIService:
 
     def _get_system_message(self, task: str, data: Dict[str, Any]) -> str:
         """Get system message for OpenAI based on task"""
-        use_answer_only = data.get('use_answer_only', False)
+        use_answer_only = data.get("use_answer_only", False)
 
-        if task == 'theme_analysis':
+        if task == "theme_analysis":
             if use_answer_only:
                 return """
                 Analyze the interview responses to identify key themes. Your analysis should be comprehensive and based EXCLUSIVELY on the ANSWER-ONLY content provided, which contains only the original responses without questions or contextual text.
@@ -353,7 +425,7 @@ class OpenAIService:
                 - For reliability, consider factors like consistency across responses, clarity of evidence, and number of supporting statements.
                 """
 
-        elif task == 'pattern_recognition':
+        elif task == "pattern_recognition":
             return """
             You are an expert behavioral analyst specializing in identifying ACTION PATTERNS in interview data.
 
@@ -400,7 +472,7 @@ class OpenAIService:
             - Ensure 100% of your response is in valid JSON format
             """
 
-        elif task == 'sentiment_analysis':
+        elif task == "sentiment_analysis":
             return """
             You are an expert sentiment analyst. Analyze the provided text and provide a detailed sentiment analysis.
             Include:
@@ -453,11 +525,11 @@ class OpenAIService:
             - Topic scores align with the provided evidence
             """
 
-        elif task == 'insight_generation':
+        elif task == "insight_generation":
             # Extract additional context from data
-            themes = data.get('themes', [])
-            patterns = data.get('patterns', [])
-            sentiment = data.get('sentiment', {})
+            themes = data.get("themes", [])
+            patterns = data.get("patterns", [])
+            sentiment = data.get("sentiment", {})
 
             # Create context string from additional data
             context = "Based on the following analysis:\n"
@@ -466,22 +538,24 @@ class OpenAIService:
                 context += "\nThemes:\n"
                 for theme in themes:
                     context += f"- {theme.get('name', 'Unknown')}: {theme.get('frequency', 0)}\n"
-                    if 'statements' in theme:
-                        for stmt in theme.get('statements', []):
+                    if "statements" in theme:
+                        for stmt in theme.get("statements", []):
                             context += f"  * {stmt}\n"
 
             if patterns:
                 context += "\nPatterns:\n"
                 for pattern in patterns:
                     context += f"- {pattern.get('category', 'Unknown')}: {pattern.get('description', 'No description')}\n"
-                    if 'evidence' in pattern:
-                        for evidence in pattern.get('evidence', []):
+                    if "evidence" in pattern:
+                        for evidence in pattern.get("evidence", []):
                             context += f"  * {evidence}\n"
 
             if sentiment:
                 context += "\nSentiment:\n"
-                if 'supporting_statements' in sentiment:
-                    for category, statements in sentiment['supporting_statements'].items():
+                if "supporting_statements" in sentiment:
+                    for category, statements in sentiment[
+                        "supporting_statements"
+                    ].items():
                         context += f"\n{category.capitalize()} sentiment examples:\n"
                         for stmt in statements:
                             context += f"  * {stmt}\n"
@@ -524,7 +598,7 @@ class OpenAIService:
     def _get_prompt_template(self, task, use_answer_only=False):
         """Get the prompt template for a specific task."""
 
-        if task == 'text_cleaning':
+        if task == "text_cleaning":
             return """
             Clean and format the following interview transcript. Correct spelling/grammar errors and segment it into paragraphs or sentences for coding. Return the cleaned text with line numbers.
 
@@ -536,7 +610,7 @@ class OpenAIService:
             DO NOT include explanations, just the cleaned, numbered text.
             """
 
-        if task == 'text_familiarization':
+        if task == "text_familiarization":
             return """
             Read the cleaned transcript below and summarize the key topics, tone, and context. Highlight recurring ideas or phrases.
 
@@ -549,7 +623,7 @@ class OpenAIService:
             }
             """
 
-        if task == 'initial_coding':
+        if task == "initial_coding":
             return """
             Analyze each numbered segment from the transcript. Assign a concise code (1-3 words) that captures the core idea.
 
@@ -564,7 +638,7 @@ class OpenAIService:
             ]
             """
 
-        if task == 'code_consolidation':
+        if task == "code_consolidation":
             return """
             Review the codes below. Merge duplicates, resolve inconsistencies, and ensure codes align with their segments.
 
@@ -579,7 +653,7 @@ class OpenAIService:
             ]
             """
 
-        if task == 'theme_identification':
+        if task == "theme_identification":
             return """
             Group the codes below into broader themes. Explain the rationale for each grouping.
 
@@ -594,7 +668,7 @@ class OpenAIService:
             ]
             """
 
-        if task == 'theme_refinement':
+        if task == "theme_refinement":
             return """
             Refine the theme candidates below. Ensure each theme is distinct and comprehensive. Assign clear, descriptive names.
 
@@ -610,7 +684,7 @@ class OpenAIService:
             ]
             """
 
-        if task == 'reliability_check':
+        if task == "reliability_check":
             return """
             Act as three independent raters. Review the transcript and the proposed themes. For each rater, indicate agreement or disagreement with each theme.
 
@@ -635,7 +709,7 @@ class OpenAIService:
             }
             """
 
-        if task == 'theme_report':
+        if task == "theme_report":
             return """
             Based on the themes and inter-rater results, generate a comprehensive thematic analysis report.
 
@@ -667,8 +741,8 @@ class OpenAIService:
         """
         Perform enhanced thematic analysis using the 8-step process
         """
-        text = data.get('text', '')
-        use_reliability_check = data.get('use_reliability_check', True)
+        text = data.get("text", "")
+        use_reliability_check = data.get("use_reliability_check", True)
 
         try:
             self.logger.info("Starting enhanced thematic analysis")
@@ -676,77 +750,102 @@ class OpenAIService:
 
             # Step 1: Data Preparation
             self.logger.info("Step 1: Data Preparation")
-            cleaned_text_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('text_cleaning')}\n\nTRANSCRIPT:\n{text}"
-            })
+            cleaned_text_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('text_cleaning')}\n\nTRANSCRIPT:\n{text}",
+                }
+            )
 
             try:
-                cleaned_text = cleaned_text_data['content']
+                cleaned_text = cleaned_text_data["content"]
             except (KeyError, TypeError):
                 cleaned_text = str(cleaned_text_data)
 
             # Step 2: Familiarization
             self.logger.info("Step 2: Familiarization")
-            familiarization_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('text_familiarization')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}"
-            })
+            familiarization_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('text_familiarization')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}",
+                }
+            )
 
             try:
-                familiarization = self._parse_json_response(familiarization_data['content'])
+                familiarization = self._parse_json_response(
+                    familiarization_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing familiarization data: {str(e)}")
-                familiarization = {"summary": "Error generating summary", "key_topics": []}
+                familiarization = {
+                    "summary": "Error generating summary",
+                    "key_topics": [],
+                }
 
             # Step 3: Initial Coding
             self.logger.info("Step 3: Initial Coding")
-            initial_coding_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('initial_coding')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}"
-            })
+            initial_coding_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('initial_coding')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}",
+                }
+            )
 
             try:
-                initial_codes = self._parse_json_response(initial_coding_data['content'])
+                initial_codes = self._parse_json_response(
+                    initial_coding_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing initial coding data: {str(e)}")
                 initial_codes = []
 
             # Step 4: Code Review & Consolidation
             self.logger.info("Step 4: Code Consolidation")
-            code_consolidation_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('code_consolidation')}\n\nINITIAL CODES:\n{json.dumps(initial_codes)}"
-            })
+            code_consolidation_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('code_consolidation')}\n\nINITIAL CODES:\n{json.dumps(initial_codes)}",
+                }
+            )
 
             try:
-                consolidated_codes = self._parse_json_response(code_consolidation_data['content'])
+                consolidated_codes = self._parse_json_response(
+                    code_consolidation_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing consolidated codes: {str(e)}")
                 consolidated_codes = []
 
             # Step 5: Theme Identification
             self.logger.info("Step 5: Theme Identification")
-            theme_identification_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_identification')}\n\nCONSOLIDATED CODES:\n{json.dumps(consolidated_codes)}"
-            })
+            theme_identification_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_identification')}\n\nCONSOLIDATED CODES:\n{json.dumps(consolidated_codes)}",
+                }
+            )
 
             try:
-                theme_candidates = self._parse_json_response(theme_identification_data['content'])
+                theme_candidates = self._parse_json_response(
+                    theme_identification_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing theme candidates: {str(e)}")
                 theme_candidates = []
 
             # Step 6: Theme Refinement & Naming
             self.logger.info("Step 6: Theme Refinement")
-            theme_refinement_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_refinement')}\n\nTHEME CANDIDATES:\n{json.dumps(theme_candidates)}"
-            })
+            theme_refinement_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_refinement')}\n\nTHEME CANDIDATES:\n{json.dumps(theme_candidates)}",
+                }
+            )
 
             try:
-                refined_themes = self._parse_json_response(theme_refinement_data['content'])
+                refined_themes = self._parse_json_response(
+                    theme_refinement_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing refined themes: {str(e)}")
                 refined_themes = []
@@ -755,26 +854,37 @@ class OpenAIService:
             # Step 7: Inter-Rater Reliability (optional)
             if use_reliability_check:
                 self.logger.info("Step 7: Reliability Check")
-                reliability_check_data = await self._call_llm({
-                    'role': 'user',
-                    'content': f"{self._get_prompt_template('reliability_check')}\n\nTRANSCRIPT:\n{cleaned_text}\n\nPROPOSED THEMES:\n{json.dumps(refined_themes)}"
-                })
+                reliability_check_data = await self._call_llm(
+                    {
+                        "role": "user",
+                        "content": f"{self._get_prompt_template('reliability_check')}\n\nTRANSCRIPT:\n{cleaned_text}\n\nPROPOSED THEMES:\n{json.dumps(refined_themes)}",
+                    }
+                )
 
                 try:
-                    reliability_data = self._parse_json_response(reliability_check_data['content'])
+                    reliability_data = self._parse_json_response(
+                        reliability_check_data["content"]
+                    )
                 except Exception as e:
                     self.logger.error(f"Error parsing reliability data: {str(e)}")
-                    reliability_data = {"agreement_statistics": {"overall_agreement": 0.0, "cohen_kappa": 0.0}}
+                    reliability_data = {
+                        "agreement_statistics": {
+                            "overall_agreement": 0.0,
+                            "cohen_kappa": 0.0,
+                        }
+                    }
 
             # Step 8: Final Report
             self.logger.info("Step 8: Theme Report")
-            theme_report_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_report')}\n\nTHEMES:\n{json.dumps(refined_themes)}\n\nRELIABILITY DATA:\n{json.dumps(reliability_data) if reliability_data else 'Not available'}"
-            })
+            theme_report_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_report')}\n\nTHEMES:\n{json.dumps(refined_themes)}\n\nRELIABILITY DATA:\n{json.dumps(reliability_data) if reliability_data else 'Not available'}",
+                }
+            )
 
             try:
-                theme_report = self._parse_json_response(theme_report_data['content'])
+                theme_report = self._parse_json_response(theme_report_data["content"])
             except Exception as e:
                 self.logger.error(f"Error parsing theme report: {str(e)}")
                 theme_report = {"key_themes": [], "insights": {"patterns": []}}
@@ -783,49 +893,66 @@ class OpenAIService:
             final_themes = []
             theme_id = 1
 
-            for theme in theme_report.get('key_themes', []):
+            for theme in theme_report.get("key_themes", []):
                 # Find the corresponding refined theme to get codes
                 matching_refined_theme = next(
-                    (rt for rt in refined_themes if rt.get('name') == theme.get('name')),
-                    {}
+                    (
+                        rt
+                        for rt in refined_themes
+                        if rt.get("name") == theme.get("name")
+                    ),
+                    {},
                 )
 
-                final_themes.append({
-                    'id': theme_id,
-                    'name': theme.get('name', f"Theme {theme_id}"),
-                    'definition': theme.get('definition', ''),
-                    'frequency': theme.get('frequency', 0.0),
-                    'statements': theme.get('example_quotes', []),
-                    'sentiment': theme.get('sentiment_estimate', 0.0),
-                    'codes': matching_refined_theme.get('codes', []),
-                    'keywords': self._extract_keywords_from_codes(matching_refined_theme.get('codes', [])),
-                    'reliability': reliability_data.get('agreement_statistics', {}).get('cohen_kappa', 0.0) if reliability_data else None,
-                    'process': 'enhanced'
-                })
+                final_themes.append(
+                    {
+                        "id": theme_id,
+                        "name": theme.get("name", f"Theme {theme_id}"),
+                        "definition": theme.get("definition", ""),
+                        "frequency": theme.get("frequency", 0.0),
+                        "statements": theme.get("example_quotes", []),
+                        "sentiment": theme.get("sentiment_estimate", 0.0),
+                        "codes": matching_refined_theme.get("codes", []),
+                        "keywords": self._extract_keywords_from_codes(
+                            matching_refined_theme.get("codes", [])
+                        ),
+                        "reliability": (
+                            reliability_data.get("agreement_statistics", {}).get(
+                                "cohen_kappa", 0.0
+                            )
+                            if reliability_data
+                            else None
+                        ),
+                        "process": "enhanced",
+                    }
+                )
                 theme_id += 1
 
             elapsed_time = time.time() - start_time
-            self.logger.info(f"Enhanced thematic analysis completed in {elapsed_time:.2f} seconds")
+            self.logger.info(
+                f"Enhanced thematic analysis completed in {elapsed_time:.2f} seconds"
+            )
 
             return {
-                'themes': final_themes,
-                'metadata': {
-                    'process': 'enhanced_thematic_analysis',
-                    'reliability': reliability_data.get('agreement_statistics', {}) if reliability_data else None,
-                    'insights': theme_report.get('insights', {}),
-                    'elapsedTime': elapsed_time
-                }
+                "themes": final_themes,
+                "metadata": {
+                    "process": "enhanced_thematic_analysis",
+                    "reliability": (
+                        reliability_data.get("agreement_statistics", {})
+                        if reliability_data
+                        else None
+                    ),
+                    "insights": theme_report.get("insights", {}),
+                    "elapsedTime": elapsed_time,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in enhanced thematic analysis: {str(e)}")
             # Return minimal data in case of error
             return {
-                'themes': [],
-                'metadata': {
-                    'process': 'enhanced_thematic_analysis',
-                    'error': str(e)
-                }
+                "themes": [],
+                "metadata": {"process": "enhanced_thematic_analysis", "error": str(e)},
             }
 
     def _extract_keywords_from_codes(self, codes):
@@ -843,12 +970,12 @@ class OpenAIService:
         """Parse JSON from the response text, handling various formats"""
         try:
             # Try to find JSON within the text (in case there's markdown or other text)
-            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response_text)
+            json_match = re.search(r"```json\s*([\s\S]*?)\s*```", response_text)
             if json_match:
                 json_str = json_match.group(1)
             else:
                 # Try to find JSON without the markdown markers
-                json_match = re.search(r'(\{[\s\S]*\}|\[[\s\S]*\])', response_text)
+                json_match = re.search(r"(\{[\s\S]*\}|\[[\s\S]*\])", response_text)
                 if json_match:
                     json_str = json_match.group(1)
                 else:
@@ -867,7 +994,9 @@ class OpenAIService:
         # Implementation logic for interview analysis
         pass
 
-    async def analyze_sentiment(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_sentiment(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze sentiment in interview data with explicit supporting statements.
 
@@ -879,19 +1008,25 @@ class OpenAIService:
             Dictionary containing sentiment analysis results including supporting statements.
         """
         try:
-            self.logger.info(f"Starting sentiment analysis with {len(interviews)} interview segments")
+            self.logger.info(
+                f"Starting sentiment analysis with {len(interviews)} interview segments"
+            )
 
             # Format the interview data for analysis
             interview_text = ""
             for i, interview in enumerate(interviews):
-                answer = interview.get('answer', interview.get('response', interview.get('text', '')))
+                answer = interview.get(
+                    "answer", interview.get("response", interview.get("text", ""))
+                )
                 if answer:
                     interview_text += f"Statement {i+1}: {answer}\n\n"
 
             # Truncate text if too long
             max_length = 16000  # OpenAI context window is typically smaller than Gemini
             if len(interview_text) > max_length:
-                self.logger.warning(f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}")
+                self.logger.warning(
+                    f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}"
+                )
                 interview_text = interview_text[:max_length]
 
             # OpenAI-specific prompt
@@ -940,13 +1075,13 @@ class OpenAIService:
             # Call the OpenAI API with the sentiment analysis prompt
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ]
 
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                response_format={"type": "json_object"}  # Ensure JSON response
+                response_format={"type": "json_object"},  # Ensure JSON response
             )
 
             try:
@@ -958,34 +1093,42 @@ class OpenAIService:
 
                 # Validate the sentiment data
                 if not isinstance(result, dict):
-                    raise ValueError("Expected a dictionary result from sentiment analysis")
+                    raise ValueError(
+                        "Expected a dictionary result from sentiment analysis"
+                    )
 
                 # Ensure sentimentOverview exists
-                if 'sentimentOverview' not in result:
+                if "sentimentOverview" not in result:
                     self.logger.warning("No sentimentOverview in result, using default")
-                    result['sentimentOverview'] = {
+                    result["sentimentOverview"] = {
                         "positive": 0.33,
                         "neutral": 0.34,
-                        "negative": 0.33
+                        "negative": 0.33,
                     }
 
                 # Ensure supporting_statements exists and is properly formatted
-                if 'supporting_statements' not in result:
-                    self.logger.warning("No supporting_statements in result, using empty arrays")
-                    result['supporting_statements'] = {
+                if "supporting_statements" not in result:
+                    self.logger.warning(
+                        "No supporting_statements in result, using empty arrays"
+                    )
+                    result["supporting_statements"] = {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     }
 
                 # Also set sentimentStatements for direct access
-                result['sentimentStatements'] = result['supporting_statements']
+                result["sentimentStatements"] = result["supporting_statements"]
 
                 # Log the sentiment results
-                self.logger.info(f"Sentiment analysis complete. Overview: {result['sentimentOverview']}")
-                self.logger.info(f"Supporting statements: positive={len(result['supporting_statements']['positive'])}, " +
-                               f"neutral={len(result['supporting_statements']['neutral'])}, " +
-                               f"negative={len(result['supporting_statements']['negative'])}")
+                self.logger.info(
+                    f"Sentiment analysis complete. Overview: {result['sentimentOverview']}"
+                )
+                self.logger.info(
+                    f"Supporting statements: positive={len(result['supporting_statements']['positive'])}, "
+                    + f"neutral={len(result['supporting_statements']['neutral'])}, "
+                    + f"negative={len(result['supporting_statements']['negative'])}"
+                )
 
                 return result
 
@@ -996,20 +1139,20 @@ class OpenAIService:
                     "sentimentOverview": {
                         "positive": 0.33,
                         "neutral": 0.34,
-                        "negative": 0.33
+                        "negative": 0.33,
                     },
                     "sentiment": [],
                     "supporting_statements": {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     },
                     "sentimentStatements": {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     },
-                    "error": f"Error parsing sentiment analysis: {str(e)}"
+                    "error": f"Error parsing sentiment analysis: {str(e)}",
                 }
 
         except Exception as e:
@@ -1019,16 +1162,12 @@ class OpenAIService:
                 "sentimentOverview": {
                     "positive": 0.33,
                     "neutral": 0.34,
-                    "negative": 0.33
+                    "negative": 0.33,
                 },
                 "supporting_statements": {
                     "positive": [],
                     "neutral": [],
-                    "negative": []
+                    "negative": [],
                 },
-                "sentimentStatements": {
-                    "positive": [],
-                    "neutral": [],
-                    "negative": []
-                }
+                "sentimentStatements": {"positive": [], "neutral": [], "negative": []},
             }

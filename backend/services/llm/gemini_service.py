@@ -20,6 +20,7 @@ from backend.schemas import Theme
 
 logger = logging.getLogger(__name__)
 
+
 class GeminiService:
     """
     Service for interacting with Google's Gemini LLM API.
@@ -47,8 +48,8 @@ class GeminiService:
                 "temperature": self.temperature,
                 "max_output_tokens": self.max_tokens,
                 "top_p": self.top_p,
-                "top_k": self.top_k
-            }
+                "top_k": self.top_k,
+            },
         )
 
         logger.info(f"Initialized Gemini service with model: {self.model}")
@@ -63,13 +64,13 @@ class GeminiService:
         Returns:
             Dict[str, Any]: Analysis results
         """
-        task = data.get('task', '')
-        text = data.get('text', '')
-        use_answer_only = data.get('use_answer_only', False)
+        task = data.get("task", "")
+        text = data.get("text", "")
+        use_answer_only = data.get("use_answer_only", False)
 
         if not text:
             logger.warning("Empty text provided for analysis")
-            return {'error': 'No text provided'}
+            return {"error": "No text provided"}
 
         if use_answer_only:
             logger.info(f"Running {task} on answer-only text length: {len(text)}")
@@ -85,54 +86,67 @@ class GeminiService:
                 "temperature": self.temperature,
                 "max_output_tokens": self.max_tokens,
                 "top_p": self.top_p,
-                "top_k": self.top_k
+                "top_k": self.top_k,
             }
 
             # For insight_generation, the system_message is already the complete prompt
-            if task == 'insight_generation':
+            if task == "insight_generation":
                 # Use the system message directly since it's the complete prompt
-                logger.debug(f"Generating content for task '{task}' with config: {generation_config}")
+                logger.debug(
+                    f"Generating content for task '{task}' with config: {generation_config}"
+                )
                 response = await self.client.generate_content_async(
-                    system_message,
-                    generation_config=generation_config
+                    system_message, generation_config=generation_config
                 )
 
                 # For insight generation, return a structured result
                 result_text = response.text
-                logger.debug(f"Raw response for task {task}:\n{result_text}") # Log raw response
+                logger.debug(
+                    f"Raw response for task {task}:\n{result_text}"
+                )  # Log raw response
 
                 try:
                     result = json.loads(result_text)
                 except json.JSONDecodeError:
                     import re
-                    json_match = re.search(r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```', result_text, re.DOTALL)
+
+                    json_match = re.search(
+                        r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```',
+                        result_text,
+                        re.DOTALL,
+                    )
                     if json_match:
                         result = json.loads(json_match.group(1))
                     else:
                         # Return a default structure if parsing fails
                         result = {
-                            "insights": [{
-                                "topic": "Data Analysis",
-                                "observation": "Analysis completed but results could not be structured properly.",
-                                "evidence": ["Processing completed with non-structured output."]
-                            }],
+                            "insights": [
+                                {
+                                    "topic": "Data Analysis",
+                                    "observation": "Analysis completed but results could not be structured properly.",
+                                    "evidence": [
+                                        "Processing completed with non-structured output."
+                                    ],
+                                }
+                            ],
                             "metadata": {
                                 "quality_score": 0.5,
                                 "confidence_scores": {
                                     "themes": 0.6,
                                     "patterns": 0.6,
-                                    "sentiment": 0.6
-                                }
-                            }
+                                    "sentiment": 0.6,
+                                },
+                            },
                         }
 
                 return result
             else:
                 # Generate content for other tasks (Original call structure)
-                logger.debug(f"Generating content for task '{task}' with config: {generation_config}")
+                logger.debug(
+                    f"Generating content for task '{task}' with config: {generation_config}"
+                )
                 response = await self.client.generate_content_async(
-                    [system_message, text],
-                    generation_config=generation_config
+                    [system_message, text], generation_config=generation_config
                 )
 
                 # Extract and parse response
@@ -148,19 +162,32 @@ class GeminiService:
                 except json.JSONDecodeError as e1:
                     # If response isn't valid JSON, try to extract JSON from markdown code blocks
                     import re
-                    json_match = re.search(r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```', result_text, re.DOTALL)
+
+                    json_match = re.search(
+                        r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```',
+                        result_text,
+                        re.DOTALL,
+                    )
                     if json_match:
                         try:
                             result = json.loads(json_match.group(1))
                         except json.JSONDecodeError as e2:
-                            logger.error(f"Failed to parse JSON even after extracting from markdown: {e2}")
-                            raise ValueError(f"Invalid JSON response from Gemini after markdown extraction: {e2}")
+                            logger.error(
+                                f"Failed to parse JSON even after extracting from markdown: {e2}"
+                            )
+                            raise ValueError(
+                                f"Invalid JSON response from Gemini after markdown extraction: {e2}"
+                            )
                     else:
-                        logger.error(f"Invalid JSON response from Gemini, and no markdown block found: {e1}")
-                        raise ValueError(f"Invalid JSON response from Gemini, no markdown block found: {e1}")
+                        logger.error(
+                            f"Invalid JSON response from Gemini, and no markdown block found: {e1}"
+                        )
+                        raise ValueError(
+                            f"Invalid JSON response from Gemini, no markdown block found: {e1}"
+                        )
 
             # Post-process results if needed
-            if task == 'theme_analysis':
+            if task == "theme_analysis":
                 # If response is a list of themes directly (not wrapped in an object)
                 if isinstance(result, list):
                     result = {"themes": result}
@@ -198,8 +225,13 @@ class GeminiService:
                         # Simple extraction of potential keywords from the theme name
                         words = theme["name"].split()
                         # Filter out common words and keep only substantive ones (length > 3)
-                        theme["keywords"] = [word for word in words if len(word) > 3 and word.lower() not in
-                                           ["and", "the", "with", "that", "this", "for", "from"]]
+                        theme["keywords"] = [
+                            word
+                            for word in words
+                            if len(word) > 3
+                            and word.lower()
+                            not in ["and", "the", "with", "that", "this", "for", "from"]
+                        ]
 
                     # Ensure codes field exists
                     if "codes" not in theme:
@@ -227,28 +259,57 @@ class GeminiService:
                         # Calculate reliability based on number of statements and their length
                         statements = theme.get("statements", [])
                         if len(statements) >= 4:
-                            theme["reliability"] = 0.85  # Well-supported with many statements
+                            theme["reliability"] = (
+                                0.85  # Well-supported with many statements
+                            )
                         elif len(statements) >= 2:
-                            theme["reliability"] = 0.7   # Moderately supported
+                            theme["reliability"] = 0.7  # Moderately supported
                         else:
-                            theme["reliability"] = 0.5   # Minimally supported
+                            theme["reliability"] = 0.5  # Minimally supported
 
                 # Validate themes against Pydantic model
-                validated_themes = []
-                for theme_data in result["themes"]:
-                    try:
-                        # Validate theme data against Pydantic model
-                        validated_theme = Theme(**theme_data).model_dump()
-                        validated_themes.append(validated_theme)
-                    except ValidationError as e:
-                        logger.warning(f"Theme validation error: {str(e)}")
-                        # Keep the theme but log the validation error
-                        validated_themes.append(theme_data)
+                validated_themes_list = []
+                if (
+                    isinstance(result, dict)
+                    and "themes" in result
+                    and isinstance(result["themes"], list)
+                ):
+                    for theme_data in result["themes"]:
+                        try:
+                            # Validate each theme dictionary against the Pydantic model
+                            validated_theme = Theme(**theme_data)
+                            # Append the validated data (as dict) to the list
+                            validated_themes_list.append(validated_theme.model_dump())
+                            logger.debug(
+                                f"Successfully validated theme: {theme_data.get('name', 'Unnamed')}"
+                            )
+                        except ValidationError as e:
+                            logger.warning(
+                                f"Theme validation failed for theme '{theme_data.get('name', 'Unnamed')}': {e}. Skipping this theme."
+                            )
+                            # Invalid themes are skipped to ensure data integrity downstream
+                        except Exception as general_e:
+                            logger.error(
+                                f"Unexpected error during theme validation for '{theme_data.get('name', 'Unnamed')}': {general_e}",
+                                exc_info=True,
+                            )
+                            # Skip this theme due to unexpected error
 
-                # Replace themes with validated themes
-                result["themes"] = validated_themes
+                    # Replace the original themes list with the validated list
+                    result["themes"] = validated_themes_list
+                    logger.info(
+                        f"Validated {len(validated_themes_list)} themes successfully for task: {task}"
+                    )
+                    logger.debug(
+                        f"Validated theme result: {json.dumps(result, indent=2)}"
+                    )
+                else:
+                    logger.warning(
+                        f"LLM response for theme_analysis was not in the expected format (dict with 'themes' list). Raw response: {result}"
+                    )
+                    result = {"themes": []}  # Return empty list if structure is wrong
 
-            elif task == 'pattern_recognition':
+            elif task == "pattern_recognition":
                 # If response is a list of patterns directly
                 if isinstance(result, list):
                     result = {"patterns": result}
@@ -270,147 +331,202 @@ class GeminiService:
                     if "evidence" in pattern and "examples" not in pattern:
                         pattern["examples"] = pattern["evidence"]
 
-            elif task == 'sentiment_analysis':
+            elif task == "sentiment_analysis":
                 # Make sure result has the expected structure
-                if 'sentiment' not in result:
-                    result = {'sentiment': result}
+                if "sentiment" not in result:
+                    result = {"sentiment": result}
 
                 # Extract sentiment overview
-                sentiment = result.get('sentiment', {})
-                breakdown = sentiment.get('breakdown', {})
+                sentiment = result.get("sentiment", {})
+                breakdown = sentiment.get("breakdown", {})
 
                 # Normalize breakdown to ensure it sums to 1.0
                 total = sum(breakdown.values()) if breakdown else 0
                 if total > 0 and abs(total - 1.0) > 0.01:
-                    logger.warning(f"Sentiment breakdown does not sum to 1.0 (sum: {total}), normalizing")
+                    logger.warning(
+                        f"Sentiment breakdown does not sum to 1.0 (sum: {total}), normalizing"
+                    )
                     for key in breakdown:
                         breakdown[key] = round(breakdown[key] / total, 3)
 
                 # Keep sentiment as dictionary (not a list) to match expected format in validate_results
                 transformed = {
-                    'sentimentOverview': {
-                        'positive': breakdown.get('positive', 0.33),
-                        'neutral': breakdown.get('neutral', 0.34),
-                        'negative': breakdown.get('negative', 0.33)
+                    "sentimentOverview": {
+                        "positive": breakdown.get("positive", 0.33),
+                        "neutral": breakdown.get("neutral", 0.34),
+                        "negative": breakdown.get("negative", 0.33),
                     },
-                    'sentiment': sentiment,  # Keep as dictionary
-                    'sentiment_details': sentiment.get('details', [])  # Store details separately
+                    "sentiment": sentiment,  # Keep as dictionary
+                    "sentiment_details": sentiment.get(
+                        "details", []
+                    ),  # Store details separately
                 }
 
                 # Extract supporting statements with enhanced logging
-                if 'supporting_statements' in sentiment:
+                if "supporting_statements" in sentiment:
                     logger.info("Found supporting_statements in sentiment data")
-                    transformed['sentimentStatements'] = {
-                        'positive': sentiment['supporting_statements'].get('positive', []),
-                        'neutral': sentiment['supporting_statements'].get('neutral', []),
-                        'negative': sentiment['supporting_statements'].get('negative', [])
+                    transformed["sentimentStatements"] = {
+                        "positive": sentiment["supporting_statements"].get(
+                            "positive", []
+                        ),
+                        "neutral": sentiment["supporting_statements"].get(
+                            "neutral", []
+                        ),
+                        "negative": sentiment["supporting_statements"].get(
+                            "negative", []
+                        ),
                     }
 
                     # Log the extraction of statements
-                    logger.info(f"Extracted sentiment statements - positive: {len(transformed['sentimentStatements']['positive'])}, neutral: {len(transformed['sentimentStatements']['neutral'])}, negative: {len(transformed['sentimentStatements']['negative'])}")
+                    logger.info(
+                        f"Extracted sentiment statements - positive: {len(transformed['sentimentStatements']['positive'])}, neutral: {len(transformed['sentimentStatements']['neutral'])}, negative: {len(transformed['sentimentStatements']['negative'])}"
+                    )
                     # Log samples of the first statement in each category if available
-                    if transformed['sentimentStatements']['positive']:
-                        logger.info(f"Sample positive statement: {transformed['sentimentStatements']['positive'][0]}")
-                    if transformed['sentimentStatements']['neutral']:
-                        logger.info(f"Sample neutral statement: {transformed['sentimentStatements']['neutral'][0]}")
-                    if transformed['sentimentStatements']['negative']:
-                        logger.info(f"Sample negative statement: {transformed['sentimentStatements']['negative'][0]}")
+                    if transformed["sentimentStatements"]["positive"]:
+                        logger.info(
+                            f"Sample positive statement: {transformed['sentimentStatements']['positive'][0]}"
+                        )
+                    if transformed["sentimentStatements"]["neutral"]:
+                        logger.info(
+                            f"Sample neutral statement: {transformed['sentimentStatements']['neutral'][0]}"
+                        )
+                    if transformed["sentimentStatements"]["negative"]:
+                        logger.info(
+                            f"Sample negative statement: {transformed['sentimentStatements']['negative'][0]}"
+                        )
                 else:
                     logger.warning("No supporting_statements found in sentiment data")
 
                 # If no supporting statements in the API response, or they're empty,
                 # attempt to extract them from the sentiment details
-                if 'sentimentStatements' not in transformed or not any([
-                    transformed['sentimentStatements']['positive'],
-                    transformed['sentimentStatements']['neutral'],
-                    transformed['sentimentStatements']['negative']
-                ]):
-                    logger.warning("No sentiment statements in API response, attempting to extract from details")
+                if "sentimentStatements" not in transformed or not any(
+                    [
+                        transformed["sentimentStatements"]["positive"],
+                        transformed["sentimentStatements"]["neutral"],
+                        transformed["sentimentStatements"]["negative"],
+                    ]
+                ):
+                    logger.warning(
+                        "No sentiment statements in API response, attempting to extract from details"
+                    )
 
                     # Create a dictionary to collect statements by sentiment category
-                    statements = {
-                        'positive': [],
-                        'neutral': [],
-                        'negative': []
-                    }
+                    statements = {"positive": [], "neutral": [], "negative": []}
 
                     # Extract from sentiment details if available
-                    details = sentiment.get('details', [])
+                    details = sentiment.get("details", [])
                     if details:
-                        logger.info(f"Found {len(details)} detail items to extract statements from")
+                        logger.info(
+                            f"Found {len(details)} detail items to extract statements from"
+                        )
                         for detail in details:
-                            if isinstance(detail, dict) and 'evidence' in detail and 'score' in detail:
-                                evidence = detail['evidence']
-                                score = detail['score']
+                            if (
+                                isinstance(detail, dict)
+                                and "evidence" in detail
+                                and "score" in detail
+                            ):
+                                evidence = detail["evidence"]
+                                score = detail["score"]
 
                                 if isinstance(evidence, str) and evidence.strip():
                                     if score >= 0.6:
-                                        statements['positive'].append(evidence)
+                                        statements["positive"].append(evidence)
                                     elif score <= 0.4:
-                                        statements['negative'].append(evidence)
+                                        statements["negative"].append(evidence)
                                     else:
-                                        statements['neutral'].append(evidence)
+                                        statements["neutral"].append(evidence)
 
-                        logger.info(f"Extracted {len(statements['positive'])} positive, {len(statements['neutral'])} neutral, {len(statements['negative'])} negative statements from details")
+                        logger.info(
+                            f"Extracted {len(statements['positive'])} positive, {len(statements['neutral'])} neutral, {len(statements['negative'])} negative statements from details"
+                        )
                     else:
-                        logger.warning("No details found in sentiment data for extracting statements")
+                        logger.warning(
+                            "No details found in sentiment data for extracting statements"
+                        )
 
                     # If we extracted some statements, use them
                     if any(statements.values()):
-                        transformed['sentimentStatements'] = statements
+                        transformed["sentimentStatements"] = statements
                         logger.info(f"Successfully extracted statements from details")
                     else:
                         # If no statements extracted from details, try a deeper inspection of the data
-                        logger.warning("Could not extract statements from details, trying deeper data inspection")
+                        logger.warning(
+                            "Could not extract statements from details, trying deeper data inspection"
+                        )
 
                         # Check if there's a 'positive' and 'negative' array directly in the sentiment object
                         # This handles the case where LLM returns in a different format
-                        if 'positive' in sentiment and isinstance(sentiment['positive'], list):
-                            statements['positive'] = sentiment['positive']
-                            logger.info(f"Found {len(statements['positive'])} positive statements directly in sentiment object")
+                        if "positive" in sentiment and isinstance(
+                            sentiment["positive"], list
+                        ):
+                            statements["positive"] = sentiment["positive"]
+                            logger.info(
+                                f"Found {len(statements['positive'])} positive statements directly in sentiment object"
+                            )
 
-                        if 'negative' in sentiment and isinstance(sentiment['negative'], list):
-                            statements['negative'] = sentiment['negative']
-                            logger.info(f"Found {len(statements['negative'])} negative statements directly in sentiment object")
+                        if "negative" in sentiment and isinstance(
+                            sentiment["negative"], list
+                        ):
+                            statements["negative"] = sentiment["negative"]
+                            logger.info(
+                                f"Found {len(statements['negative'])} negative statements directly in sentiment object"
+                            )
 
                         # Create basic neutral statements if we don't have any
-                        if not statements['neutral'] and (statements['positive'] or statements['negative']):
-                            statements['neutral'] = ["Neutral sentiment detected in the interview"]
+                        if not statements["neutral"] and (
+                            statements["positive"] or statements["negative"]
+                        ):
+                            statements["neutral"] = [
+                                "Neutral sentiment detected in the interview"
+                            ]
 
                         if any(statements.values()):
-                            transformed['sentimentStatements'] = statements
-                            logger.info("Successfully extracted statements through deeper inspection")
+                            transformed["sentimentStatements"] = statements
+                            logger.info(
+                                "Successfully extracted statements through deeper inspection"
+                            )
                         else:
                             # Last resort - extract statements from contextual data if provided
-                            logger.warning("No statements found through direct methods, will rely on extraction from themes during post-processing")
-                            transformed['sentimentStatements'] = {
-                                'positive': [],
-                                'neutral': [],
-                                'negative': []
+                            logger.warning(
+                                "No statements found through direct methods, will rely on extraction from themes during post-processing"
+                            )
+                            transformed["sentimentStatements"] = {
+                                "positive": [],
+                                "neutral": [],
+                                "negative": [],
                             }
                             # Note: The ResultsService._extract_sentiment_statements_from_data method
                             # will extract statements from themes if none are found here
 
                 # Check if we need to enhance the sentiment statements based on theme data provided in the request
                 # This allows us to leverage the high-quality sentiment data already present in themes
-                if data.get('themes') and (
-                    len(transformed.get('sentimentStatements', {}).get('positive', [])) < 5 or
-                    len(transformed.get('sentimentStatements', {}).get('neutral', [])) < 5 or
-                    len(transformed.get('sentimentStatements', {}).get('negative', [])) < 5
+                if data.get("themes") and (
+                    len(transformed.get("sentimentStatements", {}).get("positive", []))
+                    < 5
+                    or len(
+                        transformed.get("sentimentStatements", {}).get("neutral", [])
+                    )
+                    < 5
+                    or len(
+                        transformed.get("sentimentStatements", {}).get("negative", [])
+                    )
+                    < 5
                 ):
                     logger.info("Enhancing sentiment statements with theme data")
-                    themes = data.get('themes', [])
+                    themes = data.get("themes", [])
 
                     # Extract statements from themes based on sentiment scores
                     theme_sentiment_statements = {
-                        'positive': [],
-                        'neutral': [],
-                        'negative': []
+                        "positive": [],
+                        "neutral": [],
+                        "negative": [],
                     }
 
                     for theme in themes:
-                        statements = theme.get('statements', []) or theme.get('examples', [])
-                        sentiment_score = theme.get('sentiment', 0)
+                        statements = theme.get("statements", []) or theme.get(
+                            "examples", []
+                        )
+                        sentiment_score = theme.get("sentiment", 0)
 
                         # Skip themes without statements
                         if not statements:
@@ -419,34 +535,42 @@ class GeminiService:
                         # Classify statements based on theme sentiment
                         for statement in statements:
                             if sentiment_score > 0.2:  # Positive theme
-                                theme_sentiment_statements['positive'].append(statement)
+                                theme_sentiment_statements["positive"].append(statement)
                             elif sentiment_score < -0.2:  # Negative theme
-                                theme_sentiment_statements['negative'].append(statement)
+                                theme_sentiment_statements["negative"].append(statement)
                             else:  # Neutral theme
-                                theme_sentiment_statements['neutral'].append(statement)
+                                theme_sentiment_statements["neutral"].append(statement)
 
                     # Merge with existing statements, prioritizing original statements
-                    for category in ['positive', 'neutral', 'negative']:
-                        existing = transformed.get('sentimentStatements', {}).get(category, [])
+                    for category in ["positive", "neutral", "negative"]:
+                        existing = transformed.get("sentimentStatements", {}).get(
+                            category, []
+                        )
                         from_themes = theme_sentiment_statements.get(category, [])
 
                         # Only add unique statements from themes
-                        unique_theme_statements = [s for s in from_themes if s not in existing]
+                        unique_theme_statements = [
+                            s for s in from_themes if s not in existing
+                        ]
 
                         # Limit to 15 statements per category after combining
                         combined = existing + unique_theme_statements
-                        transformed.setdefault('sentimentStatements', {})[category] = combined[:15]
+                        transformed.setdefault("sentimentStatements", {})[category] = (
+                            combined[:15]
+                        )
 
-                    logger.info(f"After enhancement - positive: {len(transformed['sentimentStatements']['positive'])}, " +
-                              f"neutral: {len(transformed['sentimentStatements']['neutral'])}, " +
-                              f"negative: {len(transformed['sentimentStatements']['negative'])}")
+                    logger.info(
+                        f"After enhancement - positive: {len(transformed['sentimentStatements']['positive'])}, "
+                        + f"neutral: {len(transformed['sentimentStatements']['neutral'])}, "
+                        + f"negative: {len(transformed['sentimentStatements']['negative'])}"
+                    )
 
                 result = transformed
 
-            elif task == 'persona_formation':
+            elif task == "persona_formation":
                 # The prompt already asks for JSON. The generation_config sets the mime type.
                 # Parsing happens after the call.
-                pass # No specific post-processing needed here for persona_formation
+                pass  # No specific post-processing needed here for persona_formation
 
             else:
                 # Default case for unknown tasks
@@ -454,18 +578,22 @@ class GeminiService:
 
             # Success, return result
             logger.info(f"Successfully analyzed data with Gemini for task: {task}")
-            logger.debug(f"Processed result for task {task}:\n{json.dumps(result, indent=2)}")
+            logger.debug(
+                f"Processed result for task {task}:\n{json.dumps(result, indent=2)}"
+            )
             return result
 
         except Exception as e:
-            logger.error(f"Error calling Gemini API for task {task}: {str(e)}", exc_info=True) # Log traceback
+            logger.error(
+                f"Error calling Gemini API for task {task}: {str(e)}", exc_info=True
+            )  # Log traceback
             return {"error": f"Gemini API error: {str(e)}"}
 
     def _get_system_message(self, task: str, data: Dict[str, Any]) -> str:
         """Get identical prompts as OpenAI service for consistent responses"""
-        use_answer_only = data.get('use_answer_only', False)
+        use_answer_only = data.get("use_answer_only", False)
 
-        if task == 'theme_analysis':
+        if task == "theme_analysis":
             if use_answer_only:
                 return """
                 Analyze the interview responses to identify key themes. Your analysis should be comprehensive and based EXCLUSIVELY on the ANSWER-ONLY content provided, which contains only the original responses without questions or contextual text.
@@ -543,7 +671,7 @@ class GeminiService:
                 - Ensure 100% of your response is in valid JSON format.
                 """
 
-        elif task == 'pattern_recognition':
+        elif task == "pattern_recognition":
             return """
             You are an expert behavioral analyst specializing in identifying ACTION PATTERNS in interview data.
 
@@ -589,7 +717,7 @@ class GeminiService:
             - Ensure 100% of your response is in valid JSON format
             """
 
-        elif task == 'sentiment_analysis':
+        elif task == "sentiment_analysis":
             return """
             You are an expert sentiment analyst working with interview transcripts across all industries. Analyze the provided text and determine the overall sentiment.
 
@@ -667,12 +795,12 @@ class GeminiService:
             - Extract statements from interviewee responses, not interviewer questions
             """
 
-        elif task == 'insight_generation':
+        elif task == "insight_generation":
             # Extract additional context from data
-            themes = data.get('themes', [])
-            patterns = data.get('patterns', [])
-            sentiment = data.get('sentiment', {})
-            existing_insights = data.get('existing_insights', [])
+            themes = data.get("themes", [])
+            patterns = data.get("patterns", [])
+            sentiment = data.get("sentiment", {})
+            existing_insights = data.get("existing_insights", [])
 
             # Create context string from additional data
             context = "Based on the following analysis:\n"
@@ -681,31 +809,31 @@ class GeminiService:
                 context += "\nThemes:\n"
                 for theme in themes:
                     context += f"- {theme.get('name', 'Unknown')}: {theme.get('frequency', 0)}\n"
-                    if 'statements' in theme:
-                        for stmt in theme.get('statements', []):
+                    if "statements" in theme:
+                        for stmt in theme.get("statements", []):
                             context += f"  * {stmt}\n"
 
             if patterns:
                 context += "\nPatterns:\n"
                 for pattern in patterns:
                     context += f"- {pattern.get('category', 'Unknown')}: {pattern.get('description', 'No description')} ({pattern.get('frequency', 0)})\n"
-                    if 'evidence' in pattern:
-                        for evidence in pattern.get('evidence', []):
+                    if "evidence" in pattern:
+                        for evidence in pattern.get("evidence", []):
                             context += f"  * {evidence}\n"
 
             if sentiment:
                 context += "\nSentiment:\n"
                 if isinstance(sentiment, dict):
-                    overall = sentiment.get('overall', 'Unknown')
+                    overall = sentiment.get("overall", "Unknown")
                     context += f"- Overall: {overall}\n"
 
-                    breakdown = sentiment.get('breakdown', {})
+                    breakdown = sentiment.get("breakdown", {})
                     if breakdown:
                         context += f"- Positive: {breakdown.get('positive', 0)}\n"
                         context += f"- Neutral: {breakdown.get('neutral', 0)}\n"
                         context += f"- Negative: {breakdown.get('negative', 0)}\n"
 
-                    supporting_stmts = sentiment.get('supporting_statements', {})
+                    supporting_stmts = sentiment.get("supporting_statements", {})
                     if supporting_stmts:
                         for category, statements in supporting_stmts.items():
                             context += f"\n{category.capitalize()} statements:\n"
@@ -749,14 +877,14 @@ class GeminiService:
             }}
             """
 
-        elif task == 'persona_formation':
+        elif task == "persona_formation":
             # Add support for direct persona prompts if provided
-            if 'prompt' in data and data['prompt']:
-                 # Use the prompt provided directly by persona_formation service
-                return data['prompt']
+            if "prompt" in data and data["prompt"]:
+                # Use the prompt provided directly by persona_formation service
+                return data["prompt"]
 
             # Fallback to standard persona formation prompt if no specific prompt provided
-            text_sample = data.get('text', '')[:3500]  # Limit sample size
+            text_sample = data.get("text", "")[:3500]  # Limit sample size
             return f"""
             Analyze the following interview text excerpt and create a user persona profile.
 
@@ -822,7 +950,7 @@ class GeminiService:
 
     def _get_prompt_template(self, task, use_answer_only=False):
         """Get the prompt template for a specific task."""
-        if task == 'text_cleaning':
+        if task == "text_cleaning":
             return """
             Clean and format the following interview transcript. Correct spelling/grammar errors and segment it into paragraphs or sentences for coding. Return the cleaned text with line numbers.
 
@@ -834,7 +962,7 @@ class GeminiService:
             DO NOT include explanations, just the cleaned, numbered text.
             """
 
-        if task == 'text_familiarization':
+        if task == "text_familiarization":
             return """
             Read the cleaned transcript below and summarize the key topics, tone, and context. Highlight recurring ideas or phrases.
 
@@ -847,7 +975,7 @@ class GeminiService:
             }
             """
 
-        if task == 'initial_coding':
+        if task == "initial_coding":
             return """
             Analyze each numbered segment from the transcript. Assign a concise code (1-3 words) that captures the core idea.
 
@@ -862,7 +990,7 @@ class GeminiService:
             ]
             """
 
-        if task == 'code_consolidation':
+        if task == "code_consolidation":
             return """
             Review the codes below. Merge duplicates, resolve inconsistencies, and ensure codes align with their segments.
 
@@ -877,7 +1005,7 @@ class GeminiService:
             ]
             """
 
-        if task == 'theme_identification':
+        if task == "theme_identification":
             return """
             Group the codes below into broader themes. Explain the rationale for each grouping.
 
@@ -892,7 +1020,7 @@ class GeminiService:
             ]
             """
 
-        if task == 'theme_refinement':
+        if task == "theme_refinement":
             return """
             Refine the theme candidates below. Ensure each theme is distinct and comprehensive. Assign clear, descriptive names.
 
@@ -908,7 +1036,7 @@ class GeminiService:
             ]
             """
 
-        if task == 'reliability_check':
+        if task == "reliability_check":
             return """
             Act as three independent raters. Review the transcript and the proposed themes. For each rater, indicate agreement or disagreement with each theme.
 
@@ -933,7 +1061,7 @@ class GeminiService:
             }
             """
 
-        if task == 'theme_report':
+        if task == "theme_report":
             return """
             Based on the themes and inter-rater results, generate a comprehensive thematic analysis report.
 
@@ -965,8 +1093,8 @@ class GeminiService:
         """
         Perform enhanced thematic analysis using the 8-step process
         """
-        text = data.get('text', '')
-        use_reliability_check = data.get('use_reliability_check', True)
+        text = data.get("text", "")
+        use_reliability_check = data.get("use_reliability_check", True)
 
         try:
             self.logger.info("Starting enhanced thematic analysis")
@@ -974,77 +1102,102 @@ class GeminiService:
 
             # Step 1: Data Preparation
             self.logger.info("Step 1: Data Preparation")
-            cleaned_text_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('text_cleaning')}\n\nTRANSCRIPT:\n{text}"
-            })
+            cleaned_text_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('text_cleaning')}\n\nTRANSCRIPT:\n{text}",
+                }
+            )
 
             try:
-                cleaned_text = cleaned_text_data['content']
+                cleaned_text = cleaned_text_data["content"]
             except (KeyError, TypeError):
                 cleaned_text = str(cleaned_text_data)
 
             # Step 2: Familiarization
             self.logger.info("Step 2: Familiarization")
-            familiarization_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('text_familiarization')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}"
-            })
+            familiarization_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('text_familiarization')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}",
+                }
+            )
 
             try:
-                familiarization = self._parse_json_response(familiarization_data['content'])
+                familiarization = self._parse_json_response(
+                    familiarization_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing familiarization data: {str(e)}")
-                familiarization = {"summary": "Error generating summary", "key_topics": []}
+                familiarization = {
+                    "summary": "Error generating summary",
+                    "key_topics": [],
+                }
 
             # Step 3: Initial Coding
             self.logger.info("Step 3: Initial Coding")
-            initial_coding_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('initial_coding')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}"
-            })
+            initial_coding_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('initial_coding')}\n\nCLEANED TRANSCRIPT:\n{cleaned_text}",
+                }
+            )
 
             try:
-                initial_codes = self._parse_json_response(initial_coding_data['content'])
+                initial_codes = self._parse_json_response(
+                    initial_coding_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing initial coding data: {str(e)}")
                 initial_codes = []
 
             # Step 4: Code Review & Consolidation
             self.logger.info("Step 4: Code Consolidation")
-            code_consolidation_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('code_consolidation')}\n\nINITIAL CODES:\n{json.dumps(initial_codes)}"
-            })
+            code_consolidation_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('code_consolidation')}\n\nINITIAL CODES:\n{json.dumps(initial_codes)}",
+                }
+            )
 
             try:
-                consolidated_codes = self._parse_json_response(code_consolidation_data['content'])
+                consolidated_codes = self._parse_json_response(
+                    code_consolidation_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing consolidated codes: {str(e)}")
                 consolidated_codes = []
 
             # Step 5: Theme Identification
             self.logger.info("Step 5: Theme Identification")
-            theme_identification_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_identification')}\n\nCONSOLIDATED CODES:\n{json.dumps(consolidated_codes)}"
-            })
+            theme_identification_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_identification')}\n\nCONSOLIDATED CODES:\n{json.dumps(consolidated_codes)}",
+                }
+            )
 
             try:
-                theme_candidates = self._parse_json_response(theme_identification_data['content'])
+                theme_candidates = self._parse_json_response(
+                    theme_identification_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing theme candidates: {str(e)}")
                 theme_candidates = []
 
             # Step 6: Theme Refinement & Naming
             self.logger.info("Step 6: Theme Refinement")
-            theme_refinement_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_refinement')}\n\nTHEME CANDIDATES:\n{json.dumps(theme_candidates)}"
-            })
+            theme_refinement_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_refinement')}\n\nTHEME CANDIDATES:\n{json.dumps(theme_candidates)}",
+                }
+            )
 
             try:
-                refined_themes = self._parse_json_response(theme_refinement_data['content'])
+                refined_themes = self._parse_json_response(
+                    theme_refinement_data["content"]
+                )
             except Exception as e:
                 self.logger.error(f"Error parsing refined themes: {str(e)}")
                 refined_themes = []
@@ -1053,26 +1206,37 @@ class GeminiService:
             # Step 7: Inter-Rater Reliability (optional)
             if use_reliability_check:
                 self.logger.info("Step 7: Reliability Check")
-                reliability_check_data = await self._call_llm({
-                    'role': 'user',
-                    'content': f"{self._get_prompt_template('reliability_check')}\n\nTRANSCRIPT:\n{cleaned_text}\n\nPROPOSED THEMES:\n{json.dumps(refined_themes)}"
-                })
+                reliability_check_data = await self._call_llm(
+                    {
+                        "role": "user",
+                        "content": f"{self._get_prompt_template('reliability_check')}\n\nTRANSCRIPT:\n{cleaned_text}\n\nPROPOSED THEMES:\n{json.dumps(refined_themes)}",
+                    }
+                )
 
                 try:
-                    reliability_data = self._parse_json_response(reliability_check_data['content'])
+                    reliability_data = self._parse_json_response(
+                        reliability_check_data["content"]
+                    )
                 except Exception as e:
                     self.logger.error(f"Error parsing reliability data: {str(e)}")
-                    reliability_data = {"agreement_statistics": {"overall_agreement": 0.0, "cohen_kappa": 0.0}}
+                    reliability_data = {
+                        "agreement_statistics": {
+                            "overall_agreement": 0.0,
+                            "cohen_kappa": 0.0,
+                        }
+                    }
 
             # Step 8: Final Report
             self.logger.info("Step 8: Theme Report")
-            theme_report_data = await self._call_llm({
-                'role': 'user',
-                'content': f"{self._get_prompt_template('theme_report')}\n\nTHEMES:\n{json.dumps(refined_themes)}\n\nRELIABILITY DATA:\n{json.dumps(reliability_data) if reliability_data else 'Not available'}"
-            })
+            theme_report_data = await self._call_llm(
+                {
+                    "role": "user",
+                    "content": f"{self._get_prompt_template('theme_report')}\n\nTHEMES:\n{json.dumps(refined_themes)}\n\nRELIABILITY DATA:\n{json.dumps(reliability_data) if reliability_data else 'Not available'}",
+                }
+            )
 
             try:
-                theme_report = self._parse_json_response(theme_report_data['content'])
+                theme_report = self._parse_json_response(theme_report_data["content"])
             except Exception as e:
                 self.logger.error(f"Error parsing theme report: {str(e)}")
                 theme_report = {"key_themes": [], "insights": {"patterns": []}}
@@ -1081,18 +1245,22 @@ class GeminiService:
             final_themes = []
             theme_id = 1
 
-            for theme in theme_report.get('key_themes', []):
+            for theme in theme_report.get("key_themes", []):
                 # Find the corresponding refined theme to get codes
                 matching_refined_theme = next(
-                    (rt for rt in refined_themes if rt.get('name') == theme.get('name')),
-                    {}
+                    (
+                        rt
+                        for rt in refined_themes
+                        if rt.get("name") == theme.get("name")
+                    ),
+                    {},
                 )
 
                 # Generate codes if none exist
-                codes = matching_refined_theme.get('codes', [])
+                codes = matching_refined_theme.get("codes", [])
                 if not codes:
                     # Extract from keywords if available
-                    keywords = theme.get('keywords', [])
+                    keywords = theme.get("keywords", [])
                     if keywords:
                         for keyword in keywords[:2]:
                             code = keyword.upper().replace(" ", "_")
@@ -1101,7 +1269,7 @@ class GeminiService:
 
                     # Add sentiment-based code if needed
                     if len(codes) < 2:
-                        sentiment = theme.get('sentiment_estimate', 0.0)
+                        sentiment = theme.get("sentiment_estimate", 0.0)
                         if sentiment >= 0.3:
                             codes.append("POSITIVE_ASPECT")
                         elif sentiment <= -0.3:
@@ -1110,156 +1278,181 @@ class GeminiService:
                             codes.append("NEUTRAL_OBSERVATION")
 
                 # Extract keywords from codes if none exist
-                keywords = theme.get('keywords', [])
+                keywords = theme.get("keywords", [])
                 if not keywords:
                     keywords = self._extract_keywords_from_codes(codes)
 
                 # Calculate reliability if not provided
-                reliability = reliability_data.get('agreement_statistics', {}).get('cohen_kappa', 0.0) if reliability_data else None
+                reliability = (
+                    reliability_data.get("agreement_statistics", {}).get(
+                        "cohen_kappa", 0.0
+                    )
+                    if reliability_data
+                    else None
+                )
                 if reliability is None:
                     # Calculate based on number of statements
-                    statements = theme.get('example_quotes', [])
+                    statements = theme.get("example_quotes", [])
                     if len(statements) >= 4:
                         reliability = 0.85  # Well-supported with many statements
                     elif len(statements) >= 2:
-                        reliability = 0.7   # Moderately supported
+                        reliability = 0.7  # Moderately supported
                     else:
-                        reliability = 0.5   # Minimally supported
+                        reliability = 0.5  # Minimally supported
 
                 # Calculate sentiment distribution for the theme's statements
-                statements = theme.get('example_quotes', [])
-                sentiment_distribution = {
-                    'positive': 0,
-                    'neutral': 0,
-                    'negative': 0
-                }
+                statements = theme.get("example_quotes", [])
+                sentiment_distribution = {"positive": 0, "neutral": 0, "negative": 0}
 
                 # If we have sentiment data for individual statements, use it
                 if sentiment_data and statements:
-                    positive_statements = set(sentiment_data.get('positive', []))
-                    neutral_statements = set(sentiment_data.get('neutral', []))
-                    negative_statements = set(sentiment_data.get('negative', []))
+                    positive_statements = set(sentiment_data.get("positive", []))
+                    neutral_statements = set(sentiment_data.get("neutral", []))
+                    negative_statements = set(sentiment_data.get("negative", []))
 
                     # Count statements in each sentiment category
                     for statement in statements:
                         if statement in positive_statements:
-                            sentiment_distribution['positive'] += 1
+                            sentiment_distribution["positive"] += 1
                         elif statement in negative_statements:
-                            sentiment_distribution['negative'] += 1
+                            sentiment_distribution["negative"] += 1
                         else:
-                            sentiment_distribution['neutral'] += 1
+                            sentiment_distribution["neutral"] += 1
                 else:
                     # Estimate sentiment distribution based on theme sentiment
-                    sentiment = theme.get('sentiment_estimate', 0.0)
+                    sentiment = theme.get("sentiment_estimate", 0.0)
                     if sentiment >= 0.3:
-                        sentiment_distribution['positive'] = len(statements) * 0.7
-                        sentiment_distribution['neutral'] = len(statements) * 0.2
-                        sentiment_distribution['negative'] = len(statements) * 0.1
+                        sentiment_distribution["positive"] = len(statements) * 0.7
+                        sentiment_distribution["neutral"] = len(statements) * 0.2
+                        sentiment_distribution["negative"] = len(statements) * 0.1
                     elif sentiment <= -0.3:
-                        sentiment_distribution['positive'] = len(statements) * 0.1
-                        sentiment_distribution['neutral'] = len(statements) * 0.2
-                        sentiment_distribution['negative'] = len(statements) * 0.7
+                        sentiment_distribution["positive"] = len(statements) * 0.1
+                        sentiment_distribution["neutral"] = len(statements) * 0.2
+                        sentiment_distribution["negative"] = len(statements) * 0.7
                     else:
-                        sentiment_distribution['positive'] = len(statements) * 0.3
-                        sentiment_distribution['neutral'] = len(statements) * 0.4
-                        sentiment_distribution['negative'] = len(statements) * 0.3
+                        sentiment_distribution["positive"] = len(statements) * 0.3
+                        sentiment_distribution["neutral"] = len(statements) * 0.4
+                        sentiment_distribution["negative"] = len(statements) * 0.3
 
                 # Convert to percentages
                 total_statements = sum(sentiment_distribution.values())
                 if total_statements > 0:
                     for key in sentiment_distribution:
-                        sentiment_distribution[key] = round(sentiment_distribution[key] / total_statements, 2)
+                        sentiment_distribution[key] = round(
+                            sentiment_distribution[key] / total_statements, 2
+                        )
 
                 # Create hierarchical code structure
                 hierarchical_codes = []
                 for code in codes:
                     if isinstance(code, str):
                         # Create a more sophisticated code object
-                        hierarchical_codes.append({
-                            "code": code,
-                            "definition": f"Related to {code.lower().replace('_', ' ')}",
-                            "frequency": round(random.uniform(0.6, 0.9), 2),  # Random frequency between 0.6-0.9
-                            "sub_codes": [
-                                {
-                                    "code": f"{code}_ASPECT_{i+1}",
-                                    "definition": f"Specific aspect of {code.lower().replace('_', ' ')}",
-                                    "frequency": round(random.uniform(0.4, 0.8), 2)  # Random frequency between 0.4-0.8
-                                } for i in range(min(2, len(keywords)))
-                            ]
-                        })
+                        hierarchical_codes.append(
+                            {
+                                "code": code,
+                                "definition": f"Related to {code.lower().replace('_', ' ')}",
+                                "frequency": round(
+                                    random.uniform(0.6, 0.9), 2
+                                ),  # Random frequency between 0.6-0.9
+                                "sub_codes": [
+                                    {
+                                        "code": f"{code}_ASPECT_{i+1}",
+                                        "definition": f"Specific aspect of {code.lower().replace('_', ' ')}",
+                                        "frequency": round(
+                                            random.uniform(0.4, 0.8), 2
+                                        ),  # Random frequency between 0.4-0.8
+                                    }
+                                    for i in range(min(2, len(keywords)))
+                                ],
+                            }
+                        )
 
                 # Create theme relationships
                 relationships = []
                 # Find other themes to relate to
-                for other_theme in theme_report.get('key_themes', []):
-                    if other_theme.get('name') != theme.get('name'):
-                        relationship_type = random.choice(["causal", "correlational", "hierarchical"])
-                        relationships.append({
-                            "related_theme": other_theme.get('name'),
-                            "relationship_type": relationship_type,
-                            "strength": round(random.uniform(0.5, 0.9), 2),  # Random strength between 0.5-0.9
-                            "description": f"This theme has a {relationship_type} relationship with {other_theme.get('name')}"
-                        })
+                for other_theme in theme_report.get("key_themes", []):
+                    if other_theme.get("name") != theme.get("name"):
+                        relationship_type = random.choice(
+                            ["causal", "correlational", "hierarchical"]
+                        )
+                        relationships.append(
+                            {
+                                "related_theme": other_theme.get("name"),
+                                "relationship_type": relationship_type,
+                                "strength": round(
+                                    random.uniform(0.5, 0.9), 2
+                                ),  # Random strength between 0.5-0.9
+                                "description": f"This theme has a {relationship_type} relationship with {other_theme.get('name')}",
+                            }
+                        )
                         break  # Just add one relationship for now
 
                 # Create more detailed reliability metrics
                 reliability_metrics = {
                     "cohen_kappa": reliability,
-                    "percent_agreement": min(1.0, reliability + random.uniform(0.05, 0.15)),
+                    "percent_agreement": min(
+                        1.0, reliability + random.uniform(0.05, 0.15)
+                    ),
                     "confidence_interval": [
                         max(0, reliability - 0.1),
-                        min(1.0, reliability + 0.1)
-                    ]
+                        min(1.0, reliability + 0.1),
+                    ],
                 }
 
                 # Calculate sentiment distribution for the theme's statements
-                statements = theme.get('example_quotes', [])
+                statements = theme.get("example_quotes", [])
                 sentiment_distribution = self._calculate_sentiment_distribution(
-                    statements,
-                    data.get('sentiment_data', None)
+                    statements, data.get("sentiment_data", None)
                 )
 
-                final_themes.append({
-                    'id': theme_id,
-                    'name': theme.get('name', f"Theme {theme_id}"),
-                    'definition': theme.get('definition', ''),
-                    'frequency': theme.get('frequency', 0.0),
-                    'sentiment': theme.get('sentiment_estimate', 0.0),
-                    'sentiment_distribution': sentiment_distribution,  # Add sentiment distribution
-                    'statements': theme.get('example_quotes', []),
-                    'examples': theme.get('example_quotes', []),  # For backward compatibility
-                    'hierarchical_codes': hierarchical_codes,  # New hierarchical codes
-                    'codes': codes,  # Keep original codes for backward compatibility
-                    'keywords': keywords,
-                    'reliability_metrics': reliability_metrics,  # Detailed reliability metrics
-                    'reliability': reliability,  # Keep original reliability for backward compatibility
-                    'relationships': relationships,  # Theme relationships
-                    'process': 'enhanced'
-                })
+                final_themes.append(
+                    {
+                        "id": theme_id,
+                        "name": theme.get("name", f"Theme {theme_id}"),
+                        "definition": theme.get("definition", ""),
+                        "frequency": theme.get("frequency", 0.0),
+                        "sentiment": theme.get("sentiment_estimate", 0.0),
+                        "sentiment_distribution": sentiment_distribution,  # Add sentiment distribution
+                        "statements": theme.get("example_quotes", []),
+                        "examples": theme.get(
+                            "example_quotes", []
+                        ),  # For backward compatibility
+                        "hierarchical_codes": hierarchical_codes,  # New hierarchical codes
+                        "codes": codes,  # Keep original codes for backward compatibility
+                        "keywords": keywords,
+                        "reliability_metrics": reliability_metrics,  # Detailed reliability metrics
+                        "reliability": reliability,  # Keep original reliability for backward compatibility
+                        "relationships": relationships,  # Theme relationships
+                        "process": "enhanced",
+                    }
+                )
                 theme_id += 1
 
             elapsed_time = time.time() - start_time
-            self.logger.info(f"Enhanced thematic analysis completed in {elapsed_time:.2f} seconds")
+            self.logger.info(
+                f"Enhanced thematic analysis completed in {elapsed_time:.2f} seconds"
+            )
 
             return {
-                'themes': final_themes,
-                'metadata': {
-                    'process': 'enhanced_thematic_analysis',
-                    'reliability': reliability_data.get('agreement_statistics', {}) if reliability_data else None,
-                    'insights': theme_report.get('insights', {}),
-                    'elapsedTime': elapsed_time
-                }
+                "themes": final_themes,
+                "metadata": {
+                    "process": "enhanced_thematic_analysis",
+                    "reliability": (
+                        reliability_data.get("agreement_statistics", {})
+                        if reliability_data
+                        else None
+                    ),
+                    "insights": theme_report.get("insights", {}),
+                    "elapsedTime": elapsed_time,
+                },
             }
 
         except Exception as e:
             self.logger.error(f"Error in enhanced thematic analysis: {str(e)}")
             # Return minimal data in case of error
             return {
-                'themes': [],
-                'metadata': {
-                    'process': 'enhanced_thematic_analysis',
-                    'error': str(e)
-                }
+                "themes": [],
+                "metadata": {"process": "enhanced_thematic_analysis", "error": str(e)},
             }
 
     def _extract_keywords_from_codes(self, codes):
@@ -1275,41 +1468,41 @@ class GeminiService:
 
     def _calculate_sentiment_distribution(self, statements, sentiment_data=None):
         """Calculate sentiment distribution for a list of statements"""
-        sentiment_distribution = {
-            'positive': 0,
-            'neutral': 0,
-            'negative': 0
-        }
+        sentiment_distribution = {"positive": 0, "neutral": 0, "negative": 0}
 
         # If we have sentiment data for individual statements, use it
         if sentiment_data and statements:
-            positive_statements = set(sentiment_data.get('positive', []))
-            neutral_statements = set(sentiment_data.get('neutral', []))
-            negative_statements = set(sentiment_data.get('negative', []))
+            positive_statements = set(sentiment_data.get("positive", []))
+            neutral_statements = set(sentiment_data.get("neutral", []))
+            negative_statements = set(sentiment_data.get("negative", []))
 
             # Count statements in each sentiment category
             for statement in statements:
                 if statement in positive_statements:
-                    sentiment_distribution['positive'] += 1
+                    sentiment_distribution["positive"] += 1
                 elif statement in negative_statements:
-                    sentiment_distribution['negative'] += 1
+                    sentiment_distribution["negative"] += 1
                 elif statement in neutral_statements:
-                    sentiment_distribution['neutral'] += 1
+                    sentiment_distribution["neutral"] += 1
                 else:
                     # If not found in any category, default to neutral
-                    sentiment_distribution['neutral'] += 1
+                    sentiment_distribution["neutral"] += 1
         else:
             # Default distribution if no sentiment data is available
             total = len(statements)
-            sentiment_distribution['positive'] = total // 3
-            sentiment_distribution['neutral'] = total // 3
-            sentiment_distribution['negative'] = total - (sentiment_distribution['positive'] + sentiment_distribution['neutral'])
+            sentiment_distribution["positive"] = total // 3
+            sentiment_distribution["neutral"] = total // 3
+            sentiment_distribution["negative"] = total - (
+                sentiment_distribution["positive"] + sentiment_distribution["neutral"]
+            )
 
         # Convert to percentages
         total_statements = sum(sentiment_distribution.values())
         if total_statements > 0:
             for key in sentiment_distribution:
-                sentiment_distribution[key] = round(sentiment_distribution[key] / total_statements, 2)
+                sentiment_distribution[key] = round(
+                    sentiment_distribution[key] / total_statements, 2
+                )
 
         return sentiment_distribution
 
@@ -1317,12 +1510,12 @@ class GeminiService:
         """Parse JSON from the response text, handling various formats"""
         try:
             # Try to find JSON within the text (in case there's markdown or other text)
-            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response_text)
+            json_match = re.search(r"```json\s*([\s\S]*?)\s*```", response_text)
             if json_match:
                 json_str = json_match.group(1)
             else:
                 # Try to find JSON without the markdown markers
-                json_match = re.search(r'{[\s\S]*}', response_text)
+                json_match = re.search(r"{[\s\S]*}", response_text)
                 if json_match:
                     json_str = json_match.group(0)
                 else:
@@ -1350,54 +1543,58 @@ class GeminiService:
         texts = []
         for item in data:
             # Direct question-answer format (flat format)
-            if 'question' in item and 'answer' in item:
-                question = item.get('question', '')
-                answer = item.get('answer', '')
+            if "question" in item and "answer" in item:
+                question = item.get("question", "")
+                answer = item.get("answer", "")
                 if question and answer:
                     texts.append(f"Q: {question}\nA: {answer}")
             # Nested responses format
-            elif 'responses' in item:
-                for response in item['responses']:
-                    question = response.get('question', '')
-                    answer = response.get('answer', '')
+            elif "responses" in item:
+                for response in item["responses"]:
+                    question = response.get("question", "")
+                    answer = response.get("answer", "")
                     if question and answer:
                         texts.append(f"Q: {question}\nA: {answer}")
             # Only use text field if no question/answer or responses structure
-            elif 'text' in item:
-                texts.append(item['text'])
+            elif "text" in item:
+                texts.append(item["text"])
 
         if not texts:
             logger.warning("No text content found in data for analysis")
             return {
                 "themes": [],
                 "patterns": [],
-                "sentimentOverview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
+                "sentimentOverview": {
+                    "positive": 0.33,
+                    "neutral": 0.34,
+                    "negative": 0.33,
+                },
                 "sentiment": [],
-                "insights": []
+                "insights": [],
             }
 
         combined_text = "\n\n".join(texts)
 
         # Run theme, pattern, and sentiment analysis in parallel
-        theme_task = self.analyze({
-            'task': 'theme_analysis',
-            'text': combined_text
-        })
+        theme_task = self.analyze({"task": "theme_analysis", "text": combined_text})
 
-        pattern_task = self.analyze({
-            'task': 'pattern_recognition',
-            'text': combined_text
-        })
+        pattern_task = self.analyze(
+            {"task": "pattern_recognition", "text": combined_text}
+        )
 
         # First get themes so we can use them for sentiment analysis if needed
         theme_result = await theme_task
 
         # Then run sentiment analysis with themes available for context
-        sentiment_task = self.analyze({
-            'task': 'sentiment_analysis',
-            'text': combined_text,
-            'themes': theme_result.get('themes', [])  # Pass themes for sentiment statements enhancement
-        })
+        sentiment_task = self.analyze(
+            {
+                "task": "sentiment_analysis",
+                "text": combined_text,
+                "themes": theme_result.get(
+                    "themes", []
+                ),  # Pass themes for sentiment statements enhancement
+            }
+        )
 
         # Wait for remaining tasks to complete
         pattern_result, sentiment_result = await asyncio.gather(
@@ -1406,35 +1603,33 @@ class GeminiService:
 
         # Generate insights based on the analysis results
         insight_data = {
-            'task': 'insight_generation',
-            'text': combined_text,
-            'themes': theme_result.get('themes', []),
-            'patterns': pattern_result.get('patterns', []),
-            'sentiment': sentiment_result.get('sentiment', {})
+            "task": "insight_generation",
+            "text": combined_text,
+            "themes": theme_result.get("themes", []),
+            "patterns": pattern_result.get("patterns", []),
+            "sentiment": sentiment_result.get("sentiment", {}),
         }
 
         insight_result = await self.analyze(insight_data)
 
         # Combine all results
         result = {
-            'themes': theme_result.get('themes', []),
-            'patterns': pattern_result.get('patterns', []),
-            'sentimentOverview': sentiment_result.get('sentiment', {}).get('breakdown', {
-                'positive': 0.0,
-                'neutral': 0.0,
-                'negative': 0.0
-            }),
-            'sentiment': sentiment_result.get('sentiment', {}).get('details', []),
-            'insights': insight_result.get('insights', []),
-            'supporting_statements': sentiment_result.get('sentiment', {}).get('supporting_statements', {
-                'positive': [],
-                'neutral': [],
-                'negative': []
-            })
+            "themes": theme_result.get("themes", []),
+            "patterns": pattern_result.get("patterns", []),
+            "sentimentOverview": sentiment_result.get("sentiment", {}).get(
+                "breakdown", {"positive": 0.0, "neutral": 0.0, "negative": 0.0}
+            ),
+            "sentiment": sentiment_result.get("sentiment", {}).get("details", []),
+            "insights": insight_result.get("insights", []),
+            "supporting_statements": sentiment_result.get("sentiment", {}).get(
+                "supporting_statements", {"positive": [], "neutral": [], "negative": []}
+            ),
         }
 
         # Log the final result structure for debugging
-        logger.debug(f"Final analysis result structure:\n{json.dumps(result, indent=2)}")
+        logger.debug(
+            f"Final analysis result structure:\n{json.dumps(result, indent=2)}"
+        )
 
         return result
 
@@ -1451,7 +1646,9 @@ class GeminiService:
             Dict containing persona attributes in a structured format
         """
         try:
-            logger.info(f"Generating persona from interview text ({len(interview_text)} chars)")
+            logger.info(
+                f"Generating persona from interview text ({len(interview_text)} chars)"
+            )
 
             # Create prompt for persona generation with nested structure format
             prompt = f"""
@@ -1533,55 +1730,84 @@ class GeminiService:
                     # Just ensure the required fields are present with proper defaults
                     persona_attributes = {
                         "name": json_data.get("name", "Interview Participant"),
-                        "description": json_data.get("description", "Persona generated from interview transcript"),
-                        "role_context": json_data.get("role_context", {
-                            "value": "Role derived from interview analysis",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
-                        "key_responsibilities": json_data.get("key_responsibilities", {
-                            "value": "Responsibilities mentioned in interview",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
-                        "tools_used": json_data.get("tools_used", {
-                            "value": "Tools mentioned in interview",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
-                        "collaboration_style": json_data.get("collaboration_style", {
-                            "value": "Collaboration style mentioned in interview",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
-                        "analysis_approach": json_data.get("analysis_approach", {
-                            "value": "Analysis approach mentioned in interview",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
-                        "pain_points": json_data.get("pain_points", {
-                            "value": "Challenges mentioned in interview",
-                            "confidence": 0.7,
-                            "evidence": ["Generated from text analysis"]
-                        }),
+                        "description": json_data.get(
+                            "description", "Persona generated from interview transcript"
+                        ),
+                        "role_context": json_data.get(
+                            "role_context",
+                            {
+                                "value": "Role derived from interview analysis",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
+                        "key_responsibilities": json_data.get(
+                            "key_responsibilities",
+                            {
+                                "value": "Responsibilities mentioned in interview",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
+                        "tools_used": json_data.get(
+                            "tools_used",
+                            {
+                                "value": "Tools mentioned in interview",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
+                        "collaboration_style": json_data.get(
+                            "collaboration_style",
+                            {
+                                "value": "Collaboration style mentioned in interview",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
+                        "analysis_approach": json_data.get(
+                            "analysis_approach",
+                            {
+                                "value": "Analysis approach mentioned in interview",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
+                        "pain_points": json_data.get(
+                            "pain_points",
+                            {
+                                "value": "Challenges mentioned in interview",
+                                "confidence": 0.7,
+                                "evidence": ["Generated from text analysis"],
+                            },
+                        ),
                         "patterns": json_data.get("patterns", []),
                         "confidence": json_data.get("confidence", 0.7),
-                        "evidence": json_data.get("evidence", ["Generated from direct text analysis using Gemini"]),
+                        "evidence": json_data.get(
+                            "evidence",
+                            ["Generated from direct text analysis using Gemini"],
+                        ),
                         "metadata": {
                             "source": "direct_text_analysis",
-                            "timestamp": datetime.now().isoformat()
-                        }
+                            "timestamp": datetime.now().isoformat(),
+                        },
                     }
 
-                    logger.info(f"Successfully generated persona: {persona_attributes['name']}")
+                    logger.info(
+                        f"Successfully generated persona: {persona_attributes['name']}"
+                    )
                     return persona_attributes
                 else:
                     # If not valid JSON or not a dictionary, use fallback
-                    logger.warning("Could not extract valid JSON from Gemini response, using fallback")
+                    logger.warning(
+                        "Could not extract valid JSON from Gemini response, using fallback"
+                    )
                     return self._create_fallback_persona()
 
             except Exception as parse_error:
-                logger.error(f"Error parsing Gemini persona response: {str(parse_error)}")
+                logger.error(
+                    f"Error parsing Gemini persona response: {str(parse_error)}"
+                )
                 return self._create_fallback_persona()
 
         except Exception as e:
@@ -1596,6 +1822,7 @@ class GeminiService:
         except json.JSONDecodeError:
             # If that fails, try to extract JSON from markdown code blocks
             import re
+
             json_match = re.search(r'```(?:json)?\s*({\s*".*})\s*```', text, re.DOTALL)
             if json_match:
                 try:
@@ -1604,7 +1831,7 @@ class GeminiService:
                     pass
 
             # Try another pattern that might capture more JSON formats
-            json_match = re.search(r'{[\s\S]*}', text)
+            json_match = re.search(r"{[\s\S]*}", text)
             if json_match:
                 try:
                     return json.loads(json_match.group(0))
@@ -1621,43 +1848,45 @@ class GeminiService:
             "role_context": {
                 "value": "Role derived from interview analysis",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "key_responsibilities": {
                 "value": "Responsibilities mentioned in interview",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "tools_used": {
                 "value": "Tools mentioned in interview",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "collaboration_style": {
                 "value": "Collaboration style implied in interview",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "analysis_approach": {
                 "value": "Problem-solving approach mentioned in interview",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "pain_points": {
                 "value": "Challenges mentioned in interview",
                 "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"]
+                "evidence": ["Generated from text analysis fallback"],
             },
             "patterns": [],
             "confidence": 0.5,
             "evidence": ["Generated from text analysis fallback"],
             "metadata": {
                 "source": "text_fallback",
-                "timestamp": datetime.now().isoformat()
-            }
+                "timestamp": datetime.now().isoformat(),
+            },
         }
 
-    async def analyze_sentiment(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_sentiment(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze sentiment in interview data with explicit supporting statements.
 
@@ -1670,23 +1899,29 @@ class GeminiService:
             Dictionary containing sentiment analysis results including supporting statements.
         """
         try:
-            self.logger.info(f"Starting sentiment analysis with {len(interviews)} interview segments")
+            self.logger.info(
+                f"Starting sentiment analysis with {len(interviews)} interview segments"
+            )
 
             # Format the interview data for analysis
             interview_text = ""
             for i, interview in enumerate(interviews):
-                answer = interview.get('answer', interview.get('response', interview.get('text', '')))
+                answer = interview.get(
+                    "answer", interview.get("response", interview.get("text", ""))
+                )
                 if answer:
                     interview_text += f"Statement {i+1}: {answer}\n\n"
 
             # Truncate text if too long
             max_length = 32000
             if len(interview_text) > max_length:
-                self.logger.warning(f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}")
+                self.logger.warning(
+                    f"Interview text too long ({len(interview_text)} chars), truncating to {max_length}"
+                )
                 interview_text = interview_text[:max_length]
 
             # Check if industry was provided in kwargs
-            industry = kwargs.get('industry')
+            industry = kwargs.get("industry")
 
             # If no industry provided, detect it from the content
             if not industry:
@@ -1701,17 +1936,27 @@ class GeminiService:
                 Return only the industry name, nothing else.
                 """
 
-                industry_response = await self._call_llm({
-                    'role': 'user',
-                    'content': industry_detection_prompt
-                })
+                industry_response = await self._call_llm(
+                    {"role": "user", "content": industry_detection_prompt}
+                )
 
-                industry = industry_response.get('content', '').strip().lower()
+                industry = industry_response.get("content", "").strip().lower()
 
                 # Clean up the response to ensure it's just the industry name
-                for valid_industry in ["healthcare", "tech", "finance", "military", "education",
-                                       "hospitality", "retail", "manufacturing", "legal",
-                                       "insurance", "agriculture", "non_profit"]:
+                for valid_industry in [
+                    "healthcare",
+                    "tech",
+                    "finance",
+                    "military",
+                    "education",
+                    "hospitality",
+                    "retail",
+                    "manufacturing",
+                    "legal",
+                    "insurance",
+                    "agriculture",
+                    "non_profit",
+                ]:
                     if valid_industry in industry:
                         industry = valid_industry
                         break
@@ -1800,147 +2045,192 @@ class GeminiService:
             """
 
             # Call the LLM with the sentiment analysis prompt
-            response = await self._call_llm({
-                'role': 'user',
-                'content': prompt
-            })
+            response = await self._call_llm({"role": "user", "content": prompt})
 
             try:
                 # Extract the content from the response
-                content = response.get('content', '')
+                content = response.get("content", "")
 
                 # Parse the JSON result
                 result = self._parse_json_response(content)
 
                 # Add the detected industry to the result
-                result['industry'] = industry
+                result["industry"] = industry
 
                 # Validate the sentiment data
                 if not isinstance(result, dict):
-                    raise ValueError("Expected a dictionary result from sentiment analysis")
+                    raise ValueError(
+                        "Expected a dictionary result from sentiment analysis"
+                    )
 
                 # Ensure sentimentOverview exists
-                if 'sentimentOverview' not in result:
+                if "sentimentOverview" not in result:
                     self.logger.warning("No sentimentOverview in result, using default")
-                    result['sentimentOverview'] = {
+                    result["sentimentOverview"] = {
                         "positive": 0.33,
                         "neutral": 0.34,
-                        "negative": 0.33
+                        "negative": 0.33,
                     }
 
                 # Initialize sentimentStatements if not present
-                if 'supporting_statements' not in result and 'sentimentStatements' not in result:
-                    self.logger.warning("No supporting_statements or sentimentStatements in result, using empty arrays")
-                    result['supporting_statements'] = {
+                if (
+                    "supporting_statements" not in result
+                    and "sentimentStatements" not in result
+                ):
+                    self.logger.warning(
+                        "No supporting_statements or sentimentStatements in result, using empty arrays"
+                    )
+                    result["supporting_statements"] = {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     }
 
                 # If we have supporting_statements, copy them to sentimentStatements
-                if 'supporting_statements' in result and 'sentimentStatements' not in result:
-                    self.logger.info("Copying supporting_statements to sentimentStatements")
-                    result['sentimentStatements'] = result['supporting_statements']
+                if (
+                    "supporting_statements" in result
+                    and "sentimentStatements" not in result
+                ):
+                    self.logger.info(
+                        "Copying supporting_statements to sentimentStatements"
+                    )
+                    result["sentimentStatements"] = result["supporting_statements"]
 
                 # If we have sentimentStatements but no supporting_statements, copy in the other direction
-                if 'sentimentStatements' in result and 'supporting_statements' not in result:
-                    self.logger.info("Copying sentimentStatements to supporting_statements")
-                    result['supporting_statements'] = result['sentimentStatements']
+                if (
+                    "sentimentStatements" in result
+                    and "supporting_statements" not in result
+                ):
+                    self.logger.info(
+                        "Copying sentimentStatements to supporting_statements"
+                    )
+                    result["supporting_statements"] = result["sentimentStatements"]
 
                 # Extract direct sentiment lists if they exist in the result
                 direct_sentiment = {}
-                if 'positive' in result and isinstance(result['positive'], list):
-                    direct_sentiment['positive'] = result['positive']
-                if 'neutral' in result and isinstance(result['neutral'], list):
-                    direct_sentiment['neutral'] = result['neutral']
-                if 'negative' in result and isinstance(result['negative'], list):
-                    direct_sentiment['negative'] = result['negative']
+                if "positive" in result and isinstance(result["positive"], list):
+                    direct_sentiment["positive"] = result["positive"]
+                if "neutral" in result and isinstance(result["neutral"], list):
+                    direct_sentiment["neutral"] = result["neutral"]
+                if "negative" in result and isinstance(result["negative"], list):
+                    direct_sentiment["negative"] = result["negative"]
 
                 # If we have direct sentiment, merge it into sentimentStatements
                 if direct_sentiment:
-                    self.logger.info("Found direct sentiment lists in result, merging into sentimentStatements")
+                    self.logger.info(
+                        "Found direct sentiment lists in result, merging into sentimentStatements"
+                    )
 
                     # Ensure sentimentStatements exists
-                    if 'sentimentStatements' not in result:
-                        result['sentimentStatements'] = {
+                    if "sentimentStatements" not in result:
+                        result["sentimentStatements"] = {
                             "positive": [],
                             "neutral": [],
-                            "negative": []
+                            "negative": [],
                         }
 
                     # Merge positive statements
-                    if 'positive' in direct_sentiment:
-                        if not isinstance(result['sentimentStatements']['positive'], list):
-                            result['sentimentStatements']['positive'] = []
-                        for statement in direct_sentiment['positive']:
-                            if statement not in result['sentimentStatements']['positive']:
-                                result['sentimentStatements']['positive'].append(statement)
+                    if "positive" in direct_sentiment:
+                        if not isinstance(
+                            result["sentimentStatements"]["positive"], list
+                        ):
+                            result["sentimentStatements"]["positive"] = []
+                        for statement in direct_sentiment["positive"]:
+                            if (
+                                statement
+                                not in result["sentimentStatements"]["positive"]
+                            ):
+                                result["sentimentStatements"]["positive"].append(
+                                    statement
+                                )
 
                     # Merge neutral statements
-                    if 'neutral' in direct_sentiment:
-                        if not isinstance(result['sentimentStatements']['neutral'], list):
-                            result['sentimentStatements']['neutral'] = []
-                        for statement in direct_sentiment['neutral']:
-                            if statement not in result['sentimentStatements']['neutral']:
-                                result['sentimentStatements']['neutral'].append(statement)
+                    if "neutral" in direct_sentiment:
+                        if not isinstance(
+                            result["sentimentStatements"]["neutral"], list
+                        ):
+                            result["sentimentStatements"]["neutral"] = []
+                        for statement in direct_sentiment["neutral"]:
+                            if (
+                                statement
+                                not in result["sentimentStatements"]["neutral"]
+                            ):
+                                result["sentimentStatements"]["neutral"].append(
+                                    statement
+                                )
 
                     # Merge negative statements
-                    if 'negative' in direct_sentiment:
-                        if not isinstance(result['sentimentStatements']['negative'], list):
-                            result['sentimentStatements']['negative'] = []
-                        for statement in direct_sentiment['negative']:
-                            if statement not in result['sentimentStatements']['negative']:
-                                result['sentimentStatements']['negative'].append(statement)
+                    if "negative" in direct_sentiment:
+                        if not isinstance(
+                            result["sentimentStatements"]["negative"], list
+                        ):
+                            result["sentimentStatements"]["negative"] = []
+                        for statement in direct_sentiment["negative"]:
+                            if (
+                                statement
+                                not in result["sentimentStatements"]["negative"]
+                            ):
+                                result["sentimentStatements"]["negative"].append(
+                                    statement
+                                )
 
                 # Final check to ensure sentimentStatements is properly formatted
-                if 'sentimentStatements' in result:
-                    if not isinstance(result['sentimentStatements'], dict):
-                        result['sentimentStatements'] = {
+                if "sentimentStatements" in result:
+                    if not isinstance(result["sentimentStatements"], dict):
+                        result["sentimentStatements"] = {
                             "positive": [],
                             "neutral": [],
-                            "negative": []
+                            "negative": [],
                         }
                     else:
                         # Ensure each category exists
-                        if 'positive' not in result['sentimentStatements']:
-                            result['sentimentStatements']['positive'] = []
-                        if 'neutral' not in result['sentimentStatements']:
-                            result['sentimentStatements']['neutral'] = []
-                        if 'negative' not in result['sentimentStatements']:
-                            result['sentimentStatements']['negative'] = []
+                        if "positive" not in result["sentimentStatements"]:
+                            result["sentimentStatements"]["positive"] = []
+                        if "neutral" not in result["sentimentStatements"]:
+                            result["sentimentStatements"]["neutral"] = []
+                        if "negative" not in result["sentimentStatements"]:
+                            result["sentimentStatements"]["negative"] = []
 
                 # Check if result has raw sentiment object
-                if 'sentiment' in result:
+                if "sentiment" in result:
                     # Ensure supporting_statements exists and is properly formatted in sentiment object
-                    if isinstance(result['sentiment'], dict) and 'supporting_statements' not in result['sentiment']:
-                        self.logger.info("Adding supporting_statements to sentiment object")
-                        result['sentiment']['supporting_statements'] = result.get('supporting_statements', {
-                            "positive": [],
-                            "neutral": [],
-                            "negative": []
-                        })
+                    if (
+                        isinstance(result["sentiment"], dict)
+                        and "supporting_statements" not in result["sentiment"]
+                    ):
+                        self.logger.info(
+                            "Adding supporting_statements to sentiment object"
+                        )
+                        result["sentiment"]["supporting_statements"] = result.get(
+                            "supporting_statements",
+                            {"positive": [], "neutral": [], "negative": []},
+                        )
                 else:
                     # Create sentiment object if not present
-                    self.logger.info("Creating sentiment object from sentimentOverview and supporting_statements")
-                    result['sentiment'] = {
+                    self.logger.info(
+                        "Creating sentiment object from sentimentOverview and supporting_statements"
+                    )
+                    result["sentiment"] = {
                         "overall": 0.5,  # Default neutral
-                        "breakdown": result.get('sentimentOverview', {
-                            "positive": 0.33,
-                            "neutral": 0.34,
-                            "negative": 0.33
-                        }),
-                        "supporting_statements": result.get('supporting_statements', {
-                            "positive": [],
-                            "neutral": [],
-                            "negative": []
-                        })
+                        "breakdown": result.get(
+                            "sentimentOverview",
+                            {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
+                        ),
+                        "supporting_statements": result.get(
+                            "supporting_statements",
+                            {"positive": [], "neutral": [], "negative": []},
+                        ),
                     }
 
                 # Log the sentiment results
-                self.logger.info(f"Sentiment analysis complete. Overview: {result['sentimentOverview']}")
-                self.logger.info(f"Supporting statements: positive={len(result.get('sentimentStatements', {}).get('positive', []))}, " +
-                               f"neutral={len(result.get('sentimentStatements', {}).get('neutral', []))}, " +
-                               f"negative={len(result.get('sentimentStatements', {}).get('negative', []))}")
+                self.logger.info(
+                    f"Sentiment analysis complete. Overview: {result['sentimentOverview']}"
+                )
+                self.logger.info(
+                    f"Supporting statements: positive={len(result.get('sentimentStatements', {}).get('positive', []))}, "
+                    + f"neutral={len(result.get('sentimentStatements', {}).get('neutral', []))}, "
+                    + f"negative={len(result.get('sentimentStatements', {}).get('negative', []))}"
+                )
 
                 return result
 
@@ -1952,42 +2242,38 @@ class GeminiService:
                     "sentimentOverview": {
                         "positive": 0.33,
                         "neutral": 0.34,
-                        "negative": 0.33
+                        "negative": 0.33,
                     },
                     "sentiment": [],
                     "supporting_statements": {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     },
                     "sentimentStatements": {
                         "positive": [],
                         "neutral": [],
-                        "negative": []
+                        "negative": [],
                     },
-                    "error": f"Error parsing sentiment analysis: {str(e)}"
+                    "error": f"Error parsing sentiment analysis: {str(e)}",
                 }
 
         except Exception as e:
             self.logger.error(f"Error in sentiment analysis: {str(e)}")
             return {
                 "error": f"Sentiment analysis error: {str(e)}",
-                "industry": kwargs.get('industry', 'unknown'),
+                "industry": kwargs.get("industry", "unknown"),
                 "sentimentOverview": {
                     "positive": 0.33,
                     "neutral": 0.34,
-                    "negative": 0.33
+                    "negative": 0.33,
                 },
                 "supporting_statements": {
                     "positive": [],
                     "neutral": [],
-                    "negative": []
+                    "negative": [],
                 },
-                "sentimentStatements": {
-                    "positive": [],
-                    "neutral": [],
-                    "negative": []
-                }
+                "sentimentStatements": {"positive": [], "neutral": [], "negative": []},
             }
 
     def _get_industry_specific_guidance(self, industry: str) -> str:
@@ -2008,7 +2294,6 @@ class GeminiService:
                 - Negative indicators include: staffing challenges, regulatory burdens, patient safety concerns
                 - Consider medical terminology as neutral unless clearly associated with sentiment
             """,
-
             "tech": """
                 TECHNOLOGY-SPECIFIC GUIDELINES:
                 - Neutral terms include: "CI/CD pipeline", "code review", "sprints"
@@ -2016,7 +2301,6 @@ class GeminiService:
                 - Negative indicators include: technical debt, integration challenges, legacy system limitations
                 - Technical terminology is generally neutral unless attached to outcomes or obstacles
             """,
-
             "finance": """
                 FINANCE-SPECIFIC GUIDELINES:
                 - Neutral terms include: "compliance review", "transaction verification", "quarterly reporting"
@@ -2024,7 +2308,6 @@ class GeminiService:
                 - Negative indicators include: regulatory burden, system integration issues, customer friction points
                 - Financial terminology should be treated as neutral process language
             """,
-
             "military": """
                 MILITARY-SPECIFIC GUIDELINES:
                 - Neutral terms include: "chain of command", "standard operating procedure", "mission briefing"
@@ -2032,7 +2315,6 @@ class GeminiService:
                 - Negative indicators include: equipment failures, logistics challenges, operational risks
                 - Military jargon and process descriptions should be considered neutral
             """,
-
             "education": """
                 EDUCATION-SPECIFIC GUIDELINES:
                 - Neutral terms include: "curriculum review", "assessment schedule", "learning objectives"
@@ -2040,7 +2322,6 @@ class GeminiService:
                 - Negative indicators include: funding limitations, administrative burdens, resource constraints
                 - Educational terminology and process descriptions are neutral by default
             """,
-
             "hospitality": """
                 HOSPITALITY-SPECIFIC GUIDELINES:
                 - Neutral terms include: "guest check-in", "housekeeping protocol", "reservation system"
@@ -2048,7 +2329,6 @@ class GeminiService:
                 - Negative indicators include: service delays, maintenance issues, staffing shortages
                 - Operational process descriptions should be treated as neutral
             """,
-
             "retail": """
                 RETAIL-SPECIFIC GUIDELINES:
                 - Neutral terms include: "inventory management", "POS system", "merchandising"
@@ -2056,7 +2336,6 @@ class GeminiService:
                 - Negative indicators include: stockouts, high return rates, customer complaints
                 - Retail operations terminology should be treated as neutral
             """,
-
             "manufacturing": """
                 MANUFACTURING-SPECIFIC GUIDELINES:
                 - Neutral terms include: "quality control", "production line", "supply chain"
@@ -2064,7 +2343,6 @@ class GeminiService:
                 - Negative indicators include: equipment failures, production delays, quality issues
                 - Manufacturing process terminology should be considered neutral
             """,
-
             "legal": """
                 LEGAL-SPECIFIC GUIDELINES:
                 - Neutral terms include: "discovery process", "case management", "filing procedure"
@@ -2072,7 +2350,6 @@ class GeminiService:
                 - Negative indicators include: procedural delays, work-life balance issues, administrative burdens
                 - Legal terminology and procedural descriptions are neutral by default
             """,
-
             "insurance": """
                 INSURANCE-SPECIFIC GUIDELINES:
                 - Neutral terms include: "policy underwriting", "claims processing", "risk assessment"
@@ -2080,7 +2357,6 @@ class GeminiService:
                 - Negative indicators include: claim denials, policy misunderstandings, processing delays
                 - Insurance terminology and process descriptions should be treated as neutral
             """,
-
             "agriculture": """
                 AGRICULTURE-SPECIFIC GUIDELINES:
                 - Neutral terms include: "crop rotation", "irrigation scheduling", "pest management"
@@ -2088,20 +2364,22 @@ class GeminiService:
                 - Negative indicators include: weather challenges, equipment failures, labor shortages
                 - Agricultural terminology and seasonal descriptions are neutral by default
             """,
-
             "non_profit": """
                 NON-PROFIT-SPECIFIC GUIDELINES:
                 - Neutral terms include: "donor management", "grant application", "program evaluation"
                 - Positive indicators include: mission impact, successful fundraising, volunteer engagement
                 - Negative indicators include: funding challenges, administrative burdens, resource limitations
                 - Mission-related terminology should be treated as neutral unless clearly tied to outcomes
-            """
+            """,
         }
 
         # Return industry-specific guidance or general guidance if industry not found
-        return industry_guidance.get(industry, """
+        return industry_guidance.get(
+            industry,
+            """
             GENERAL GUIDELINES:
             - Consider industry-specific terminology as neutral unless clearly tied to outcomes or challenges
             - Focus on emotional indicators and expressions of satisfaction/dissatisfaction
             - Distinguish between process descriptions (neutral) and process challenges (negative)
-        """)
+        """,
+        )
