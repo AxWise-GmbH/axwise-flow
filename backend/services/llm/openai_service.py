@@ -813,6 +813,82 @@ class OpenAIService:
             - Topic scores align with the provided evidence
             """
 
+        elif task == "persona_formation":
+            # Add support for direct persona prompts if provided
+            if "prompt" in data and data["prompt"]:
+                # Use the prompt provided directly by persona_formation service
+                return data["prompt"]
+
+            # Fallback to standard persona formation prompt if no specific prompt provided
+            text_sample = data.get("text", "")[:3500]  # Limit sample size
+            return f"""
+            Analyze the following interview text excerpt and create a comprehensive user persona profile.
+
+            INTERVIEW TEXT (excerpt):
+            {text_sample}
+
+            Extract the following details to build a rich, detailed persona:
+
+            BASIC INFORMATION:
+            1. name: A descriptive role-based name (e.g., "Data-Driven Product Manager")
+            2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
+            3. description: A brief 1-3 sentence overview of the persona
+
+            DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
+            4. demographics: Age, gender, education, experience level, and other demographic information
+            5. goals_and_motivations: Primary objectives, aspirations, and driving factors
+            6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
+            7. workflow_and_environment: Work processes, physical/digital environment, and context
+            8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
+            9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
+            10. technology_and_tools: Software, hardware, and other tools used regularly
+            11. attitude_towards_research: Views on research, data, and evidence-based approaches
+            12. attitude_towards_ai: Perspective on AI, automation, and technological change
+            13. key_quotes: Representative quotes that capture the persona's voice and perspective
+
+            LEGACY ATTRIBUTES (for backward compatibility, each with value, confidence score 0.0-1.0, and supporting evidence):
+            14. role_context: Primary job function and work environment
+            15. key_responsibilities: Main tasks mentioned
+            16. tools_used: Specific tools or methods named
+            17. collaboration_style: How they work with others
+            18. analysis_approach: How they approach problems/analysis
+            19. pain_points: Specific challenges mentioned
+
+            OVERALL PERSONA INFORMATION:
+            20. patterns: List of behavioral patterns associated with this persona
+            21. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
+            22. supporting_evidence_summary: Key evidence supporting the overall persona characterization
+
+            FORMAT YOUR RESPONSE AS JSON with the following structure:
+            {{
+              "name": "Role-Based Name",
+              "archetype": "Persona Category",
+              "description": "Brief overview of the persona",
+              "demographics": {{
+                "value": "Age, experience, etc.",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "goals_and_motivations": {{
+                "value": "Primary objectives and aspirations",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              ... (other attributes with same structure) ...
+              "role_context": {{
+                "value": "Description of role context",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              ... (other legacy attributes with same structure) ...
+              "patterns": ["Pattern 1", "Pattern 2"],
+              "overall_confidence": 0.75,
+              "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
+            }}
+
+            IMPORTANT: Ensure all attributes are included with proper structure, even if confidence is low or evidence is limited.
+            """
+
         elif task == "insight_generation":
             # Extract additional context from data
             themes = data.get("themes", [])

@@ -1170,22 +1170,57 @@ class GeminiService:
             # Fallback to standard persona formation prompt if no specific prompt provided
             text_sample = data.get("text", "")[:3500]  # Limit sample size
             return f"""
-            Analyze the following interview text excerpt and create a user persona profile.
+            Analyze the following interview text excerpt and create a comprehensive user persona profile.
 
             INTERVIEW TEXT (excerpt):
             {text_sample}
 
-            Extract the following details to build the persona:
-            1. Name: A descriptive role-based name (e.g., "Agile Product Manager").
-            2. Description: A brief 1-2 sentence summary.
-            3. Role context: Primary job function and work environment.
-            4. Key responsibilities: Main tasks mentioned.
-            5. Tools used: Specific tools or methods named (e.g., 'Miro', 'Jira').
-            6. Collaboration style: How they work with others.
-            7. Analysis approach: How they approach problems/analysis.
-            8. Pain points: Specific challenges mentioned.
+            Extract the following details to build a rich, detailed persona:
 
-            For each attribute (role_context, key_responsibilities, tools_used, collaboration_style, analysis_approach, pain_points), provide the value, a confidence score (0.0-1.0), and supporting evidence (list of strings).
+            BASIC INFORMATION:
+            1. name: A descriptive role-based name (e.g., "Data-Driven Product Manager")
+            2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
+            3. description: A brief 1-3 sentence overview of the persona
+
+            DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
+            4. demographics: Age, gender, education, experience level, and other demographic information
+            5. goals_and_motivations: Primary objectives, aspirations, and driving factors
+            6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
+            7. workflow_and_environment: Work processes, physical/digital environment, and context
+            8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
+            9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
+            10. technology_and_tools: Software, hardware, and other tools used regularly
+            11. attitude_towards_research: Views on research, data, and evidence-based approaches
+            12. attitude_towards_ai: Perspective on AI, automation, and technological change
+            13. key_quotes: Representative quotes that capture the persona's voice and perspective
+
+            OVERALL PERSONA INFORMATION:
+            14. patterns: List of behavioral patterns associated with this persona
+            15. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
+            16. supporting_evidence_summary: Key evidence supporting the overall persona characterization
+
+            FORMAT YOUR RESPONSE AS JSON with the following structure:
+            {
+              "name": "Role-Based Name",
+              "archetype": "Persona Category",
+              "description": "Brief overview of the persona",
+              "demographics": {
+                "value": "Age, experience, etc.",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "goals_and_motivations": {
+                "value": "Primary objectives and aspirations",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              ... (other attributes with same structure) ...
+              "patterns": ["Pattern 1", "Pattern 2"],
+              "overall_confidence": 0.75,
+              "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
+            }
+
+            IMPORTANT: Ensure all attributes are included with proper structure, even if confidence is low or evidence is limited.
 
             Return ONLY a valid JSON object with the following structure:
             {{
@@ -1934,22 +1969,59 @@ class GeminiService:
                 f"Generating persona from interview text ({len(interview_text)} chars)"
             )
 
-            # Create prompt for persona generation with nested structure format
+            # Create prompt for persona generation with enhanced structure format
             prompt = f"""
-            Analyze the following interview text excerpt and create a user persona profile.
+            Analyze the following interview text excerpt and create a comprehensive user persona profile.
 
             INTERVIEW TEXT (excerpt):
             {interview_text[:3500]}
 
-            Extract the following details to build the persona:
-            1. Name: A descriptive role-based name (e.g., "Agile Product Manager").
-            2. Description: A brief 1-2 sentence summary.
-            3. Role context: Primary job function and work environment.
-            4. Key responsibilities: Main tasks mentioned.
-            5. Tools used: Specific tools or methods named (e.g., 'Miro', 'Jira').
-            6. Collaboration style: How they work with others.
-            7. Analysis approach: How they approach problems/analysis.
-            8. Pain points: Specific challenges mentioned.
+            Extract the following details to build a rich, detailed persona:
+
+            BASIC INFORMATION:
+            1. name: A descriptive role-based name (e.g., "Data-Driven Product Manager")
+            2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
+            3. description: A brief 1-3 sentence overview of the persona
+
+            DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
+            4. demographics: Age, gender, education, experience level, and other demographic information
+            5. goals_and_motivations: Primary objectives, aspirations, and driving factors
+            6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
+            7. workflow_and_environment: Work processes, physical/digital environment, and context
+            8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
+            9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
+            10. technology_and_tools: Software, hardware, and other tools used regularly
+            11. attitude_towards_research: Views on research, data, and evidence-based approaches
+            12. attitude_towards_ai: Perspective on AI, automation, and technological change
+            13. key_quotes: Representative quotes that capture the persona's voice and perspective
+
+            OVERALL PERSONA INFORMATION:
+            14. patterns: List of behavioral patterns associated with this persona
+            15. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
+            16. supporting_evidence_summary: Key evidence supporting the overall persona characterization
+
+            FORMAT YOUR RESPONSE AS JSON with the following structure:
+            {
+              "name": "Role-Based Name",
+              "archetype": "Persona Category",
+              "description": "Brief overview of the persona",
+              "demographics": {
+                "value": "Age, experience, etc.",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "goals_and_motivations": {
+                "value": "Primary objectives and aspirations",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              ... (other attributes with same structure) ...
+              "patterns": ["Pattern 1", "Pattern 2"],
+              "overall_confidence": 0.75,
+              "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
+            }
+
+            IMPORTANT: Ensure all attributes are included with proper structure, even if confidence is low or evidence is limited.
 
             For each attribute (role_context, key_responsibilities, tools_used, collaboration_style, analysis_approach, pain_points), provide the value, a confidence score (0.0-1.0), and supporting evidence (list of strings).
 
