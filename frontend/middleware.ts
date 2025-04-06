@@ -1,7 +1,24 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { clerkMiddleware, getAuth } from '@clerk/nextjs/server';
 
-// Export Clerk's middleware
-export default clerkMiddleware();
+// Check if Clerk is configured
+const isClerkConfigured = process.env.REDACTED_CLERK_KEY &&
+  process.env.REDACTED_CLERK_KEY !== 'your_clerk_REDACTED_SECRET_KEY_here';
+
+// Create a middleware function that conditionally applies Clerk middleware
+const middleware = (req: NextRequest) => {
+  // If Clerk is not configured, bypass authentication
+  if (!isClerkConfigured) {
+    console.warn('Clerk authentication is not configured. Running without authentication.');
+    return NextResponse.next();
+  }
+
+  // Apply Clerk middleware if configured
+  return clerkMiddleware()(req);
+};
+
+export default middleware;
 
 // Configure matcher with simpler pattern that doesn't use capturing groups
 export const config = {
@@ -15,4 +32,4 @@ export const config = {
      */
     '/((?!api|_next|public|favicon.ico).*)',
   ],
-}; 
+};

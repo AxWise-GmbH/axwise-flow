@@ -17,6 +17,7 @@ from backend.schemas import DetailedAnalysisResult
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class AnalysisService:
     """
     Service class for handling data analysis operations.
@@ -34,11 +35,13 @@ class AnalysisService:
         self.db = db
         self.user = user
 
-    async def start_analysis(self,
-                      data_id: int,
-                      llm_provider: str,
-                      llm_model: Optional[str] = None,
-                      is_free_text: bool = False) -> dict:
+    async def start_analysis(
+        self,
+        data_id: int,
+        llm_provider: str,
+        llm_model: Optional[str] = None,
+        is_free_text: bool = False,
+    ) -> dict:
         """
         Start analysis of interview data.
 
@@ -60,12 +63,15 @@ class AnalysisService:
             # Validate LLM provider and get default model if needed
             if llm_model is None:
                 llm_model = (
-                    settings.llm_providers["openai"]["model"] if llm_provider == "openai"
+                    settings.llm_providers["openai"]["model"]
+                    if llm_provider == "openai"
                     else settings.llm_providers["gemini"]["model"]
                 )
 
-            logger.info(f"Analysis parameters - data_id: {data_id}, provider: {llm_provider}, "
-                       f"model: {llm_model}, is_free_text: {is_free_text}")
+            logger.info(
+                f"Analysis parameters - data_id: {data_id}, provider: {llm_provider}, "
+                f"model: {llm_model}, is_free_text: {is_free_text}"
+            )
 
             # Always use enhanced thematic analysis
             logger.info("Using enhanced thematic analysis")
@@ -75,10 +81,14 @@ class AnalysisService:
             nlp_processor = get_nlp_processor()()
 
             # Get interview data with user authorization check
-            interview_data = self.db.query(InterviewData).filter(
-                InterviewData.data_id == data_id,
-                InterviewData.user_id == self.user.user_id
-            ).first()
+            interview_data = (
+                self.db.query(InterviewData)
+                .filter(
+                    InterviewData.id == data_id,
+                    InterviewData.user_id == self.user.user_id,
+                )
+                .first()
+            )
 
             if not interview_data:
                 raise HTTPException(status_code=404, detail="Interview data not found")
@@ -87,7 +97,9 @@ class AnalysisService:
             data = self._parse_interview_data(interview_data, is_free_text)
 
             # Create initial analysis record
-            analysis_result = self._create_analysis_record(data_id, llm_provider, llm_model)
+            analysis_result = self._create_analysis_record(
+                data_id, llm_provider, llm_model
+            )
 
             # Start background processing task
             asyncio.create_task(
@@ -97,11 +109,11 @@ class AnalysisService:
                     llm_service,
                     data,
                     {
-                        'use_enhanced_theme_analysis': True,  # Always run enhanced analysis
-                        'use_reliability_check': True,  # Always use reliability check
-                        'llm_provider': llm_provider,
-                        'llm_model': llm_model
-                    }
+                        "use_enhanced_theme_analysis": True,  # Always run enhanced analysis
+                        "use_reliability_check": True,  # Always use reliability check
+                        "llm_provider": llm_provider,
+                        "llm_model": llm_model,
+                    },
                 )
             )
 
@@ -109,7 +121,7 @@ class AnalysisService:
             return {
                 "success": True,
                 "message": "Analysis started",
-                "result_id": analysis_result.result_id
+                "result_id": analysis_result.result_id,
             }
 
         except HTTPException:
@@ -117,12 +129,11 @@ class AnalysisService:
             raise
         except Exception as e:
             logger.error(f"Error initiating analysis: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Server error: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
-    def _parse_interview_data(self, interview_data: InterviewData, is_free_text: bool) -> Any:
+    def _parse_interview_data(
+        self, interview_data: InterviewData, is_free_text: bool
+    ) -> Any:
         """
         Parse interview data from database record.
 
@@ -141,37 +152,51 @@ class AnalysisService:
 
             # Handle free text format
             if is_free_text:
-                logger.info(f"Processing free-text format for data_id: {interview_data.data_id}")
+                logger.info(
+                    f"Processing free-text format for data_id: {interview_data.id}"
+                )
 
                 # Extract free text from various possible data structures
                 if isinstance(data, dict):
                     # Extract content or free_text field if present
-                    if 'content' in data:
-                        data = data['content']
-                    if 'free_text' in data:
-                        data = data['free_text']
-                    elif 'metadata' in data and isinstance(data['metadata'], dict) and 'free_text' in data['metadata']:
-                        data = data['metadata']['free_text']
-                elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+                    if "content" in data:
+                        data = data["content"]
+                    if "free_text" in data:
+                        data = data["free_text"]
+                    elif (
+                        "metadata" in data
+                        and isinstance(data["metadata"], dict)
+                        and "free_text" in data["metadata"]
+                    ):
+                        data = data["metadata"]["free_text"]
+                elif (
+                    isinstance(data, list)
+                    and len(data) > 0
+                    and isinstance(data[0], dict)
+                ):
                     # Extract from first item if it's a list
-                    if 'content' in data[0]:
-                        data = data[0]['content']
-                    elif 'free_text' in data[0]:
-                        data = data[0]['free_text']
+                    if "content" in data[0]:
+                        data = data[0]["content"]
+                    elif "free_text" in data[0]:
+                        data = data[0]["free_text"]
 
                 # Ensure data is a string for free text processing
                 if not isinstance(data, str):
                     try:
                         data = json.dumps(data)
                     except:
-                        logger.warning("Could not convert data to string, using empty string")
+                        logger.warning(
+                            "Could not convert data to string, using empty string"
+                        )
                         data = ""
 
                 # Wrap in a dict with free_text field
-                data = {'free_text': data}
+                data = {"free_text": data}
 
                 # Log the extracted free text
-                logger.info(f"Extracted free text (first 100 chars): {data['free_text'][:100]}...")
+                logger.info(
+                    f"Extracted free text (first 100 chars): {data['free_text'][:100]}..."
+                )
             elif not isinstance(data, list):
                 data = [data]
 
@@ -180,11 +205,12 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error parsing interview data: {str(e)}")
             raise HTTPException(
-                status_code=500,
-                detail="Failed to parse interview data"
+                status_code=500, detail="Failed to parse interview data"
             )
 
-    def _create_analysis_record(self, data_id: int, llm_provider: str, llm_model: str) -> AnalysisResult:
+    def _create_analysis_record(
+        self, data_id: int, llm_provider: str, llm_model: str
+    ) -> AnalysisResult:
         """
         Create an analysis result record in the database.
 
@@ -198,28 +224,34 @@ class AnalysisService:
         """
         analysis_result = AnalysisResult(
             data_id=data_id,
-            status='processing',
+            status="processing",
             llm_provider=llm_provider,
             llm_model=llm_model,
-            results=json.dumps({
-                "status": "processing",
-                "message": "Analysis has been initiated",
-                "progress": 0
-            })
+            results=json.dumps(
+                {
+                    "status": "processing",
+                    "message": "Analysis has been initiated",
+                    "progress": 0,
+                }
+            ),
         )
         self.db.add(analysis_result)
         self.db.commit()
         self.db.refresh(analysis_result)
-        logger.info(f"Created analysis result record. Result ID: {analysis_result.result_id}")
+        logger.info(
+            f"Created analysis result record. Result ID: {analysis_result.result_id}"
+        )
 
         return analysis_result
 
-    async def _process_data_task(self,
-                          result_id: int,
-                          nlp_processor: Any,
-                          llm_service: Any,
-                          data: Any,
-                          config: Dict[str, Any]):
+    async def _process_data_task(
+        self,
+        result_id: int,
+        nlp_processor: Any,
+        llm_service: Any,
+        data: Any,
+        config: Dict[str, Any],
+    ):
         """
         Background task to process interview data.
 
@@ -232,8 +264,10 @@ class AnalysisService:
         """
         from backend.database import get_db
 
-        async_db = None # Initialize async_db to None
-        logger.info(f"[_process_data_task ENTRY] Starting background task for result_id: {result_id}")
+        async_db = None  # Initialize async_db to None
+        logger.info(
+            f"[_process_data_task ENTRY] Starting background task for result_id: {result_id}"
+        )
 
         try:
             logger.info(f"Starting data processing task for result_id: {result_id}")
@@ -244,15 +278,19 @@ class AnalysisService:
             # Get a fresh reference to the analysis result
             task_result = async_db.query(AnalysisResult).get(result_id)
             if not task_result:
-                 logger.error(f"AnalysisResult record not found for result_id: {result_id}. Aborting task.")
-                 return # Exit if record not found
+                logger.error(
+                    f"AnalysisResult record not found for result_id: {result_id}. Aborting task."
+                )
+                return  # Exit if record not found
 
             # Update status to in-progress with 5% completion
-            task_result.results = json.dumps({
-                "status": "processing",
-                "message": "Analysis in progress",
-                "progress": 5
-            })
+            task_result.results = json.dumps(
+                {
+                    "status": "processing",
+                    "message": "Analysis in progress",
+                    "progress": 5,
+                }
+            )
             async_db.commit()
             logger.info(f"Set status to 'processing' for result_id: {result_id}")
 
@@ -261,11 +299,13 @@ class AnalysisService:
                 nlp_processor=nlp_processor,
                 llm_service=llm_service,
                 data=data,
-                config=config
+                config=config,
             )
 
             # Update database record with results (but not status yet)
-            logger.info(f"Analysis pipeline finished for result_id: {result_id}. Saving results...")
+            logger.info(
+                f"Analysis pipeline finished for result_id: {result_id}. Saving results..."
+            )
 
             # Validate result against DetailedAnalysisResult schema
             try:
@@ -277,14 +317,19 @@ class AnalysisService:
                     "fileName": "",  # Will be filled from the database
                     "themes": result.get("themes", []),
                     "patterns": result.get("patterns", []),
-                    "sentimentOverview": result.get("sentimentOverview", {"positive": 0.33, "neutral": 0.34, "negative": 0.33}),
+                    "sentimentOverview": result.get(
+                        "sentimentOverview",
+                        {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
+                    ),
                 }
 
                 # Validate against schema
                 DetailedAnalysisResult(**validation_data)
                 logger.info(f"Result validation successful for result_id: {result_id}")
             except ValidationError as ve:
-                logger.warning(f"Result validation warning for result_id: {result_id}: {str(ve)}")
+                logger.warning(
+                    f"Result validation warning for result_id: {result_id}: {str(ve)}"
+                )
                 # Continue with saving even if validation has warnings
 
             task_result.results = json.dumps(result)
@@ -297,10 +342,15 @@ class AnalysisService:
             # Now update the status to completed and commit again
             task_result.status = "completed"
             async_db.commit()
-            logger.info(f"Successfully set status to 'completed' for result_id: {task_result.result_id}")
+            logger.info(
+                f"Successfully set status to 'completed' for result_id: {task_result.result_id}"
+            )
 
         except Exception as e:
-            logger.error(f"Error during analysis task for result_id {result_id}: {str(e)}", exc_info=True) # Log traceback
+            logger.error(
+                f"Error during analysis task for result_id {result_id}: {str(e)}",
+                exc_info=True,
+            )  # Log traceback
             try:
                 # Ensure async_db is available
                 if async_db is None:
@@ -311,20 +361,26 @@ class AnalysisService:
 
                 if task_result:
                     # Update database record with error
-                    task_result.results = json.dumps({
-                        "status": "error",
-                        "message": f"Analysis failed: {str(e)}",
-                        "error_details": str(e)
-                    })
+                    task_result.results = json.dumps(
+                        {
+                            "status": "error",
+                            "message": f"Analysis failed: {str(e)}",
+                            "error_details": str(e),
+                        }
+                    )
                     task_result.status = "failed"
                     task_result.completed_at = datetime.now(timezone.utc)
                     async_db.commit()
                     logger.info(f"Set status to 'failed' for result_id: {result_id}")
                 else:
-                     logger.error(f"Could not update status to failed, AnalysisResult record not found for result_id: {result_id}")
+                    logger.error(
+                        f"Could not update status to failed, AnalysisResult record not found for result_id: {result_id}"
+                    )
 
             except Exception as inner_e:
-                logger.error(f"Failed to update error status for result_id {result_id}: {str(inner_e)}")
+                logger.error(
+                    f"Failed to update error status for result_id {result_id}: {str(inner_e)}"
+                )
         finally:
             # Ensure the session is closed
             if async_db:
