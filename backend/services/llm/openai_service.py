@@ -13,7 +13,7 @@ import re
 import time
 from pydantic import ValidationError
 
-from backend.schemas import Theme
+from backend.schemas import Theme, Pattern
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -194,16 +194,116 @@ class OpenAIService:
                     result = {"themes": []}  # Return empty list if structure is wrong
 
             elif task == "pattern_recognition":
-                # Ensure each pattern has evidence and sentiment
-                if "patterns" in result:
-                    for pattern in result["patterns"]:
-                        if "evidence" not in pattern:
-                            pattern["evidence"] = []
-                        # Convert sentiment from 0-1 to -1 to 1 scale
+                # Ensure proper patterns array
+                if "patterns" not in result:
+                    result["patterns"] = []
+
+                # Ensure each pattern has required fields
+                for pattern in result["patterns"]:
+                    # Ensure required fields with default values
+                    if "name" not in pattern and "category" in pattern:
+                        pattern["name"] = pattern[
+                            "category"
+                        ]  # Use category as name if missing
+                    elif "name" not in pattern and "description" in pattern:
+                        # Extract name from description (first few words)
+                        desc_words = pattern["description"].split()
+                        pattern["name"] = (
+                            " ".join(desc_words[:3]) + "..."
+                            if len(desc_words) > 3
+                            else pattern["description"]
+                        )
+
+                    # Convert sentiment from 0-1 to -1 to 1 scale if needed
+                    if (
+                        "sentiment" in pattern
+                        and pattern["sentiment"] is not None
+                        and 0 <= pattern["sentiment"] <= 1
+                    ):
+                        pattern["sentiment"] = (pattern["sentiment"] - 0.5) * 2
+                    elif "sentiment" not in pattern:
+                        pattern["sentiment"] = 0.0  # neutral
+
+                    if "frequency" not in pattern:
+                        pattern["frequency"] = 0.5  # medium
+
+                    # Handle evidence/examples for backward compatibility
+                    if "evidence" not in pattern and "examples" in pattern:
+                        pattern["evidence"] = pattern["examples"]
+                    elif "evidence" not in pattern and "examples" not in pattern:
+                        pattern["evidence"] = []
+
+                    # Ensure examples exists for backward compatibility
+                    if "examples" not in pattern and "evidence" in pattern:
+                        pattern["examples"] = pattern["evidence"]
+
+                    # Ensure impact field exists
+                    if "impact" not in pattern:
                         if "sentiment" in pattern:
-                            pattern["sentiment"] = (pattern["sentiment"] - 0.5) * 2
-                        else:
-                            pattern["sentiment"] = 0.0
+                            sentiment = pattern["sentiment"]
+                            if sentiment >= 0.3:
+                                pattern["impact"] = (
+                                    "Positive impact on user experience and workflow efficiency"
+                                )
+                            elif sentiment <= -0.3:
+                                pattern["impact"] = (
+                                    "Negative impact on productivity and user satisfaction"
+                                )
+                            else:
+                                pattern["impact"] = (
+                                    "Neutral impact on overall processes"
+                                )
+
+                    # Ensure suggested_actions field exists
+                    if "suggested_actions" not in pattern:
+                        pattern["suggested_actions"] = [
+                            "Conduct further research on this pattern",
+                            "Consider addressing in future updates",
+                        ]
+
+                # Validate patterns against Pydantic model
+                validated_patterns_list = []
+                if (
+                    isinstance(result, dict)
+                    and "patterns" in result
+                    and isinstance(result["patterns"], list)
+                ):
+                    for pattern_data in result["patterns"]:
+                        try:
+                            # Validate each pattern dictionary against the Pydantic model
+                            validated_pattern = Pattern(**pattern_data)
+                            # Append the validated data (as dict) to the list
+                            validated_patterns_list.append(
+                                validated_pattern.model_dump()
+                            )
+                            logger.debug(
+                                f"Successfully validated pattern: {pattern_data.get('name', 'Unnamed')}"
+                            )
+                        except ValidationError as e:
+                            logger.warning(
+                                f"Pattern validation failed for pattern '{pattern_data.get('name', 'Unnamed')}': {e}. Skipping this pattern."
+                            )
+                            # Invalid patterns are skipped to ensure data integrity downstream
+                        except Exception as general_e:
+                            logger.error(
+                                f"Unexpected error during pattern validation for '{pattern_data.get('name', 'Unnamed')}': {general_e}",
+                                exc_info=True,
+                            )
+                            # Skip this pattern due to unexpected error
+
+                    # Replace the original patterns list with the validated list
+                    result["patterns"] = validated_patterns_list
+                    logger.info(
+                        f"Validated {len(validated_patterns_list)} patterns successfully for task: {task}"
+                    )
+                    logger.debug(
+                        f"Validated pattern result: {json.dumps(result, indent=2)}"
+                    )
+                else:
+                    logger.warning(
+                        f"LLM response for pattern_recognition was not in the expected format (dict with 'patterns' list). Raw response: {result}"
+                    )
+                    result = {"patterns": []}  # Return empty list if structure is wrong
 
             elif task == "sentiment_analysis":
                 # Ensure sentiment has proper structure with supporting statements
@@ -442,16 +542,20 @@ class OpenAIService:
             5. Habits - Repeated behaviors users exhibit
 
             For each behavioral pattern you identify, provide:
-            1. A behavior-oriented category (e.g., "Workflow", "Coping Strategy", "Decision Process", "Workaround", "Habit")
-            2. A description of the pattern that highlights the ACTIONS or BEHAVIORS
-            3. A frequency score between 0 and 1 indicating how prevalent the pattern is
-            4. A sentiment score between -1.0 and 1.0
-            5. Supporting evidence that shows the SPECIFIC ACTIONS mentioned
+            1. A descriptive name for the pattern
+            2. A behavior-oriented category (e.g., "Workflow", "Coping Strategy", "Decision Process", "Workaround", "Habit")
+            3. A description of the pattern that highlights the ACTIONS or BEHAVIORS
+            4. A frequency score between 0 and 1 indicating how prevalent the pattern is
+            5. A sentiment score between -1.0 and 1.0
+            6. Supporting evidence (direct quotes showing the SPECIFIC ACTIONS mentioned)
+            7. The impact of this pattern (how it affects users, processes, or outcomes)
+            8. Suggested actions (2-3 recommendations based on this pattern)
 
             Return your analysis in the following JSON format:
             {
                 "patterns": [
                     {
+                        "name": "Multi-source Validation",
                         "category": "Workflow",
                         "description": "Users repeatedly check multiple sources before making UX decisions",
                         "frequency": 0.65,
@@ -459,6 +563,12 @@ class OpenAIService:
                         "evidence": [
                             "I always check Nielsen's heuristics first, then validate with our own research, before presenting options",
                             "We go through a three-step validation process: first check best practices, then look at competitors, then test with users"
+                        ],
+                        "impact": "Slows down decision-making process but increases confidence in final decisions",
+                        "suggested_actions": [
+                            "Create a centralized knowledge base of UX best practices",
+                            "Develop a streamlined validation checklist",
+                            "Implement a faster user testing protocol for quick validation"
                         ]
                     }
                 ]
@@ -468,6 +578,8 @@ class OpenAIService:
             - Emphasize VERBS and ACTION words in your pattern descriptions
             - Each pattern should describe WHAT USERS DO, not just what they think or say
             - Evidence should contain quotes showing the ACTIONS mentioned
+            - Impact should describe the consequences (positive or negative) of the pattern
+            - Suggested actions should be specific, actionable recommendations
             - If you can't identify clear behavioral patterns, focus on the few you can confidently identify
             - Ensure 100% of your response is in valid JSON format
             """
