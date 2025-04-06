@@ -200,11 +200,18 @@ export type PersonaTrait = {
 
 /**
  * Insight data structure
+ *
+ * This interface represents an insight derived from analysis.
+ * It aligns with the backend Insight schema and includes fields for
+ * actionable information and prioritization.
  */
 export interface Insight {
   topic: string;
   observation: string;
   evidence: string[];
+  implication?: string;   // Explains the 'so what?' or consequence of the insight
+  recommendation?: string; // Suggests a concrete next step or action
+  priority?: 'High' | 'Medium' | 'Low'; // Indicates urgency/importance of the insight
 }
 
 export type Persona = {

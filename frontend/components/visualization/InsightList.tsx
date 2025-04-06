@@ -38,6 +38,15 @@ export function InsightList({ insights, className }: InsightListProps) {
               <AccordionTrigger className="hover:bg-muted/50 px-4 py-2 rounded-md">
                 <div className="flex items-center gap-2 text-left">
                   <span className="font-medium">{insight.topic}</span>
+                  {insight.priority && (
+                    <Badge
+                      variant={insight.priority === 'High' ? 'destructive' :
+                              insight.priority === 'Medium' ? 'default' : 'outline'}
+                      className="ml-2"
+                    >
+                      {insight.priority} Priority
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="ml-2">
                     {insight.evidence.length} {insight.evidence.length === 1 ? 'evidence' : 'evidences'}
                   </Badge>
@@ -50,6 +59,22 @@ export function InsightList({ insights, className }: InsightListProps) {
                     <h4 className="text-sm font-medium mb-2">Observation</h4>
                     <p className="text-sm text-muted-foreground">{insight.observation}</p>
                   </div>
+
+                  {/* Implication */}
+                  {insight.implication && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Implication</h4>
+                      <p className="text-sm text-muted-foreground">{insight.implication}</p>
+                    </div>
+                  )}
+
+                  {/* Recommendation */}
+                  {insight.recommendation && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Recommendation</h4>
+                      <p className="text-sm text-muted-foreground">{insight.recommendation}</p>
+                    </div>
+                  )}
 
                   {/* Evidence */}
                   {insight.evidence && insight.evidence.length > 0 && (

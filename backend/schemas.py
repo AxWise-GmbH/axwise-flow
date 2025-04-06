@@ -356,6 +356,40 @@ class Persona(BaseModel):
         }
 
 
+class Insight(BaseModel):
+    """
+    Model representing an insight derived from analysis.
+    """
+
+    topic: str
+    observation: str
+    evidence: List[str] = Field(default_factory=list)
+    implication: Optional[str] = Field(
+        None, description="Explains the 'so what?' or consequence of the insight"
+    )
+    recommendation: Optional[str] = Field(
+        None, description="Suggests a concrete next step or action"
+    )
+    priority: Optional[Literal["High", "Medium", "Low"]] = Field(
+        None, description="Indicates urgency/importance of the insight"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "topic": "Navigation Complexity",
+                "observation": "Users consistently struggle to find key features in the application interface",
+                "evidence": [
+                    "I spent 5 minutes looking for the export button",
+                    "The settings menu is buried too deep in the interface",
+                ],
+                "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
+                "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
+                "priority": "High",
+            }
+        }
+
+
 class DetailedAnalysisResult(BaseModel):
     """
     Comprehensive model for all analysis results.
@@ -374,6 +408,7 @@ class DetailedAnalysisResult(BaseModel):
     sentimentOverview: SentimentOverview
     sentiment: Optional[List[Dict[str, Any]]] = None
     personas: Optional[List[Persona]] = None
+    insights: Optional[List[Insight]] = None
     error: Optional[str] = None
 
 

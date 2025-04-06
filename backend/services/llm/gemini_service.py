@@ -16,7 +16,7 @@ import re
 import time
 from datetime import datetime
 
-from backend.schemas import Theme, Pattern
+from backend.schemas import Theme, Pattern, Insight
 
 logger = logging.getLogger(__name__)
 
@@ -653,6 +653,108 @@ class GeminiService:
 
                 result = transformed
 
+            elif task == "insight_generation":
+                # Ensure proper insights array
+                if "insights" not in result:
+                    result["insights"] = []
+
+                # Ensure each insight has required fields
+                for insight in result["insights"]:
+                    # Ensure evidence field exists
+                    if "evidence" not in insight:
+                        insight["evidence"] = []
+
+                    # Ensure implication field exists
+                    if "implication" not in insight:
+                        insight["implication"] = (
+                            "This insight may impact user experience and workflow efficiency."
+                        )
+
+                    # Ensure recommendation field exists
+                    if "recommendation" not in insight:
+                        insight["recommendation"] = (
+                            "Consider further investigation of this area."
+                        )
+
+                    # Ensure priority field exists with valid value
+                    if "priority" not in insight or insight["priority"] not in [
+                        "High",
+                        "Medium",
+                        "Low",
+                    ]:
+                        # Determine priority based on content if possible
+                        if "observation" in insight:
+                            observation = insight["observation"].lower()
+                            if any(
+                                word in observation
+                                for word in [
+                                    "critical",
+                                    "urgent",
+                                    "immediate",
+                                    "severe",
+                                    "significant",
+                                ]
+                            ):
+                                insight["priority"] = "High"
+                            elif any(
+                                word in observation
+                                for word in [
+                                    "moderate",
+                                    "important",
+                                    "should",
+                                    "consider",
+                                ]
+                            ):
+                                insight["priority"] = "Medium"
+                            else:
+                                insight["priority"] = "Low"
+                        else:
+                            insight["priority"] = "Medium"  # Default to medium priority
+
+                # Validate insights against Pydantic model
+                validated_insights_list = []
+                if (
+                    isinstance(result, dict)
+                    and "insights" in result
+                    and isinstance(result["insights"], list)
+                ):
+                    for insight_data in result["insights"]:
+                        try:
+                            # Validate each insight dictionary against the Pydantic model
+                            validated_insight = Insight(**insight_data)
+                            # Append the validated data (as dict) to the list
+                            validated_insights_list.append(
+                                validated_insight.model_dump()
+                            )
+                            logger.debug(
+                                f"Successfully validated insight: {insight_data.get('topic', 'Unnamed')}"
+                            )
+                        except ValidationError as e:
+                            logger.warning(
+                                f"Insight validation failed for insight '{insight_data.get('topic', 'Unnamed')}': {e}. Skipping this insight."
+                            )
+                            # Invalid insights are skipped to ensure data integrity downstream
+                        except Exception as general_e:
+                            logger.error(
+                                f"Unexpected error during insight validation for '{insight_data.get('topic', 'Unnamed')}': {general_e}",
+                                exc_info=True,
+                            )
+                            # Skip this insight due to unexpected error
+
+                    # Replace the original insights list with the validated list
+                    result["insights"] = validated_insights_list
+                    logger.info(
+                        f"Validated {len(validated_insights_list)} insights successfully for task: {task}"
+                    )
+                    logger.debug(
+                        f"Validated insight result: {json.dumps(result, indent=2)}"
+                    )
+                else:
+                    logger.warning(
+                        f"LLM response for insight_generation was not in the expected format (dict with 'insights' list). Raw response: {result}"
+                    )
+                    result = {"insights": []}  # Return empty list if structure is wrong
+
             elif task == "persona_formation":
                 # The prompt already asks for JSON. The generation_config sets the mime type.
                 # Parsing happens after the call.
@@ -952,18 +1054,24 @@ class GeminiService:
             For each insight, provide:
             1. A topic that captures the key area of insight
             2. A detailed observation that provides actionable information
-            3. Supporting evidence from the text
+            3. Supporting evidence from the text (direct quotes or paraphrases)
+            4. Implication - explain the "so what?" or consequence of this insight
+            5. Recommendation - suggest a concrete next step or action
+            6. Priority - indicate urgency/importance as "High", "Medium", or "Low"
 
             Return your analysis in the following JSON format:
             {{
                 "insights": [
                     {{
-                        "topic": "Topic Name",
-                        "observation": "Detailed observation here",
+                        "topic": "Navigation Complexity",
+                        "observation": "Users consistently struggle to find key features in the application interface",
                         "evidence": [
-                            "Supporting quote or paraphrase 1",
-                            "Supporting quote or paraphrase 2"
-                        ]
+                            "I spent 5 minutes looking for the export button",
+                            "The settings menu is buried too deep in the interface"
+                        ],
+                        "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
+                        "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
+                        "priority": "High"
                     }}
                 ],
                 "metadata": {{
@@ -975,6 +1083,14 @@ class GeminiService:
                     }}
                 }}
             }}
+
+            IMPORTANT GUIDELINES:
+            - Ensure insights are specific and actionable, not generic observations
+            - Base priority on both impact and urgency (High = immediate action needed, Medium = important but not urgent, Low = consider for future)
+            - Recommendations should be concrete and implementable
+            - Implications should clearly explain why the insight matters to users or the business
+            - Use direct quotes from the text as evidence whenever possible
+            - Ensure 100% of your response is in valid JSON format
             """
 
         elif task == "persona_formation":
