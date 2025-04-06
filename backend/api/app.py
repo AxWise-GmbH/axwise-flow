@@ -25,7 +25,7 @@ from typing import Dict, Any, List, Literal, Optional
 import logging
 import json
 import asyncio
-import time # Import time module
+import time  # Import time module
 from sqlalchemy.orm import Session
 from datetime import datetime
 from sqlalchemy.sql import text
@@ -34,8 +34,13 @@ from sqlalchemy.sql import text
 from infrastructure.config.settings import settings
 
 from backend.schemas import (
-    AnalysisRequest, UploadResponse, AnalysisResponse,
-    ResultResponse, HealthCheckResponse, DetailedAnalysisResult, PersonaGenerationRequest
+    AnalysisRequest,
+    UploadResponse,
+    AnalysisResponse,
+    ResultResponse,
+    HealthCheckResponse,
+    DetailedAnalysisResult,
+    PersonaGenerationRequest,
 )
 
 from backend.core.processing_pipeline import process_data
@@ -48,19 +53,15 @@ from backend.services.processing.persona_formation import PersonaFormationServic
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # Import API routers
 from backend.api.endpoints.priority_insights import router as priority_insights_router
 
-DEFAULT_SENTIMENT_OVERVIEW = {
-    "positive": 0.33,
-    "neutral": 0.34,
-    "negative": 0.33
-}
+DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
+
 
 def transform_analysis_results(results):
     """
@@ -71,6 +72,7 @@ def transform_analysis_results(results):
         return results
 
     import copy
+
     transformed = copy.deepcopy(results)
 
     # Quick validation and default values - keep this fast
@@ -106,6 +108,7 @@ def transform_analysis_results(results):
 
     return transformed
 
+
 # Initialize FastAPI with security scheme
 app = FastAPI(
     title="Interview Analysis API",
@@ -128,11 +131,11 @@ app = FastAPI(
     contact={
         "name": "Development Team",
         "email": "dev@example.com",
-        },
+    },
     license_info={
         "name": "Private",
         "url": "https://example.com/license",
-        }
+    },
 )
 
 # Get CORS settings from centralized configuration
@@ -158,6 +161,7 @@ create_tables()
 # Add this function definition before the route definitions
 _persona_service = None
 
+
 def get_persona_service():
     """
     Factory function to create a configured PersonaFormationService instance.
@@ -177,20 +181,21 @@ def get_persona_service():
         # Create a minimal SystemConfig for the persona service
         class MinimalSystemConfig:
             def __init__(self):
-                self.llm = type('obj', (object,), {
-                    'provider': "gemini",
-                    'model': "gemini-2.0-flash",
-                    'REDACTED_API_KEY': settings.llm_providers["gemini"].get('REDACTED_API_KEY', ''),
-                    'temperature': 0.3,
-                    'max_tokens': 2000
-                })
-                self.processing = type('obj', (object,), {
-                    'batch_size': 10,
-                    'max_tokens': 2000
-                })
-                self.validation = type('obj', (object,), {
-                    'min_confidence': 0.4
-                })
+                self.llm = type(
+                    "obj",
+                    (object,),
+                    {
+                        "provider": "gemini",
+                        "model": "gemini-2.0-flash",
+                        "REDACTED_API_KEY": settings.llm_providers["gemini"].get("REDACTED_API_KEY", ""),
+                        "temperature": 0.3,
+                        "max_tokens": 2000,
+                    },
+                )
+                self.processing = type(
+                    "obj", (object,), {"batch_size": 10, "max_tokens": 2000}
+                )
+                self.validation = type("obj", (object,), {"min_confidence": 0.4})
 
         # Create LLM service using centralized settings
         llm_service = LLMServiceFactory.create("gemini")
@@ -205,28 +210,36 @@ def get_persona_service():
         logger.error(f"Failed to initialize persona formation service: {str(e)}")
         raise
 
+
 @app.post(
     "/api/data",
     response_model=UploadResponse,
     tags=["Data Management"],
     summary="Upload interview data",
-    description="Upload interview data in JSON format or free-text format for analysis."
+    description="Upload interview data in JSON format or free-text format for analysis.",
 )
 async def upload_data(
     request: Request,
-    file: UploadFile = File(description="JSON file or text file containing interview data"),
-    is_free_text: bool = Form(False, description="Whether the file contains free-text format (not JSON)"),
+    file: UploadFile = File(
+        description="JSON file or text file containing interview data"
+    ),
+    is_free_text: bool = Form(
+        False, description="Whether the file contains free-text format (not JSON)"
+    ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Handles interview data upload (JSON format or free-text format).
     """
     start_time = time.time()
-    logger.info(f"[UploadData - Start] User: {current_user.user_id}, Filename: {file.filename}, Size: {getattr(file, 'size', 'N/A')}, IsFreeText: {is_free_text}") # Added size logging
+    logger.info(
+        f"[UploadData - Start] User: {current_user.user_id}, Filename: {file.filename}, Size: {getattr(file, 'size', 'N/A')}, IsFreeText: {is_free_text}"
+    )  # Added size logging
     try:
         # Use DataService to handle upload logic
         from backend.services.data_service import DataService
+
         data_service = DataService(db, current_user)
 
         # Process the upload
@@ -236,40 +249,46 @@ async def upload_data(
         return UploadResponse(
             success=result["success"],
             message=result["message"],
-            data_id=result["data_id"]
+            data_id=result["data_id"],
         )
 
     except HTTPException:
-        logger.warning(f"[UploadData - HTTPException] User: {current_user.user_id}, Filename: {file.filename}, Duration: {time.time() - start_time:.4f}s")
+        logger.warning(
+            f"[UploadData - HTTPException] User: {current_user.user_id}, Filename: {file.filename}, Duration: {time.time() - start_time:.4f}s"
+        )
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
         logger.error(f"Error uploading data: {str(e)}")
-        logger.error(f"[UploadData - Error] User: {current_user.user_id}, Filename: {file.filename}, Duration: {time.time() - start_time:.4f}s")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Server error: {str(e)}"
+        logger.error(
+            f"[UploadData - Error] User: {current_user.user_id}, Filename: {file.filename}, Duration: {time.time() - start_time:.4f}s"
         )
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
     finally:
         duration = time.time() - start_time
-        logger.info(f"[UploadData - End] User: {current_user.user_id}, Filename: {file.filename}, Duration: {duration:.4f}s")
+        logger.info(
+            f"[UploadData - End] User: {current_user.user_id}, Filename: {file.filename}, Duration: {duration:.4f}s"
+        )
+
 
 @app.post(
     "/api/analyze",
     response_model=AnalysisResponse,
     tags=["Analysis"],
     summary="Analyze uploaded data",
-    description="Trigger analysis of previously uploaded data using the specified LLM provider."
+    description="Trigger analysis of previously uploaded data using the specified LLM provider.",
 )
 async def analyze_data(
     request: Request,
     analysis_request: AnalysisRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Triggers analysis of uploaded data."""
     start_time = time.time()
-    logger.info(f"[AnalyzeData - Start] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Provider: {analysis_request.llm_provider}")
+    logger.info(
+        f"[AnalyzeData - Start] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Provider: {analysis_request.llm_provider}"
+    )
     try:
         # Validate configuration
         try:
@@ -278,12 +297,12 @@ async def analyze_data(
         except Exception as e:
             logger.error(f"Configuration validation error: {str(e)}")
             raise HTTPException(
-                status_code=500,
-                detail=f"LLM configuration error: {str(e)}"
+                status_code=500, detail=f"LLM configuration error: {str(e)}"
             )
 
         # Use AnalysisService to handle the analysis process
         from backend.services.analysis_service import AnalysisService
+
         analysis_service = AnalysisService(db, current_user)
 
         # Start the analysis and get the result
@@ -291,43 +310,47 @@ async def analyze_data(
             data_id=analysis_request.data_id,
             llm_provider=analysis_request.llm_provider,
             llm_model=analysis_request.llm_model,
-            is_free_text=analysis_request.is_free_text
+            is_free_text=analysis_request.is_free_text,
         )
 
         # Return response
         return AnalysisResponse(
             success=result["success"],
             message=result["message"],
-            result_id=result["result_id"]
+            result_id=result["result_id"],
         )
 
     except HTTPException:
-        logger.warning(f"[AnalyzeData - HTTPException] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {time.time() - start_time:.4f}s")
+        logger.warning(
+            f"[AnalyzeData - HTTPException] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {time.time() - start_time:.4f}s"
+        )
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
         logger.error(f"Error initiating analysis: {str(e)}")
-        logger.error(f"[AnalyzeData - Error] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {time.time() - start_time:.4f}s")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Server error: {str(e)}"
+        logger.error(
+            f"[AnalyzeData - Error] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {time.time() - start_time:.4f}s"
         )
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
     finally:
         duration = time.time() - start_time
-        logger.info(f"[AnalyzeData - End] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {duration:.4f}s")
+        logger.info(
+            f"[AnalyzeData - End] User: {current_user.user_id}, DataID: {analysis_request.data_id}, Duration: {duration:.4f}s"
+        )
+
 
 @app.get(
     "/api/results/{result_id}",
     response_model=ResultResponse,
     tags=["Analysis"],
     summary="Get analysis results",
-    description="Retrieve the results of a previously triggered analysis."
+    description="Retrieve the results of a previously triggered analysis.",
 )
 async def get_results(
     result_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieves analysis results.
@@ -335,6 +358,7 @@ async def get_results(
     try:
         # Use ResultsService to handle fetching and formatting the results
         from backend.services.results_service import ResultsService
+
         results_service = ResultsService(db, current_user)
 
         # Get formatted results
@@ -344,34 +368,35 @@ async def get_results(
 
     except Exception as e:
         logger.error(f"Error retrieving results: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.get(
     "/api/analysis/{result_id}/status",
-    response_model=Dict[str, Any], # Define a more specific schema later if needed
+    response_model=Dict[str, Any],  # Define a more specific schema later if needed
     tags=["Analysis"],
     summary="Get analysis status",
-    description="Check the current status (processing, completed, failed) of an analysis."
+    description="Check the current status (processing, completed, failed) of an analysis.",
 )
 async def get_analysis_status(
     result_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieves the current status of an analysis.
     """
-    logger.info(f"[GetStatus - Start] User: {current_user.user_id}, ResultID: {result_id}")
+    logger.info(
+        f"[GetStatus - Start] User: {current_user.user_id}, ResultID: {result_id}"
+    )
     try:
         # First try to get the result directly (for development mode or if ownership check is not critical)
-        analysis_result = db.query(AnalysisResult).filter(
-            AnalysisResult.result_id == result_id
-        ).first()
+        analysis_result = (
+            db.query(AnalysisResult)
+            .filter(AnalysisResult.result_id == result_id)
+            .first()
+        )
 
         # In production, we would verify ownership
         # This is commented out for now to fix the immediate issue
@@ -383,7 +408,9 @@ async def get_analysis_status(
         # ).first()
 
         if not analysis_result:
-            logger.warning(f"[GetStatus - NotFound] User: {current_user.user_id}, ResultID: {result_id}")
+            logger.warning(
+                f"[GetStatus - NotFound] User: {current_user.user_id}, ResultID: {result_id}"
+            )
             raise HTTPException(status_code=404, detail="Analysis result not found")
 
         status = analysis_result.status
@@ -392,14 +419,22 @@ async def get_analysis_status(
         if status == "failed":
             try:
                 # Attempt to parse the results JSON to find an error message
-                results_data = json.loads(analysis_result.results or '{}')
-                error_message = results_data.get("error_details") or results_data.get("message") or "Analysis failed with an unspecified error."
+                results_data = json.loads(analysis_result.results or "{}")
+                error_message = (
+                    results_data.get("error_details")
+                    or results_data.get("message")
+                    or "Analysis failed with an unspecified error."
+                )
             except json.JSONDecodeError:
-                error_message = "Analysis failed, and error details could not be parsed."
+                error_message = (
+                    "Analysis failed, and error details could not be parsed."
+                )
             except Exception:
-                 error_message = "Analysis failed with an unknown error structure."
+                error_message = "Analysis failed with an unknown error structure."
 
-        logger.info(f"[GetStatus - Success] User: {current_user.user_id}, ResultID: {result_id}, Status: {status}")
+        logger.info(
+            f"[GetStatus - Success] User: {current_user.user_id}, ResultID: {result_id}, Status: {status}"
+        )
         response_data = {"status": status}
         if error_message:
             response_data["error"] = error_message
@@ -409,10 +444,11 @@ async def get_analysis_status(
         # Re-raise HTTP exceptions directly
         raise
     except Exception as e:
-        logger.error(f"[GetStatus - Error] User: {current_user.user_id}, ResultID: {result_id}: {str(e)}")
+        logger.error(
+            f"[GetStatus - Error] User: {current_user.user_id}, ResultID: {result_id}: {str(e)}"
+        )
         raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error checking status: {str(e)}"
+            status_code=500, detail=f"Internal server error checking status: {str(e)}"
         )
 
 
@@ -422,23 +458,21 @@ async def get_analysis_status(
     tags=["System"],
     summary="Health check",
     description="Simple health check endpoint to verify the API is running.",
-    include_in_schema=True
+    include_in_schema=True,
 )
 async def health_check():
     """
     Simple health check endpoint.
     """
-    return HealthCheckResponse(
-        status="healthy",
-        timestamp=datetime.utcnow()
-    )
+    return HealthCheckResponse(status="healthy", timestamp=datetime.utcnow())
+
 
 @app.get(
     "/api/analyses",
     response_model=List[DetailedAnalysisResult],
     tags=["Analysis"],
     summary="List analyses",
-    description="Retrieve a list of all analyses performed by the current user."
+    description="Retrieve a list of all analyses performed by the current user.",
 )
 async def list_analyses(
     request: Request,
@@ -446,7 +480,7 @@ async def list_analyses(
     sortDirection: Optional[Literal["asc", "desc"]] = "desc",
     status: Optional[Literal["pending", "completed", "failed"]] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieves a list of analyses performed by the user.
@@ -454,7 +488,9 @@ async def list_analyses(
     try:
         # Add very detailed debug logging
         logger.info(f"list_analyses called - user_id: {current_user.user_id}")
-        logger.info(f"Request parameters - sortBy: {sortBy}, sortDirection: {sortDirection}, status: {status}")
+        logger.info(
+            f"Request parameters - sortBy: {sortBy}, sortDirection: {sortDirection}, status: {status}"
+        )
 
         # Test database connection with detailed error handling
         try:
@@ -464,87 +500,92 @@ async def list_analyses(
             logger.error(f"Database connection error: {str(db_error)}", exc_info=True)
             # Return a detailed JSONResponse with CORS headers
             from fastapi.responses import JSONResponse
+
             return JSONResponse(
                 content={
                     "error": f"Database connection failed: {str(db_error)}",
-                    "type": "database_error"
+                    "type": "database_error",
                 },
                 status_code=500,
                 headers={
                     "Access-Control-Allow-Origin": "*",
                     "Access-Control-Allow-Credentials": "true",
                     "Access-Control-Allow-Methods": "GET, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-                }
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                },
             )
 
         # Use ResultsService to handle fetching and formatting the results
         from backend.services.results_service import ResultsService
+
         results_service = ResultsService(db, current_user)
 
         # Get all analyses for the current user
         analyses = results_service.get_all_analyses(
-            sort_by=sortBy,
-            sort_direction=sortDirection,
-            status=status
+            sort_by=sortBy, sort_direction=sortDirection, status=status
         )
 
         # Ensure CORS headers and consistent format
         from fastapi.responses import JSONResponse
+
         return JSONResponse(
             content=analyses,
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Credentials": "true",
                 "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With"
-            }
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+            },
         )
 
     except Exception as e:
         logger.error(f"Error retrieving analyses: {str(e)}")
         # Return a detailed JSONResponse with CORS headers
         from fastapi.responses import JSONResponse
+
         return JSONResponse(
             content={
                 "error": f"Internal server error: {str(e)}",
-                "type": "server_error"
+                "type": "server_error",
             },
             status_code=500,
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Credentials": "true",
                 "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization"
-            }
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
         )
+
 
 # Add explicit OPTIONS handler for CORS preflight requests
 @app.options("/api/analyses")
 async def options_analyses():
     """Handle OPTIONS preflight request for analyses endpoint"""
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         content={"status": "ok"},
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, X-Client-Origin, X-API-Version"
-        }
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, X-Client-Origin, X-API-Version",
+        },
     )
+
 
 # Add the new endpoint for direct text-to-persona generation
 @app.post(
     "/api/generate-persona",
     tags=["Analysis"],
     summary="Generate persona directly from text",
-    description="Generate a persona directly from raw interview text without requiring full analysis."
+    description="Generate a persona directly from raw interview text without requiring full analysis.",
 )
 async def generate_persona_from_text(
     request: Request,
     persona_request: PersonaGenerationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Generate a persona directly from interview text.
@@ -552,13 +593,14 @@ async def generate_persona_from_text(
     try:
         # Use PersonaService to handle the persona generation
         from backend.services.persona_service import PersonaService
+
         persona_service = PersonaService(db, current_user)
 
         # Generate the persona
         result = await persona_service.generate_persona(
             text=persona_request.text,
             llm_provider=persona_request.llm_provider,
-            llm_model=persona_request.llm_model
+            llm_model=persona_request.llm_model,
         )
 
         return result
@@ -568,16 +610,14 @@ async def generate_persona_from_text(
         raise
     except Exception as e:
         logger.error(f"Error generating persona: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Server error: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
 
 @app.get(
     "/api/health",
     tags=["System"],
     summary="Detailed health check",
-    description="Detailed health check endpoint that returns information about the server, database connection, and user count."
+    description="Detailed health check endpoint that returns information about the server, database connection, and user count.",
 )
 async def detailed_health_check(db: Session = Depends(get_db)):
     """
@@ -595,13 +635,14 @@ async def detailed_health_check(db: Session = Depends(get_db)):
             result = db.execute(text("SELECT 1")).fetchone()
 
             # Get database type and version
-            if str(db.bind.url).startswith('sqlite'):
+            if str(db.bind.url).startswith("sqlite"):
                 db_info = db.execute(text("SELECT sqlite_version()")).fetchone()[0]
             else:
                 db_info = db.execute(text("SELECT version()")).fetchone()[0]
 
             # Count users and analyses
             from backend.models import User, AnalysisResult
+
             user_count = db.query(User).count()
             analysis_count = db.query(AnalysisResult).count()
 
@@ -612,7 +653,11 @@ async def detailed_health_check(db: Session = Depends(get_db)):
         # Get environment info
         env_info = {
             "ENABLE_CLERK_VALIDATION": os.getenv("ENABLE_CLERK_VALIDATION", "false"),
-            "REDACTED_DATABASE_URL_TYPE": str(db.bind.url).split("://")[0] if db_status == "connected" else "unknown"
+            "REDACTED_DATABASE_URL_TYPE": (
+                str(db.bind.url).split("://")[0]
+                if db_status == "connected"
+                else "unknown"
+            ),
         }
 
         return {
@@ -622,20 +667,18 @@ async def detailed_health_check(db: Session = Depends(get_db)):
                 "status": db_status,
                 "error": db_error,
                 "info": db_info,
-                "counts": {
-                    "users": user_count,
-                    "analyses": analysis_count
-                }
+                "counts": {"users": user_count, "analyses": analysis_count},
             },
             "environment": env_info,
-            "server_id": "DesignAId-API-v2"
+            "server_id": "DesignAId-API-v2",
         }
     except Exception as e:
         logger.error(f"Health check error: {str(e)}")
         return {
             "status": "error",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
+
 
 # Priority insights endpoint moved to dedicated router module in backend/api/endpoints/priority_insights.py
