@@ -874,14 +874,77 @@ class OpenAIService:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2"]
               }},
-              ... (other attributes with same structure) ...
-              "role_context": {{
-                "value": "Description of role context",
+              "skills_and_expertise": {{
+                "value": "Technical and soft skills",
                 "confidence": 0.8,
                 "evidence": ["Quote 1", "Quote 2"]
               }},
-              ... (other legacy attributes with same structure) ...
-              "patterns": ["Pattern 1", "Pattern 2"],
+              "workflow_and_environment": {{
+                "value": "Work processes and context",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "challenges_and_frustrations": {{
+                "value": "Pain points and obstacles",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "needs_and_desires": {{
+                "value": "Specific needs and wants",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "technology_and_tools": {{
+                "value": "Software and hardware used",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "attitude_towards_research": {{
+                "value": "Views on research and data",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "attitude_towards_ai": {{
+                "value": "Perspective on AI and automation",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "key_quotes": {{
+                "value": "Representative quotes",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "role_context": {{
+                "value": "Primary job function and environment",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "key_responsibilities": {{
+                "value": "Main tasks mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "tools_used": {{
+                "value": "Specific tools mentioned",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "collaboration_style": {{
+                "value": "How they work with others",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "analysis_approach": {{
+                "value": "How they approach problems",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "pain_points": {{
+                "value": "Specific challenges mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              }},
+              "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
               "overall_confidence": 0.75,
               "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
             }}

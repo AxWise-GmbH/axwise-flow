@@ -489,6 +489,8 @@ class ResultsService:
 
         # Extract fields with safe fallbacks
         name = p_data.get("name", "Unknown")
+        description = p_data.get("description", "")
+        archetype = p_data.get("archetype", None)
 
         # Check if this persona already exists in the database
         existing = (
@@ -503,58 +505,147 @@ class ResultsService:
             )
             return
 
-        # Extract data for DB fields
-        role_context = p_data.get("role_context", {})
+        # Extract data for DB fields - handle both new and legacy fields
+        # For each field, try the new field name first, then fall back to legacy field name
+
+        # Demographics (new) / role_context (legacy)
+        demographics_data = p_data.get("demographics", p_data.get("role_context", {}))
         demographics = (
-            role_context.get("value", {}) if isinstance(role_context, dict) else {}
-        )
-
-        key_resp = p_data.get("key_responsibilities", {})
-        goals = key_resp.get("value", []) if isinstance(key_resp, dict) else []
-
-        tools = p_data.get("tools_used", {})
-        behaviors = tools.get("value", {}) if isinstance(tools, dict) else {}
-
-        pain_points = p_data.get("pain_points", {})
-        pain_points_value = (
-            pain_points.get("value", []) if isinstance(pain_points, dict) else []
-        )
-
-        quotes = p_data.get("quotes", [])
-        confidence = p_data.get("confidence", 0.5)
-
-        collab_style = p_data.get("collaboration_style", {})
-        collab_style_value = (
-            collab_style.get("value", {}) if isinstance(collab_style, dict) else {}
-        )
-
-        analysis_approach = p_data.get("analysis_approach", {})
-        analysis_approach_value = (
-            analysis_approach.get("value", {})
-            if isinstance(analysis_approach, dict)
+            demographics_data.get("value", {})
+            if isinstance(demographics_data, dict)
             else {}
         )
 
-        patterns = p_data.get("patterns", [])
-        evidence = p_data.get("evidence", [])
-        metadata = p_data.get("metadata", {})
-
-        # Create new persona record
-        new_persona = Persona(
-            result_id=result_id,
-            name=name,
-            demographics=json.dumps(demographics),
-            goals=json.dumps(goals),
-            pain_points=json.dumps(pain_points_value),
-            behaviors=json.dumps(behaviors),
-            quotes=json.dumps(quotes),
-            confidence_score=confidence,
-            collaboration_style=json.dumps(collab_style_value),
-            analysis_approach=json.dumps(analysis_approach_value),
-            patterns=json.dumps(patterns),
-            evidence=json.dumps(evidence),
-            persona_metadata=json.dumps(metadata),
+        # Goals and motivations (new) / key_responsibilities (legacy)
+        goals_data = p_data.get(
+            "goals_and_motivations", p_data.get("key_responsibilities", {})
         )
+        goals = goals_data.get("value", []) if isinstance(goals_data, dict) else []
+
+        # Technology and tools (new) / tools_used (legacy)
+        tools_data = p_data.get("technology_and_tools", p_data.get("tools_used", {}))
+        tools = tools_data.get("value", {}) if isinstance(tools_data, dict) else {}
+
+        # Challenges and frustrations (new) / pain_points (legacy)
+        pain_points_data = p_data.get(
+            "challenges_and_frustrations", p_data.get("pain_points", {})
+        )
+        pain_points_value = (
+            pain_points_data.get("value", [])
+            if isinstance(pain_points_data, dict)
+            else []
+        )
+
+        # Extract other fields
+        collab_style_data = p_data.get("collaboration_style", {})
+        collab_style_value = (
+            collab_style_data.get("value", {})
+            if isinstance(collab_style_data, dict)
+            else {}
+        )
+
+        analysis_approach_data = p_data.get(
+            "attitude_towards_research", p_data.get("analysis_approach", {})
+        )
+        analysis_approach_value = (
+            analysis_approach_data.get("value", {})
+            if isinstance(analysis_approach_data, dict)
+            else {}
+        )
+
+        # Get key quotes if available
+        key_quotes_data = p_data.get("key_quotes", {})
+        quotes = (
+            key_quotes_data.get("value", [])
+            if isinstance(key_quotes_data, dict)
+            else []
+        )
+
+        # Get overall confidence - try both new and legacy field names
+        confidence = p_data.get("overall_confidence", p_data.get("confidence", 0.5))
+
+        # Get patterns and evidence
+        patterns = p_data.get("patterns", [])
+        evidence = p_data.get("supporting_evidence_summary", p_data.get("evidence", []))
+
+        # Get metadata - try both new and legacy field names
+        metadata = p_data.get("persona_metadata", p_data.get("metadata", {}))
+
+        # Extract additional new fields if they exist
+        skills_data = p_data.get("skills_and_expertise", {})
+        skills = skills_data.get("value", {}) if isinstance(skills_data, dict) else {}
+
+        workflow_data = p_data.get("workflow_and_environment", {})
+        workflow = (
+            workflow_data.get("value", {}) if isinstance(workflow_data, dict) else {}
+        )
+
+        needs_data = p_data.get("needs_and_desires", {})
+        needs = needs_data.get("value", {}) if isinstance(needs_data, dict) else {}
+
+        ai_attitude_data = p_data.get("attitude_towards_ai", {})
+        ai_attitude = (
+            ai_attitude_data.get("value", {})
+            if isinstance(ai_attitude_data, dict)
+            else {}
+        )
+
+        # Create new persona record with all available fields
+        # Make sure we only use fields that actually exist in the SQLAlchemy model
+        try:
+            new_persona = Persona(
+                result_id=result_id,
+                name=name,
+                description=description,
+                archetype=archetype,
+                # Store both new and legacy fields
+                demographics=json.dumps(demographics),
+                goals_and_motivations=json.dumps(goals),
+                skills_and_expertise=json.dumps(skills),
+                workflow_and_environment=json.dumps(workflow),
+                challenges_and_frustrations=json.dumps(pain_points_value),
+                needs_and_desires=json.dumps(needs),
+                technology_and_tools=json.dumps(tools),
+                attitude_towards_research=json.dumps(analysis_approach_value),
+                attitude_towards_ai=json.dumps(ai_attitude),
+                key_quotes=json.dumps(quotes),
+                # Legacy fields
+                role_context=json.dumps(demographics),
+                key_responsibilities=json.dumps(goals),
+                tools_used=json.dumps(tools),
+                collaboration_style=json.dumps(collab_style_value),
+                analysis_approach=json.dumps(analysis_approach_value),
+                pain_points=json.dumps(pain_points_value),
+                # Overall information
+                patterns=json.dumps(patterns),
+                confidence=confidence,  # Use the float directly
+                overall_confidence=confidence,  # Store in both fields
+                evidence=json.dumps(evidence),
+                supporting_evidence_summary=json.dumps(evidence),
+                persona_metadata=json.dumps(metadata),
+            )
+        except TypeError as e:
+            # If we get a TypeError, it's likely because we're trying to use a field that doesn't exist
+            # Log the error and try a more conservative approach
+            logger.error(f"Error creating Persona with all fields: {str(e)}")
+
+            # Try with only the fields we know exist in all versions of the model
+            new_persona = Persona(
+                result_id=result_id,
+                name=name,
+                description=description,
+                # Store only essential fields that we know exist
+                role_context=json.dumps(demographics),
+                key_responsibilities=json.dumps(goals),
+                tools_used=json.dumps(tools),
+                collaboration_style=json.dumps(collab_style_value),
+                analysis_approach=json.dumps(analysis_approach_value),
+                pain_points=json.dumps(pain_points_value),
+                patterns=json.dumps(patterns),
+                confidence=confidence,  # Use the float directly
+                evidence=json.dumps(evidence),
+                persona_metadata=json.dumps(metadata),
+            )
 
         # Add to database
         try:

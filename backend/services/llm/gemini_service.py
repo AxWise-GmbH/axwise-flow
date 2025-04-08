@@ -1214,52 +1214,84 @@ class GeminiService:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2"]
               },
-              ... (other attributes with same structure) ...
-              "patterns": ["Pattern 1", "Pattern 2"],
+              "skills_and_expertise": {
+                "value": "Technical and soft skills",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "workflow_and_environment": {
+                "value": "Work processes and context",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "challenges_and_frustrations": {
+                "value": "Pain points and obstacles",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "needs_and_desires": {
+                "value": "Specific needs and wants",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "technology_and_tools": {
+                "value": "Software and hardware used",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "attitude_towards_research": {
+                "value": "Views on research and data",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "attitude_towards_ai": {
+                "value": "Perspective on AI and automation",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "key_quotes": {
+                "value": "Representative quotes",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "role_context": {
+                "value": "Primary job function and environment",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "key_responsibilities": {
+                "value": "Main tasks mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "tools_used": {
+                "value": "Specific tools mentioned",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "collaboration_style": {
+                "value": "How they work with others",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "analysis_approach": {
+                "value": "How they approach problems",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "pain_points": {
+                "value": "Specific challenges mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
               "overall_confidence": 0.75,
               "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
             }
 
             IMPORTANT: Ensure all attributes are included with proper structure, even if confidence is low or evidence is limited.
 
-            Return ONLY a valid JSON object with the following structure:
-            {{
-              "name": "Example Role Name",
-              "description": "Example description.",
-              "role_context": {{
-                "value": "Example role context.",
-                "confidence": 0.85,
-                "evidence": ["Evidence 1", "Evidence 2"]
-              }},
-              "key_responsibilities": {{
-                "value": "Example responsibilities.",
-                "confidence": 0.8,
-                "evidence": ["Evidence 1"]
-              }},
-              "tools_used": {{
-                "value": "Example tools.",
-                "confidence": 0.75,
-                "evidence": ["Evidence 1", "Evidence 2"]
-              }},
-              "collaboration_style": {{
-                "value": "Example collaboration style.",
-                "confidence": 0.7,
-                "evidence": ["Evidence 1"]
-              }},
-              "analysis_approach": {{
-                "value": "Example analysis approach.",
-                "confidence": 0.8,
-                "evidence": ["Evidence 1", "Evidence 2"]
-              }},
-              "pain_points": {{
-                "value": "Example pain points.",
-                "confidence": 0.65,
-                "evidence": ["Evidence 1"]
-              }},
-              "patterns": ["Relevant pattern 1", "Relevant pattern 2"],
-              "confidence": 0.8,
-              "evidence": ["Overall supporting evidence 1", "Overall supporting evidence 2"]
-            }}
+            DO NOT INCLUDE ANY ADDITIONAL TEXT OR EXPLANATION. RETURN ONLY THE JSON OBJECT.
 
             IMPORTANT: Make sure your response is ONLY valid JSON with NO MARKDOWN formatting.
             """
@@ -2015,8 +2047,77 @@ class GeminiService:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2"]
               },
-              ... (other attributes with same structure) ...
-              "patterns": ["Pattern 1", "Pattern 2"],
+              "skills_and_expertise": {
+                "value": "Technical and soft skills",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "workflow_and_environment": {
+                "value": "Work processes and context",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "challenges_and_frustrations": {
+                "value": "Pain points and obstacles",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "needs_and_desires": {
+                "value": "Specific needs and wants",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "technology_and_tools": {
+                "value": "Software and hardware used",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "attitude_towards_research": {
+                "value": "Views on research and data",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "attitude_towards_ai": {
+                "value": "Perspective on AI and automation",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "key_quotes": {
+                "value": "Representative quotes",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "role_context": {
+                "value": "Primary job function and environment",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "key_responsibilities": {
+                "value": "Main tasks mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "tools_used": {
+                "value": "Specific tools mentioned",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "collaboration_style": {
+                "value": "How they work with others",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "analysis_approach": {
+                "value": "How they approach problems",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "pain_points": {
+                "value": "Specific challenges mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2"]
+              },
+              "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
               "overall_confidence": 0.75,
               "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
             }
@@ -2082,72 +2183,101 @@ class GeminiService:
                 json_data = self._extract_json(text_response)
 
                 if json_data and isinstance(json_data, dict):
-                    # Return the JSON data directly as it should already be in the correct nested format
-                    # Just ensure the required fields are present with proper defaults
-                    persona_attributes = {
-                        "name": json_data.get("name", "Interview Participant"),
-                        "description": json_data.get(
-                            "description", "Persona generated from interview transcript"
-                        ),
-                        "role_context": json_data.get(
-                            "role_context",
-                            {
-                                "value": "Role derived from interview analysis",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
+                    # Import Persona schema for validation
+                    from backend.schemas import Persona as PersonaSchema
+                    from pydantic import ValidationError
+
+                    try:
+                        # Validate the persona data against the Pydantic model
+                        validated_persona = PersonaSchema(**json_data)
+                        # Use the validated data
+                        persona_attributes = validated_persona.model_dump()
+                        logger.info(
+                            f"Successfully validated persona: {persona_attributes.get('name', 'Unnamed')}"
+                        )
+                    except ValidationError as e:
+                        logger.warning(
+                            f"Persona validation failed: {e}. Using fallback with original data."
+                        )
+                        # Create a default PersonaTrait structure
+                        default_trait = {
+                            "value": "Information not available",
+                            "confidence": 0.7,
+                            "evidence": ["Generated from text analysis"],
+                        }
+
+                        # Use the original data with defaults for missing fields
+                        persona_attributes = {
+                            # Basic information
+                            "name": json_data.get("name", "Interview Participant"),
+                            "archetype": json_data.get("archetype", "Unknown"),
+                            "description": json_data.get(
+                                "description",
+                                "Persona generated from interview transcript",
+                            ),
+                            # Detailed attributes (new fields)
+                            "demographics": json_data.get(
+                                "demographics", default_trait
+                            ),
+                            "goals_and_motivations": json_data.get(
+                                "goals_and_motivations", default_trait
+                            ),
+                            "skills_and_expertise": json_data.get(
+                                "skills_and_expertise", default_trait
+                            ),
+                            "workflow_and_environment": json_data.get(
+                                "workflow_and_environment", default_trait
+                            ),
+                            "challenges_and_frustrations": json_data.get(
+                                "challenges_and_frustrations", default_trait
+                            ),
+                            "needs_and_desires": json_data.get(
+                                "needs_and_desires", default_trait
+                            ),
+                            "technology_and_tools": json_data.get(
+                                "technology_and_tools", default_trait
+                            ),
+                            "attitude_towards_research": json_data.get(
+                                "attitude_towards_research", default_trait
+                            ),
+                            "attitude_towards_ai": json_data.get(
+                                "attitude_towards_ai", default_trait
+                            ),
+                            "key_quotes": json_data.get("key_quotes", default_trait),
+                            # Legacy fields
+                            "role_context": json_data.get(
+                                "role_context", default_trait
+                            ),
+                            "key_responsibilities": json_data.get(
+                                "key_responsibilities", default_trait
+                            ),
+                            "tools_used": json_data.get("tools_used", default_trait),
+                            "collaboration_style": json_data.get(
+                                "collaboration_style", default_trait
+                            ),
+                            "analysis_approach": json_data.get(
+                                "analysis_approach", default_trait
+                            ),
+                            "pain_points": json_data.get("pain_points", default_trait),
+                            # Overall persona information
+                            "patterns": json_data.get("patterns", []),
+                            "confidence": json_data.get("confidence", 0.7),
+                            "evidence": json_data.get(
+                                "evidence",
+                                ["Generated from direct text analysis using Gemini"],
+                            ),
+                            "overall_confidence": json_data.get(
+                                "overall_confidence", 0.7
+                            ),
+                            "supporting_evidence_summary": json_data.get(
+                                "supporting_evidence_summary",
+                                ["Generated from direct text analysis using Gemini"],
+                            ),
+                            "metadata": {
+                                "source": "direct_text_analysis",
+                                "timestamp": datetime.now().isoformat(),
                             },
-                        ),
-                        "key_responsibilities": json_data.get(
-                            "key_responsibilities",
-                            {
-                                "value": "Responsibilities mentioned in interview",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
-                            },
-                        ),
-                        "tools_used": json_data.get(
-                            "tools_used",
-                            {
-                                "value": "Tools mentioned in interview",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
-                            },
-                        ),
-                        "collaboration_style": json_data.get(
-                            "collaboration_style",
-                            {
-                                "value": "Collaboration style mentioned in interview",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
-                            },
-                        ),
-                        "analysis_approach": json_data.get(
-                            "analysis_approach",
-                            {
-                                "value": "Analysis approach mentioned in interview",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
-                            },
-                        ),
-                        "pain_points": json_data.get(
-                            "pain_points",
-                            {
-                                "value": "Challenges mentioned in interview",
-                                "confidence": 0.7,
-                                "evidence": ["Generated from text analysis"],
-                            },
-                        ),
-                        "patterns": json_data.get("patterns", []),
-                        "confidence": json_data.get("confidence", 0.7),
-                        "evidence": json_data.get(
-                            "evidence",
-                            ["Generated from direct text analysis using Gemini"],
-                        ),
-                        "metadata": {
-                            "source": "direct_text_analysis",
-                            "timestamp": datetime.now().isoformat(),
-                        },
-                    }
+                        }
 
                     logger.info(
                         f"Successfully generated persona: {persona_attributes['name']}"
@@ -2198,42 +2328,42 @@ class GeminiService:
 
     def _create_fallback_persona(self):
         """Create a fallback persona when extraction fails."""
+        # Create a default PersonaTrait structure
+        default_trait = {
+            "value": "Information not available",
+            "confidence": 0.5,
+            "evidence": ["Generated from text analysis fallback"],
+        }
+
         return {
+            # Basic information
             "name": "Interview Participant",
+            "archetype": "Unknown",
             "description": "Persona generated from interview transcript",
-            "role_context": {
-                "value": "Role derived from interview analysis",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
-            "key_responsibilities": {
-                "value": "Responsibilities mentioned in interview",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
-            "tools_used": {
-                "value": "Tools mentioned in interview",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
-            "collaboration_style": {
-                "value": "Collaboration style implied in interview",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
-            "analysis_approach": {
-                "value": "Problem-solving approach mentioned in interview",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
-            "pain_points": {
-                "value": "Challenges mentioned in interview",
-                "confidence": 0.5,
-                "evidence": ["Generated from text analysis fallback"],
-            },
+            # Detailed attributes (new fields)
+            "demographics": default_trait,
+            "goals_and_motivations": default_trait,
+            "skills_and_expertise": default_trait,
+            "workflow_and_environment": default_trait,
+            "challenges_and_frustrations": default_trait,
+            "needs_and_desires": default_trait,
+            "technology_and_tools": default_trait,
+            "attitude_towards_research": default_trait,
+            "attitude_towards_ai": default_trait,
+            "key_quotes": default_trait,
+            # Legacy fields
+            "role_context": default_trait,
+            "key_responsibilities": default_trait,
+            "tools_used": default_trait,
+            "collaboration_style": default_trait,
+            "analysis_approach": default_trait,
+            "pain_points": default_trait,
+            # Overall persona information
             "patterns": [],
             "confidence": 0.5,
             "evidence": ["Generated from text analysis fallback"],
+            "overall_confidence": 0.5,
+            "supporting_evidence_summary": ["Generated from text analysis fallback"],
             "metadata": {
                 "source": "text_fallback",
                 "timestamp": datetime.now().isoformat(),

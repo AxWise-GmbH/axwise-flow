@@ -133,9 +133,22 @@ class Persona(Base):
     persona_id = Column(Integer, primary_key=True, autoincrement=True)
     result_id = Column(Integer, ForeignKey("analysis_results.result_id"))
     name = Column(String)
+    archetype = Column(String, nullable=True)  # New field
     description = Column(Text, nullable=True)  # Add description field
 
-    # Fields to store PersonaTrait JSON objects
+    # New fields to store PersonaTrait JSON objects
+    demographics = Column(JSON, nullable=True)
+    goals_and_motivations = Column(JSON, nullable=True)
+    skills_and_expertise = Column(JSON, nullable=True)
+    workflow_and_environment = Column(JSON, nullable=True)
+    challenges_and_frustrations = Column(JSON, nullable=True)
+    needs_and_desires = Column(JSON, nullable=True)
+    technology_and_tools = Column(JSON, nullable=True)
+    attitude_towards_research = Column(JSON, nullable=True)
+    attitude_towards_ai = Column(JSON, nullable=True)
+    key_quotes = Column(JSON, nullable=True)
+
+    # Legacy fields to store PersonaTrait JSON objects
     role_context = Column(JSON, nullable=True)
     key_responsibilities = Column(JSON, nullable=True)
     tools_used = Column(JSON, nullable=True)
@@ -148,5 +161,9 @@ class Persona(Base):
     confidence = Column(Float, nullable=True)  # Renamed from confidence_score
     evidence = Column(JSON, nullable=True)  # Stores List[str] for overall evidence
     persona_metadata = Column(JSON, nullable=True)  # Renamed back from metadata
+
+    # New fields for overall persona information
+    overall_confidence = Column(Float, nullable=True)  # New field
+    supporting_evidence_summary = Column(JSON, nullable=True)  # New field
 
     analysis_result = relationship("AnalysisResult", back_populates="personas")
