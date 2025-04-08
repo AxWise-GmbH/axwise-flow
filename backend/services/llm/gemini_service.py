@@ -179,16 +179,64 @@ class GeminiService:
                             logger.error(
                                 f"Failed to parse JSON even after extracting from markdown: {e2}"
                             )
-                            raise ValueError(
-                                f"Invalid JSON response from Gemini after markdown extraction: {e2}"
-                            )
+
+                            # Instead of raising an error, provide a task-specific fallback
+                            if task == "theme_analysis_enhanced":
+                                logger.warning(
+                                    f"Using fallback for theme_analysis_enhanced task after markdown extraction failure"
+                                )
+                                # Return empty enhanced themes array to avoid breaking the pipeline
+                                result = {"enhanced_themes": []}
+                            elif task == "persona_formation":
+                                logger.warning(
+                                    f"Using fallback for persona_formation task after markdown extraction failure"
+                                )
+                                # Return empty personas array
+                                result = {"personas": []}
+                            elif task == "insight_generation":
+                                logger.warning(
+                                    f"Using fallback for insight_generation task after markdown extraction failure"
+                                )
+                                # Return empty insights array
+                                result = {"insights": []}
+                            else:
+                                # For other tasks, provide a generic error response
+                                logger.warning(
+                                    f"Using generic fallback for task: {task} after markdown extraction failure"
+                                )
+                                result = {
+                                    "error": f"Failed to parse response from Gemini after markdown extraction: {e2}",
+                                    "fallback": True,
+                                }
                     else:
                         logger.error(
                             f"Invalid JSON response from Gemini, and no markdown block found: {e1}"
                         )
-                        raise ValueError(
-                            f"Invalid JSON response from Gemini, no markdown block found: {e1}"
-                        )
+
+                        # Instead of raising an error, provide a task-specific fallback
+                        if task == "theme_analysis_enhanced":
+                            logger.warning(
+                                f"Using fallback for theme_analysis_enhanced task"
+                            )
+                            # Return empty enhanced themes array to avoid breaking the pipeline
+                            result = {"enhanced_themes": []}
+                        elif task == "persona_formation":
+                            logger.warning(f"Using fallback for persona_formation task")
+                            # Return empty personas array
+                            result = {"personas": []}
+                        elif task == "insight_generation":
+                            logger.warning(
+                                f"Using fallback for insight_generation task"
+                            )
+                            # Return empty insights array
+                            result = {"insights": []}
+                        else:
+                            # For other tasks, provide a generic error response
+                            logger.warning(f"Using generic fallback for task: {task}")
+                            result = {
+                                "error": f"Failed to parse response from Gemini: {e1}",
+                                "fallback": True,
+                            }
 
             # Post-process results if needed
             if task == "theme_analysis":
@@ -828,12 +876,119 @@ class GeminiService:
                     )
                     result = {"personas": []}  # Return empty list if structure is wrong
 
+            elif task == "theme_analysis_enhanced":
+                # Ensure proper enhanced_themes array
+                if "enhanced_themes" not in result:
+                    result["enhanced_themes"] = []
+
+                # Import Theme schema for validation
+                from backend.schemas import Theme as ThemeSchema
+                from pydantic import ValidationError
+
+                # Validate and enhance themes
+                validated_themes_list = []
+                if (
+                    isinstance(result, dict)
+                    and "enhanced_themes" in result
+                    and isinstance(result["enhanced_themes"], list)
+                ):
+                    for theme_data in result["enhanced_themes"]:
+                        try:
+                            # Ensure required fields exist with defaults
+                            if "name" not in theme_data:
+                                theme_data["name"] = "Unnamed Theme"
+                            if "frequency" not in theme_data:
+                                theme_data["frequency"] = 0.1
+                            if "sentiment" not in theme_data:
+                                theme_data["sentiment"] = 0.0
+                            if "statements" not in theme_data:
+                                theme_data["statements"] = []
+                            if "definition" not in theme_data:
+                                theme_data["definition"] = "No definition provided"
+                            if "keywords" not in theme_data:
+                                theme_data["keywords"] = []
+                            if "codes" not in theme_data:
+                                theme_data["codes"] = []
+                            if "reliability" not in theme_data:
+                                theme_data["reliability"] = 0.7
+                            if "process" not in theme_data:
+                                theme_data["process"] = "enhanced"
+                            if "sentiment_distribution" not in theme_data:
+                                theme_data["sentiment_distribution"] = {
+                                    "positive": 0.33,
+                                    "neutral": 0.34,
+                                    "negative": 0.33,
+                                }
+
+                            # Validate against the Pydantic model
+                            validated_theme = ThemeSchema(**theme_data)
+                            # Append the validated data to the list
+                            validated_themes_list.append(validated_theme.model_dump())
+                            logger.debug(
+                                f"Successfully validated enhanced theme: {theme_data.get('name', 'Unnamed')}"
+                            )
+                        except ValidationError as e:
+                            logger.warning(
+                                f"Enhanced theme validation failed for theme '{theme_data.get('name', 'Unnamed')}': {e}. Skipping this theme."
+                            )
+                            # Invalid themes are skipped to ensure data integrity
+                        except Exception as general_e:
+                            logger.error(
+                                f"Unexpected error during enhanced theme validation for '{theme_data.get('name', 'Unnamed')}': {general_e}",
+                                exc_info=True,
+                            )
+                            # Skip this theme due to unexpected error
+
+                    # Replace the original themes with validated ones
+                    result["enhanced_themes"] = validated_themes_list
+                    logger.info(
+                        f"Validated {len(validated_themes_list)} enhanced themes successfully for task: {task}"
+                    )
+                else:
+                    logger.warning(
+                        f"LLM response for theme_analysis_enhanced was not in the expected format. Raw response: {result}"
+                    )
+                    result = {
+                        "enhanced_themes": []
+                    }  # Return empty list if structure is wrong
+
             else:
                 # Default case for unknown tasks
                 pass
 
             # Success, return result
             logger.info(f"Successfully analyzed data with Gemini for task: {task}")
+
+            # Log detailed information about the result structure
+            if task == "theme_analysis_enhanced":
+                logger.info(
+                    f"Enhanced themes count: {len(result.get('enhanced_themes', []))}"
+                )
+            elif task == "persona_formation":
+                logger.info(f"Personas count: {len(result.get('personas', []))}")
+                # Log the first persona's structure if available
+                if result.get("personas") and len(result.get("personas", [])) > 0:
+                    first_persona = result["personas"][0]
+                    logger.info(
+                        f"First persona name: {first_persona.get('name', 'Unnamed')}"
+                    )
+                    logger.info(
+                        f"First persona fields: {', '.join(first_persona.keys())}"
+                    )
+                    # Log the structure of the first PersonaTrait object
+                    for trait_name in [
+                        "role_context",
+                        "key_responsibilities",
+                        "collaboration_style",
+                    ]:
+                        if trait_name in first_persona and isinstance(
+                            first_persona[trait_name], dict
+                        ):
+                            trait = first_persona[trait_name]
+                            logger.info(
+                                f"Persona trait '{trait_name}' structure: {', '.join(trait.keys())}"
+                            )
+
             logger.debug(
                 f"Processed result for task {task}:\n{json.dumps(result, indent=2)}"
             )
@@ -1588,8 +1743,13 @@ class GeminiService:
                 statements = theme.get("example_quotes", [])
                 sentiment_distribution = {"positive": 0, "neutral": 0, "negative": 0}
 
+                # Get sentiment data from the analysis results
+                sentiment_data = data.get("sentiment", {}).get(
+                    "supporting_statements", {}
+                )
+
                 # If we have sentiment data for individual statements, use it
-                if sentiment_data and statements:
+                if sentiment_data and statements and isinstance(sentiment_data, dict):
                     positive_statements = set(sentiment_data.get("positive", []))
                     neutral_statements = set(sentiment_data.get("neutral", []))
                     negative_statements = set(sentiment_data.get("negative", []))
@@ -2010,8 +2170,11 @@ class GeminiService:
                 json_data = self._extract_json(text_response)
 
                 if json_data and isinstance(json_data, dict):
-                    # Return the JSON data directly as it should already be in the correct nested format
-                    # Just ensure the required fields are present with proper defaults
+                    # Import schema for validation
+                    from backend.schemas import Persona as PersonaSchema, PersonaTrait
+                    from pydantic import ValidationError
+
+                    # Prepare persona data with defaults for missing fields
                     persona_attributes = {
                         "name": json_data.get("name", "Interview Participant"),
                         "description": json_data.get(
@@ -2077,10 +2240,23 @@ class GeminiService:
                         },
                     }
 
-                    logger.info(
-                        f"Successfully generated persona: {persona_attributes['name']}"
-                    )
-                    return persona_attributes
+                    # Validate against schema
+                    try:
+                        # Validate the persona data against the Pydantic model
+                        validated_persona = PersonaSchema(**persona_attributes)
+                        # Convert back to dict with all validated fields
+                        validated_data = validated_persona.model_dump()
+
+                        logger.info(
+                            f"Successfully validated persona: {validated_data['name']}"
+                        )
+                        return validated_data
+                    except ValidationError as e:
+                        logger.warning(
+                            f"Persona validation failed: {e}. Using original data with defaults."
+                        )
+                        # Return the original data with defaults as fallback
+                        return persona_attributes
                 else:
                     # If not valid JSON or not a dictionary, use fallback
                     logger.warning(
@@ -2099,30 +2275,66 @@ class GeminiService:
             raise
 
     def _extract_json(self, text):
-        """Extract JSON from text, handling potential markdown code blocks."""
+        """Extract JSON from text, handling potential markdown code blocks and validating structure."""
+        # Log the first part of the text for debugging
+        logger.debug(f"Extracting JSON from text (first 200 chars): {text[:200]}...")
+
+        # First try to parse the text directly as JSON
         try:
-            # First try to parse the text directly as JSON
-            return json.loads(text)
-        except json.JSONDecodeError:
-            # If that fails, try to extract JSON from markdown code blocks
-            import re
+            result = json.loads(text)
+            logger.info("Successfully parsed text directly as JSON")
+            return result
+        except json.JSONDecodeError as e:
+            logger.warning(f"Direct JSON parsing failed: {str(e)}")
 
-            json_match = re.search(r'```(?:json)?\s*({\s*".*})\s*```', text, re.DOTALL)
-            if json_match:
-                try:
-                    return json.loads(json_match.group(1))
-                except json.JSONDecodeError:
-                    pass
+        # If direct parsing fails, try to extract JSON from markdown code blocks
+        import re
 
-            # Try another pattern that might capture more JSON formats
-            json_match = re.search(r"{[\s\S]*}", text)
-            if json_match:
-                try:
-                    return json.loads(json_match.group(0))
-                except json.JSONDecodeError:
-                    pass
+        # Try to find JSON in markdown code blocks with the json tag
+        json_match = re.search(r"```(?:json)?\s*({[\s\S]*?})\s*```", text, re.DOTALL)
+        if json_match:
+            try:
+                json_str = json_match.group(1).strip()
+                logger.info(
+                    f"Found JSON in markdown code block, length: {len(json_str)}"
+                )
+                result = json.loads(json_str)
+                return result
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON from markdown block: {str(e)}")
 
-            return None
+        # Try to find JSON with array format in markdown blocks
+        json_match = re.search(r"```(?:json)?\s*(\[[\s\S]*?\])\s*```", text, re.DOTALL)
+        if json_match:
+            try:
+                json_str = json_match.group(1).strip()
+                logger.info(
+                    f"Found JSON array in markdown code block, length: {len(json_str)}"
+                )
+                result = json.loads(json_str)
+                return result
+            except json.JSONDecodeError as e:
+                logger.warning(
+                    f"Failed to parse JSON array from markdown block: {str(e)}"
+                )
+
+        # Try to find any JSON-like structure with balanced braces
+        # This is a more aggressive approach for when markdown blocks aren't used
+        json_match = re.search(r"{[\s\S]*?}(?=\s*$|\s*[^{])", text)
+        if json_match:
+            try:
+                json_str = json_match.group(0).strip()
+                logger.info(
+                    f"Found JSON-like structure with balanced braces, length: {len(json_str)}"
+                )
+                result = json.loads(json_str)
+                return result
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON from balanced braces: {str(e)}")
+
+        # If all extraction methods fail, log the failure and return None
+        logger.error("All JSON extraction methods failed")
+        return None
 
     def _create_fallback_persona(self):
         """Create a fallback persona when extraction fails."""

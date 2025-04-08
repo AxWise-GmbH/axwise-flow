@@ -489,6 +489,7 @@ class ResultsService:
 
         # Extract fields with safe fallbacks
         name = p_data.get("name", "Unknown")
+        description = p_data.get("description", "")
 
         # Check if this persona already exists in the database
         existing = (
@@ -503,55 +504,35 @@ class ResultsService:
             )
             return
 
-        # Extract data for DB fields
+        # Extract PersonaTrait objects for each field
         role_context = p_data.get("role_context", {})
-        demographics = (
-            role_context.get("value", {}) if isinstance(role_context, dict) else {}
-        )
-
-        key_resp = p_data.get("key_responsibilities", {})
-        goals = key_resp.get("value", []) if isinstance(key_resp, dict) else []
-
-        tools = p_data.get("tools_used", {})
-        behaviors = tools.get("value", {}) if isinstance(tools, dict) else {}
-
-        pain_points = p_data.get("pain_points", {})
-        pain_points_value = (
-            pain_points.get("value", []) if isinstance(pain_points, dict) else []
-        )
-
-        quotes = p_data.get("quotes", [])
-        confidence = p_data.get("confidence", 0.5)
-
-        collab_style = p_data.get("collaboration_style", {})
-        collab_style_value = (
-            collab_style.get("value", {}) if isinstance(collab_style, dict) else {}
-        )
-
+        key_responsibilities = p_data.get("key_responsibilities", {})
+        tools_used = p_data.get("tools_used", {})
+        collaboration_style = p_data.get("collaboration_style", {})
         analysis_approach = p_data.get("analysis_approach", {})
-        analysis_approach_value = (
-            analysis_approach.get("value", {})
-            if isinstance(analysis_approach, dict)
-            else {}
-        )
+        pain_points = p_data.get("pain_points", {})
 
+        # Extract simple fields
         patterns = p_data.get("patterns", [])
+        confidence = p_data.get("confidence", 0.5)
         evidence = p_data.get("evidence", [])
-        metadata = p_data.get("metadata", {})
+        metadata = p_data.get("metadata", p_data.get("persona_metadata", {}))
 
-        # Create new persona record
+        # Create new persona record with the current schema
         new_persona = Persona(
             result_id=result_id,
             name=name,
-            demographics=json.dumps(demographics),
-            goals=json.dumps(goals),
-            pain_points=json.dumps(pain_points_value),
-            behaviors=json.dumps(behaviors),
-            quotes=json.dumps(quotes),
-            confidence_score=confidence,
-            collaboration_style=json.dumps(collab_style_value),
-            analysis_approach=json.dumps(analysis_approach_value),
+            description=description,
+            # Store PersonaTrait objects as JSON
+            role_context=json.dumps(role_context),
+            key_responsibilities=json.dumps(key_responsibilities),
+            tools_used=json.dumps(tools_used),
+            collaboration_style=json.dumps(collaboration_style),
+            analysis_approach=json.dumps(analysis_approach),
+            pain_points=json.dumps(pain_points),
+            # Store simple fields
             patterns=json.dumps(patterns),
+            confidence=confidence,  # Note: This is a float field, not JSON
             evidence=json.dumps(evidence),
             persona_metadata=json.dumps(metadata),
         )
