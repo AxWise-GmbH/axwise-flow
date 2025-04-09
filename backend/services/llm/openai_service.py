@@ -61,16 +61,38 @@ class OpenAIService:
             # Log the prompt for debugging
             logger.debug(f"System message for task {task}:\n{system_message}")
 
+            # Determine if this is a JSON-expecting task
+            json_tasks = [
+                "theme_analysis",
+                "pattern_recognition",
+                "sentiment_analysis",
+                "persona_formation",
+                "insight_generation",
+                "theme_analysis_enhanced",
+            ]
+            is_json_task = task in json_tasks
+
+            # Prepare messages with JSON instruction for JSON tasks
+            messages = [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": text},
+            ]
+
+            # For JSON tasks, add explicit instruction to return JSON
+            if is_json_task:
+                # Add JSON instruction to system message
+                messages[0]["content"] += "\n\nYou MUST respond with valid JSON only."
+
+            # Call OpenAI API with appropriate parameters
+            response_format = {"type": "json_object"} if is_json_task else None
+
             # Call OpenAI API
             response = await self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": text},
-                ],
+                messages=messages,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
-                response_format={"type": "json_object"},
+                response_format=response_format,
             )
 
             # Extract and parse response

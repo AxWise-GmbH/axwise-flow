@@ -3,7 +3,7 @@ import json
 import os
 import asyncio
 import httpx
-import google.generativeai as genai
+import google.genai as genai
 import random
 from typing import Dict, Any, List, Optional, Union
 from domain.interfaces.llm_service import ILLMService
@@ -44,19 +44,20 @@ class GeminiService:
         self.top_p = config.get("top_p", 0.95)
         self.top_k = config.get("top_k", 1)
 
-        # Initialize Gemini client
-        genai.configure(REDACTED_API_KEY=self.REDACTED_API_KEY)
-        self.client = genai.GenerativeModel(
-            model_name=self.model,
-            generation_config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_tokens,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-            },
-        )
+        # Initialize Gemini client with the new google.genai package
+        self.client = genai.Client(REDACTED_API_KEY=self.REDACTED_API_KEY)
 
-        logger.info("Initialized Gemini service with model: {}".format(self.model))
+        # Store generation config for later use
+        self.generation_config = {
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_tokens,
+            "top_p": self.top_p,
+            "top_k": self.top_k,
+        }
+
+        logger.info(
+            f"Initialized Gemini service with model: {self.model} using google-genai package v{genai.version}"
+        )
 
     async def analyze(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -88,25 +89,56 @@ class GeminiService:
             system_message = self._get_system_message(task, data)
 
             # Prepare generation config
-            # Use standard config for all tasks including theme_analysis_enhanced
-            # The prompt already contains detailed JSON structure instructions for theme_analysis_enhanced
-            generation_config = {
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_tokens,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-            }
+            # Determine if this is a JSON-expecting task
+            json_tasks = [
+                "theme_analysis",
+                "pattern_recognition",
+                "sentiment_analysis",
+                "persona_formation",
+                "insight_generation",
+                "theme_analysis_enhanced",
+            ]
+            is_json_task = task in json_tasks
+
+            # For JSON tasks, use more deterministic parameters
+            if is_json_task:
+                # Use more restrictive parameters for JSON tasks to ensure valid output
+                config_params = {
+                    "temperature": 0.0,  # Force to 0 for JSON tasks regardless of config
+                    "max_output_tokens": self.max_tokens,
+                    "top_p": 0.95,  # Lower top_p for more deterministic output
+                    "top_k": 1,  # Force to 1 for JSON tasks regardless of config
+                }
+                # Add response_mime_type for JSON tasks
+                if is_json_task:
+                    config_params["response_mime_type"] = "application/json"
+
+                logger.debug(
+                    f"JSON Task Generation Config for '{task}': {config_params}"
+                )
+            else:
+                # Use standard config for non-JSON tasks
+                config_params = {
+                    "temperature": self.temperature,
+                    "max_output_tokens": self.max_tokens,
+                    "top_p": self.top_p,
+                    "top_k": self.top_k,
+                }
+                logger.debug(
+                    f"Standard Generation Config for '{task}': temp={self.temperature}, top_p={self.top_p}, top_k={self.top_k}"
+                )
 
             # For insight_generation, the system_message is already the complete prompt
             if task == "insight_generation":
                 # Use the system message directly since it's the complete prompt
                 logger.debug(
                     "Generating content for task '{}' with config: {}".format(
-                        task, generation_config
+                        task, config_params
                     )
                 )
-                response = await self.client.generate_content_async(
-                    system_message, generation_config=generation_config
+                # Use the new API structure for the google-genai package
+                response = await self.client.aio.models.generate_content(
+                    model=self.model, contents=system_message, config=config_params
                 )
 
                 # For insight generation, return a structured result
@@ -154,11 +186,14 @@ class GeminiService:
                 # Generate content for other tasks (Original call structure)
                 logger.debug(
                     "Generating content for task '{}' with config: {}".format(
-                        task, generation_config
+                        task, config_params
                     )
                 )
-                response = await self.client.generate_content_async(
-                    [system_message, text], generation_config=generation_config
+                # Use the new API structure for the google-genai package
+                response = await self.client.aio.models.generate_content(
+                    model=self.model,
+                    contents=[system_message, text],
+                    config=config_params,
                 )
 
                 # Extract and parse response
@@ -181,136 +216,135 @@ class GeminiService:
                     )
 
                 # Extract JSON from response (handle potential markdown formatting)
+                # --- Parsing Logic ---
+                result = None
                 try:
-                    # Try direct parsing first
+                    # Attempt 1: Direct JSON parsing
+                    logger.debug(f"[{task}] Attempting direct JSON parsing...")
                     result = json.loads(result_text)
-                    if task == "theme_analysis_enhanced":
-                        logger.info("Successfully parsed enhanced themes JSON directly")
+                    logger.debug(f"[{task}] Direct JSON parsing successful.")
                 except json.JSONDecodeError as e1:
-                    # If response isn't valid JSON, try to extract JSON from markdown code blocks
+                    logger.warning(
+                        f"[{task}] Direct JSON parsing failed: {e1}. Trying markdown extraction..."
+                    )
+
+                    # Attempt 2: Extract from markdown code blocks
                     import re
 
-                    # For enhanced theme analysis, use more aggressive extraction
-                    if task == "theme_analysis_enhanced":
-                        logger.warning(
-                            "Direct JSON parsing failed for enhanced themes: {}".format(
-                                str(e1)
-                            )
-                        )
-                        logger.info(
-                            "Attempting specialized JSON extraction for enhanced themes..."
-                        )
-
-                        # Try to find JSON object with enhanced_themes
-                        json_pattern = re.compile(
-                            r'\{\s*"enhanced_themes"\s*:\s*\[.*?\]\s*\}', re.DOTALL
-                        )
-                        match = json_pattern.search(result_text)
-                        if match:
-                            json_str = match.group(0)
-                            logger.info(
-                                "Found potential enhanced themes JSON object, length: {}".format(
-                                    len(json_str)
-                                )
-                            )
-                            try:
-                                result = json.loads(json_str)
-                                logger.info(
-                                    "Successfully parsed extracted enhanced themes JSON"
-                                )
-                                # Skip the rest of the extraction if successful
-                                return result
-                            except json.JSONDecodeError as e3:
-                                logger.warning(
-                                    "Failed to parse extracted JSON: {}".format(str(e3))
-                                )
-                                # Continue to standard extraction
-
-                    # Standard extraction from markdown code blocks
-                    json_match = re.search(
-                        r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```',
-                        result_text,
-                        re.DOTALL,
+                    json_str = None
+                    # Try object format first
+                    match = re.search(
+                        r"```(?:json)?\s*({[\s\S]*?})\s*```", result_text, re.DOTALL
                     )
-                    if json_match:
+                    if match:
+                        json_str = match.group(1).strip()
+                        logger.debug(
+                            f"[{task}] Found potential JSON object in markdown block."
+                        )
+                    else:
+                        # Try array format if object not found
+                        match = re.search(
+                            r"```(?:json)?\s*(\[[\s\S]*?\])\s*```",
+                            result_text,
+                            re.DOTALL,
+                        )
+                        if match:
+                            json_str = match.group(1).strip()
+                            logger.debug(
+                                f"[{task}] Found potential JSON array in markdown block."
+                            )
+
+                    if json_str:
                         try:
-                            result = json.loads(json_match.group(1))
-                            if task == "theme_analysis_enhanced":
-                                logger.info(
-                                    "Successfully parsed enhanced themes JSON from markdown block"
-                                )
+                            # Clean potential trailing commas before parsing
+                            cleaned_json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
+                            result = json.loads(cleaned_json_str)
+                            logger.debug(
+                                f"[{task}] Successfully parsed JSON from markdown block."
+                            )
                         except json.JSONDecodeError as e2:
                             logger.error(
-                                "Failed to parse JSON even after extracting from markdown: {}".format(
-                                    e2
-                                )
+                                f"[{task}] Failed to parse JSON extracted from markdown: {e2}"
                             )
-
-                            # Instead of raising an error, provide a task-specific fallback
-                            if task == "theme_analysis_enhanced":
-                                logger.warning(
-                                    "Using fallback for theme_analysis_enhanced task after markdown extraction failure"
-                                )
-                                # Return empty enhanced themes array to avoid breaking the pipeline
-                                result = {"enhanced_themes": []}
-                            elif task == "persona_formation":
-                                logger.warning(
-                                    "Using fallback for persona_formation task after markdown extraction failure"
-                                )
-                                # Return empty personas array
-                                result = {"personas": []}
-                            elif task == "insight_generation":
-                                logger.warning(
-                                    "Using fallback for insight_generation task after markdown extraction failure"
-                                )
-                                # Return empty insights array
-                                result = {"insights": []}
-                            else:
-                                # For other tasks, provide a generic error response
-                                logger.warning(
-                                    "Using generic fallback for task: {} after markdown extraction failure".format(
-                                        task
-                                    )
-                                )
-                                result = {
-                                    "error": "Failed to parse response from Gemini after markdown extraction: {}".format(
-                                        e2
-                                    ),
-                                    "fallback": True,
-                                }
+                            # Fallback logic will be handled below if result is still None
                     else:
-                        logger.error(
-                            "Invalid JSON response from Gemini, and no markdown block found: {}".format(
-                                e1
-                            )
+                        logger.warning(
+                            f"[{task}] No JSON markdown block found. Trying brace extraction..."
                         )
+                        # Attempt 3: Extract between first { and last }
+                        try:
+                            start_index = result_text.find("{")
+                            end_index = result_text.rfind("}")
+                            if (
+                                start_index != -1
+                                and end_index != -1
+                                and end_index > start_index
+                            ):
+                                json_str_braces = result_text[
+                                    start_index : end_index + 1
+                                ]
+                                logger.debug(
+                                    f"[{task}] Found potential JSON between braces."
+                                )
+                                cleaned_json_str_braces = re.sub(
+                                    r",\s*([}\]])", r"\1", json_str_braces
+                                )
+                                result = json.loads(cleaned_json_str_braces)
+                                logger.debug(
+                                    f"[{task}] Successfully parsed JSON using brace method."
+                                )
+                            else:
+                                logger.warning(
+                                    f"[{task}] Could not find matching braces."
+                                )
+                        except json.JSONDecodeError as e3:
+                            logger.error(
+                                f"[{task}] Failed to parse JSON using brace method: {e3}"
+                            )
+                        except Exception as e_generic:
+                            logger.error(
+                                f"[{task}] Unexpected error during brace parsing: {e_generic}"
+                            )
 
-                        # Instead of raising an error, provide a task-specific fallback
-                        if task == "theme_analysis_enhanced":
-                            logger.warning(
-                                "Using fallback for theme_analysis_enhanced task"
-                            )
-                            # Return empty enhanced themes array to avoid breaking the pipeline
-                            result = {"enhanced_themes": []}
-                        elif task == "persona_formation":
-                            logger.warning("Using fallback for persona_formation task")
-                            # Return empty personas array
-                            result = {"personas": []}
-                        elif task == "insight_generation":
-                            logger.warning("Using fallback for insight_generation task")
-                            # Return empty insights array
-                            result = {"insights": []}
-                        else:
-                            # For other tasks, provide a generic error response
-                            logger.warning(
-                                "Using generic fallback for task: {}".format(task)
-                            )
-                            result = {
-                                "error": "Failed to parse response from Gemini: {}".format(
-                                    e1
-                                ),
-                                "fallback": True,
-                            }
+                # --- Fallback Logic (if result is still None after all attempts) ---
+                if result is None:
+                    logger.error(
+                        f"[{task}] All JSON parsing attempts failed. Using task-specific fallback."
+                    )
+                    if task == "theme_analysis":
+                        result = {"themes": []}
+                    elif task == "theme_analysis_enhanced":
+                        result = {"enhanced_themes": []}  # Specific key for enhanced
+                    elif task == "pattern_recognition":
+                        result = {"patterns": []}
+                    elif task == "sentiment_analysis":
+                        # Return a default neutral sentiment structure
+                        result = {
+                            "sentimentOverview": {
+                                "positive": 0.33,
+                                "neutral": 0.34,
+                                "negative": 0.33,
+                            },
+                            "sentiment": [],  # Empty list for detailed scores
+                            "sentimentStatements": {
+                                "positive": [],
+                                "neutral": [],
+                                "negative": [],
+                            },
+                        }
+                    elif task == "persona_formation":
+                        result = {"personas": []}
+                    elif task == "insight_generation":
+                        result = {"insights": []}
+                    else:
+                        # Generic fallback for unknown tasks
+                        logger.warning(
+                            f"Unknown task '{task}' encountered during fallback."
+                        )
+                        result = {
+                            "error": f"Failed to parse response from Gemini for unknown task: {task}",
+                            "fallback": True,
+                        }
 
             # Post-process results if needed
             if task == "theme_analysis":
@@ -1163,7 +1197,36 @@ class GeminiService:
                 "Error calling Gemini API for task {}: {}".format(task, str(e)),
                 exc_info=True,
             )  # Log traceback
-            return {"error": "Gemini API error: {}".format(str(e))}
+            # Return task-specific empty structure on API errors too
+            if task == "theme_analysis":
+                return {"themes": []}
+            elif task == "theme_analysis_enhanced":
+                return {"enhanced_themes": []}
+            elif task == "pattern_recognition":
+                return {"patterns": []}
+            elif task == "sentiment_analysis":
+                return {
+                    "sentimentOverview": {
+                        "positive": 0.33,
+                        "neutral": 0.34,
+                        "negative": 0.33,
+                    },
+                    "sentiment": [],
+                    "sentimentStatements": {
+                        "positive": [],
+                        "neutral": [],
+                        "negative": [],
+                    },
+                }
+            elif task == "persona_formation":
+                return {"personas": []}
+            elif task == "insight_generation":
+                return {"insights": []}
+            else:
+                return {
+                    "error": "Gemini API error: {}".format(str(e)),
+                    "fallback": True,
+                }
 
     def _get_system_message(self, task: str, data: Dict[str, Any]) -> str:
         """Get identical prompts as OpenAI service for consistent responses"""
