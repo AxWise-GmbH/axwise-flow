@@ -898,177 +898,145 @@ class PersonaFormationService:
     def _get_direct_persona_prompt_nested(self, text: str) -> str:
         """Generates the prompt asking for the NESTED PersonaTrait structure."""
         return f"""
-            Analyze the following interview text excerpt and create a comprehensive user persona profile.
+            Analyze the following interview text excerpt and create a comprehensive, detailed user persona profile with specific, concrete details.
 
             INTERVIEW TEXT (excerpt):
             {text[:4000]}
 
-            Extract the following details to build a rich, detailed persona:
+            Extract the following details to build a rich, detailed persona. Be specific and concrete, avoiding vague generalizations. Use direct quotes and evidence from the text whenever possible.
 
             BASIC INFORMATION:
-            1. name: A descriptive role-based name (e.g., "Data-Driven Product Manager")
-            2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
-            3. description: A brief 1-3 sentence overview of the persona
+            1. name: A descriptive role-based name that captures their specific role (e.g., "Enterprise DevOps Automation Specialist" rather than just "Developer")
+            2. archetype: A specific category this persona falls into (e.g., "Technical Decision Maker", "UX Research Specialist", "Operations Efficiency Expert")
+            3. description: A detailed 2-3 sentence overview of the persona that captures their unique characteristics
 
-            DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
-            4. demographics: Age, gender, education, experience level, and other demographic information
-            5. goals_and_motivations: Primary objectives, aspirations, and driving factors
-            6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
-            7. workflow_and_environment: Work processes, physical/digital environment, and context
-            8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
-            9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
-            10. technology_and_tools: Software, hardware, and other tools used regularly
-            11. attitude_towards_research: Views on research, data, and evidence-based approaches
-            12. attitude_towards_ai: Perspective on AI, automation, and technological change
-            13. key_quotes: Representative quotes that capture the persona's voice and perspective
+            DETAILED ATTRIBUTES (each with specific value, confidence score 0.0-1.0, and direct supporting evidence from the text):
+            4. demographics: Specific age range, career stage, education level, years of experience, industry background, and other demographic information
+            5. goals_and_motivations: Concrete objectives, specific aspirations, and explicit driving factors mentioned in the text
+            6. skills_and_expertise: Specific technical and soft skills, knowledge areas, and expertise levels with examples
+            7. workflow_and_environment: Detailed work processes, specific tools in their workflow, physical/digital environment details
+            8. challenges_and_frustrations: Specific pain points, concrete obstacles, and explicit sources of frustration mentioned
+            9. needs_and_desires: Particular needs, specific wants, and explicit desires related to their work
+            10. technology_and_tools: Named software applications, specific hardware, and other tools mentioned by name
+            11. attitude_towards_research: Specific views on research methodologies, data usage, and evidence-based approaches
+            12. attitude_towards_ai: Detailed perspective on AI tools, automation preferences, and technological change attitudes
+            13. key_quotes: Exact quotes from the text that capture the persona's authentic voice and perspective
 
-            LEGACY ATTRIBUTES (for backward compatibility, each with value, confidence score 0.0-1.0, and supporting evidence):
-            14. role_context: Primary job function and work environment
-            15. key_responsibilities: Main tasks mentioned
-            16. tools_used: Specific tools or methods named
-            17. collaboration_style: How they work with others
-            18. analysis_approach: How they approach problems/analysis
-            19. pain_points: Specific challenges mentioned
+            LEGACY ATTRIBUTES (for backward compatibility, each with specific value, confidence score 0.0-1.0, and direct supporting evidence):
+            14. role_context: Detailed job function, specific work environment, and organizational context
+            15. key_responsibilities: Comprehensive list of specific tasks and responsibilities mentioned
+            16. tools_used: Named tools, specific methods, and explicit technologies mentioned
+            17. collaboration_style: Detailed description of how they work with others, communication preferences, team dynamics
+            18. analysis_approach: Specific methods for approaching problems, decision-making processes, analytical techniques
+            19. pain_points: Concrete challenges, specific frustrations, and explicit problems mentioned
 
             OVERALL PERSONA INFORMATION:
-            20. patterns: List of behavioral patterns associated with this persona
+            20. patterns: List of specific behavioral patterns with concrete examples from the text
             21. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
             22. supporting_evidence_summary: Key evidence supporting the overall persona characterization
 
+            GUIDELINES FOR HIGH-QUALITY PERSONA CREATION:
+            - Be specific and concrete rather than vague or general
+            - Use direct quotes from the text as evidence whenever possible
+            - Avoid assumptions not supported by the text
+            - Ensure all attributes have meaningful, detailed content
+            - Maintain high standards for evidence quality
+            - Assign appropriate confidence scores based on evidence strength
+            - Focus on capturing the unique characteristics of this specific individual
+
             FORMAT YOUR RESPONSE AS JSON with the following structure:
             {{
-              "name": "Role-Based Name",
-              "archetype": "Persona Category",
-              "description": "Brief overview of the persona",
+              "name": "Specific Role-Based Name",
+              "archetype": "Specific Persona Category",
+              "description": "Detailed overview of the persona with specific characteristics",
               "demographics": {{
-                "value": "Age, experience, etc.",
+                "value": "Specific age range, experience level, education, etc.",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "goals_and_motivations": {{
-                "value": "Primary objectives and aspirations",
+                "value": "Specific objectives and concrete aspirations",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "skills_and_expertise": {{
-                "value": "Technical and soft skills",
+                "value": "Specific technical and soft skills with examples",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "workflow_and_environment": {{
-                "value": "Work processes and context",
+                "value": "Specific work processes and detailed context",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "challenges_and_frustrations": {{
-                "value": "Pain points and obstacles",
+                "value": "Specific pain points and concrete obstacles",
                 "confidence": 0.9,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "needs_and_desires": {{
-                "value": "Specific needs and wants",
+                "value": "Specific needs and concrete wants",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "technology_and_tools": {{
-                "value": "Software and hardware used",
+                "value": "Named software and specific hardware used",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "attitude_towards_research": {{
-                "value": "Views on research and data",
+                "value": "Specific views on research methodologies and data",
                 "confidence": 0.6,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "attitude_towards_ai": {{
-                "value": "Perspective on AI and automation",
+                "value": "Specific perspective on AI tools and automation",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "key_quotes": {{
-                "value": "Representative quotes",
+                "value": "Exact representative quotes from the text",
                 "confidence": 0.9,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "role_context": {{
-                "value": "Primary job function and environment",
+                "value": "Specific job function and detailed environment",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "key_responsibilities": {{
-                "value": "Main tasks mentioned",
+                "value": "Comprehensive list of specific tasks mentioned",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "tools_used": {{
-                "value": "Specific tools mentioned",
+                "value": "Named tools and specific technologies mentioned",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "collaboration_style": {{
-                "value": "How they work with others",
+                "value": "Specific description of how they work with others",
                 "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "analysis_approach": {{
-                "value": "How they approach problems",
+                "value": "Specific methods for approaching problems",
                 "confidence": 0.6,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
               "pain_points": {{
-                "value": "Specific challenges mentioned",
+                "value": "Concrete challenges and specific frustrations",
                 "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2"]
+                "evidence": ["Direct quote 1", "Direct quote 2"]
               }},
-              "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+              "patterns": ["Specific pattern 1 with example", "Specific pattern 2 with example", "Specific pattern 3 with example"],
               "overall_confidence": 0.75,
               "supporting_evidence_summary": ["Key evidence 1", "Key evidence 2"]
             }}
 
-            IMPORTANT: Ensure all attributes are included with proper structure, even if confidence is low or evidence is limited.
+            IMPORTANT: Ensure all attributes are included with proper structure, with specific, detailed content and direct quotes as evidence.
 
-             Return ONLY a valid JSON object with the following structure:
-             ```json
-             {{
-               "name": "Example Role Name",
-               "description": "Example description.",
-               "role_context": {{
-                 "value": "Example role context.",
-                 "confidence": 0.85,
-                 "evidence": ["Evidence 1", "Evidence 2"]
-               }},
-               "key_responsibilities": {{
-                 "value": "Example responsibilities.",
-                 "confidence": 0.8,
-                 "evidence": ["Evidence 1"]
-               }},
-               "tools_used": {{
-                 "value": "Example tools.",
-                 "confidence": 0.75,
-                 "evidence": ["Evidence 1", "Evidence 2"]
-               }},
-               "collaboration_style": {{
-                 "value": "Example collaboration style.",
-                 "confidence": 0.7,
-                 "evidence": ["Evidence 1"]
-               }},
-               "analysis_approach": {{
-                 "value": "Example analysis approach.",
-                 "confidence": 0.8,
-                 "evidence": ["Evidence 1", "Evidence 2"]
-               }},
-               "pain_points": {{
-                 "value": "Example pain points.",
-                 "confidence": 0.9,
-                 "evidence": ["Evidence 1", "Evidence 2"]
-               }},
-               "patterns": ["Relevant pattern 1", "Relevant pattern 2"],
-               "confidence": 0.85, // Overall confidence
-               "evidence": ["Overall evidence 1", "Overall evidence 2"]
-             }}
-             ```
-
-             IMPORTANT: Ensure the entire response is ONLY a single, valid JSON object. Do NOT include markdown formatting (like ```json) or any explanatory text before or after the JSON.
+             Return ONLY a valid JSON object. Do NOT include markdown formatting (like ```json) or any explanatory text before or after the JSON.
              """
 
     def _parse_llm_json_response(

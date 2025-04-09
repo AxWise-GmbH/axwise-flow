@@ -409,25 +409,29 @@ class ResultsService:
 
     def _map_json_to_persona_schema(self, p_data: Dict[str, Any]):
         """
-        Map JSON persona data to a proper PersonaSchema object
+        Map JSON persona data to a proper PersonaSchema object with enhanced field mapping.
+        This method maps legacy fields to new fields when the new fields are null,
+        ensuring a complete persona profile.
 
         Args:
             p_data: Persona data from JSON
 
         Returns:
-            PersonaSchema object
+            PersonaSchema object with all fields populated
         """
         from backend.schemas import PersonaTrait, Persona as PersonaSchema
 
-        # Extract fields with safe fallbacks
+        # Extract basic fields with safe fallbacks
         name = p_data.get("name", "Unknown")
         description = p_data.get("description", name)
-        confidence = p_data.get("confidence", 0.5)
+        archetype = p_data.get("archetype")  # May be None
+        confidence = p_data.get("confidence", p_data.get("overall_confidence", 0.7))
         patterns = p_data.get("patterns", [])
-        evidence = p_data.get("evidence", [])
-        metadata = p_data.get("metadata", {})
+        evidence = p_data.get("evidence", p_data.get("supporting_evidence_summary", []))
+        metadata = p_data.get("metadata", p_data.get("persona_metadata", {}))
 
-        # Extract nested traits or use empty defaults
+        # Extract all trait data with empty defaults
+        # Legacy fields
         role_context_data = p_data.get("role_context", {})
         key_resp_data = p_data.get("key_responsibilities", {})
         tools_data = p_data.get("tools_used", {})
@@ -435,40 +439,173 @@ class ResultsService:
         analysis_approach_data = p_data.get("analysis_approach", {})
         pain_points_data = p_data.get("pain_points", {})
 
-        # Create and return persona schema object
+        # New fields
+        demographics_data = p_data.get("demographics", {})
+        goals_data = p_data.get("goals_and_motivations", {})
+        skills_data = p_data.get("skills_and_expertise", {})
+        workflow_data = p_data.get("workflow_and_environment", {})
+        challenges_data = p_data.get("challenges_and_frustrations", {})
+        needs_data = p_data.get("needs_and_desires", {})
+        tech_tools_data = p_data.get("technology_and_tools", {})
+        research_attitude_data = p_data.get("attitude_towards_research", {})
+        ai_attitude_data = p_data.get("attitude_towards_ai", {})
+        key_quotes_data = p_data.get("key_quotes", {})
+
+        # Map legacy fields to new fields when new fields are empty
+        # This ensures we don't lose data when only legacy fields are populated
+
+        # If demographics is empty, populate from role_context
+        if not demographics_data and role_context_data:
+            demographics_data = {
+                "value": f"Professional with experience in {role_context_data.get('value', 'their field')}",
+                "confidence": role_context_data.get("confidence", 0.5),
+                "evidence": role_context_data.get("evidence", []),
+            }
+
+        # If goals_and_motivations is empty, derive from key_responsibilities
+        if not goals_data and key_resp_data:
+            goals_data = {
+                "value": f"Focused on {key_resp_data.get('value', 'professional growth and efficiency')}",
+                "confidence": key_resp_data.get("confidence", 0.5),
+                "evidence": key_resp_data.get("evidence", []),
+            }
+
+        # If skills_and_expertise is empty, derive from key_responsibilities and tools_used
+        if not skills_data and (key_resp_data or tools_data):
+            skills_value = "Skilled in "
+            if key_resp_data and key_resp_data.get("value"):
+                skills_value += key_resp_data.get("value")
+            if tools_data and tools_data.get("value"):
+                skills_value += f" using {tools_data.get('value')}"
+
+            skills_data = {
+                "value": skills_value,
+                "confidence": max(
+                    key_resp_data.get("confidence", 0.5),
+                    tools_data.get("confidence", 0.5),
+                ),
+                "evidence": key_resp_data.get("evidence", [])
+                + tools_data.get("evidence", []),
+            }
+
+        # If workflow_and_environment is empty, derive from collaboration_style
+        if not workflow_data and collab_style_data:
+            workflow_data = {
+                "value": f"Works in an environment where {collab_style_data.get('value', 'collaboration is important')}",
+                "confidence": collab_style_data.get("confidence", 0.5),
+                "evidence": collab_style_data.get("evidence", []),
+            }
+
+        # If challenges_and_frustrations is empty, use pain_points
+        if not challenges_data and pain_points_data:
+            challenges_data = {
+                "value": pain_points_data.get("value", ""),
+                "confidence": pain_points_data.get("confidence", 0.5),
+                "evidence": pain_points_data.get("evidence", []),
+            }
+
+        # If technology_and_tools is empty, use tools_used
+        if not tech_tools_data and tools_data:
+            tech_tools_data = {
+                "value": tools_data.get("value", ""),
+                "confidence": tools_data.get("confidence", 0.5),
+                "evidence": tools_data.get("evidence", []),
+            }
+
+        # Create and return persona schema object with all fields populated
         persona = PersonaSchema(
             name=name,
+            archetype=archetype or "Professional",  # Provide a default if None
             description=description,
+            # Include all new fields with mapping from legacy when needed
+            demographics=PersonaTrait(
+                value=demographics_data.get("value", "Professional in their field"),
+                confidence=demographics_data.get("confidence", 0.5),
+                evidence=demographics_data.get("evidence", []),
+            ),
+            goals_and_motivations=PersonaTrait(
+                value=goals_data.get("value", "Professional growth and efficiency"),
+                confidence=goals_data.get("confidence", 0.5),
+                evidence=goals_data.get("evidence", []),
+            ),
+            skills_and_expertise=PersonaTrait(
+                value=skills_data.get("value", "Domain-specific skills"),
+                confidence=skills_data.get("confidence", 0.5),
+                evidence=skills_data.get("evidence", []),
+            ),
+            workflow_and_environment=PersonaTrait(
+                value=workflow_data.get("value", "Professional work environment"),
+                confidence=workflow_data.get("confidence", 0.5),
+                evidence=workflow_data.get("evidence", []),
+            ),
+            challenges_and_frustrations=PersonaTrait(
+                value=challenges_data.get("value", "Common professional challenges"),
+                confidence=challenges_data.get("confidence", 0.5),
+                evidence=challenges_data.get("evidence", []),
+            ),
+            needs_and_desires=PersonaTrait(
+                value=needs_data.get("value", "Efficiency and professional growth"),
+                confidence=needs_data.get("confidence", 0.5),
+                evidence=needs_data.get("evidence", []),
+            ),
+            technology_and_tools=PersonaTrait(
+                value=tech_tools_data.get("value", "Industry-standard tools"),
+                confidence=tech_tools_data.get("confidence", 0.5),
+                evidence=tech_tools_data.get("evidence", []),
+            ),
+            attitude_towards_research=PersonaTrait(
+                value=research_attitude_data.get(
+                    "value", "Values data-driven approaches"
+                ),
+                confidence=research_attitude_data.get("confidence", 0.5),
+                evidence=research_attitude_data.get("evidence", []),
+            ),
+            attitude_towards_ai=PersonaTrait(
+                value=ai_attitude_data.get(
+                    "value", "Open to technological advancements"
+                ),
+                confidence=ai_attitude_data.get("confidence", 0.5),
+                evidence=ai_attitude_data.get("evidence", []),
+            ),
+            key_quotes=PersonaTrait(
+                value=key_quotes_data.get("value", ""),
+                confidence=key_quotes_data.get("confidence", 0.5),
+                evidence=key_quotes_data.get("evidence", []),
+            ),
+            # Include all legacy fields
             role_context=PersonaTrait(
-                value=role_context_data.get("value", {}),
+                value=role_context_data.get("value", "Professional role"),
                 confidence=role_context_data.get("confidence", confidence),
                 evidence=role_context_data.get("evidence", evidence),
             ),
             key_responsibilities=PersonaTrait(
-                value=key_resp_data.get("value", []),
+                value=key_resp_data.get("value", "Professional responsibilities"),
                 confidence=key_resp_data.get("confidence", confidence),
                 evidence=key_resp_data.get("evidence", evidence),
             ),
             tools_used=PersonaTrait(
-                value=tools_data.get("value", {}),
+                value=tools_data.get("value", "Professional tools"),
                 confidence=tools_data.get("confidence", confidence),
                 evidence=tools_data.get("evidence", evidence),
             ),
             collaboration_style=PersonaTrait(
-                value=collab_style_data.get("value", {}),
+                value=collab_style_data.get("value", "Professional collaboration"),
                 confidence=collab_style_data.get("confidence", confidence),
                 evidence=collab_style_data.get("evidence", evidence),
             ),
             analysis_approach=PersonaTrait(
-                value=analysis_approach_data.get("value", {}),
+                value=analysis_approach_data.get(
+                    "value", "Professional analysis approach"
+                ),
                 confidence=analysis_approach_data.get("confidence", confidence),
                 evidence=analysis_approach_data.get("evidence", evidence),
             ),
             pain_points=PersonaTrait(
-                value=pain_points_data.get("value", []),
+                value=pain_points_data.get("value", "Professional challenges"),
                 confidence=pain_points_data.get("confidence", confidence),
                 evidence=pain_points_data.get("evidence", evidence),
             ),
+            # Overall persona information
             patterns=patterns,
             confidence=confidence,
             evidence=evidence,
