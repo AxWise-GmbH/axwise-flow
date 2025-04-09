@@ -2574,12 +2574,14 @@ class GeminiService:
             """
             )
 
-            # Generate content with the prompt
-            response = await self.client.generate_content_async(prompt)
+            # Generate content with the prompt using the new API structure
+            response = await self.client.aio.models.generate_content(
+                model=self.model, contents=prompt, config=self.generation_config
+            )
 
             # Parse and structure the response
             try:
-                # Get the text response
+                # Get the text response from the new API structure
                 text_response = response.text
                 logger.info(
                     "Received response from Gemini: {}...".format(text_response[:100])
