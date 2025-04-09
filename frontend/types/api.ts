@@ -215,14 +215,32 @@ export interface Insight {
 }
 
 export type Persona = {
+  // Basic information
   name: string;
+  archetype?: string;
   description: string;
+
+  // Detailed attributes (new fields)
+  demographics?: PersonaTrait;
+  goals_and_motivations?: PersonaTrait;
+  skills_and_expertise?: PersonaTrait;
+  workflow_and_environment?: PersonaTrait;
+  challenges_and_frustrations?: PersonaTrait;
+  needs_and_desires?: PersonaTrait;
+  technology_and_tools?: PersonaTrait;
+  attitude_towards_research?: PersonaTrait;
+  attitude_towards_ai?: PersonaTrait;
+  key_quotes?: PersonaTrait;
+
+  // Legacy fields
   role_context: PersonaTrait;
   key_responsibilities: PersonaTrait;
   tools_used: PersonaTrait;
   collaboration_style: PersonaTrait;
   analysis_approach: PersonaTrait;
   pain_points: PersonaTrait;
+
+  // Overall persona information
   patterns: string[];
   confidence: number;
   evidence: string[];
@@ -235,6 +253,11 @@ export type Persona = {
       attribute_coverage?: Record<string, number>;
     };
   };
+
+  // Aliases for backward compatibility
+  overall_confidence?: number; // Alias for confidence
+  supporting_evidence_summary?: string[]; // Alias for evidence
+  persona_metadata?: any; // Alias for metadata
 };
 
 /**

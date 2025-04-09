@@ -189,45 +189,78 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                 </TooltipProvider>
               </div>
 
-              {/* Persona Traits */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderTraitCard('Role Context', persona.role_context)}
-                {renderTraitCard('Key Responsibilities', persona.key_responsibilities)}
-                {renderTraitCard('Tools Used', persona.tools_used)}
-                {renderTraitCard('Collaboration Style', persona.collaboration_style)}
-                {renderTraitCard('Analysis Approach', persona.analysis_approach)}
-                {renderTraitCard('Pain Points', persona.pain_points)}
-              </div>
-
-              {/* Patterns */}
-              {persona.patterns && persona.patterns.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium mb-2">Associated Patterns</h3>
-                  <ul className="list-disc pl-5">
-                    {persona.patterns.map((pattern, i) => (
-                      <li key={i} className="text-sm">{pattern}</li>
-                    ))}
-                  </ul>
+              {/* Basic Information */}
+              {persona.archetype && (
+                <div className="mb-4">
+                  <Badge variant="outline" className="text-sm">
+                    {persona.archetype}
+                  </Badge>
                 </div>
               )}
 
-              {/* Overall Evidence */}
-              {persona.evidence && persona.evidence.length > 0 && (
-                <Accordion type="single" collapsible className="mt-4">
-                  <AccordionItem value="overall-evidence">
-                    <AccordionTrigger className="text-sm">
-                      Overall Supporting Evidence
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                        {persona.evidence.map((item, i) => (
-                          <li key={i}>{item}</li>
+              {/* Tabs for different persona aspects */}
+              <Tabs defaultValue="detailed" className="w-full mt-4">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="detailed">Detailed Profile</TabsTrigger>
+                  <TabsTrigger value="legacy">Legacy Fields</TabsTrigger>
+                  <TabsTrigger value="patterns">Patterns & Evidence</TabsTrigger>
+                </TabsList>
+
+                {/* Detailed Profile Tab */}
+                <TabsContent value="detailed" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderTraitCard('Demographics', persona.demographics)}
+                    {renderTraitCard('Goals & Motivations', persona.goals_and_motivations)}
+                    {renderTraitCard('Skills & Expertise', persona.skills_and_expertise)}
+                    {renderTraitCard('Workflow & Environment', persona.workflow_and_environment)}
+                    {renderTraitCard('Challenges & Frustrations', persona.challenges_and_frustrations)}
+                    {renderTraitCard('Needs & Desires', persona.needs_and_desires)}
+                    {renderTraitCard('Technology & Tools', persona.technology_and_tools)}
+                    {renderTraitCard('Attitude Towards Research', persona.attitude_towards_research)}
+                    {renderTraitCard('Attitude Towards AI', persona.attitude_towards_ai)}
+                    {renderTraitCard('Key Quotes', persona.key_quotes)}
+                  </div>
+                </TabsContent>
+
+                {/* Legacy Fields Tab */}
+                <TabsContent value="legacy" className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderTraitCard('Role Context', persona.role_context)}
+                    {renderTraitCard('Key Responsibilities', persona.key_responsibilities)}
+                    {renderTraitCard('Tools Used', persona.tools_used)}
+                    {renderTraitCard('Collaboration Style', persona.collaboration_style)}
+                    {renderTraitCard('Analysis Approach', persona.analysis_approach)}
+                    {renderTraitCard('Pain Points', persona.pain_points)}
+                  </div>
+                </TabsContent>
+
+                {/* Patterns & Evidence Tab */}
+                <TabsContent value="patterns" className="space-y-4">
+                  {/* Patterns */}
+                  {persona.patterns && persona.patterns.length > 0 && (
+                    <div className="mt-2">
+                      <h3 className="text-sm font-medium mb-2">Associated Patterns</h3>
+                      <ul className="list-disc pl-5">
+                        {persona.patterns.map((pattern, i) => (
+                          <li key={i} className="text-sm">{pattern}</li>
                         ))}
                       </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              )}
+                    </div>
+                  )}
+
+                  {/* Evidence */}
+                  {persona.evidence && persona.evidence.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium mb-2">Supporting Evidence</h3>
+                      <ul className="list-disc pl-5">
+                        {persona.evidence.map((item, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
 
               {/* Metadata */}
               {persona.metadata && (
