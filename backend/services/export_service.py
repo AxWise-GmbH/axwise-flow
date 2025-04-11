@@ -220,6 +220,59 @@ class ExportService:
             )
             pdf.ln(5)
 
+            # Add sentiment overview if available
+            if data and data.get("sentimentOverview"):
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, clean_text("Sentiment Overview"), 0, 1)
+
+                sentiment_overview = data["sentimentOverview"]
+                pdf.set_font("Arial", "", 10)
+
+                if isinstance(sentiment_overview, dict):
+                    # Display positive percentage
+                    if sentiment_overview.get("positive") is not None:
+                        try:
+                            positive = float(sentiment_overview["positive"]) * 100
+                            pdf.cell(0, 10, f"Positive: {positive:.1f}%", 0, 1)
+                        except (ValueError, TypeError):
+                            pdf.cell(
+                                0,
+                                10,
+                                f"Positive: {clean_text(str(sentiment_overview['positive']))}",
+                                0,
+                                1,
+                            )
+
+                    # Display neutral percentage
+                    if sentiment_overview.get("neutral") is not None:
+                        try:
+                            neutral = float(sentiment_overview["neutral"]) * 100
+                            pdf.cell(0, 10, f"Neutral: {neutral:.1f}%", 0, 1)
+                        except (ValueError, TypeError):
+                            pdf.cell(
+                                0,
+                                10,
+                                f"Neutral: {clean_text(str(sentiment_overview['neutral']))}",
+                                0,
+                                1,
+                            )
+
+                    # Display negative percentage
+                    if sentiment_overview.get("negative") is not None:
+                        try:
+                            negative = float(sentiment_overview["negative"]) * 100
+                            pdf.cell(0, 10, f"Negative: {negative:.1f}%", 0, 1)
+                        except (ValueError, TypeError):
+                            pdf.cell(
+                                0,
+                                10,
+                                f"Negative: {clean_text(str(sentiment_overview['negative']))}",
+                                0,
+                                1,
+                            )
+
+                pdf.ln(5)
+
             # Add themes section if available
             if data and data.get("themes"):
                 pdf.set_font("Arial", "B", 14)
@@ -258,9 +311,12 @@ class ExportService:
                             pdf.cell(0, 10, f"Frequency: {clean_text(frequency)}", 0, 1)
 
                     # Theme sentiment
-                    if theme.get("sentiment_estimate") is not None:
+                    sentiment_field = theme.get(
+                        "sentiment_estimate", theme.get("sentiment")
+                    )
+                    if sentiment_field is not None:
                         pdf.set_font("Arial", "", 10)
-                        sentiment = theme["sentiment_estimate"]
+                        sentiment = sentiment_field
                         # Handle case where sentiment might be a dict
                         if (
                             isinstance(sentiment, dict)
@@ -292,11 +348,47 @@ class ExportService:
                                 1,
                             )
 
-                    # Example quotes
-                    if theme.get("example_quotes") or theme.get("statements"):
-                        quotes = theme.get(
-                            "example_quotes", theme.get("statements", [])
-                        )
+                    # Theme keywords
+                    if theme.get("keywords"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, "Keywords:", 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        keywords = theme["keywords"]
+                        if isinstance(keywords, list):
+                            pdf.multi_cell(0, 10, clean_text(", ".join(keywords)))
+                        else:
+                            pdf.multi_cell(0, 10, clean_text(str(keywords)))
+
+                    # Theme codes
+                    if theme.get("codes"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, "Codes:", 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        codes = theme["codes"]
+                        if isinstance(codes, list):
+                            pdf.multi_cell(0, 10, clean_text(", ".join(codes)))
+                        else:
+                            pdf.multi_cell(0, 10, clean_text(str(codes)))
+
+                    # Theme reliability
+                    if theme.get("reliability"):
+                        pdf.set_font("Arial", "", 10)
+                        reliability = theme["reliability"]
+                        try:
+                            reliability = float(reliability)
+                            pdf.cell(0, 10, f"Reliability: {reliability:.2f}", 0, 1)
+                        except (ValueError, TypeError):
+                            pdf.cell(
+                                0, 10, f"Reliability: {clean_text(reliability)}", 0, 1
+                            )
+
+                    # Example quotes/statements
+                    statements_field = theme.get(
+                        "statements",
+                        theme.get("examples", theme.get("example_quotes", [])),
+                    )
+                    if statements_field:
+                        quotes = statements_field
                         # Handle case where quotes might be a dict
                         if isinstance(quotes, dict) and quotes.get("value"):
                             quotes = quotes["value"]
@@ -304,17 +396,105 @@ class ExportService:
                             quotes = [str(quotes)]
                         if quotes:
                             pdf.set_font("Arial", "B", 10)
-                            pdf.cell(0, 10, "Example Quotes:", 0, 1)
+                            pdf.cell(0, 10, "Example Statements:", 0, 1)
 
                             pdf.set_font("Arial", "", 10)
                             for quote in quotes[
-                                :3
-                            ]:  # Limit to 3 quotes to keep PDF reasonable
-                                text = (
-                                    str(quote).encode("ascii", errors="ignore").decode()
-                                )
+                                :5
+                            ]:  # Limit to 5 quotes to keep PDF reasonable
+                                text = clean_text(str(quote))
                                 pdf.cell(5, 10, "*", 0, 0)
                                 pdf.multi_cell(0, 10, text)
+
+                    pdf.ln(5)
+
+            # Add patterns section if available
+            if data and data.get("patterns"):
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, clean_text("Patterns"), 0, 1)
+
+                for pattern in data["patterns"]:
+                    # Pattern header
+                    pdf.set_font("Arial", "B", 12)
+                    name = pattern.get("name", "Unnamed Pattern")
+                    pdf.cell(0, 10, clean_text(name), 0, 1)
+
+                    # Pattern category
+                    if pattern.get("category"):
+                        pdf.set_font("Arial", "I", 10)
+                        pdf.cell(
+                            0, 10, f"Category: {clean_text(pattern['category'])}", 0, 1
+                        )
+
+                    # Pattern description
+                    if pattern.get("description"):
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 10, clean_text(pattern["description"]))
+
+                    # Pattern frequency
+                    if pattern.get("frequency"):
+                        pdf.set_font("Arial", "", 10)
+                        frequency = pattern["frequency"]
+                        try:
+                            frequency = float(frequency)
+                            pdf.cell(0, 10, f"Frequency: {frequency:.2f}", 0, 1)
+                        except (ValueError, TypeError):
+                            pdf.cell(0, 10, f"Frequency: {clean_text(frequency)}", 0, 1)
+
+                    # Pattern sentiment
+                    if pattern.get("sentiment"):
+                        pdf.set_font("Arial", "", 10)
+                        sentiment = pattern["sentiment"]
+                        try:
+                            sentiment = float(sentiment)
+                            sentiment_text = (
+                                "Positive"
+                                if sentiment > 0.2
+                                else "Negative" if sentiment < -0.2 else "Neutral"
+                            )
+                            pdf.cell(
+                                0,
+                                10,
+                                f"Sentiment: {sentiment_text} ({sentiment:.2f})",
+                                0,
+                                1,
+                            )
+                        except (ValueError, TypeError):
+                            pdf.cell(0, 10, f"Sentiment: {clean_text(sentiment)}", 0, 1)
+
+                    # Pattern evidence
+                    if pattern.get("evidence"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, "Evidence:", 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        evidence = pattern["evidence"]
+                        if isinstance(evidence, list):
+                            for item in evidence[:3]:  # Limit to 3 items
+                                pdf.cell(5, 10, "*", 0, 0)
+                                pdf.multi_cell(0, 10, clean_text(item))
+                        else:
+                            pdf.multi_cell(0, 10, clean_text(evidence))
+
+                    # Pattern impact
+                    if pattern.get("impact"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, "Impact:", 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 10, clean_text(pattern["impact"]))
+
+                    # Pattern suggested actions
+                    if pattern.get("suggested_actions"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, "Suggested Actions:", 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        actions = pattern["suggested_actions"]
+                        if isinstance(actions, list):
+                            for action in actions[:3]:  # Limit to 3 actions
+                                pdf.cell(5, 10, "*", 0, 0)
+                                pdf.multi_cell(0, 10, clean_text(action))
+                        else:
+                            pdf.multi_cell(0, 10, clean_text(actions))
 
                     pdf.ln(5)
 
@@ -330,6 +510,17 @@ class ExportService:
                     name = persona.get("name", "Unnamed Persona")
                     pdf.cell(0, 10, clean_text(name), 0, 1)
 
+                    # Persona archetype
+                    if persona.get("archetype"):
+                        pdf.set_font("Arial", "I", 10)
+                        pdf.cell(
+                            0,
+                            10,
+                            f"Archetype: {clean_text(persona['archetype'])}",
+                            0,
+                            1,
+                        )
+
                     # Persona description
                     if persona.get("description") or persona.get("summary"):
                         pdf.set_font("Arial", "I", 10)
@@ -340,6 +531,26 @@ class ExportService:
                         if isinstance(description, dict) and description.get("value"):
                             description = description["value"]
                         pdf.multi_cell(0, 10, clean_text(description))
+
+                    # Demographics
+                    if persona.get("demographics"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Demographics:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        demographics = persona["demographics"]
+                        if isinstance(demographics, dict) and demographics.get("value"):
+                            demographics = demographics["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(demographics)))
+
+                    # Goals and motivations
+                    if persona.get("goals_and_motivations"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Goals and Motivations:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        goals = persona["goals_and_motivations"]
+                        if isinstance(goals, dict) and goals.get("value"):
+                            goals = goals["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(goals)))
 
                     # Role context
                     if persona.get("role_context"):
@@ -374,6 +585,58 @@ class ExportService:
                             pdf.set_font("Arial", "", 10)
                             pdf.multi_cell(0, 10, clean_text(responsibilities))
 
+                    # Skills and expertise
+                    if persona.get("skills_and_expertise"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Skills and Expertise:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        skills = persona["skills_and_expertise"]
+                        if isinstance(skills, dict) and skills.get("value"):
+                            skills = skills["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(skills)))
+
+                    # Workflow and environment
+                    if persona.get("workflow_and_environment"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Workflow and Environment:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        workflow = persona["workflow_and_environment"]
+                        if isinstance(workflow, dict) and workflow.get("value"):
+                            workflow = workflow["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(workflow)))
+
+                    # Challenges and frustrations
+                    if persona.get("challenges_and_frustrations"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(
+                            0, 10, clean_text("Challenges and Frustrations:"), 0, 1
+                        )
+                        pdf.set_font("Arial", "", 10)
+                        challenges = persona["challenges_and_frustrations"]
+                        if isinstance(challenges, dict) and challenges.get("value"):
+                            challenges = challenges["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(challenges)))
+
+                    # Needs and desires
+                    if persona.get("needs_and_desires"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Needs and Desires:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        needs = persona["needs_and_desires"]
+                        if isinstance(needs, dict) and needs.get("value"):
+                            needs = needs["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(needs)))
+
+                    # Technology and tools
+                    if persona.get("technology_and_tools"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Technology and Tools:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        tech = persona["technology_and_tools"]
+                        if isinstance(tech, dict) and tech.get("value"):
+                            tech = tech["value"]
+                        pdf.multi_cell(0, 10, clean_text(str(tech)))
+
                     # Pain points
                     if persona.get("pain_points"):
                         pdf.set_font("Arial", "B", 10)
@@ -394,6 +657,21 @@ class ExportService:
                         else:
                             pdf.set_font("Arial", "", 10)
                             pdf.multi_cell(0, 10, clean_text(pain_points))
+
+                    # Key quotes
+                    if persona.get("key_quotes"):
+                        pdf.set_font("Arial", "B", 10)
+                        pdf.cell(0, 10, clean_text("Key Quotes:"), 0, 1)
+                        pdf.set_font("Arial", "", 10)
+                        quotes = persona["key_quotes"]
+                        if isinstance(quotes, dict) and quotes.get("value"):
+                            quotes = quotes["value"]
+                        if isinstance(quotes, list):
+                            for quote in quotes[:3]:  # Limit to 3 quotes
+                                pdf.cell(5, 10, "*", 0, 0)
+                                pdf.multi_cell(0, 10, clean_text(str(quote)))
+                        else:
+                            pdf.multi_cell(0, 10, clean_text(str(quotes)))
 
                     pdf.ln(5)
 
@@ -433,16 +711,24 @@ class ExportService:
                                     pdf.multi_cell(
                                         0,
                                         10,
-                                        str(insight.get("topic", "Untitled Insight")),
+                                        clean_text(
+                                            str(
+                                                insight.get("topic", "Untitled Insight")
+                                            )
+                                        ),
                                     )
 
                                     pdf.set_font("Arial", "", 10)
                                     pdf.multi_cell(
-                                        0, 10, str(insight.get("observation", ""))
+                                        0,
+                                        10,
+                                        clean_text(str(insight.get("observation", ""))),
                                     )
 
                                     # Add evidence if available
                                     if insight.get("evidence"):
+                                        pdf.set_font("Arial", "B", 10)
+                                        pdf.cell(0, 10, clean_text("Evidence:"), 0, 1)
                                         pdf.set_font("Arial", "I", 9)
                                         evidence = insight["evidence"]
                                         if isinstance(evidence, list):
@@ -453,6 +739,21 @@ class ExportService:
                                                 pdf.multi_cell(0, 10, clean_text(item))
                                         else:
                                             pdf.multi_cell(0, 10, clean_text(evidence))
+
+                                    # Add implication if available
+                                    if insight.get("implication"):
+                                        pdf.set_font("Arial", "B", 10)
+                                        pdf.cell(
+                                            0, 10, clean_text("Implication:"), 0, 1
+                                        )
+                                        pdf.set_font("Arial", "", 10)
+                                        pdf.multi_cell(
+                                            0,
+                                            10,
+                                            clean_text(
+                                                str(insight.get("implication", ""))
+                                            ),
+                                        )
 
                                     # Add recommendation if available
                                     if insight.get("recommendation"):
@@ -471,11 +772,13 @@ class ExportService:
 
                                     # Add priority if available
                                     if insight.get("priority"):
+                                        pdf.set_font("Arial", "B", 10)
+                                        pdf.cell(0, 10, clean_text("Priority:"), 0, 1)
                                         pdf.set_font("Arial", "", 10)
                                         pdf.cell(
                                             0,
                                             10,
-                                            f"Priority: {clean_text(insight.get('priority', ''))}",
+                                            clean_text(insight.get("priority", "")),
                                             0,
                                             1,
                                         )
