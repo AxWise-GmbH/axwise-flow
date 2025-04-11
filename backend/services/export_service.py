@@ -58,22 +58,7 @@ class ExportService:
             raise ValueError(f"Analysis result {result_id} not found")
 
         # Extract data from result
-        try:
-            # First try to access the results field directly
-            if result.results and isinstance(result.results, dict):
-                data = result.results
-            # If that doesn't work, try to use the result_data property
-            elif result.result_data:
-                if isinstance(result.result_data, str):
-                    data = json.loads(result.result_data)
-                else:
-                    data = result.result_data
-            else:
-                # Fallback to empty dict if no data is available
-                data = {}
-        except Exception as e:
-            logger.error(f"Error extracting data from result: {str(e)}")
-            data = {}
+        data = self._extract_data_from_result(result)
 
         # Generate PDF with error handling
         try:
@@ -101,16 +86,8 @@ class ExportService:
                     "Please try again or contact support if the issue persists."
                 ),
             )
-            # For Python 3, we need to encode with latin-1 as per FPDF documentation
-            try:
-                return pdf.output(dest="S").encode("latin-1")
-            except Exception:
-                # Try with errors='replace' as a fallback
-                try:
-                    return pdf.output(dest="S").encode("latin-1", errors="replace")
-                except Exception:
-                    # Last resort - try to return something
-                    return pdf.output(dest="S")
+            # Encode and return the PDF
+            return self._encode_pdf_output(pdf)
 
     async def generate_analysis_markdown(self, result_id: int) -> str:
         """
@@ -128,22 +105,7 @@ class ExportService:
             raise ValueError(f"Analysis result {result_id} not found")
 
         # Extract data from result
-        try:
-            # First try to access the results field directly
-            if result.results and isinstance(result.results, dict):
-                data = result.results
-            # If that doesn't work, try to use the result_data property
-            elif result.result_data:
-                if isinstance(result.result_data, str):
-                    data = json.loads(result.result_data)
-                else:
-                    data = result.result_data
-            else:
-                # Fallback to empty dict if no data is available
-                data = {}
-        except Exception as e:
-            logger.error(f"Error extracting data from result: {str(e)}")
-            data = {}
+        data = self._extract_data_from_result(result)
 
         # Generate Markdown with error handling
         try:
@@ -152,6 +114,169 @@ class ExportService:
             logger.error(f"Error generating Markdown report: {str(e)}")
             # Create a simple error Markdown
             return f"# Error Generating Report\n\nAn error occurred while generating the report: {str(e)}\n\nPlease try again or contact support if the issue persists."
+
+    def _render_insights(self, pdf, insights):
+        """
+        Render insights to PDF
+
+        Args:
+            pdf: FPDF object
+            insights: List of insights to render
+        """
+        for i, insight in enumerate(insights):
+            pdf.set_font("Arial", "", 10)
+            pdf.cell(5, 10, f"{i+1}.", 0, 0)
+
+            try:
+                if isinstance(insight, dict):
+                    # Format insight based on available fields
+                    if insight.get("topic") and insight.get("observation"):
+                        # This is a structured insight with topic and observation
+                        pdf.set_font("Arial", "B", 11)
+                        pdf.multi_cell(
+                            0,
+                            10,
+                            clean_text(str(insight.get("topic", "Untitled Insight"))),
+                        )
+
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(
+                            0, 10, clean_text(str(insight.get("observation", "")))
+                        )
+
+                        # Add evidence if available
+                        if insight.get("evidence"):
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 10, clean_text("Evidence:"), 0, 1)
+                            pdf.set_font("Arial", "I", 9)
+                            evidence = insight["evidence"]
+                            if isinstance(evidence, list):
+                                for item in evidence[:3]:  # Limit to 3 evidence items
+                                    pdf.cell(5, 10, "*", 0, 0)
+                                    pdf.multi_cell(0, 10, clean_text(item))
+                            else:
+                                pdf.multi_cell(0, 10, clean_text(evidence))
+
+                        # Add implication if available
+                        if insight.get("implication"):
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 10, clean_text("Implication:"), 0, 1)
+                            pdf.set_font("Arial", "", 10)
+                            pdf.multi_cell(
+                                0, 10, clean_text(str(insight.get("implication", "")))
+                            )
+
+                        # Add recommendation if available
+                        if insight.get("recommendation"):
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 10, clean_text("Recommendation:"), 0, 1)
+                            pdf.set_font("Arial", "", 10)
+                            pdf.multi_cell(
+                                0,
+                                10,
+                                clean_text(insight.get("recommendation", "")),
+                            )
+
+                        # Add priority if available
+                        if insight.get("priority"):
+                            pdf.set_font("Arial", "B", 10)
+                            pdf.cell(0, 10, clean_text("Priority:"), 0, 1)
+                            pdf.set_font("Arial", "", 10)
+                            pdf.cell(
+                                0,
+                                10,
+                                clean_text(insight.get("priority", "")),
+                                0,
+                                1,
+                            )
+                    # Try to get text field
+                    elif insight.get("text"):
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 10, clean_text(insight["text"]))
+                    # Try to get description field
+                    elif insight.get("description"):
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 10, clean_text(insight["description"]))
+                    # If no text or description, convert the whole dict to string
+                    else:
+                        pdf.set_font("Arial", "", 10)
+                        pdf.multi_cell(0, 10, clean_text(insight))
+                else:
+                    pdf.set_font("Arial", "", 10)
+                    pdf.multi_cell(0, 10, clean_text(insight))
+
+                # Add space between insights
+                pdf.ln(5)
+            except Exception as e:
+                logger.error(f"Error processing insight: {str(e)}")
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 10, "Error processing insight")
+
+    def _render_markdown_insights(self, md, insights):
+        """
+        Render insights to Markdown
+
+        Args:
+            md: List of Markdown lines
+            insights: List of insights to render
+        """
+        for i, insight in enumerate(insights):
+            try:
+                if isinstance(insight, dict):
+                    # Format insight based on available fields
+                    if insight.get("topic") and insight.get("observation"):
+                        # This is a structured insight with topic and observation
+                        md.append(
+                            f"#### {i+1}. {str(insight.get('topic', 'Untitled Insight'))}\n"
+                        )
+                        md.append(
+                            f"**Observation:** {str(insight.get('observation', ''))}\n"
+                        )
+
+                        # Add evidence if available
+                        if insight.get("evidence"):
+                            md.append("**Evidence:**\n")
+                            evidence = insight["evidence"]
+                            if isinstance(evidence, list):
+                                for (
+                                    item
+                                ) in evidence:  # Include all evidence items in Markdown
+                                    md.append(f"- {str(item)}\n")
+                            else:
+                                md.append(f"{str(evidence)}\n")
+                            md.append("\n")
+
+                        # Add implication if available
+                        if insight.get("implication"):
+                            md.append(
+                                f"**Implication:** {str(insight.get('implication', ''))}\n\n"
+                            )
+
+                        # Add recommendation if available
+                        if insight.get("recommendation"):
+                            md.append(
+                                f"**Recommendation:** {str(insight.get('recommendation', ''))}\n\n"
+                            )
+
+                        # Add priority if available
+                        if insight.get("priority"):
+                            md.append(
+                                f"**Priority:** {str(insight.get('priority', ''))}\n\n"
+                            )
+                    # Try to get text field
+                    elif insight.get("text"):
+                        md.append(f"#### {i+1}. {str(insight['text'])}\n\n")
+                    # Try to get description field
+                    elif insight.get("description"):
+                        md.append(f"#### {i+1}. {str(insight['description'])}\n\n")
+                    # If no text or description, convert the whole dict to string
+                    else:
+                        md.append(f"#### {i+1}. {str(insight)}\n\n")
+                else:
+                    md.append(f"#### {i+1}. {str(insight)}\n\n")
+            except Exception as e:
+                logger.error(f"Error processing insight: {str(e)}")
+                md.append(f"#### {i+1}. Error processing insight\n\n")
 
     def _get_analysis_result(self, result_id: int) -> Optional[AnalysisResult]:
         """
@@ -167,6 +292,75 @@ class ExportService:
             )
             .first()
         )
+
+    def _encode_pdf_output(self, pdf: FPDF) -> bytes:
+        """
+        Encode PDF output with proper encoding
+
+        Args:
+            pdf: FPDF object
+
+        Returns:
+            bytes: Encoded PDF content
+        """
+        try:
+            # For Python 3, we need to encode with latin-1 as per FPDF documentation
+            return pdf.output(dest="S").encode("latin-1")
+        except Exception as e:
+            logger.error(f"Error encoding PDF output: {str(e)}")
+            # Try with errors='replace' as a fallback
+            try:
+                return pdf.output(dest="S").encode("latin-1", errors="replace")
+            except Exception as e:
+                logger.error(f"Error encoding PDF with replace: {str(e)}")
+                # Last resort - try to return something
+                return pdf.output(dest="S")
+
+    def _extract_field_value(self, data: Dict[str, Any], field: str) -> Any:
+        """
+        Extract value from a field that might be a nested dictionary with a 'value' key
+
+        Args:
+            data: Dictionary containing the field
+            field: Field name to extract
+
+        Returns:
+            Any: Extracted value
+        """
+        if field not in data:
+            return None
+
+        value = data[field]
+        if isinstance(value, dict) and value.get("value") is not None:
+            return value["value"]
+        return value
+
+    def _extract_data_from_result(self, result: AnalysisResult) -> Dict[str, Any]:
+        """
+        Extract data from analysis result
+
+        Args:
+            result: AnalysisResult object
+
+        Returns:
+            Dict[str, Any]: Extracted data
+        """
+        try:
+            # First try to access the results field directly
+            if result.results and isinstance(result.results, dict):
+                return result.results
+            # If that doesn't work, try to use the result_data property
+            elif result.result_data:
+                if isinstance(result.result_data, str):
+                    return json.loads(result.result_data)
+                else:
+                    return result.result_data
+            else:
+                # Fallback to empty dict if no data is available
+                return {}
+        except Exception as e:
+            logger.error(f"Error extracting data from result: {str(e)}")
+            return {}
 
     def _create_pdf_report(self, data: Dict[str, Any], result: AnalysisResult) -> bytes:
         """
@@ -285,23 +479,15 @@ class ExportService:
                     pdf.cell(0, 10, clean_text(f"{name}"), 0, 1)
 
                     # Theme definition
-                    if theme.get("definition"):
+                    definition = self._extract_field_value(theme, "definition")
+                    if definition:
                         pdf.set_font("Arial", "I", 10)
-                        definition = theme["definition"]
-                        if isinstance(definition, dict) and definition.get("value"):
-                            definition = definition["value"]
                         pdf.multi_cell(0, 10, f"Definition: {clean_text(definition)}")
 
                     # Theme frequency
-                    if theme.get("frequency"):
+                    frequency = self._extract_field_value(theme, "frequency")
+                    if frequency is not None:
                         pdf.set_font("Arial", "", 10)
-                        frequency = theme["frequency"]
-                        # Handle case where frequency might be a dict
-                        if (
-                            isinstance(frequency, dict)
-                            and frequency.get("value") is not None
-                        ):
-                            frequency = frequency["value"]
                         # Ensure frequency is a number
                         try:
                             frequency = float(frequency)
@@ -310,19 +496,13 @@ class ExportService:
                             # If frequency is not a number, just display it as text
                             pdf.cell(0, 10, f"Frequency: {clean_text(frequency)}", 0, 1)
 
-                    # Theme sentiment
-                    sentiment_field = theme.get(
-                        "sentiment_estimate", theme.get("sentiment")
-                    )
-                    if sentiment_field is not None:
+                    # Theme sentiment - try sentiment_estimate first, then sentiment
+                    sentiment = self._extract_field_value(theme, "sentiment_estimate")
+                    if sentiment is None:
+                        sentiment = self._extract_field_value(theme, "sentiment")
+
+                    if sentiment is not None:
                         pdf.set_font("Arial", "", 10)
-                        sentiment = sentiment_field
-                        # Handle case where sentiment might be a dict
-                        if (
-                            isinstance(sentiment, dict)
-                            and sentiment.get("value") is not None
-                        ):
-                            sentiment = sentiment["value"]
                         # Ensure sentiment is a number
                         try:
                             sentiment = float(sentiment)
@@ -349,31 +529,31 @@ class ExportService:
                             )
 
                     # Theme keywords
-                    if theme.get("keywords"):
+                    keywords = self._extract_field_value(theme, "keywords")
+                    if keywords:
                         pdf.set_font("Arial", "B", 10)
                         pdf.cell(0, 10, "Keywords:", 0, 1)
                         pdf.set_font("Arial", "", 10)
-                        keywords = theme["keywords"]
                         if isinstance(keywords, list):
                             pdf.multi_cell(0, 10, clean_text(", ".join(keywords)))
                         else:
                             pdf.multi_cell(0, 10, clean_text(str(keywords)))
 
                     # Theme codes
-                    if theme.get("codes"):
+                    codes = self._extract_field_value(theme, "codes")
+                    if codes:
                         pdf.set_font("Arial", "B", 10)
                         pdf.cell(0, 10, "Codes:", 0, 1)
                         pdf.set_font("Arial", "", 10)
-                        codes = theme["codes"]
                         if isinstance(codes, list):
                             pdf.multi_cell(0, 10, clean_text(", ".join(codes)))
                         else:
                             pdf.multi_cell(0, 10, clean_text(str(codes)))
 
                     # Theme reliability
-                    if theme.get("reliability"):
+                    reliability = self._extract_field_value(theme, "reliability")
+                    if reliability is not None:
                         pdf.set_font("Arial", "", 10)
-                        reliability = theme["reliability"]
                         try:
                             reliability = float(reliability)
                             pdf.cell(0, 10, f"Reliability: {reliability:.2f}", 0, 1)
@@ -382,16 +562,14 @@ class ExportService:
                                 0, 10, f"Reliability: {clean_text(reliability)}", 0, 1
                             )
 
-                    # Example quotes/statements
-                    statements_field = theme.get(
-                        "statements",
-                        theme.get("examples", theme.get("example_quotes", [])),
-                    )
-                    if statements_field:
-                        quotes = statements_field
-                        # Handle case where quotes might be a dict
-                        if isinstance(quotes, dict) and quotes.get("value"):
-                            quotes = quotes["value"]
+                    # Example quotes/statements - try different field names
+                    quotes = self._extract_field_value(theme, "statements")
+                    if quotes is None:
+                        quotes = self._extract_field_value(theme, "examples")
+                    if quotes is None:
+                        quotes = self._extract_field_value(theme, "example_quotes")
+
+                    if quotes:
                         if not isinstance(quotes, list):
                             quotes = [str(quotes)]
                         if quotes:
@@ -497,6 +675,25 @@ class ExportService:
                             pdf.multi_cell(0, 10, clean_text(actions))
 
                     pdf.ln(5)
+
+            # Add key insights section if available
+            if data and data.get("insights"):
+                pdf.add_page()
+                pdf.set_font("Arial", "B", 14)
+                pdf.cell(0, 10, clean_text("Key Insights"), 0, 1)
+
+                insights = []
+                # Handle case where insights might be a dict with patterns
+                if isinstance(data["insights"], dict) and data["insights"].get(
+                    "patterns"
+                ):
+                    insights = data["insights"]["patterns"]
+                # Handle case where insights might be a list
+                elif isinstance(data["insights"], list):
+                    insights = data["insights"]
+
+                if insights:
+                    self._render_insights(pdf, insights)
 
             # Add personas section if available
             if data and data.get("personas"):
@@ -675,151 +872,10 @@ class ExportService:
 
                     pdf.ln(5)
 
-            # Add insights section if available
-            if data and (data.get("insights") or data.get("prioritized_insights")):
-                pdf.add_page()
-                pdf.set_font("Arial", "B", 14)
-                pdf.cell(0, 10, clean_text("Key Insights"), 0, 1)
-
-                # Get insights from data
-                insights = []
-                if data.get("insights"):
-                    # Handle case where insights might be a dict with patterns
-                    if isinstance(data["insights"], dict) and data["insights"].get(
-                        "patterns"
-                    ):
-                        insights = data["insights"]["patterns"]
-                    # Handle case where insights might be a list
-                    elif isinstance(data["insights"], list):
-                        insights = data["insights"]
-
-                # If no insights found, try prioritized_insights
-                if not insights and data.get("prioritized_insights"):
-                    insights = data.get("prioritized_insights")
-
-                if insights:
-                    for i, insight in enumerate(insights):
-                        pdf.set_font("Arial", "", 10)
-                        pdf.cell(5, 10, f"{i+1}.", 0, 0)
-
-                        try:
-                            if isinstance(insight, dict):
-                                # Format insight based on available fields
-                                if insight.get("topic") and insight.get("observation"):
-                                    # This is a structured insight with topic and observation
-                                    pdf.set_font("Arial", "B", 11)
-                                    pdf.multi_cell(
-                                        0,
-                                        10,
-                                        clean_text(
-                                            str(
-                                                insight.get("topic", "Untitled Insight")
-                                            )
-                                        ),
-                                    )
-
-                                    pdf.set_font("Arial", "", 10)
-                                    pdf.multi_cell(
-                                        0,
-                                        10,
-                                        clean_text(str(insight.get("observation", ""))),
-                                    )
-
-                                    # Add evidence if available
-                                    if insight.get("evidence"):
-                                        pdf.set_font("Arial", "B", 10)
-                                        pdf.cell(0, 10, clean_text("Evidence:"), 0, 1)
-                                        pdf.set_font("Arial", "I", 9)
-                                        evidence = insight["evidence"]
-                                        if isinstance(evidence, list):
-                                            for item in evidence[
-                                                :3
-                                            ]:  # Limit to 3 evidence items
-                                                pdf.cell(5, 10, "*", 0, 0)
-                                                pdf.multi_cell(0, 10, clean_text(item))
-                                        else:
-                                            pdf.multi_cell(0, 10, clean_text(evidence))
-
-                                    # Add implication if available
-                                    if insight.get("implication"):
-                                        pdf.set_font("Arial", "B", 10)
-                                        pdf.cell(
-                                            0, 10, clean_text("Implication:"), 0, 1
-                                        )
-                                        pdf.set_font("Arial", "", 10)
-                                        pdf.multi_cell(
-                                            0,
-                                            10,
-                                            clean_text(
-                                                str(insight.get("implication", ""))
-                                            ),
-                                        )
-
-                                    # Add recommendation if available
-                                    if insight.get("recommendation"):
-                                        pdf.set_font("Arial", "B", 10)
-                                        pdf.cell(
-                                            0, 10, clean_text("Recommendation:"), 0, 1
-                                        )
-                                        pdf.set_font("Arial", "", 10)
-                                        pdf.multi_cell(
-                                            0,
-                                            10,
-                                            clean_text(
-                                                insight.get("recommendation", "")
-                                            ),
-                                        )
-
-                                    # Add priority if available
-                                    if insight.get("priority"):
-                                        pdf.set_font("Arial", "B", 10)
-                                        pdf.cell(0, 10, clean_text("Priority:"), 0, 1)
-                                        pdf.set_font("Arial", "", 10)
-                                        pdf.cell(
-                                            0,
-                                            10,
-                                            clean_text(insight.get("priority", "")),
-                                            0,
-                                            1,
-                                        )
-                                # Try to get text field
-                                elif insight.get("text"):
-                                    pdf.set_font("Arial", "", 10)
-                                    pdf.multi_cell(0, 10, clean_text(insight["text"]))
-                                # Try to get description field
-                                elif insight.get("description"):
-                                    pdf.set_font("Arial", "", 10)
-                                    pdf.multi_cell(
-                                        0, 10, clean_text(insight["description"])
-                                    )
-                                # If no text or description, convert the whole dict to string
-                                else:
-                                    pdf.set_font("Arial", "", 10)
-                                    pdf.multi_cell(0, 10, clean_text(insight))
-                            else:
-                                pdf.set_font("Arial", "", 10)
-                                pdf.multi_cell(0, 10, clean_text(insight))
-
-                            # Add space between insights
-                            pdf.ln(5)
-                        except Exception as e:
-                            logger.error(f"Error processing insight: {str(e)}")
-                            pdf.set_font("Arial", "", 10)
-                            pdf.multi_cell(0, 10, "Error processing insight")
+            # Insights section is already added earlier
 
             # Get PDF as bytes
-            try:
-                # For Python 3, we need to encode with latin-1 as per FPDF documentation
-                return pdf.output(dest="S").encode("latin-1")
-            except Exception as e:
-                logger.error(f"Error encoding PDF output: {str(e)}")
-                # Try with errors='replace' as a fallback
-                try:
-                    return pdf.output(dest="S").encode("latin-1", errors="replace")
-                except Exception as e:
-                    logger.error(f"Error encoding PDF with replace: {str(e)}")
-                    # Last resort - try to return something
-                    return pdf.output(dest="S")
+            return self._encode_pdf_output(pdf)
 
         except Exception as e:
             logger.error(f"Error generating PDF: {str(e)}")
@@ -994,84 +1050,18 @@ class ExportService:
                     md.append("\n")
 
         # Add insights section if available
-        if data and (data.get("insights") or data.get("prioritized_insights")):
+        if data and data.get("insights"):
             md.append("## Key Insights\n")
 
-            # Get insights from data
             insights = []
-            if data.get("insights"):
-                # Handle case where insights might be a dict with patterns
-                if isinstance(data["insights"], dict) and data["insights"].get(
-                    "patterns"
-                ):
-                    insights = data["insights"]["patterns"]
-                # Handle case where insights might be a list
-                elif isinstance(data["insights"], list):
-                    insights = data["insights"]
-
-            # If no insights found, try prioritized_insights
-            if not insights and data.get("prioritized_insights"):
-                insights = data.get("prioritized_insights")
+            # Handle case where insights might be a dict with patterns
+            if isinstance(data["insights"], dict) and data["insights"].get("patterns"):
+                insights = data["insights"]["patterns"]
+            # Handle case where insights might be a list
+            elif isinstance(data["insights"], list):
+                insights = data["insights"]
 
             if insights:
-                for i, insight in enumerate(insights):
-                    try:
-                        if isinstance(insight, dict):
-                            # Format insight based on available fields
-                            if insight.get("topic") and insight.get("observation"):
-                                # This is a structured insight with topic and observation
-                                md.append(
-                                    f"### {i+1}. {str(insight.get('topic', 'Untitled Insight'))}\n"
-                                )
-                                md.append(
-                                    f"**Observation:** {str(insight.get('observation', ''))}\n"
-                                )
-
-                                # Add evidence if available
-                                if insight.get("evidence"):
-                                    md.append("**Evidence:**\n")
-                                    evidence = insight["evidence"]
-                                    if isinstance(evidence, list):
-                                        for (
-                                            item
-                                        ) in (
-                                            evidence
-                                        ):  # Include all evidence items in Markdown
-                                            md.append(f"- {str(item)}\n")
-                                    else:
-                                        md.append(f"{str(evidence)}\n")
-                                    md.append("\n")
-
-                                # Add implication if available
-                                if insight.get("implication"):
-                                    md.append(
-                                        f"**Implication:** {str(insight.get('implication', ''))}\n\n"
-                                    )
-
-                                # Add recommendation if available
-                                if insight.get("recommendation"):
-                                    md.append(
-                                        f"**Recommendation:** {str(insight.get('recommendation', ''))}\n\n"
-                                    )
-
-                                # Add priority if available
-                                if insight.get("priority"):
-                                    md.append(
-                                        f"**Priority:** {str(insight.get('priority', ''))}\n\n"
-                                    )
-                            # Try to get text field
-                            elif insight.get("text"):
-                                md.append(f"{i+1}. {str(insight['text'])}\n\n")
-                            # Try to get description field
-                            elif insight.get("description"):
-                                md.append(f"{i+1}. {str(insight['description'])}\n\n")
-                            # If no text or description, convert the whole dict to string
-                            else:
-                                md.append(f"{i+1}. {str(insight)}\n\n")
-                        else:
-                            md.append(f"{i+1}. {str(insight)}\n\n")
-                    except Exception as e:
-                        logger.error(f"Error processing insight: {str(e)}")
-                        md.append(f"{i+1}. Error processing insight\n\n")
+                self._render_markdown_insights(md, insights)
 
         return "\n".join(md)
