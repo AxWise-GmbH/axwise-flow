@@ -21,12 +21,13 @@ import { PatternList } from './PatternList';
 import { PersonaList } from './PersonaList';
 import { InsightList } from './InsightList';
 import { PriorityInsights } from './PriorityInsights';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSearchParams } from 'next/navigation';
 import CustomErrorBoundary from './ErrorBoundary';
 import { apiClient } from '@/lib/apiClient'; // Keep apiClient if needed elsewhere
 import { LoadingSpinner } from '@/components/loading-spinner'; // Import LoadingSpinner
+import { ExportButton } from './ExportButton';
 import type { DetailedAnalysisResult } from '@/types/api'; // Remove PrioritizedInsight import
 // import { useAnalysisStore } from '@/store/useAnalysisStore'; // Remove store import if only used for priority insights
 
@@ -165,11 +166,16 @@ export default function VisualizationTabsRefactored({
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Analysis Results: {analysis?.fileName}</CardTitle>
-        <CardDescription>
-          Created {analysis?.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Date unavailable'} • {analysis?.llmProvider || 'AI'} Analysis
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle>Analysis Results: {analysis?.fileName}</CardTitle>
+          <CardDescription>
+            Created {analysis?.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Date unavailable'} • {analysis?.llmProvider || 'AI'} Analysis
+          </CardDescription>
+        </div>
+        {effectiveAnalysisId && !loading && !fetchError && (
+          <ExportButton analysisId={effectiveAnalysisId} />
+        )}
       </CardHeader>
 
       <CardContent>

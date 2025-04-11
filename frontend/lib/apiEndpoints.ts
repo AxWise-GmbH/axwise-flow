@@ -11,6 +11,10 @@ export const API_ENDPOINTS = {
   GET_RESULTS: (resultId: number) => `/api/results/${resultId}`,
   LIST_ANALYSES: '/api/analyses',
 
+  // Export
+  EXPORT_PDF: (resultId: number) => `/api/export/${resultId}/pdf`,
+  EXPORT_MARKDOWN: (resultId: number) => `/api/export/${resultId}/markdown`,
+
   // System
   HEALTH_CHECK: '/health'
 } as const;

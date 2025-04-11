@@ -34,13 +34,13 @@ const DocumentationTab = (): JSX.Element => { // Add return type
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="item-2">
             <AccordionTrigger>Data Formats</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4">
                 <p>The application supports the following data formats:</p>
-                
+
                 <div>
                   <h4 className="font-medium">JSON Format</h4>
                   <p className="mt-1 mb-2">
@@ -52,7 +52,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
     "interview_id": "123",
     "participant": "User A",
     "questions": [
-      { 
+      {
         "question": "What challenges do you face?",
         "answer": "The biggest challenge is integration."
       },
@@ -66,7 +66,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
 ]`}
                   </pre>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Text Format</h4>
                   <p className="mt-1 mb-2">
@@ -81,7 +81,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="item-3">
             <AccordionTrigger>LLM Providers</AccordionTrigger>
             <AccordionContent>
@@ -89,7 +89,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                 <p>
                   The application supports two LLM providers, each with different strengths:
                 </p>
-                
+
                 <div>
                   <h4 className="font-medium">Google Gemini</h4>
                   <ul className="list-disc pl-5">
@@ -99,7 +99,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     <li>Uses Gemini 2.0 Flash model</li>
                   </ul>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">OpenAI GPT</h4>
                   <ul className="list-disc pl-5">
@@ -112,7 +112,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="item-4">
             <AccordionTrigger>Visualization</AccordionTrigger>
             <AccordionContent>
@@ -120,7 +120,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                 <p>
                   The Visualization tab provides four different views of your analysis results:
                 </p>
-                
+
                 <div>
                   <h4 className="font-medium">Themes</h4>
                   <p>
@@ -128,7 +128,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     Larger bubbles indicate themes mentioned more frequently.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Patterns</h4>
                   <p>
@@ -136,7 +136,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     Each pattern includes supporting evidence and confidence score.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Sentiment</h4>
                   <p>
@@ -144,7 +144,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     Includes overall sentiment distribution and individual statements.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Personas</h4>
                   <p>
@@ -155,7 +155,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="item-5">
             <AccordionTrigger>FAQ</AccordionTrigger>
             <AccordionContent>
@@ -166,7 +166,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     The maximum file size for uploads is 10MB.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">How long does analysis take?</h4>
                   <p>
@@ -174,7 +174,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     Typically, analysis takes 30 seconds to 2 minutes.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Are my interviews private?</h4>
                   <p>
@@ -182,11 +182,11 @@ const DocumentationTab = (): JSX.Element => { // Add return type
                     unless you choose to save the analysis.
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="font-medium">Can I export the results?</h4>
                   <p>
-                    This feature is coming in a future update.
+                    Yes! You can export your analysis results as PDF or Markdown documents. Look for the Export button in the top-right corner of the Visualization tab.
                   </p>
                 </div>
               </div>

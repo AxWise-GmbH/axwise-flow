@@ -3,6 +3,7 @@
 import { type PropsWithChildren, useEffect } from 'react';
 import Header from './Header';
 import { initializeAuth } from '@/lib/authUtils';
+import { Toaster } from '@/components/ui/toaster';
 
 interface AppLayoutProps extends PropsWithChildren {
   className?: string;
@@ -26,6 +27,7 @@ export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Ele
       <main className={`container mx-auto px-4 py-8 ${className}`}>
         {children}
       </main>
+      <Toaster />
     </div>
   );
 }

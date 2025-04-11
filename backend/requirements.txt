@@ -28,6 +28,7 @@ numpy==1.26.3 # Kept from original backend file
 pandas==2.1.4 # Kept from original backend file
 openpyxl>=3.1.2 # Required for Excel file processing with pandas
 beautifulsoup4==4.12.2 # Kept from original backend file
+fpdf>=1.7.2 # Required for PDF generation
 
 # Monitoring and logging
 structlog==24.1.0 # Added from root requirements
