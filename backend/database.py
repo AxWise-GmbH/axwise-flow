@@ -32,13 +32,13 @@ platform_name = os.name  # 'posix' for Mac/Linux, 'nt' for Windows
 # Get database URL from settings
 REDACTED_DATABASE_URL=***REDACTED***
 
-# If REDACTED_DATABASE_URL is not explicitly set or is the default PostgreSQL URL
-if (
-    not REDACTED_DATABASE_URL
-    or REDACTED_DATABASE_URL=***REDACTED*** "postgresql://postgres@localhost:5432/interview_insights"
-):
-    # On Windows, try to use PostgreSQL if credentials are provided
-    if platform_name == "nt" and db_user:
+# If REDACTED_DATABASE_URL is explicitly set to PostgreSQL, use it
+if REDACTED_DATABASE_URL and REDACTED_DATABASE_URL.startswith("postgresql://"):
+    logger.info(f"Using explicitly configured PostgreSQL database: {REDACTED_DATABASE_URL}")
+# Otherwise, determine based on platform and credentials
+else:
+    # On any platform, try to use PostgreSQL if credentials are provided
+    if db_user:
         if db_REDACTED_PASSWORD:
             safe_REDACTED_PASSWORD = quote_plus(db_REDACTED_PASSWORD)
             REDACTED_DATABASE_URL=***REDACTED***
@@ -46,11 +46,13 @@ if (
             )
         else:
             REDACTED_DATABASE_URL=***REDACTED***
-        logger.info(f"Using PostgreSQL database on Windows with URL: {REDACTED_DATABASE_URL}")
-    # On Mac/Linux or if no PostgreSQL credentials, use SQLite
+        logger.info(
+            f"Using PostgreSQL database on {platform_name} with URL: {REDACTED_DATABASE_URL}"
+        )
+    # If no PostgreSQL credentials, fall back to SQLite
     else:
         REDACTED_DATABASE_URL=***REDACTED***  # File-based instead of in-memory
-        logger.info(f"Using SQLite database on {platform_name} platform")
+        logger.info(f"Using SQLite database as fallback on {platform_name} platform")
 
 ***REMOVED*** engine configuration
 DB_POOL_SIZE = settings.db_pool_size

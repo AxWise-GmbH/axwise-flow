@@ -13,7 +13,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
-Base = declarative_base()
+# Import Base from database.py to ensure we use the same Base instance
+from .database import Base
 
 
 class User(Base):
