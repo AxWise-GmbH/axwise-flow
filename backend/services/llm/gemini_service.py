@@ -39,7 +39,7 @@ class GeminiService:
             config (Dict[str, Any]): Configuration for the Gemini service
         """
         self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
-        self.model = config.get("model", "gemini-2.0-flash")
+        self.model = config.get("model", "models/gemini-2.5-flash-preview-04-17")
         self.temperature = config.get("temperature", 0.0)
         self.max_tokens = config.get("max_tokens", 8192)
         self.top_p = config.get("top_p", 0.95)

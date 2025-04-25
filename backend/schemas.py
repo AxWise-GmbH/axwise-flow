@@ -57,7 +57,7 @@ class PersonaGenerationRequest(BaseModel):
         "gemini", description="LLM provider to use for persona generation"
     )
     llm_model: Optional[str] = Field(
-        "gemini-2.0-flash", description="Specific LLM model to use"
+        "models/gemini-2.5-flash-preview-04-17", description="Specific LLM model to use"
     )
 
     class Config:
@@ -65,7 +65,7 @@ class PersonaGenerationRequest(BaseModel):
             "example": {
                 "text": "I'm a frontend developer working on web applications. I typically use React, TypeScript, and sometimes Angular. My biggest challenge is dealing with legacy code that's poorly documented.",
                 "llm_provider": "gemini",
-                "llm_model": "gemini-2.0-flash",
+                "llm_model": "models/gemini-2.5-flash-preview-04-17",
             }
         }
 

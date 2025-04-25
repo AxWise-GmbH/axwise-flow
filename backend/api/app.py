@@ -118,7 +118,7 @@ app = FastAPI(
 
     Available LLM providers and models:
     - OpenAI: gpt-4o-2024-08-06
-    - Google: gemini-2.0-flash
+    - Google: models/gemini-2.5-flash-preview-04-17
 
     Authentication:
     - All endpoints (except /health) require Bearer token authentication
@@ -188,7 +188,7 @@ def get_persona_service():
                     (object,),
                     {
                         "provider": "gemini",
-                        "model": "gemini-2.0-flash",
+                        "model": "models/gemini-2.5-flash-preview-04-17",
                         "REDACTED_API_KEY": settings.llm_providers["gemini"].get("REDACTED_API_KEY", ""),
                         "temperature": 0.3,
                         "max_tokens": 2000,
