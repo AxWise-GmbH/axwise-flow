@@ -10,9 +10,6 @@
  *
  * This component focuses on displaying themes, their definitions, supporting statements,
  * and related metadata like reliability scores and codes when available.
- *
- * Note: This file was previously named ThemeChart.simplified.tsx, but it is now the only
- * ThemeChart implementation in the codebase. The original ThemeChart.tsx has been removed.
  */
 
 import React, { useState } from 'react';

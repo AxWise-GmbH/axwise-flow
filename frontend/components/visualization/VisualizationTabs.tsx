@@ -16,7 +16,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
  * without distinguishing between basic and enhanced analysis. The backend always runs enhanced
  * theme analysis, and we display all themes regardless of their process type.
  */
-import { ThemeChart } from './ThemeChart.simplified'; // This is now the canonical ThemeChart component
+import { ThemeChart } from './ThemeChart'; // The canonical ThemeChart component
 import { PatternList } from './PatternList';
 import { PersonaList } from './PersonaList';
 import { InsightList } from './InsightList';

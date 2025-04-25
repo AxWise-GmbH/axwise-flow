@@ -4,6 +4,7 @@ import os
 import asyncio
 import httpx
 import google.genai as genai
+from backend.utils.json_repair import repair_json
 import random
 from typing import Dict, Any, List, Optional, Union
 from domain.interfaces.llm_service import ILLMService
@@ -109,9 +110,11 @@ class GeminiService:
                     "top_p": 0.95,  # Lower top_p for more deterministic output
                     "top_k": 1,  # Force to 1 for JSON tasks regardless of config
                 }
-                # Add response_mime_type for JSON tasks
+                # Set generation parameters for JSON tasks
                 if is_json_task:
-                    config_params["response_mime_type"] = "application/json"
+                    # Note: response_mime_type is not supported in google-genai 1.1.0
+                    # We'll use our JSON repair utility instead
+                    pass
 
                 logger.debug(
                     f"JSON Task Generation Config for '{task}': {config_params}"
@@ -150,16 +153,12 @@ class GeminiService:
                 try:
                     result = json.loads(result_text)
                 except json.JSONDecodeError:
-                    import re
-
-                    json_match = re.search(
-                        r'```(?:json)?\s*({\s*".*}|\[\s*{.*}\s*\])\s*```',
-                        result_text,
-                        re.DOTALL,
-                    )
-                    if json_match:
-                        result = json.loads(json_match.group(1))
-                    else:
+                    # Try to repair the JSON
+                    try:
+                        repaired_json = repair_json(result_text)
+                        result = json.loads(repaired_json)
+                        logger.info("Successfully parsed insight JSON after repair.")
+                    except json.JSONDecodeError:
                         # Return a default structure if parsing fails
                         result = {
                             "insights": [
@@ -225,86 +224,29 @@ class GeminiService:
                     logger.debug(f"[{task}] Direct JSON parsing successful.")
                 except json.JSONDecodeError as e1:
                     logger.warning(
-                        f"[{task}] Direct JSON parsing failed: {e1}. Trying markdown extraction..."
+                        f"[{task}] Direct JSON parsing failed: {e1}. Trying JSON repair..."
                     )
 
-                    # Attempt 2: Extract from markdown code blocks
-                    import re
-
-                    json_str = None
-                    # Try object format first
-                    match = re.search(
-                        r"```(?:json)?\s*({[\s\S]*?})\s*```", result_text, re.DOTALL
-                    )
-                    if match:
-                        json_str = match.group(1).strip()
+                    # Attempt 2: Use the JSON repair utility
+                    try:
+                        # Repair the JSON string
+                        repaired_json = repair_json(result_text)
                         logger.debug(
-                            f"[{task}] Found potential JSON object in markdown block."
+                            f"[{task}] Repaired JSON: {repaired_json[:200]}..."
                         )
-                    else:
-                        # Try array format if object not found
-                        match = re.search(
-                            r"```(?:json)?\s*(\[[\s\S]*?\])\s*```",
-                            result_text,
-                            re.DOTALL,
-                        )
-                        if match:
-                            json_str = match.group(1).strip()
-                            logger.debug(
-                                f"[{task}] Found potential JSON array in markdown block."
-                            )
 
-                    if json_str:
-                        try:
-                            # Clean potential trailing commas before parsing
-                            cleaned_json_str = re.sub(r",\s*([}\]])", r"\1", json_str)
-                            result = json.loads(cleaned_json_str)
-                            logger.debug(
-                                f"[{task}] Successfully parsed JSON from markdown block."
-                            )
-                        except json.JSONDecodeError as e2:
-                            logger.error(
-                                f"[{task}] Failed to parse JSON extracted from markdown: {e2}"
-                            )
-                            # Fallback logic will be handled below if result is still None
-                    else:
-                        logger.warning(
-                            f"[{task}] No JSON markdown block found. Trying brace extraction..."
+                        # Try to parse the repaired JSON
+                        result = json.loads(repaired_json)
+                        logger.info(f"[{task}] Successfully parsed JSON after repair.")
+                    except json.JSONDecodeError as e2:
+                        logger.error(
+                            f"[{task}] Failed to parse JSON even after repair: {e2}"
                         )
-                        # Attempt 3: Extract between first { and last }
-                        try:
-                            start_index = result_text.find("{")
-                            end_index = result_text.rfind("}")
-                            if (
-                                start_index != -1
-                                and end_index != -1
-                                and end_index > start_index
-                            ):
-                                json_str_braces = result_text[
-                                    start_index : end_index + 1
-                                ]
-                                logger.debug(
-                                    f"[{task}] Found potential JSON between braces."
-                                )
-                                cleaned_json_str_braces = re.sub(
-                                    r",\s*([}\]])", r"\1", json_str_braces
-                                )
-                                result = json.loads(cleaned_json_str_braces)
-                                logger.debug(
-                                    f"[{task}] Successfully parsed JSON using brace method."
-                                )
-                            else:
-                                logger.warning(
-                                    f"[{task}] Could not find matching braces."
-                                )
-                        except json.JSONDecodeError as e3:
-                            logger.error(
-                                f"[{task}] Failed to parse JSON using brace method: {e3}"
-                            )
-                        except Exception as e_generic:
-                            logger.error(
-                                f"[{task}] Unexpected error during brace parsing: {e_generic}"
-                            )
+                        # Fallback logic will be handled below if result is still None
+                    except Exception as e_generic:
+                        logger.error(
+                            f"[{task}] Unexpected error during JSON repair: {e_generic}"
+                        )
 
                 # --- Fallback Logic (if result is still None after all attempts) ---
                 if result is None:

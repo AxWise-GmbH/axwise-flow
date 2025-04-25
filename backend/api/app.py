@@ -48,7 +48,7 @@ from backend.services.llm import LLMServiceFactory
 from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
 from backend.models import User, InterviewData, AnalysisResult
-from backend.config import validate_config
+from infrastructure.config.settings import settings
 from backend.services.processing.persona_formation import PersonaFormationService
 
 # Configure logging
@@ -295,7 +295,7 @@ async def analyze_data(
         # Validate configuration
         try:
             # Only validate the configuration for the provider we're using
-            validate_config(analysis_request.llm_provider)
+            settings.validate_llm_config(analysis_request.llm_provider)
         except Exception as e:
             logger.error(f"Configuration validation error: {str(e)}")
             raise HTTPException(

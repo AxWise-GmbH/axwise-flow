@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
  // Removed unused screen, fireEvent
-import { ThemeChart } from '../ThemeChart.simplified';
+import { ThemeChart } from '../ThemeChart';
 import type { AnalyzedTheme } from '@/types/api';
  // Use correct type
 

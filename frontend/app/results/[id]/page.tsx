@@ -11,7 +11,7 @@ import {
   useUIStore,
   useSelectedTab
 } from '@/store/useUIStore';
-import { ThemeChart } from '@/components/visualization/ThemeChart.simplified';
+import { ThemeChart } from '@/components/visualization/ThemeChart';
 import PatternList from '@/components/visualization/PatternList';
 import SentimentGraph from '@/components/visualization/SentimentGraph';
 import { PersonaList } from '@/components/visualization/PersonaList';
