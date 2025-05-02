@@ -227,10 +227,10 @@ class ExportService:
                     if insight.get("topic") and insight.get("observation"):
                         # This is a structured insight with topic and observation
                         md.append(
-                            f"#### {i+1}. {str(insight.get('topic', 'Untitled Insight'))}\n"
+                            f"#### {i+1}. {self._clean_markdown_text(insight.get('topic', 'Untitled Insight'))}\n"
                         )
                         md.append(
-                            f"**Observation:** {str(insight.get('observation', ''))}\n"
+                            f"**Observation:** {self._clean_markdown_text(insight.get('observation', ''))}\n"
                         )
 
                         # Add evidence if available
@@ -238,42 +238,45 @@ class ExportService:
                             md.append("**Evidence:**\n")
                             evidence = insight["evidence"]
                             if isinstance(evidence, list):
-                                for (
-                                    item
-                                ) in evidence:  # Include all evidence items in Markdown
-                                    md.append(f"- {str(item)}\n")
+                                # Process each evidence item with proper line breaks
+                                for item in evidence:
+                                    # Clean the item text and ensure it doesn't have excessive line breaks
+                                    clean_item = self._clean_markdown_text(item)
+                                    # Add the evidence item with proper formatting
+                                    md.append(f"- {clean_item}\n")
                             else:
-                                md.append(f"{str(evidence)}\n")
+                                md.append(f"{self._clean_markdown_text(evidence)}\n")
+                            # Add an extra line break after evidence section
                             md.append("\n")
 
                         # Add implication if available
                         if insight.get("implication"):
                             md.append(
-                                f"**Implication:** {str(insight.get('implication', ''))}\n\n"
+                                f"**Implication:** {self._clean_markdown_text(insight.get('implication', ''))}\n\n"
                             )
 
                         # Add recommendation if available
                         if insight.get("recommendation"):
                             md.append(
-                                f"**Recommendation:** {str(insight.get('recommendation', ''))}\n\n"
+                                f"**Recommendation:** {self._clean_markdown_text(insight.get('recommendation', ''))}\n\n"
                             )
 
                         # Add priority if available
                         if insight.get("priority"):
                             md.append(
-                                f"**Priority:** {str(insight.get('priority', ''))}\n\n"
+                                f"**Priority:** {self._clean_markdown_text(insight.get('priority', ''))}\n\n"
                             )
                     # Try to get text field
                     elif insight.get("text"):
-                        md.append(f"#### {i+1}. {str(insight['text'])}\n\n")
+                        md.append(f"#### {i+1}. {self._clean_markdown_text(insight['text'])}\n\n")
                     # Try to get description field
                     elif insight.get("description"):
-                        md.append(f"#### {i+1}. {str(insight['description'])}\n\n")
+                        md.append(f"#### {i+1}. {self._clean_markdown_text(insight['description'])}\n\n")
                     # If no text or description, convert the whole dict to string
                     else:
-                        md.append(f"#### {i+1}. {str(insight)}\n\n")
+                        md.append(f"#### {i+1}. {self._clean_markdown_text(str(insight))}\n\n")
                 else:
-                    md.append(f"#### {i+1}. {str(insight)}\n\n")
+                    md.append(f"#### {i+1}. {self._clean_markdown_text(str(insight))}\n\n")
             except Exception as e:
                 logger.error(f"Error processing insight: {str(e)}")
                 md.append(f"#### {i+1}. Error processing insight\n\n")
@@ -881,6 +884,31 @@ class ExportService:
             logger.error(f"Error generating PDF: {str(e)}")
             raise Exception(f"Failed to generate PDF: {str(e)}")
 
+    def _clean_markdown_text(self, text: str) -> str:
+        """
+        Clean text for Markdown output, ensuring proper line breaks and formatting
+
+        Args:
+            text: Text to clean
+
+        Returns:
+            str: Cleaned text
+        """
+        if not isinstance(text, str):
+            text = str(text)
+
+        # Replace problematic characters
+        text = text.replace('\r', '')
+        text = text.replace('\t', '  ')
+
+        # Normalize line endings
+        text = text.replace('\r\n', '\n')
+
+        # Remove excessive line breaks
+        text = text.replace('\n\n\n', '\n\n')
+
+        return text.strip()
+
     def _create_markdown_report(
         self, data: Dict[str, Any], result: AnalysisResult
     ) -> str:
@@ -992,14 +1020,49 @@ class ExportService:
             for persona in data["personas"]:
                 # Persona header
                 name = persona.get("name", "Unnamed Persona")
-                md.append(f"### {name}\n")
+                md.append(f"### {self._clean_markdown_text(name)}\n")
+
+                # Persona archetype if available
+                if persona.get("archetype"):
+                    archetype = self._clean_markdown_text(persona["archetype"])
+                    md.append(f"**Archetype:** {archetype}\n\n")
 
                 # Persona description
                 if persona.get("description") or persona.get("summary"):
                     description = persona.get("description", persona.get("summary", ""))
                     if isinstance(description, dict) and description.get("value"):
                         description = description["value"]
-                    md.append(f"*{str(description)}*\n")
+                    md.append(f"*{self._clean_markdown_text(description)}*\n\n")
+
+                # Demographics
+                if persona.get("demographics"):
+                    md.append("**Demographics:**\n")
+                    demographics = persona["demographics"]
+                    if isinstance(demographics, dict):
+                        if demographics.get("value"):
+                            md.append(f"{self._clean_markdown_text(demographics['value'])}\n\n")
+                        if demographics.get("evidence") and isinstance(demographics["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in demographics["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(demographics))}\n\n")
+
+                # Goals and motivations
+                if persona.get("goals_and_motivations"):
+                    md.append("**Goals and Motivations:**\n")
+                    goals = persona["goals_and_motivations"]
+                    if isinstance(goals, dict):
+                        if goals.get("value"):
+                            md.append(f"{self._clean_markdown_text(goals['value'])}\n\n")
+                        if goals.get("evidence") and isinstance(goals["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in goals["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(goals))}\n\n")
 
                 # Role context
                 if persona.get("role_context"):
@@ -1007,33 +1070,73 @@ class ExportService:
                     role_context = persona["role_context"]
                     if isinstance(role_context, dict) and role_context.get("value"):
                         role_context = role_context["value"]
-                    md.append(f"{str(role_context)}\n\n")
+                    md.append(f"{self._clean_markdown_text(str(role_context))}\n\n")
+
+                # Skills and expertise
+                if persona.get("skills_and_expertise"):
+                    md.append("**Skills and Expertise:**\n")
+                    skills = persona["skills_and_expertise"]
+                    if isinstance(skills, dict):
+                        if skills.get("value"):
+                            md.append(f"{self._clean_markdown_text(skills['value'])}\n\n")
+                        if skills.get("evidence") and isinstance(skills["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in skills["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(skills))}\n\n")
+
+                # Workflow and environment
+                if persona.get("workflow_and_environment"):
+                    md.append("**Workflow and Environment:**\n")
+                    workflow = persona["workflow_and_environment"]
+                    if isinstance(workflow, dict):
+                        if workflow.get("value"):
+                            md.append(f"{self._clean_markdown_text(workflow['value'])}\n\n")
+                        if workflow.get("evidence") and isinstance(workflow["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in workflow["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(workflow))}\n\n")
 
                 # Key responsibilities
                 if persona.get("key_responsibilities"):
                     md.append("**Key Responsibilities:**\n")
-
                     responsibilities = persona["key_responsibilities"]
                     # Handle case where responsibilities is a dict with a value field
-                    if isinstance(responsibilities, dict) and responsibilities.get(
-                        "value"
-                    ):
+                    if isinstance(responsibilities, dict) and responsibilities.get("value"):
                         if isinstance(responsibilities["value"], list):
                             responsibilities = responsibilities["value"]
                         else:
                             responsibilities = str(responsibilities["value"])
                     if isinstance(responsibilities, list):
                         for resp in responsibilities:
-                            md.append(f"- {resp}\n")
+                            md.append(f"- {self._clean_markdown_text(resp)}\n")
                     else:
-                        md.append(f"{responsibilities}\n")
-
+                        md.append(f"{self._clean_markdown_text(responsibilities)}\n")
                     md.append("\n")
+
+                # Challenges and frustrations
+                if persona.get("challenges_and_frustrations"):
+                    md.append("**Challenges and Frustrations:**\n")
+                    challenges = persona["challenges_and_frustrations"]
+                    if isinstance(challenges, dict):
+                        if challenges.get("value"):
+                            md.append(f"{self._clean_markdown_text(challenges['value'])}\n\n")
+                        if challenges.get("evidence") and isinstance(challenges["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in challenges["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(challenges))}\n\n")
 
                 # Pain points
                 if persona.get("pain_points"):
                     md.append("**Pain Points:**\n")
-
                     pain_points = persona["pain_points"]
                     # Handle case where pain_points is a dict with a value field
                     if isinstance(pain_points, dict) and pain_points.get("value"):
@@ -1043,11 +1146,47 @@ class ExportService:
                             pain_points = str(pain_points["value"])
                     if isinstance(pain_points, list):
                         for point in pain_points:
-                            md.append(f"- {point}\n")
+                            md.append(f"- {self._clean_markdown_text(point)}\n")
                     else:
-                        md.append(f"{pain_points}\n")
-
+                        md.append(f"{self._clean_markdown_text(pain_points)}\n")
                     md.append("\n")
+
+                # Needs and desires
+                if persona.get("needs_and_desires"):
+                    md.append("**Needs and Desires:**\n")
+                    needs = persona["needs_and_desires"]
+                    if isinstance(needs, dict):
+                        if needs.get("value"):
+                            md.append(f"{self._clean_markdown_text(needs['value'])}\n\n")
+                        if needs.get("evidence") and isinstance(needs["evidence"], list):
+                            md.append("*Evidence:*\n")
+                            for evidence in needs["evidence"]:
+                                md.append(f"- {self._clean_markdown_text(evidence)}\n")
+                            md.append("\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(needs))}\n\n")
+
+                # Key quotes
+                if persona.get("key_quotes"):
+                    md.append("**Key Quotes:**\n")
+                    quotes = persona["key_quotes"]
+                    if isinstance(quotes, dict) and quotes.get("value"):
+                        quotes = quotes["value"]
+                    if isinstance(quotes, list):
+                        for quote in quotes:
+                            md.append(f"- {self._clean_markdown_text(quote)}\n")
+                    else:
+                        md.append(f"{self._clean_markdown_text(str(quotes))}\n")
+                    md.append("\n")
+
+                # Patterns
+                if persona.get("patterns") and isinstance(persona["patterns"], list):
+                    md.append("**Patterns:**\n")
+                    for pattern in persona["patterns"]:
+                        md.append(f"- {self._clean_markdown_text(pattern)}\n")
+                    md.append("\n")
+
+                md.append("\n")
 
         # Add insights section if available
         if data and data.get("insights"):

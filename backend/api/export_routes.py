@@ -85,11 +85,16 @@ async def export_analysis_markdown(
         # Return Markdown as downloadable file
         from fastapi.responses import Response
 
+        # Ensure proper encoding and line endings for better compatibility
+        # First normalize line endings to LF
+        normalized_content = markdown_content.replace('\r\n', '\n')
+
         return Response(
-            content=markdown_content.encode("utf-8"),
+            content=normalized_content.encode("utf-8"),
             media_type="text/markdown",
             headers={
-                "Content-Disposition": f"attachment; filename=analysis_report_{result_id}.md"
+                "Content-Disposition": f"attachment; filename=analysis_report_{result_id}.md",
+                "Content-Type": "text/markdown; charset=utf-8"
             },
         )
     except Exception as e:
