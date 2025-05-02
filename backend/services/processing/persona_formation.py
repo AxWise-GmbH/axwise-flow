@@ -1431,12 +1431,22 @@ class PersonaFormationService:
             3. description: A detailed 2-3 sentence overview of the persona that captures their unique characteristics
 
             REQUIRED ATTRIBUTES (these MUST be included with proper structure):
-            4. role_context: Detailed job function, specific work environment, and organizational context
-            5. key_responsibilities: Comprehensive list of specific tasks and responsibilities mentioned
-            6. tools_used: Named tools, specific methods, and explicit technologies mentioned
-            7. collaboration_style: Detailed description of how they work with others, communication preferences, team dynamics
-            8. analysis_approach: Specific methods for approaching problems, decision-making processes, analytical techniques
-            9. pain_points: Concrete challenges, specific frustrations, and explicit problems mentioned
+            4. demographics: Age range, gender, education level, and professional background
+            5. goals_and_motivations: Primary professional goals and what drives their decisions
+            6. skills_and_expertise: Technical and soft skills they possess
+            7. workflow_and_environment: How they work and their typical environment
+            8. challenges_and_frustrations: Problems they face in their work
+            9. needs_and_desires: What they need to be successful
+            10. technology_and_tools: Specific technologies and tools they use
+            11. attitude_towards_research: How they view and use research
+            12. attitude_towards_ai: Their perspective on AI and automation
+            13. key_quotes: Notable quotes that reveal their perspective
+            14. role_context: Detailed job function, specific work environment, and organizational context
+            15. key_responsibilities: Comprehensive list of specific tasks and responsibilities mentioned
+            16. tools_used: Named tools, specific methods, and explicit technologies mentioned
+            17. collaboration_style: Detailed description of how they work with others, communication preferences, team dynamics
+            18. analysis_approach: Specific methods for approaching problems, decision-making processes, analytical techniques
+            19. pain_points: Concrete challenges, specific frustrations, and explicit problems mentioned
 
             Each attribute MUST follow this structure:
             "attribute_name": {{
@@ -1450,6 +1460,56 @@ class PersonaFormationService:
               "name": "Enterprise DevOps Specialist",
               "archetype": "Technical Infrastructure Expert",
               "description": "Experienced DevOps engineer focused on automation and CI/CD pipelines.",
+              "demographics": {{
+                "value": "Mid-30s professional with a computer science background and 8+ years of experience",
+                "confidence": 0.7,
+                "evidence": ["I've been in this field for over 8 years", "After getting my CS degree"]
+              }},
+              "goals_and_motivations": {{
+                "value": "Aims to streamline deployment processes and reduce manual intervention",
+                "confidence": 0.8,
+                "evidence": ["My goal is to automate everything possible", "I want zero-touch deployments"]
+              }},
+              "skills_and_expertise": {{
+                "value": "Cloud infrastructure, CI/CD pipelines, and infrastructure as code",
+                "confidence": 0.9,
+                "evidence": ["I specialize in AWS architecture", "I've implemented CI/CD for 5 teams"]
+              }},
+              "workflow_and_environment": {{
+                "value": "Agile environment with daily standups and two-week sprints",
+                "confidence": 0.8,
+                "evidence": ["Our two-week sprint cycle", "Daily standups help us stay aligned"]
+              }},
+              "challenges_and_frustrations": {{
+                "value": "Legacy system integration and inconsistent environments",
+                "confidence": 0.8,
+                "evidence": ["The legacy systems are hard to integrate", "Environment inconsistencies cause most bugs"]
+              }},
+              "needs_and_desires": {{
+                "value": "Better documentation and more standardized processes",
+                "confidence": 0.7,
+                "evidence": ["We need better documentation", "Standardizing would solve many issues"]
+              }},
+              "technology_and_tools": {{
+                "value": "AWS, Terraform, Jenkins, Docker, and Kubernetes",
+                "confidence": 0.9,
+                "evidence": ["Our AWS infrastructure", "We use Terraform for everything", "Jenkins pipelines"]
+              }},
+              "attitude_towards_research": {{
+                "value": "Values data-driven decisions and thorough testing",
+                "confidence": 0.7,
+                "evidence": ["I always look at the metrics first", "Testing is non-negotiable"]
+              }},
+              "attitude_towards_ai": {{
+                "value": "Enthusiastic about AI for automation but cautious about reliability",
+                "confidence": 0.6,
+                "evidence": ["AI could help automate more tasks", "But we need reliable systems first"]
+              }},
+              "key_quotes": {{
+                "value": "Automate everything that can be automated, and document everything else.",
+                "confidence": 0.8,
+                "evidence": ["Automate everything that can be automated, and document everything else"]
+              }},
               "role_context": {{
                 "value": "Works in a cross-functional team managing cloud infrastructure",
                 "confidence": 0.8,
@@ -1480,7 +1540,6 @@ class PersonaFormationService:
                 "confidence": 0.8,
                 "evidence": ["The legacy systems are hard to integrate", "Documentation is often outdated"]
               }},
-              "patterns": ["Focuses on automation to reduce manual work", "Prioritizes system reliability"],
               "overall_confidence": 0.85,
               "supporting_evidence_summary": ["Consistent mentions of automation tools", "Clear description of role responsibilities"]
             }}

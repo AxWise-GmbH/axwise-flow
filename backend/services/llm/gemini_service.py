@@ -558,6 +558,13 @@ class GeminiService:
                     breakdown = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
                     sentiment["breakdown"] = breakdown
 
+                # Ensure supporting_statements exists and is a dictionary
+                supporting_statements = sentiment.get("supporting_statements", {})
+                if not isinstance(supporting_statements, dict):
+                    logger.warning(f"Supporting statements is not a dictionary: {supporting_statements}. Creating default structure.")
+                    supporting_statements = {"positive": [], "neutral": [], "negative": []}
+                    sentiment["supporting_statements"] = supporting_statements
+
                 # Normalize breakdown to ensure it sums to 1.0
                 total = sum(breakdown.values()) if breakdown else 0
                 if total > 0 and abs(total - 1.0) > 0.01:

@@ -334,12 +334,11 @@ class NLPProcessor:
                     logger.info(f"Enhanced theme analysis result structure: {type(enhanced_themes_result)}")
                     if isinstance(enhanced_themes_result, dict):
                         logger.info(f"Enhanced theme analysis result keys: {list(enhanced_themes_result.keys())}")
-
-                        # Log the first few characters of the raw result for debugging
-                        logger.debug(f"Enhanced theme analysis raw result preview: {str(enhanced_themes_result)[:500]}...")
+                        # Log the raw result for debugging
+                        logger.debug(f"Enhanced theme analysis raw result: {json.dumps(enhanced_themes_result)}")
 
                     # Check for enhanced_themes key first (preferred)
-                    if "enhanced_themes" in enhanced_themes_result and isinstance(enhanced_themes_result["enhanced_themes"], list):
+                    if isinstance(enhanced_themes_result, dict) and "enhanced_themes" in enhanced_themes_result and isinstance(enhanced_themes_result["enhanced_themes"], list):
                         logger.info(
                             f"Enhanced theme analysis completed with {len(enhanced_themes_result.get('enhanced_themes', []))} themes"
                         )
@@ -348,7 +347,7 @@ class NLPProcessor:
                             first_theme = enhanced_themes_result["enhanced_themes"][0]
                             logger.info(f"First enhanced theme: {first_theme.get('name', 'Unnamed')}")
                     # Fall back to themes key if enhanced_themes is not present
-                    elif "themes" in enhanced_themes_result and isinstance(enhanced_themes_result["themes"], list):
+                    elif isinstance(enhanced_themes_result, dict) and "themes" in enhanced_themes_result and isinstance(enhanced_themes_result["themes"], list):
                         logger.info(
                             f"Enhanced theme analysis returned regular themes with {len(enhanced_themes_result.get('themes', []))} themes"
                         )
@@ -362,6 +361,8 @@ class NLPProcessor:
                         logger.warning(
                             f"Enhanced theme analysis did not return expected structure. Keys: {list(enhanced_themes_result.keys()) if isinstance(enhanced_themes_result, dict) else 'not a dictionary'}"
                         )
+                        # Create a default structure if the result is not as expected
+                        enhanced_themes_result = {"enhanced_themes": []}
                 except Exception as e:
                     logger.error(f"Error in enhanced theme analysis: {str(e)}")
                     # Create a fallback enhanced themes result
