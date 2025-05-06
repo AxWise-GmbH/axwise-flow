@@ -477,26 +477,34 @@ class NLPProcessor:
                            f"Enhanced themes: {has_enhanced_themes}, Patterns: {has_patterns}")
 
                 # Continue if we have at least some usable results
-                # Either themes (basic OR enhanced) AND patterns should be present to continue
-                if not ((has_basic_themes or has_enhanced_themes) and has_patterns):
+                # Ideally, we want both themes (basic OR enhanced) AND patterns, but we'll be more resilient
+                if not has_patterns:
                     logger.warning(
-                        "Insufficient analysis results - need at least themes (basic or enhanced) AND patterns"
+                        "Insufficient analysis results - patterns are required for analysis"
                     )
-                    # If enhanced themes succeeded but basic themes failed, we can still proceed
-                    if has_enhanced_themes and not has_basic_themes:
-                        logger.info("Using enhanced themes as fallback for basic themes")
-                        # Copy enhanced themes to basic themes
-                        if "enhanced_themes" in enhanced_themes_result:
-                            themes_result["themes"] = enhanced_themes_result["enhanced_themes"]
-                        elif "themes" in enhanced_themes_result:
-                            themes_result["themes"] = enhanced_themes_result["themes"]
-                    # If we still don't have enough data, return a processing status
-                    elif not ((has_basic_themes or has_enhanced_themes) and has_patterns):
-                        logger.warning("Returning processing status due to insufficient analysis results")
-                        return {
-                            "status": "processing",
-                            "message": "Analysis still in progress. Please try again later.",
-                        }
+                    # If we don't have patterns, return a processing status
+                    logger.warning("Returning processing status due to missing patterns")
+                    return {
+                        "status": "processing",
+                        "message": "Analysis still in progress. Please try again later.",
+                    }
+
+                # If we have patterns but no themes, we'll continue with empty themes
+                if not (has_basic_themes or has_enhanced_themes):
+                    logger.warning(
+                        "No themes found, but patterns are available. Continuing with empty themes."
+                    )
+                    # Create empty themes array
+                    themes_result["themes"] = []
+
+                # If enhanced themes succeeded but basic themes failed, use enhanced themes as basic themes
+                if has_enhanced_themes and not has_basic_themes:
+                    logger.info("Using enhanced themes as fallback for basic themes")
+                    # Copy enhanced themes to basic themes
+                    if "enhanced_themes" in enhanced_themes_result:
+                        themes_result["themes"] = enhanced_themes_result["enhanced_themes"]
+                    elif "themes" in enhanced_themes_result:
+                        themes_result["themes"] = enhanced_themes_result["themes"]
             except Exception as e:
                 logger.error(f"Error checking analysis completeness: {str(e)}")
                 # Continue processing instead of returning an error
@@ -556,31 +564,55 @@ class NLPProcessor:
         try:
             # Check required fields
             required_fields = [
-                "themes",
-                "patterns",
+                "patterns",  # Patterns are essential
                 "sentiment",
-                "insights",
                 "original_text",
             ]
+
+            # Themes and insights are preferred but not strictly required
+            preferred_fields = [
+                "themes",
+                "insights",
+            ]
+
+            # Check if all required fields are present
             if not all(field in results for field in required_fields):
+                logger.warning(f"Missing required fields in results: {[field for field in required_fields if field not in results]}")
                 return False
 
-            # Check themes
-            if not isinstance(results["themes"], list):
-                return False
+            # Check if preferred fields are present, add empty lists if missing
+            for field in preferred_fields:
+                if field not in results:
+                    logger.warning(f"Adding empty list for missing preferred field: {field}")
+                    results[field] = []
 
-            # Check patterns
+            # Check patterns (essential)
             if not isinstance(results["patterns"], list):
+                logger.warning("Patterns field is not a list")
                 return False
+
+            # Check if patterns list is empty
+            if len(results["patterns"]) == 0:
+                logger.warning("Patterns list is empty")
+                return False
+
+            # Check themes (if present)
+            if "themes" in results and not isinstance(results["themes"], list):
+                logger.warning("Themes field is not a list, converting to empty list")
+                results["themes"] = []
 
             # Check sentiment
             if not isinstance(results["sentiment"], dict):
-                return False
+                logger.warning("Sentiment field is not a dictionary, initializing empty sentiment")
+                results["sentiment"] = {"positive": [], "neutral": [], "negative": []}
 
-            # Check insights
-            if not isinstance(results["insights"], list):
-                return False
+            # Check insights (if present)
+            if "insights" in results and not isinstance(results["insights"], list):
+                logger.warning("Insights field is not a list, converting to empty list")
+                results["insights"] = []
 
+            # If we got here, validation passed
+            logger.info("Validation passed with patterns and required fields")
             return True
 
         except Exception as e:

@@ -57,7 +57,7 @@ class PersonaGenerationRequest(BaseModel):
         "gemini", description="LLM provider to use for persona generation"
     )
     llm_model: Optional[str] = Field(
-        "gemini-2.5-pro-preview-03-25", description="Specific LLM model to use"
+        "models/gemini-2.5-flash-preview-04-17", description="Specific LLM model to use"
     )
 
     class Config:

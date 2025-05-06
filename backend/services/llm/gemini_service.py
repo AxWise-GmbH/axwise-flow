@@ -41,9 +41,13 @@ class GeminiService:
         self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
         self.model = config.get("model", "models/gemini-2.5-flash-preview-04-17")
         self.temperature = config.get("temperature", 0.0)
-        self.max_tokens = config.get("max_tokens", 8192)
+        self.max_tokens = config.get("max_tokens", 65536)
         self.top_p = config.get("top_p", 0.95)
-        self.top_k = config.get("top_k", 1)
+        self.top_k = 1  # Force top_k to 1 for deterministic results
+
+        # Override any environment settings that might cause vague results
+        if "top_k" in config and config.get("top_k") > 1:
+            logger.warning(f"Overriding top_k from {config.get('top_k')} to 1 for deterministic results")
 
         # Initialize Gemini client with the new google.genai package
         self.client = genai.Client(REDACTED_API_KEY=self.REDACTED_API_KEY)
@@ -101,12 +105,9 @@ class GeminiService:
             ]
             is_json_task = task in json_tasks
 
-            # Use a more powerful model for persona formation
-            model_to_use = self.model
-            if task == "persona_formation":
-                # Use Gemini 2.5 Pro for persona formation to handle more complex tasks
-                model_to_use = "gemini-2.5-pro-preview-03-25"
-                logger.info(f"Using enhanced model {model_to_use} for persona formation")
+            # Use the configured model for all analysis tasks
+            model_to_use = "models/gemini-2.5-flash-preview-04-17"  # Use the Flash model for better performance
+            logger.info(f"Using model {model_to_use} for task: {task}")
 
             # Use the temperature from config for all tasks
             config_params = {
@@ -181,8 +182,8 @@ class GeminiService:
                 # Check if we should enforce JSON output
                 enforce_json = data.get("enforce_json", False)
 
-                # For persona_formation or when enforce_json is True, use response_mime_type to enforce JSON output
-                if task == "persona_formation" or enforce_json:
+                # For JSON-expecting tasks, use response_mime_type to enforce JSON output
+                if task in json_tasks:
                     # Add response_mime_type to config_params to enforce JSON output
                     config_params["response_mime_type"] = "application/json"
 
@@ -1209,34 +1210,40 @@ class GeminiService:
         if task == "theme_analysis":
             if use_answer_only:
                 return """
-                Analyze the interview responses to identify key themes. Your analysis should be comprehensive and based EXCLUSIVELY on the ANSWER-ONLY content provided, which contains only the original responses without questions or contextual text.
+                You are an expert thematic analyst specializing in extracting HIGHLY SPECIFIC and CONCRETE themes from interview transcripts. Your analysis should be comprehensive and based EXCLUSIVELY on the ANSWER-ONLY content provided, which contains only the original responses without questions or contextual text.
+
+                IMPORTANT INSTRUCTIONS:
+                - AVOID VAGUE OR GENERIC THEMES. Each theme must be specific to this particular interview.
+                - Focus on what makes this interview UNIQUE and DISTINCTIVE.
+                - Identify 4-6 highly specific themes that capture the essence of the interview.
+                - Themes should be MUTUALLY EXCLUSIVE - they should not overlap significantly.
 
                 Focus on extracting:
-                1. Clear, specific themes (not vague categories)
-                2. Quantify frequency as a decimal between 0.0-1.0
+                1. Clear, specific themes with DESCRIPTIVE NAMES (not vague categories like "User Experience" or "Challenges")
+                2. Quantify frequency as a decimal between 0.0-1.0 (be precise - not everything can be high frequency)
                 3. Sentiment association with each theme (as a decimal between -1.0 and 1.0, where -1.0 is negative, 0.0 is neutral, and 1.0 is positive)
                 4. Supporting statements as DIRECT QUOTES from the text - use exact sentences, not summarized or paraphrased versions
-                5. Keywords that represent key terms related to the theme
-                6. A concise definition that explains what the theme encompasses
+                5. Keywords that represent key terms related to the theme (be specific and distinctive)
+                6. A concise definition that explains what the theme encompasses (be detailed and precise)
                 7. Associated codes that categorize the theme (e.g., "UX_CHALLENGE", "RESOURCE_CONSTRAINT", "DESIGN_PROCESS")
                 8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
                 Format your response as a JSON object with this structure:
                 [
                   {
-                    "name": "Theme name - be specific and concrete",
+                    "name": "Theme name - be HIGHLY specific and concrete, not generic",
                     "frequency": 0.XX, (decimal between 0-1 representing prevalence)
                     "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
                     "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
                     "keywords": ["keyword1", "keyword2", "keyword3"],
-                    "definition": "A concise one-sentence description of what this theme encompasses",
+                    "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
                     "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
                     "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
                   },
                   ...
                 ]
 
-                IMPORTANT:
+                CRITICAL REQUIREMENTS:
                 - Use EXACT sentences from the ORIGINAL ANSWERS for the statements. Do not summarize or paraphrase.
                 - Include 3-5 relevant keywords for each theme.
                 - Provide a clear, concise definition for each theme.
@@ -1244,6 +1251,7 @@ class GeminiService:
                 - Assign a reliability score based on how confident you are in the theme (0.7-0.9 for well-supported themes, 0.5-0.7 for moderately supported themes, below 0.5 for weakly supported themes).
                 - Do not make up information. If there are fewer than 5 clear themes, that's fine - focus on quality.
                 - Ensure 100% of your response is in valid JSON format.
+                - AVOID GENERIC THEMES - be specific to this interview.
                 """
             else:
                 return """
@@ -1346,7 +1354,14 @@ class GeminiService:
 
         elif task == "sentiment_analysis":
             return """
-            You are an expert sentiment analyst working with interview transcripts across all industries. Analyze the provided text and determine the overall sentiment.
+            You are an expert sentiment analyst specializing in extracting nuanced emotional expressions from interview transcripts. Analyze the provided text with extreme precision to identify statements that express positive, negative, or neutral sentiments.
+
+            CRITICAL INSTRUCTIONS:
+            - You MUST find a balanced distribution of statements across all three sentiment categories
+            - You MUST include at least 10-15 statements for EACH sentiment category
+            - You MUST use EXACT quotes from the text - never paraphrase or summarize
+            - You MUST ensure your sentiment breakdown is realistic and evidence-based
+            - You MUST focus on the interviewee's statements, not the interviewer's questions
 
             Industry-Agnostic Guidelines:
             1. This analysis should work equally well for any professional domain: healthcare, tech, finance, military, education, hospitality, manufacturing, etc.
@@ -1359,7 +1374,7 @@ class GeminiService:
             1. An overall sentiment score between 0 (negative) and 1 (positive)
             2. A breakdown of positive, neutral, and negative sentiment proportions (must sum to 1.0)
             3. Detailed sentiment analysis for specific topics mentioned in the text
-            4. 15-20 supporting statements for EACH sentiment category - these MUST be EXACT quotes
+            4. 10-15 supporting statements for EACH sentiment category - these MUST be EXACT quotes
 
             Noise Filtering Rules:
             1. EXCLUDE the following from your supporting statements:
@@ -1378,48 +1393,66 @@ class GeminiService:
                - Provide context about work methods (neutral)
                - Explain problems or solutions
 
+            SENTIMENT CATEGORIZATION GUIDELINES:
+            - POSITIVE: Statements expressing satisfaction, enthusiasm, appreciation, success, or optimism
+            - NEUTRAL: Statements providing factual information, descriptions, or balanced perspectives
+            - NEGATIVE: Statements expressing frustration, disappointment, challenges, criticism, or pessimism
+
             Return your analysis in the following JSON format:
             {
-                "sentiment": {
-                    "overall": 0.6,
-                    "breakdown": {
-                        "positive": 0.45,
-                        "neutral": 0.25,
-                        "negative": 0.30
-                    },
-                    "details": [
-                        {
-                            "topic": "Topic Name",
-                            "score": 0.8,
-                            "evidence": "EXACT QUOTE FROM TEXT"
-                        }
+                "sentimentOverview": {
+                    "positive": 0.33,
+                    "neutral": 0.34,
+                    "negative": 0.33
+                },
+                "sentimentStatements": {
+                    "positive": [
+                        "EXACT POSITIVE QUOTE FROM TEXT 1",
+                        "EXACT POSITIVE QUOTE FROM TEXT 2",
+                        "EXACT POSITIVE QUOTE FROM TEXT 3",
+                        "EXACT POSITIVE QUOTE FROM TEXT 4",
+                        "EXACT POSITIVE QUOTE FROM TEXT 5",
+                        "EXACT POSITIVE QUOTE FROM TEXT 6",
+                        "EXACT POSITIVE QUOTE FROM TEXT 7",
+                        "EXACT POSITIVE QUOTE FROM TEXT 8",
+                        "EXACT POSITIVE QUOTE FROM TEXT 9",
+                        "EXACT POSITIVE QUOTE FROM TEXT 10"
                     ],
-                    "supporting_statements": {
-                        "positive": [
-                            "EXACT POSITIVE QUOTE FROM TEXT 1",
-                            "EXACT POSITIVE QUOTE FROM TEXT 2",
-                            // Include 15-20 positive statements
-                        ],
-                        "neutral": [
-                            "EXACT NEUTRAL QUOTE FROM TEXT 1",
-                            "EXACT NEUTRAL QUOTE FROM TEXT 2",
-                            // Include 15-20 neutral statements
-                        ],
-                        "negative": [
-                            "EXACT NEGATIVE QUOTE FROM TEXT 1",
-                            "EXACT NEGATIVE QUOTE FROM TEXT 2",
-                            // Include 15-20 negative statements
-                        ]
-                    }
+                    "neutral": [
+                        "EXACT NEUTRAL QUOTE FROM TEXT 1",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 2",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 3",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 4",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 5",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 6",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 7",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 8",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 9",
+                        "EXACT NEUTRAL QUOTE FROM TEXT 10"
+                    ],
+                    "negative": [
+                        "EXACT NEGATIVE QUOTE FROM TEXT 1",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 2",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 3",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 4",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 5",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 6",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 7",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 8",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 9",
+                        "EXACT NEGATIVE QUOTE FROM TEXT 10"
+                    ]
                 }
             }
 
-            IMPORTANT:
-            - Each statement must be an EXACT quote from the text - do not rewrite, summarize, or paraphrase
+            CRITICAL REQUIREMENTS:
+            - Each statement MUST be an EXACT quote from the text - do not rewrite, summarize, or paraphrase
             - Ensure statements are diverse, covering different topics mentioned in the interview
             - Each statement should be meaningful and express complete thoughts
             - Filter out all noise using the rules above
             - Extract statements from interviewee responses, not interviewer questions
+            - DO NOT leave any category empty - find at least 10 examples for each sentiment type
+            - Ensure your JSON is valid and properly formatted
             """
 
         elif task == "insight_generation":
