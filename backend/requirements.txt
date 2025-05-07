@@ -2,41 +2,65 @@
 fastapi==0.110.0
 uvicorn==0.27.1
 python-multipart==0.0.9
+starlette>=0.27.0
+jinja2>=3.1.2
+typing-extensions>=4.8.0
 
 ***REMOVED***
 sqlalchemy==2.0.27
 psycopg2-binary==2.9.9
 alembic==1.13.1
+aiosqlite>=0.19.0  # SQLite async driver
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4 # Added from root requirements
+passlib[bcrypt]==1.7.4
 httpx==0.26.0
-requests==2.31.0 # Kept from original backend file
+requests==2.31.0
+starlette-csrf>=1.4.4
+cookies>=2.2.1  # For cookie handling
 
 # LLM Services
 openai==1.12.0
 google-genai>=1.1.0
 
-# Utilities
+# Data processing
 python-dotenv==1.0.1
 pydantic==2.6.1
-numpy==1.26.3 # Kept from original backend file
-pandas==2.1.4 # Kept from original backend file
-openpyxl>=3.1.2 # Required for Excel file processing with pandas
-beautifulsoup4==4.12.2 # Kept from original backend file
-fpdf>=1.7.2 # Required for PDF generation
+numpy==1.26.3
+pandas==2.1.4
+openpyxl>=3.1.2  # Required for Excel file processing with pandas
+matplotlib>=3.8.2
+seaborn>=0.13.0
+
+# NLP and text processing
+beautifulsoup4==4.12.2
+markdown>=3.5.1
+spacy>=3.7.2
+nltk>=3.8.1
+
+# Document generation
+fpdf>=1.7.2
+
+# Utilities
+tenacity>=8.2.3
+python-dateutil>=2.8.2
+pytz>=2023.3
+aiofiles>=23.2.1
+tqdm>=4.66.1
+loguru>=0.7.2
+retrying>=1.3.4
 
 # Monitoring and logging
-structlog==24.1.0 # Added from root requirements
+structlog==24.1.0
 
 # Testing
 pytest==8.0.0
 pytest-asyncio==0.23.5
-pytest-cov==4.1.0 # Added from root requirements
-pytest-mock==3.12.0 # Kept from original backend file
+pytest-cov==4.1.0
+pytest-mock==3.12.0
 
-# --- Development Tools (from root requirements.txt - often managed separately) ---
+# --- Development Tools (commented out - install separately with requirements-dev.txt) ---
 # black==24.1.1
 # isort==5.13.2
 # flake8==7.0.0

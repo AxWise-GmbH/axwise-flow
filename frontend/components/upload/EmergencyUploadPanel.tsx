@@ -43,6 +43,7 @@ export default function EmergencyUploadPanel() {
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState<number>(0);
   const [analysisStatus, setAnalysisStatus] = useState<string | null>(null); // Added status state
+  const [analysisStage, setAnalysisStage] = useState<string | null>(null); // Added stage state
 
   // Effect to get and set auth token in cookie
   useEffect(() => {
@@ -77,17 +78,45 @@ export default function EmergencyUploadPanel() {
 
   const { startPolling, stopPolling, isPolling } = usePolling< {
     status: 'pending' | 'completed' | 'failed';
-    analysis?: any; // Optional analysis data if needed on completion
-    error?: string; // Optional error message
+    progress?: number;
+    currentStage?: string;
+    stageStates?: Record<string, any>;
+    startedAt?: string;
+    completedAt?: string;
+    requestId?: string;
+    analysis?: any;
+    error?: string;
+    errorCode?: string;
+    errorStage?: string;
   }>({
     fetchFn: boundCheckAnalysisStatus,
     interval: 3000, // Poll every 3 seconds
     stopCondition: (statusResult) =>
       statusResult.status === 'completed' || statusResult.status === 'failed',
+    useExponentialBackoff: true, // Enable exponential backoff for retries
+    maxBackoffInterval: 30000, // Max 30 seconds between retries
+    maxDurationMs: 10 * 60 * 1000, // 10 minutes max polling time
+    stuckDetectionCount: 5, // Consider progress stuck after 5 identical responses
     onSuccess: (statusResult) => {
       // --- START ENHANCED LOGGING ---
       console.log(`[Polling Success] Received status update for ID ${analysisResultId}:`, statusResult);
       setAnalysisStatus(statusResult.status); // Update status state
+
+      // Update progress if available, but only if it's increasing
+      if (statusResult.progress !== undefined) {
+        // Convert from 0-1 scale to 0-100 scale
+        const progressPercent = Math.round(statusResult.progress * 100);
+
+        // Only update progress if it's higher than the current progress
+        // This prevents the progress bar from jumping back and forth
+        setAnalysisProgress(prevProgress => {
+          if (progressPercent > prevProgress) {
+            console.log(`[Polling Success] Updated progress from ${prevProgress}% to ${progressPercent}%`);
+            return progressPercent;
+          }
+          return prevProgress;
+        });
+      }
 
       if (statusResult.status === 'completed') {
         // Get the current polling ID from the ref or from the state
@@ -128,24 +157,77 @@ export default function EmergencyUploadPanel() {
         }, 800); // Keep delay
 
       } else if (statusResult.status === 'failed') {
-        console.log(`[Polling Success] Status is 'failed'. Error: ${statusResult.error}`);
+        console.log(`[Polling Success] Status is 'failed'. Error: ${statusResult.error}, Code: ${statusResult.errorCode}`);
         setIsAnalyzing(false); // Analysis/Polling is finished
         setAnalysisProgress(0);
-        const errorMsg = statusResult.error || 'Analysis failed during processing';
+
+        // Format a more user-friendly error message
+        let errorMsg = statusResult.error || 'Analysis failed during processing';
+        if (statusResult.errorStage) {
+          errorMsg = `Analysis failed during ${statusResult.errorStage.toLowerCase().replace('_', ' ')}: ${errorMsg}`;
+        }
+
         setAnalysisError(errorMsg);
         toast({
           title: "Analysis failed",
           description: errorMsg,
           variant: "destructive",
         });
+      } else if (statusResult.status === 'pending') {
+        // Update UI with current stage information
+        console.log(`[Polling Success] Status is 'pending'. Current stage: ${statusResult.currentStage}, Progress: ${statusResult.progress}`);
+
+        // Only update the stage message if we have a valid stage and it's different from the current one
+        if (statusResult.currentStage) {
+          // Format a user-friendly stage message
+          const stageName = statusResult.currentStage.replace(/_/g, ' ').toLowerCase();
+          const stageMessage = `Processing: ${stageName}`;
+
+          // Update the UI with the current stage information only if it's different
+          // This prevents the UI from "jumping" between the same stage
+          setAnalysisStage(prevStage => {
+            // If the stage is the same, don't update to avoid re-renders
+            if (prevStage === stageMessage) {
+              return prevStage;
+            }
+            return stageMessage;
+          });
+        } else {
+          // If no stage is provided, use progress-based messaging
+          const progressBasedStage =
+            statusResult.progress && statusResult.progress < 0.3 ? 'Starting analysis...' :
+            statusResult.progress && statusResult.progress < 0.6 ? 'Processing interview data...' :
+            statusResult.progress && statusResult.progress < 0.9 ? 'Generating insights...' :
+            'Finalizing results...';
+
+          setAnalysisStage(progressBasedStage);
+        }
       } else {
         console.log(`[Polling Success] Status is '${statusResult.status}'. Continuing poll.`);
-        // Optional: Update progress based on intermediate status if backend provides it
       }
       // --- END ENHANCED LOGGING ---
     },
     onError: (error) => {
       console.error('[Polling Error] Error polling for analysis status:', error);
+
+      // Check if this is a timeout error from our enhanced polling
+      if (error.message && error.message.includes('Polling timed out after')) {
+        console.warn('[Polling Error] Polling timed out. Analysis may still be running in the background.');
+        setIsAnalyzing(false);
+        setAnalysisError(`Analysis is taking longer than expected. It may still be processing in the background.
+          You can check the results page later or try refreshing the page.`);
+        toast({
+          title: "Analysis timeout",
+          description: "Analysis is taking longer than expected. It may still be processing in the background.",
+          variant: "destructive",
+        });
+
+        // Redirect to results page anyway, as the analysis might be complete
+        if (analysisResultId) {
+          router.push(`/results/${analysisResultId}`);
+        }
+        return;
+      }
 
       // Don't stop polling on the first error - allow retries
       // Just log the error and continue polling
@@ -313,6 +395,7 @@ export default function EmergencyUploadPanel() {
       setAnalysisError(null);
       setIsAnalyzing(false);
       setAnalysisStatus(null);
+      setAnalysisStage(null);
       stopPolling(); // Stop polling if a new file is selected
     }
   }, [stopPolling]); // Depends on stopPolling from the hook
@@ -328,6 +411,7 @@ export default function EmergencyUploadPanel() {
     setAnalysisError(null);
     setIsAnalyzing(false);
     setAnalysisStatus(null);
+    setAnalysisStage(null);
     stopPolling(); // Stop polling on clear
 
     if (fileInputRef.current) {
@@ -362,14 +446,28 @@ export default function EmergencyUploadPanel() {
 
     // Only increment progress if we're actively polling and not completed/failed
     if (isPolling && analysisStatus !== 'completed' && analysisStatus !== 'failed') {
-      // Start with more frequent small increments, then slow down as we approach 95%
+      // Use a longer interval to avoid too frequent updates
+      // This helps prevent the progress bar from jumping around too much
       progressIncrementInterval = setInterval(() => {
         setAnalysisProgress(prev => {
-          // Smaller increments as we get closer to 95%
-          const increment = prev < 50 ? 3 : prev < 80 ? 2 : 1;
-          return Math.min(prev + increment, 95);
+          // Only increment if we haven't received a real progress update recently
+          // This is indicated by the progress being at certain thresholds
+
+          // If progress is at exactly 10, 30, 60, or 90, it's likely from our initial setting
+          // or from a backend update, so we should increment it
+          const isAtThreshold = prev === 10 || prev === 30 || prev === 60 || prev === 90;
+
+          // If we're at a threshold or progress is low, increment it
+          if (isAtThreshold || prev < 20) {
+            // Smaller increments as we get closer to 95%
+            const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
+            return Math.min(prev + increment, 95);
+          }
+
+          // Otherwise, keep the current progress
+          return prev;
         });
-      }, 1500); // More frequent updates for smoother progress
+      }, 3000); // Less frequent updates to avoid conflicts with real progress updates
     } else if (analysisStatus === 'completed') {
       // Ensure we reach 100% on completion
       setAnalysisProgress(100);
@@ -499,6 +597,7 @@ export default function EmergencyUploadPanel() {
                 <span>
                   {analysisStatus === 'completed' ? 'Analysis complete!' :
                    analysisStatus === 'failed' ? 'Analysis failed' :
+                   analysisStage ? analysisStage :
                    analysisProgress < 30 ? 'Starting analysis...' :
                    analysisProgress < 60 ? 'Processing interview data...' :
                    analysisProgress < 90 ? 'Generating insights...' :

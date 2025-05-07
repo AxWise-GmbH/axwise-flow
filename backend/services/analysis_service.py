@@ -222,18 +222,37 @@ class AnalysisService:
         Returns:
             Created AnalysisResult record
         """
+        # Define the processing stages with initial state
+        processing_stages = {
+            "FILE_UPLOAD": {"status": "completed", "progress": 1.0, "message": "File uploaded successfully"},
+            "FILE_VALIDATION": {"status": "completed", "progress": 1.0, "message": "File validated"},
+            "DATA_VALIDATION": {"status": "completed", "progress": 1.0, "message": "Data validated"},
+            "PREPROCESSING": {"status": "in_progress", "progress": 0.0, "message": "Preparing data for analysis"},
+            "ANALYSIS": {"status": "pending", "progress": 0.0, "message": "Waiting to start analysis"},
+            "THEME_EXTRACTION": {"status": "pending", "progress": 0.0, "message": "Waiting to extract themes"},
+            "PATTERN_DETECTION": {"status": "pending", "progress": 0.0, "message": "Waiting to detect patterns"},
+            "SENTIMENT_ANALYSIS": {"status": "pending", "progress": 0.0, "message": "Waiting to analyze sentiment"},
+            "PERSONA_FORMATION": {"status": "pending", "progress": 0.0, "message": "Waiting to form personas"},
+            "INSIGHT_GENERATION": {"status": "pending", "progress": 0.0, "message": "Waiting to generate insights"},
+            "COMPLETION": {"status": "pending", "progress": 0.0, "message": "Waiting to complete analysis"}
+        }
+
+        # Create the initial results JSON with detailed progress information
+        initial_results = {
+            "status": "processing",
+            "message": "Analysis has been initiated",
+            "progress": 0.0,
+            "current_stage": "PREPROCESSING",
+            "stage_states": processing_stages,
+            "started_at": datetime.now(timezone.utc).isoformat()
+        }
+
         analysis_result = AnalysisResult(
             data_id=data_id,
             status="processing",
             llm_provider=llm_provider,
             llm_model=llm_model,
-            results=json.dumps(
-                {
-                    "status": "processing",
-                    "message": "Analysis has been initiated",
-                    "progress": 0,
-                }
-            ),
+            results=json.dumps(initial_results),
         )
         self.db.add(analysis_result)
         self.db.commit()
@@ -283,23 +302,120 @@ class AnalysisService:
                 )
                 return  # Exit if record not found
 
-            # Update status to in-progress with 5% completion
-            task_result.results = json.dumps(
-                {
+            # Get current results data
+            try:
+                current_results = json.loads(task_result.results)
+            except (json.JSONDecodeError, TypeError):
+                # If there's an issue with the current results, initialize with defaults
+                current_results = {
                     "status": "processing",
                     "message": "Analysis in progress",
-                    "progress": 5,
+                    "progress": 0.0,
+                    "current_stage": "PREPROCESSING",
+                    "stage_states": {},
+                    "started_at": datetime.now(timezone.utc).isoformat()
                 }
-            )
-            async_db.commit()
-            logger.info(f"Set status to 'processing' for result_id: {result_id}")
 
-            # Process data
+            # Update preprocessing stage to completed and move to analysis stage
+            if "stage_states" not in current_results:
+                current_results["stage_states"] = {}
+
+            # Update preprocessing stage
+            current_results["stage_states"]["PREPROCESSING"] = {
+                "status": "completed",
+                "progress": 1.0,
+                "message": "Data preprocessing completed"
+            }
+
+            # Move to analysis stage
+            current_results["current_stage"] = "ANALYSIS"
+            current_results["stage_states"]["ANALYSIS"] = {
+                "status": "in_progress",
+                "progress": 0.1,
+                "message": "Starting analysis with LLM"
+            }
+
+            # Update overall progress to 10%
+            current_results["progress"] = 0.1
+            current_results["message"] = "Analysis in progress"
+
+            # Save updated status
+            task_result.results = json.dumps(current_results)
+            async_db.commit()
+            logger.info(f"Updated status to 'processing' with detailed progress for result_id: {result_id}")
+
+            # Define a progress update function to update the progress during analysis
+            async def update_progress(stage: str, progress: float, message: str):
+                nonlocal task_result, async_db, current_results
+                try:
+                    # Get the latest results
+                    try:
+                        current_results = json.loads(task_result.results)
+                        if not isinstance(current_results, dict):
+                            current_results = {}
+                    except (json.JSONDecodeError, TypeError):
+                        current_results = {}
+
+                    # Update stage information
+                    if "stage_states" not in current_results:
+                        current_results["stage_states"] = {}
+
+                    current_results["current_stage"] = stage
+                    current_results["stage_states"][stage] = {
+                        "status": "in_progress",
+                        "progress": progress,
+                        "message": message
+                    }
+
+                    # Update overall progress (weighted based on stage)
+                    # Different stages have different weights in the overall progress
+                    stage_weights = {
+                        "PREPROCESSING": 0.05,
+                        "ANALYSIS": 0.2,
+                        "THEME_EXTRACTION": 0.2,
+                        "PATTERN_DETECTION": 0.15,
+                        "SENTIMENT_ANALYSIS": 0.1,
+                        "PERSONA_FORMATION": 0.2,
+                        "INSIGHT_GENERATION": 0.1
+                    }
+
+                    # Calculate overall progress based on current stage and its progress
+                    # For stages before the current one, count them as complete
+                    # For stages after the current one, count them as not started
+                    stages = list(stage_weights.keys())
+                    current_stage_index = stages.index(stage) if stage in stages else 0
+
+                    overall_progress = 0.0
+                    for i, s in enumerate(stages):
+                        if i < current_stage_index:
+                            # Previous stages are complete
+                            overall_progress += stage_weights[s]
+                        elif i == current_stage_index:
+                            # Current stage is in progress
+                            overall_progress += stage_weights[s] * progress
+                        # Future stages are not started, so they contribute 0
+
+                    # Ensure progress is between 0.1 and 0.95
+                    overall_progress = max(0.1, min(0.95, overall_progress))
+                    current_results["progress"] = overall_progress
+
+                    # Update message
+                    current_results["message"] = message
+
+                    # Save updated status
+                    task_result.results = json.dumps(current_results)
+                    async_db.commit()
+                    logger.info(f"Updated progress for result_id: {result_id}, stage: {stage}, progress: {progress:.2f}, overall: {overall_progress:.2f}")
+                except Exception as update_error:
+                    logger.error(f"Error updating progress for result_id {result_id}: {str(update_error)}")
+
+            # Process data with progress updates
             result = await process_data(
                 nlp_processor=nlp_processor,
                 llm_service=llm_service,
                 data=data,
                 config=config,
+                progress_callback=update_progress,
             )
 
             # Update database record with results (but not status yet)
@@ -332,7 +448,48 @@ class AnalysisService:
                 )
                 # Continue with saving even if validation has warnings
 
-            task_result.results = json.dumps(result)
+            # Get current progress information
+            try:
+                current_results = json.loads(task_result.results)
+                if not isinstance(current_results, dict):
+                    current_results = {}
+            except (json.JSONDecodeError, TypeError):
+                current_results = {}
+
+            # Preserve progress tracking information
+            if "stage_states" not in current_results:
+                current_results["stage_states"] = {}
+
+            # Update all stages to completed
+            stages = [
+                "PREPROCESSING", "ANALYSIS", "THEME_EXTRACTION",
+                "PATTERN_DETECTION", "SENTIMENT_ANALYSIS",
+                "PERSONA_FORMATION", "INSIGHT_GENERATION", "COMPLETION"
+            ]
+
+            for stage in stages:
+                current_results["stage_states"][stage] = {
+                    "status": "completed",
+                    "progress": 1.0,
+                    "message": f"{stage.replace('_', ' ').title()} completed"
+                }
+
+            # Update overall progress information
+            current_results["progress"] = 1.0
+            current_results["current_stage"] = "COMPLETION"
+            current_results["message"] = "Analysis completed successfully"
+            current_results["completed_at"] = datetime.now(timezone.utc).isoformat()
+
+            # Merge the analysis results with the progress tracking information
+            for key, value in result.items():
+                if key not in ["progress", "current_stage", "stage_states", "message", "status"]:
+                    current_results[key] = value
+
+            # Set the status to completed
+            current_results["status"] = "completed"
+
+            # Save the merged results
+            task_result.results = json.dumps(current_results)
             task_result.completed_at = datetime.now(timezone.utc)
 
             # Commit the results first
@@ -360,18 +517,45 @@ class AnalysisService:
                 task_result = async_db.query(AnalysisResult).get(result_id)
 
                 if task_result:
+                    # Get current progress information
+                    try:
+                        current_results = json.loads(task_result.results)
+                        if not isinstance(current_results, dict):
+                            current_results = {}
+                    except (json.JSONDecodeError, TypeError):
+                        current_results = {}
+
+                    # Determine which stage failed
+                    current_stage = current_results.get("current_stage", "UNKNOWN")
+
+                    # Update the stage status to failed
+                    if "stage_states" not in current_results:
+                        current_results["stage_states"] = {}
+
+                    if current_stage in current_results["stage_states"]:
+                        current_results["stage_states"][current_stage]["status"] = "failed"
+                        current_results["stage_states"][current_stage]["message"] = f"Failed: {str(e)}"
+
+                    # Create detailed error information
+                    error_info = {
+                        "status": "error",
+                        "message": f"Analysis failed: {str(e)}",
+                        "error_details": str(e),
+                        "error_stage": current_stage,
+                        "error_code": "ANALYSIS_PROCESSING_ERROR",
+                        "error_time": datetime.now(timezone.utc).isoformat()
+                    }
+
+                    # Merge error information with current results
+                    for key, value in error_info.items():
+                        current_results[key] = value
+
                     # Update database record with error
-                    task_result.results = json.dumps(
-                        {
-                            "status": "error",
-                            "message": f"Analysis failed: {str(e)}",
-                            "error_details": str(e),
-                        }
-                    )
+                    task_result.results = json.dumps(current_results)
                     task_result.status = "failed"
                     task_result.completed_at = datetime.now(timezone.utc)
                     async_db.commit()
-                    logger.info(f"Set status to 'failed' for result_id: {result_id}")
+                    logger.info(f"Set status to 'failed' with detailed error info for result_id: {result_id}")
                 else:
                     logger.error(
                         f"Could not update status to failed, AnalysisResult record not found for result_id: {result_id}"

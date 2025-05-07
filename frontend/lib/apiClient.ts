@@ -1185,23 +1185,45 @@ class ApiClient {
    * This method polls the backend API to determine if the analysis process
    * has been completed for a specific analysis result.
    */
-  async checkAnalysisStatus(resultId: string): Promise<{ status: 'pending' | 'completed' | 'failed', analysis?: any, error?: string }> {
+  async checkAnalysisStatus(resultId: string): Promise<{
+    status: 'pending' | 'completed' | 'failed',
+    progress?: number,
+    currentStage?: string,
+    stageStates?: Record<string, any>,
+    startedAt?: string,
+    completedAt?: string,
+    requestId?: string,
+    analysis?: any,
+    error?: string,
+    errorCode?: string,
+    errorStage?: string
+  }> {
     if (!resultId) {
       console.error('[checkAnalysisStatus] Called with empty resultId');
       return { status: 'failed', error: 'Analysis ID is required for status check.' };
     }
 
-    // Define the expected response type from the status endpoint
-    type StatusResponse = {
+    // Define the enhanced response type from the status endpoint
+    type EnhancedStatusResponse = {
       status: 'processing' | 'completed' | 'failed';
+      progress?: number;
+      current_stage?: string;
+      stage_states?: Record<string, any>;
+      started_at?: string;
+      completed_at?: string;
+      request_id?: string;
       error?: string;
+      error_code?: string;
+      error_stage?: string;
+      error_time?: string;
+      message?: string;
     };
 
     try {
       console.log(`[checkAnalysisStatus] Checking status for analysis ID: ${resultId}`); // DEBUG LOG
 
       // Call the status endpoint directly
-      const response = await this.client.get<StatusResponse>(`/api/analysis/${resultId}/status`);
+      const response = await this.client.get<EnhancedStatusResponse>(`/api/analysis/${resultId}/status`);
       const statusData = response.data;
 
       console.log(`[checkAnalysisStatus] Received status for ${resultId}:`, statusData); // DEBUG LOG
@@ -1209,11 +1231,21 @@ class ApiClient {
       // Map 'processing' to 'pending' for frontend consistency
       const frontendStatus = statusData.status === 'processing' ? 'pending' : statusData.status;
 
-      // Return a consistent response format
+      // Return an enhanced response format with progress information
       return {
         status: frontendStatus,
-        // Include error message if status is 'failed'
-        ...(frontendStatus === 'failed' && statusData.error && { error: statusData.error })
+        progress: statusData.progress,
+        currentStage: statusData.current_stage,
+        stageStates: statusData.stage_states,
+        startedAt: statusData.started_at,
+        completedAt: statusData.completed_at,
+        requestId: statusData.request_id,
+        // Include error information if status is 'failed'
+        ...(frontendStatus === 'failed' && {
+          error: statusData.error || statusData.message,
+          errorCode: statusData.error_code,
+          errorStage: statusData.error_stage
+        })
       };
 
     } catch (error: any) {
@@ -1225,30 +1257,67 @@ class ApiClient {
         console.log(`[checkAnalysisStatus] Response status: ${error.response.status}`);
         console.log(`[checkAnalysisStatus] Response data:`, error.response.data);
 
+        // Extract detailed error information if available
+        const errorData = error.response.data;
+        const errorMessage = typeof errorData === 'object' && errorData?.message
+          ? errorData.message
+          : typeof errorData === 'string'
+            ? errorData
+            : 'Unknown error';
+
+        const errorCode = typeof errorData === 'object' && errorData?.code
+          ? errorData.code
+          : `HTTP_${error.response.status}`;
+
         // If the status endpoint returns 404, it might mean the analysis ID is invalid
         // or doesn't belong to the user. Treat as failed for polling purposes.
         if (error.response.status === 404) {
-          return { status: 'failed', error: 'Analysis not found or access denied.' };
+          return {
+            status: 'failed',
+            error: errorMessage || 'Analysis not found or access denied.',
+            errorCode: errorCode || 'ANALYSIS_NOT_FOUND',
+            requestId: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
+          };
         }
 
         // For 500 errors, we'll continue polling as the backend might recover
         if (error.response.status >= 500) {
           console.log(`[checkAnalysisStatus] Server error, will retry polling`);
-          return { status: 'pending', error: 'Server processing error, retrying...' };
+          return {
+            status: 'pending',
+            error: errorMessage || 'Server processing error, retrying...',
+            errorCode: errorCode || 'SERVER_ERROR',
+            requestId: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
+          };
         }
       }
 
       // For network errors, we'll also continue polling
       if (error.message && error.message.includes('Network Error')) {
         console.log(`[checkAnalysisStatus] Network error, will retry polling`);
-        return { status: 'pending', error: 'Network error, retrying...' };
+        return {
+          status: 'pending',
+          error: 'Network error, retrying...',
+          errorCode: 'NETWORK_ERROR'
+        };
+      }
+
+      // For timeout errors, continue polling with backoff
+      if (error.code === 'ECONNABORTED' || (error.message && error.message.includes('timeout'))) {
+        console.log(`[checkAnalysisStatus] Timeout error, will retry polling with backoff`);
+        return {
+          status: 'pending',
+          error: 'Request timed out, retrying...',
+          errorCode: 'TIMEOUT_ERROR'
+        };
       }
 
       // For other errors, return 'pending' to allow polling to retry
       console.log(`[checkAnalysisStatus] Unhandled error, will retry polling`);
       return {
         status: 'pending',
-        error: error.message || 'Unknown error, retrying...'
+        error: error.message || 'Unknown error, retrying...',
+        errorCode: 'UNKNOWN_ERROR'
       };
     }
   }

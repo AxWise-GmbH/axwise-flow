@@ -375,10 +375,10 @@ async def get_results(
 
 @app.get(
     "/api/analysis/{result_id}/status",
-    response_model=Dict[str, Any],  # Define a more specific schema later if needed
+    response_model=Dict[str, Any],
     tags=["Analysis"],
     summary="Get analysis status",
-    description="Check the current status (processing, completed, failed) of an analysis.",
+    description="Check the current status (processing, completed, failed) of an analysis with detailed progress information.",
 )
 async def get_analysis_status(
     result_id: int,
@@ -387,10 +387,23 @@ async def get_analysis_status(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Retrieves the current status of an analysis.
+    Retrieves the current status of an analysis with detailed progress information.
+
+    Returns:
+        Dict with the following structure:
+        {
+            "status": "processing|completed|failed",
+            "progress": float,  # Overall progress from 0.0 to 1.0
+            "current_stage": str,  # Current processing stage
+            "stage_states": Dict[str, Dict],  # Detailed status of each stage
+            "error": str,  # Optional error message if status is "failed"
+            "started_at": str,  # ISO timestamp when analysis started
+            "completed_at": str,  # ISO timestamp when analysis completed (if applicable)
+        }
     """
+    request_id = request.headers.get("X-Request-ID", f"req-{time.time()}")
     logger.info(
-        f"[GetStatus - Start] User: {current_user.user_id}, ResultID: {result_id}"
+        f"[GetStatus - Start] RequestID: {request_id}, User: {current_user.user_id}, ResultID: {result_id}"
     )
     try:
         # First try to get the result directly (for development mode or if ownership check is not critical)
@@ -411,35 +424,108 @@ async def get_analysis_status(
 
         if not analysis_result:
             logger.warning(
-                f"[GetStatus - NotFound] User: {current_user.user_id}, ResultID: {result_id}"
+                f"[GetStatus - NotFound] RequestID: {request_id}, User: {current_user.user_id}, ResultID: {result_id}"
             )
-            raise HTTPException(status_code=404, detail="Analysis result not found")
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Analysis result not found",
+                    "code": "ANALYSIS_NOT_FOUND",
+                    "request_id": request_id
+                }
+            )
 
         status = analysis_result.status
         error_message = None
+        progress = 0.0
+        current_stage = None
+        stage_states = {}
 
-        if status == "failed":
-            try:
-                # Attempt to parse the results JSON to find an error message
-                results_data = json.loads(analysis_result.results or "{}")
+        # Initialize response with basic information
+        response_data = {
+            "status": status,
+            "started_at": analysis_result.analysis_date.isoformat() if analysis_result.analysis_date else None,
+            "completed_at": analysis_result.completed_at.isoformat() if analysis_result.completed_at else None,
+        }
+
+        # Parse results JSON for additional information
+        try:
+            results_data = json.loads(analysis_result.results or "{}")
+
+            # Extract progress information
+            if "progress" in results_data and isinstance(results_data["progress"], (int, float)):
+                progress = float(results_data["progress"])
+                response_data["progress"] = progress
+
+            # Extract current stage
+            if "current_stage" in results_data:
+                current_stage = results_data["current_stage"]
+                response_data["current_stage"] = current_stage
+
+            # Extract stage states
+            if "stage_states" in results_data and isinstance(results_data["stage_states"], dict):
+                stage_states = results_data["stage_states"]
+                response_data["stage_states"] = stage_states
+
+            # For failed status, extract error information
+            if status == "failed":
                 error_message = (
                     results_data.get("error_details")
                     or results_data.get("message")
                     or "Analysis failed with an unspecified error."
                 )
-            except json.JSONDecodeError:
-                error_message = (
-                    "Analysis failed, and error details could not be parsed."
-                )
-            except Exception:
+                response_data["error"] = error_message
+                response_data["error_code"] = results_data.get("error_code", "ANALYSIS_FAILED")
+
+            # For processing status, ensure we have a progress value
+            if status == "processing" and "progress" not in response_data:
+                # Estimate progress based on creation time if we don't have explicit progress
+                # Assume analysis takes about 5 minutes on average
+                if analysis_result.analysis_date:
+                    elapsed_seconds = (datetime.utcnow() - analysis_result.analysis_date).total_seconds()
+                    estimated_progress = min(0.95, elapsed_seconds / 300)  # Cap at 95%
+                    response_data["progress"] = estimated_progress
+                    response_data["progress_estimated"] = True
+                else:
+                    response_data["progress"] = 0.1  # Default starting progress
+                    response_data["progress_estimated"] = True
+
+            # For completed status, ensure progress is 1.0
+            if status == "completed" and "progress" not in response_data:
+                response_data["progress"] = 1.0
+
+        except json.JSONDecodeError:
+            logger.warning(
+                f"[GetStatus - JSONDecodeError] RequestID: {request_id}, ResultID: {result_id}"
+            )
+            if status == "failed":
+                error_message = "Analysis failed, and error details could not be parsed."
+                response_data["error"] = error_message
+                response_data["error_code"] = "JSON_PARSE_ERROR"
+
+            # Add minimal progress information
+            if status == "processing" and "progress" not in response_data:
+                response_data["progress"] = 0.5
+                response_data["progress_estimated"] = True
+            elif status == "completed" and "progress" not in response_data:
+                response_data["progress"] = 1.0
+
+        except Exception as parse_error:
+            logger.error(
+                f"[GetStatus - ParseError] RequestID: {request_id}, ResultID: {result_id}: {str(parse_error)}"
+            )
+            if status == "failed":
                 error_message = "Analysis failed with an unknown error structure."
+                response_data["error"] = error_message
+                response_data["error_code"] = "UNKNOWN_ERROR_STRUCTURE"
+
+        # Add request ID for tracking
+        response_data["request_id"] = request_id
 
         logger.info(
-            f"[GetStatus - Success] User: {current_user.user_id}, ResultID: {result_id}, Status: {status}"
+            f"[GetStatus - Success] RequestID: {request_id}, User: {current_user.user_id}, "
+            f"ResultID: {result_id}, Status: {status}, Progress: {response_data.get('progress', 'N/A')}"
         )
-        response_data = {"status": status}
-        if error_message:
-            response_data["error"] = error_message
         return response_data
 
     except HTTPException:
@@ -447,10 +533,15 @@ async def get_analysis_status(
         raise
     except Exception as e:
         logger.error(
-            f"[GetStatus - Error] User: {current_user.user_id}, ResultID: {result_id}: {str(e)}"
+            f"[GetStatus - Error] RequestID: {request_id}, User: {current_user.user_id}, ResultID: {result_id}: {str(e)}"
         )
         raise HTTPException(
-            status_code=500, detail=f"Internal server error checking status: {str(e)}"
+            status_code=500,
+            detail={
+                "message": f"Internal server error checking status: {str(e)}",
+                "code": "INTERNAL_SERVER_ERROR",
+                "request_id": request_id
+            }
         )
 
 
