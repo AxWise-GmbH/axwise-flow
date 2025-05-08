@@ -1,87 +1,116 @@
 'use client';
 
-import React, { useEffect, useCallback, useMemo, useState } from 'react'; 
-import { useAnalysisHistory } from '@/store/useAnalysisStore'; 
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'; 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; 
-import { Input } from '@/components/ui/input'; 
-import { Loader2, ChevronDown, ArrowUpDown, ChevronRight, FileText, Calendar, Clock } from 'lucide-react'; 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Loader2, ChevronDown, ArrowUpDown, ChevronRight, FileText } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { DetailedAnalysisResult } from '@/types/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/components/providers/toast-provider'; 
+import { useToast } from '@/components/providers/toast-provider';
+import { apiClient } from '@/lib/apiClient';
 
 /**
  * Props interface for HistoryTabClient
  */
 interface HistoryTabClientProps {
-  // initialAnalyses: DetailedAnalysisResult[]; // Removed unused prop
-  sortBy: 'createdAt' | 'fileName'; 
+  sortBy: 'createdAt' | 'fileName';
   sortDirection: 'asc' | 'desc';
   filterStatus: 'all' | 'completed' | 'pending' | 'failed';
+  initialAnalyses?: DetailedAnalysisResult[];
 }
 
 /**
- * Client component for displaying analysis history 
+ * Client component for displaying analysis history
  */
-const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props object
+const HistoryTabClient = (props: HistoryTabClientProps) => {
   const router = useRouter();
-  const { showToast } = useToast(); 
-  
-  // Get history state from the store
-  const { 
-    history, 
-    isLoading, 
-    error, 
-    filters: storeFilters, 
-    setFilters, 
-    fetchHistory 
-  } = useAnalysisHistory();
-  
-  // Removed unused setCurrentAnalysis
-  
+  const { showToast } = useToast();
+
+  // Local state to replace Zustand
+  const [history, setHistory] = useState<DetailedAnalysisResult[]>(props.initialAnalyses || []);
+  const [isLoading, setIsLoading] = useState<boolean>(!props.initialAnalyses);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState({
+    sortBy: props.sortBy,
+    sortDirection: props.sortDirection,
+    status: props.filterStatus
+  });
+
   // Memoize the filter change callbacks
   const toggleSortDirection = useCallback(() => {
-    setFilters({ 
-      sortDirection: storeFilters.sortDirection === 'asc' ? 'desc' : 'asc' 
-    });
-  }, [storeFilters.sortDirection, setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      sortDirection: prev.sortDirection === 'asc' ? 'desc' : 'asc'
+    }));
+  }, []);
+
   const changeSortBy = useCallback((field: 'createdAt' | 'fileName') => {
-    setFilters({ sortBy: field });
-  }, [setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      sortBy: field
+    }));
+  }, []);
+
   const changeStatusFilter = useCallback((status: 'all' | 'completed' | 'pending' | 'failed') => {
-    setFilters({ status });
-  }, [setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      status
+    }));
+  }, []);
+
   // Memoize the handleSelectAnalysis function
   const handleSelectAnalysis = useCallback((analysis: DetailedAnalysisResult) => {
-    // Removed setCurrentAnalysis call
-    
     // Navigate to visualization tab with the analysis ID
     const analyzeUrl = `/unified-dashboard/visualize?analysisId=${analysis.id}&timestamp=${Date.now()}`;
-    
+
     // Use Next.js router for navigation
     router.push(analyzeUrl);
-  }, [router]); 
-  
-  // Fetch history only when filters change or on mount
-  useEffect(() => { 
-    // Set initial filters from props when component mounts or props change
+  }, [router]);
+
+  // Fetch history function
+  const fetchHistory = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Convert filters to API format
+      const apiParams = {
+        sortBy: filters.sortBy,
+        sortDirection: filters.sortDirection,
+        status: filters.status === 'all' ? undefined : filters.status
+      };
+
+      const analyses = await apiClient.listAnalyses(apiParams);
+      setHistory(analyses);
+    } catch (err) {
+      console.error('Error fetching analysis history:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load history'));
+      showToast('Failed to load analysis history', { variant: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, showToast]);
+
+  // Update filters when props change
+  useEffect(() => {
     setFilters({
-        sortBy: props.sortBy, // Access via props
-        sortDirection: props.sortDirection, // Access via props
-        status: props.filterStatus // Access via props
+      sortBy: props.sortBy,
+      sortDirection: props.sortDirection,
+      status: props.filterStatus
     });
+  }, [props.sortBy, props.sortDirection, props.filterStatus]);
+
+  // Fetch history when filters change
+  useEffect(() => {
     fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.sortBy, props.sortDirection, props.filterStatus, fetchHistory]); 
-  
+  }, [fetchHistory]);
+
   // Format file size for display
   const formatFileSize = useMemo(() => (bytes: number | undefined) => {
     if (!bytes) return 'Unknown';
@@ -90,9 +119,9 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
     const mb = kb / 1024;
     return `${mb.toFixed(2)} MB`;
   }, []);
-  
+
   // Get status badge with valid variants - Simplified to return JSX directly
-  const getStatusBadge = useCallback((status: string) => { 
+  const getStatusBadge = useCallback((status: string) => {
     switch (status) {
       case 'completed':
         return <Badge variant="secondary">Completed</Badge>;
@@ -103,8 +132,8 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
-  }, []); 
-  
+  }, []);
+
   // Loading state
   if (isLoading && history.length === 0) {
     return (
@@ -118,7 +147,7 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
       </Card>
     );
   }
-  
+
   // Error state
   if (error && history.length === 0) {
     return (
@@ -128,7 +157,7 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
       </Alert>
     );
   }
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -137,7 +166,7 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
           View and manage your previous analyses
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -148,10 +177,10 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
               // Implement search functionality if needed
             />
           </div>
-          
+
           <div className="flex gap-2">
             <Select
-              value={storeFilters.status} // Use storeFilters value
+              value={filters.status}
               onValueChange={(value) => changeStatusFilter(value as any)}
             >
               <SelectTrigger className="w-[180px]">
@@ -164,7 +193,7 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
@@ -173,19 +202,19 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => changeSortBy('createdAt')}>
-                  Date {storeFilters.sortBy === 'createdAt' && '✓'}
+                  Date {filters.sortBy === 'createdAt' && '✓'}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeSortBy('fileName')}>
-                  File Name {storeFilters.sortBy === 'fileName' && '✓'}
+                  File Name {filters.sortBy === 'fileName' && '✓'}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleSortDirection}>
-                  {storeFilters.sortDirection === 'desc' ? 'Newest First ✓' : 'Oldest First ✓'}
+                  {filters.sortDirection === 'desc' ? 'Newest First ✓' : 'Oldest First ✓'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-        
+
         {/* Analysis Table */}
         {history.length > 0 ? (
           <div className="rounded-md border">
@@ -195,13 +224,13 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
                   <TableHead className="w-[200px]">
                     <div className="flex items-center space-x-1">
                       <span>File Name</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="ml-1 h-8 w-8 p-0"
                         onClick={() => {
                           changeSortBy('fileName');
-                          if (storeFilters.sortBy === 'fileName') { // Use storeFilters
+                          if (filters.sortBy === 'fileName') {
                             toggleSortDirection();
                           }
                         }}
@@ -213,13 +242,13 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
                   <TableHead>
                     <div className="flex items-center space-x-1">
                       <span>Date</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="ml-1 h-8 w-8 p-0"
                         onClick={() => {
                           changeSortBy('createdAt');
-                          if (storeFilters.sortBy === 'createdAt') { // Use storeFilters
+                          if (filters.sortBy === 'createdAt') {
                             toggleSortDirection();
                           }
                         }}
@@ -279,7 +308,7 @@ const HistoryTabClient = (props: HistoryTabClientProps) => { // Accept props obj
             <p className="text-muted-foreground mb-4">
               You haven&apos;t performed any analyses yet or none match your current filters. {/* Escape quote */}
             </p>
-            <Button 
+            <Button
               onClick={() => {
                 const cacheBuster = Date.now();
                 router.push(`/unified-dashboard/upload?_=${cacheBuster}`);

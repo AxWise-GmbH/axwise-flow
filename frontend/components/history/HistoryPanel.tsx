@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback, useMemo } from 'react';
-import { useAnalysisStore, useAnalysisHistory } from '@/store/useAnalysisStore';
+import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -13,63 +12,87 @@ import { Badge } from '@/components/ui/badge';
 import { DetailedAnalysisResult } from '@/types/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/providers/toast-provider';
+import { apiClient } from '@/lib/apiClient';
 
 /**
  * HistoryPanel Component
  * Displays a list of past analyses and allows selecting one for visualization
  */
-export default function HistoryPanel(): JSX.Element { // Add return type
+export default function HistoryPanel(): JSX.Element {
   const router = useRouter();
-  
-  // Get history state from the store - each value is now properly memoized by the hook
-  const { 
-    history, 
-    isLoading, 
-    error, 
-    filters, 
-    setFilters, 
-    fetchHistory 
-  } = useAnalysisHistory();
-  
-  // Get methods to set current analysis - memoize the setter to prevent re-renders
-  const setCurrentAnalysis = useMemo(() => {
-    return useAnalysisStore.getState().setCurrentAnalysis;
-  }, []);
-  
+  const { showToast } = useToast();
+
+  // Local state to replace Zustand
+  const [history, setHistory] = useState<DetailedAnalysisResult[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState({
+    sortBy: 'createdAt' as 'createdAt' | 'fileName',
+    sortDirection: 'desc' as 'asc' | 'desc',
+    status: 'all' as 'all' | 'completed' | 'pending' | 'failed'
+  });
+
   // Memoize the filter change callbacks to prevent re-renders
   const toggleSortDirection = useCallback(() => {
-    setFilters({ 
-      sortDirection: filters.sortDirection === 'asc' ? 'desc' : 'asc' 
-    });
-  }, [filters.sortDirection, setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      sortDirection: prev.sortDirection === 'asc' ? 'desc' : 'asc'
+    }));
+  }, []);
+
   const changeSortBy = useCallback((field: 'createdAt' | 'fileName') => {
-    setFilters({ sortBy: field });
-  }, [setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      sortBy: field
+    }));
+  }, []);
+
   const changeStatusFilter = useCallback((status: 'all' | 'completed' | 'pending' | 'failed') => {
-    setFilters({ status });
-  }, [setFilters]);
-  
+    setFilters(prev => ({
+      ...prev,
+      status
+    }));
+  }, []);
+
+  // Fetch history function
+  const fetchHistory = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Convert filters to API format
+      const apiParams = {
+        sortBy: filters.sortBy,
+        sortDirection: filters.sortDirection,
+        status: filters.status === 'all' ? undefined : filters.status
+      };
+
+      const analyses = await apiClient.listAnalyses(apiParams);
+      setHistory(analyses);
+    } catch (err) {
+      console.error('Error fetching analysis history:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load history'));
+      showToast('Failed to load analysis history', { variant: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filters, showToast]);
+
   // Memoize the handleSelectAnalysis function
   const handleSelectAnalysis = useCallback((analysis: DetailedAnalysisResult) => {
-    // Set the analysis in the store for components that still use Zustand
-    setCurrentAnalysis(analysis);
-    
     // Navigate to visualization tab with the analysis ID
     const analyzeUrl = `/unified-dashboard/visualize?analysisId=${analysis.id}&timestamp=${Date.now()}`;
-    
+
     // Use Next.js router for navigation
     router.push(analyzeUrl);
-  }, [setCurrentAnalysis, router]);
-  
-  // Fetch history only when filters change or on mount
+  }, [router]);
+
+  // Fetch history when filters change
   useEffect(() => {
     fetchHistory();
-    // Intentionally omit fetchHistory from dependencies to prevent potential re-render cycles
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
-  
+  }, [fetchHistory]);
+
   // Format file size for display - memoize as it's a pure function
   const formatFileSize = useMemo(() => (bytes: number | undefined): string => { // Add return type
     if (!bytes) return 'Unknown';
@@ -78,7 +101,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
     const mb = kb / 1024;
     return `${mb.toFixed(2)} MB`;
   }, []);
-  
+
   // Get status badge with valid variants - Simplified to return JSX directly
   const getStatusBadge = useCallback((status: string): JSX.Element => { // Add return type
     switch (status) {
@@ -92,7 +115,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
         return <Badge variant="outline">Unknown</Badge>;
     }
   }, []); // Removed useMemo, simplified return
-  
+
   // Loading state
   if (isLoading && history.length === 0) {
     return (
@@ -106,7 +129,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
       </Card>
     );
   }
-  
+
   // Error state
   if (error && history.length === 0) {
     return (
@@ -116,7 +139,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
       </Alert>
     );
   }
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -125,7 +148,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
           View and manage your previous analyses
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -136,12 +159,12 @@ export default function HistoryPanel(): JSX.Element { // Add return type
               // Implement search functionality if needed
             />
           </div>
-          
+
           <div className="flex gap-2">
             <Select
               value={filters.status}
               // Use specific type for value in onValueChange
-              onValueChange={(value: string) => changeStatusFilter(value as 'all' | 'completed' | 'pending' | 'failed')} 
+              onValueChange={(value: string) => changeStatusFilter(value as 'all' | 'completed' | 'pending' | 'failed')}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Status" />
@@ -153,7 +176,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
@@ -174,7 +197,7 @@ export default function HistoryPanel(): JSX.Element { // Add return type
             </DropdownMenu>
           </div>
         </div>
-        
+
         {/* Analysis Table */}
         {history.length > 0 ? (
           <div className="rounded-md border">
@@ -184,9 +207,9 @@ export default function HistoryPanel(): JSX.Element { // Add return type
                   <TableHead className="w-[200px]">
                     <div className="flex items-center space-x-1">
                       <span>File Name</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="ml-1 h-8 w-8 p-0"
                         onClick={() => {
                           changeSortBy('fileName');
@@ -202,9 +225,9 @@ export default function HistoryPanel(): JSX.Element { // Add return type
                   <TableHead>
                     <div className="flex items-center space-x-1">
                       <span>Date</span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="ml-1 h-8 w-8 p-0"
                         onClick={() => {
                           changeSortBy('createdAt');

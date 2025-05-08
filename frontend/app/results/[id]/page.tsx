@@ -1,59 +1,64 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
- // Import useMemo
-import { useParams } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useToast } from '@/components/providers/toast-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { useAnalysisStore } from '@/store/useAnalysisStore';
-import {
-  useUIStore,
-  useSelectedTab
-} from '@/store/useUIStore';
 import { ThemeChart } from '@/components/visualization/ThemeChart';
 import PatternList from '@/components/visualization/PatternList';
 import SentimentGraph from '@/components/visualization/SentimentGraph';
 import { PersonaList } from '@/components/visualization/PersonaList';
- // Use named import
-import type { DetailedAnalysisResult, Theme, AnalyzedTheme } from '@/types/api'; // Import Theme and AnalyzedTheme
+import type { DetailedAnalysisResult, Theme, AnalyzedTheme } from '@/types/api';
+import { apiClient } from '@/lib/apiClient';
 
-export default function AnalysisResultsPage(): JSX.Element | null { // Add return type
+export default function AnalysisResultsPage(): JSX.Element | null {
   const params = useParams();
+  const searchParams = useSearchParams();
   const analysisId = params?.id as string;
   const { showToast } = useToast();
 
-  const {
-    fetchAnalysisById,
-    currentAnalysis: analysisData,
-    isLoadingAnalysis: isLoading,
-    analysisError: error,
-    clearErrors
-  } = useAnalysisStore();
+  // Local state to replace Zustand
+  const [analysisData, setAnalysisData] = useState<DetailedAnalysisResult | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'themes' | 'patterns' | 'sentiment' | 'personas'>('themes');
 
+  // Get initial tab from URL if available
   useEffect(() => {
-    async function loadAnalysis(): Promise<void> { // Add return type
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['themes', 'patterns', 'sentiment', 'personas'].includes(tabParam)) {
+      setSelectedTab(tabParam as 'themes' | 'patterns' | 'sentiment' | 'personas');
+    }
+  }, [searchParams]);
+
+  // Fetch analysis data
+  useEffect(() => {
+    async function fetchAnalysis() {
+      if (!analysisId) return;
+
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const result = await fetchAnalysisById(analysisId);
-        if (!result) {
-          showToast('Failed to load analysis data', { variant: 'error' });
-        } else {
-          console.log('Analysis data loaded:', result);
-        }
+        const result = await apiClient.getAnalysisById(analysisId);
+        setAnalysisData(result);
       } catch (err) {
-        console.error('Error in analysis effect:', err);
+        console.error('Error fetching analysis:', err);
+        setError(err instanceof Error ? err : new Error('Failed to load analysis data'));
         showToast('Failed to load analysis data', { variant: 'error' });
+      } finally {
+        setIsLoading(false);
       }
     }
 
-    if (analysisId) {
-      loadAnalysis();
-    }
+    fetchAnalysis();
+  }, [analysisId, showToast]);
 
-    return () => {
-      clearErrors();
-    };
-  }, [analysisId, fetchAnalysisById, showToast, clearErrors]);
+  // Clear errors function
+  const clearErrors = () => {
+    setError(null);
+  };
 
   if (isLoading) {
     return (
@@ -75,7 +80,8 @@ export default function AnalysisResultsPage(): JSX.Element | null { // Add retur
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
             onClick={() => {
               clearErrors();
-              fetchAnalysisById(analysisId);
+              // Reload the page to retry
+              window.location.reload();
             }}
           >
             Try Again
@@ -98,13 +104,16 @@ export default function AnalysisResultsPage(): JSX.Element | null { // Add retur
   }
 
   return (
-    // JSX.Element
     <ErrorBoundary>
       <div className="p-6 max-w-7xl mx-auto">
         <AnalysisHeader data={analysisData} />
 
         <div className="mt-8">
-          <AnalysisTabs data={analysisData} />
+          <AnalysisTabs
+            data={analysisData}
+            selectedTab={selectedTab}
+            setSelectedTab={setSelectedTab}
+          />
         </div>
       </div>
     </ErrorBoundary>
@@ -162,41 +171,13 @@ function TabButton({ isActive, onClick, children }: {
   );
 }
 
-function TabOptions(): JSX.Element { // Add return type
-  const { selectedTab, setSelectedTab } = useUIStore();
-
-  return (
-    <div className="flex space-x-8">
-      <TabButton
-        isActive={selectedTab === 'themes'}
-        onClick={() => setSelectedTab('themes')}
-      >
-        Themes
-      </TabButton>
-      <TabButton
-        isActive={selectedTab === 'patterns'}
-        onClick={() => setSelectedTab('patterns')}
-      >
-        Patterns
-      </TabButton>
-      <TabButton
-        isActive={selectedTab === 'sentiment'}
-        onClick={() => setSelectedTab('sentiment')}
-      >
-        Sentiment
-      </TabButton>
-      <TabButton
-        isActive={selectedTab === 'personas'}
-        onClick={() => setSelectedTab('personas' as 'themes' | 'patterns' | 'sentiment' | 'personas')} // Use specific type
-      >
-        Personas
-      </TabButton>
-    </div>
-  );
+interface AnalysisTabsProps {
+  data: DetailedAnalysisResult;
+  selectedTab: 'themes' | 'patterns' | 'sentiment' | 'personas';
+  setSelectedTab: (tab: 'themes' | 'patterns' | 'sentiment' | 'personas') => void;
 }
 
-function AnalysisTabs({ data }: { data: DetailedAnalysisResult }): JSX.Element { // Add return type
-  const selectedTab = useSelectedTab();
+function AnalysisTabs({ data, selectedTab, setSelectedTab }: AnalysisTabsProps): JSX.Element {
 
   // Map Theme[] to AnalyzedTheme[] for ThemeChart compatibility
   const analyzedThemes: AnalyzedTheme[] = useMemo(() => {
@@ -223,7 +204,32 @@ function AnalysisTabs({ data }: { data: DetailedAnalysisResult }): JSX.Element {
     <div className="space-y-4">
       <div className="border-b border-border">
         <nav className="flex space-x-8">
-          <TabOptions />
+          <div className="flex space-x-8">
+            <TabButton
+              isActive={selectedTab === 'themes'}
+              onClick={() => setSelectedTab('themes')}
+            >
+              Themes
+            </TabButton>
+            <TabButton
+              isActive={selectedTab === 'patterns'}
+              onClick={() => setSelectedTab('patterns')}
+            >
+              Patterns
+            </TabButton>
+            <TabButton
+              isActive={selectedTab === 'sentiment'}
+              onClick={() => setSelectedTab('sentiment')}
+            >
+              Sentiment
+            </TabButton>
+            <TabButton
+              isActive={selectedTab === 'personas'}
+              onClick={() => setSelectedTab('personas')}
+            >
+              Personas
+            </TabButton>
+          </div>
         </nav>
       </div>
 
