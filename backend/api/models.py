@@ -7,7 +7,7 @@ class UploadRequest(BaseModel):
     content: Union[str, Dict[str, Any], List[Dict[str, Any]]]
     filename: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -25,7 +25,7 @@ class FileUploadRequest(BaseModel):
     filename: Optional[str] = Field(None, description="Name of the uploaded file")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     is_free_text: Optional[bool] = Field(False, description="Whether the content is free-text format")
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -43,13 +43,15 @@ class AnalysisRequest(BaseModel):
     llm_provider: str = "openai"
     llm_model: Optional[str] = None
     is_free_text: Optional[bool] = False
-    
+    industry: Optional[str] = None
+
     class Config:
         schema_extra = {
             "example": {
                 "data_id": "83f05e58-5eb1-4a41-a761-4ed71cc51eab",
                 "llm_provider": "openai",
                 "llm_model": "gpt-4o-2024-08-06",
-                "is_free_text": False
+                "is_free_text": False,
+                "industry": "healthcare"
             }
-        } 
+        }

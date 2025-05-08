@@ -313,6 +313,7 @@ async def analyze_data(
             llm_provider=analysis_request.llm_provider,
             llm_model=analysis_request.llm_model,
             is_free_text=analysis_request.is_free_text,
+            industry=analysis_request.industry,
         )
 
         # Return response

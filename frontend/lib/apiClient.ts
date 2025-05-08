@@ -256,13 +256,15 @@ class ApiClient {
     dataId: number,
     llmProvider: 'openai' | 'gemini' = 'openai',
     llmModel?: string,
-    isTextFile?: boolean
+    isTextFile?: boolean,
+    industry?: string
   ): Promise<AnalysisResponse> {
     const response = await this.client.post('/api/analyze', {
       data_id: dataId,
       llm_provider: llmProvider,
       llm_model: llmModel,
-      is_free_text: isTextFile || false
+      is_free_text: isTextFile || false,
+      industry: industry || undefined
       // Enhanced theme analysis is always enabled on the backend
     }, {
       timeout: 60000 // 60 seconds timeout for triggering analysis

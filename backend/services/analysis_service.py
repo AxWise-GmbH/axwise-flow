@@ -41,6 +41,7 @@ class AnalysisService:
         llm_provider: str,
         llm_model: Optional[str] = None,
         is_free_text: bool = False,
+        industry: Optional[str] = None,
     ) -> dict:
         """
         Start analysis of interview data.
@@ -50,6 +51,7 @@ class AnalysisService:
             llm_provider: LLM provider to use ('openai' or 'gemini')
             llm_model: Optional specific model to use
             is_free_text: Whether the data is in free-text format
+            industry: Optional industry context for analysis
             use_enhanced_theme_analysis: Whether to use enhanced theme analysis
             use_reliability_check: Whether to perform reliability checks
 
@@ -70,7 +72,7 @@ class AnalysisService:
 
             logger.info(
                 f"Analysis parameters - data_id: {data_id}, provider: {llm_provider}, "
-                f"model: {llm_model}, is_free_text: {is_free_text}"
+                f"model: {llm_model}, is_free_text: {is_free_text}, industry: {industry}"
             )
 
             # Always use enhanced thematic analysis
@@ -98,7 +100,7 @@ class AnalysisService:
 
             # Create initial analysis record
             analysis_result = self._create_analysis_record(
-                data_id, llm_provider, llm_model
+                data_id, llm_provider, llm_model, industry
             )
 
             # Start background processing task
@@ -113,6 +115,7 @@ class AnalysisService:
                         "use_reliability_check": True,  # Always use reliability check
                         "llm_provider": llm_provider,
                         "llm_model": llm_model,
+                        "industry": industry,  # Pass industry context to the processing pipeline
                     },
                 )
             )
@@ -209,7 +212,7 @@ class AnalysisService:
             )
 
     def _create_analysis_record(
-        self, data_id: int, llm_provider: str, llm_model: str
+        self, data_id: int, llm_provider: str, llm_model: str, industry: Optional[str] = None
     ) -> AnalysisResult:
         """
         Create an analysis result record in the database.
@@ -218,6 +221,7 @@ class AnalysisService:
             data_id: ID of the interview data being analyzed
             llm_provider: LLM provider being used
             llm_model: LLM model being used
+            industry: Optional industry context for analysis
 
         Returns:
             Created AnalysisResult record
@@ -247,6 +251,24 @@ class AnalysisService:
             "started_at": datetime.now(timezone.utc).isoformat()
         }
 
+        # Add industry information if provided
+        if industry:
+            initial_results["industry"] = industry
+            logger.info(f"Analysis will use industry-specific guidance for: {industry}")
+
+        # Create metadata object
+        metadata = {
+            "llm_provider": llm_provider,
+            "llm_model": llm_model,
+        }
+
+        # Add industry to metadata if provided
+        if industry:
+            metadata["industry"] = industry
+
+        # Add metadata to initial results
+        initial_results["metadata"] = metadata
+
         analysis_result = AnalysisResult(
             data_id=data_id,
             status="processing",
@@ -258,7 +280,7 @@ class AnalysisService:
         self.db.commit()
         self.db.refresh(analysis_result)
         logger.info(
-            f"Created analysis result record. Result ID: {analysis_result.result_id}"
+            f"Created analysis result record. Result ID: {analysis_result.result_id}, Industry: {industry or 'None'}"
         )
 
         return analysis_result

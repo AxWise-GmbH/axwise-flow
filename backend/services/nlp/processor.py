@@ -424,9 +424,17 @@ class NLPProcessor:
                     # Create an empty fallback enhanced themes result
                     enhanced_themes_result = {"themes": []}
 
-            # Run pattern recognition and sentiment analysis with theme data
+            # Detect industry from the text
+            industry = await self._detect_industry(combined_text, llm_service)
+            logger.info(f"Detected industry: {industry}")
+
+            # Run pattern recognition and sentiment analysis with theme data and industry context
             patterns_task = llm_service.analyze(
-                {"task": "pattern_recognition", "text": combined_text}
+                {
+                    "task": "pattern_recognition",
+                    "text": combined_text,
+                    "industry": industry
+                }
             )
 
             # Pass themes to sentiment analysis to leverage their statements if needed
@@ -435,6 +443,7 @@ class NLPProcessor:
                     "task": "sentiment_analysis",
                     "text": self._preprocess_transcript_for_sentiment(combined_text),
                     "themes": themes_result.get("themes", []),
+                    "industry": industry
                 }
             )
 
@@ -544,6 +553,7 @@ class NLPProcessor:
                     if enhanced_themes_result
                     else []
                 ),
+                "industry": industry,  # Add detected industry to the result
             }
 
             # If we have enhanced themes, use only those
@@ -1163,6 +1173,63 @@ class NLPProcessor:
         except Exception as e:
             logger.error(f"Error processing sentiment results: {str(e)}")
             return {"positive": [], "neutral": [], "negative": []}
+
+    async def _detect_industry(self, text: str, llm_service) -> str:
+        """
+        Detect industry from interview content.
+
+        Args:
+            text: The interview text
+            llm_service: LLM service to use for detection
+
+        Returns:
+            Detected industry
+        """
+        try:
+            # Create a small prompt to detect the industry
+            industry_detection_prompt = f"""
+            Determine the most likely industry context for this interview transcript.
+            Choose one from: healthcare, tech, finance, military, education, hospitality, retail, manufacturing, legal, insurance, agriculture, non_profit.
+
+            INTERVIEW SAMPLE:
+            {text[:3000]}...
+
+            Return only the industry name, nothing else.
+            """
+
+            # Call LLM to detect industry
+            response = await llm_service.analyze({
+                "task": "text_generation",
+                "text": industry_detection_prompt
+            })
+
+            # Extract industry from response
+            industry = ""
+            if isinstance(response, dict) and "text" in response:
+                industry = response["text"].strip().lower()
+            elif isinstance(response, str):
+                industry = response.strip().lower()
+            else:
+                logger.warning(f"Unexpected response format from industry detection: {type(response)}")
+                industry = "general"
+
+            # Clean up the response to ensure it's just the industry name
+            valid_industries = [
+                "healthcare", "tech", "finance", "military", "education",
+                "hospitality", "retail", "manufacturing", "legal",
+                "insurance", "agriculture", "non_profit"
+            ]
+
+            for valid_industry in valid_industries:
+                if valid_industry in industry:
+                    return valid_industry
+
+            # Default to "general" if no specific industry detected
+            logger.info(f"No specific industry detected, using 'general'")
+            return "general"
+        except Exception as e:
+            logger.error(f"Error detecting industry: {str(e)}")
+            return "general"
 
     def _calculate_sentiment_distribution(
         self, statements: List[str], sentiment_data: Dict[str, List[str]]

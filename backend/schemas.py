@@ -35,6 +35,9 @@ class AnalysisRequest(BaseModel):
     is_free_text: Optional[bool] = Field(
         False, description="Whether the data is in free-text format"
     )
+    industry: Optional[str] = Field(
+        None, description="Industry context for analysis (auto-detected if not provided)"
+    )
     # Enhanced theme analysis is now always enabled by default
 
     class Config:
@@ -43,6 +46,7 @@ class AnalysisRequest(BaseModel):
                 "data_id": 1,
                 "llm_provider": "openai",
                 "llm_model": "gpt-4o-2024-08-06",
+                "industry": "healthcare"
             }
         }
 
