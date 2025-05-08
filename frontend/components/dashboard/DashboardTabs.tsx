@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UploadTab from './UploadTab';
 import VisualizationTabs from '@/components/visualization/VisualizationTabs';
-import HistoryTab from './HistoryTab';
+import DashboardHistoryTab from './DashboardHistoryTab';
 import DocumentationTab from './DocumentationTab';
 import { DashboardData } from '@/types/api';
 
@@ -19,7 +19,7 @@ interface DashboardTabsProps {
 const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { // Add return type
   // State for active tab will be moved to a Zustand store in future improvement
   const [activeTab, setActiveTab] = useState<'upload' | 'visualize' | 'history' | 'documentation'>('upload');
-  
+
   // Load initial state from URL
   useEffect(() => {
     // Only run on the client side
@@ -27,7 +27,7 @@ const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { 
       // Check for URL parameters
       const searchParams = new URLSearchParams(window.location.search);
       const tabParam = searchParams.get('tab');
-      
+
       if (tabParam) {
         // Set the active tab based on URL parameter
         if (tabParam === 'history' || tabParam === 'documentation' || tabParam === 'visualize' || tabParam === 'upload') {
@@ -36,16 +36,16 @@ const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { 
       }
     }
   }, []);
-  
+
   // Update URL when tabs change
   useEffect(() => {
     let isMounted = true;
-    
+
     const updateTimer = setTimeout(() => {
       if (isMounted && typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         const currentTab = url.searchParams.get('tab');
-        
+
         // Only update if needed
         if (currentTab !== activeTab) {
           url.searchParams.set('tab', activeTab);
@@ -53,13 +53,13 @@ const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { 
         }
       }
     }, 50);
-    
+
     return () => {
       isMounted = false;
       clearTimeout(updateTimer);
     };
   }, [activeTab]);
-  
+
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upload' | 'visualize' | 'history' | 'documentation')} className="w-full"> {/* Use specific type */}
       <TabsList className="grid grid-cols-4 mb-8">
@@ -68,11 +68,11 @@ const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { 
         <TabsTrigger value="history">History</TabsTrigger>
         <TabsTrigger value="documentation">Documentation</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="upload">
         <UploadTab />
       </TabsContent>
-      
+
       <TabsContent value="visualize">
         {dashboardData?.analysisId ? (
           <VisualizationTabs analysisId={dashboardData.analysisId} />
@@ -82,11 +82,11 @@ const DashboardTabs = ({ dashboardData }: DashboardTabsProps): JSX.Element => { 
           </div>
         )}
       </TabsContent>
-      
+
       <TabsContent value="history">
-        <HistoryTab />
+        <DashboardHistoryTab />
       </TabsContent>
-      
+
       <TabsContent value="documentation">
         <DocumentationTab />
       </TabsContent>

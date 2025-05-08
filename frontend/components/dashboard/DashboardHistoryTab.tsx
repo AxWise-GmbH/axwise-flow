@@ -1,9 +1,10 @@
-// Server component for fetching history data
+// Server component for fetching history data for the dashboard
+// This component is specifically for the dashboard tabs and will be replaced by the unified history implementation
 import { serverApiClient } from '@/lib/serverApiClient';
 import HistoryTabClient from './HistoryTabClient';
 import { ListAnalysesParams } from '@/types/api';
 
-interface HistoryTabProps {
+interface DashboardHistoryTabProps {
   searchParams?: { 
     sortBy?: 'date' | 'name',
     sortDirection?: 'asc' | 'desc',
@@ -11,7 +12,7 @@ interface HistoryTabProps {
   }
 }
 
-export default async function HistoryTab({ searchParams }: HistoryTabProps): Promise<JSX.Element> { // Add return type
+export default async function DashboardHistoryTab({ searchParams }: DashboardHistoryTabProps): Promise<JSX.Element> {
   // Default sorting and filtering parameters
   const sortBy = searchParams?.sortBy || 'date';
   const sortDirection = searchParams?.sortDirection || 'desc';

@@ -1,7 +1,7 @@
 'use client';
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import HistoryTab from '../HistoryTab';
+import DashboardHistoryTab from '../DashboardHistoryTab';
 import { apiClient } from '@/lib/apiClient';
 import { useRouter } from 'next/navigation';
 import { vi } from 'vitest';
@@ -55,7 +55,7 @@ vi.mock('@/components/providers/toast-provider', () => ({
   })
 }));
 
-describe('HistoryTab', () => {
+describe('DashboardHistoryTab', () => {
   const mockAnalyses = [
     {
       result_id: '123',
@@ -90,13 +90,13 @@ describe('HistoryTab', () => {
   });
 
   it('renders the history tab with loading state initially', () => {
-    render(<HistoryTab />);
+    render(<DashboardHistoryTab />);
     
     expect(screen.getByText(/loading your analysis history/i)).toBeInTheDocument();
   });
 
   it('displays analyses after loading', async () => {
-    render(<HistoryTab />);
+    render(<DashboardHistoryTab />);
     
     // Wait for analyses to load
     await waitFor(() => {
@@ -109,7 +109,7 @@ describe('HistoryTab', () => {
   });
 
   it('sorts analyses when sort option is changed', async () => {
-    render(<HistoryTab />);
+    render(<DashboardHistoryTab />);
     
     // Wait for analyses to load
     await waitFor(() => {
@@ -130,7 +130,7 @@ describe('HistoryTab', () => {
   it('navigates to analysis details when an analysis is clicked', async () => {
     // No need to mock router here as it's done globally and correctly typed now
     
-    render(<HistoryTab />);
+    render(<DashboardHistoryTab />);
     
     // Wait for analyses to load
     await waitFor(() => {
@@ -149,7 +149,7 @@ describe('HistoryTab', () => {
     // Mock the deleteAnalysis method
     mockedApiClient.deleteAnalysis.mockResolvedValue({ success: true });
     
-    render(<HistoryTab />);
+    render(<DashboardHistoryTab />);
     
     // Wait for analyses to load
     await waitFor(() => {
