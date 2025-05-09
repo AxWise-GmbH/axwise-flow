@@ -66,7 +66,7 @@ class PromptGenerator:
             "name": "Descriptive name for the interviewer (e.g., 'Methodical UX Researcher')",
             "description": "Brief 1-3 sentence overview of the interviewer",
             "archetype": "General category (e.g., 'Research Professional', 'Design Facilitator')",
-            
+
             "demographics": {{
                 "value": "Age, experience level, professional background",
                 "confidence": 0.7,
@@ -117,7 +117,7 @@ class PromptGenerator:
                 "confidence": 0.9,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
             "role_context": {{
                 "value": "Primary job function and work environment",
                 "confidence": 0.8,
@@ -148,7 +148,7 @@ class PromptGenerator:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
             "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
             "confidence": 0.8,
             "evidence": ["Overall evidence 1", "Overall evidence 2", "Overall evidence 3"]
@@ -181,7 +181,7 @@ class PromptGenerator:
             "name": "Descriptive name for the persona (e.g., 'Data-Driven Product Manager')",
             "description": "Brief 1-3 sentence overview of the persona",
             "archetype": "General category (e.g., 'Decision Maker', 'Technical Expert')",
-            
+
             "demographics": {{
                 "value": "Age, gender, education, experience level",
                 "confidence": 0.7,
@@ -232,7 +232,7 @@ class PromptGenerator:
                 "confidence": 0.9,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
             "role_context": {{
                 "value": "Primary job function and work environment",
                 "confidence": 0.8,
@@ -263,7 +263,7 @@ class PromptGenerator:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
             "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
             "confidence": 0.8,
             "evidence": ["Overall evidence 1", "Overall evidence 2", "Overall evidence 3"]
@@ -283,106 +283,134 @@ class PromptGenerator:
         return f"""
         CRITICAL INSTRUCTION: Your ENTIRE response must be a single, valid JSON object. Start with '{{' and end with '}}'. DO NOT include ANY text, comments, or markdown formatting before or after the JSON.
 
-        Analyze the following text excerpt and create a comprehensive, detailed persona profile with specific, concrete details.
+        You are an expert user researcher analyzing interview transcripts to create detailed persona profiles.
 
-        TEXT:
+        TASK:
+        Extract a comprehensive persona profile from the following interview transcript.
+
+        TRANSCRIPT:
         {text}
 
-        IMPORTANT: For each attribute, include EXACT QUOTES from the text as evidence. Do not paraphrase or summarize.
-        Extract at least 3-5 direct quotes for each attribute whenever possible.
+        INSTRUCTIONS:
+        1. Identify the key characteristics, behaviors, and attitudes of the speaker(s).
+        2. Extract SPECIFIC quotes that support your observations (at least 3-5 quotes per trait).
+        3. Assign confidence levels (0.0-1.0) to each attribute based on evidence strength.
+        4. Focus on concrete, specific information rather than general assumptions.
+        5. If multiple speakers are present, focus on the primary interviewee.
 
         FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
         {{
-            "name": "Descriptive name for the persona (e.g., 'Analytical Business Strategist')",
-            "description": "Brief 1-3 sentence overview of the persona",
-            "archetype": "General category (e.g., 'Decision Maker', 'Technical Expert')",
-            
+            "name": "Name of the person (use actual name if mentioned, otherwise use role)",
+            "archetype": "Brief archetype label that captures their primary role/identity",
+            "description": "2-3 sentence summary of the person",
+
             "demographics": {{
-                "value": "Age, gender, education, experience level",
-                "confidence": 0.7,
+                "value": "Specific demographic information (age, gender, occupation, etc.)",
+                "confidence": 0.8,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "goals_and_motivations": {{
-                "value": "Primary objectives and driving factors",
-                "confidence": 0.8,
+                "value": "Specific goals and motivations mentioned",
+                "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "skills_and_expertise": {{
-                "value": "Technical and soft skills, knowledge areas",
-                "confidence": 0.75,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "workflow_and_environment": {{
-                "value": "Work processes and environment",
-                "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "challenges_and_frustrations": {{
-                "value": "Pain points and obstacles",
-                "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "needs_and_desires": {{
-                "value": "Specific needs and desires",
-                "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "technology_and_tools": {{
-                "value": "Software, hardware, and tools used",
-                "confidence": 0.6,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "attitude_towards_research": {{
-                "value": "Views on research and data",
-                "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "attitude_towards_ai": {{
-                "value": "Perspective on AI and automation",
-                "confidence": 0.6,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "key_quotes": {{
-                "value": "Representative quotes that capture the persona's voice",
+                "value": "Specific skills and expertise mentioned",
                 "confidence": 0.9,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
+            "workflow_and_environment": {{
+                "value": "Specific workflow and environment details",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
+            }},
+
+            "challenges_and_frustrations": {{
+                "value": "Specific challenges and frustrations mentioned",
+                "confidence": 0.8,
+                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
+            }},
+
+            "needs_and_desires": {{
+                "value": "Specific needs and desires mentioned",
+                "confidence": 0.7,
+                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
+            }},
+
+            "technology_and_tools": {{
+                "value": "Specific technology and tools mentioned",
+                "confidence": 0.9,
+                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
+            }},
+
+            "attitude_towards_research": {{
+                "value": "Specific attitudes towards research mentioned",
+                "confidence": 0.5,
+                "evidence": ["Quote 1", "Quote 2"]
+            }},
+
+            "attitude_towards_ai": {{
+                "value": "Specific attitudes towards AI mentioned",
+                "confidence": 0.6,
+                "evidence": ["Quote 1", "Quote 2"]
+            }},
+
+            "key_quotes": {{
+                "value": "3-5 most representative quotes",
+                "confidence": 1.0,
+                "evidence": ["Quote 1", "Quote 2", "Quote 3", "Quote 4", "Quote 5"]
+            }},
+
             "role_context": {{
-                "value": "Primary job function and work environment",
+                "value": "Specific job function and work environment details",
                 "confidence": 0.8,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "key_responsibilities": {{
-                "value": "Main tasks and responsibilities",
+                "value": "Specific tasks and responsibilities mentioned",
                 "confidence": 0.8,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "tools_used": {{
-                "value": "Specific tools or methods used",
+                "value": "Specific tools or methods mentioned",
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "collaboration_style": {{
-                "value": "How they work with others",
+                "value": "Specific collaboration approaches mentioned",
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "analysis_approach": {{
-                "value": "How they approach problems/analysis",
+                "value": "Specific problem-solving approaches mentioned",
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
+
             "pain_points": {{
                 "value": "Specific challenges mentioned",
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            
+
             "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
             "confidence": 0.8,
             "evidence": ["Overall evidence 1", "Overall evidence 2", "Overall evidence 3"]
         }}
+
+        IMPORTANT:
+        - Include DIRECT QUOTES from the transcript as evidence
+        - Assign REALISTIC confidence scores (lower when evidence is limited)
+        - Be SPECIFIC rather than generic in all descriptions
+        - Focus on EXTRACTING information rather than inventing details
+        - If information is not available, use lower confidence scores rather than making assumptions
         """
 
     def create_pattern_prompt(self, patterns: str) -> str:
@@ -411,7 +439,7 @@ class PromptGenerator:
             "name": "Descriptive name for the persona (e.g., 'Data-Driven Product Manager')",
             "description": "Brief 1-3 sentence overview of the persona",
             "archetype": "General category (e.g., 'Decision Maker', 'Technical Expert')",
-            
+
             "demographics": {{
                 "value": "Age, gender, education, experience level",
                 "confidence": 0.7,
@@ -462,7 +490,7 @@ class PromptGenerator:
                 "confidence": 0.9,
                 "evidence": ["Pattern reference 1", "Pattern reference 2", "Pattern reference 3"]
             }},
-            
+
             "role_context": {{
                 "value": "Primary job function and work environment",
                 "confidence": 0.8,
@@ -493,7 +521,7 @@ class PromptGenerator:
                 "confidence": 0.7,
                 "evidence": ["Pattern reference 1", "Pattern reference 2", "Pattern reference 3"]
             }},
-            
+
             "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
             "confidence": 0.8,
             "evidence": ["Overall evidence 1", "Overall evidence 2", "Overall evidence 3"]

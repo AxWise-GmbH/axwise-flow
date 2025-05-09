@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from domain.interfaces.llm_service import ILLMService
 from backend.services.llm.base_llm_service import BaseLLMService
 from backend.services.llm.gemini_service import GeminiService
+from backend.services.llm.exceptions import LLMResponseParseError
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,72 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         super().__init__(config)
         self.service = GeminiService(config)
         logger.info("Initialized GeminiLLMService")
+
+    # --- Implementation of BaseLLMService abstract methods ---
+
+    def _get_system_message(self, task: str, request: Dict[str, Any]) -> Any:
+        """
+        System message generation is handled by GeminiService prompts based on task.
+        This method returns None as BaseLLMService's _call_llm_api will use the 'request' directly.
+        """
+        # The actual prompt/system message for GeminiService is determined by the 'task'
+        # and other data within the 'request' dict itself, handled by GeminiService.analyze
+        # or its underlying prompt generation logic.
+        logger.debug(f"[{self.__class__.__name__}] _get_system_message called for task: {task}. Returning None.")
+        return None # Or an empty string, depending on how _call_llm_api expects it if not used.
+
+    async def _call_llm_api(self, system_message: Any, text: str, task: str, request: Dict[str, Any]) -> Any:
+        """
+        Call the underlying GeminiService.analyze method.
+        The 'system_message' and 'text' from BaseLLMService.analyze are ignored here
+        as self.service.analyze (GeminiService.analyze) expects all necessary info in the 'request' dict.
+        """
+        logger.debug(f"[{self.__class__.__name__}] _call_llm_api called for task: {task}. Delegating to self.service.analyze.")
+        # The 'request' dictionary already contains the 'task', 'text' (if needed directly by GeminiService),
+        # and any other parameters GeminiService.analyze expects.
+        return await self.service.analyze(request) # GeminiService.analyze is already robust
+
+    def _parse_llm_response(self, response: Any, task: str) -> Dict[str, Any]:
+        """
+        Parse the response from self.service.analyze (GeminiService.analyze).
+        Ensures the return type is Dict[str, Any] as expected by BaseLLMService.
+        """
+        logger.debug(f"[{self.__class__.__name__}] _parse_llm_response received for task {task}. Type: {type(response)}")
+        if isinstance(response, str):
+            # If GeminiService returned a raw string, try to parse it as JSON.
+            # Use the base class's _parse_llm_json_response which includes repair logic.
+            parsed_dict = super()._parse_llm_json_response(response, context=f"{self.__class__.__name__}._parse_llm_response for task {task}")
+            if not parsed_dict and task == "transcript_structuring": # Ensure specific error structure if parsing completely fails
+                 return {"segments": [], "error": "Failed to parse LLM string response after repair.", "type": "structured_transcript"}
+            elif not parsed_dict:
+                return {"error": "Failed to parse LLM string response after repair."}
+            return parsed_dict
+        elif isinstance(response, list):
+            # For transcript_structuring, GeminiService.analyze is expected to return a list.
+            # BaseLLMService.analyze pipeline expects a Dict, so we wrap it.
+            if task == "transcript_structuring":
+                logger.debug(f"Task is {task}, wrapping list response into dict with 'segments' key.")
+                return {"segments": response}
+            else:
+                # For other tasks, if a list is returned unexpectedly, wrap it generically.
+                logger.warning(f"Task {task} received a list, wrapping with 'data' key.")
+                return {"data": response}
+        elif isinstance(response, dict):
+            # If GeminiService already returned a dict (e.g., an error dict or a pre-formatted result for other tasks)
+            return response
+        else:
+            logger.error(f"Unexpected response type from self.service.analyze for task {task}: {type(response)}")
+            raise LLMResponseParseError(f"Unexpected response type from LLM for task {task}: {type(response)}")
+
+    def _post_process_results(self, result: Dict[str, Any], task: str) -> Dict[str, Any]:
+        """
+        Post-process results. For now, it's a pass-through.
+        """
+        logger.debug(f"[{self.__class__.__name__}] _post_process_results for task {task}. Returning as is.")
+        # Specific post-processing can be added here if needed for GeminiLLMService
+        return result
+
+    # --- End of BaseLLMService abstract method implementations ---
 
     async def generate_text(self, prompt: str, **kwargs) -> str:
         """
@@ -264,83 +331,4 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         if industry:
             result["industry"] = industry
 
-        return result
-
-    # Implement abstract methods from BaseLLMService
-
-    def _get_system_message(self, task: str, request: Dict[str, Any]) -> Any:
-        """
-        Get system message based on task.
-
-        Args:
-            task: Task type
-            request: Request dictionary
-
-        Returns:
-            System message in the format required by the LLM API
-        """
-        # Use the GeminiService's _get_system_message method
-        return self.service._get_system_message(task, request)
-
-    async def _call_llm_api(self, system_message: Any, text: str, task: str, request: Dict[str, Any]) -> Any:
-        """
-        Call LLM API with the given system message and text.
-
-        Args:
-            system_message: System message
-            text: Input text
-            task: Task type
-            request: Original request dictionary
-
-        Returns:
-            Raw API response
-        """
-        # Prepare request data for the GeminiService
-        request_data = {
-            "task": task,
-            "text": text
-        }
-
-        # Add any additional parameters from the request
-        for key, value in request.items():
-            if key not in ["task", "text"]:
-                request_data[key] = value
-
-        # Call the GeminiService's analyze method
-        return await self.service.analyze(request_data)
-
-    def _parse_llm_response(self, response: Any, task: str) -> Dict[str, Any]:
-        """
-        Parse LLM response into a dictionary.
-
-        Args:
-            response: Raw API response
-            task: Task type
-
-        Returns:
-            Parsed response dictionary
-        """
-        # The GeminiService's analyze method already returns a parsed dictionary
-        if isinstance(response, dict):
-            return response
-        elif isinstance(response, str):
-            try:
-                return json.loads(response)
-            except json.JSONDecodeError:
-                return {"text": response}
-        else:
-            return {"error": "Unexpected response format"}
-
-    def _post_process_results(self, result: Dict[str, Any], task: str) -> Dict[str, Any]:
-        """
-        Post-process results based on task.
-
-        Args:
-            result: Parsed result dictionary
-            task: Task type
-
-        Returns:
-            Post-processed result dictionary
-        """
-        # The GeminiService's analyze method already post-processes the results
         return result

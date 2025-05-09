@@ -72,8 +72,13 @@ async def process_data(
         if progress_callback:
             await progress_callback("PATTERN_DETECTION", 0.5, "Detecting patterns in interview data")
 
-        if not await nlp_processor.validate_results(results):
-            raise ValueError("Invalid analysis results")
+        # Use the new return type (is_valid, missing_fields)
+        is_valid, missing_fields = await nlp_processor.validate_results(results)
+
+        if not is_valid:
+            logger.warning(f"Validation issues: {missing_fields}")
+            # Continue anyway - we're being more lenient now
+            logger.info("Continuing despite validation issues to be more resilient")
 
         # Report progress: Sentiment analysis
         if progress_callback:

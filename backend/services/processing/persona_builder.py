@@ -77,6 +77,18 @@ def persona_to_dict(persona: Persona) -> Dict[str, Any]:
     Returns:
         Dictionary representation of the persona
     """
+    # Check if persona is None
+    if persona is None:
+        logger = logging.getLogger(__name__)
+        logger.warning("Received None persona in persona_to_dict, returning empty dict")
+        return {
+            "name": "Unknown",
+            "description": "No persona data available",
+            "confidence": 0.0,
+            "evidence": ["No data available"],
+            "metadata": {"error": "No persona data available"}
+        }
+
     # Convert to dictionary using dataclasses.asdict
     persona_dict = asdict(persona)
 
@@ -117,28 +129,126 @@ class PersonaBuilder:
         logger.info(f"Building persona from attributes for {role}")
 
         try:
-            # Use name override if provided
-            name = name_override if name_override else attributes.get("name", "Unknown Persona")
+            # Extract name from attributes or use override
+            name = name_override if name_override else attributes.get("name", role)
 
-            # Extract nested trait data
-            role_context_data = attributes.get("role_context", {})
-            key_responsibilities_data = attributes.get("key_responsibilities", {})
-            tools_used_data = attributes.get("tools_used", {})
-            collaboration_style_data = attributes.get("collaboration_style", {})
-            analysis_approach_data = attributes.get("analysis_approach", {})
-            pain_points_data = attributes.get("pain_points", {})
+            # Log the attributes for debugging
+            logger.info(f"Building persona with name: {name}, role: {role}")
+            logger.info(f"Attribute keys: {list(attributes.keys())}")
 
-            # Extract new trait data
-            demographics_data = attributes.get("demographics", {})
-            goals_and_motivations_data = attributes.get("goals_and_motivations", {})
-            skills_and_expertise_data = attributes.get("skills_and_expertise", {})
-            workflow_and_environment_data = attributes.get("workflow_and_environment", {})
-            challenges_and_frustrations_data = attributes.get("challenges_and_frustrations", {})
-            needs_and_desires_data = attributes.get("needs_and_desires", {})
-            technology_and_tools_data = attributes.get("technology_and_tools", {})
-            attitude_towards_research_data = attributes.get("attitude_towards_research", {})
-            attitude_towards_ai_data = attributes.get("attitude_towards_ai", {})
+            # Handle key_quotes specially - it can be a string, list, or dict
             key_quotes_data = attributes.get("key_quotes", {})
+            if isinstance(key_quotes_data, list):
+                # Convert list of quotes to a trait
+                key_quotes_value = ", ".join(key_quotes_data[:5])  # Take first 5 quotes
+                key_quotes_data = {
+                    "value": key_quotes_value,
+                    "confidence": 0.9,
+                    "evidence": key_quotes_data
+                }
+            elif isinstance(key_quotes_data, str):
+                # Convert string to a trait
+                key_quotes_data = {
+                    "value": key_quotes_data,
+                    "confidence": 0.8,
+                    "evidence": [key_quotes_data]
+                }
+            elif not isinstance(key_quotes_data, dict):
+                key_quotes_data = {
+                    "value": str(key_quotes_data),
+                    "confidence": 0.5,
+                    "evidence": []
+                }
+
+            # Get overall confidence score if available (for simplified format)
+            overall_confidence = 0.7  # Default confidence
+            if "overall_confidence_score" in attributes and isinstance(attributes["overall_confidence_score"], (int, float)):
+                overall_confidence = float(attributes["overall_confidence_score"])
+            elif "overall_confidence" in attributes and isinstance(attributes["overall_confidence"], (int, float)):
+                overall_confidence = float(attributes["overall_confidence"])
+
+            # Get key quotes for evidence (for simplified format)
+            key_quotes_list = []
+            if isinstance(key_quotes_data, dict) and "evidence" in key_quotes_data and isinstance(key_quotes_data["evidence"], list):
+                key_quotes_list = key_quotes_data["evidence"]
+            elif isinstance(attributes.get("key_quotes"), list):
+                key_quotes_list = attributes["key_quotes"]
+
+            # Process trait fields with robust error handling
+            trait_fields = {
+                "role_context": attributes.get("role_context", {}),
+                "key_responsibilities": attributes.get("key_responsibilities", {}),
+                "tools_used": attributes.get("tools_used", {}),
+                "collaboration_style": attributes.get("collaboration_style", {}),
+                "analysis_approach": attributes.get("analysis_approach", {}),
+                "pain_points": attributes.get("pain_points", {}),
+                "demographics": attributes.get("demographics", {}),
+                "goals_and_motivations": attributes.get("goals_and_motivations", {}),
+                "skills_and_expertise": attributes.get("skills_and_expertise", {}),
+                "workflow_and_environment": attributes.get("workflow_and_environment", {}),
+                "challenges_and_frustrations": attributes.get("challenges_and_frustrations", {}),
+                "needs_and_desires": attributes.get("needs_and_desires", {}),
+                "technology_and_tools": attributes.get("technology_and_tools", {}),
+                "attitude_towards_research": attributes.get("attitude_towards_research", {}),
+                "attitude_towards_ai": attributes.get("attitude_towards_ai", {})
+            }
+
+            # Process each trait field to ensure proper format
+            processed_traits = {}
+            for field_name, field_data in trait_fields.items():
+                if isinstance(field_data, dict) and "value" in field_data:
+                    # Standard format - already a dict with value, confidence, evidence
+                    processed_traits[field_name] = field_data
+                elif isinstance(field_data, str):
+                    # String format - convert to dict (simplified format)
+                    processed_traits[field_name] = {
+                        "value": field_data,
+                        "confidence": overall_confidence,
+                        "evidence": key_quotes_list[:2] if key_quotes_list else []  # Use key quotes as evidence
+                    }
+                elif isinstance(field_data, list):
+                    # List format - convert to dict
+                    processed_traits[field_name] = {
+                        "value": ", ".join(str(item) for item in field_data[:3]),  # Take first 3 items
+                        "confidence": overall_confidence,
+                        "evidence": key_quotes_list[:2] if key_quotes_list else []  # Use key quotes as evidence
+                    }
+                else:
+                    # Default empty dict
+                    processed_traits[field_name] = {
+                        "value": "",
+                        "confidence": 0.5,
+                        "evidence": []
+                    }
+
+            # Add key_quotes to processed traits
+            processed_traits["key_quotes"] = key_quotes_data
+
+            # Extract patterns and evidence
+            patterns = attributes.get("patterns", [])
+            if isinstance(patterns, str):
+                # Split string by commas or newlines
+                patterns = [p.strip() for p in re.split(r'[,\n]', patterns) if p.strip()]
+            elif not isinstance(patterns, list):
+                patterns = []
+
+            evidence = attributes.get("evidence", [])
+            if isinstance(evidence, str):
+                # Split string by commas or newlines
+                evidence = [e.strip() for e in re.split(r'[,\n]', evidence) if e.strip()]
+            elif not isinstance(evidence, list):
+                evidence = []
+
+            # Extract confidence
+            confidence = attributes.get("confidence", 0.7)
+            if not isinstance(confidence, (int, float)):
+                try:
+                    confidence = float(confidence)
+                except (ValueError, TypeError):
+                    confidence = 0.7
+
+            # Ensure confidence is between 0 and 1
+            confidence = max(0.0, min(1.0, confidence))
 
             # Create Persona object
             persona = Persona(
@@ -146,97 +256,135 @@ class PersonaBuilder:
                 description=attributes.get("description", "No description provided."),
                 archetype=attributes.get("archetype", "Unknown"),
 
-                # Create PersonaTrait instances from nested data
+                # Create PersonaTrait instances from processed data
                 role_context=PersonaTrait(
-                    value=role_context_data.get("value", ""),
-                    confidence=float(role_context_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(role_context_data.get("evidence", [])),
+                    value=processed_traits["role_context"].get("value", ""),
+                    confidence=float(processed_traits["role_context"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["role_context"].get("evidence", [])),
                 ),
                 key_responsibilities=PersonaTrait(
-                    value=key_responsibilities_data.get("value", ""),
-                    confidence=float(key_responsibilities_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(key_responsibilities_data.get("evidence", [])),
+                    value=processed_traits["key_responsibilities"].get("value", ""),
+                    confidence=float(processed_traits["key_responsibilities"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["key_responsibilities"].get("evidence", [])),
                 ),
                 tools_used=PersonaTrait(
-                    value=tools_used_data.get("value", ""),
-                    confidence=float(tools_used_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(tools_used_data.get("evidence", [])),
+                    value=processed_traits["tools_used"].get("value", ""),
+                    confidence=float(processed_traits["tools_used"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["tools_used"].get("evidence", [])),
                 ),
                 collaboration_style=PersonaTrait(
-                    value=collaboration_style_data.get("value", ""),
-                    confidence=float(collaboration_style_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(collaboration_style_data.get("evidence", [])),
+                    value=processed_traits["collaboration_style"].get("value", ""),
+                    confidence=float(processed_traits["collaboration_style"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["collaboration_style"].get("evidence", [])),
                 ),
                 analysis_approach=PersonaTrait(
-                    value=analysis_approach_data.get("value", ""),
-                    confidence=float(analysis_approach_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(analysis_approach_data.get("evidence", [])),
+                    value=processed_traits["analysis_approach"].get("value", ""),
+                    confidence=float(processed_traits["analysis_approach"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["analysis_approach"].get("evidence", [])),
                 ),
                 pain_points=PersonaTrait(
-                    value=pain_points_data.get("value", ""),
-                    confidence=float(pain_points_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(pain_points_data.get("evidence", [])),
+                    value=processed_traits["pain_points"].get("value", ""),
+                    confidence=float(processed_traits["pain_points"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["pain_points"].get("evidence", [])),
                 ),
 
                 # Create PersonaTrait instances for new fields
                 demographics=PersonaTrait(
-                    value=demographics_data.get("value", ""),
-                    confidence=float(demographics_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(demographics_data.get("evidence", [])),
+                    value=processed_traits["demographics"].get("value", ""),
+                    confidence=float(processed_traits["demographics"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["demographics"].get("evidence", [])),
                 ),
                 goals_and_motivations=PersonaTrait(
-                    value=goals_and_motivations_data.get("value", ""),
-                    confidence=float(goals_and_motivations_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(goals_and_motivations_data.get("evidence", [])),
+                    value=processed_traits["goals_and_motivations"].get("value", ""),
+                    confidence=float(processed_traits["goals_and_motivations"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["goals_and_motivations"].get("evidence", [])),
                 ),
                 skills_and_expertise=PersonaTrait(
-                    value=skills_and_expertise_data.get("value", ""),
-                    confidence=float(skills_and_expertise_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(skills_and_expertise_data.get("evidence", [])),
+                    value=processed_traits["skills_and_expertise"].get("value", ""),
+                    confidence=float(processed_traits["skills_and_expertise"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["skills_and_expertise"].get("evidence", [])),
                 ),
                 workflow_and_environment=PersonaTrait(
-                    value=workflow_and_environment_data.get("value", ""),
-                    confidence=float(workflow_and_environment_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(workflow_and_environment_data.get("evidence", [])),
+                    value=processed_traits["workflow_and_environment"].get("value", ""),
+                    confidence=float(processed_traits["workflow_and_environment"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["workflow_and_environment"].get("evidence", [])),
                 ),
                 challenges_and_frustrations=PersonaTrait(
-                    value=challenges_and_frustrations_data.get("value", ""),
-                    confidence=float(challenges_and_frustrations_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(challenges_and_frustrations_data.get("evidence", [])),
+                    value=processed_traits["challenges_and_frustrations"].get("value", ""),
+                    confidence=float(processed_traits["challenges_and_frustrations"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["challenges_and_frustrations"].get("evidence", [])),
                 ),
                 needs_and_desires=PersonaTrait(
-                    value=needs_and_desires_data.get("value", ""),
-                    confidence=float(needs_and_desires_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(needs_and_desires_data.get("evidence", [])),
+                    value=processed_traits["needs_and_desires"].get("value", ""),
+                    confidence=float(processed_traits["needs_and_desires"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["needs_and_desires"].get("evidence", [])),
                 ),
                 technology_and_tools=PersonaTrait(
-                    value=technology_and_tools_data.get("value", ""),
-                    confidence=float(technology_and_tools_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(technology_and_tools_data.get("evidence", [])),
+                    value=processed_traits["technology_and_tools"].get("value", ""),
+                    confidence=float(processed_traits["technology_and_tools"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["technology_and_tools"].get("evidence", [])),
                 ),
                 attitude_towards_research=PersonaTrait(
-                    value=attitude_towards_research_data.get("value", ""),
-                    confidence=float(attitude_towards_research_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(attitude_towards_research_data.get("evidence", [])),
+                    value=processed_traits["attitude_towards_research"].get("value", ""),
+                    confidence=float(processed_traits["attitude_towards_research"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["attitude_towards_research"].get("evidence", [])),
                 ),
                 attitude_towards_ai=PersonaTrait(
-                    value=attitude_towards_ai_data.get("value", ""),
-                    confidence=float(attitude_towards_ai_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(attitude_towards_ai_data.get("evidence", [])),
+                    value=processed_traits["attitude_towards_ai"].get("value", ""),
+                    confidence=float(processed_traits["attitude_towards_ai"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["attitude_towards_ai"].get("evidence", [])),
                 ),
                 key_quotes=PersonaTrait(
-                    value=key_quotes_data.get("value", ""),
-                    confidence=float(key_quotes_data.get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(key_quotes_data.get("evidence", [])),
+                    value=processed_traits["key_quotes"].get("value", ""),
+                    confidence=float(processed_traits["key_quotes"].get("confidence", 0.7)),
+                    evidence=self._clean_evidence_list(processed_traits["key_quotes"].get("evidence", [])),
                 ),
 
                 # Set other fields
-                patterns=attributes.get("patterns", []),
-                confidence=float(attributes.get("confidence", 0.7)),
-                evidence=self._clean_evidence_list(attributes.get("evidence", [])),
+                patterns=patterns,
+                confidence=confidence,
+                evidence=evidence,
                 persona_metadata=self._create_metadata(attributes, role),
                 role_in_interview=role
             )
+
+            # Calculate overall confidence based on trait confidences
+            trait_confidences = [
+                persona.role_context.confidence,
+                persona.key_responsibilities.confidence,
+                persona.tools_used.confidence,
+                persona.collaboration_style.confidence,
+                persona.analysis_approach.confidence,
+                persona.pain_points.confidence,
+                persona.demographics.confidence,
+                persona.goals_and_motivations.confidence,
+                persona.skills_and_expertise.confidence,
+                persona.workflow_and_environment.confidence,
+                persona.challenges_and_frustrations.confidence,
+                persona.needs_and_desires.confidence,
+                persona.technology_and_tools.confidence,
+                persona.attitude_towards_research.confidence,
+                persona.attitude_towards_ai.confidence,
+                persona.key_quotes.confidence
+            ]
+
+            # Filter out zero confidences
+            valid_confidences = [c for c in trait_confidences if c > 0]
+            if valid_confidences:
+                persona.confidence = sum(valid_confidences) / len(valid_confidences)
+
+            # Ensure we have at least some evidence
+            if not persona.evidence:
+                # Collect evidence from traits
+                all_evidence = []
+                for field_name in processed_traits:
+                    trait = getattr(persona, field_name)
+                    if trait and trait.evidence:
+                        all_evidence.extend(trait.evidence[:2])  # Take up to 2 pieces of evidence from each trait
+
+                # Use the collected evidence
+                if all_evidence:
+                    persona.evidence = all_evidence[:10]  # Limit to 10 pieces of evidence
 
             # Validate persona with Pydantic if available
             try:
@@ -247,18 +395,20 @@ class PersonaBuilder:
             except ValidationError as e:
                 logger.warning(f"Persona validation failed: {str(e)}")
 
+            logger.info(f"Successfully built persona: {persona.name}")
             return persona
 
         except Exception as e:
             logger.error(f"Error building persona from attributes: {str(e)}", exc_info=True)
-            return self.create_fallback_persona(role)
+            return self.create_fallback_persona(role, name_override)
 
-    def create_fallback_persona(self, role: str = "Participant") -> Persona:
+    def create_fallback_persona(self, role: str = "Participant", name: str = "") -> Persona:
         """
         Create a fallback persona when building fails.
 
         Args:
             role: Role of the person in the interview
+            name: Optional name for the persona (defaults to "Default {role}")
 
         Returns:
             Fallback persona
@@ -272,9 +422,12 @@ class PersonaBuilder:
             evidence=["Fallback due to processing error"]
         )
 
+        # Use provided name or generate default name
+        persona_name = name if name else f"Default {role}"
+
         # Create fallback persona
         return Persona(
-            name=f"Default {role}",
+            name=persona_name,
             description=f"Default {role} due to processing error",
             archetype="Unknown",
             # Legacy fields

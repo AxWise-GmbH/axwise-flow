@@ -4,6 +4,9 @@ Persona formation prompt templates for LLM services.
 
 from typing import Dict, Any
 from backend.services.llm.prompts.industry_guidance import IndustryGuidance
+import logging
+
+logger = logging.getLogger(__name__)
 
 class PersonaFormationPrompts:
     """
@@ -29,8 +32,21 @@ class PersonaFormationPrompts:
         # Check if industry is provided
         industry = data.get("industry")
 
-        # Limit sample size
-        text_sample = data.get("text", "")[:3500]
+        # Get the full original text first
+        original_text_input = data.get("text", "")
+
+        # Define the sample limit - Increased to provide more context
+        # Original limit was 3500, which is too short for detailed persona extraction.
+        # Gemini 2.5 Pro has a large context window.
+        TEXT_SAMPLE_LIMIT = 32000 
+        
+        # Apply the limit to create the text_sample
+        text_sample = original_text_input[:TEXT_SAMPLE_LIMIT]
+        
+        if len(original_text_input) > TEXT_SAMPLE_LIMIT:
+            logger.info(f"PersonaFormationPrompts: Using truncated text sample of {TEXT_SAMPLE_LIMIT} chars (original: {len(original_text_input)} chars)")
+        else:
+            logger.info(f"PersonaFormationPrompts: Using full text sample of {len(original_text_input)} chars")
 
         # Get industry-specific guidance if available
         if industry:

@@ -79,7 +79,7 @@ class ThemeAnalysisPrompts:
             "name": "Theme name - be HIGHLY specific and concrete, not generic",
             "frequency": 0.XX, (decimal between 0-1 representing prevalence)
             "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
             "keywords": ["keyword1", "keyword2", "keyword3"],
             "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
             "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
@@ -134,7 +134,7 @@ class ThemeAnalysisPrompts:
             "name": "Theme name - be specific and concrete",
             "frequency": 0.XX, (decimal between 0-1 representing prevalence)
             "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
             "keywords": ["keyword1", "keyword2", "keyword3"],
             "definition": "A concise one-sentence description of what this theme encompasses",
             "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
@@ -187,7 +187,7 @@ class ThemeAnalysisPrompts:
             "name": "Theme name - be HIGHLY specific and concrete, not generic",
             "frequency": 0.XX, (decimal between 0-1 representing prevalence)
             "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
             "keywords": ["keyword1", "keyword2", "keyword3"],
             "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
             "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
@@ -234,7 +234,7 @@ class ThemeAnalysisPrompts:
             "name": "Theme name - be specific and concrete",
             "frequency": 0.XX, (decimal between 0-1 representing prevalence)
             "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"],
+            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
             "keywords": ["keyword1", "keyword2", "keyword3"],
             "definition": "A concise one-sentence description of what this theme encompasses",
             "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)

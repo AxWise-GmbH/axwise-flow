@@ -15,8 +15,8 @@ import logging
 from datetime import datetime
 import re
 
-# Import our new modules
-from .transcript_processor import TranscriptProcessor
+# Import our modules
+from .transcript_structuring_service import TranscriptStructuringService
 from .attribute_extractor import AttributeExtractor
 from .persona_builder import PersonaBuilder, persona_to_dict, Persona
 from .prompts import PromptGenerator
@@ -112,10 +112,13 @@ class PersonaFormationService:
         self.validation_threshold = self.min_confidence
 
         # Initialize our helper modules
-        self.transcript_processor = TranscriptProcessor()
+        self.transcript_structuring_service = TranscriptStructuringService(llm_service)
         self.attribute_extractor = AttributeExtractor(llm_service)
         self.persona_builder = PersonaBuilder()
         self.prompt_generator = PromptGenerator()
+
+        # No longer using TranscriptProcessor - all functionality is now in TranscriptStructuringService
+        logger.info("Using TranscriptStructuringService for transcript processing")
 
         logger.info(f"Initialized PersonaFormationService with {llm_service.__class__.__name__}")
 
@@ -217,6 +220,24 @@ class PersonaFormationService:
         try:
             logger.info(f"Generating persona from text of type {type(text)}")
 
+            # Check if text is empty or too short
+            if isinstance(text, str) and (not text or len(text.strip()) < 10):
+                logger.warning("Text is empty or too short for persona generation")
+                # Return a fallback persona
+                fallback_persona = self.persona_builder.create_fallback_persona("Participant")
+                return [persona_to_dict(fallback_persona)]
+            elif isinstance(text, list) and (not text or len(text) == 0):
+                logger.warning("Structured transcript is empty")
+                # Return a fallback persona
+                fallback_persona = self.persona_builder.create_fallback_persona("Participant")
+                return [persona_to_dict(fallback_persona)]
+
+            # Log the length of the text for debugging
+            if isinstance(text, str):
+                logger.info(f"Text length: {len(text)} characters")
+            elif isinstance(text, list):
+                logger.info(f"Structured transcript with {len(text)} entries")
+
             # Check if text is already a structured transcript
             is_structured_transcript = False
             if isinstance(text, list) and len(text) > 0:
@@ -224,98 +245,48 @@ class PersonaFormationService:
                 if all(isinstance(item, dict) and "speaker" in item and "text" in item for item in text):
                     is_structured_transcript = True
                     logger.info("Input is already a structured transcript")
+                    # Log a sample of the structured transcript
+                    logger.info(f"Sample entry: {text[0]}")
 
             # If we have a structured transcript, use it directly
             if is_structured_transcript:
                 return await self.form_personas_from_transcript(text, context=context)
 
-            # If we still don't have a structured transcript, use our robust parsing and LLM conversion
+            # If we still don't have a structured transcript, use our LLM-powered transcript structuring
             if isinstance(text, str) and not is_structured_transcript:
-                logger.info("No structured format detected, using robust parsing and LLM conversion")
+                logger.info("No structured format detected, using LLM-powered transcript structuring")
 
-                # First try to parse the transcript using pattern matching
-                structured_transcript = self.transcript_processor.parse_raw_transcript_to_structured(text)
+                # Log a sample of the text for debugging
+                logger.info(f"Text sample: {text[:200]}...")
 
-                if structured_transcript and len(structured_transcript) > 0:
-                    logger.info(f"Successfully parsed transcript using pattern matching: {len(structured_transcript)} speakers")
-                    return await self.form_personas_from_transcript(structured_transcript, context=context)
-
-                # If pattern matching fails, use LLM to convert free-text to structured format
-                logger.info("Pattern matching failed, using LLM to convert free-text to structured format")
-                structured_transcript = await self._convert_free_text_to_structured_transcript(text, context)
+                # Use the new TranscriptStructuringService to structure the transcript
+                structured_transcript = await self.transcript_structuring_service.structure_transcript(text)
 
                 if structured_transcript and len(structured_transcript) > 0:
-                    logger.info(f"Successfully converted free-text to structured format with {len(structured_transcript)} speakers")
+                    logger.info(f"Successfully structured transcript using LLM: {len(structured_transcript)} segments")
+                    # Log a sample of the structured transcript
+                    logger.info(f"Sample segment: {structured_transcript[0]}")
                     return await self.form_personas_from_transcript(structured_transcript, context=context)
 
-            # If it's a Teams-like transcript with timestamps and speakers
-            if isinstance(text, str) and re.search(r'\[\d+:\d+ [AP]M\] \w+:', text):
-                logger.info("Detected Teams-like transcript format")
-                # Parse the Teams format into a structured transcript
-                transcript_data = []
-                for line in text.split('\n'):
-                    match = re.match(r'\[(\d+:\d+ [AP]M)\] (\w+): (.*)', line)
-                    if match:
-                        timestamp, speaker, content = match.groups()
-                        transcript_data.append({
-                            'timestamp': timestamp,
-                            'speaker': speaker,
-                            'text': content
-                        })
-
-                if transcript_data:
-                    logger.info(f"Parsed Teams transcript into {len(transcript_data)} entries")
-                    return await self.form_personas_from_transcript(transcript_data, context=context)
-
-            # If all structured parsing attempts fail, fall back to direct text analysis
-            logger.info("All structured parsing attempts failed, falling back to direct text analysis")
-
-            # Create a prompt for persona formation
-            prompt = self.prompt_generator.create_participant_prompt(text if isinstance(text, str) else str(text))
-
-            # Method 1: Use standard analyze method (preferred)
-            try:
-                text_to_analyze = text if isinstance(text, str) else str(text)
-
-                # Use more text for analysis with Gemini 2.5 Pro's larger context window
-                if len(text_to_analyze) > 16000:  # If text is very long, use a reasonable chunk
-                    logger.info(f"Text is very long ({len(text_to_analyze)} chars), using first 16000 chars")
-                    text_to_analyze = text_to_analyze[:16000]
-
-                llm_response = await self.llm_service.analyze({
-                    "task": "persona_formation",
-                    "text": text_to_analyze,  # Use more text for analysis with Gemini 2.5 Pro
-                    "prompt": prompt,
-                    "enforce_json": True  # Flag to enforce JSON output using response_mime_type
-                })
-
-                # Parse the response
-                attributes = self._parse_llm_json_response(llm_response, "generate_persona_from_text via analyze")
-
-                if attributes and isinstance(attributes, dict):
-                    # Build persona from attributes
-                    persona = self.persona_builder.build_persona_from_attributes(attributes)
-                    return [persona_to_dict(persona)]
-            except Exception as e:
-                logger.error(f"Error generating persona from text: {str(e)}", exc_info=True)
-
-            # Fallback to default persona creation if all else fails
-            logger.warning("All persona generation methods failed, creating default persona")
-            context_with_text = context or {}
-            context_with_text["original_text"] = text
-            personas = await self._create_default_persona(context_with_text)
-
-            # Convert to dictionaries and return
-            return [persona_to_dict(p) for p in personas]
+            # If LLM structuring fails, we will now rely on robust error handling 
+            # or return empty/fallback personas rather than using regex.
+            logger.warning("LLM-based transcript structuring failed or returned empty. No regex fallback implemented.")
+            # Consider what to return here: an empty list, a specific error, or a generic fallback persona.
+            # For now, let's return an empty list, which will propagate up.
+            # A fallback persona could also be generated here if desired.
+            # fallback_persona = self.persona_builder.create_fallback_persona("Participant", "Transcript structuring failed")
+            # return [persona_to_dict(fallback_persona)]
+            return [] # Returning empty list if structuring fails
 
         except Exception as e:
-            logger.error(f"Error generating persona from text: {str(e)}", exc_info=True)
-            try:
-                await event_manager.emit_error(e, {"stage": "generate_persona_from_text"})
-            except Exception as event_error:
-                logger.warning(f"Could not emit error event: {str(event_error)}")
-            # Return empty list instead of raising to prevent analysis failure
-            return []
+            logger.error(f"Error in generate_persona_from_text: {str(e)}", exc_info=True)
+            # Consider emitting an error event here if you have an event system
+            # from backend.services.event_manager import event_manager
+            # try:
+            #     await event_manager.emit_error(e, {"stage": "generate_persona_from_text"})
+            # except Exception as event_error:
+            #     logger.warning(f"Could not emit error event: {str(event_error)}")
+            return [] # Return empty list to prevent analysis failure
 
     async def form_personas_from_transcript(
         self, transcript: List[Dict[str, Any]],
@@ -336,31 +307,76 @@ class PersonaFormationService:
         try:
             logger.info(f"Forming personas from transcript with {len(transcript)} entries")
 
-            # Group text by speaker
-            speaker_texts = self.transcript_processor.group_text_by_speaker(transcript)
-            logger.info(f"Grouped text by {len(speaker_texts)} speakers")
+            # Log a sample of the transcript for debugging
+            if transcript and len(transcript) > 0:
+                logger.info(f"Sample transcript entry: {transcript[0]}")
 
-            # Identify roles if not provided
-            speaker_roles = {}
+            # Consolidate text per speaker and extract roles
+            speaker_dialogues = {}
+            speaker_roles_map = {}
+
+            # Handle both old and new transcript formats
+            for turn in transcript:
+                # Extract speaker ID (handle both old and new formats)
+                speaker_id = turn.get("speaker_id", turn.get("speaker", "Unknown Speaker"))
+
+                # Extract dialogue/text (handle both old and new formats)
+                dialogue = turn.get("dialogue", turn.get("text", ""))
+
+                # Extract role (handle both old and new formats, with fallback to participants if provided)
+                role = turn.get("role", "Participant")
+
+                # Initialize speaker entry if not exists
+                if speaker_id not in speaker_dialogues:
+                    speaker_dialogues[speaker_id] = []
+                    speaker_roles_map[speaker_id] = role  # Store the first inferred role
+
+                # Add this dialogue to the speaker's collection
+                speaker_dialogues[speaker_id].append(dialogue)
+
+            # Consolidate dialogues into a single text per speaker
+            speaker_texts = {
+                speaker: " ".join(dialogues)
+                for speaker, dialogues in speaker_dialogues.items()
+            }
+
+            logger.info(f"Consolidated text for {len(speaker_texts)} speakers")
+
+            # Log the speakers and text lengths for debugging
+            for speaker, text in speaker_texts.items():
+                logger.info(f"Speaker: {speaker}, Role: {speaker_roles_map.get(speaker, 'Unknown')}, Text length: {len(text)} chars")
+
+            # Override with provided participant roles if available
             if participants and isinstance(participants, list):
-                # Use provided participant roles
                 for participant in participants:
                     if "name" in participant and "role" in participant:
-                        speaker_roles[participant["name"]] = participant["role"]
-                logger.info(f"Using {len(speaker_roles)} provided participant roles")
-            else:
-                # Identify roles from text patterns
-                speaker_roles = self.transcript_processor.identify_roles(speaker_texts)
-                logger.info(f"Identified {len(speaker_roles)} speaker roles from text patterns")
+                        speaker_name = participant["name"]
+                        if speaker_name in speaker_roles_map:
+                            speaker_roles_map[speaker_name] = participant["role"]
+                            logger.info(f"Overriding role for {speaker_name} to {participant['role']}")
+
+                logger.info(f"Applied {len(participants)} provided participant roles")
 
             # Generate a persona for each speaker
             personas = []
 
-            for i, (speaker, text) in enumerate(speaker_texts.items()):
+            # Process speakers in order of text length (most text first)
+            sorted_speakers = sorted(
+                speaker_texts.items(),
+                key=lambda x: len(x[1]),
+                reverse=True
+            )
+
+            for i, (speaker, text) in enumerate(sorted_speakers):
                 try:
-                    # Get the role for this speaker
-                    role = speaker_roles.get(speaker, "Participant")
-                    logger.info(f"Generating persona for {speaker} with role {role}")
+                    # Get the role for this speaker from our consolidated role mapping
+                    role = speaker_roles_map.get(speaker, "Participant")
+                    logger.info(f"Generating persona for {speaker} with role {role}, text length: {len(text)} chars")
+
+                    # Skip if text is too short (likely noise)
+                    if len(text) < 100:
+                        logger.warning(f"Skipping persona generation for {speaker} - text too short ({len(text)} chars)")
+                        continue
 
                     # Create a context object for this speaker
                     speaker_context = {
@@ -372,43 +388,70 @@ class PersonaFormationService:
                     # Create a prompt based on the role
                     prompt = self.prompt_generator.create_persona_prompt(text, role)
 
-                    # Call LLM to generate persona
-                    # Use more text for analysis with Gemini 2.5 Pro's larger context window
-                    text_to_analyze = text
-                    if len(text) > 16000:  # If text is very long, use a reasonable chunk
-                        logger.info(f"Text for {speaker} is very long ({len(text)} chars), using first 16000 chars")
-                        text_to_analyze = text[:16000]
+                    # Log the prompt length for debugging
+                    logger.info(f"Created prompt for {speaker} with length: {len(prompt)} chars")
 
-                    llm_response = await self.llm_service.analyze({
+                    # Call LLM to generate persona
+                    # Use the full text for analysis with Gemini 2.5 Pro's large context window
+                    text_to_analyze = text  # Use the full text without truncation
+                    logger.info(f"Using full text of {len(text_to_analyze)} chars for {speaker}")
+
+                    # Add more context to the request
+                    request_data = {
                         "task": "persona_formation",
-                        "text": text_to_analyze,  # Use more text for analysis with Gemini 2.5 Pro
+                        "text": text_to_analyze,
                         "prompt": prompt,
-                        "enforce_json": True  # Flag to enforce JSON output using response_mime_type
-                    })
+                        "enforce_json": True,  # Flag to enforce JSON output using response_mime_type
+                        "speaker": speaker,
+                        "role": role
+                    }
+
+                    # Call LLM to generate persona
+                    llm_response = await self.llm_service.analyze(request_data)
 
                     # Parse the response
                     persona_data = self._parse_llm_json_response(llm_response, f"form_personas_from_transcript for {speaker}")
 
+                    # Log the persona data keys for debugging
                     if persona_data and isinstance(persona_data, dict):
-                        # Extract name from text if not provided
-                        name_override = self.transcript_processor.extract_name_from_text(text, role)
+                        logger.info(f"Persona data keys for {speaker}: {list(persona_data.keys())}")
+                    else:
+                        logger.warning(f"No valid persona data for {speaker}")
+
+                    if persona_data and isinstance(persona_data, dict):
+                        # Use the speaker ID from the transcript as the default/override name
+                        name_override = speaker
+                        logger.info(f"Using speaker ID from transcript as name_override: {name_override}")
+
+                        # If the persona data doesn't have a name, use the speaker name (which is now name_override)
+                        if "name" not in persona_data or not persona_data["name"]:
+                            persona_data["name"] = name_override
+                            logger.info(f"Using speaker name as persona name: {name_override}")
+                        elif name_override and name_override != persona_data.get("name"):
+                            # This case might be if we want to enforce the transcript speaker_id as the primary name
+                            # For now, let's log if the LLM provided a different name than the speaker_id
+                            logger.info(f"LLM provided name '{persona_data.get('name')}' differs from transcript speaker_id '{name_override}'. Using LLM name for now.")
 
                         # Build persona from attributes
-                        persona = self.persona_builder.build_persona_from_attributes(persona_data, name_override, role)
+                        # The 'role' here is the role determined earlier for this speaker
+                        persona = self.persona_builder.build_persona_from_attributes(persona_data, persona_data.get("name", name_override), role)
                         personas.append(persona_to_dict(persona))
                         logger.info(f"Successfully created persona for {speaker}: {persona.name}")
                     else:
                         logger.warning(f"Failed to generate valid persona data for {speaker}")
                         # Create a minimal persona for this speaker
-                        minimal_persona = self.persona_builder.create_fallback_persona(role)
+                        minimal_persona = self.persona_builder.create_fallback_persona(role, speaker)
                         personas.append(persona_to_dict(minimal_persona))
+                        logger.info(f"Created fallback persona for {speaker}")
 
                 except Exception as e:
                     logger.error(f"Error generating persona for speaker {speaker}: {str(e)}", exc_info=True)
                     # Create a minimal persona for this speaker with speaker and role information
-                    role = speaker_roles.get(speaker, "Participant")
-                    minimal_persona = self.persona_builder.create_fallback_persona(role)
+                    # Use speaker_roles_map which is defined in this scope
+                    role_for_fallback = speaker_roles_map.get(speaker, "Participant") 
+                    minimal_persona = self.persona_builder.create_fallback_persona(role_for_fallback, speaker)
                     personas.append(persona_to_dict(minimal_persona))
+                    logger.info(f"Created error fallback persona for {speaker}")
 
                 # Emit progress event
                 try:
@@ -416,7 +459,7 @@ class PersonaFormationService:
                         EventType.PROCESSING_STEP,
                         {
                             "stage": "persona_formation_from_transcript",
-                            "progress": (i + 1) / len(speaker_texts),
+                            "progress": (i + 1) / len(sorted_speakers),
                             "data": {
                                 "personas_found": len(personas),
                                 "speakers_processed": i + 1,
@@ -499,6 +542,11 @@ class PersonaFormationService:
         try:
             logger.info("Converting free-text to structured transcript format")
 
+            # Check if text is empty or too short
+            if not text or len(text.strip()) < 10:
+                logger.warning("Text is empty or too short for transcript structuring")
+                return []
+
             # Create a prompt for transcript structuring
             prompt = self.prompt_generator.create_transcript_structuring_prompt(text)
 
@@ -550,13 +598,18 @@ class PersonaFormationService:
 
                 logger.info(f"Using original text from context ({len(original_text)} chars)")
 
+                # Check if text is empty or too short
+                if not original_text or len(original_text.strip()) < 10:
+                    logger.warning("Original text is empty or too short for persona creation")
+                    return [self.persona_builder.create_fallback_persona()]
+
                 # Create a prompt for persona formation
-                prompt = self.prompt_generator.create_participant_prompt(original_text[:16000])
+                prompt = self.prompt_generator.create_participant_prompt(original_text)
 
                 # Call LLM for persona creation
                 llm_response = await self.llm_service.analyze({
                     "task": "persona_formation",
-                    "text": original_text[:16000],
+                    "text": original_text,
                     "prompt": prompt,
                     "enforce_json": True
                 })
@@ -635,7 +688,7 @@ class PersonaFormationService:
 
     def _parse_llm_json_response(self, response: Union[str, Dict[str, Any]], context: str = "") -> Dict[str, Any]:
         """
-        Parse JSON response from LLM.
+        Parse JSON response from LLM with enhanced error recovery.
 
         Args:
             response: LLM response (string or dictionary)
@@ -651,32 +704,173 @@ class PersonaFormationService:
         # If response is already a dictionary, return it directly
         if isinstance(response, dict):
             logger.info(f"Response is already a dictionary in {context}")
+
+            # Check if it's a personas wrapper
+            if "personas" in response and isinstance(response["personas"], list) and len(response["personas"]) > 0:
+                logger.info(f"Found personas wrapper in response, extracting first persona")
+                return response["personas"][0]
+
             return response
 
-        try:
-            # Try to parse as JSON directly
-            return json.loads(response)
-        except (json.JSONDecodeError, TypeError):
-            # If direct parsing fails, try to extract JSON from the response
-            try:
-                # If response is not a string, convert it to string
-                if not isinstance(response, str):
-                    logger.warning(f"Response is not a string or dict in {context}: {type(response)}")
-                    response_str = str(response)
-                else:
-                    response_str = response
+        # If response is not a string, convert it to string
+        if not isinstance(response, str):
+            logger.warning(f"Response is not a string or dict in {context}: {type(response)}")
+            response_str = str(response)
+        else:
+            response_str = response
 
-                # Look for JSON object in the response
-                json_match = re.search(r'({[\s\S]*})', response_str)
-                if json_match:
+        # Log a sample of the response for debugging
+        logger.info(f"Response sample in {context}: {response_str[:200]}...")
+
+        # Multi-stage parsing approach
+        try:
+            # Attempt 1: Try to parse as JSON directly
+            logger.debug(f"Attempting direct JSON parsing in {context}")
+            parsed_json = json.loads(response_str)
+
+            # Check if it's a personas wrapper
+            if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
+                logger.info(f"Found personas wrapper in response, extracting first persona")
+                return parsed_json["personas"][0]
+
+            return parsed_json
+
+        except json.JSONDecodeError as e1:
+            logger.warning(f"Direct JSON parsing failed in {context}: {e1}")
+
+            # Attempt 2: Try to extract JSON from markdown code blocks
+            code_block_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response_str)
+            if code_block_match:
+                try:
+                    json_str = code_block_match.group(1)
+                    logger.debug(f"Found JSON in code block in {context}: {json_str[:100]}...")
+                    parsed_json = json.loads(json_str)
+
+                    # Check if it's a personas wrapper
+                    if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
+                        logger.info(f"Found personas wrapper in code block, extracting first persona")
+                        return parsed_json["personas"][0]
+
+                    return parsed_json
+                except json.JSONDecodeError:
+                    logger.warning(f"Code block extraction failed in {context}")
+
+            # Attempt 3: Try to find JSON object with regex
+            json_match = re.search(r'({[\s\S]*})', response_str)
+            if json_match:
+                try:
                     json_str = json_match.group(1)
-                    return json.loads(json_str)
-                else:
-                    logger.warning(f"No JSON object found in response: {context}")
-                    return {}
-            except Exception as e:
-                logger.error(f"Error parsing JSON from LLM response in {context}: {str(e)}")
-                return {}
+                    logger.debug(f"Found JSON object in {context}: {json_str[:100]}...")
+                    parsed_json = json.loads(json_str)
+
+                    # Check if it's a personas wrapper
+                    if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
+                        logger.info(f"Found personas wrapper in regex match, extracting first persona")
+                        return parsed_json["personas"][0]
+
+                    return parsed_json
+                except json.JSONDecodeError:
+                    logger.warning(f"JSON object extraction failed in {context}")
+
+            # Attempt 4: Advanced JSON repair
+            try:
+                # Fix common JSON issues
+                fixed_json = response_str
+
+                # Remove non-JSON content before first {
+                first_brace = fixed_json.find('{')
+                if first_brace >= 0:
+                    fixed_json = fixed_json[first_brace:]
+
+                # Remove non-JSON content after last }
+                last_brace = fixed_json.rfind('}')
+                if last_brace >= 0:
+                    fixed_json = fixed_json[:last_brace+1]
+
+                # Fix trailing commas
+                fixed_json = re.sub(r',\s*}', '}', fixed_json)
+                fixed_json = re.sub(r',\s*]', ']', fixed_json)
+
+                # Fix missing quotes around property names
+                fixed_json = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', fixed_json)
+
+                # Fix single quotes used instead of double quotes
+                fixed_json = re.sub(r"'([^']*)':", r'"\1":', fixed_json)
+                fixed_json = re.sub(r': *\'([^\']*)\'', r': "\1"', fixed_json)
+
+                # Fix unescaped quotes in strings
+                fixed_json = re.sub(r'": "([^"]*)"([^"]*)"([^"]*)"', r'": "\1\\\"\2\\\"\3"', fixed_json)
+
+                # Fix newlines in strings
+                fixed_json = re.sub(r'": "([^"]*)\n([^"]*)"', r'": "\1\\n\2"', fixed_json)
+
+                # Try to parse the fixed JSON
+                logger.debug(f"Attempting to parse fixed JSON in {context}")
+                parsed_json = json.loads(fixed_json)
+                logger.info(f"Successfully parsed JSON after repair in {context}")
+
+                # Check if it's a personas wrapper
+                if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
+                    logger.info(f"Found personas wrapper in repaired JSON, extracting first persona")
+                    return parsed_json["personas"][0]
+
+                return parsed_json
+
+            except (json.JSONDecodeError, Exception) as e2:
+                logger.error(f"JSON repair failed in {context}: {e2}")
+
+                # Attempt 5: Extract key-value pairs with regex as last resort
+                try:
+                    # Extract "key": "value" or "key": value patterns
+                    kv_pattern = r'"([^"]+)"\s*:\s*(?:"([^"]+)"|(\d+(?:\.\d+)?)|true|false|null|\{[^}]*\}|\[[^\]]*\])'
+                    matches = re.findall(kv_pattern, response_str)
+
+                    result = {}
+                    for key, str_val, num_val in matches:
+                        result[key] = str_val if str_val else (
+                            float(num_val) if num_val and '.' in num_val else
+                            int(num_val) if num_val else None
+                        )
+
+                    if result:
+                        logger.warning(f"Created partial result from regex in {context}")
+                        return result
+                except Exception as e3:
+                    logger.error(f"Regex extraction failed in {context}: {e3}")
+
+                # Attempt 6: Try to extract structured data from text
+                try:
+                    # Look for key patterns like "Name:" or "Demographics:"
+                    persona_data = {}
+
+                    # Extract name
+                    name_match = re.search(r'(?:Name|Person):\s*([^\n]+)', response_str)
+                    if name_match:
+                        persona_data["name"] = name_match.group(1).strip()
+
+                    # Extract description
+                    desc_match = re.search(r'(?:Description|Summary):\s*([^\n]+(?:\n[^\n]+)*?)(?:\n\n|\n[A-Z])', response_str)
+                    if desc_match:
+                        persona_data["description"] = desc_match.group(1).strip()
+
+                    # Extract archetype
+                    arch_match = re.search(r'(?:Archetype|Role|Type):\s*([^\n]+)', response_str)
+                    if arch_match:
+                        persona_data["archetype"] = arch_match.group(1).strip()
+
+                    # If we found at least some structured data, return it
+                    if persona_data:
+                        logger.warning(f"Created partial result from text patterns in {context}")
+                        return persona_data
+                except Exception as e4:
+                    logger.error(f"Text pattern extraction failed in {context}: {e4}")
+
+        except Exception as e:
+            logger.error(f"Error in JSON parsing pipeline in {context}: {str(e)}", exc_info=True)
+
+        # If all parsing attempts fail, return empty dict
+        logger.error(f"All parsing methods failed in {context}")
+        return {}
 
     def _group_patterns(self, patterns: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """

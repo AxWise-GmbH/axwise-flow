@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Union
 
 from domain.interfaces.llm_unified import ILLMService, LLMError, RateLimitError, TokenLimitError, APIError
+from backend.services.llm.exceptions import LLMAPIError, LLMResponseParseError, LLMServiceError
 from backend.utils.json.json_repair import repair_json
 
 logger = logging.getLogger(__name__)
@@ -45,53 +46,35 @@ class BaseLLMService(ABC):
         Returns:
             Analysis results
         """
-        task = request.get("task", "")
+        task = request.get("task", "unknown_task")
         text = request.get("text", "")
-        
-        if not text:
-            logger.warning("Empty text provided for analysis")
-            return {"error": "No text provided"}
-        
-        logger.info(f"Running {task} on text length: {len(text)}")
-        
+
         try:
-            # Get system message based on task
             system_message = self._get_system_message(task, request)
-            
-            # Call LLM API
             response = await self._call_llm_api(system_message, text, task, request)
-            
-            # Parse and process response
+
             result = self._parse_llm_response(response, task)
             
-            # Post-process results if needed
             return self._post_process_results(result, task)
             
-        except Exception as e:
+        except (LLMResponseParseError, LLMAPIError) as e:
             logger.error(f"Error in {task} analysis: {str(e)}", exc_info=True)
             return self._get_error_response(task, str(e))
+        except LLMServiceError as e:
+            logger.error(f"LLMServiceError in {task} analysis: {str(e)}", exc_info=True)
+            return self._get_error_response(task, f"LLM Service Error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error in {task} analysis: {str(e)}", exc_info=True)
+            return self._get_error_response(task, f"Unexpected error: {str(e)}")
     
     def _parse_llm_json_response(self, response_text: str, context: str = "") -> Dict[str, Any]:
-        """
-        Parse JSON response from LLM with error handling.
-        
-        Args:
-            response_text: Text response from LLM
-            context: Context for logging
-            
-        Returns:
-            Parsed JSON dictionary
-        """
         try:
-            # Attempt direct JSON parsing
-            logger.debug(f"[{context}] Attempting direct JSON parsing...")
             result = json.loads(response_text)
-            logger.debug(f"[{context}] Direct JSON parsing successful.")
+            logger.debug(f"Successfully parsed JSON response for context: {context}")
             return result
         except json.JSONDecodeError as e1:
             logger.warning(f"[{context}] Direct JSON parsing failed: {e1}. Trying JSON repair...")
             
-            # Attempt to repair and parse JSON
             try:
                 repaired_json = repair_json(response_text)
                 logger.debug(f"[{context}] Repaired JSON: {repaired_json[:200]}...")
@@ -117,22 +100,48 @@ class BaseLLMService(ABC):
         Returns:
             Error response dictionary
         """
-        if task == "theme_analysis":
-            return {"themes": [], "error": error_message}
-        elif task == "pattern_recognition":
-            return {"patterns": [], "error": error_message}
-        elif task == "sentiment_analysis":
+        logger.debug(f"Generating error response for task: {task}, message: {error_message}")
+        if task == "transcript_structuring":
             return {
-                "sentimentOverview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
-                "sentiment": [],
-                "error": error_message
+                "segments": [],
+                "error": error_message,
+                "type": "structured_transcript", 
             }
         elif task == "persona_formation":
             return {"personas": [], "error": error_message}
+        elif task == "theme_analysis" or task == "theme_analysis_enhanced":
+            return {
+                "themes": [],
+                "error": error_message,
+                "type": "themes"
+            }
+        elif task == "pattern_recognition":
+            return {
+                "patterns": [],
+                "error": error_message,
+                "type": "patterns"
+            }
+        elif task == "sentiment_analysis":
+            return {
+                "sentiment_results": [],
+                "overall_sentiment": "neutral",
+                "error": error_message,
+                "type": "sentiment"
+            }
         elif task == "insight_generation":
-            return {"insights": [], "error": error_message}
-        else:
-            return {"error": error_message}
+            return {
+                "insights": [],
+                "error": error_message,
+                "type": "insights"
+            }
+        elif task == "text_generation" or task == "industry_detection": 
+            return {
+                "text": "",
+                "error": error_message,
+                "type": "text_generation"
+            }
+        logger.warning(f"No specific error structure for task: {task}. Returning generic error.")
+        return {"error": error_message, "fallback_generic": True}
     
     @abstractmethod
     def _get_system_message(self, task: str, request: Dict[str, Any]) -> Any:

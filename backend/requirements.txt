@@ -54,6 +54,7 @@ aiofiles>=23.2.1
 tqdm>=4.66.1
 loguru>=0.7.2
 retrying>=1.3.4
+json5>=0.9.14  # For lenient JSON parsing
 
 # Monitoring and logging
 structlog==24.1.0
