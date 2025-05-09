@@ -1,3 +1,7 @@
+# Main production requirements for DesignThinkingAgentAI backend
+# This file contains all dependencies needed to run the backend application with pinned versions
+# Install with: pip install -r backend/requirements.txt
+
 # FastAPI and web server
 fastapi==0.110.0
 uvicorn==0.27.1
