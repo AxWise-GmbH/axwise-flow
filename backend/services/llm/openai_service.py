@@ -29,12 +29,32 @@ class OpenAIService:
 
     def __init__(self, config: Dict[str, Any]):
         """Initialize the OpenAI service with configuration."""
+        # Import constants for LLM configuration
+        from infrastructure.constants.llm_constants import (
+            OPENAI_MODEL_NAME, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS, ENV_REDACTED_OPENAI_KEY
+        )
+
         self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
-        self.model = config.get("model", "gpt-4o-2024-08-06")
-        self.temperature = config.get("temperature", 0.0)
-        self.max_tokens = config.get("max_tokens", 16384)
+        if not self.REDACTED_API_KEY:
+            # Try to load directly from environment
+            env_key = os.getenv(ENV_REDACTED_OPENAI_KEY)
+            if env_key:
+                logger.info(f"Loading OpenAI API key directly from environment variable {ENV_REDACTED_OPENAI_KEY}")
+                self.REDACTED_API_KEY = env_key
+                # Update the config for consistency
+                config["REDACTED_API_KEY"] = env_key
+            else:
+                logger.error("No OpenAI API key found in config or environment")
+
+        self.model = config.get("model", OPENAI_MODEL_NAME)
+        self.temperature = config.get("temperature", OPENAI_TEMPERATURE)
+        self.max_tokens = config.get("max_tokens", OPENAI_MAX_TOKENS)
 
         # Initialize OpenAI client
+        if not self.REDACTED_API_KEY:
+            logger.error("Cannot initialize OpenAI client: No API key available")
+            raise ValueError("OpenAI API key is required")
+
         self.client = AsyncOpenAI(REDACTED_API_KEY=self.REDACTED_API_KEY)
 
         logger.info(f"Initialized OpenAI service with model: {self.model}")
@@ -83,6 +103,9 @@ class OpenAIService:
                 # Add JSON instruction to system message
                 messages[0]["content"] += "\n\nYou MUST respond with valid JSON only."
 
+            # Import constants for LLM configuration
+            from infrastructure.constants.llm_constants import OPENAI_MAX_TOKENS
+
             # Call OpenAI API with appropriate parameters
             response_format = {"type": "json_object"} if is_json_task else None
 
@@ -91,7 +114,7 @@ class OpenAIService:
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                max_tokens=OPENAI_MAX_TOKENS,  # Always use maximum tokens from constants
                 response_format=response_format,
             )
 

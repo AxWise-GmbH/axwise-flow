@@ -40,18 +40,40 @@ class GeminiService:
         Args:
             config (Dict[str, Any]): Configuration for the Gemini service
         """
+        # Import constants for LLM configuration
+        from infrastructure.constants.llm_constants import (
+            GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,
+            GEMINI_TOP_P, GEMINI_TOP_K, ENV_REDACTED_GEMINI_KEY
+        )
+
+        # Try to get API key from config, then from environment if not in config
         self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
-        self.model = config.get("model", "models/gemini-2.5-flash-preview-04-17")
-        self.temperature = config.get("temperature", 0.0)
-        self.max_tokens = config.get("max_tokens", 65536)
-        self.top_p = config.get("top_p", 0.95)
-        self.top_k = 1  # Force top_k to 1 for deterministic results
+        if not self.REDACTED_API_KEY:
+            # Try to load directly from environment
+            env_key = os.getenv(ENV_REDACTED_GEMINI_KEY)
+            if env_key:
+                logger.info(f"Loading Gemini API key directly from environment variable {ENV_REDACTED_GEMINI_KEY}")
+                self.REDACTED_API_KEY = env_key
+                # Update the config for consistency
+                config["REDACTED_API_KEY"] = env_key
+            else:
+                logger.error("No Gemini API key found in config or environment")
+
+        self.model = config.get("model", GEMINI_MODEL_NAME)
+        self.temperature = config.get("temperature", GEMINI_TEMPERATURE)
+        self.max_tokens = config.get("max_tokens", GEMINI_MAX_TOKENS)
+        self.top_p = config.get("top_p", GEMINI_TOP_P)
+        self.top_k = GEMINI_TOP_K  # Force top_k to 1 for deterministic results
 
         # Override any environment settings that might cause vague results
         if "top_k" in config and config.get("top_k") > 1:
-            logger.warning(f"Overriding top_k from {config.get('top_k')} to 1 for deterministic results")
+            logger.warning(f"Overriding top_k from {config.get('top_k')} to {GEMINI_TOP_K} for deterministic results")
 
         # Initialize Gemini client with the new google.genai package
+        if not self.REDACTED_API_KEY:
+            logger.error("Cannot initialize Gemini client: No API key available")
+            raise ValueError("Gemini API key is required")
+
         self.client = genai.Client(REDACTED_API_KEY=self.REDACTED_API_KEY)
 
         # Store generation config for later use
@@ -128,24 +150,28 @@ class GeminiService:
             # Select the appropriate model based on task
             model_to_use = "models/gemini-2.5-flash-preview-04-17"  # Default model
 
-            # Use Pro model for persona formation for better quality
+            # Always use Flash model for all tasks including persona formation
             if task == "persona_formation":
-                # model_to_use = "models/gemini-2.5-pro"
-                # logger.info(f"Using Pro model {model_to_use} for persona_formation task")
-                pass # Ensure it uses the default model assigned above
+                # Ensure we're using the Flash model for persona formation
+                logger.info(f"Using Flash model {model_to_use} for persona_formation task")
 
             logger.info(f"Using model {model_to_use} for task: {task}")
+
+            # Import constants for LLM configuration
+            from infrastructure.constants.llm_constants import (
+                GEMINI_MAX_TOKENS, GEMINI_TOP_P, GEMINI_TOP_K
+            )
 
             # Use the temperature from config for all tasks
             config_params = {
                 "temperature": self.temperature,
-                "max_output_tokens": 65536,  # Always use maximum tokens
-                "top_p": 0.95,
-                "top_k": 1,  # Force top_k to 1 for deterministic results
+                "max_output_tokens": GEMINI_MAX_TOKENS,  # Always use maximum tokens
+                "top_p": GEMINI_TOP_P,
+                "top_k": GEMINI_TOP_K,  # Force top_k to 1 for deterministic results
             }
 
             logger.debug(
-                f"Generation Config for '{task}': temp={self.temperature}, max_tokens=65536, top_p=0.95, top_k=1"
+                f"Generation Config for '{task}': temp={self.temperature}, max_tokens={GEMINI_MAX_TOKENS}, top_p={GEMINI_TOP_P}, top_k={GEMINI_TOP_K}"
             )
 
             # For insight_generation, the system_message is already the complete prompt
@@ -272,7 +298,7 @@ class GeminiService:
                                 llm_error_message = llm_error_message.get("message", str(llm_error_message))
                             elif not isinstance(llm_error_message, str):
                                 llm_error_message = str(llm_error_message)
-                            
+
                             logger.error(f"[{task}] LLM returned a JSON error object: {llm_error_message}")
                             raise LLMAPIError(f"LLM reported an error for task '{task}': {llm_error_message}")
 
@@ -300,7 +326,7 @@ class GeminiService:
 
                                 logger.error(f"[{task}] LLM returned a JSON error object after repair: {llm_error_message}")
                                 raise LLMAPIError(f"LLM reported an error for task '{task}' (after repair): {llm_error_message}")
-                            
+
                             return result
                         except json.JSONDecodeError as e2:
                             logger.error(
@@ -352,7 +378,7 @@ class GeminiService:
                                 llm_error_message = llm_error_message.get("message", str(llm_error_message))
                             elif not isinstance(llm_error_message, str):
                                 llm_error_message = str(llm_error_message)
-                            
+
                             logger.error(f"[{task}] LLM returned a JSON error object: {llm_error_message}")
                             raise LLMAPIError(f"LLM reported an error for task '{task}': {llm_error_message}")
 

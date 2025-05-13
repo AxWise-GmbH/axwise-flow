@@ -268,7 +268,7 @@ class PersonaFormationService:
                     logger.info(f"Sample segment: {structured_transcript[0]}")
                     return await self.form_personas_from_transcript(structured_transcript, context=context)
 
-            # If LLM structuring fails, we will now rely on robust error handling 
+            # If LLM structuring fails, we will now rely on robust error handling
             # or return empty/fallback personas rather than using regex.
             logger.warning("LLM-based transcript structuring failed or returned empty. No regex fallback implemented.")
             # Consider what to return here: an empty list, a specific error, or a generic fallback persona.
@@ -392,7 +392,7 @@ class PersonaFormationService:
                     logger.info(f"Created prompt for {speaker} with length: {len(prompt)} chars")
 
                     # Call LLM to generate persona
-                    # Use the full text for analysis with Gemini 2.5 Pro's large context window
+                    # Use the full text for analysis with Gemini 2.5 Flash's large context window
                     text_to_analyze = text  # Use the full text without truncation
                     logger.info(f"Using full text of {len(text_to_analyze)} chars for {speaker}")
 
@@ -448,7 +448,7 @@ class PersonaFormationService:
                     logger.error(f"Error generating persona for speaker {speaker}: {str(e)}", exc_info=True)
                     # Create a minimal persona for this speaker with speaker and role information
                     # Use speaker_roles_map which is defined in this scope
-                    role_for_fallback = speaker_roles_map.get(speaker, "Participant") 
+                    role_for_fallback = speaker_roles_map.get(speaker, "Participant")
                     minimal_persona = self.persona_builder.create_fallback_persona(role_for_fallback, speaker)
                     personas.append(persona_to_dict(minimal_persona))
                     logger.info(f"Created error fallback persona for {speaker}")
@@ -550,12 +550,15 @@ class PersonaFormationService:
             # Create a prompt for transcript structuring
             prompt = self.prompt_generator.create_transcript_structuring_prompt(text)
 
+            # Import constants for LLM configuration
+            from infrastructure.constants.llm_constants import PERSONA_FORMATION_TEMPERATURE
+
             # Call LLM to convert text to structured format
             llm_response = await self.llm_service.analyze({
                 "task": "persona_formation",
                 "prompt": prompt,
                 "is_json_task": True,
-                "temperature": 0
+                "temperature": PERSONA_FORMATION_TEMPERATURE
             })
 
             # Parse the response

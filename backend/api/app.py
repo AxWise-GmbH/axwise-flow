@@ -118,7 +118,7 @@ app = FastAPI(
 
     Available LLM providers and models:
     - OpenAI: gpt-4o-2024-08-06
-    - Google: models/gemini-2.5-flash-preview-04-17
+    - Google: models/gemini-2.5-flash-preview-04-17 (Gemini 2.5 Flash)
 
     Authentication:
     - All endpoints (except /health) require Bearer token authentication
@@ -183,19 +183,30 @@ def get_persona_service():
         # Create a minimal SystemConfig for the persona service
         class MinimalSystemConfig:
             def __init__(self):
+                # Ensure we have the API key directly from environment
+                gemini_key = os.getenv("REDACTED_GEMINI_KEY")
+                if gemini_key and not settings.llm_providers["gemini"].get("REDACTED_API_KEY"):
+                    logger.info("Directly loading Gemini API key from environment for persona service")
+                    settings.llm_providers["gemini"]["REDACTED_API_KEY"] = gemini_key
+
+                # Import constants for LLM configuration
+                from infrastructure.constants.llm_constants import (
+                    GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS
+                )
+
                 self.llm = type(
                     "obj",
                     (object,),
                     {
                         "provider": "gemini",
-                        "model": "models/gemini-2.5-flash-preview-04-17",
+                        "model": GEMINI_MODEL_NAME,
                         "REDACTED_API_KEY": settings.llm_providers["gemini"].get("REDACTED_API_KEY", ""),
-                        "temperature": 0.3,
-                        "max_tokens": 2000,
+                        "temperature": GEMINI_TEMPERATURE,
+                        "max_tokens": GEMINI_MAX_TOKENS,
                     },
                 )
                 self.processing = type(
-                    "obj", (object,), {"batch_size": 10, "max_tokens": 2000}
+                    "obj", (object,), {"batch_size": 10, "max_tokens": GEMINI_MAX_TOKENS}
                 )
                 self.validation = type("obj", (object,), {"min_confidence": 0.4})
 
@@ -294,6 +305,15 @@ async def analyze_data(
     try:
         # Validate configuration
         try:
+            # Ensure API key is loaded directly from environment
+            if analysis_request.llm_provider == "gemini":
+                gemini_key = os.getenv("REDACTED_GEMINI_KEY")
+                if gemini_key:
+                    logger.info("Directly loading Gemini API key from environment")
+                    settings.llm_providers["gemini"]["REDACTED_API_KEY"] = gemini_key
+                else:
+                    logger.error("REDACTED_GEMINI_KEY not found in environment")
+
             # Only validate the configuration for the provider we're using
             settings.validate_llm_config(analysis_request.llm_provider)
         except Exception as e:
