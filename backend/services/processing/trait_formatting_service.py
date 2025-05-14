@@ -61,7 +61,7 @@ class TraitFormattingService:
         Format trait values for better readability.
 
         Args:
-            attributes: Persona attributes
+            attributes: Persona attributes (can be simple strings or nested dicts)
 
         Returns:
             Attributes with formatted trait values
@@ -77,12 +77,22 @@ class TraitFormattingService:
             "tools_used", "collaboration_style", "analysis_approach", "pain_points"
         ]
 
+        # Create a new dictionary to store the formatted attributes
+        formatted_attributes = attributes.copy()
+
         # Process each trait field
         for field in trait_fields:
-            if field in attributes and isinstance(attributes[field], dict):
+            if field in attributes:
                 try:
-                    # Get the current trait value
-                    trait_value = attributes[field].get("value", "")
+                    # Handle both simple string values and nested dict structures
+                    trait_value = ""
+
+                    if isinstance(attributes[field], dict) and "value" in attributes[field]:
+                        # Nested structure
+                        trait_value = attributes[field]["value"]
+                    elif isinstance(attributes[field], str):
+                        # Simple string value
+                        trait_value = attributes[field]
 
                     # Skip if the trait value is empty or default
                     if not trait_value or trait_value.startswith("Unknown") or trait_value.startswith("Default"):
@@ -98,12 +108,18 @@ class TraitFormattingService:
 
                     # Update the trait value if formatting was successful
                     if formatted_value and formatted_value != trait_value:
-                        attributes[field]["value"] = formatted_value
+                        # If the attribute is already a dict with value field, update it
+                        if isinstance(formatted_attributes[field], dict) and "value" in formatted_attributes[field]:
+                            formatted_attributes[field]["value"] = formatted_value
+                        else:
+                            # For simple string values, just update the string
+                            formatted_attributes[field] = formatted_value
+
                         logger.info(f"Formatted trait value for {field}")
                 except Exception as e:
                     logger.error(f"Error formatting trait value for {field}: {str(e)}", exc_info=True)
 
-        return attributes
+        return formatted_attributes
 
     async def _format_with_llm(self, field: str, trait_value: str) -> str:
         """

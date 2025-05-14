@@ -1,0 +1,16 @@
+
+        Interviewer: Can you tell me about your role and experience?
+        Interviewee: I have 10 years experience in product management and I've worked in fintech, edtech, and now in the automotive industry. I focus on feature implementation, technical feasibility, and analyzing team performance.
+
+        Interviewer: What tools do you use in your work?
+        Interviewee: I use JIRA for project management, Figma for design reviews, and various data analytics tools like Tableau and Google Analytics. I also build forms using Typeform for user feedback.
+
+        Interviewer: What are your main challenges?
+        Interviewee: In my current automotive role, I have less control over feature definition compared to my previous roles. Time constraints prevent me from seeing the full end-to-end process. Also, I haven't conducted user research myself for many years, so I'm out of touch with the newest methods and tools.
+
+        Interviewer: What motivates you in your work?
+        Interviewee: Beside compensation of course that's a big motivator. I would say the people I work with and it's like when the topic is interesting. So I always like to focus on new feature requirement gathering and those are things that interest me. Also I do a lot of statistics on team performance.
+
+        Interviewer: How do you approach data and research?
+        Interviewee: When available I would look at the data but if not I will rely on the subject matter experts. I believe the more data the better, and it's important to really let the data speak. When I get a feature in the current workflow, I already assume that user feedback was taken into account.
+        

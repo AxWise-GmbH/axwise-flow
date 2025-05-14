@@ -2,7 +2,7 @@
 Simplified persona formation prompt templates for LLM services.
 
 This module provides simplified prompts for persona formation that are more
-reliable for LLMs like Gemini 1.5 Flash.
+reliable for LLMs like Gemini 2.5 Flash.
 """
 
 from typing import Dict, Any
@@ -31,7 +31,7 @@ class SimplifiedPersonaFormationPrompts:
 
         # Check if industry is provided
         industry = data.get("industry")
-        
+
         # Get role information
         role = data.get("role", "Participant")
 
@@ -86,13 +86,17 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
 {{
   "name": "A descriptive name for this {role}",
   "description": "A brief overview of the persona",
+  "archetype": "A general category this persona falls into",
+
+  // IMPORTANT: All fields below should be SIMPLE STRINGS or LISTS, NOT nested objects
+  // Do NOT use nested structures with "value", "confidence", or "evidence" fields
+
   "role_context": "How this person functions in their {role} capacity",
   "key_responsibilities": "Main duties and responsibilities",
   "tools_used": "Specific tools and technologies mentioned",
   "collaboration_style": "How they work with others",
   "analysis_approach": "How they analyze problems and make decisions",
   "pain_points": "Specific challenges and frustrations",
-  "archetype": "A general category this persona falls into",
   "demographics": "Age, experience level, etc. (if mentioned)",
   "goals_and_motivations": "Primary objectives and driving factors",
   "skills_and_expertise": "Technical and soft skills",
@@ -102,11 +106,13 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
   "technology_and_tools": "Software and hardware used",
   "attitude_towards_research": "Views on research and data",
   "attitude_towards_ai": "Perspective on AI and automation",
+
+  // The only list in the response should be key_quotes
   "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
   "overall_confidence_score": 0.75
 }}
 
-IMPORTANT: 
+IMPORTANT:
 - Include ONLY information that can be reasonably inferred from the text.
 - For any field where you don't have enough information, provide your best estimate and note the uncertainty.
 - The "key_quotes" field should contain actual quotes from the text that best represent the persona's perspective.
@@ -146,13 +152,17 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
 {{
   "name": "A descriptive name for this {role}",
   "description": "A brief overview of the persona",
+  "archetype": "A general category this persona falls into",
+
+  // IMPORTANT: All fields below should be SIMPLE STRINGS or LISTS, NOT nested objects
+  // Do NOT use nested structures with "value", "confidence", or "evidence" fields
+
   "role_context": "How this person functions in their {role} capacity",
   "key_responsibilities": "Main duties and responsibilities",
   "tools_used": "Specific tools and technologies mentioned",
   "collaboration_style": "How they work with others",
   "analysis_approach": "How they analyze problems and make decisions",
   "pain_points": "Specific challenges and frustrations",
-  "archetype": "A general category this persona falls into",
   "demographics": "Age, experience level, etc. (if mentioned)",
   "goals_and_motivations": "Primary objectives and driving factors",
   "skills_and_expertise": "Technical and soft skills",
@@ -162,11 +172,13 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
   "technology_and_tools": "Software and hardware used",
   "attitude_towards_research": "Views on research and data",
   "attitude_towards_ai": "Perspective on AI and automation",
+
+  // The only list in the response should be key_quotes
   "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
   "overall_confidence_score": 0.75
 }}
 
-IMPORTANT: 
+IMPORTANT:
 - Include ONLY information that can be reasonably inferred from the text.
 - For any field where you don't have enough information, provide your best estimate and note the uncertainty.
 - The "key_quotes" field should contain actual quotes from the text that best represent the persona's perspective.

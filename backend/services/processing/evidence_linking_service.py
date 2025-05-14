@@ -63,11 +63,11 @@ class EvidenceLinkingService:
         Link evidence to persona attributes.
 
         Args:
-            attributes: Persona attributes
+            attributes: Persona attributes (can be simple strings or nested dicts)
             full_text: Full text to extract evidence from
 
         Returns:
-            Enhanced persona attributes with linked evidence
+            Enhanced persona attributes with evidence
         """
         logger.info("Linking evidence to attributes")
 
@@ -80,12 +80,22 @@ class EvidenceLinkingService:
             "tools_used", "collaboration_style", "analysis_approach", "pain_points"
         ]
 
+        # Create a new dictionary to store the enhanced attributes
+        enhanced_attributes = attributes.copy()
+
         # Process each trait field
         for field in trait_fields:
-            if field in attributes and isinstance(attributes[field], dict):
+            if field in attributes:
                 try:
-                    # Get the current trait value
-                    trait_value = attributes[field].get("value", "")
+                    # Handle both simple string values and nested dict structures
+                    trait_value = ""
+
+                    if isinstance(attributes[field], dict) and "value" in attributes[field]:
+                        # Nested structure
+                        trait_value = attributes[field]["value"]
+                    elif isinstance(attributes[field], str):
+                        # Simple string value
+                        trait_value = attributes[field]
 
                     # Skip if the trait value is empty or default
                     if not trait_value or trait_value.startswith("Unknown") or trait_value.startswith("Default"):
@@ -96,18 +106,35 @@ class EvidenceLinkingService:
 
                     # Update the evidence if quotes were found
                     if quotes:
-                        attributes[field]["evidence"] = quotes
-                        # Increase confidence slightly since we found supporting evidence
-                        attributes[field]["confidence"] = min(
-                            attributes[field].get("confidence", 0.7) + 0.1, 1.0
-                        )
+                        # If the attribute is already a dict with evidence field, update it
+                        if isinstance(enhanced_attributes[field], dict) and "evidence" in enhanced_attributes[field]:
+                            enhanced_attributes[field]["evidence"] = quotes
+                            # Increase confidence slightly since we found supporting evidence
+                            enhanced_attributes[field]["confidence"] = min(
+                                enhanced_attributes[field].get("confidence", 0.7) + 0.1, 1.0
+                            )
+                        else:
+                            # For simple string values, convert to dict structure with evidence
+                            enhanced_attributes[field] = {
+                                "value": trait_value,
+                                "confidence": 0.8,  # Good confidence since we have evidence
+                                "evidence": quotes
+                            }
+
                         logger.info(f"Added {len(quotes)} quotes as evidence for {field}")
                     else:
+                        # If no quotes found but we need to maintain the dict structure
+                        if not isinstance(enhanced_attributes[field], dict):
+                            enhanced_attributes[field] = {
+                                "value": trait_value,
+                                "confidence": 0.7,
+                                "evidence": []
+                            }
                         logger.warning(f"No relevant quotes found for {field}")
                 except Exception as e:
                     logger.error(f"Error linking evidence for {field}: {str(e)}", exc_info=True)
 
-        return attributes
+        return enhanced_attributes
 
     async def _find_relevant_quotes(
         self, field: str, trait_value: str, full_text: str

@@ -109,11 +109,8 @@ class AttributeExtractor:
             # Parse the response
             attributes = self._parse_llm_json_response(llm_response, f"extract_attributes_from_text for {role}")
 
-            # Clean and enhance attributes
+            # Process attributes
             if attributes:
-                # Clean the attributes
-                attributes = self._clean_persona_attributes(attributes)
-
                 # Enhance tool identification with industry-aware approach
                 try:
                     logger.info("Using AdaptiveToolRecognitionService to identify tools")
@@ -123,6 +120,7 @@ class AttributeExtractor:
                     # Continue with other enhancements if tool recognition fails
 
                 # Use the new evidence linking service for enhanced evidence
+                # This should be done BEFORE converting to nested structures
                 try:
                     logger.info("Using EvidenceLinkingService to find relevant quotes")
                     attributes = await self.evidence_linking_service.link_evidence_to_attributes(attributes, text)
@@ -132,6 +130,7 @@ class AttributeExtractor:
                     attributes = self._enhance_evidence_fields(attributes, text)
 
                 # Use the new trait formatting service for improved formatting
+                # This should be done BEFORE converting to nested structures
                 try:
                     logger.info("Using TraitFormattingService to improve trait value formatting")
                     attributes = await self.trait_formatting_service.format_trait_values(attributes)
@@ -139,6 +138,9 @@ class AttributeExtractor:
                     logger.error(f"Error using TraitFormattingService: {str(e)}", exc_info=True)
                     # Fall back to basic formatting if the service fails
                     attributes = self._fix_trait_value_formatting(attributes)
+
+                # NOW convert to nested structures for PersonaBuilder
+                attributes = self._clean_persona_attributes(attributes)
 
                 logger.info(f"Successfully extracted and enhanced attributes for {role}")
                 return attributes
