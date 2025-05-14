@@ -16,11 +16,11 @@ from pydantic import ValidationError
 # Import LLM interface
 try:
     # Try to import from backend structure
-    from domain.interfaces.llm import ILLMService
+    from domain.interfaces.llm_unified import ILLMService
 except ImportError:
     try:
         # Try to import from regular structure
-        from domain.interfaces.llm import ILLMService
+        from domain.interfaces.llm_unified import ILLMService
     except ImportError:
         # Create a minimal interface if both fail
         class ILLMService:

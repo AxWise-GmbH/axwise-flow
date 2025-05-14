@@ -5,7 +5,7 @@ Gemini LLM service implementation.
 import logging
 import json
 from typing import Dict, Any, List, Optional
-from domain.interfaces.llm_service import ILLMService
+from domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.base_llm_service import BaseLLMService
 from backend.services.llm.gemini_service import GeminiService
 from backend.services.llm.exceptions import LLMResponseParseError

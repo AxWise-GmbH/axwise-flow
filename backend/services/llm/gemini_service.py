@@ -7,7 +7,7 @@ import google.genai as genai
 from backend.utils.json.json_repair import repair_json
 import random
 from typing import Dict, Any, List, Optional, Union
-from domain.interfaces.llm_service import ILLMService
+from domain.interfaces.llm_unified import ILLMService
 from pydantic import BaseModel, Field, ValidationError
 import re
 import time

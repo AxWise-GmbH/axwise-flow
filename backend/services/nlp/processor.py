@@ -6,7 +6,7 @@ import json
 import re
 import copy
 from typing import Dict, Any, List, Tuple
-from domain.interfaces.llm_service import ILLMService
+from domain.interfaces.llm_unified import ILLMService
 
 from backend.schemas import DetailedAnalysisResult
 

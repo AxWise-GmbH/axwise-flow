@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional, Union
 
-from domain.interfaces.llm_service import ILLMService
+from domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.prompts.tasks.transcript_structuring import TranscriptStructuringPrompts
 
 # Configure logging
@@ -239,7 +239,7 @@ class TranscriptStructuringService:
                 logger.debug(f"_extract_json_from_text: MD block {i+1} initial parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}")
                 if isinstance(data, list) and len(data) > 0:
                     # Pass the already parsed Python object
-                    result = self._parse_llm_response(data) 
+                    result = self._parse_llm_response(data)
                     logger.debug(f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (initial) returned {len(result)} segments.")
                     if result:
                         logger.info("Successfully extracted JSON from markdown code block")
@@ -259,7 +259,7 @@ class TranscriptStructuringService:
                     logger.debug(f"_extract_json_from_text: MD block {i+1} repaired parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}")
                     if isinstance(data, list) and len(data) > 0:
                         # Pass the already parsed Python object
-                        result = self._parse_llm_response(data) 
+                        result = self._parse_llm_response(data)
                         logger.debug(f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (repaired) returned {len(result)} segments.")
                         if result:
                             logger.info("Successfully extracted JSON from markdown code block after repair")

@@ -34,11 +34,11 @@ except ImportError:
 # Import LLM interface
 try:
     # Try to import from backend structure
-    from backend.domain.interfaces.llm import ILLMService
+    from backend.domain.interfaces.llm_unified import ILLMService
 except ImportError:
     try:
         # Try to import from regular structure
-        from domain.interfaces.llm import ILLMService
+        from domain.interfaces.llm_unified import ILLMService
     except ImportError:
         # Create a minimal interface if both fail
         logger = logging.getLogger(__name__)
