@@ -304,7 +304,7 @@ class AttributeExtractor:
 
         for field in trait_fields:
             # Check if the field is key_quotes and is a list
-            if field == "key_quotes" and isinstance(attributes[field], list) and attributes[field]:
+            if field in attributes and field == "key_quotes" and isinstance(attributes[field], list) and attributes[field]:
                 # Convert list of quotes to structured trait
                 quotes_list = attributes[field]
                 quotes_value = "\n".join([f"• {quote}" for quote in quotes_list])

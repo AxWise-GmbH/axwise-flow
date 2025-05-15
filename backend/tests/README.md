@@ -1,27 +1,35 @@
 # Test Organization
 
-This directory contains tests for the backend services. The tests are organized as follows:
+**Last Updated:** 2025-05-15
+
+This directory contains all tests for the backend application. The tests are organized by type and module to make them easier to find and maintain.
+
+## Test Structure
+
+- `unit/`: Unit tests for individual functions and classes
+  - `llm/`: Tests for LLM services
+  - `processing/`: Tests for processing services
+  - `api/`: Tests for API endpoints
+- `integration/`: Integration tests for API endpoints and services
+- `mocks/`: Mock objects and fixtures for testing
+- `conftest.py`: Common fixtures and utilities
 
 ## Persona Formation Tests
 
 ### Prompt Tests
+
 - `test_simplified_persona_formation.py`: Tests for the simplified persona formation prompts.
 
 ### Persona Builder Tests
+
 - `test_persona_trait_population.py`: Tests for populating persona traits.
 - `test_persona_trait_formatting.py`: Tests for formatting persona traits.
 - `test_form_personas.py`: Tests for forming personas from attributes.
 
 ### Integration Tests
+
 - `test_persona_formation_service.py`: Tests for the persona formation service.
 - `test_persona_retrieval.py`: Tests for retrieving personas from the database.
-
-## Manual Tests
-
-Manual tests are located in the root directory:
-
-- `test_persona_builder_manual.py`: Manual tests for the PersonaBuilder with simplified attributes.
-- `test_persona_pipeline_integration.py`: Integration tests for the persona formation pipeline.
 
 ## Running Tests
 
@@ -32,13 +40,10 @@ cd backend
 python -m pytest tests/
 ```
 
-### Running Manual Tests
+## LLM Service Tests
 
-```bash
-cd backend
-python test_persona_builder_manual.py
-python test_persona_pipeline_integration.py
-```
+- `test_llm_service_factory.py`: Tests for the LLM service factory.
+- `unit/llm/test_gemini_json.py`: Tests for the JSON parsing in GeminiLLMService.
 
 ## Test Coverage
 

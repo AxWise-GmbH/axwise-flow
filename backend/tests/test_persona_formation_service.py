@@ -7,6 +7,7 @@ import os
 import logging
 import json
 import asyncio
+import pytest
 from typing import Dict, Any, List
 
 # Set up logging
@@ -20,7 +21,7 @@ if backend_dir not in sys.path:
 
 # Import the refactored modules
 from services.processing.persona_formation_service import PersonaFormationService
-from services.processing.transcript_processor import TranscriptProcessor
+from services.processing.transcript_structuring_service import TranscriptStructuringService
 from services.processing.attribute_extractor import AttributeExtractor
 from services.processing.persona_builder import PersonaBuilder
 from services.processing.prompts import PromptGenerator
@@ -32,6 +33,31 @@ class MockLLMService:
     async def analyze(self, data: Dict[str, Any]) -> str:
         """Mock analyze method that returns a predefined response."""
         logger.info(f"MockLLMService.analyze called with task: {data.get('task')}")
+
+        if data.get("task") == "transcript_structuring":
+            # Return a structured transcript
+            return json.dumps([
+                {
+                    "speaker_id": "Interviewer",
+                    "role": "Interviewer",
+                    "dialogue": "Tell me about your role."
+                },
+                {
+                    "speaker_id": "Interviewee",
+                    "role": "Interviewee",
+                    "dialogue": "I'm a software developer working on web applications."
+                },
+                {
+                    "speaker_id": "Interviewer",
+                    "role": "Interviewer",
+                    "dialogue": "What technologies do you use?"
+                },
+                {
+                    "speaker_id": "Interviewee",
+                    "role": "Interviewee",
+                    "dialogue": "I primarily use Python, JavaScript, and React."
+                }
+            ])
 
         # Return a mock persona JSON
         return json.dumps({
@@ -97,92 +123,60 @@ class MockConfig:
         self.llm = type("obj", (object,), {"provider": "test", "model": "test-model"})
 
 
+@pytest.mark.asyncio
 async def test_persona_formation_service():
     """Test the PersonaFormationService."""
-    try:
-        # Create mock objects
-        config = MockConfig()
-        llm_service = MockLLMService()
+    # Create mock objects
+    config = MockConfig()
+    llm_service = MockLLMService()
 
-        # Create the service
-        service = PersonaFormationService(config, llm_service)
+    # Create the service
+    service = PersonaFormationService(config, llm_service)
 
-        # Test generating a persona from text
-        text = """
-        Interviewer: Tell me about your role.
-        Interviewee: I'm a software developer working on web applications.
-        Interviewer: What technologies do you use?
-        Interviewee: I primarily use Python, JavaScript, and React.
-        Interviewer: What challenges do you face?
-        Interviewee: The biggest challenge is dealing with legacy code that's poorly documented.
-        """
+    # Test generating a persona from text
+    text = """
+    Interviewer: Tell me about your role.
+    Interviewee: I'm a software developer working on web applications.
+    Interviewer: What technologies do you use?
+    Interviewee: I primarily use Python, JavaScript, and React.
+    Interviewer: What challenges do you face?
+    Interviewee: The biggest challenge is dealing with legacy code that's poorly documented.
+    """
 
-        personas = await service.generate_persona_from_text(text)
+    personas = await service.generate_persona_from_text(text)
 
-        # Check the result
-        if personas and len(personas) > 0:
-            logger.info(f"Successfully generated {len(personas)} personas")
-            logger.info(f"First persona: {personas[0].get('name')}")
-            return True
-        else:
-            logger.error("Failed to generate personas")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error testing persona formation service: {str(e)}", exc_info=True)
-        return False
+    # Check the result
+    assert personas is not None
+    assert len(personas) > 0
+    assert "name" in personas[0]
+    assert personas[0]["name"] == "Test Persona"
 
 
-async def test_transcript_processor():
-    """Test the TranscriptProcessor."""
-    try:
-        # Create the processor
-        processor = TranscriptProcessor()
+@pytest.mark.asyncio
+async def test_transcript_structuring_service():
+    """Test the TranscriptStructuringService."""
+    # Create the service with a mock LLM service
+    llm_service = MockLLMService()
+    service = TranscriptStructuringService(llm_service)
 
-        # Test parsing a transcript
-        text = """
-        Interviewer: Tell me about your role.
-        Interviewee: I'm a software developer working on web applications.
-        Interviewer: What technologies do you use?
-        Interviewee: I primarily use Python, JavaScript, and React.
-        """
+    # Test structuring a transcript
+    text = """
+    Interviewer: Tell me about your role.
+    Interviewee: I'm a software developer working on web applications.
+    Interviewer: What technologies do you use?
+    Interviewee: I primarily use Python, JavaScript, and React.
+    """
 
-        structured_transcript = processor.parse_raw_transcript_to_structured(text)
+    structured_transcript = await service.structure_transcript(text)
 
-        # Check the result
-        if structured_transcript and len(structured_transcript) > 0:
-            logger.info(f"Successfully parsed transcript with {len(structured_transcript)} entries")
-            return True
-        else:
-            logger.error("Failed to parse transcript")
-            return False
-
-    except Exception as e:
-        logger.error(f"Error testing transcript processor: {str(e)}", exc_info=True)
-        return False
-
-
-async def run_tests():
-    """Run all tests."""
-    logger.info("Running tests for refactored persona formation service")
-
-    # Test the PersonaFormationService
-    service_result = await test_persona_formation_service()
-    logger.info(f"PersonaFormationService test: {'PASSED' if service_result else 'FAILED'}")
-
-    # Test the TranscriptProcessor
-    processor_result = await test_transcript_processor()
-    logger.info(f"TranscriptProcessor test: {'PASSED' if processor_result else 'FAILED'}")
-
-    # Overall result
-    if service_result and processor_result:
-        logger.info("All tests PASSED")
-        return True
-    else:
-        logger.error("Some tests FAILED")
-        return False
+    # Check the result
+    assert structured_transcript is not None
+    assert len(structured_transcript) > 0
+    assert "speaker_id" in structured_transcript[0]
+    assert "role" in structured_transcript[0]
+    assert "dialogue" in structured_transcript[0]
 
 
 if __name__ == "__main__":
-    # Run the tests
-    asyncio.run(run_tests())
+    # Run the tests directly
+    pytest.main(["-v", __file__])

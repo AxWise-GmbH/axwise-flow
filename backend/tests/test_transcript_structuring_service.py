@@ -129,10 +129,13 @@ class TestTranscriptStructuringService:
         # Call the service
         result = await service.structure_transcript("Sample transcript text")
 
-        # Verify the result only includes valid items
-        assert len(result) == 1
+        # Verify the result includes valid items and handles invalid roles
+        assert len(result) == 2
         assert result[0]["speaker_id"] == "Interviewer"
         assert result[0]["dialogue"] == "Tell me about your experience with our product."
+        assert result[1]["speaker_id"] == "Interviewer"
+        assert result[1]["role"] == "Participant"  # Invalid role should be converted to "Participant"
+        assert result[1]["dialogue"] == "What features do you use most?"
 
     @pytest.mark.asyncio
     async def test_structure_transcript_repair_attempt(self, service, mock_llm_service):
@@ -181,7 +184,7 @@ class TestTranscriptStructuringService:
         # Create a text with JSON in a markdown code block
         text = """
         Here's the structured transcript:
-        
+
         ```json
         [
             {
@@ -196,13 +199,13 @@ class TestTranscriptStructuringService:
             }
         ]
         ```
-        
+
         I hope this helps!
         """
-        
+
         # Call the extract method
         result = service._extract_json_from_text(text)
-        
+
         # Verify the result
         assert len(result) == 2
         assert result[0]["speaker_id"] == "Interviewer"

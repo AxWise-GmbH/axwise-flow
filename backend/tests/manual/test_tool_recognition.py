@@ -11,10 +11,6 @@ import json
 import logging
 from pathlib import Path
 
-# Add the project root to the Python path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -23,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import our services
-from services.processing.adaptive_tool_recognition_service import AdaptiveToolRecognitionService
-from services.llm.gemini_service import GeminiLLMService
+from backend.services.processing.adaptive_tool_recognition_service import AdaptiveToolRecognitionService
+from backend.services.llm.gemini_service import GeminiService
 
 
 async def main():
@@ -53,7 +49,7 @@ async def main():
 
     # Initialize the LLM service
     # Note: This requires a valid API key in the environment
-    llm_service = GeminiLLMService()
+    llm_service = GeminiService()
 
     # Initialize our service
     tool_recognition_service = AdaptiveToolRecognitionService(
