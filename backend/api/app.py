@@ -188,10 +188,10 @@ def get_persona_service():
         class MinimalSystemConfig:
             def __init__(self):
                 # Ensure we have the API key directly from environment
-                gemini_key = os.getenv("REDACTED_GEMINI_KEY")
-                if gemini_key and not settings.llm_providers["gemini"].get("REDACTED_API_KEY"):
+                gemini_key = os.getenv("GEMINI_API_KEY")
+                if gemini_key and not settings.llm_providers["gemini"].get("api_key"):
                     logger.info("Directly loading Gemini API key from environment for persona service")
-                    settings.llm_providers["gemini"]["REDACTED_API_KEY"] = gemini_key
+                    settings.llm_providers["gemini"]["api_key"] = gemini_key
 
                 # Import constants for LLM configuration
                 from infrastructure.constants.llm_constants import (
@@ -204,7 +204,7 @@ def get_persona_service():
                     {
                         "provider": "gemini",
                         "model": GEMINI_MODEL_NAME,
-                        "REDACTED_API_KEY": settings.llm_providers["gemini"].get("REDACTED_API_KEY", ""),
+                        "api_key": settings.llm_providers["gemini"].get("api_key", ""),
                         "temperature": GEMINI_TEMPERATURE,
                         "max_tokens": GEMINI_MAX_TOKENS,
                     },
@@ -311,12 +311,12 @@ async def analyze_data(
         try:
             # Ensure API key is loaded directly from environment
             if analysis_request.llm_provider == "gemini":
-                gemini_key = os.getenv("REDACTED_GEMINI_KEY")
+                gemini_key = os.getenv("GEMINI_API_KEY")
                 if gemini_key:
                     logger.info("Directly loading Gemini API key from environment")
-                    settings.llm_providers["gemini"]["REDACTED_API_KEY"] = gemini_key
+                    settings.llm_providers["gemini"]["api_key"] = gemini_key
                 else:
-                    logger.error("REDACTED_GEMINI_KEY not found in environment")
+                    logger.error("GEMINI_API_KEY not found in environment")
 
             # Only validate the configuration for the provider we're using
             settings.validate_llm_config(analysis_request.llm_provider)
@@ -771,7 +771,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
         # Get environment info
         env_info = {
             "ENABLE_CLERK_VALIDATION": os.getenv("ENABLE_CLERK_VALIDATION", "false"),
-            "REDACTED_DATABASE_URL_TYPE": (
+            "DATABASE_URL_TYPE": (
                 str(db.bind.url).split("://")[0]
                 if db_status == "connected"
                 else "unknown"

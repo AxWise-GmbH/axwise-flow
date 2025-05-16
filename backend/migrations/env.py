@@ -19,15 +19,15 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
 # Import database models and database URL from the same source as the application
-from database import Base, REDACTED_DATABASE_URL
+from database import Base, DATABASE_URL
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Override sqlalchemy.url with the same REDACTED_DATABASE_URL used by the application
-config.set_main_option("sqlalchemy.url", REDACTED_DATABASE_URL)
-print(f"Configured migrations for {REDACTED_DATABASE_URL.split('://', 1)[0]} database")
+# Override sqlalchemy.url with the same DATABASE_URL used by the application
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
+print(f"Configured migrations for {DATABASE_URL.split('://', 1)[0]} database")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

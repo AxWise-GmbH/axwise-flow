@@ -19,13 +19,13 @@ if env_file.exists():
 else:
     print(f"Warning: .env file not found at {env_file}")
 
-# Import the REDACTED_DATABASE_URL from the same source as the application
+# Import the DATABASE_URL from the same source as the application
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from database import REDACTED_DATABASE_URL
+from database import DATABASE_URL
 
-# Use the same REDACTED_DATABASE_URL as the application
-print(f"Using database URL: {REDACTED_DATABASE_URL}")
-os.environ["REDACTED_DATABASE_URL"] = REDACTED_DATABASE_URL
+# Use the same DATABASE_URL as the application
+print(f"Using database URL: {DATABASE_URL}")
+os.environ["DATABASE_URL"] = DATABASE_URL
 
 
 # Run Alembic command

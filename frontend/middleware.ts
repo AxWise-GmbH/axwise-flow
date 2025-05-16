@@ -3,8 +3,8 @@ import type { NextRequest } from 'next/server';
 import { clerkMiddleware, getAuth } from '@clerk/nextjs/server';
 
 // Check if Clerk is configured
-const isClerkConfigured = process.env.REDACTED_CLERK_KEY &&
-  process.env.REDACTED_CLERK_KEY !== 'your_clerk_REDACTED_SECRET_KEY_here';
+const isClerkConfigured = process.env.CLERK_SECRET_KEY &&
+  process.env.CLERK_SECRET_KEY !== 'your_clerk_secret_key_here';
 
 // Create a middleware function that conditionally applies Clerk middleware
 const middleware = (req: NextRequest) => {

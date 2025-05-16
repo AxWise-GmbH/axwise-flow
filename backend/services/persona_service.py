@@ -124,7 +124,7 @@ class PersonaService:
                     self.llm = type('obj', (object,), {
                         'provider': llm_provider,
                         'model': llm_model,
-                        'REDACTED_API_KEY': settings.llm_providers[llm_provider].get('REDACTED_API_KEY', ''),
+                        'api_key': settings.llm_providers[llm_provider].get('api_key', ''),
                         'temperature': 0.3,
                         'max_tokens': 2000
                     })

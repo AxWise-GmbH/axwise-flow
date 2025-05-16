@@ -22,7 +22,7 @@ class ClerkService:
         """Initialize the Clerk service."""
         self.jwks_url = os.getenv("CLERK_JWKS_URL", "https://grown-seasnail-35.clerk.accounts.dev/.well-known/jwks.json")
         self.CLERK_...=***REMOVED***"CLERK_API_URL", "https://api.clerk.com")
-        self.CLERK_...=***REMOVED***"REDACTED_CLERK_KEY", "")
+        self.CLERK_...=***REMOVED***"CLERK_SECRET_KEY", "")
         self.jwks = None
         self.jwks_last_updated = 0
         self.jwks_cache_ttl = 3600  # 1 hour in seconds
@@ -121,13 +121,13 @@ class ClerkService:
         Returns:
             Dictionary with user information or None if not found
         """
-        if not self.clerk_REDACTED_SECRET:
-            logger.error("Clerk REDACTED_SECRET key not configured")
+        if not self.clerk_secret:
+            logger.error("Clerk secret key not configured")
             return None
         
         try:
             headers = {
-                "Authorization": f"Bearer {self.clerk_REDACTED_SECRET}",
+                "Authorization": f"Bearer {self.clerk_secret}",
                 "Content-Type": "application/json"
             }
             

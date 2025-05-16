@@ -11,14 +11,14 @@ import psycopg2
 from psycopg2.extras import Json
 
 # Add the project root to the Python path
-project_root = Path(__file__).parent.parent.absolute()
+project_root = Path(__file__).parent.parent.parent.parent.absolute()
 sys.path.append(str(project_root))
 
 # SQLite database path
 SQLITE_DB_PATH = project_root / "app.db"
 
 # PostgreSQL connection string
-PG_REDACTED_CONNECTION_STRING = "postgresql://postgres@localhost:5432/interview_insights"
+PG_CONNECTION_STRING = "postgresql://postgres@localhost:5432/interview_insights"
 
 def connect_sqlite():
     """Connect to SQLite database."""
@@ -31,8 +31,8 @@ def connect_sqlite():
 
 def connect_postgres():
     """Connect to PostgreSQL database."""
-    print(f"Connecting to PostgreSQL database: {PG_REDACTED_CONNECTION_STRING}")
-    return psycopg2.connect(PG_REDACTED_CONNECTION_STRING)
+    print(f"Connecting to PostgreSQL database: {PG_CONNECTION_STRING}")
+    return psycopg2.connect(PG_CONNECTION_STRING)
 
 def get_table_names(sqlite_conn):
     """Get list of tables in SQLite database."""

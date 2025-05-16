@@ -21,7 +21,7 @@ Base = declarative_base()
 # Get database configuration from centralized settings
 settings = Settings()
 db_user = settings.db_user
-db_REDACTED_PASSWORD = settings.db_REDACTED_PASSWORD
+DB_PASSWORD=***REMOVED***
 db_host = settings.db_host
 db_port = settings.db_port
 db_name = settings.db_name
@@ -30,28 +30,28 @@ db_name = settings.db_name
 platform_name = os.name  # 'posix' for Mac/Linux, 'nt' for Windows
 
 # Get database URL from settings
-REDACTED_DATABASE_URL=***REDACTED***
+DATABASE_URL=***REDACTED***
 
-# If REDACTED_DATABASE_URL is explicitly set to PostgreSQL, use it
-if REDACTED_DATABASE_URL and REDACTED_DATABASE_URL.startswith("postgresql://"):
-    logger.info(f"Using explicitly configured PostgreSQL database: {REDACTED_DATABASE_URL}")
+# If DATABASE_URL is explicitly set to PostgreSQL, use it
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    logger.info(f"Using explicitly configured PostgreSQL database: {DATABASE_URL}")
 # Otherwise, determine based on platform and credentials
 else:
     # On any platform, try to use PostgreSQL if credentials are provided
     if db_user:
-        if db_REDACTED_PASSWORD:
-            safe_REDACTED_PASSWORD = quote_plus(db_REDACTED_PASSWORD)
-            REDACTED_DATABASE_URL=***REDACTED***
+        if db_password:
+            safe_password = quote_plus(db_password)
+            DATABASE_URL=***REDACTED***
                 f"postgresql://USER:PASS@HOST:PORT/DB
             )
         else:
-            REDACTED_DATABASE_URL=***REDACTED***
+            DATABASE_URL=***REDACTED***
         logger.info(
-            f"Using PostgreSQL database on {platform_name} with URL: {REDACTED_DATABASE_URL}"
+            f"Using PostgreSQL database on {platform_name} with URL: {DATABASE_URL}"
         )
     # If no PostgreSQL credentials, fall back to SQLite
     else:
-        REDACTED_DATABASE_URL=***REDACTED***  # File-based instead of in-memory
+        DATABASE_URL=***REDACTED***  # File-based instead of in-memory
         logger.info(f"Using SQLite database as fallback on {platform_name} platform")
 
 ***REMOVED*** engine configuration
@@ -62,20 +62,20 @@ DB_POOL_TIMEOUT = settings.db_pool_timeout
 # Engine creation
 try:
     # Detect SQLite connection
-    is_sqlite = REDACTED_DATABASE_URL.startswith("sqlite:")
+    is_sqlite = DATABASE_URL.startswith("sqlite:")
 
     # Configure engine based on database type
     if is_sqlite:
         # SQLite doesn't support connection pooling the same way
         engine = create_engine(
-            REDACTED_DATABASE_URL, connect_args={"check_same_thread": False}, pool_pre_ping=True
+            DATABASE_URL, connect_args={"check_same_thread": False}, pool_pre_ping=True
         )
         logger.info("Using SQLite database")
     else:
         # Create engine for PostgreSQL with connection pooling
         try:
             engine = create_engine(
-                REDACTED_DATABASE_URL,
+                DATABASE_URL,
                 poolclass=QueuePool,
                 pool_size=DB_POOL_SIZE,
                 max_overflow=DB_MAX_OVERFLOW,
@@ -89,7 +89,7 @@ try:
             error_msg = str(pg_error).lower()
             if (
                 "role 'postgres' does not exist" in error_msg
-                or "REDACTED_PASSWORD authentication failed" in error_msg
+                or "password authentication failed" in error_msg
             ):
                 logger.warning(f"PostgreSQL authentication error: {error_msg}")
                 logger.warning(
@@ -112,12 +112,12 @@ except Exception as e:
     # Fall back to SQLite if PostgreSQL connection fails
     try:
         logger.warning("Falling back to SQLite file database")
-        REDACTED_DATABASE_URL=***REDACTED***  # File-based instead of in-memory
-        engine = create_engine(REDACTED_DATABASE_URL, connect_args={"check_same_thread": False})
+        DATABASE_URL=***REDACTED***  # File-based instead of in-memory
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
         logger.info("Successfully connected to SQLite fallback database")
 
         # Add database type to environment for other components to access
-        os.environ["REDACTED_DATABASE_URL_TYPE"] = "sqlite"
+        os.environ["DATABASE_URL_TYPE"] = "sqlite"
     except Exception as fallback_error:
         logger.critical(
             f"Critical error: Failed to connect to fallback database: {str(fallback_error)}"
@@ -164,7 +164,7 @@ def run_migrations():
         alembic_cfg = alembic.config.Config(alembic_ini_path)
 
         # Set the SQLAlchemy URL
-        alembic_cfg.set_main_option("sqlalchemy.url", REDACTED_DATABASE_URL)
+        alembic_cfg.set_main_option("sqlalchemy.url", DATABASE_URL)
 
         # Run the migration
         command.upgrade(alembic_cfg, "head")
@@ -204,7 +204,7 @@ def create_tables():
 
         # Verify tables were created
         with engine.connect() as conn:
-            if "sqlite" in REDACTED_DATABASE_URL:
+            if "sqlite" in DATABASE_URL:
                 # For SQLite, we need to explicitly create tables
                 # Check if users table exists
                 result = conn.execute(

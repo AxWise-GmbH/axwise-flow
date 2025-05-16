@@ -14,11 +14,11 @@ from backend.api.app import app
 from backend.models import User, InterviewData
 
 # Test database URL
-SQLALCHEMY_TEST_REDACTED_DATABASE_URL=***REDACTED***
+SQLALCHEMY_TEST_DATABASE_URL=***REDACTED***
 
 # Create test database engine
 engine = create_engine(
-    SQLALCHEMY_TEST_REDACTED_DATABASE_URL,
+    SQLALCHEMY_TEST_DATABASE_URL,
     connect_args={"check_same_thread": False}  # Needed for SQLite
 )
 

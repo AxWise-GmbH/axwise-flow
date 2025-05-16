@@ -43,19 +43,19 @@ class GeminiService:
         # Import constants for LLM configuration
         from infrastructure.constants.llm_constants import (
             GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,
-            GEMINI_TOP_P, GEMINI_TOP_K, ENV_REDACTED_GEMINI_KEY
+            GEMINI_TOP_P, GEMINI_TOP_K, ENV_GEMINI_API_KEY
         )
 
         # Try to get API key from config, then from environment if not in config
-        self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
-        if not self.REDACTED_API_KEY:
+        self.api_key = config.get("api_key")
+        if not self.api_key:
             # Try to load directly from environment
-            env_key = os.getenv(ENV_REDACTED_GEMINI_KEY)
+            env_key = os.getenv(ENV_GEMINI_API_KEY)
             if env_key:
-                logger.info(f"Loading Gemini API key directly from environment variable {ENV_REDACTED_GEMINI_KEY}")
-                self.REDACTED_API_KEY = env_key
+                logger.info(f"Loading Gemini API key directly from environment variable {ENV_GEMINI_API_KEY}")
+                self.api_key = env_key
                 # Update the config for consistency
-                config["REDACTED_API_KEY"] = env_key
+                config["api_key"] = env_key
             else:
                 logger.error("No Gemini API key found in config or environment")
 
@@ -70,11 +70,11 @@ class GeminiService:
             logger.warning(f"Overriding top_k from {config.get('top_k')} to {GEMINI_TOP_K} for deterministic results")
 
         # Initialize Gemini client with the new google.genai package
-        if not self.REDACTED_API_KEY:
+        if not self.api_key:
             logger.error("Cannot initialize Gemini client: No API key available")
             raise ValueError("Gemini API key is required")
 
-        self.client = genai.Client(REDACTED_API_KEY=self.REDACTED_API_KEY)
+        self.client = genai.Client(api_key=self.api_key)
 
         # Store generation config for later use
         self.generation_config = {

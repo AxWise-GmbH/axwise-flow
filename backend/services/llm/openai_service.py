@@ -31,18 +31,18 @@ class OpenAIService:
         """Initialize the OpenAI service with configuration."""
         # Import constants for LLM configuration
         from infrastructure.constants.llm_constants import (
-            OPENAI_MODEL_NAME, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS, ENV_REDACTED_OPENAI_KEY
+            OPENAI_MODEL_NAME, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS, ENV_OPENAI_API_KEY
         )
 
-        self.REDACTED_API_KEY = config.get("REDACTED_API_KEY")
-        if not self.REDACTED_API_KEY:
+        self.api_key = config.get("api_key")
+        if not self.api_key:
             # Try to load directly from environment
-            env_key = os.getenv(ENV_REDACTED_OPENAI_KEY)
+            env_key = os.getenv(ENV_OPENAI_API_KEY)
             if env_key:
-                logger.info(f"Loading OpenAI API key directly from environment variable {ENV_REDACTED_OPENAI_KEY}")
-                self.REDACTED_API_KEY = env_key
+                logger.info(f"Loading OpenAI API key directly from environment variable {ENV_OPENAI_API_KEY}")
+                self.api_key = env_key
                 # Update the config for consistency
-                config["REDACTED_API_KEY"] = env_key
+                config["api_key"] = env_key
             else:
                 logger.error("No OpenAI API key found in config or environment")
 
@@ -51,11 +51,11 @@ class OpenAIService:
         self.max_tokens = config.get("max_tokens", OPENAI_MAX_TOKENS)
 
         # Initialize OpenAI client
-        if not self.REDACTED_API_KEY:
+        if not self.api_key:
             logger.error("Cannot initialize OpenAI client: No API key available")
             raise ValueError("OpenAI API key is required")
 
-        self.client = AsyncOpenAI(REDACTED_API_KEY=self.REDACTED_API_KEY)
+        self.client = AsyncOpenAI(api_key=self.api_key)
 
         logger.info(f"Initialized OpenAI service with model: {self.model}")
 

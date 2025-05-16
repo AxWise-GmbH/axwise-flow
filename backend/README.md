@@ -29,9 +29,9 @@ pip install -r requirements.txt
 Create a `.env` file in the backend directory with the following variables:
 
 ```
-REDACTED_DATABASE_URL=***REDACTED***  # For Mac
-# REDACTED_DATABASE_URL=***REDACTED***  # For Windows
-REDACTED_GEMINI_KEY=your_gemini_REDACTED_API_KEY
+DATABASE_URL=***REDACTED***  # For Mac
+# DATABASE_URL=***REDACTED***  # For Windows
+GEMINI_API_KEY=***REMOVED***
 ```
 
 ### Running the Server

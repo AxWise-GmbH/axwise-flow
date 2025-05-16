@@ -45,7 +45,7 @@ class TestGeminiJsonParsing:
     @pytest.fixture
     def adapter(self):
         """Create a GeminiAdapter instance for testing."""
-        config = {"model": "gemini-test", "REDACTED_API_KEY": "dummy-key-for-testing"}
+        config = {"model": "gemini-test", "api_key": "dummy-key-for-testing"}
         return GeminiAdapter(config)
     
     def test_clean_json_extraction(self, adapter, mock_logger):

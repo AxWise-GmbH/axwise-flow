@@ -49,9 +49,9 @@ async def test_gemini_direct():
         logger.info("Testing direct Gemini API connection for persona generation")
 
         # Load environment variables or config
-        gemini_REDACTED_API_KEY = os.getenv("REDACTED_GEMINI_KEY")
-        if not gemini_REDACTED_API_KEY:
-            logger.error("REDACTED_GEMINI_KEY environment variable not set")
+        GEMINI_API_KEY=***REMOVED***"GEMINI_API_KEY")
+        if not gemini_api_key:
+            logger.error("GEMINI_API_KEY environment variable not set")
             return False
 
         # Import Gemini library
@@ -67,7 +67,7 @@ async def test_gemini_direct():
 
         # Create Gemini model
         logger.info("Creating Gemini model")
-        model = genai.GenerativeModel("gemini-1.5-pro", REDACTED_API_KEY=gemini_REDACTED_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-pro", api_key=gemini_api_key)
 
         # Create prompt for persona generation
         prompt = f"""
@@ -169,7 +169,7 @@ async def test_gemini_service_direct():
 
         # Create LLM service directly
         llm_config = {
-            "REDACTED_API_KEY": os.getenv("REDACTED_GEMINI_KEY"),
+            "api_key": os.getenv("GEMINI_API_KEY"),
             "model": "gemini-2.5-flash-preview-04-17",
         }
 
@@ -212,7 +212,7 @@ async def test_persona_formation_service():
 
         # Create LLM service directly
         llm_config = {
-            "REDACTED_API_KEY": os.getenv("REDACTED_GEMINI_KEY"),
+            "api_key": os.getenv("GEMINI_API_KEY"),
             "model": "gemini-2.5-flash-preview-04-17",
         }
 

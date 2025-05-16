@@ -91,33 +91,33 @@ class TestConfig:
                 logger.info(f"Found environment variable: {key}={masked_value}")
 
         # Load API key from environment variable
-        self.REDACTED_API_KEY = os.environ.get("REDACTED_GEMINI_KEY", "")
-        if self.REDACTED_API_KEY:
-            masked_key = self.REDACTED_API_KEY[:4] + "..." + self.REDACTED_API_KEY[-4:] if len(self.REDACTED_API_KEY) > 8 else "***"
-            logger.info(f"Using REDACTED_GEMINI_KEY: {masked_key}")
+        self.api_key = os.environ.get("GEMINI_API_KEY", "")
+        if self.api_key:
+            masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
+            logger.info(f"Using GEMINI_API_KEY=***REMOVED***")
         else:
-            logger.warning("REDACTED_GEMINI_KEY environment variable not set. Checking for GOOGLE_REDACTED_GEMINI_KEY...")
-            # Try to get from GOOGLE_REDACTED_GEMINI_KEY
-            self.REDACTED_API_KEY = os.environ.get("GOOGLE_REDACTED_GEMINI_KEY", "")
-            if self.REDACTED_API_KEY:
-                masked_key = self.REDACTED_API_KEY[:4] + "..." + self.REDACTED_API_KEY[-4:] if len(self.REDACTED_API_KEY) > 8 else "***"
-                logger.info(f"Using GOOGLE_REDACTED_GEMINI_KEY: {masked_key}")
+            logger.warning("GEMINI_API_KEY environment variable not set. Checking for GOOGLE_GEMINI_API_KEY...")
+            # Try to get from GOOGLE_GEMINI_API_KEY
+            self.api_key = os.environ.get("GOOGLE_GEMINI_API_KEY", "")
+            if self.api_key:
+                masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
+                logger.info(f"Using GOOGLE_GEMINI_API_KEY=***REMOVED***")
             else:
                 # Try other common API key names
-                for key in ["REDACTED_OPENAI_KEY", "ANTHROPIC_API_KEY", "AI_API_KEY"]:
-                    self.REDACTED_API_KEY = os.environ.get(key, "")
-                    if self.REDACTED_API_KEY:
-                        masked_key = self.REDACTED_API_KEY[:4] + "..." + self.REDACTED_API_KEY[-4:] if len(self.REDACTED_API_KEY) > 8 else "***"
+                for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "AI_API_KEY"]:
+                    self.api_key = os.environ.get(key, "")
+                    if self.api_key:
+                        masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
                         logger.info(f"Using {key}: {masked_key}")
                         break
 
-                if not self.REDACTED_API_KEY:
+                if not self.api_key:
                     logger.warning("No API key found in environment variables. Using mock API key.")
-                    self.REDACTED_API_KEY = "mock_REDACTED_API_KEY"  # Use a mock API key to avoid attribute errors
+                    self.api_key = "mock_api_key"  # Use a mock API key to avoid attribute errors
 
         # Combined configuration for GeminiService
         self.config = {
-            "REDACTED_API_KEY": self.REDACTED_API_KEY,
+            "api_key": self.api_key,
             "model": "gemini-2.5-flash-preview-04-17",
             "max_output_tokens": 65536,
             "temperature": 0.0,
@@ -420,23 +420,23 @@ async def main():
         # Create a config to check if API key is available
         config = TestConfig()
 
-        # Continue even if the API key is "mock_REDACTED_API_KEY"
-        if config.REDACTED_API_KEY == "mock_REDACTED_API_KEY":
+        # Continue even if the API key is "mock_api_key"
+        if config.api_key == "mock_api_key":
             logger.warning("=" * 80)
             logger.warning("USING MOCK API KEY: No real API key found in environment variables or .env file.")
             logger.warning("Tests will run with mock data only.")
             logger.warning("For real API testing, please ensure one of these is set:")
-            logger.warning("1. REDACTED_GEMINI_KEY environment variable")
-            logger.warning("2. GOOGLE_REDACTED_GEMINI_KEY environment variable")
-            logger.warning("3. GOOGLE_REDACTED_GEMINI_KEY in your .env file")
+            logger.warning("1. GEMINI_API_KEY environment variable")
+            logger.warning("2. GOOGLE_GEMINI_API_KEY environment variable")
+            logger.warning("3. GOOGLE_GEMINI_API_KEY in your .env file")
             logger.warning("=" * 80)
-        elif not config.REDACTED_API_KEY:
+        elif not config.api_key:
             logger.error("=" * 80)
             logger.error("API KEY ERROR: No API key found in environment variables or .env file.")
             logger.error("Please ensure one of these is set:")
-            logger.error("1. REDACTED_GEMINI_KEY environment variable")
-            logger.error("2. GOOGLE_REDACTED_GEMINI_KEY environment variable")
-            logger.error("3. GOOGLE_REDACTED_GEMINI_KEY in your .env file")
+            logger.error("1. GEMINI_API_KEY environment variable")
+            logger.error("2. GOOGLE_GEMINI_API_KEY environment variable")
+            logger.error("3. GOOGLE_GEMINI_API_KEY in your .env file")
             logger.error("=" * 80)
             return
 

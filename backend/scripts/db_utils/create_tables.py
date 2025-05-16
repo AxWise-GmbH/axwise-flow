@@ -1,5 +1,6 @@
 """
 Script to create database tables directly using SQLAlchemy.
+Note: This script is kept for reference, but Alembic is the preferred method for schema management.
 """
 
 import os
@@ -7,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Add the project root to the Python path
-project_root = Path(__file__).parent.parent.absolute()
+project_root = Path(__file__).parent.parent.parent.parent.absolute()
 sys.path.append(str(project_root))
 
 # Import database models

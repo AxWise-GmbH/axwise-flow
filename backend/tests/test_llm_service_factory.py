@@ -21,7 +21,7 @@ from backend.services.llm.gemini_service import GeminiService
 def minimal_config() -> Dict[str, Any]:
     """Return a minimal configuration for testing."""
     return {
-        "REDACTED_API_KEY": "test-REDACTED_API_KEY",
+        "api_key": "test-api-key",
         "model": "test-model",
         "temperature": 0.5,
         "max_tokens": 100,
@@ -32,7 +32,7 @@ def test_create_openai_service(minimal_config):
     """Test that the factory can create an OpenAI service."""
     service = LLMServiceFactory.create("openai", minimal_config)
     assert isinstance(service, OpenAIService)
-    assert service.REDACTED_API_KEY == "test-REDACTED_API_KEY"
+    assert service.api_key == "test-api-key"
     assert service.model == "test-model"
     assert service.temperature == 0.5
     assert service.max_tokens == 100
@@ -42,7 +42,7 @@ def test_create_gemini_service(minimal_config):
     """Test that the factory can create a Gemini service."""
     service = LLMServiceFactory.create("gemini", minimal_config)
     assert isinstance(service, GeminiService)
-    assert service.REDACTED_API_KEY == "test-REDACTED_API_KEY"
+    assert service.api_key == "test-api-key"
     assert service.model == "test-model"
     assert service.temperature == 0.5
     assert service.max_tokens == 100

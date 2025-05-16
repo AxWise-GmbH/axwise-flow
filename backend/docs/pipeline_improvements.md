@@ -70,7 +70,7 @@ To run the test script:
 
 ```bash
 # Set the API key
-export REDACTED_GEMINI_KEY=your_REDACTED_API_KEY
+export GEMINI_API_KEY=***REMOVED***
 
 # Run the test script
 python -m backend.tests.test_pipeline_improvements

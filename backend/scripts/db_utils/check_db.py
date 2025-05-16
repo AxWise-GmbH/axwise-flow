@@ -13,7 +13,7 @@ def check_database():
         conn = psycopg2.connect(
             dbname="interview_insights",
             user="postgres",
-            REDACTED_PASSWORD="",
+            password="",
             host="localhost",
             port="5432"
         )
