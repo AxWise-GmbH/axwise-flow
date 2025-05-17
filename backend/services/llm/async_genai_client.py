@@ -8,6 +8,7 @@ with proper error handling, retry logic, and response parsing.
 import logging
 import json
 import asyncio
+import re
 from typing import Dict, Any, List, Union, Optional, AsyncGenerator, Tuple
 
 import google.genai as genai
@@ -321,6 +322,18 @@ class AsyncGenAIClient:
             Parsed response as a dictionary
         """
         try:
+            # Check if response has parsed property (from schema validation)
+            if hasattr(response, 'parsed') and response.parsed is not None:
+                logger.info(f"Using schema-validated parsed response for task {task}")
+                # Convert to dict if it's a Pydantic model
+                if hasattr(response.parsed, 'dict'):
+                    return response.parsed.dict()
+                elif hasattr(response.parsed, 'model_dump'):
+                    return response.parsed.model_dump()
+                else:
+                    # If it's already a dict or other serializable type
+                    return response.parsed
+
             # Extract text from response
             try:
                 text_response = response.text
@@ -339,7 +352,12 @@ class AsyncGenAIClient:
                     raise LLMResponseParseError(f"Failed to extract text from response: {str(e)} -> {str(nested_e)}")
 
             # Check if response is empty or very short
-            if not text_response or len(text_response.strip()) < 10:
+            # Special case for industry detection which can return just the industry name
+            if (isinstance(task, str) and task == "industry_detection") or (isinstance(task, TaskType) and task == TaskType.INDUSTRY_DETECTION):
+                if not text_response:
+                    logger.error(f"Empty response received for task '{task}'")
+                    raise LLMResponseParseError(f"Empty response received for task '{task}'")
+            elif not text_response or len(text_response.strip()) < 10:
                 logger.error(f"Empty or very short response received for task '{task}'. Response: '{text_response}'")
                 raise LLMResponseParseError(f"Empty or very short response received for task '{task}'")
 
@@ -364,6 +382,18 @@ class AsyncGenAIClient:
                         logger.info(f"Successfully repaired JSON response.")
                     except Exception as repair_e:
                         logger.error(f"Failed to repair JSON: {repair_e}. Original text: {text_response[:500]}")
+
+                # Check if the response is wrapped in markdown code blocks
+                markdown_json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+                markdown_match = re.search(markdown_json_pattern, text_response)
+
+                if markdown_match:
+                    # Extract the JSON content from the markdown code block
+                    json_content = markdown_match.group(1).strip()
+                    logger.info(f"Detected JSON wrapped in markdown code blocks, extracting content")
+                    text_response = json_content
+                    # Log the task type for debugging
+                    logger.info(f"Task type for markdown-wrapped JSON: {task}")
 
                 # Parse JSON
                 try:

@@ -2,16 +2,16 @@
 Configuration management for Google GenAI SDK.
 
 This module provides a centralized configuration system for the Google GenAI SDK,
-with task-specific profiles and validation.
+with task-specific profiles, schema definitions, and validation.
 """
 
 import logging
 from enum import Enum
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Literal
 from pydantic import BaseModel, Field, validator
 
 from google.genai import types
-from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategory, HarmBlockThreshold
+from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategory, HarmBlockThreshold, Schema
 
 from infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,
@@ -34,12 +34,80 @@ class TaskType(str, Enum):
     PATTERN_ENHANCEMENT = "pattern_enhancement"
     EVIDENCE_LINKING = "evidence_linking"
     TRAIT_FORMATTING = "trait_formatting"
+    INDUSTRY_DETECTION = "industry_detection"
     UNKNOWN = "unknown_task"
 
 class ResponseFormat(str, Enum):
     """Enum for response format types."""
     JSON = "application/json"
     TEXT = "text/plain"
+
+# Response schema models for different task types
+class PatternModel(BaseModel):
+    """Schema for a pattern in pattern recognition."""
+    name: str
+    category: str = Field(..., description="One of: Workflow, Coping Strategy, Decision Process, Workaround, Habit, Collaboration, Communication")
+    description: str
+    evidence: List[str]
+    frequency: float = Field(..., ge=0.0, le=1.0)
+    sentiment: float = Field(..., ge=-1.0, le=1.0)
+    impact: str = Field(default="")
+    suggested_actions: List[str] = Field(default_factory=list)
+
+class PatternResponse(BaseModel):
+    """Schema for pattern recognition response."""
+    patterns: List[PatternModel]
+
+class ThemeModel(BaseModel):
+    """Schema for a theme in theme analysis."""
+    name: str
+    definition: str
+    keywords: List[str]
+    evidence: List[str]
+    sentiment: float = Field(..., ge=-1.0, le=1.0)
+    frequency: float = Field(..., ge=0.0, le=1.0)
+
+class ThemeResponse(BaseModel):
+    """Schema for theme analysis response."""
+    themes: List[ThemeModel]
+
+class InsightModel(BaseModel):
+    """Schema for an insight in insight generation."""
+    topic: str
+    observation: str
+    evidence: List[str]
+    implication: str
+    recommendation: str
+    priority: Literal["High", "Medium", "Low"]
+
+class InsightResponse(BaseModel):
+    """Schema for insight generation response."""
+    insights: List[InsightModel]
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class PersonaTrait(BaseModel):
+    """Schema for a persona trait."""
+    value: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    evidence: List[str] = Field(default_factory=list)
+
+class PersonaModel(BaseModel):
+    """Schema for a persona in persona formation."""
+    name: str
+    description: str
+    role_context: List[str]
+    key_responsibilities: List[str]
+    tools_used: List[str]
+    collaboration_style: List[PersonaTrait]
+    analysis_approach: List[PersonaTrait]
+    pain_points: List[PersonaTrait]
+    patterns: List[str] = Field(default_factory=list)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    evidence: Dict[str, List[str]] = Field(default_factory=dict)
+
+class PersonaResponse(BaseModel):
+    """Schema for persona formation response."""
+    personas: List[PersonaModel]
 
 class GenAIConfigModel(BaseModel):
     """Pydantic model for GenAI configuration validation."""
@@ -49,6 +117,7 @@ class GenAIConfigModel(BaseModel):
     top_p: float = Field(default=GEMINI_TOP_P, ge=0.0, le=1.0)
     top_k: Optional[int] = Field(default=GEMINI_TOP_K, ge=1)
     response_mime_type: Optional[str] = None
+    response_schema: Optional[Any] = None
     safety_settings: Optional[List[Dict[str, Any]]] = None
 
     @validator('safety_settings', pre=True)
@@ -62,6 +131,15 @@ class GenAIConfigModel(BaseModel):
 
 class GenAIConfigFactory:
     """Factory for creating GenAI configurations based on task type."""
+
+    # Map task types to their corresponding schema models
+    TASK_SCHEMA_MAP = {
+        TaskType.PATTERN_RECOGNITION: PatternResponse,
+        TaskType.THEME_ANALYSIS: ThemeResponse,
+        TaskType.THEME_ANALYSIS_ENHANCED: ThemeResponse,
+        TaskType.INSIGHT_GENERATION: InsightResponse,
+        TaskType.PERSONA_FORMATION: PersonaResponse,
+    }
 
     @staticmethod
     def create_config(task: Union[str, TaskType], custom_params: Optional[Dict[str, Any]] = None) -> GenerateContentConfig:
@@ -94,6 +172,12 @@ class GenAIConfigFactory:
 
         # Apply task-specific configuration
         config_params = GenAIConfigFactory._apply_task_specific_config(task, config_params)
+
+        # Add response schema if applicable
+        if task in GenAIConfigFactory.TASK_SCHEMA_MAP and "response_mime_type" in config_params:
+            schema_model = GenAIConfigFactory.TASK_SCHEMA_MAP[task]
+            config_params["response_schema"] = schema_model
+            logger.info(f"Using response schema for task {task}: {schema_model.__name__}")
 
         # Override with custom parameters if provided
         if custom_params:
@@ -138,10 +222,14 @@ class GenAIConfigFactory:
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(f"Using specific config for {task}: max_tokens=65536, top_k=1, top_p=0.95")
-        elif task == TaskType.TEXT_GENERATION:
-            # For text generation, explicitly DO NOT use response_mime_type
+        elif task in [TaskType.TEXT_GENERATION, TaskType.INDUSTRY_DETECTION]:
+            # For text generation and industry detection, explicitly DO NOT use response_mime_type
             if "response_mime_type" in config_params:
                 del config_params["response_mime_type"]
+
+            # For industry detection, use lower temperature for more deterministic results
+            if task == TaskType.INDUSTRY_DETECTION:
+                config_params["temperature"] = 0.0
 
         return config_params
 
@@ -176,9 +264,14 @@ class GenAIConfigFactory:
     ) -> GenerateContentConfig:
         """Create a GenerateContentConfig from validated parameters."""
         config_dict = config.dict(exclude_none=True)
-        
+
+        # Extract response_schema if present
+        response_schema = None
+        if "response_schema" in config_dict:
+            response_schema = config_dict.pop("response_schema")
+
         # Create the GenerateContentConfig with safety settings
-        return types.GenerateContentConfig(
+        generate_content_config = types.GenerateContentConfig(
             temperature=config_dict.get("temperature", 0.0),
             max_output_tokens=config_dict.get("max_output_tokens", 65536),
             top_k=config_dict.get("top_k", 1),
@@ -186,3 +279,9 @@ class GenAIConfigFactory:
             response_mime_type=config_dict.get("response_mime_type"),
             safety_settings=safety_settings
         )
+
+        # Add response_schema if it exists
+        if response_schema:
+            generate_content_config.response_schema = response_schema
+
+        return generate_content_config

@@ -843,6 +843,8 @@ class ResultsService:
         """
         sentiment_statements = {"positive": [], "neutral": [], "negative": []}
 
+        logger.info(f"Extracting sentiment statements from {len(themes)} themes and {len(patterns)} patterns")
+
         # Process themes based on their sentiment scores
         for theme in themes:
             # Skip themes without statements or sentiment
@@ -852,16 +854,20 @@ class ResultsService:
             sentiment_score = theme.get("sentiment", 0)
             statements = theme.get("statements", []) or theme.get("examples", [])
 
-            # Use all statements from each theme, not just 2
+            # Use all statements from each theme
             for statement in statements:
+                # Skip short statements
+                if not isinstance(statement, str) or len(statement.strip()) < 20:
+                    continue
+
                 # Only add unique statements
                 if (
-                    sentiment_score > 0.3
+                    sentiment_score > 0.2
                     and statement not in sentiment_statements["positive"]
                 ):
                     sentiment_statements["positive"].append(statement)
                 elif (
-                    sentiment_score < -0.3
+                    sentiment_score < -0.2
                     and statement not in sentiment_statements["negative"]
                 ):
                     sentiment_statements["negative"].append(statement)
@@ -874,28 +880,44 @@ class ResultsService:
             if not pattern.get("evidence"):
                 continue
 
+            # Determine sentiment from pattern description or impact
             sentiment_score = pattern.get("sentiment", 0)
+
+            # If no explicit sentiment score, try to infer from impact
+            if sentiment_score == 0 and "impact" in pattern:
+                impact = pattern.get("impact", "").lower()
+                if any(word in impact for word in ["positive", "improves", "enhances", "increases", "strengthens"]):
+                    sentiment_score = 0.5
+                elif any(word in impact for word in ["negative", "frustration", "slows", "diminishes", "friction"]):
+                    sentiment_score = -0.5
+
             statements = pattern.get("evidence", [])
 
-            # Use all statements from each pattern, not just 1
+            # Use all statements from each pattern
             for statement in statements:
+                # Skip short statements
+                if not isinstance(statement, str) or len(statement.strip()) < 20:
+                    continue
+
                 # Only add unique statements
                 if (
-                    sentiment_score > 0.3
+                    sentiment_score > 0.2
                     and statement not in sentiment_statements["positive"]
                 ):
                     sentiment_statements["positive"].append(statement)
                 elif (
-                    sentiment_score < -0.3
+                    sentiment_score < -0.2
                     and statement not in sentiment_statements["negative"]
                 ):
                     sentiment_statements["negative"].append(statement)
                 elif statement not in sentiment_statements["neutral"]:
                     sentiment_statements["neutral"].append(statement)
 
-        # Limit to 15 statements per category (instead of 5)
-        sentiment_statements["positive"] = sentiment_statements["positive"][:15]
-        sentiment_statements["neutral"] = sentiment_statements["neutral"][:15]
-        sentiment_statements["negative"] = sentiment_statements["negative"][:15]
+        # Limit to 20 statements per category
+        sentiment_statements["positive"] = sentiment_statements["positive"][:20]
+        sentiment_statements["neutral"] = sentiment_statements["neutral"][:20]
+        sentiment_statements["negative"] = sentiment_statements["negative"][:20]
+
+        logger.info(f"Extracted sentiment statements: positive={len(sentiment_statements['positive'])}, neutral={len(sentiment_statements['neutral'])}, negative={len(sentiment_statements['negative'])}")
 
         return sentiment_statements

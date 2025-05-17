@@ -11,8 +11,8 @@ These models act as a contract between the frontend and backend, ensuring
 consistent data structures throughout the application.
 """
 
-from pydantic import BaseModel, Field, validator
-from typing import Dict, List, Optional, Literal, Any, Union
+from pydantic import BaseModel, Field, validator, field_validator
+from typing import Dict, List, Optional, Literal, Any, Union, TypedDict
 from datetime import datetime
 
 
@@ -107,6 +107,55 @@ class HealthCheckResponse(BaseModel):
 # Detailed Analysis Result Models
 
 
+class HierarchicalCode(BaseModel):
+    """
+    Model representing a hierarchical code with sub-codes.
+    """
+
+    code: str
+    definition: str
+    frequency: float = Field(default=0.5, ge=0.0, le=1.0)
+    sub_codes: List['HierarchicalCode'] = Field(default_factory=list)
+
+
+class ReliabilityMetrics(BaseModel):
+    """
+    Model representing detailed reliability metrics for a theme.
+    """
+
+    cohen_kappa: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    percent_agreement: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    confidence_interval: Optional[List[float]] = Field(default=None)
+
+
+class ThemeRelationship(BaseModel):
+    """
+    Model representing a relationship between themes.
+    """
+
+    related_theme: str
+    relationship_type: Literal["causal", "correlational", "hierarchical"]
+    strength: float = Field(default=0.5, ge=0.0, le=1.0)
+    description: str
+
+
+class SentimentDistribution(BaseModel):
+    """
+    Model representing the distribution of sentiment within a theme.
+    """
+
+    positive: float = Field(default=0.33, ge=0.0, le=1.0)
+    neutral: float = Field(default=0.34, ge=0.0, le=1.0)
+    negative: float = Field(default=0.33, ge=0.0, le=1.0)
+
+    @field_validator('positive', 'neutral', 'negative')
+    def validate_distribution(cls, v, info):
+        """Ensure sentiment values are between 0 and 1"""
+        if not 0 <= v <= 1:
+            raise ValueError(f"{info.field_name} must be between 0 and 1")
+        return v
+
+
 class Theme(BaseModel):
     """
     Model representing a theme identified in the analysis.
@@ -148,6 +197,21 @@ class Theme(BaseModel):
         default=None, description="Identifies which analysis process was used"
     )
 
+    # Enhanced theme fields
+    type: Optional[str] = Field(default="theme", description="Type of analysis object")
+    sentiment_distribution: Optional[SentimentDistribution] = Field(
+        default=None, description="Distribution of sentiment within this theme"
+    )
+    hierarchical_codes: Optional[List[HierarchicalCode]] = Field(
+        default=None, description="Hierarchical representation of codes with sub-codes"
+    )
+    reliability_metrics: Optional[ReliabilityMetrics] = Field(
+        default=None, description="Detailed reliability metrics"
+    )
+    relationships: Optional[List[ThemeRelationship]] = Field(
+        default=None, description="Relationships to other themes"
+    )
+
     # Legacy fields
     count: Optional[int] = Field(
         default=None, description="Legacy field. Use frequency instead."
@@ -164,6 +228,11 @@ class Theme(BaseModel):
                 "definition": "The visual and interactive elements of the application that users engage with",
                 "reliability": 0.85,
                 "process": "enhanced",
+                "sentiment_distribution": {
+                    "positive": 0.7,
+                    "neutral": 0.2,
+                    "negative": 0.1
+                }
             }
         }
 
@@ -461,6 +530,44 @@ class Insight(BaseModel):
                 "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
                 "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
                 "priority": "High",
+            }
+        }
+
+
+class EnhancedThemeResponse(BaseModel):
+    """
+    Response model for enhanced theme analysis.
+    """
+
+    enhanced_themes: List[Theme] = Field(
+        default_factory=list,
+        description="List of enhanced themes with detailed analysis"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "enhanced_themes": [
+                    {
+                        "name": "User Interface Complexity",
+                        "definition": "The difficulty users experience navigating and using the interface",
+                        "keywords": ["navigation", "UI", "complexity", "usability"],
+                        "frequency": 0.75,
+                        "sentiment": -0.3,
+                        "statements": [
+                            "I find the interface overwhelming with too many options",
+                            "It takes me several clicks to find basic features"
+                        ],
+                        "codes": ["UI_COMPLEXITY", "NAVIGATION_ISSUES"],
+                        "reliability": 0.85,
+                        "process": "enhanced",
+                        "sentiment_distribution": {
+                            "positive": 0.1,
+                            "neutral": 0.3,
+                            "negative": 0.6
+                        }
+                    }
+                ]
             }
         }
 

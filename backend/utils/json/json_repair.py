@@ -177,13 +177,99 @@ def repair_json(json_str: str) -> str:
 
     return json_str
 
-def parse_json_safely(json_str: str, default_type: str = "object") -> Union[Dict[str, Any], List[Any]]:
+def repair_enhanced_themes_json(json_str: str) -> str:
+    """
+    Special repair function for enhanced themes JSON that preserves the structure.
+
+    Args:
+        json_str: The potentially malformed JSON string containing enhanced themes
+
+    Returns:
+        A repaired JSON string that preserves the enhanced themes structure
+    """
+    # First try standard repair
+    repaired_json = repair_json(json_str)
+
+    try:
+        # Check if the repaired JSON is valid
+        parsed = json.loads(repaired_json)
+        if 'enhanced_themes' in parsed and isinstance(parsed['enhanced_themes'], list) and len(parsed['enhanced_themes']) > 0:
+            logger.info(f"Successfully repaired enhanced themes JSON with {len(parsed['enhanced_themes'])} themes")
+            return repaired_json
+    except json.JSONDecodeError:
+        pass
+
+    # If standard repair failed or didn't preserve the structure, try a more targeted approach
+    logger.info("Standard repair didn't preserve enhanced themes structure. Trying targeted repair...")
+
+    # Check if we can identify the enhanced_themes array
+    match = re.search(r'"enhanced_themes"\s*:\s*\[(.*?)\](?=\s*}$)', json_str, re.DOTALL)
+    if not match:
+        logger.warning("Could not find enhanced_themes array in JSON")
+        return '{"enhanced_themes": []}'
+
+    themes_content = match.group(1)
+
+    # Split the themes content into individual theme objects
+    theme_objects = []
+    brace_count = 0
+    current_theme = ""
+
+    for char in themes_content:
+        current_theme += char
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                # We've found a complete theme object
+                theme_objects.append(current_theme.strip())
+                current_theme = ""
+
+    # Repair each theme object individually
+    repaired_themes = []
+    for theme_obj in theme_objects:
+        # Add missing commas between properties
+        theme_obj = re.sub(r'"\s*"', '","', theme_obj)
+
+        # Fix missing commas in arrays
+        theme_obj = re.sub(r'"\s*\{', '",{', theme_obj)
+        theme_obj = re.sub(r'}\s*"', '},"', theme_obj)
+
+        # Fix trailing commas
+        theme_obj = re.sub(r',\s*}', '}', theme_obj)
+
+        # Ensure the theme object is valid JSON
+        try:
+            json.loads(theme_obj)
+            repaired_themes.append(theme_obj)
+        except json.JSONDecodeError:
+            logger.warning(f"Could not repair theme object: {theme_obj[:100]}...")
+
+    if not repaired_themes:
+        logger.warning("Could not repair any theme objects")
+        return '{"enhanced_themes": []}'
+
+    # Construct the final JSON
+    final_json = '{"enhanced_themes": [' + ','.join(repaired_themes) + ']}'
+
+    # Validate the final JSON
+    try:
+        parsed = json.loads(final_json)
+        logger.info(f"Successfully repaired enhanced themes JSON with {len(parsed['enhanced_themes'])} themes")
+        return final_json
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to create valid enhanced themes JSON: {e}")
+        return '{"enhanced_themes": []}'
+
+def parse_json_safely(json_str: str, default_type: str = "object", task_type: Optional[str] = None) -> Union[Dict[str, Any], List[Any]]:
     """
     Parse JSON with repair attempts if initial parsing fails.
 
     Args:
         json_str: The JSON string to parse
         default_type: The default type to return if parsing fails ("object" or "array")
+        task_type: Optional task type to use specialized repair functions
 
     Returns:
         The parsed JSON object/array or an empty dict/list if parsing fails
@@ -204,7 +290,12 @@ def parse_json_safely(json_str: str, default_type: str = "object") -> Union[Dict
 
         # Second attempt: repair and parse
         try:
-            repaired = repair_json(json_str)
+            # Use specialized repair function if task_type is provided
+            if task_type == "theme_analysis_enhanced":
+                repaired = repair_enhanced_themes_json(json_str)
+            else:
+                repaired = repair_json(json_str)
+
             parsed = json.loads(repaired)
             logger.info(f"Successfully parsed JSON after repair: {type(parsed).__name__}")
             return parsed

@@ -52,11 +52,12 @@ class SentimentAnalysisPrompts:
         {industry_guidance}
 
         CRITICAL INSTRUCTIONS:
-        - You MUST find a balanced distribution of statements across all three sentiment categories
-        - You MUST include at least 10-15 statements for EACH sentiment category
+        - You MUST find a comprehensive set of statements across all three sentiment categories
+        - You MUST include at least 15-20 statements for EACH sentiment category
         - You MUST use EXACT quotes from the text - never paraphrase or summarize
         - You MUST ensure your sentiment breakdown is realistic and evidence-based
         - You MUST focus on the interviewee's statements, not the interviewer's questions
+        - You MUST be thorough and exhaustive in finding all relevant sentiment statements
 
         Key Instructions:
         1. An overall sentiment score between 0 (negative) and 1 (positive)
@@ -155,11 +156,12 @@ class SentimentAnalysisPrompts:
         You are an expert sentiment analyst specializing in extracting nuanced emotional expressions from interview transcripts. Analyze the provided text with extreme precision to identify statements that express positive, negative, or neutral sentiments.
 
         CRITICAL INSTRUCTIONS:
-        - You MUST find a balanced distribution of statements across all three sentiment categories
-        - You MUST include at least 10-15 statements for EACH sentiment category
+        - You MUST find a comprehensive set of statements across all three sentiment categories
+        - You MUST include at least 15-20 statements for EACH sentiment category
         - You MUST use EXACT quotes from the text - never paraphrase or summarize
         - You MUST ensure your sentiment breakdown is realistic and evidence-based
         - You MUST focus on the interviewee's statements, not the interviewer's questions
+        - You MUST be thorough and exhaustive in finding all relevant sentiment statements
 
         Industry-Agnostic Guidelines:
         1. This analysis should work equally well for any professional domain: healthcare, tech, finance, military, education, hospitality, manufacturing, etc.

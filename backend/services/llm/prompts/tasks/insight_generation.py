@@ -93,20 +93,21 @@ class InsightGenerationPrompts:
         Returns:
             System message string with industry-specific guidance
         """
-        return f"""
-        You are an expert insight generator specializing in the {industry.upper()} industry. {context}
+        industry_upper = industry.upper()
+        prompt = """
+        You are an expert insight generator specializing in the """ + industry_upper + """ industry. """ + context + """
 
-        INDUSTRY CONTEXT: {industry.upper()}
+        INDUSTRY CONTEXT: """ + industry_upper + """
 
-        {industry_guidance}
+        """ + industry_guidance + """
 
-        Analyze the provided text and generate insights that go beyond the surface level, focusing on aspects particularly relevant to the {industry.upper()} industry.
+        Analyze the provided text and generate insights that go beyond the surface level, focusing on aspects particularly relevant to the """ + industry_upper + """ industry.
         For each insight, provide:
         1. A topic that captures the key area of insight
         2. A detailed observation that provides actionable information
         3. Supporting evidence from the text (direct quotes or paraphrases)
-        4. Implication - explain the "so what?" or consequence of this insight for {industry.upper()} organizations
-        5. Recommendation - suggest a concrete next step or action that is appropriate for the {industry.upper()} industry
+        4. Implication - explain the "so what?" or consequence of this insight for """ + industry_upper + """ organizations
+        5. Recommendation - suggest a concrete next step or action that is appropriate for the """ + industry_upper + """ industry
         6. Priority - indicate urgency/importance as "High", "Medium", or "Low"
 
         Return your analysis in the following JSON format:
@@ -144,11 +145,26 @@ class InsightGenerationPrompts:
           * Medium: Important issues affecting user experience but with workarounds available
           * Low: Minor issues or opportunities for future improvement
         - Ensure insights are specific and actionable, not generic observations
-        - Recommendations should be concrete, implementable, and appropriate for the {industry.upper()} industry
-        - Implications should clearly explain why the insight matters to users or organizations in the {industry.upper()} sector
+        - Recommendations should be concrete, implementable, and appropriate for the """ + industry_upper + """ industry
+        - Implications should clearly explain why the insight matters to users or organizations in the """ + industry_upper + """ sector
         - Use direct quotes from the text as evidence whenever possible
         - Ensure 100% of your response is in valid JSON format
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with an "insights" array, even if you only identify one insight. If you cannot identify any insights, return an empty array like this:
+        {
+          "insights": [],
+          "metadata": {
+            "quality_score": 0.0,
+            "confidence_scores": {
+              "themes": 0.0,
+              "patterns": 0.0,
+              "sentiment": 0.0
+            }
+          }
+        }
         """
+
+        return prompt
 
     @staticmethod
     def standard_prompt(context: str) -> str:
@@ -161,8 +177,8 @@ class InsightGenerationPrompts:
         Returns:
             System message string
         """
-        return f"""
-        You are an expert insight generator. {context}
+        prompt = """
+        You are an expert insight generator. """ + context + """
 
         Analyze the provided text and generate insights that go beyond the surface level.
         For each insight, provide:
@@ -174,9 +190,9 @@ class InsightGenerationPrompts:
         6. Priority - indicate urgency/importance as "High", "Medium", or "Low"
 
         Return your analysis in the following JSON format:
-        {{
+        {
             "insights": [
-                {{
+                {
                     "topic": "Navigation Complexity",
                     "observation": "Users consistently struggle to find key features in the application interface",
                     "evidence": [
@@ -186,17 +202,17 @@ class InsightGenerationPrompts:
                     "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
                     "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
                     "priority": "High"
-                }}
+                }
             ],
-            "metadata": {{
+            "metadata": {
                 "quality_score": 0.85,
-                "confidence_scores": {{
+                "confidence_scores": {
                     "themes": 0.9,
                     "patterns": 0.85,
                     "sentiment": 0.8
-                }}
-            }}
-        }}
+                }
+            }
+        }
 
         IMPORTANT GUIDELINES:
         - AVOID REDUNDANCY: Ensure each insight covers a distinct topic with no overlap or duplication between insights
@@ -212,4 +228,19 @@ class InsightGenerationPrompts:
         - Implications should clearly explain why the insight matters to users or the business
         - Use direct quotes from the text as evidence whenever possible
         - Ensure 100% of your response is in valid JSON format
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with an "insights" array, even if you only identify one insight. If you cannot identify any insights, return an empty array like this:
+        {
+          "insights": [],
+          "metadata": {
+            "quality_score": 0.0,
+            "confidence_scores": {
+              "themes": 0.0,
+              "patterns": 0.0,
+              "sentiment": 0.0
+            }
+          }
+        }
         """
+
+        return prompt

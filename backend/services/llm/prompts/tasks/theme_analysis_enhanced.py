@@ -8,25 +8,25 @@ class ThemeAnalysisEnhancedPrompts:
     """
     Enhanced theme analysis prompt templates.
     """
-    
+
     @staticmethod
     def get_prompt(data: Dict[str, Any]) -> str:
         """
         Get enhanced theme analysis prompt.
-        
+
         Args:
             data: Request data
-            
+
         Returns:
             Prompt string
         """
         return ThemeAnalysisEnhancedPrompts.standard_prompt()
-    
+
     @staticmethod
     def standard_prompt() -> str:
         """
         Get standard enhanced theme analysis prompt.
-        
+
         Returns:
             System message string
         """
@@ -97,9 +97,16 @@ class ThemeAnalysisEnhancedPrompts:
         }
 
         IMPORTANT RULES:
-        - The entire output MUST be a single, valid JSON object starting with `{` and ending with `}`.
-        - Do NOT include any text, explanations, apologies, or markdown formatting (like ```json) before or after the JSON object.
+        - The entire output MUST be a single, valid JSON object with the structure shown above.
         - Ensure all strings within the JSON are properly escaped.
         - Adhere strictly to the specified field names and data types.
         - Provide accurate scores and representative evidence based *only* on the provided text.
+        - All numeric values must be valid JSON numbers (e.g., 0.75, not "0.75").
+        - All arrays must have proper comma separation between elements.
+        - All object properties must have proper comma separation.
+        - Ensure all JSON syntax is valid - check for missing commas, extra commas, or unbalanced brackets.
+        - Ensure all nested objects are properly closed.
+        - Pay special attention to commas in arrays and between object properties - missing commas are a common error.
+        - Make sure each array element (like statements) is properly separated by commas.
+        - Make sure each property in an object is followed by a comma, except for the last property.
         """

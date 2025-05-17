@@ -89,15 +89,12 @@ async def process_data(
 
         logger.info("Extracting additional insights")
 
-        # Report progress: Insight generation
-        if progress_callback:
-            await progress_callback("INSIGHT_GENERATION", 0.3, "Generating insights from interview data")
+        # Pass the progress_callback to extract_insights
+        insights_config = {
+            "progress_callback": progress_callback
+        }
 
-        insights = await nlp_processor.extract_insights(results, llm_service)
-
-        # Report progress: Persona formation
-        if progress_callback:
-            await progress_callback("PERSONA_FORMATION", 0.5, "Forming personas from interview data")
+        insights = await nlp_processor.extract_insights(results, llm_service, insights_config)
 
         logger.info("Returned from nlp_processor.extract_insights.")
 

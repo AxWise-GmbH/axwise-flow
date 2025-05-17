@@ -14,7 +14,7 @@ import google.genai as genai
 from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategory, Content
 from pydantic import BaseModel, Field, ValidationError
 
-from backend.utils.json.json_repair import repair_json, parse_json_safely, parse_json_array_safely
+from backend.utils.json.json_repair import repair_json, repair_enhanced_themes_json, parse_json_safely, parse_json_array_safely
 from domain.interfaces.llm_unified import ILLMService
 
 from backend.schemas import Theme
@@ -75,7 +75,7 @@ class GeminiService:
         #     config_params["top_k"] = top_k
 
         # For tasks that might generate large responses, ensure we use the maximum possible tokens
-        if task in ["transcript_structuring", "theme_analysis"]:
+        if task in ["transcript_structuring", "theme_analysis", "theme_analysis_enhanced"]:
             config_params["max_output_tokens"] = 131072  # Doubled from 65536 to ensure complete responses
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
@@ -201,17 +201,24 @@ class GeminiService:
 
             # Add response_mime_type for JSON tasks
             if "response_mime_type" in config_dict:
-                response_mime_type = config_dict["response_mime_type"]
-                logger.info(f"Using response_mime_type={response_mime_type} from config")
+                config_kwargs = {
+                    "temperature": 0.0,
+                    "max_output_tokens": 65536,
+                    "top_k": 1,
+                    "top_p": 0.95,
+                    "safety_settings": safety_settings
+                }
+
+                if "response_mime_type" in config_dict:
+                    response_mime_type = config_dict["response_mime_type"]
+                    logger.info(f"Using response_mime_type={response_mime_type} from config")
+                    config_kwargs["response_mime_type"] = response_mime_type
+
+                # Note: We're not using response_schema directly due to compatibility issues
+                # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
+
                 # Create a new config with the response_mime_type included
-                config = types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=65536,
-                    top_k=1,
-                    top_p=0.95,
-                    safety_settings=safety_settings,
-                    response_mime_type=response_mime_type
-                )
+                config = types.GenerateContentConfig(**config_kwargs)
 
             # Make the API call with the correct config parameter
             logger.info(f"Making API call with config={config}")
@@ -346,17 +353,24 @@ class GeminiService:
 
                 # Add response_mime_type for JSON tasks
                 if "response_mime_type" in config_dict:
-                    response_mime_type = config_dict["response_mime_type"]
-                    logger.info(f"Using response_mime_type={response_mime_type} from config for streaming")
+                    config_kwargs = {
+                        "temperature": 0.0,
+                        "max_output_tokens": 65536,
+                        "top_k": 1,
+                        "top_p": 0.95,
+                        "safety_settings": safety_settings
+                    }
+
+                    if "response_mime_type" in config_dict:
+                        response_mime_type = config_dict["response_mime_type"]
+                        logger.info(f"Using response_mime_type={response_mime_type} from config for streaming")
+                        config_kwargs["response_mime_type"] = response_mime_type
+
+                    # Note: We're not using response_schema directly due to compatibility issues
+                    # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
+
                     # Create a new config with the response_mime_type included
-                    config = types.GenerateContentConfig(
-                        temperature=0.0,
-                        max_output_tokens=65536,
-                        top_k=1,
-                        top_p=0.95,
-                        safety_settings=safety_settings,
-                        response_mime_type=response_mime_type
-                    )
+                    config = types.GenerateContentConfig(**config_kwargs)
 
                 # Make the API call with the correct config parameter
                 logger.info(f"Making streaming API call with config={config}")
@@ -456,8 +470,11 @@ class GeminiService:
         # The `GenerationConfig` object handles temperature, max_tokens, system_instruction, safety_settings, etc.
         # All these parameters are bundled into a single config object passed to generate_content().
 
+        # Import Pydantic models for response schemas
+        from backend.schemas import EnhancedThemeResponse, Theme, SentimentDistribution, HierarchicalCode, ReliabilityMetrics, ThemeRelationship
+
         # Define JSON tasks
-        json_tasks = ["transcript_structuring", "persona_formation", "theme_analysis", "insight_generation", "pattern_analysis", "pattern_recognition"]
+        json_tasks = ["transcript_structuring", "persona_formation", "theme_analysis", "theme_analysis_enhanced", "insight_generation", "pattern_analysis", "pattern_recognition"]
         is_json_task = task in json_tasks
 
         # Get base generation config
@@ -487,13 +504,16 @@ class GeminiService:
         response_schema = data.get("response_schema", None)
 
         # Check if we should enforce JSON output
-        if enforce_json or is_json_task or task == "pattern_recognition":
+        if enforce_json or is_json_task or task == "pattern_recognition" or task == "theme_analysis_enhanced":
             # Add response_mime_type to config_params to enforce JSON output
             config_params["response_mime_type"] = "application/json"
             response_mime_type = "application/json"
 
             # Set temperature to 0 for deterministic output when generating structured data
             config_params["temperature"] = 0.0
+
+            # Note: We're not using response_schema directly due to compatibility issues
+            # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
 
             logger.info(f"Enforcing JSON output for task: {task}")
 
@@ -604,7 +624,12 @@ class GeminiService:
                 if not text_response.strip().endswith("}") and not text_response.strip().endswith("]"):
                     logger.warning(f"LLM response for task '{task}' (JSON expected) might be truncated. Attempting repair.")
                     try:
-                        text_response = repair_json(text_response)
+                        # Use specialized repair function for enhanced themes
+                        if task == "theme_analysis_enhanced":
+                            logger.info(f"Using specialized enhanced themes JSON repair function for task '{task}'")
+                            text_response = repair_enhanced_themes_json(text_response)
+                        else:
+                            text_response = repair_json(text_response)
                         logger.info(f"Successfully repaired JSON response for task '{task}'.")
                     except Exception as repair_e:
                         logger.error(f"Failed to repair JSON for task '{task}': {repair_e}. Original text: {text_response[:500]}")
@@ -632,7 +657,13 @@ class GeminiService:
                     logger.error(f"Failed to decode JSON response for task '{task}': {e}. Response: {text_response}")
                     logger.warning(f"[{task}] JSON parsing failed. Trying repair...")
                     try:
-                        repaired = repair_json(text_response)
+                        # Use specialized repair function for enhanced themes
+                        if task == "theme_analysis_enhanced":
+                            logger.info(f"[{task}] Using specialized enhanced themes JSON repair function")
+                            repaired = repair_enhanced_themes_json(text_response)
+                        else:
+                            repaired = repair_json(text_response)
+
                         result = json.loads(repaired)
                         logger.info(f"[{task}] Successfully parsed JSON after repair.")
 
@@ -672,6 +703,31 @@ class GeminiService:
                                     },
                                 },
                             }
+                        # Special handling for enhanced themes task
+                        elif task == "theme_analysis_enhanced":
+                            logger.warning(f"[{task}] Using default enhanced themes structure due to JSON parsing failure")
+                            # Return a default structure if parsing fails
+                            return {
+                                "enhanced_themes": [
+                                    {
+                                        "type": "theme",
+                                        "name": "Analysis Incomplete",
+                                        "definition": "The enhanced theme analysis could not be properly structured.",
+                                        "keywords": ["incomplete", "analysis", "error"],
+                                        "frequency": 0.5,
+                                        "sentiment": 0.0,
+                                        "statements": ["Processing completed with non-structured output."],
+                                        "codes": ["PROCESSING_ERROR"],
+                                        "reliability": 0.5,
+                                        "process": "enhanced",
+                                        "sentiment_distribution": {
+                                            "positive": 0.0,
+                                            "neutral": 1.0,
+                                            "negative": 0.0
+                                        }
+                                    }
+                                ]
+                            }
                         else:
                             # Return a structured error response instead of raising an exception
                             return {
@@ -705,7 +761,12 @@ class GeminiService:
                     except json.JSONDecodeError as e_non_json_path:
                         logger.warning(f"[{task}] JSON parsing failed in non-JSON path: {e_non_json_path}. Trying repair...")
                         try:
-                            repaired = repair_json(text_response)
+                            # Use specialized repair function for enhanced themes
+                            if task == "theme_analysis_enhanced":
+                                logger.info(f"[{task}] Using specialized enhanced themes JSON repair function in non-JSON path")
+                                repaired = repair_enhanced_themes_json(text_response)
+                            else:
+                                repaired = repair_json(text_response)
                             result = json.loads(repaired)
                             logger.info(f"[{task}] Successfully parsed JSON in non-JSON path after repair.")
 
@@ -769,17 +830,34 @@ class GeminiService:
                 else:
                     logger.warning(f"Pattern recognition returned empty patterns array")
 
-            elif task == "theme_analysis":
+            elif task == "theme_analysis" or task == "theme_analysis_enhanced":
                 # If response is a list of themes directly (not wrapped in an object)
                 if isinstance(result, list):
-                    result = {"themes": result}
+                    if task == "theme_analysis":
+                        result = {"themes": result}
+                    else:  # theme_analysis_enhanced
+                        result = {"enhanced_themes": result}
 
                 # Ensure proper themes array
-                if "themes" not in result:
+                if task == "theme_analysis" and "themes" not in result:
                     result["themes"] = []
+                elif task == "theme_analysis_enhanced" and "enhanced_themes" not in result:
+                    # Check if there's a "themes" key that should be renamed to "enhanced_themes"
+                    if "themes" in result:
+                        result["enhanced_themes"] = result["themes"]
+                        del result["themes"]
+                    else:
+                        result["enhanced_themes"] = []
+
+                # Determine which themes array to process
+                themes_to_process = []
+                if task == "theme_analysis" and "themes" in result:
+                    themes_to_process = result["themes"]
+                elif task == "theme_analysis_enhanced" and "enhanced_themes" in result:
+                    themes_to_process = result["enhanced_themes"]
 
                 # Ensure each theme has required fields
-                for theme in result["themes"]:
+                for theme in themes_to_process:
                     # Ensure required fields with default values
                     if "sentiment" not in theme:
                         theme["sentiment"] = 0.0  # neutral
@@ -841,12 +919,13 @@ class GeminiService:
 
                 # Validate themes against Pydantic model
                 validated_themes_list = []
-                if (
-                    isinstance(result, dict)
-                    and "themes" in result
-                    and isinstance(result["themes"], list)
-                ):
-                    for theme_data in result["themes"]:
+
+                # Determine which themes to validate and where to store the result
+                themes_key = "themes" if task == "theme_analysis" else "enhanced_themes"
+                themes_to_validate = result.get(themes_key, []) if isinstance(result, dict) else []
+
+                if isinstance(themes_to_validate, list):
+                    for theme_data in themes_to_validate:
                         try:
                             # Validate each theme dictionary against the Pydantic model
                             validated_theme = Theme(**theme_data)
@@ -874,7 +953,7 @@ class GeminiService:
                             # Skip this theme due to unexpected error
 
                     # Replace the original themes list with the validated list
-                    result["themes"] = validated_themes_list
+                    result[themes_key] = validated_themes_list
                     logger.info(
                         "Validated {} themes successfully for task: {}".format(
                             len(validated_themes_list), task
@@ -887,11 +966,12 @@ class GeminiService:
                     )
                 else:
                     logger.warning(
-                        "LLM response for theme_analysis was not in the expected format (dict with 'themes' list). Raw response: {}".format(
-                            result
+                        "LLM response for {} was not in the expected format (dict with '{}' list). Raw response: {}".format(
+                            task, themes_key, result
                         )
                     )
-                    result = {"themes": []}  # Return empty list if structure is wrong
+                    # Return empty list if structure is wrong
+                    result = {themes_key: []}
 
             return result
 

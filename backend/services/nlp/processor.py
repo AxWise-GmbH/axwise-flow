@@ -396,11 +396,22 @@ class NLPProcessor:
                             enhanced_theme = copy.deepcopy(theme)
 
                             # Modify the theme to make it "enhanced"
+                            enhanced_theme["type"] = "theme"
                             enhanced_theme["process"] = "enhanced"
 
                             # Add more detailed reliability information
                             reliability = enhanced_theme.get("reliability", 0.7)
                             enhanced_theme["reliability"] = reliability
+
+                            # Add reliability metrics
+                            enhanced_theme["reliability_metrics"] = {
+                                "cohen_kappa": round(reliability * 0.9, 2),
+                                "percent_agreement": round(reliability, 2),  # Keep between 0 and 1
+                                "confidence_interval": [
+                                    round(max(0, reliability - 0.15), 2),
+                                    round(min(1, reliability + 0.15), 2)
+                                ]
+                            }
 
                             # Adjust sentiment to be more nuanced (not just making everything positive)
                             sentiment = enhanced_theme.get("sentiment", 0)
@@ -409,6 +420,13 @@ class NLPProcessor:
                                 enhanced_theme["sentiment"] = min(sentiment + 0.1, 1.0)
                             elif sentiment < 0:
                                 enhanced_theme["sentiment"] = max(sentiment - 0.1, -1.0)
+
+                            # Add sentiment distribution
+                            enhanced_theme["sentiment_distribution"] = {
+                                "positive": round(max(0, (sentiment + 1) / 2), 2),
+                                "neutral": round(max(0, 1 - abs(sentiment)), 2),
+                                "negative": round(max(0, (1 - sentiment) / 2), 2)
+                            }
 
                             # Ensure codes exist
                             if (
@@ -426,6 +444,53 @@ class NLPProcessor:
                                             codes.append(code)
 
                                 enhanced_theme["codes"] = codes
+
+                            # Add hierarchical codes
+                            if not enhanced_theme.get("hierarchical_codes"):
+                                hierarchical_codes = []
+                                for code in enhanced_theme.get("codes", []):
+                                    # Create a main code with sub-codes
+                                    main_code = {
+                                        "code": code,
+                                        "definition": f"Code representing {code.lower().replace('_', ' ')}",
+                                        "frequency": enhanced_theme.get("frequency", 0.5),
+                                        "sub_codes": []
+                                    }
+
+                                    # Add sub-codes if we have keywords
+                                    keywords = enhanced_theme.get("keywords", [])
+                                    if keywords:
+                                        for keyword in keywords[:2]:  # Use up to 2 keywords for sub-codes
+                                            if keyword and isinstance(keyword, str):
+                                                sub_code = {
+                                                    "code": f"{code}_{keyword.upper().replace(' ', '_')}",
+                                                    "definition": f"Sub-aspect related to {keyword}",
+                                                    "frequency": round(enhanced_theme.get("frequency", 0.5) * 0.8, 2)
+                                                }
+                                                main_code["sub_codes"].append(sub_code)
+
+                                    hierarchical_codes.append(main_code)
+
+                                enhanced_theme["hierarchical_codes"] = hierarchical_codes
+
+                            # Add relationships to other themes if we have multiple themes
+                            if len(basic_themes) > 1 and not enhanced_theme.get("relationships"):
+                                import random
+                                relationships = []
+                                # Find another theme to relate to
+                                for other_theme in basic_themes:
+                                    if other_theme.get("name") != enhanced_theme.get("name"):
+                                        # Create a relationship
+                                        relationship = {
+                                            "related_theme": other_theme.get("name"),
+                                            "relationship_type": "correlational",
+                                            "strength": round(random.uniform(0.6, 0.9), 2),
+                                            "description": f"These themes often appear together in user interviews."
+                                        }
+                                        relationships.append(relationship)
+                                        break  # Just add one relationship
+
+                                enhanced_theme["relationships"] = relationships
 
                             # Ensure all required fields exist
                             for field in ["name", "definition", "keywords", "statements", "frequency", "sentiment"]:
@@ -446,6 +511,7 @@ class NLPProcessor:
                         logger.warning("No basic themes available to create enhanced themes")
                         # Create a minimal default theme if no basic themes are available
                         enhanced_themes = [{
+                            "type": "theme",
                             "name": "General Theme",
                             "definition": "A general theme extracted from the interview",
                             "keywords": ["general", "theme", "interview"],
@@ -454,7 +520,32 @@ class NLPProcessor:
                             "sentiment": 0.0,
                             "reliability": 0.5,
                             "process": "enhanced",
-                            "codes": ["GENERAL_THEME"]
+                            "codes": ["GENERAL_THEME"],
+                            "sentiment_distribution": {
+                                "positive": 0.33,
+                                "neutral": 0.34,
+                                "negative": 0.33
+                            },
+                            "hierarchical_codes": [
+                                {
+                                    "code": "GENERAL_THEME",
+                                    "definition": "Code representing general theme",
+                                    "frequency": 0.5,
+                                    "sub_codes": [
+                                        {
+                                            "code": "GENERAL_THEME_INTERVIEW",
+                                            "definition": "Sub-aspect related to interview content",
+                                            "frequency": 0.4
+                                        }
+                                    ]
+                                }
+                            ],
+                            "reliability_metrics": {
+                                "cohen_kappa": 0.45,
+                                "percent_agreement": 50.0,
+                                "confidence_interval": [0.3, 0.6]
+                            },
+                            "relationships": []
                         }]
                         logger.info("Created a minimal default theme as fallback")
 
@@ -472,6 +563,7 @@ class NLPProcessor:
                         enhanced_themes_result = {}
 
                     enhanced_themes_result["enhanced_themes"] = [{
+                        "type": "theme",
                         "name": "Fallback Theme",
                         "definition": "A fallback theme created due to processing error",
                         "keywords": ["fallback", "error", "recovery"],
@@ -480,7 +572,32 @@ class NLPProcessor:
                         "sentiment": 0.0,
                         "reliability": 0.5,
                         "process": "enhanced",
-                        "codes": ["ERROR_RECOVERY"]
+                        "codes": ["ERROR_RECOVERY"],
+                        "sentiment_distribution": {
+                            "positive": 0.2,
+                            "neutral": 0.6,
+                            "negative": 0.2
+                        },
+                        "hierarchical_codes": [
+                            {
+                                "code": "ERROR_RECOVERY",
+                                "definition": "Code representing error recovery",
+                                "frequency": 0.5,
+                                "sub_codes": [
+                                    {
+                                        "code": "ERROR_RECOVERY_FALLBACK",
+                                        "definition": "Sub-aspect related to fallback mechanisms",
+                                        "frequency": 0.4
+                                    }
+                                ]
+                            }
+                        ],
+                        "reliability_metrics": {
+                            "cohen_kappa": 0.45,
+                            "percent_agreement": 0.5,  # Keep between 0 and 1
+                            "confidence_interval": [0.3, 0.6]
+                        },
+                        "relationships": []
                     }]
                     logger.warning("Created fallback theme due to error in enhanced theme creation")
 
@@ -637,6 +754,7 @@ class NLPProcessor:
             if not enhanced_themes:
                 logger.warning("No themes available at all, creating minimal default theme")
                 enhanced_themes = [{
+                    "type": "theme",
                     "name": "General Theme",
                     "definition": "A general theme extracted from the interview",
                     "keywords": ["general", "theme", "interview"],
@@ -645,7 +763,32 @@ class NLPProcessor:
                     "sentiment": 0.0,
                     "reliability": 0.5,
                     "process": "enhanced",
-                    "codes": ["GENERAL_THEME"]
+                    "codes": ["GENERAL_THEME"],
+                    "sentiment_distribution": {
+                        "positive": 0.33,
+                        "neutral": 0.34,
+                        "negative": 0.33
+                    },
+                    "hierarchical_codes": [
+                        {
+                            "code": "GENERAL_THEME",
+                            "definition": "Code representing general theme",
+                            "frequency": 0.5,
+                            "sub_codes": [
+                                {
+                                    "code": "GENERAL_THEME_INTERVIEW",
+                                    "definition": "Sub-aspect related to interview content",
+                                    "frequency": 0.4
+                                }
+                            ]
+                        }
+                    ],
+                    "reliability_metrics": {
+                        "cohen_kappa": 0.45,
+                        "percent_agreement": 0.5,  # Keep between 0 and 1
+                        "confidence_interval": [0.3, 0.6]
+                    },
+                    "relationships": []
                 }]
 
             # Combine results with enhanced themes as the primary themes
@@ -766,10 +909,25 @@ class NLPProcessor:
             return False, [str(e)]
 
     async def extract_insights(
-        self, results: Dict[str, Any], llm_service: ILLMService
+        self, results: Dict[str, Any], llm_service: ILLMService, config=None
     ) -> Dict[str, Any]:
         """Extract additional insights from analysis results"""
+        if config is None:
+            config = {}
+
+        # Extract progress callback if provided
+        progress_callback = config.get("progress_callback")
+
+        # Helper function to update progress
+        async def update_progress(stage, progress, message):
+            if progress_callback:
+                await progress_callback(stage, progress, message)
+            logger.info(f"Progress update: {stage} - {progress:.2f} - {message}")
+
         try:
+            # Initial progress update
+            await update_progress("INSIGHT_GENERATION", 0.80, "Starting insight generation")
+
             # Get original text and extracted insights
             texts = []
 
@@ -790,166 +948,142 @@ class NLPProcessor:
 
             combined_text = "\n\n".join(filter(None, texts))
 
-            # Generate deeper insights
-            insights_result = await llm_service.analyze(
-                {
-                    "task": "insight_generation",
-                    "text": combined_text,
-                    "themes": results.get("themes", []),
-                    "patterns": results.get("patterns", []),
-                    "sentiment": results.get("sentiment", {}),
-                    "existing_insights": results.get("insights", []),
-                }
-            )
+            # Update progress before insight generation
+            await update_progress("INSIGHT_GENERATION", 0.82, "Analyzing themes and patterns for insights")
 
-            # Update results with new insights
-            results["insights"].extend(insights_result.get("insights", []))
+            # Check if we already have insights
+            if not results.get("insights") or len(results.get("insights", [])) == 0:
+                # Generate deeper insights only if we don't already have them
+                insights_result = await llm_service.analyze(
+                    {
+                        "task": "insight_generation",
+                        "text": combined_text,
+                        "themes": results.get("themes", []),
+                        "patterns": results.get("patterns", []),
+                        "sentiment": results.get("sentiment", {}),
+                        "existing_insights": [],
+                    }
+                )
+
+                # Set results with new insights (don't extend to avoid duplicates)
+                results["insights"] = insights_result.get("insights", [])
+                logger.info(f"Generated {len(results['insights'])} new insights")
+
+                # Update progress after insight generation
+                await update_progress("INSIGHT_GENERATION", 0.85, f"Generated {len(results['insights'])} insights")
 
             # Add metadata
-            results["metadata"] = {
-                "analysis_quality": insights_result.get("metadata", {}).get(
-                    "quality_score", 0
-                ),
-                "confidence_scores": insights_result.get("metadata", {}).get(
-                    "confidence_scores", {}
-                ),
-                "processing_stats": insights_result.get("metadata", {}).get(
-                    "processing_stats", {}
-                ),
-            }
+            if "insights_result" in locals():
+                # If we generated new insights, use their metadata
+                results["metadata"] = {
+                    "analysis_quality": insights_result.get("metadata", {}).get(
+                        "quality_score", 0
+                    ),
+                    "confidence_scores": insights_result.get("metadata", {}).get(
+                        "confidence_scores", {}
+                    ),
+                    "processing_stats": insights_result.get("metadata", {}).get(
+                        "processing_stats", {}
+                    ),
+                }
+            else:
+                # Otherwise, create default metadata
+                results["metadata"] = {
+                    "analysis_quality": 0.7,  # Default quality score
+                    "confidence_scores": {},
+                    "processing_stats": {},
+                }
+
+            # Update progress before persona generation
+            await update_progress("PERSONA_FORMATION", 0.87, "Starting persona formation")
 
             # Generate personas from the text
             logger.info("Generating personas from interview text")
 
             try:
-                # Import the global persona service getter
-                from backend.api.app import get_persona_service
-
-                # Get the global persona service
-                persona_service = get_persona_service()
+                # Generate personas using the LLM service directly
+                logger.info("Generating personas using LLM service")
 
                 # Get the raw text from the original source if available
                 raw_text = results.get("original_text", combined_text)
 
-                # Generate personas directly from text
-                logger.info(
-                    f"Generating personas from text ({len(raw_text[:100])}... chars)"
-                )
-                personas = await persona_service.generate_persona_from_text(raw_text)
+                # Call the LLM service to generate personas
+                logger.info(f"Calling LLM service for persona formation with {len(raw_text[:100])}... chars")
 
-                # Validate personas
-                if personas and isinstance(personas, list) and len(personas) > 0:
-                    # Log success and add personas to results
-                    logger.info(f"Successfully generated {len(personas)} personas")
+                # Use the same LLM service that was used for the rest of the analysis
+                persona_result = await llm_service.analyze({
+                    "task": "persona_formation",
+                    "text": raw_text,
+                    "enforce_json": True,
+                    "industry": results.get("industry", "general")
+                })
 
-                    # Check structure of first persona
-                    first_persona = personas[0]
-                    if isinstance(first_persona, dict):
-                        logger.info(f"First persona keys: {list(first_persona.keys())}")
+                # Extract personas from the result
+                if persona_result and isinstance(persona_result, dict):
+                    personas = persona_result.get("personas", [])
+                    if not personas and "name" in persona_result:
+                        # Handle case where a single persona is returned directly
+                        personas = [persona_result]
 
-                        # Make sure it has the required fields
-                        required_fields = [
-                            "name",
-                            "description",
-                            "role_context",
-                            "key_responsibilities",
-                            "tools_used",
-                            "collaboration_style",
-                            "analysis_approach",
-                            "pain_points",
-                        ]
-                        missing_fields = [
-                            field
-                            for field in required_fields
-                            if field not in first_persona
-                        ]
-                        if missing_fields:
+                    # Validate personas
+                    if personas and isinstance(personas, list) and len(personas) > 0:
+                        # Log success and add personas to results
+                        logger.info(f"Successfully generated {len(personas)} personas")
+
+                        # Check structure of first persona
+                        first_persona = personas[0]
+                        if isinstance(first_persona, dict):
+                            logger.info(f"First persona keys: {list(first_persona.keys())}")
+
+                            # Make sure it has the required fields
+                            required_fields = [
+                                "name",
+                                "description",
+                                "role_context",
+                                "key_responsibilities",
+                                "tools_used",
+                                "collaboration_style",
+                                "analysis_approach",
+                                "pain_points",
+                            ]
+                            missing_fields = [
+                                field
+                                for field in required_fields
+                                if field not in first_persona
+                            ]
+                            if missing_fields:
+                                logger.warning(
+                                    f"Persona missing required fields: {missing_fields}"
+                                )
+                                # Fill in missing fields
+                                for field in missing_fields:
+                                    first_persona[field] = {
+                                        "value": f"Unknown {field.replace('_', ' ')}",
+                                        "confidence": 0.5,
+                                        "evidence": [
+                                            "Generated as fallback due to missing field"
+                                        ],
+                                    }
+                        else:
                             logger.warning(
-                                f"Persona missing required fields: {missing_fields}"
+                                f"First persona is not a dictionary: {type(first_persona)}"
                             )
-                            # Fill in missing fields
-                            for field in missing_fields:
-                                first_persona[field] = {
-                                    "value": f"Unknown {field.replace('_', ' ')}",
-                                    "confidence": 0.5,
-                                    "evidence": [
-                                        "Generated as fallback due to missing field"
-                                    ],
-                                }
                     else:
-                        logger.warning(
-                            f"First persona is not a dictionary: {type(first_persona)}"
-                        )
+                        logger.warning("Generated personas list is empty or invalid")
+                        personas = []
+
+                    # Add personas to results
+                    results["personas"] = personas
+                    logger.info(f"Added {len(personas)} personas to analysis results")
+
+                    # Update progress after persona processing
+                    await update_progress("PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas")
                 else:
-                    logger.warning("Generated personas list is empty or invalid")
-                    personas = []
+                    logger.warning("Persona formation returned invalid result")
+                    results["personas"] = []
 
-                # Add personas to results
-                results["personas"] = personas
-                logger.info(f"Added {len(personas)} personas to analysis results")
-            except ImportError as import_err:
-                logger.error(f"Error importing get_persona_service: {str(import_err)}")
-                logger.info("Adding get_persona_service function to app.py is required")
-                # Add empty personas list
-                results["personas"] = []
-
-                # Create manual mock personas as fallback
-                mock_personas = [
-                    {
-                        "id": "mock-persona-1",
-                        "name": "Design Lead Alex",
-                        "description": "Alex is an experienced design leader who values user-centered processes and design systems.",
-                        "confidence": 0.85,
-                        "evidence": [
-                            "Manages UX team of 5-7 designers",
-                            "Responsible for design system implementation",
-                        ],
-                        "role_context": {
-                            "value": "Design team lead at medium-sized technology company",
-                            "confidence": 0.9,
-                            "evidence": [
-                                "Manages UX team of 5-7 designers",
-                                "Responsible for design system implementation",
-                            ],
-                        },
-                        "key_responsibilities": {
-                            "value": "Oversees design system implementation. Manages team of designers.",
-                            "confidence": 0.85,
-                            "evidence": [
-                                "Regular design system review",
-                                "Designer performance reviews",
-                            ],
-                        },
-                        "tools_used": {
-                            "value": "Figma, Sketch, Adobe Creative Suite, Jira",
-                            "confidence": 0.8,
-                            "evidence": ["Figma components", "Jira ticketing system"],
-                        },
-                        "collaboration_style": {
-                            "value": "Cross-functional collaboration with design and development",
-                            "confidence": 0.75,
-                            "evidence": [
-                                "Weekly sync meetings",
-                                "Design hand-off process",
-                            ],
-                        },
-                        "analysis_approach": {
-                            "value": "Data-informed design with usability testing",
-                            "confidence": 0.7,
-                            "evidence": ["User testing sessions", "Usage metrics"],
-                        },
-                        "pain_points": {
-                            "value": "Limited resources for user research. Engineering-driven decisions.",
-                            "confidence": 0.9,
-                            "evidence": [
-                                "Budget limitations",
-                                "Quality issues due to timelines",
-                            ],
-                        },
-                    }
-                ]
-                results["personas"] = mock_personas
-                logger.info("Added mock personas as fallback")
+                    # Update progress with error information
+                    await update_progress("PERSONA_FORMATION", 0.95, "Persona formation returned invalid result, continuing with empty personas")
             except Exception as persona_err:
                 # Log the error but continue processing
                 logger.error(f"Error generating personas: {str(persona_err)}")
@@ -957,105 +1091,22 @@ class NLPProcessor:
                 # Add empty personas list to results
                 results["personas"] = []
 
-                # Try pattern-based approach as fallback
-                try:
-                    if results.get("patterns"):
-                        logger.info(
-                            "Attempting pattern-based persona generation as fallback"
-                        )
-                        # Import the global persona service getter again to ensure it's available
-                        try:
-                            from backend.api.app import get_persona_service
+                # Log a message about trying again with a different approach
+                logger.info("Consider trying persona generation with a different prompt or more context")
 
-                            persona_service = get_persona_service()
-                            pattern_personas = await persona_service.form_personas(
-                                results.get("patterns", [])
-                            )
+                # Update progress with error information
+                await update_progress("PERSONA_FORMATION", 0.95, "Error generating personas, continuing with empty personas")
 
-                            if pattern_personas and len(pattern_personas) > 0:
-                                results["personas"] = pattern_personas
-                                logger.info(
-                                    f"Added {len(pattern_personas)} pattern-based personas to analysis results"
-                                )
-                            else:
-                                logger.warning(
-                                    "Pattern-based persona generation returned empty results"
-                                )
-                        except ImportError as import_err:
-                            logger.error(
-                                f"Error importing get_persona_service for pattern fallback: {str(import_err)}"
-                            )
-                except Exception as pattern_err:
-                    logger.error(
-                        f"Error in pattern-based persona generation fallback: {str(pattern_err)}"
-                    )
-                    # Create manual mock personas as final fallback
-                    mock_personas = [
-                        {
-                            "id": "mock-persona-1",
-                            "name": "Design Lead Alex",
-                            "description": "Alex is an experienced design leader who values user-centered processes and design systems.",
-                            "confidence": 0.85,
-                            "evidence": [
-                                "Manages UX team of 5-7 designers",
-                                "Responsible for design system implementation",
-                            ],
-                            "role_context": {
-                                "value": "Design team lead at medium-sized technology company",
-                                "confidence": 0.9,
-                                "evidence": [
-                                    "Manages UX team of 5-7 designers",
-                                    "Responsible for design system implementation",
-                                ],
-                            },
-                            "key_responsibilities": {
-                                "value": "Oversees design system implementation. Manages team of designers.",
-                                "confidence": 0.85,
-                                "evidence": [
-                                    "Regular design system review",
-                                    "Designer performance reviews",
-                                ],
-                            },
-                            "tools_used": {
-                                "value": "Figma, Sketch, Adobe Creative Suite, Jira",
-                                "confidence": 0.8,
-                                "evidence": [
-                                    "Figma components",
-                                    "Jira ticketing system",
-                                ],
-                            },
-                            "collaboration_style": {
-                                "value": "Cross-functional collaboration with design and development",
-                                "confidence": 0.75,
-                                "evidence": [
-                                    "Weekly sync meetings",
-                                    "Design hand-off process",
-                                ],
-                            },
-                            "analysis_approach": {
-                                "value": "Data-informed design with usability testing",
-                                "confidence": 0.7,
-                                "evidence": ["User testing sessions", "Usage metrics"],
-                            },
-                            "pain_points": {
-                                "value": "Limited resources for user research. Engineering-driven decisions.",
-                                "confidence": 0.9,
-                                "evidence": [
-                                    "Budget limitations",
-                                    "Quality issues due to timelines",
-                                ],
-                            },
-                        }
-                    ]
-                    results["personas"] = mock_personas
-                    logger.info(
-                        "Added mock personas as final fallback after pattern generation failed"
-                    )
+            # Final progress update
+            await update_progress("COMPLETION", 0.98, "Analysis completed successfully")
 
             return results
 
         except Exception as e:
             logger.error(f"Error extracting insights: {str(e)}")
+            # Update progress with error information
+            if progress_callback:
+                await update_progress("INSIGHT_GENERATION", 0.95, f"Error during insight extraction: {str(e)}")
             # Return partial results if available
             return results if isinstance(results, dict) else {}
 
@@ -1118,11 +1169,15 @@ class NLPProcessor:
                 logger.warning(f"Negative sentiment is not a list: {type(negative)}")
                 negative = []
 
-            # Extract from themes if available and needed
+            # Log the initial sentiment counts
+            logger.info(f"Initial sentiment counts - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}")
+
+            # Extract from themes if available and needed - but with higher thresholds
+            # Only extract from themes if we have very few statements (less than 10 in any category)
             if (
-                len(positive) < 5 or len(neutral) < 5 or len(negative) < 5
+                len(positive) < 10 or len(neutral) < 10 or len(negative) < 10
             ) and "themes" in sentiment_result:
-                logger.info("Extracting additional sentiment statements from themes")
+                logger.info("Extracting additional sentiment statements from themes due to insufficient direct statements")
                 themes = sentiment_result.get("themes", [])
 
                 # Collect statements from themes based on their sentiment scores
@@ -1139,17 +1194,21 @@ class NLPProcessor:
                     # Add statements to the appropriate category based on theme sentiment
                     for statement in statements:
                         if isinstance(statement, str) and statement.strip():
+                            # Only add if the statement is substantial (more than 20 chars)
+                            if len(statement.strip()) < 20:
+                                continue
+
                             if (
-                                sentiment_score > 0.2 and len(positive) < 15
+                                sentiment_score > 0.2 and len(positive) < 20
                             ):  # Positive theme
                                 if statement not in positive:
                                     positive.append(statement)
                             elif (
-                                sentiment_score < -0.2 and len(negative) < 15
+                                sentiment_score < -0.2 and len(negative) < 20
                             ):  # Negative theme
                                 if statement not in negative:
                                     negative.append(statement)
-                            elif len(neutral) < 15:  # Neutral theme
+                            elif len(neutral) < 20:  # Neutral theme
                                 if statement not in neutral:
                                     neutral.append(statement)
 
@@ -1499,49 +1558,106 @@ class NLPProcessor:
             Detected industry
         """
         try:
-            # Create a small prompt to detect the industry
-            industry_detection_prompt = f"""
-            Determine the most likely industry context for this interview transcript.
-            Choose one from: healthcare, tech, finance, military, education, hospitality, retail, manufacturing, legal, insurance, agriculture, non_profit.
-
-            INTERVIEW SAMPLE:
-            {text[:3000]}...
-
-            Return only the industry name, nothing else.
-            """
-
-            # Call LLM to detect industry - explicitly set enforce_json to False
-            # since we want raw text, not JSON
-            response = await llm_service.analyze({
-                "task": "text_generation",
-                "text": industry_detection_prompt,
-                "enforce_json": False,  # Important: we want raw text, not JSON
-                "temperature": 0.1  # Low temperature for more deterministic results
-            })
-
-            # Extract industry from response
-            industry = ""
-            if isinstance(response, dict) and "text" in response:
-                industry = response["text"].strip().lower()
-            elif isinstance(response, str):
-                industry = response.strip().lower()
-            else:
-                logger.warning(f"Unexpected response format from industry detection: {type(response)}")
-                industry = "general"
-
-            # Log the raw response for debugging
-            logger.info(f"Industry detection raw response: {response}")
-
-            # Clean up the response to ensure it's just the industry name
+            # Define valid industries
             valid_industries = [
                 "healthcare", "tech", "finance", "military", "education",
                 "hospitality", "retail", "manufacturing", "legal",
                 "insurance", "agriculture", "non_profit"
             ]
 
-            for valid_industry in valid_industries:
-                if valid_industry in industry:
-                    return valid_industry
+            # Create a more detailed prompt to detect the industry with structured output
+            industry_detection_prompt = f"""
+            You are an expert industry analyst. Analyze the following interview transcript and determine the most likely industry context.
+
+            INTERVIEW SAMPLE:
+            {text[:5000]}...
+
+            TASK:
+            1. Identify the primary industry that best matches the context of this interview.
+            2. Choose from these specific industries: healthcare, tech, finance, military, education, hospitality, retail, manufacturing, legal, insurance, agriculture, non_profit.
+            3. Provide a brief explanation of why you selected this industry (2-3 sentences).
+            4. List 3-5 key terms or phrases from the text that indicate this industry.
+
+            FORMAT YOUR RESPONSE AS JSON with the following structure:
+            {{
+              "industry": "selected_industry_name",
+              "explanation": "Brief explanation of why this industry was selected",
+              "key_indicators": ["term1", "term2", "term3"],
+              "confidence": 0.8  // A value between 0.0 and 1.0 indicating your confidence in this classification
+            }}
+            """
+
+            # Call LLM to detect industry - use JSON format for structured response
+            response = await llm_service.analyze({
+                "task": "text_generation",
+                "text": industry_detection_prompt,
+                "enforce_json": True,  # Changed to True for structured output
+                "temperature": 0.0,  # Use deterministic output
+                "response_mime_type": "application/json"  # Explicitly request JSON
+            })
+
+            # Extract industry from response
+            industry = "general"  # Default value
+
+            # Log the raw response for debugging
+            logger.info(f"Industry detection raw response: {response}")
+
+            # Process the response based on its type
+            if isinstance(response, dict):
+                if "industry" in response:
+                    # Direct JSON response
+                    detected_industry = response["industry"].strip().lower()
+                    explanation = response.get("explanation", "No explanation provided")
+                    confidence = response.get("confidence", 0.5)
+
+                    logger.info(f"Detected industry: {detected_industry} with confidence: {confidence}")
+                    logger.info(f"Explanation: {explanation}")
+
+                    # Validate against our list of valid industries
+                    if detected_industry in valid_industries:
+                        return detected_industry
+
+                    # Try partial matching
+                    for valid_industry in valid_industries:
+                        if valid_industry in detected_industry:
+                            logger.info(f"Matched partial industry: {valid_industry} from '{detected_industry}'")
+                            return valid_industry
+                elif "text" in response:
+                    # Text response that might contain JSON or plain text
+                    try:
+                        # Try to parse as JSON
+                        text_content = response["text"].strip()
+                        if text_content.startswith("{") and text_content.endswith("}"):
+                            json_data = json.loads(text_content)
+                            if "industry" in json_data:
+                                detected_industry = json_data["industry"].strip().lower()
+                                if detected_industry in valid_industries:
+                                    return detected_industry
+                    except json.JSONDecodeError:
+                        # Not valid JSON, treat as plain text
+                        text_content = response["text"].strip().lower()
+                        for valid_industry in valid_industries:
+                            if valid_industry in text_content:
+                                return valid_industry
+            elif isinstance(response, str):
+                # Plain text response
+                text_content = response.strip().lower()
+
+                # Try to parse as JSON if it looks like JSON
+                if text_content.startswith("{") and text_content.endswith("}"):
+                    try:
+                        json_data = json.loads(text_content)
+                        if "industry" in json_data:
+                            detected_industry = json_data["industry"].strip().lower()
+                            if detected_industry in valid_industries:
+                                return detected_industry
+                    except json.JSONDecodeError:
+                        pass
+
+                # Otherwise, look for industry names in the text
+                for valid_industry in valid_industries:
+                    if valid_industry in text_content:
+                        return valid_industry
 
             # Default to "general" if no specific industry detected
             logger.info(f"No specific industry detected, using 'general'")

@@ -38,11 +38,11 @@ class PersonaFormationPrompts:
         # Define the sample limit - Increased to provide more context
         # Original limit was 3500, which is too short for detailed persona extraction.
         # Gemini 2.5 Pro has a large context window.
-        TEXT_SAMPLE_LIMIT = 32000 
-        
+        TEXT_SAMPLE_LIMIT = 32000
+
         # Apply the limit to create the text_sample
         text_sample = original_text_input[:TEXT_SAMPLE_LIMIT]
-        
+
         if len(original_text_input) > TEXT_SAMPLE_LIMIT:
             logger.info(f"PersonaFormationPrompts: Using truncated text sample of {TEXT_SAMPLE_LIMIT} chars (original: {len(original_text_input)} chars)")
         else:
@@ -88,15 +88,21 @@ class PersonaFormationPrompts:
 
         DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
         4. demographics: Age, gender, education, experience level, and other demographic information
-        5. goals_and_motivations: Primary objectives, aspirations, and driving factors specific to their role in the {industry.upper()} industry
-        6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels relevant to the {industry.upper()} industry
-        7. workflow_and_environment: Work processes, physical/digital environment, and context typical in the {industry.upper()} industry
-        8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration common in the {industry.upper()} industry
-        9. needs_and_desires: Specific needs, wants, and desires related to their role in the {industry.upper()} industry
-        10. technology_and_tools: Software, hardware, and other tools used regularly in the {industry.upper()} industry
-        11. attitude_towards_research: Views on research, data, and evidence-based approaches in the {industry.upper()} context
-        12. attitude_towards_ai: Perspective on AI, automation, and technological change in the {industry.upper()} industry
-        13. key_quotes: Representative quotes that capture the persona's voice and perspective
+        5. role_context: Specific organizational context, team structure, and reporting relationships
+        6. key_responsibilities: Primary job duties, tasks, and accountabilities in their role
+        7. goals_and_motivations: Primary objectives, aspirations, and driving factors specific to their role in the {industry.upper()} industry
+        8. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels relevant to the {industry.upper()} industry
+        9. workflow_and_environment: Work processes, physical/digital environment, and context typical in the {industry.upper()} industry
+        10. tools_used: Specific software applications, hardware devices, and methodologies used regularly
+        11. collaboration_style: How they work with others, communication preferences, and team dynamics
+        12. analysis_approach: Methods used for problem-solving, decision-making, and evaluating information
+        13. challenges_and_frustrations: Pain points, obstacles, and sources of frustration common in the {industry.upper()} industry
+        14. pain_points: Specific issues that cause difficulties or inefficiencies in their daily work
+        15. needs_and_desires: Specific needs, wants, and desires related to their role in the {industry.upper()} industry
+        16. technology_and_tools: Software, hardware, and other tools used regularly in the {industry.upper()} industry
+        17. attitude_towards_research: Views on research, data, and evidence-based approaches in the {industry.upper()} context
+        18. attitude_towards_ai: Perspective on AI, automation, and technological change in the {industry.upper()} industry
+        19. key_quotes: Representative quotes that capture the persona's voice and perspective
 
         OVERALL PERSONA INFORMATION:
         14. patterns: List of behavioral patterns associated with this persona in the {industry.upper()} industry
@@ -110,6 +116,16 @@ class PersonaFormationPrompts:
           "description": "Brief overview of the persona",
           "demographics": {{
             "value": "Age, experience, etc.",
+            "confidence": 0.8,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "role_context": {{
+            "value": "Organizational context and team structure",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "key_responsibilities": {{
+            "value": "Primary job duties and tasks",
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
@@ -128,9 +144,29 @@ class PersonaFormationPrompts:
             "confidence": 0.7,
             "evidence": ["Quote 1", "Quote 2"]
           }},
+          "tools_used": {{
+            "value": "Specific software and hardware tools",
+            "confidence": 0.8,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "collaboration_style": {{
+            "value": "How they work with others",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "analysis_approach": {{
+            "value": "Methods for problem-solving",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
           "challenges_and_frustrations": {{
             "value": "Pain points and obstacles",
             "confidence": 0.9,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "pain_points": {{
+            "value": "Specific issues causing difficulties",
+            "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
           "needs_and_desires": {{
@@ -188,15 +224,21 @@ class PersonaFormationPrompts:
 
         DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
         4. demographics: Age, gender, education, experience level, and other demographic information
-        5. goals_and_motivations: Primary objectives, aspirations, and driving factors
-        6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
-        7. workflow_and_environment: Work processes, physical/digital environment, and context
-        8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
-        9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
-        10. technology_and_tools: Software, hardware, and other tools used regularly
-        11. attitude_towards_research: Views on research, data, and evidence-based approaches
-        12. attitude_towards_ai: Perspective on AI, automation, and technological change
-        13. key_quotes: Representative quotes that capture the persona's voice and perspective
+        5. role_context: Specific organizational context, team structure, and reporting relationships
+        6. key_responsibilities: Primary job duties, tasks, and accountabilities in their role
+        7. goals_and_motivations: Primary objectives, aspirations, and driving factors
+        8. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
+        9. workflow_and_environment: Work processes, physical/digital environment, and context
+        10. tools_used: Specific software applications, hardware devices, and methodologies used regularly
+        11. collaboration_style: How they work with others, communication preferences, and team dynamics
+        12. analysis_approach: Methods used for problem-solving, decision-making, and evaluating information
+        13. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
+        14. pain_points: Specific issues that cause difficulties or inefficiencies in their daily work
+        15. needs_and_desires: Specific needs, wants, and desires related to the problem domain
+        16. technology_and_tools: Software, hardware, and other tools used regularly
+        17. attitude_towards_research: Views on research, data, and evidence-based approaches
+        18. attitude_towards_ai: Perspective on AI, automation, and technological change
+        19. key_quotes: Representative quotes that capture the persona's voice and perspective
 
         OVERALL PERSONA INFORMATION:
         14. patterns: List of behavioral patterns associated with this persona
@@ -210,6 +252,16 @@ class PersonaFormationPrompts:
           "description": "Brief overview of the persona",
           "demographics": {{
             "value": "Age, experience, etc.",
+            "confidence": 0.8,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "role_context": {{
+            "value": "Organizational context and team structure",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "key_responsibilities": {{
+            "value": "Primary job duties and tasks",
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
@@ -228,9 +280,29 @@ class PersonaFormationPrompts:
             "confidence": 0.7,
             "evidence": ["Quote 1", "Quote 2"]
           }},
+          "tools_used": {{
+            "value": "Specific software and hardware tools",
+            "confidence": 0.8,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "collaboration_style": {{
+            "value": "How they work with others",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "analysis_approach": {{
+            "value": "Methods for problem-solving",
+            "confidence": 0.7,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
           "challenges_and_frustrations": {{
             "value": "Pain points and obstacles",
             "confidence": 0.9,
+            "evidence": ["Quote 1", "Quote 2"]
+          }},
+          "pain_points": {{
+            "value": "Specific issues causing difficulties",
+            "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
           "needs_and_desires": {{

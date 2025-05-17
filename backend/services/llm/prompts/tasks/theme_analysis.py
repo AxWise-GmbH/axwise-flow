@@ -74,19 +74,26 @@ class ThemeAnalysisPrompts:
         8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
         Format your response as a JSON object with this structure:
-        [
-          {{
-            "name": "Theme name - be HIGHLY specific and concrete, not generic",
-            "frequency": 0.XX, (decimal between 0-1 representing prevalence)
-            "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
-            "keywords": ["keyword1", "keyword2", "keyword3"],
-            "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
-            "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
-            "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
-          }},
-          ...
-        ]
+        {{
+          "themes": [
+            {{
+              "name": "Theme name - be HIGHLY specific and concrete, not generic",
+              "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+              "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+              "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
+              "keywords": ["keyword1", "keyword2", "keyword3"],
+              "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
+              "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+              "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
+            }},
+            ...
+          ]
+        }}
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with a "themes" array, even if you only identify one theme. If you cannot identify any themes, return an empty array like this:
+        {{
+          "themes": []
+        }}
 
         CRITICAL REQUIREMENTS:
         - Use EXACT sentences from the ORIGINAL ANSWERS for the statements. Do not summarize or paraphrase.
@@ -129,19 +136,26 @@ class ThemeAnalysisPrompts:
         8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
         Format your response as a JSON object with this structure:
-        [
-          {{
-            "name": "Theme name - be specific and concrete",
-            "frequency": 0.XX, (decimal between 0-1 representing prevalence)
-            "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
-            "keywords": ["keyword1", "keyword2", "keyword3"],
-            "definition": "A concise one-sentence description of what this theme encompasses",
-            "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
-            "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
-          }},
-          ...
-        ]
+        {{
+          "themes": [
+            {{
+              "name": "Theme name - be specific and concrete",
+              "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+              "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+              "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
+              "keywords": ["keyword1", "keyword2", "keyword3"],
+              "definition": "A concise one-sentence description of what this theme encompasses",
+              "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+              "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
+            }},
+            ...
+          ]
+        }}
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with a "themes" array, even if you only identify one theme. If you cannot identify any themes, return an empty array like this:
+        {{
+          "themes": []
+        }}
 
         IMPORTANT:
         - Use EXACT sentences from the text for the statements. Do not summarize or paraphrase.
@@ -182,19 +196,26 @@ class ThemeAnalysisPrompts:
         8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
         Format your response as a JSON object with this structure:
-        [
-          {
-            "name": "Theme name - be HIGHLY specific and concrete, not generic",
-            "frequency": 0.XX, (decimal between 0-1 representing prevalence)
-            "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
-            "keywords": ["keyword1", "keyword2", "keyword3"],
-            "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
-            "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
-            "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
-          },
-          ...
-        ]
+        {
+          "themes": [
+            {
+              "name": "Theme name - be HIGHLY specific and concrete, not generic",
+              "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+              "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+              "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
+              "keywords": ["keyword1", "keyword2", "keyword3"],
+              "definition": "A detailed one-sentence description that captures the uniqueness of this theme",
+              "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+              "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
+            },
+            ...
+          ]
+        }
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with a "themes" array, even if you only identify one theme. If you cannot identify any themes, return an empty array like this:
+        {
+          "themes": []
+        }
 
         CRITICAL REQUIREMENTS:
         - Use EXACT sentences from the ORIGINAL ANSWERS for the statements. Do not summarize or paraphrase.
@@ -229,19 +250,26 @@ class ThemeAnalysisPrompts:
         8. A reliability score (0.0-1.0) representing your confidence in this theme based on the evidence
 
         Format your response as a JSON object with this structure:
-        [
-          {
-            "name": "Theme name - be specific and concrete",
-            "frequency": 0.XX, (decimal between 0-1 representing prevalence)
-            "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
-            "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
-            "keywords": ["keyword1", "keyword2", "keyword3"],
-            "definition": "A concise one-sentence description of what this theme encompasses",
-            "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
-            "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
-          },
-          ...
-        ]
+        {
+          "themes": [
+            {
+              "name": "Theme name - be specific and concrete",
+              "frequency": 0.XX, (decimal between 0-1 representing prevalence)
+              "sentiment": X.XX, (decimal between -1 and 1, where -1 is negative, 0 is neutral, 1 is positive)
+              "statements": ["EXACT QUOTE FROM TEXT", "ANOTHER EXACT QUOTE"], (CRITICALLY IMPORTANT: Each string in this array must have special characters, like double quotes (`\"`) or backslashes (`\\`), properly JSON-escaped: e.g., `\"` becomes `\\\"`, `\\` becomes `\\\\\\`, newlines as `\\n`.)
+              "keywords": ["keyword1", "keyword2", "keyword3"],
+              "definition": "A concise one-sentence description of what this theme encompasses",
+              "codes": ["CODE_1", "CODE_2"], (2-4 codes that categorize this theme)
+              "reliability": 0.XX (decimal between 0-1 representing confidence in this theme)
+            },
+            ...
+          ]
+        }
+
+        EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with a "themes" array, even if you only identify one theme. If you cannot identify any themes, return an empty array like this:
+        {
+          "themes": []
+        }
 
         IMPORTANT:
         - Use EXACT sentences from the text for the statements. Do not summarize or paraphrase.
