@@ -215,7 +215,7 @@ def get_persona_service():
                 self.validation = type("obj", (object,), {"min_confidence": 0.4})
 
         # Create LLM service using centralized settings
-        llm_service = LLMServiceFactory.create("gemini")
+        llm_service = LLMServiceFactory.create(settings.default_llm_provider)
 
         # Create and return the persona service
         system_config = MinimalSystemConfig()
