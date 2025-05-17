@@ -140,8 +140,9 @@ class SentimentAnalysisPrompts:
         - Each statement should be meaningful and express complete thoughts
         - Filter out all noise using the rules above
         - Extract statements from interviewee responses, not interviewer questions
-        - DO NOT leave any category empty - find at least 10 examples for each sentiment type
+        - DO NOT leave any category empty - find at least as many statements as you can for each sentiment category for each sentiment type
         - Ensure your JSON is valid and properly formatted
+        - DO NOT wrap your response in markdown code blocks (```json) - return ONLY the raw JSON object
         """
 
     @staticmethod
@@ -253,4 +254,5 @@ class SentimentAnalysisPrompts:
         - Extract statements from interviewee responses, not interviewer questions
         - DO NOT leave any category empty - find at least 10 examples for each sentiment type
         - Ensure your JSON is valid and properly formatted
+        - DO NOT wrap your response in markdown code blocks (```json) - return ONLY the raw JSON object
         """

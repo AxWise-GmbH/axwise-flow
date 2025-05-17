@@ -224,6 +224,48 @@ class PersonaBuilder:
                     # Ensure evidence is a list
                     if "evidence" not in processed_trait or not isinstance(processed_trait["evidence"], list):
                         processed_trait["evidence"] = key_quotes_list[:2] if key_quotes_list else []
+
+                    # Special processing for demographics field
+                    if field_name == "demographics" and "value" in processed_trait:
+                        # Enhance demographics value with more structured information
+                        demo_value = processed_trait["value"]
+                        if demo_value:
+                            # Extract demographic information from evidence if available
+                            demo_evidence = processed_trait.get("evidence", [])
+                            gender_terms = ["male", "female", "man", "woman", "non-binary", "they", "she", "he"]
+                            experience_terms = ["senior", "junior", "mid", "lead", "manager", "director", "executive", "entry"]
+
+                            # Try to extract gender and experience level from evidence
+                            gender = ""
+                            experience = ""
+                            for evidence_item in demo_evidence:
+                                evidence_lower = evidence_item.lower()
+                                # Check for gender terms
+                                for term in gender_terms:
+                                    if term in evidence_lower:
+                                        gender = term.capitalize()
+                                        break
+                                # Check for experience terms
+                                for term in experience_terms:
+                                    if term in evidence_lower:
+                                        experience = term.capitalize()
+                                        break
+
+                            # Format demographics in a more structured way
+                            structured_demo = []
+                            if gender:
+                                structured_demo.append(f"Gender: {gender}")
+                            if experience:
+                                structured_demo.append(f"Experience Level: {experience}")
+
+                            # Add any other demographic information from the original value
+                            if demo_value and not any(item in demo_value for item in structured_demo):
+                                structured_demo.append(f"Profile: {demo_value}")
+
+                            # Update the value with the structured format
+                            if structured_demo:
+                                processed_trait["value"] = " | ".join(structured_demo)
+
                     processed_traits[field_name] = processed_trait
                     logger.debug(f"Field {field_name} already in trait format")
                 elif isinstance(field_data, str) and field_data.strip():
@@ -254,6 +296,35 @@ class PersonaBuilder:
             # Add key_quotes to processed traits
             processed_traits["key_quotes"] = key_quotes_data
 
+            # If key_quotes is empty, populate it with quotes from other fields
+            if not key_quotes_data.get("evidence") or not key_quotes_data.get("value"):
+                logger.info("Key quotes are empty, collecting quotes from other fields")
+                all_quotes = []
+
+                # Collect evidence from all other fields
+                for field_name, field_data in processed_traits.items():
+                    if field_name != "key_quotes" and isinstance(field_data, dict) and "evidence" in field_data:
+                        if isinstance(field_data["evidence"], list):
+                            all_quotes.extend(field_data["evidence"])
+
+                # Remove duplicates and limit to 5-7 quotes
+                unique_quotes = []
+                for quote in all_quotes:
+                    if quote and isinstance(quote, str) and quote not in unique_quotes:
+                        unique_quotes.append(quote)
+                        if len(unique_quotes) >= 7:
+                            break
+
+                if unique_quotes:
+                    logger.info(f"Collected {len(unique_quotes)} quotes from other fields")
+                    # Format the value field to be a descriptive summary
+                    value_summary = "Key representative quotes that capture the persona's authentic voice and perspective"
+                    processed_traits["key_quotes"] = {
+                        "value": value_summary,
+                        "confidence": overall_confidence,
+                        "evidence": unique_quotes[:7]  # Limit to 7 quotes
+                    }
+
             # Extract patterns and evidence
             patterns = attributes.get("patterns", [])
             if isinstance(patterns, str):
@@ -261,6 +332,40 @@ class PersonaBuilder:
                 patterns = [p.strip() for p in re.split(r'[,\n]', patterns) if p.strip()]
             elif not isinstance(patterns, list):
                 patterns = []
+
+            # Enhance patterns with more structure if possible
+            structured_patterns = []
+            if patterns:
+                # Try to extract patterns from other fields if patterns list is too short
+                if len(patterns) < 3:
+                    # Look for patterns in other fields' evidence
+                    pattern_keywords = ["always", "often", "tends to", "prefers", "values", "struggles with", "focuses on"]
+                    for field_name, field_data in processed_traits.items():
+                        if isinstance(field_data, dict) and "evidence" in field_data:
+                            for evidence in field_data.get("evidence", []):
+                                for keyword in pattern_keywords:
+                                    if keyword in evidence.lower():
+                                        potential_pattern = evidence.strip()
+                                        if potential_pattern and potential_pattern not in patterns:
+                                            patterns.append(potential_pattern)
+                                            break
+
+                # Format patterns with more structure
+                for pattern in patterns:
+                    # Clean up the pattern
+                    clean_pattern = pattern.strip()
+                    if not clean_pattern:
+                        continue
+
+                    # Add to structured patterns
+                    structured_patterns.append(clean_pattern)
+
+                    # Limit to 7 patterns
+                    if len(structured_patterns) >= 7:
+                        break
+
+            # Use structured patterns if available, otherwise use original patterns
+            patterns = structured_patterns if structured_patterns else patterns
 
             evidence = attributes.get("evidence", [])
             if isinstance(evidence, str):
@@ -410,17 +515,56 @@ class PersonaBuilder:
                     logger.info(f"Calculated average confidence from traits: {persona.confidence}")
 
             # Ensure we have at least some evidence
-            if not persona.evidence:
+            if not persona.evidence or len(persona.evidence) < 3 or all(e.startswith("Fallback") for e in persona.evidence):
                 # Collect evidence from traits
                 all_evidence = []
-                for field_name in processed_traits:
-                    trait = getattr(persona, field_name)
-                    if trait and trait.evidence:
-                        all_evidence.extend(trait.evidence[:2])  # Take up to 2 pieces of evidence from each trait
+
+                # Prioritize certain fields for evidence collection
+                priority_fields = ["key_quotes", "pain_points", "skills_and_expertise", "goals_and_motivations", "challenges_and_frustrations"]
+
+                # First collect from priority fields
+                for field_name in priority_fields:
+                    if field_name in processed_traits:
+                        trait = getattr(persona, field_name)
+                        if trait and trait.evidence:
+                            # Get the most representative evidence from this trait
+                            best_evidence = sorted(trait.evidence, key=len, reverse=True)[:2]  # Take up to 2 longest pieces of evidence
+                            all_evidence.extend(best_evidence)
+
+                # Then collect from other fields if needed
+                if len(all_evidence) < 5:
+                    for field_name in processed_traits:
+                        if field_name not in priority_fields:
+                            trait = getattr(persona, field_name)
+                            if trait and trait.evidence:
+                                # Get one piece of evidence from each non-priority field
+                                best_evidence = sorted(trait.evidence, key=len, reverse=True)[:1]
+                                all_evidence.extend(best_evidence)
+
+                                # Stop if we have enough evidence
+                                if len(all_evidence) >= 10:
+                                    break
+
+                # Remove duplicates while preserving order
+                unique_evidence = []
+                for e in all_evidence:
+                    if e and e not in unique_evidence and len(e) > 20:  # Only include substantial evidence
+                        unique_evidence.append(e)
 
                 # Use the collected evidence
-                if all_evidence:
-                    persona.evidence = all_evidence[:10]  # Limit to 10 pieces of evidence
+                if unique_evidence:
+                    persona.evidence = unique_evidence[:10]  # Limit to 10 pieces of evidence
+
+                    # Add descriptive labels to evidence for better context
+                    labeled_evidence = []
+                    for i, e in enumerate(persona.evidence):
+                        if i < len(priority_fields) and i < len(persona.evidence):
+                            field = priority_fields[i].replace("_", " ").title()
+                            labeled_evidence.append(f"{field}: {e}")
+                        else:
+                            labeled_evidence.append(e)
+
+                    persona.evidence = labeled_evidence
 
             # Validate persona with Pydantic if available
             try:

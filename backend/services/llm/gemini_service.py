@@ -474,7 +474,7 @@ class GeminiService:
         from backend.schemas import EnhancedThemeResponse, Theme, SentimentDistribution, HierarchicalCode, ReliabilityMetrics, ThemeRelationship
 
         # Define JSON tasks
-        json_tasks = ["transcript_structuring", "persona_formation", "theme_analysis", "theme_analysis_enhanced", "insight_generation", "pattern_analysis", "pattern_recognition"]
+        json_tasks = ["transcript_structuring", "persona_formation", "theme_analysis", "theme_analysis_enhanced", "insight_generation", "pattern_analysis", "pattern_recognition", "sentiment_analysis"]
         is_json_task = task in json_tasks
 
         # Get base generation config

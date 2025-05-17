@@ -521,7 +521,38 @@ class ResultsService:
         tech_tools_data = p_data.get("technology_and_tools")
         research_attitude_data = p_data.get("attitude_towards_research")
         ai_attitude_data = p_data.get("attitude_towards_ai")
+        # Handle key_quotes with special care - it could be a list (legacy) or a dict (new format)
         key_quotes_data = p_data.get("key_quotes")
+        # If key_quotes is a list, convert it to the new structured format
+        if isinstance(key_quotes_data, list) and len(key_quotes_data) > 0:
+            key_quotes_data = {
+                "value": "Representative quotes from the interview",
+                "confidence": 0.9,
+                "evidence": key_quotes_data
+            }
+        # If key_quotes is empty or missing, create a placeholder
+        elif not key_quotes_data:
+            # Look for quotes in other fields' evidence
+            all_quotes = []
+            for field_name in ["demographics", "goals_and_motivations", "skills_and_expertise",
+                              "challenges_and_frustrations", "needs_and_desires"]:
+                field_data = p_data.get(field_name, {})
+                if isinstance(field_data, dict) and "evidence" in field_data:
+                    all_quotes.extend(field_data.get("evidence", []))
+
+            # Use up to 5 quotes from other fields if available
+            if all_quotes:
+                key_quotes_data = {
+                    "value": "Quotes extracted from other fields",
+                    "confidence": 0.7,
+                    "evidence": all_quotes[:5]
+                }
+            else:
+                key_quotes_data = {
+                    "value": "",
+                    "confidence": 0.5,
+                    "evidence": []
+                }
 
         # Map legacy fields to new fields when new fields are empty or invalid
         # This ensures we don't lose data when only legacy fields are populated
@@ -641,8 +672,9 @@ class ResultsService:
             ),
             key_quotes=create_trait(
                 key_quotes_data,
-                "",
-                0.5
+                "Representative quotes from the interview",
+                0.7,
+                []  # Empty evidence list as default
             ),
             # Include all legacy fields
             role_context=create_trait(

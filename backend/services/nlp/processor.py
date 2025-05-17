@@ -1352,6 +1352,28 @@ class NLPProcessor:
     ) -> Dict[str, List[str]]:
         """Process sentiment results to extract supporting statements"""
         try:
+            # Check if the response is a string wrapped in markdown code blocks
+            if isinstance(sentiment_result, str):
+                logger.warning("Sentiment result is a string, attempting to parse as JSON")
+
+                # Check for markdown code blocks
+                if sentiment_result.startswith("```json") and sentiment_result.endswith("```"):
+                    logger.info("Detected markdown code blocks in sentiment result, extracting JSON content")
+                    # Extract JSON content
+                    json_content = sentiment_result[7:-3].strip()
+                    try:
+                        sentiment_result = json.loads(json_content)
+                        logger.info("Successfully parsed JSON from markdown code blocks")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse JSON from markdown code blocks: {e}")
+                else:
+                    # Try to parse as JSON directly
+                    try:
+                        sentiment_result = json.loads(sentiment_result)
+                        logger.info("Successfully parsed JSON from string")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse JSON from string: {e}")
+
             # Extract sentiment statements from the result
             if (
                 "sentiment" in sentiment_result
@@ -1364,6 +1386,18 @@ class NLPProcessor:
                 return sentiment_result["sentimentStatements"]
             else:
                 logger.warning("No sentiment statements found in result")
+
+                # Check if sentimentOverview exists to detect hardcoded values
+                if "sentimentOverview" in sentiment_result:
+                    overview = sentiment_result["sentimentOverview"]
+                    positive_score = overview.get("positive", 0)
+                    neutral_score = overview.get("neutral", 0)
+                    negative_score = overview.get("negative", 0)
+
+                    # Check if scores are suspiciously close to 0.33 each (hardcoded fallback values)
+                    if abs(positive_score - 0.33) < 0.01 and abs(neutral_score - 0.34) < 0.01 and abs(negative_score - 0.33) < 0.01:
+                        logger.warning("Detected hardcoded sentiment scores (0.33, 0.34, 0.33). This may indicate a parsing issue.")
+
                 return {"positive": [], "neutral": [], "negative": []}
         except Exception as e:
             logger.error(f"Error processing sentiment results: {str(e)}")

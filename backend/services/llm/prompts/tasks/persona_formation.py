@@ -102,7 +102,7 @@ class PersonaFormationPrompts:
         16. technology_and_tools: Software, hardware, and other tools used regularly in the {industry.upper()} industry
         17. attitude_towards_research: Views on research, data, and evidence-based approaches in the {industry.upper()} context
         18. attitude_towards_ai: Perspective on AI, automation, and technological change in the {industry.upper()} industry
-        19. key_quotes: Representative quotes that capture the persona's voice and perspective
+        19. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
 
         OVERALL PERSONA INFORMATION:
         14. patterns: List of behavioral patterns associated with this persona in the {industry.upper()} industry
@@ -189,7 +189,11 @@ class PersonaFormationPrompts:
             "confidence": 0.6,
             "evidence": ["Quote 1", "Quote 2"]
           }},
-          "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
+          "key_quotes": {{
+            "value": "Collection of representative quotes",
+            "confidence": 0.9,
+            "evidence": ["Quote 1", "Quote 2", "Quote 3", "Quote 4", "Quote 5"]
+          }},
           "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
           "overall_confidence": 0.75,
           "supporting_evidence_summary": ["Overall evidence 1", "Overall evidence 2"]
@@ -238,7 +242,7 @@ class PersonaFormationPrompts:
         16. technology_and_tools: Software, hardware, and other tools used regularly
         17. attitude_towards_research: Views on research, data, and evidence-based approaches
         18. attitude_towards_ai: Perspective on AI, automation, and technological change
-        19. key_quotes: Representative quotes that capture the persona's voice and perspective
+        19. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
 
         OVERALL PERSONA INFORMATION:
         14. patterns: List of behavioral patterns associated with this persona
@@ -325,7 +329,11 @@ class PersonaFormationPrompts:
             "confidence": 0.6,
             "evidence": ["Quote 1", "Quote 2"]
           }},
-          "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
+          "key_quotes": {{
+            "value": "Collection of representative quotes",
+            "confidence": 0.9,
+            "evidence": ["Quote 1", "Quote 2", "Quote 3", "Quote 4", "Quote 5"]
+          }},
           "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
           "overall_confidence": 0.75,
           "supporting_evidence_summary": ["Overall evidence 1", "Overall evidence 2"]
