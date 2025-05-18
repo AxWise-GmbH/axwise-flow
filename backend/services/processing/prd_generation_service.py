@@ -5,8 +5,12 @@ PRD generation service.
 import logging
 from typing import Dict, Any, List, Optional
 import json
+from datetime import datetime
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.services.llm import LLMServiceFactory
+from backend.models import CachedPRD
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +19,15 @@ class PRDGenerationService:
     Service for generating Product Requirements Documents (PRDs) from analysis results.
     """
 
-    def __init__(self, llm_service=None):
+    def __init__(self, db: Optional[Session] = None, llm_service=None):
         """
         Initialize the PRD generation service.
 
         Args:
+            db: Database session for caching PRDs
             llm_service: LLM service to use for PRD generation
         """
+        self.db = db
         self.llm_service = llm_service or LLMServiceFactory.create("enhanced_gemini")
         logger.info(f"Initialized PRDGenerationService with {self.llm_service.__class__.__name__}")
 
@@ -29,7 +35,9 @@ class PRDGenerationService:
         self,
         analysis_results: Dict[str, Any],
         prd_type: str = "both",
-        industry: Optional[str] = None
+        industry: Optional[str] = None,
+        result_id: Optional[int] = None,
+        force_regenerate: bool = False
     ) -> Dict[str, Any]:
         """
         Generate a PRD from analysis results.
@@ -38,12 +46,21 @@ class PRDGenerationService:
             analysis_results: Analysis results containing themes, patterns, insights, and personas
             prd_type: Type of PRD to generate ("operational", "technical", or "both")
             industry: Optional industry context
+            result_id: ID of the analysis result (for caching)
+            force_regenerate: Whether to force regeneration even if cached version exists
 
         Returns:
             Generated PRD
         """
         try:
-            logger.info(f"Generating {prd_type} PRD from analysis results")
+            # Check cache first if database session is available and not forcing regeneration
+            if self.db and result_id and not force_regenerate:
+                cached_prd = self._get_cached_prd(result_id, prd_type)
+                if cached_prd:
+                    logger.info(f"Using cached PRD for result_id: {result_id}, prd_type: {prd_type}")
+                    return cached_prd.prd_data
+
+            logger.info(f"Generating {prd_type} PRD for result_id: {result_id or 'unknown'}")
 
             # Extract relevant data from analysis results
             themes = analysis_results.get("themes", [])
@@ -85,6 +102,10 @@ class PRDGenerationService:
                 "prd_type": prd_type,
                 "industry": industry
             }
+
+            # Cache the PRD if database session is available
+            if self.db and result_id:
+                self._cache_prd(result_id, prd_type, prd_data)
 
             logger.info(f"Successfully generated PRD with type: {prd_type}")
             return prd_data
@@ -141,6 +162,86 @@ class PRDGenerationService:
         except Exception as e:
             logger.error(f"Error parsing LLM response: {str(e)}")
             return self._create_fallback_prd("Error parsing LLM response")
+
+    def _get_cached_prd(self, result_id: int, prd_type: str) -> Optional[CachedPRD]:
+        """
+        Get a cached PRD from the database.
+
+        Args:
+            result_id: ID of the analysis result
+            prd_type: Type of PRD to retrieve
+
+        Returns:
+            Cached PRD if found, None otherwise
+        """
+        try:
+            if not self.db:
+                return None
+
+            cached_prd = (
+                self.db.query(CachedPRD)
+                .filter(
+                    CachedPRD.result_id == result_id,
+                    CachedPRD.prd_type == prd_type
+                )
+                .first()
+            )
+
+            return cached_prd
+        except SQLAlchemyError as e:
+            logger.error(f"Error retrieving cached PRD: {str(e)}")
+            return None
+
+    def _cache_prd(self, result_id: int, prd_type: str, prd_data: Dict[str, Any]) -> bool:
+        """
+        Cache a PRD in the database.
+
+        Args:
+            result_id: ID of the analysis result
+            prd_type: Type of PRD to cache
+            prd_data: PRD data to cache
+
+        Returns:
+            True if caching was successful, False otherwise
+        """
+        try:
+            if not self.db:
+                return False
+
+            # Check if a cached PRD already exists
+            existing_prd = (
+                self.db.query(CachedPRD)
+                .filter(
+                    CachedPRD.result_id == result_id,
+                    CachedPRD.prd_type == prd_type
+                )
+                .first()
+            )
+
+            if existing_prd:
+                # Update existing cached PRD
+                existing_prd.prd_data = prd_data
+                existing_prd.updated_at = datetime.utcnow()
+                self.db.commit()
+                logger.info(f"Updated cached PRD for result_id: {result_id}, prd_type: {prd_type}")
+            else:
+                # Create new cached PRD
+                cached_prd = CachedPRD(
+                    result_id=result_id,
+                    prd_type=prd_type,
+                    prd_data=prd_data,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                self.db.add(cached_prd)
+                self.db.commit()
+                logger.info(f"Created cached PRD for result_id: {result_id}, prd_type: {prd_type}")
+
+            return True
+        except SQLAlchemyError as e:
+            logger.error(f"Error caching PRD: {str(e)}")
+            self.db.rollback()
+            return False
 
     def _create_fallback_prd(self, text: str) -> Dict[str, Any]:
         """

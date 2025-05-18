@@ -126,6 +126,7 @@ class AnalysisResult(Base):
 
     interview_data = relationship("InterviewData", back_populates="analysis_results")
     personas = relationship("Persona", back_populates="analysis_result")
+    cached_prds = relationship("CachedPRD", back_populates="analysis_result")
 
 
 class Persona(Base):
@@ -168,3 +169,24 @@ class Persona(Base):
     supporting_evidence_summary = Column(JSON, nullable=True)  # New field
 
     analysis_result = relationship("AnalysisResult", back_populates="personas")
+
+
+class CachedPRD(Base):
+    """
+    Model for storing cached PRD data.
+    """
+    __tablename__ = "cached_prds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    result_id = Column(Integer, ForeignKey("analysis_results.result_id"), nullable=False)
+    prd_type = Column(String(20), nullable=False)  # 'operational', 'technical', or 'both'
+    prd_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship to AnalysisResult
+    analysis_result = relationship("AnalysisResult", back_populates="cached_prds")
+
+    class Config:
+        """Pydantic config"""
+        orm_mode = True

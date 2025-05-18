@@ -197,7 +197,7 @@ def create_tables():
         logger.warning("Falling back to direct table creation")
 
         # Import models here to avoid circular imports
-        from .models import User, InterviewData, AnalysisResult, Persona  # noqa
+        from .models import User, InterviewData, AnalysisResult, Persona, CachedPRD  # noqa
 
         # Create tables
         Base.metadata.create_all(bind=engine)

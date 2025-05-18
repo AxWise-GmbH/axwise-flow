@@ -112,15 +112,21 @@ export interface PRDResponse {
  *
  * @param resultId The ID of the analysis result to generate a PRD from
  * @param prdType The type of PRD to generate ('operational', 'technical', or 'both')
+ * @param forceRegenerate Whether to force regeneration of the PRD
  * @returns A promise that resolves to the PRD response
  */
 export async function generatePRD(
   resultId: string | number,
-  prdType: 'operational' | 'technical' | 'both' = 'both'
+  prdType: 'operational' | 'technical' | 'both' = 'both',
+  forceRegenerate: boolean = false
 ): Promise<PRDResponse> {
   try {
+    const url = forceRegenerate
+      ? `${API_ENDPOINTS.GENERATE_PRD(resultId, prdType)}&force_regenerate=true`
+      : API_ENDPOINTS.GENERATE_PRD(resultId, prdType);
+
     const response = await apiCore.getClient().get(
-      API_ENDPOINTS.GENERATE_PRD(resultId, prdType),
+      url,
       {
         timeout: 120000 // 120 seconds timeout for potentially large PRD generation
       }

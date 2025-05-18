@@ -26,6 +26,7 @@ router = APIRouter(
 async def generate_prd(
     result_id: int,
     prd_type: str = Query("both", description="Type of PRD to generate: 'operational', 'technical', or 'both'"),
+    force_regenerate: bool = Query(False, description="Whether to force regeneration of the PRD"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -35,6 +36,7 @@ async def generate_prd(
     Args:
         result_id: ID of the analysis result to generate PRD from
         prd_type: Type of PRD to generate
+        force_regenerate: Whether to force regeneration of the PRD
         db: Database session
         user: Current authenticated user
 
@@ -59,18 +61,24 @@ async def generate_prd(
         # Get results data
         results_data = analysis_results.get("results", {})
 
-        # Create PRD generation service with enhanced_gemini provider
+        # Create PRD generation service with enhanced_gemini provider and database session
         llm_service = LLMServiceFactory.create("enhanced_gemini")
-        prd_service = PRDGenerationService(llm_service=llm_service)
+        prd_service = PRDGenerationService(db=db, llm_service=llm_service)
 
         # Get industry from results if available
         industry = results_data.get("industry")
 
-        # Generate PRD
+        # Log whether we're forcing regeneration
+        if force_regenerate:
+            logger.info(f"Forcing regeneration of PRD for result_id: {result_id}")
+
+        # Generate PRD with caching
         prd_data = await prd_service.generate_prd(
             analysis_results=results_data,
             prd_type=prd_type,
-            industry=industry
+            industry=industry,
+            result_id=result_id,
+            force_regenerate=force_regenerate
         )
 
         # Return PRD data
