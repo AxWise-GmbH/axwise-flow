@@ -21,6 +21,7 @@ import { PatternList } from './PatternList';
 import { PersonaList } from './PersonaList';
 import { InsightList } from './InsightList';
 import { PriorityInsights } from './PriorityInsights';
+import PRDTab from './PRDTab'; // Import the PRD tab component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSearchParams } from 'next/navigation';
@@ -38,7 +39,7 @@ interface VisualizationTabsProps {
 }
 
 // Define a type for the tab values
-export type TabValue = 'themes' | 'patterns' | 'personas' | 'insights' | 'priority';
+export type TabValue = 'themes' | 'patterns' | 'personas' | 'insights' | 'priority' | 'prd';
 
 // No helper functions needed
 
@@ -196,12 +197,13 @@ export default function VisualizationTabsRefactored({
 
         {!loading && !fetchError && analysis && ( // Ensure analysis data exists
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full grid grid-cols-5">
+            <TabsList className="w-full grid grid-cols-6">
               <TabsTrigger value="themes">Themes</TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
               <TabsTrigger value="personas">Personas</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
               <TabsTrigger value="priority">Priority</TabsTrigger>
+              <TabsTrigger value="prd">PRD</TabsTrigger>
             </TabsList>
 
             <CustomErrorBoundary
@@ -294,6 +296,24 @@ export default function VisualizationTabsRefactored({
             >
               <TabsContent value="priority" className="mt-6">
                 <PriorityInsights analysisId={effectiveAnalysisId || ''} />
+              </TabsContent>
+            </CustomErrorBoundary>
+
+            <CustomErrorBoundary
+              fallback={
+                <div className="p-4 border border-red-300 bg-red-50 rounded-md mt-6">
+                  <h3 className="text-lg font-semibold text-red-700">Error in PRD Visualization</h3>
+                  <p className="text-red-600">There was an error rendering the PRD visualization.</p>
+                </div>
+              }
+            >
+              <TabsContent value="prd" className="mt-6">
+                {effectiveAnalysisId && (
+                  <PRDTab
+                    analysisId={effectiveAnalysisId}
+                    isAnalysisComplete={analysis?.status === 'completed'}
+                  />
+                )}
               </TabsContent>
             </CustomErrorBoundary>
 

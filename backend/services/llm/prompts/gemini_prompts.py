@@ -14,6 +14,7 @@ from .tasks.simplified_persona_formation import SimplifiedPersonaFormationPrompt
 from .tasks.transcript_structuring import TranscriptStructuringPrompts
 from .tasks.evidence_linking import EvidenceLinkingPrompts
 from .tasks.trait_formatting import TraitFormattingPrompts
+from .tasks.prd_generation import PRDGenerationPrompts
 
 class GeminiPrompts:
     """
@@ -34,6 +35,7 @@ class GeminiPrompts:
         "transcript_structuring": TranscriptStructuringPrompts.get_prompt,
         "evidence_linking": EvidenceLinkingPrompts.get_prompt,
         "trait_formatting": TraitFormattingPrompts.get_prompt,
+        "prd_generation": PRDGenerationPrompts.get_prompt,
     }
 
     DEFAULT_PROMPT = "Analyze the following text."

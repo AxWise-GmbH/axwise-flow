@@ -11,38 +11,38 @@ from typing import Dict, Any, Optional, List
 class IndustryGuidance:
     """
     Industry-specific guidance for LLM prompts.
-    
+
     This class provides centralized access to industry-specific guidance
     for different analysis tasks, ensuring consistent application of
     domain knowledge across the application.
     """
-    
+
     # List of supported industries
     SUPPORTED_INDUSTRIES = [
-        "healthcare", "tech", "finance", "military", "education", 
-        "hospitality", "retail", "manufacturing", "legal", 
+        "healthcare", "tech", "finance", "military", "education",
+        "hospitality", "retail", "manufacturing", "legal",
         "insurance", "agriculture", "non_profit", "general"
     ]
-    
+
     @staticmethod
     def get_guidance(industry: str, task: str) -> str:
         """
         Get industry-specific guidance for a task.
-        
+
         Args:
             industry: Industry name (e.g., "healthcare", "tech")
             task: Task type (e.g., "sentiment_analysis", "theme_analysis")
-            
+
         Returns:
             Guidance string with industry-specific instructions
         """
         # Normalize industry name
         industry_lower = industry.lower() if industry else "general"
-        
+
         # If industry not supported, use general guidance
         if industry_lower not in IndustryGuidance.SUPPORTED_INDUSTRIES:
             industry_lower = "general"
-        
+
         # Get guidance based on task
         if task == "sentiment_analysis":
             return IndustryGuidance.get_sentiment_guidance(industry_lower)
@@ -54,17 +54,19 @@ class IndustryGuidance:
             return IndustryGuidance.get_persona_guidance(industry_lower)
         elif task == "insight_generation":
             return IndustryGuidance.get_insight_guidance(industry_lower)
+        elif task == "prd_generation":
+            return IndustryGuidance.get_prd_guidance(industry_lower)
         else:
             return IndustryGuidance.get_general_guidance(industry_lower)
-    
+
     @staticmethod
     def get_sentiment_guidance(industry: str) -> str:
         """
         Get industry-specific sentiment analysis guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             Sentiment analysis guidance for the specified industry
         """
@@ -154,7 +156,7 @@ class IndustryGuidance:
                 - Mission-related terminology should be treated as neutral unless clearly tied to outcomes
             """,
         }
-        
+
         # Return industry-specific guidance or general guidance if industry not found
         return industry_guidance.get(
             industry,
@@ -166,15 +168,15 @@ class IndustryGuidance:
             - Identify enthusiasm for solutions (positive) vs frustration with problems (negative)
             """
         )
-    
+
     @staticmethod
     def get_theme_guidance(industry: str) -> str:
         """
         Get industry-specific theme analysis guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             Theme analysis guidance for the specified industry
         """
@@ -195,7 +197,7 @@ class IndustryGuidance:
             """,
             # Add other industries as needed
         }
-        
+
         return industry_guidance.get(
             industry,
             """
@@ -206,15 +208,15 @@ class IndustryGuidance:
             - Focus on themes that are specific to the domain rather than generic observations
             """
         )
-    
+
     @staticmethod
     def get_pattern_guidance(industry: str) -> str:
         """
         Get industry-specific pattern recognition guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             Pattern recognition guidance for the specified industry
         """
@@ -235,7 +237,7 @@ class IndustryGuidance:
             """,
             # Add other industries as needed
         }
-        
+
         return industry_guidance.get(
             industry,
             """
@@ -246,15 +248,15 @@ class IndustryGuidance:
             - Recognize collaboration patterns and communication styles
             """
         )
-    
+
     @staticmethod
     def get_persona_guidance(industry: str) -> str:
         """
         Get industry-specific persona formation guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             Persona formation guidance for the specified industry
         """
@@ -275,7 +277,7 @@ class IndustryGuidance:
             """,
             # Add other industries as needed
         }
-        
+
         return industry_guidance.get(
             industry,
             """
@@ -286,15 +288,15 @@ class IndustryGuidance:
             - Identify pain points and challenges specific to their role and context
             """
         )
-    
+
     @staticmethod
     def get_insight_guidance(industry: str) -> str:
         """
         Get industry-specific insight generation guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             Insight generation guidance for the specified industry
         """
@@ -315,7 +317,7 @@ class IndustryGuidance:
             """,
             # Add other industries as needed
         }
-        
+
         return industry_guidance.get(
             industry,
             """
@@ -326,15 +328,79 @@ class IndustryGuidance:
             - Suggest specific, concrete actions that could address the identified issues
             """
         )
-    
+
+    @staticmethod
+    def get_prd_guidance(industry: str) -> str:
+        """
+        Get industry-specific PRD generation guidance.
+
+        Args:
+            industry: Industry name
+
+        Returns:
+            PRD generation guidance for the specified industry
+        """
+        industry_guidance = {
+            "healthcare": """
+                HEALTHCARE PRD GENERATION GUIDELINES:
+                - Focus on requirements related to patient safety, clinical workflows, and regulatory compliance
+                - Include user stories for different healthcare roles (clinicians, administrators, patients)
+                - Consider HIPAA compliance and other healthcare regulations in all requirements
+                - Prioritize features that improve patient outcomes and provider experience
+                - Include technical requirements for integration with EHR systems and healthcare standards
+                - Define success metrics related to clinical quality measures and patient satisfaction
+            """,
+            "tech": """
+                TECHNOLOGY PRD GENERATION GUIDELINES:
+                - Focus on requirements related to user experience, technical architecture, and scalability
+                - Include user stories for different technical roles (developers, designers, product managers)
+                - Consider security, performance, and maintainability in all requirements
+                - Prioritize features that improve developer productivity and user satisfaction
+                - Include technical requirements for API design, data models, and system architecture
+                - Define success metrics related to performance benchmarks and user engagement
+            """,
+            "finance": """
+                FINANCE PRD GENERATION GUIDELINES:
+                - Focus on requirements related to accuracy, security, and regulatory compliance
+                - Include user stories for different financial roles (analysts, advisors, customers)
+                - Consider financial regulations and data security in all requirements
+                - Prioritize features that improve financial decision-making and reduce risk
+                - Include technical requirements for transaction processing and financial reporting
+                - Define success metrics related to accuracy, compliance, and customer satisfaction
+            """,
+            "retail": """
+                RETAIL PRD GENERATION GUIDELINES:
+                - Focus on requirements related to customer experience, inventory management, and sales
+                - Include user stories for different retail roles (customers, store associates, managers)
+                - Consider omnichannel experiences and inventory accuracy in all requirements
+                - Prioritize features that improve customer satisfaction and operational efficiency
+                - Include technical requirements for POS integration and inventory systems
+                - Define success metrics related to sales conversion, customer retention, and inventory turnover
+            """,
+            # Add other industries as needed
+        }
+
+        return industry_guidance.get(
+            industry,
+            """
+            GENERAL PRD GENERATION GUIDELINES:
+            - Create user stories that reflect the actual needs and pain points identified in the research
+            - Ensure requirements are specific, measurable, achievable, relevant, and time-bound (SMART)
+            - Prioritize features based on user impact and business value
+            - Include both functional requirements (what the system should do) and non-functional requirements (how the system should behave)
+            - Define clear success metrics that align with user needs and business objectives
+            - Ensure technical requirements support the user-facing features and business goals
+            """
+        )
+
     @staticmethod
     def get_general_guidance(industry: str) -> str:
         """
         Get general industry guidance.
-        
+
         Args:
             industry: Industry name
-            
+
         Returns:
             General guidance for the specified industry
         """

@@ -15,6 +15,10 @@ export const API_ENDPOINTS = {
   EXPORT_PDF: (resultId: number) => `/api/export/${resultId}/pdf`,
   EXPORT_MARKDOWN: (resultId: number) => `/api/export/${resultId}/markdown`,
 
+  // PRD
+  GENERATE_PRD: (resultId: number | string, prdType: string = 'both') =>
+    `/api/prd/${resultId}?prd_type=${prdType}`,
+
   // System
   HEALTH_CHECK: '/health'
 } as const;

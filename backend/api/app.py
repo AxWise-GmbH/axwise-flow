@@ -60,6 +60,7 @@ logger = logging.getLogger(__name__)
 # Import API routers
 from backend.api.endpoints.priority_insights import router as priority_insights_router
 from backend.api.export_routes import router as export_router
+from backend.api.routes.prd import router as prd_router
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
 
@@ -156,6 +157,7 @@ app.add_middleware(
 # Include routers
 app.include_router(priority_insights_router, prefix="/api/analysis")
 app.include_router(export_router)
+app.include_router(prd_router)
 
 # Include debug router
 from backend.api.endpoints.debug import router as debug_router
