@@ -2,7 +2,7 @@
 
 /**
  * PRDTab Component
- * 
+ *
  * Displays a Product Requirements Document (PRD) generated from analysis results.
  * Automatically generates the PRD when the component mounts if analysis is complete.
  */
@@ -35,10 +35,10 @@ export function PRDTab({ analysisId, isAnalysisComplete = true }: PRDTabProps) {
   // Function to generate PRD
   const fetchPRD = useCallback(async () => {
     if (!analysisId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await generatePRD(analysisId, 'both');
       setPrdData(response.prd_data);
@@ -81,10 +81,10 @@ export function PRDTab({ analysisId, isAnalysisComplete = true }: PRDTabProps) {
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
           {error}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchPRD} 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchPRD}
             className="ml-2"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -135,9 +135,9 @@ export function PRDTab({ analysisId, isAnalysisComplete = true }: PRDTabProps) {
                 Generated from analysis results
               </CardDescription>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={fetchPRD}
               className="flex items-center"
             >
@@ -171,21 +171,21 @@ export function PRDTab({ analysisId, isAnalysisComplete = true }: PRDTabProps) {
           )}
 
           {/* PRD Tabs */}
-          <Tabs 
-            defaultValue={hasOperationalPRD ? 'operational' : 'technical'} 
+          <Tabs
+            defaultValue={hasOperationalPRD ? 'operational' : 'technical'}
             value={activeTab}
             onValueChange={handleTabChange}
             className="w-full"
           >
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger 
-                value="operational" 
+              <TabsTrigger
+                value="operational"
                 disabled={!hasOperationalPRD}
               >
                 Operational PRD
               </TabsTrigger>
-              <TabsTrigger 
-                value="technical" 
+              <TabsTrigger
+                value="technical"
                 disabled={!hasTechnicalPRD}
               >
                 Technical PRD
@@ -283,7 +283,7 @@ function OperationalPRDContent({ prd }: { prd: OperationalPRD }) {
                       ))}
                     </ul>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <h4 className="font-medium mb-2">What</h4>
@@ -318,8 +318,8 @@ function OperationalPRDContent({ prd }: { prd: OperationalPRD }) {
                   </span>
                   <Badge className={cn(
                     "ml-2",
-                    req.priority === 'High' ? "bg-destructive text-destructive-foreground" : 
-                    req.priority === 'Medium' ? "bg-amber-500 text-white" : 
+                    req.priority === 'High' ? "bg-destructive text-destructive-foreground" :
+                    req.priority === 'Medium' ? "bg-amber-500 text-white" :
                     "bg-green-500 text-white"
                   )}>
                     {req.priority}
@@ -485,8 +485,8 @@ function TechnicalPRDContent({ prd }: { prd: TechnicalPRD }) {
                   </span>
                   <Badge className={cn(
                     "ml-2",
-                    req.priority === 'High' ? "bg-destructive text-destructive-foreground" : 
-                    req.priority === 'Medium' ? "bg-amber-500 text-white" : 
+                    req.priority === 'High' ? "bg-destructive text-destructive-foreground" :
+                    req.priority === 'Medium' ? "bg-amber-500 text-white" :
                     "bg-green-500 text-white"
                   )}>
                     {req.priority}
