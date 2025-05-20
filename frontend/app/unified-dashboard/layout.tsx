@@ -40,8 +40,8 @@ export default function UnifiedDashboardLayout({
   }
 
   return (
-    <div className="w-full">
-      <Tabs value={activeTab} className="w-full">
+    <div className="w-full mb-8">
+      <Tabs value={activeTab} className="w-full mb-8">
         <TabsList className="w-full grid grid-cols-4">
           <TabsTrigger value="dashboard" asChild>
             <Link href="/unified-dashboard">
