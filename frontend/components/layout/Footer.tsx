@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LogoFooter } from "@/components/icons";
 
 /**
  * Footer component for the application
@@ -11,7 +12,14 @@ export function Footer(): JSX.Element {
     <footer className="bg-primary text-primary-foreground py-4 mt-8 w-full border-t-2 border-primary-foreground/20">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-2 md:mb-0">
+          <div className="mb-2 md:mb-0 flex flex-col items-start">
+            <Link href="/" className="mb-2">
+              <LogoFooter
+                width={120}
+                height={30}
+                className="mb-1"
+              />
+            </Link>
             <p className="text-sm">
               &copy; {new Date().getFullYear()} AxWise UG (in formation). All
               rights reserved.

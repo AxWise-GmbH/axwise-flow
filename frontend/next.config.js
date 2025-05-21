@@ -5,6 +5,10 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_...=***REMOVED*** || 'http://localhost:8000',
   },
+  images: {
+    domains: [],
+    unoptimized: true,
+  },
   async headers() {
     return [
       {

@@ -1,0 +1,190 @@
+<!-- Header Template -->
+<header>
+    <div class="container">
+        <a href="/" class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-light">
+                <!-- Background rectangle for the "Ax" part -->
+                <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                <!-- "Ax" text in the rectangle -->
+                <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                <!-- "Wise" text next to the rectangle -->
+                <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="#232946">Wise</text>
+                <!-- Tagline -->
+                <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#5d6387" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-dark">
+                <!-- Background rectangle for the "Ax" part -->
+                <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                <!-- "Ax" text in the rectangle -->
+                <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                <!-- "Wise" text next to the rectangle -->
+                <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                <!-- Tagline -->
+                <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#a0a3bd" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+            </svg>
+        </a>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/contact.html">Contact</a>
+        </nav>
+    </div>
+</header>
+
+<!-- Footer Template -->
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <a href="/">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="30" viewBox="0 0 120 30">
+                        <!-- Background rectangle for the "Ax" part -->
+                        <rect x="2" y="5" width="20" height="20" rx="4" fill="#7b68ee"/>
+                        <!-- "Ax" text in the rectangle -->
+                        <text x="12" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                        <!-- "Wise" text next to the rectangle -->
+                        <text x="24" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                    </svg>
+                </a>
+            </div>
+            <div class="footer-links">
+                <a href="/impressum.html">Impressum</a>
+                <a href="/privacy-policy.html">Privacy Policy</a>
+                <a href="/terms-of-service.html">Terms of Service</a>
+                <a href="/contact.html">Contact</a>
+            </div>
+            <p class="copyright">&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<!-- CSS Styles for Header and Footer -->
+<style>
+    /* Common styles */
+    :root {
+        --primary-color: #7b68ee;
+        --secondary-color: #232946;
+        --text-color: #232946;
+        --text-color-dark: #ffffff;
+        --background-color: #ffffff;
+        --background-color-dark: #121212;
+        --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Header styles */
+    header {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        padding: 1rem 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    header .logo {
+        text-decoration: none;
+        display: block;
+    }
+    
+    header .logo-dark {
+        display: none;
+    }
+    
+    header nav {
+        display: flex;
+        gap: 1.5rem;
+    }
+    
+    header nav a {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    header nav a:hover {
+        color: var(--primary-color);
+    }
+    
+    /* Footer styles */
+    footer {
+        background-color: var(--secondary-color);
+        color: white;
+        padding: 2rem 0;
+        margin-top: 3rem;
+    }
+    
+    .footer-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+    
+    .footer-logo a {
+        display: block;
+    }
+    
+    .footer-links {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .footer-links a {
+        color: white;
+        text-decoration: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .footer-links a:hover {
+        opacity: 0.8;
+    }
+    
+    .copyright {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        body {
+            background-color: var(--background-color-dark);
+            color: var(--text-color-dark);
+        }
+        
+        header {
+            background-color: var(--background-color-dark);
+            color: var(--text-color-dark);
+        }
+        
+        header .logo-light {
+            display: none;
+        }
+        
+        header .logo-dark {
+            display: block;
+        }
+        
+        header nav a {
+            color: var(--text-color-dark);
+        }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        header nav {
+            gap: 1rem;
+        }
+        
+        .footer-links {
+            gap: 1rem;
+        }
+    }
+</style>

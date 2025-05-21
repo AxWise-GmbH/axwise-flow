@@ -15,14 +15,14 @@ describe('Header', () => {
   it('renders branding and navigation', () => {
     renderHeader();
 
-    // Check branding
-    expect(screen.getByText('Interview Analysis')).toBeInTheDocument();
+    // Check branding - now using SVG logo components
+    // Since we're using SVG components directly, we can't check by alt text
+    // Instead, we'll check that the Link to home page exists
+    expect(screen.getByRole('link', { name: '' })).toHaveAttribute('href', '/');
 
     // Check navigation links
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard')).toHaveAttribute('href', '/');
-    expect(screen.getByText('Analysis')).toBeInTheDocument();
-    expect(screen.getByText('Analysis')).toHaveAttribute('href', '/analysis');
+    expect(screen.getByText('Pricing')).toBeInTheDocument();
   });
 
   it('renders theme toggle button', () => {

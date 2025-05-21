@@ -12,16 +12,19 @@ describe('AppLayout', () => {
       </ThemeProvider>
     );
 
-    // Check if header is rendered
-    expect(screen.getByText('Interview Analysis')).toBeInTheDocument();
-    
+    // Check if header is rendered with logo
+    // Since we're using SVG components directly, we can't check by alt text
+    // Instead, we'll check that the Link to home page exists in the header
+    const header = screen.getByRole('banner');
+    expect(header).toBeInTheDocument();
+
     // Check if navigation links are present
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Analysis')).toBeInTheDocument();
-    
+    expect(screen.getByText('Pricing')).toBeInTheDocument();
+
     // Check if theme toggle button is present
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument();
-    
+
     // Check if children are rendered
     expect(screen.getByTestId('test-content')).toBeInTheDocument();
     expect(screen.getByText('Test Content')).toBeInTheDocument();

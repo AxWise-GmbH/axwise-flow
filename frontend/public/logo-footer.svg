@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <!-- Background rectangle for the "Ax" part -->
+  <rect x="5" y="5" width="30" height="30" rx="6" fill="#7b68ee"/>
+
+  <!-- "Ax" text in the rectangle -->
+  <text x="20" y="27" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+
+  <!-- "Wise" text next to the rectangle - moved closer to remove space -->
+  <text x="38" y="27" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+</svg>

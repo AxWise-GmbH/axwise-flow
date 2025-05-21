@@ -1,5 +1,5 @@
 /**
- * API endpoint definitions for the Interview Analysis Application
+ * API endpoint definitions for the AxWise Application
  */
 export const API_ENDPOINTS = {
   // Data Management

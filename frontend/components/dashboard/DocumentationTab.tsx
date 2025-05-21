@@ -12,7 +12,7 @@ const DocumentationTab = (): JSX.Element => { // Add return type
       <CardHeader>
         <CardTitle>Documentation</CardTitle>
         <CardDescription>
-          Learn how to use the Interview Analysis Application
+          Learn how to use the AxWise Application
         </CardDescription>
       </CardHeader>
       <CardContent>

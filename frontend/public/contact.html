@@ -4,63 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us - AxWise UG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
+            --primary-color: #7b68ee;
+            --secondary-color: #232946;
             --accent-color: #e74c3c;
             --light-color: #ecf0f1;
-            --dark-color: #2c3e50;
+            --dark-color: #232946;
             --success-color: #2ecc71;
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: var(--font-main);
             line-height: 1.6;
             color: var(--dark-color);
             background-color: #f9f9f9;
         }
-        
+
         .container {
             width: 100%;
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
-        
+
         header {
             background-color: var(--primary-color);
             color: white;
             padding: 1rem 0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        
+
         header .container {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .logo {
             font-size: 1.5rem;
             font-weight: bold;
         }
-        
+
         .logo span {
             color: var(--secondary-color);
         }
-        
+
         main {
             padding: 3rem 0;
         }
-        
+
         h1 {
             font-size: 2.5rem;
             margin-bottom: 1.5rem;
@@ -68,7 +69,7 @@
             position: relative;
             padding-bottom: 0.5rem;
         }
-        
+
         h1::after {
             content: '';
             position: absolute;
@@ -78,14 +79,14 @@
             width: 60px;
             background-color: var(--secondary-color);
         }
-        
+
         .contact-wrapper {
             display: flex;
             flex-wrap: wrap;
             gap: 2rem;
             margin-top: 2rem;
         }
-        
+
         .contact-info {
             flex: 1;
             min-width: 300px;
@@ -94,19 +95,19 @@
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
-        
+
         .contact-info h2 {
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
             color: var(--primary-color);
         }
-        
+
         .info-item {
             margin-bottom: 1.5rem;
             display: flex;
             align-items: flex-start;
         }
-        
+
         .info-item i {
             margin-right: 1rem;
             font-size: 1.2rem;
@@ -114,11 +115,11 @@
             min-width: 24px;
             text-align: center;
         }
-        
+
         .info-item p {
             margin: 0;
         }
-        
+
         .contact-form {
             flex: 1;
             min-width: 300px;
@@ -127,23 +128,23 @@
             border-radius: 8px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
-        
+
         .contact-form h2 {
             font-size: 1.5rem;
             margin-bottom: 1.5rem;
             color: var(--primary-color);
         }
-        
+
         .form-group {
             margin-bottom: 1.5rem;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
         }
-        
+
         .form-control {
             width: 100%;
             padding: 0.75rem;
@@ -152,18 +153,18 @@
             border-radius: 4px;
             transition: border-color 0.3s;
         }
-        
+
         .form-control:focus {
             outline: none;
             border-color: var(--secondary-color);
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
         }
-        
+
         textarea.form-control {
             min-height: 150px;
             resize: vertical;
         }
-        
+
         .btn {
             display: inline-block;
             background-color: var(--secondary-color);
@@ -175,49 +176,49 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        
+
         .btn:hover {
             background-color: #2980b9;
         }
-        
+
         .form-message {
             padding: 1rem;
             margin-top: 1rem;
             border-radius: 4px;
             display: none;
         }
-        
+
         .form-message.success {
             background-color: rgba(46, 204, 113, 0.1);
             color: var(--success-color);
             border: 1px solid var(--success-color);
             display: block;
         }
-        
+
         .form-message.error {
             background-color: rgba(231, 76, 60, 0.1);
             color: var(--accent-color);
             border: 1px solid var(--accent-color);
             display: block;
         }
-        
+
         footer {
             background-color: var(--primary-color);
             color: white;
             padding: 2rem 0;
             margin-top: 3rem;
         }
-        
+
         footer p {
             text-align: center;
         }
-        
+
         .required-field::after {
             content: '*';
             color: var(--accent-color);
             margin-left: 4px;
         }
-        
+
         /* Accessibility improvements */
         .sr-only {
             position: absolute;
@@ -230,18 +231,45 @@
             white-space: nowrap;
             border-width: 0;
         }
-        
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+                color: #ffffff;
+            }
+
+            h1, h2 {
+                color: #ffffff;
+            }
+
+            .contact-info, .contact-form {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+
+            .form-control {
+                background-color: #2d2d2d;
+                border-color: #444;
+                color: #ffffff;
+            }
+
+            .form-control:focus {
+                border-color: var(--primary-color);
+            }
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .contact-wrapper {
                 flex-direction: column;
             }
-            
+
             h1 {
                 font-size: 2rem;
             }
         }
-        
+
         /* Font Awesome icons (minimal subset) */
         .fa {
             display: inline-block;
@@ -266,24 +294,127 @@
     </style>
 </head>
 <body>
+    <!-- Header with AxWise Logo -->
     <header>
         <div class="container">
-            <div class="logo">Ax<span>Wise</span> UG</div>
-            <nav>
-                <!-- Navigation can be added here -->
+            <a href="/" class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-light">
+                    <!-- Background rectangle for the "Ax" part -->
+                    <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                    <!-- "Ax" text in the rectangle -->
+                    <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                    <!-- "Wise" text next to the rectangle -->
+                    <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="#232946">Wise</text>
+                    <!-- Tagline -->
+                    <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#5d6387" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-dark">
+                    <!-- Background rectangle for the "Ax" part -->
+                    <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                    <!-- "Ax" text in the rectangle -->
+                    <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                    <!-- "Wise" text next to the rectangle -->
+                    <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                    <!-- Tagline -->
+                    <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#a0a3bd" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+                </svg>
+            </a>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="/unified-dashboard" class="text-sm font-medium transition-colors hover:text-primary">Dashboard</a>
+                <a href="/pricing" class="text-sm font-medium transition-colors hover:text-primary">Pricing</a>
+                <a href="/contact.html" class="text-sm font-medium transition-colors hover:text-primary">Contact Us</a>
             </nav>
         </div>
     </header>
-    
+
+    <style>
+        /* Header styles */
+        header {
+            background-color: #ffffff;
+            color: var(--dark-color);
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header .logo {
+            text-decoration: none;
+            display: block;
+        }
+
+        header .logo-dark {
+            display: none;
+        }
+
+        header nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        header nav a {
+            color: var(--dark-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            font-size: 0.875rem; /* text-sm */
+        }
+
+        header nav a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Responsive navigation */
+        @media (max-width: 768px) {
+            .hidden {
+                display: none;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .md\:flex {
+                display: flex;
+            }
+
+            .space-x-6 > * + * {
+                margin-left: 1.5rem;
+            }
+        }
+
+        /* Dark mode support for header */
+        @media (prefers-color-scheme: dark) {
+            header {
+                background-color: #121212;
+                color: #ffffff;
+            }
+
+            header .logo-light {
+                display: none;
+            }
+
+            header .logo-dark {
+                display: block;
+            }
+
+            header nav a {
+                color: #ffffff;
+            }
+        }
+    </style>
+
     <main>
         <div class="container">
             <h1>Contact Us</h1>
             <p>We'd love to hear from you. Please use the contact information below or fill out the form to get in touch with us.</p>
-            
+
             <div class="contact-wrapper">
                 <div class="contact-info">
                     <h2>Contact Information</h2>
-                    
+
                     <div class="info-item">
                         <i class="fa fa-map-marker" aria-hidden="true"></i>
                         <div>
@@ -293,7 +424,7 @@
                             <p>Germany</p>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
                         <i class="fa fa-envelope" aria-hidden="true"></i>
                         <div>
@@ -301,7 +432,7 @@
                             <p><a href="mailto:vitalijs@axwise.de">vitalijs@axwise.de</a></p>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
                         <i class="fa fa-user" aria-hidden="true"></i>
                         <div>
@@ -309,7 +440,7 @@
                             <p>Vitalijs Visnevskis</p>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
                         <i class="fa fa-info-circle" aria-hidden="true"></i>
                         <div>
@@ -318,7 +449,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="contact-form">
                     <h2>Send Us a Message</h2>
                     <form id="contactForm" action="https://formspree.io/f/vitalijs@axwise.de" method="POST">
@@ -326,57 +457,121 @@
                             <label for="name" class="required-field">Name</label>
                             <input type="text" id="name" name="name" class="form-control" required aria-required="true">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="email" class="required-field">Email</label>
                             <input type="email" id="email" name="email" class="form-control" required aria-required="true">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="subject">Subject</label>
                             <input type="text" id="subject" name="subject" class="form-control">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="message" class="required-field">Message</label>
                             <textarea id="message" name="message" class="form-control" required aria-required="true"></textarea>
                         </div>
-                        
+
                         <div class="form-group">
                             <button type="submit" class="btn">Send Message</button>
                         </div>
-                        
+
                         <div id="formMessage" class="form-message"></div>
                     </form>
                 </div>
             </div>
         </div>
     </main>
-    
+
     <footer>
         <div class="container">
-            <p>&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <a href="/">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="30" viewBox="0 0 120 30">
+                            <!-- Background rectangle for the "Ax" part -->
+                            <rect x="2" y="5" width="20" height="20" rx="4" fill="#7b68ee"/>
+                            <!-- "Ax" text in the rectangle -->
+                            <text x="12" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                            <!-- "Wise" text next to the rectangle -->
+                            <text x="24" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                        </svg>
+                    </a>
+                </div>
+                <div class="footer-links">
+                    <a href="/impressum.html">Impressum</a>
+                    <a href="/privacy-policy.html">Privacy Policy</a>
+                    <a href="/terms-of-service.html">Terms of Service</a>
+                    <a href="/contact.html">Contact</a>
+                </div>
+                <p class="copyright">&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
+            </div>
         </div>
     </footer>
+
+    <style>
+        /* Footer styles */
+        footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .footer-logo a {
+            display: block;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            opacity: 0.8;
+        }
+
+        .copyright {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
 
     <script>
         document.getElementById('contactForm').addEventListener('submit', function(event) {
             event.preventDefault();
-            
+
             const formData = new FormData(this);
             const formMessage = document.getElementById('formMessage');
-            
+
             // Simple validation
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
-            
+
             if (!name || !email || !message) {
                 formMessage.textContent = 'Please fill in all required fields.';
                 formMessage.className = 'form-message error';
                 return;
             }
-            
+
             // Email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
@@ -384,17 +579,17 @@
                 formMessage.className = 'form-message error';
                 return;
             }
-            
+
             // In a real implementation, you would send the form data to your server or a form service
             // For this example, we'll simulate a successful submission
-            
+
             // Simulating form submission (replace with actual form submission code)
             setTimeout(() => {
                 formMessage.textContent = 'Your message has been sent successfully. We will get back to you soon!';
                 formMessage.className = 'form-message success';
                 this.reset();
             }, 1000);
-            
+
             // Actual form submission using Formspree would look like:
             /*
             fetch("https://formspree.io/f/vitalijs@axwise.de", {

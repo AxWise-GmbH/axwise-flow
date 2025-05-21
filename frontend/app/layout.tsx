@@ -9,8 +9,20 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Interview Analysis',
-  description: 'Analyze interview data with AI'
+  title: 'AxWise - Your AI Co-Pilot for Product Development',
+  description: 'Transform your raw ideas into validated, actionable plans with AxWise\'s powerful AI co-pilot',
+  icons: {
+    icon: [
+      {
+        url: '/favicon.svg',
+        type: 'image/svg+xml',
+      }
+    ],
+    apple: {
+      url: '/favicon.svg',
+      type: 'image/svg+xml',
+    }
+  }
 };
 
 export const viewport = {

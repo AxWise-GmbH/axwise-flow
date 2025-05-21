@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms of Service - AxWise UG</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <style>
         :root {
-            --primary-color: #3b82f6;
+            --primary-color: #7b68ee;
+            --secondary-color: #232946;
             --accent-color: #2563eb;
-            --text-color: #1f2937;
+            --text-color: #232946;
             --light-bg: #f9fafb;
             --border-color: #e5e7eb;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
@@ -21,82 +23,82 @@
             margin: 0;
             padding: 0;
         }
-        
+
         header {
             background-color: var(--primary-color);
             color: white;
             padding: 1rem 0;
         }
-        
+
         .container {
             width: 90%;
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 1rem;
         }
-        
+
         .logo {
             font-size: 1.5rem;
             font-weight: bold;
         }
-        
+
         .logo span {
             color: #f0f9ff;
         }
-        
+
         main {
             padding: 2rem 0;
         }
-        
+
         h1 {
             color: var(--primary-color);
             font-size: 2.5rem;
             margin-bottom: 1rem;
         }
-        
+
         h2 {
             color: var(--accent-color);
             font-size: 1.5rem;
             margin: 1.5rem 0 0.5rem;
         }
-        
+
         p, ul, ol {
             margin-bottom: 1rem;
         }
-        
+
         .terms-content {
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             padding: 2rem;
         }
-        
+
         .info-section {
             margin-bottom: 2rem;
         }
-        
+
         .info-section:last-child {
             margin-bottom: 0;
         }
-        
+
         footer {
             background-color: var(--primary-color);
             color: white;
             padding: 2rem 0;
             margin-top: 3rem;
         }
-        
+
         footer p {
             text-align: center;
             margin-bottom: 0;
         }
-        
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
             }
-            
+
             .terms-content {
                 padding: 1.5rem;
             }
@@ -104,36 +106,153 @@
     </style>
 </head>
 <body>
+    <!-- Header with AxWise Logo -->
     <header>
         <div class="container">
-            <div class="logo">Ax<span>Wise</span> UG</div>
-            <nav>
-                <!-- Navigation can be added here -->
+            <a href="/" class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-light">
+                    <!-- Background rectangle for the "Ax" part -->
+                    <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                    <!-- "Ax" text in the rectangle -->
+                    <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                    <!-- "Wise" text next to the rectangle -->
+                    <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="#232946">Wise</text>
+                    <!-- Tagline -->
+                    <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#5d6387" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="150" height="40" viewBox="0 0 240 60" class="logo-dark">
+                    <!-- Background rectangle for the "Ax" part -->
+                    <rect x="5" y="10" width="40" height="40" rx="8" fill="#7b68ee"/>
+                    <!-- "Ax" text in the rectangle -->
+                    <text x="25" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                    <!-- "Wise" text next to the rectangle -->
+                    <text x="48" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                    <!-- Tagline -->
+                    <text x="55" y="50" font-family="Arial, sans-serif" font-size="10" font-weight="normal" text-anchor="start" fill="#a0a3bd" textLength="170" lengthAdjust="spacingAndGlyphs">Your AI Co-Pilot for Product Development</text>
+                </svg>
+            </a>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="/unified-dashboard" class="text-sm font-medium transition-colors hover:text-primary">Dashboard</a>
+                <a href="/pricing" class="text-sm font-medium transition-colors hover:text-primary">Pricing</a>
+                <a href="/contact.html" class="text-sm font-medium transition-colors hover:text-primary">Contact Us</a>
             </nav>
         </div>
     </header>
-    
+
+    <style>
+        /* Header styles */
+        header {
+            background-color: #ffffff;
+            color: var(--text-color);
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header .logo {
+            text-decoration: none;
+            display: block;
+        }
+
+        header .logo-dark {
+            display: none;
+        }
+
+        header nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        header nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            font-size: 0.875rem; /* text-sm */
+        }
+
+        header nav a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Responsive navigation */
+        @media (max-width: 768px) {
+            .hidden {
+                display: none;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .md\:flex {
+                display: flex;
+            }
+
+            .space-x-6 > * + * {
+                margin-left: 1.5rem;
+            }
+        }
+
+        /* Dark mode support for header */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+                color: #ffffff;
+            }
+
+            header {
+                background-color: #121212;
+                color: #ffffff;
+            }
+
+            header .logo-light {
+                display: none;
+            }
+
+            header .logo-dark {
+                display: block;
+            }
+
+            header nav a {
+                color: #ffffff;
+            }
+
+            h1, h2 {
+                color: #ffffff;
+            }
+
+            .terms-content {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+        }
+    </style>
+
     <main>
         <div class="container">
             <h1>Terms of Service</h1>
             <p>Last Updated: May 20, 2025</p>
-            
+
             <div class="terms-content">
                 <div class="info-section">
                     <h2>1. Acceptance of Terms</h2>
                     <p>By accessing or using the Interview Analysis application and related services (collectively, the "Service") provided by AxWise UG (in formation) ("we", "our", or "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our Service.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>2. Description of Service</h2>
                     <p>Our Service provides tools for analyzing interview transcripts, generating insights, and creating personas based on user research data. The Service may include AI-powered analysis, data visualization, and report generation features.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>3. User Accounts</h2>
                     <p>To access certain features of the Service, you may be required to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>4. User Content</h2>
                     <p>Our Service allows you to upload, submit, and share content, including interview transcripts and related data ("User Content"). You retain all rights to your User Content, but you grant us a non-exclusive, worldwide, royalty-free license to use, reproduce, modify, and display your User Content solely for the purpose of providing and improving the Service.</p>
@@ -144,7 +263,7 @@
                         <li>Your User Content does not contain confidential information that you do not have the right to disclose</li>
                     </ul>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>5. Prohibited Uses</h2>
                     <p>You agree not to use the Service:</p>
@@ -157,13 +276,13 @@
                         <li>To engage in any automated use of the system, such as using scripts to send comments or messages</li>
                     </ul>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>6. Intellectual Property</h2>
                     <p>The Service and its original content (excluding User Content), features, and functionality are and will remain the exclusive property of AxWise UG and its licensors. The Service is protected by copyright, trademark, and other laws of Germany and foreign countries.</p>
                     <p>Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of AxWise UG.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>7. Limitation of Liability</h2>
                     <p>To the maximum extent permitted by law, in no event shall AxWise UG, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from:</p>
@@ -174,22 +293,22 @@
                         <li>Unauthorized access, use, or alteration of your transmissions or content</li>
                     </ul>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>8. Disclaimer</h2>
                     <p>Your use of the Service is at your sole risk. The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement, or course of performance.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>9. Changes to Terms</h2>
                     <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>10. Governing Law</h2>
                     <p>These Terms shall be governed and construed in accordance with the laws of Germany, without regard to its conflict of law provisions.</p>
                 </div>
-                
+
                 <div class="info-section">
                     <h2>11. Contact Us</h2>
                     <p>If you have any questions about these Terms, please contact us:</p>
@@ -202,11 +321,75 @@
             </div>
         </div>
     </main>
-    
+
     <footer>
         <div class="container">
-            <p>&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <a href="/">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="30" viewBox="0 0 120 30">
+                            <!-- Background rectangle for the "Ax" part -->
+                            <rect x="2" y="5" width="20" height="20" rx="4" fill="#7b68ee"/>
+                            <!-- "Ax" text in the rectangle -->
+                            <text x="12" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+                            <!-- "Wise" text next to the rectangle -->
+                            <text x="24" y="19" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="start" fill="white">Wise</text>
+                        </svg>
+                    </a>
+                </div>
+                <div class="footer-links">
+                    <a href="/impressum.html">Impressum</a>
+                    <a href="/privacy-policy.html">Privacy Policy</a>
+                    <a href="/terms-of-service.html">Terms of Service</a>
+                    <a href="/contact.html">Contact</a>
+                </div>
+                <p class="copyright">&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
+            </div>
         </div>
     </footer>
+
+    <style>
+        /* Footer styles */
+        footer {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .footer-logo a {
+            display: block;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            opacity: 0.8;
+        }
+
+        .copyright {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+    </style>
 </body>
 </html>
