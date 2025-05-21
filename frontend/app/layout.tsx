@@ -11,18 +11,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AxWise - Your AI Co-Pilot for Product Development',
   description: 'Transform your raw ideas into validated, actionable plans with AxWise\'s powerful AI co-pilot',
-  icons: {
-    icon: [
-      {
-        url: '/favicon.svg',
-        type: 'image/svg+xml',
-      }
-    ],
-    apple: {
-      url: '/favicon.svg',
-      type: 'image/svg+xml',
-    }
-  }
+  // The icons are now handled by the app/favicon.ico, app/icon.tsx, and app/apple-icon.tsx files
 };
 
 export const viewport = {

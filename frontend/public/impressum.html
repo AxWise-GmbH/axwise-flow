@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impressum - AxWise UG</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
         :root {
             --primary-color: #7b68ee;
@@ -319,6 +320,7 @@
     <footer>
         <div class="container">
             <div class="footer-content">
+                <!-- Logo Section - Left aligned -->
                 <div class="footer-logo">
                     <a href="/">
                         <svg xmlns="http://www.w3.org/2000/svg" width="120" height="30" viewBox="0 0 120 30">
@@ -331,13 +333,20 @@
                         </svg>
                     </a>
                 </div>
-                <div class="footer-links">
-                    <a href="/impressum.html">Impressum</a>
-                    <a href="/privacy-policy.html">Privacy Policy</a>
-                    <a href="/terms-of-service.html">Terms of Service</a>
-                    <a href="/contact.html">Contact</a>
+
+                <!-- Right side content -->
+                <div class="footer-right">
+                    <!-- Navigation Links -->
+                    <div class="footer-links">
+                        <a href="/impressum.html">Impressum</a>
+                        <a href="/privacy-policy.html">Privacy Policy</a>
+                        <a href="/terms-of-service.html">Terms of Service</a>
+                        <a href="/contact.html">Contact</a>
+                    </div>
+
+                    <!-- Copyright Notice -->
+                    <p class="copyright">&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
                 </div>
-                <p class="copyright">&copy; 2025 AxWise UG (in formation). All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -354,12 +363,26 @@
         .footer-content {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             gap: 1.5rem;
+        }
+
+        .footer-logo {
+            width: 100%;
+            display: flex;
+            justify-content: center;
         }
 
         .footer-logo a {
             display: block;
+        }
+
+        .footer-right {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
         }
 
         .footer-links {
@@ -373,6 +396,7 @@
             color: white;
             text-decoration: none;
             transition: opacity 0.3s ease;
+            font-size: 0.875rem;
         }
 
         .footer-links a:hover {
@@ -380,9 +404,32 @@
         }
 
         .copyright {
-            margin-top: 1rem;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             opacity: 0.8;
+            text-align: center;
+        }
+
+        /* Responsive layout */
+        @media (min-width: 768px) {
+            .footer-content {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+
+            .footer-logo {
+                width: auto;
+                justify-content: flex-start;
+            }
+
+            .footer-right {
+                width: auto;
+                align-items: flex-end;
+            }
+
+            .copyright {
+                text-align: right;
+            }
         }
     </style>
 </body>
