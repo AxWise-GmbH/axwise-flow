@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ToastProvider } from '@/components/providers/toast-provider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { FirebaseClerkProvider } from '@/components/providers/firebase-clerk-provider';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -37,25 +38,23 @@ export function Providers({ children }: ProvidersProps): JSX.Element {
     );
   }
 
-  // If Clerk is configured, use ClerkProvider
+  // If Clerk is configured, use ClerkProvider with FirebaseClerkProvider
   return (
     <ClerkProvider
       publishableKey={clerkPublishableKey}
-      afterSignInUrl="/unified-dashboard"
-      afterSignUpUrl="/unified-dashboard"
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
     >
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
-          {children}
-        </ToastProvider>
-      </ThemeProvider>
+      <FirebaseClerkProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
+      </FirebaseClerkProvider>
     </ClerkProvider>
   );
 }

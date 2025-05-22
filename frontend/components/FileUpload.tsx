@@ -129,7 +129,7 @@ export function FileUpload({
           formData.append('file', file);
           formData.append('isTextFile', String(isTextFile));
 
-          // Import the server action dynamically to avoid issues with 'use server' directive
+          // Import the server action for SSR
           const { uploadAction } = await import('@/app/actions');
 
           // Call the server action directly - it will use XMLHttpRequest in browser context

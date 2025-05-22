@@ -15,19 +15,13 @@ import { usePathname } from 'next/navigation';
 
 import type { ReactNode } from 'react';
 
-// Define the props interface
-interface UnifiedDashboardLayoutProps {
-  children: ReactNode;
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 export default function UnifiedDashboardLayout({
   children,
-  searchParams,
-}: UnifiedDashboardLayoutProps): JSX.Element {
+}: {
+  children: ReactNode;
+}): JSX.Element {
   // Get the current path to determine active tab
   const pathname = usePathname();
-  const analysisId = searchParams?.analysisId || '';
 
   // Determine active tab based on pathname
   let activeTab = 'dashboard';
@@ -72,6 +66,16 @@ export default function UnifiedDashboardLayout({
           {children}
         </div>
       </Tabs>
+
+      {/* Firebase Test Link */}
+      <div className="mt-4 text-center">
+        <Link
+          href="/firebase-test"
+          className="text-sm text-blue-500 hover:text-blue-700 underline"
+        >
+          Firebase Authentication Test
+        </Link>
+      </div>
     </div>
   );
 }

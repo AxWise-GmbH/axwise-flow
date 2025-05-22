@@ -3,15 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
   Chip,
   Alert,
@@ -82,21 +82,21 @@ interface DependencyScan {
 }
 
 export default function SecurityDashboard() {
-  const { isLoaded, userId, getToken } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const { isLoaded, userId } = useAuth();
+  const [_isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState<number>(0);
-  
+
   // Data states
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [logs, setLogs] = useState<SecurityLog[]>([]);
   const [scans, setScans] = useState<DependencyScan[]>([]);
-  
+
   // Dialog states
   const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  
+
   // Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
@@ -115,10 +115,10 @@ export default function SecurityDashboard() {
         setLoading(false);
       }
     };
-    
+
     checkAdmin();
   }, [isLoaded, userId]);
-  
+
   // Load data from Firestore
   const loadData = async () => {
     setLoading(true);
@@ -135,7 +135,7 @@ export default function SecurityDashboard() {
         ...doc.data()
       })) as SecurityAlert[];
       setAlerts(alertsData);
-      
+
       // Load security logs
       const logsQuery = query(
         collection(db, 'securityLogs'),
@@ -148,7 +148,7 @@ export default function SecurityDashboard() {
         ...doc.data()
       })) as SecurityLog[];
       setLogs(logsData);
-      
+
       // Load dependency scans
       const scansQuery = query(
         collection(db, 'dependencyScans'),
@@ -161,7 +161,7 @@ export default function SecurityDashboard() {
         ...doc.data()
       })) as DependencyScan[];
       setScans(scansData);
-      
+
       setLoading(false);
     } catch (err) {
       console.error('Error loading security data:', err);
@@ -169,23 +169,23 @@ export default function SecurityDashboard() {
       setLoading(false);
     }
   };
-  
+
   // Handle tab change
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
-  
+
   // Open details dialog
   const handleOpenDetails = (item: any) => {
     setSelectedItem(item);
     setDetailsOpen(true);
   };
-  
+
   // Close details dialog
   const handleCloseDetails = () => {
     setDetailsOpen(false);
   };
-  
+
   // Render loading state
   if (loading) {
     return (
@@ -194,7 +194,7 @@ export default function SecurityDashboard() {
       </Box>
     );
   }
-  
+
   // Render error state
   if (error) {
     return (
@@ -203,26 +203,26 @@ export default function SecurityDashboard() {
       </Box>
     );
   }
-  
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Security Dashboard
       </Typography>
-      
+
       <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
         <Tab label="Security Alerts" />
         <Tab label="Security Logs" />
         <Tab label="Dependency Scans" />
       </Tabs>
-      
+
       {/* Security Alerts Tab */}
       {tabValue === 0 && (
         <Box>
           <Typography variant="h6" gutterBottom>
             Recent Security Alerts
           </Typography>
-          
+
           {alerts.length === 0 ? (
             <Alert severity="info">No security alerts found</Alert>
           ) : (
@@ -242,8 +242,8 @@ export default function SecurityDashboard() {
                   {alerts.map((alert) => (
                     <TableRow key={alert.id}>
                       <TableCell>
-                        <Chip 
-                          label={alert.severity.toUpperCase()} 
+                        <Chip
+                          label={alert.severity.toUpperCase()}
                           color={severityColors[alert.severity] as any}
                           size="small"
                         />
@@ -259,8 +259,8 @@ export default function SecurityDashboard() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          size="small" 
+                        <Button
+                          size="small"
                           variant="outlined"
                           onClick={() => handleOpenDetails(alert)}
                         >
@@ -275,14 +275,14 @@ export default function SecurityDashboard() {
           )}
         </Box>
       )}
-      
+
       {/* Security Logs Tab */}
       {tabValue === 1 && (
         <Box>
           <Typography variant="h6" gutterBottom>
             Recent Security Logs
           </Typography>
-          
+
           {logs.length === 0 ? (
             <Alert severity="info">No security logs found</Alert>
           ) : (
@@ -305,8 +305,8 @@ export default function SecurityDashboard() {
                       <TableCell>{log.ipAddress}</TableCell>
                       <TableCell>{formatDate(log.timestamp)}</TableCell>
                       <TableCell>
-                        <Button 
-                          size="small" 
+                        <Button
+                          size="small"
                           variant="outlined"
                           onClick={() => handleOpenDetails(log)}
                         >
@@ -321,14 +321,14 @@ export default function SecurityDashboard() {
           )}
         </Box>
       )}
-      
+
       {/* Dependency Scans Tab */}
       {tabValue === 2 && (
         <Box>
           <Typography variant="h6" gutterBottom>
             Recent Dependency Scans
           </Typography>
-          
+
           {scans.length === 0 ? (
             <Alert severity="info">No dependency scans found</Alert>
           ) : (
@@ -355,8 +355,8 @@ export default function SecurityDashboard() {
                       </TableCell>
                       <TableCell>{scan.vulnerabilities.length}</TableCell>
                       <TableCell>
-                        <Button 
-                          size="small" 
+                        <Button
+                          size="small"
                           variant="outlined"
                           onClick={() => handleOpenDetails(scan)}
                         >
@@ -371,7 +371,7 @@ export default function SecurityDashboard() {
           )}
         </Box>
       )}
-      
+
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onClose={handleCloseDetails} maxWidth="md" fullWidth>
         <DialogTitle>
