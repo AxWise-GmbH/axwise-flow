@@ -34,7 +34,8 @@ class PersonaService:
     async def generate_persona(self,
                         text: str,
                         llm_provider: str = "gemini",
-                        llm_model: Optional[str] = None) -> Dict[str, Any]:
+                        llm_model: Optional[str] = None,
+                        filename: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a persona from interview text.
 
@@ -42,6 +43,7 @@ class PersonaService:
             text: Raw interview text
             llm_provider: LLM provider to use (gemini or openai)
             llm_model: Specific model to use (optional)
+            filename: Optional filename of the source file (for special handling)
 
         Returns:
             Generated persona data
@@ -74,9 +76,16 @@ class PersonaService:
                 )
 
             # Generate personas
+            context = {'original_text': text}
+
+            # Add filename to context if provided
+            if filename:
+                context['filename'] = filename
+                logger.info(f"Using filename in persona generation context: {filename}")
+
             personas = await self._persona_formation_service.generate_persona_from_text(
                 text,
-                {'original_text': text}
+                context
             )
 
             if not personas or len(personas) == 0:

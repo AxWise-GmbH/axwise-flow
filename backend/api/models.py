@@ -8,8 +8,8 @@ class UploadRequest(BaseModel):
     filename: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "file_type": "json",
                 "content": [{"question": "What do you think?", "answer": "It's great"}],
@@ -17,6 +17,7 @@ class UploadRequest(BaseModel):
                 "metadata": {"source": "customer interviews", "date": "2023-03-01"}
             }
         }
+    }
 
 class FileUploadRequest(BaseModel):
     """Request data for uploading files"""
@@ -26,8 +27,8 @@ class FileUploadRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     is_free_text: Optional[bool] = Field(False, description="Whether the content is free-text format")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "file_type": "json",
                 "content": [{"question": "What do you think?", "answer": "It's great"}],
@@ -36,6 +37,7 @@ class FileUploadRequest(BaseModel):
                 "is_free_text": False
             }
         }
+    }
 
 class AnalysisRequest(BaseModel):
     """Request data for analyzing interview data."""
@@ -45,8 +47,8 @@ class AnalysisRequest(BaseModel):
     is_free_text: Optional[bool] = False
     industry: Optional[str] = None
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "data_id": "83f05e58-5eb1-4a41-a761-4ed71cc51eab",
                 "llm_provider": "openai",
@@ -55,3 +57,4 @@ class AnalysisRequest(BaseModel):
                 "industry": "healthcare"
             }
         }
+    }

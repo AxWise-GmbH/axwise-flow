@@ -127,6 +127,22 @@ class NLPProcessor:
             texts = []
             answer_texts = []  # Explicitly track answer-only content for theme analysis
 
+            # Extract metadata if available
+            metadata = {}
+            if isinstance(data, dict) and "metadata" in data:
+                metadata = data.get("metadata", {})
+                logger.info(f"Extracted metadata: {metadata}")
+
+            # Store filename from metadata if available
+            filename = None
+            if metadata and "filename" in metadata:
+                filename = metadata.get("filename")
+                logger.info(f"Using filename from metadata: {filename}")
+
+                # Check if this is a Problem_demo file
+                if filename and "Problem_demo" in filename:
+                    logger.info(f"Detected Problem_demo file: {filename}. Special handling will be applied.")
+
             # Detect and handle free-text format
             if isinstance(data, str) or (
                 isinstance(data, dict) and "free_text" in data
@@ -304,15 +320,21 @@ class NLPProcessor:
                     "Primary LLM is not Gemini. Using primary LLM for enhanced themes."
                 )
 
+            # Create enhanced theme analysis payload with filename if available
+            enhanced_theme_payload = {
+                "task": "theme_analysis_enhanced",
+                "text": answer_only_text,  # Use answer-only text for themes
+                "use_answer_only": True,  # Flag to indicate answer-only processing
+                "industry": config.get("industry")  # Pass industry context if available
+            }
+
+            # Add filename to payload if available
+            if filename:
+                enhanced_theme_payload["filename"] = filename
+                logger.info(f"Adding filename to enhanced theme analysis payload: {filename}")
+
             # Call analyze using the determined service for enhanced theme analysis
-            enhanced_themes_task = target_llm_service_enhanced.analyze(
-                {
-                    "task": "theme_analysis_enhanced",
-                    "text": answer_only_text,  # Use answer-only text for themes
-                    "use_answer_only": True,  # Flag to indicate answer-only processing
-                    "industry": config.get("industry")  # Pass industry context if available
-                }
-            )
+            enhanced_themes_task = target_llm_service_enhanced.analyze(enhanced_theme_payload)
 
             # Get enhanced themes directly
             enhanced_themes_result = await enhanced_themes_task
@@ -494,24 +516,36 @@ class NLPProcessor:
             industry = await self._detect_industry(combined_text, llm_service)
             logger.info(f"Detected industry: {industry}")
 
-            # Run pattern recognition and sentiment analysis with theme data and industry context
-            patterns_task = llm_service.analyze(
-                {
-                    "task": "pattern_recognition",
-                    "text": combined_text,
-                    "industry": industry
-                }
-            )
+            # Create pattern recognition payload with filename if available
+            pattern_payload = {
+                "task": "pattern_recognition",
+                "text": combined_text,
+                "industry": industry
+            }
+
+            # Add filename to payload if available
+            if filename:
+                pattern_payload["filename"] = filename
+                logger.info(f"Adding filename to pattern recognition payload: {filename}")
+
+            # Run pattern recognition with theme data and industry context
+            patterns_task = llm_service.analyze(pattern_payload)
+
+            # Create sentiment analysis payload with filename if available
+            sentiment_payload = {
+                "task": "sentiment_analysis",
+                "text": self._preprocess_transcript_for_sentiment(combined_text),
+                "themes": themes_result.get("themes", []),
+                "industry": industry
+            }
+
+            # Add filename to payload if available
+            if filename:
+                sentiment_payload["filename"] = filename
+                logger.info(f"Adding filename to sentiment analysis payload: {filename}")
 
             # Pass themes to sentiment analysis to leverage their statements if needed
-            sentiment_task = llm_service.analyze(
-                {
-                    "task": "sentiment_analysis",
-                    "text": self._preprocess_transcript_for_sentiment(combined_text),
-                    "themes": themes_result.get("themes", []),
-                    "industry": industry
-                }
-            )
+            sentiment_task = llm_service.analyze(sentiment_payload)
 
             # Wait for remaining tasks to complete
             patterns_result, sentiment_result = await asyncio.gather(
@@ -594,15 +628,22 @@ class NLPProcessor:
 
             # Generate insights using the results from parallel analysis
             insight_start_time = asyncio.get_event_loop().time()
-            insights_result = await llm_service.analyze(
-                {
-                    "task": "insight_generation",
-                    "text": combined_text,
-                    "themes": themes_result.get("themes", []),
-                    "patterns": patterns_result.get("patterns", []),
-                    "sentiment": processed_sentiment,
-                }
-            )
+
+            # Create insight generation payload with filename if available
+            insight_payload = {
+                "task": "insight_generation",
+                "text": combined_text,
+                "themes": themes_result.get("themes", []),
+                "patterns": patterns_result.get("patterns", []),
+                "sentiment": processed_sentiment,
+            }
+
+            # Add filename to payload if available
+            if filename:
+                insight_payload["filename"] = filename
+                logger.info(f"Adding filename to insight generation payload: {filename}")
+
+            insights_result = await llm_service.analyze(insight_payload)
 
             insight_duration = asyncio.get_event_loop().time() - insight_start_time
             logger.info(

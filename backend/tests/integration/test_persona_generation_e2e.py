@@ -209,7 +209,7 @@ async def test_gemini_service_direct():
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-2.5-flash-preview-04-17",
+            "model": "gemini-2.5-flash-preview-05-20",
         }
 
         llm_service = GeminiService(llm_config)
@@ -252,7 +252,7 @@ async def test_persona_formation_service():
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-2.5-flash-preview-04-17",
+            "model": "gemini-2.5-flash-preview-05-20",
         }
 
         llm_service = GeminiService(llm_config)

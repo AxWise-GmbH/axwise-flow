@@ -14,7 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
 # Import Base from database.py to ensure we use the same Base instance
-from .database import Base
+from backend.database import Base
 
 
 class User(Base):

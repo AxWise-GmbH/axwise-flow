@@ -21,161 +21,24 @@ def repair_json(json_str: str) -> str:
 
     Returns:
         A repaired JSON string that should be parseable
+
+    Deprecated:
+        This function is deprecated and will be removed in a future version.
+        Use backend.utils.json.instructor_parser.parse_json_with_instructor instead.
     """
-    if not json_str or not isinstance(json_str, str):
-        return "{}"
+    import warnings
+    warnings.warn(
+        "repair_json is deprecated and will be removed in a future version. "
+        "Use backend.utils.json.instructor_parser.parse_json_with_instructor instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
 
-    logger.info(f"Attempting to repair JSON (first 100 chars): {json_str[:100]}...")
+    # Import here to avoid circular imports
+    from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
 
-    # Step 1: Remove any markdown code block markers
-    json_str = re.sub(r'```(?:json)?\s*([\s\S]*?)\s*```', r'\1', json_str)
-
-    # Step 2: Extract JSON if it's embedded in other text
-    json_match = re.search(r'({[\s\S]*}|\[[\s\S]*\])', json_str)
-    if json_match:
-        json_str = json_match.group(1)
-
-    # Step 3: Handle truncated JSON arrays
-    if json_str.strip().startswith('[') and not json_str.strip().endswith(']'):
-        logger.warning("Detected truncated JSON array. Attempting to close the array.")
-        # Count open and close brackets to determine nesting level
-        open_brackets = json_str.count('[')
-        close_brackets = json_str.count(']')
-        missing_close_brackets = open_brackets - close_brackets
-
-        # Add missing closing brackets
-        if missing_close_brackets > 0:
-            # First check if we're in the middle of an object
-            last_open_brace = json_str.rfind('{')
-            last_close_brace = json_str.rfind('}')
-
-            if last_open_brace > last_close_brace:
-                # We're in the middle of an object, close it first
-                json_str += '}'
-
-            # Now close any array brackets
-            json_str += ']' * missing_close_brackets
-            logger.info(f"Added {missing_close_brackets} closing brackets to truncated array")
-
-    # Step 4: Handle truncated JSON objects
-    if json_str.strip().startswith('{') and not json_str.strip().endswith('}'):
-        logger.warning("Detected truncated JSON object. Attempting to close the object.")
-        # Count open and close braces to determine nesting level
-        open_braces = json_str.count('{')
-        close_braces = json_str.count('}')
-        missing_close_braces = open_braces - close_braces
-
-        # Add missing closing braces
-        if missing_close_braces > 0:
-            json_str += '}' * missing_close_braces
-            logger.info(f"Added {missing_close_braces} closing braces to truncated object")
-
-    # Step 5: Fix truncated array elements
-    # Look for array elements that might be cut off
-    if '",' in json_str[-5:] or '},' in json_str[-5:]:
-        logger.warning("Detected truncated array element. Removing trailing comma.")
-        json_str = re.sub(r'[",}],\s*$', r'\1', json_str)
-
-    # Step 6: Fix truncated property names or values
-    # If the string ends with a colon or a colon and some whitespace, it's likely a truncated property
-    if re.search(r':\s*$', json_str):
-        logger.warning("Detected truncated property. Adding empty string value.")
-        json_str += '""'
-
-    # Step 7: Fix trailing commas in objects and arrays
-    json_str = re.sub(r',\s*}', '}', json_str)
-    json_str = re.sub(r',\s*\]', ']', json_str)
-
-    # Step 8: Fix missing quotes around property names
-    json_str = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', json_str)
-
-    # Step 9: Fix single quotes used instead of double quotes
-    # This is more complex as we need to avoid replacing single quotes within strings
-    in_string = False
-    in_escape = False
-    result = []
-
-    for char in json_str:
-        if char == '\\' and not in_escape:
-            in_escape = True
-            result.append(char)
-        elif in_escape:
-            in_escape = False
-            result.append(char)
-        elif char == '"' and not in_escape:
-            in_string = not in_string
-            result.append(char)
-        elif char == "'" and not in_string and not in_escape:
-            # Replace single quotes with double quotes when not in a string
-            result.append('"')
-        else:
-            result.append(char)
-
-    json_str = ''.join(result)
-
-    # Step 10: Fix unquoted string values
-    # This is a heuristic and may not catch all cases
-    json_str = re.sub(r':\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*([,}])', r':"\1"\2', json_str)
-
-    # Step 11: Fix missing commas between array elements
-    json_str = re.sub(r'}\s*{', '},{', json_str)
-    json_str = re.sub(r'"\s*{', '",{', json_str)
-    json_str = re.sub(r'}\s*"', '},"', json_str)
-    json_str = re.sub(r'"\s*"', '","', json_str)
-
-    # Step 12: Fix missing commas between object properties
-    json_str = re.sub(r'"\s*"', '","', json_str)
-
-    # Step 13: Fix boolean and null values
-    json_str = re.sub(r':\s*True\s*([,}])', r':true\1', json_str)
-    json_str = re.sub(r':\s*False\s*([,}])', r':false\1', json_str)
-    json_str = re.sub(r':\s*None\s*([,}])', r':null\1', json_str)
-
-    # Step 14: Fix numeric values
-    # This is a heuristic and may not catch all cases
-    json_str = re.sub(r':\s*([0-9]+\.[0-9]+)\s*([,}])', r':\1\2', json_str)
-    json_str = re.sub(r':\s*([0-9]+)\s*([,}])', r':\1\2', json_str)
-
-    # Final validation check - try to parse and fix if still invalid
-    try:
-        json.loads(json_str)
-        logger.info("JSON repair successful - valid JSON produced")
-    except json.JSONDecodeError as e:
-        logger.warning(f"JSON still invalid after repair: {e}. Attempting last-resort fixes.")
-
-        # Last resort: if it's supposed to be an array but still broken,
-        # create a minimal valid array with whatever complete elements we can extract
-        if json_str.strip().startswith('['):
-            try:
-                # Try to extract valid array elements
-                elements = re.findall(r'({[^{}]*}|"[^"]*"|\[[^\[\]]*\]|true|false|null|-?\d+(?:\.\d+)?)', json_str)
-                if elements:
-                    json_str = '[' + ','.join(elements) + ']'
-                    logger.info(f"Created minimal valid array with {len(elements)} elements")
-                else:
-                    json_str = '[]'
-                    logger.warning("Could not extract any valid elements, returning empty array")
-            except Exception as ex:
-                logger.error(f"Error during last-resort array repair: {ex}")
-                json_str = '[]'
-
-        # If it's supposed to be an object but still broken, create a minimal valid object
-        elif json_str.strip().startswith('{'):
-            try:
-                # Try to extract valid key-value pairs
-                # This regex looks for "key": value patterns
-                pairs = re.findall(r'"([^"]+)"\s*:\s*({[^{}]*}|"[^"]*"|\[[^\[\]]*\]|true|false|null|-?\d+(?:\.\d+)?)', json_str)
-                if pairs:
-                    json_str = '{' + ','.join([f'"{k}": {v}' for k, v in pairs]) + '}'
-                    logger.info(f"Created minimal valid object with {len(pairs)} properties")
-                else:
-                    json_str = '{}'
-                    logger.warning("Could not extract any valid key-value pairs, returning empty object")
-            except Exception as ex:
-                logger.error(f"Error during last-resort object repair: {ex}")
-                json_str = '{}'
-
-    return json_str
+    # Use the enhanced JSON repair utility
+    return EnhancedJSONRepair.repair_json(json_str)
 
 def repair_enhanced_themes_json(json_str: str) -> str:
     """

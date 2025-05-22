@@ -218,30 +218,59 @@ def configure_rate_limiter(app):
                 try:
                     # Define a standalone function for rate limiting
                     # The function must be defined outside the middleware to avoid closure issues
-                    endpoint_limit = limiter._limiter.parse(limit)
+                    # Check if the limiter has a parse method, otherwise use a different approach
+                    if hasattr(limiter._limiter, 'parse'):
+                        endpoint_limit = limiter._limiter.parse(limit)
+                    else:
+                        # Alternative approach if parse method is not available
+                        logger.warning("Rate limiter does not have 'parse' method, using default limits")
+                        # Use the default limiter configuration
+                        try:
+                            # Try to access default_limits attribute
+                            if hasattr(limiter, 'default_limits') and limiter.default_limits:
+                                endpoint_limit = limiter.default_limits[0]
+                            else:
+                                # Fall back to the constant if default_limits is not available
+                                logger.warning("Limiter does not have 'default_limits' attribute, using DEFAULT_RATE_LIMIT")
+                                endpoint_limit = DEFAULT_RATE_LIMIT
+                        except Exception as limits_err:
+                            logger.warning(f"Error accessing default limits: {limits_err}. Using DEFAULT_RATE_LIMIT")
+                            endpoint_limit = DEFAULT_RATE_LIMIT
 
-                    # Get the key function from the endpoint limit
-                    # Try multiple attribute names and fall back to our custom function
-                    key_func = None
-                    for attr_name in ['_key_func', 'key_func']:
-                        if hasattr(endpoint_limit, attr_name):
-                            key_func = getattr(endpoint_limit, attr_name)
-                            break
+                    # Check if endpoint_limit is an object or a string
+                    if isinstance(endpoint_limit, str):
+                        # If it's a string, we can't apply the rate limit directly
+                        # Just log a warning and continue
+                        logger.warning(f"Rate limit '{endpoint_limit}' is a string, not an object. Skipping rate limiting for this request.")
+                    else:
+                        # Get the key function from the endpoint limit
+                        # Try multiple attribute names and fall back to our custom function
+                        key_func = None
+                        for attr_name in ['_key_func', 'key_func']:
+                            if hasattr(endpoint_limit, attr_name):
+                                key_func = getattr(endpoint_limit, attr_name)
+                                break
 
-                    # If we still don't have a key function, use our custom one
-                    if key_func is None:
-                        key_func = get_user_identifier
-                        logger.warning(f"No key function found in endpoint_limit, using custom function")
+                        # If we still don't have a key function, use our custom one
+                        if key_func is None:
+                            key_func = get_user_identifier
+                            logger.warning(f"No key function found in endpoint_limit, using custom function")
 
-                    # Apply the rate limit
-                    limiter._check_request_limit(
-                        endpoint_limit,
-                        request,
-                        key_func(request),
-                        endpoint_limit.scope,
-                        endpoint_limit.per_method,
-                        False,
-                    )
+                        # Apply the rate limit
+                        try:
+                            limiter._check_request_limit(
+                                endpoint_limit,
+                                request,
+                                key_func(request),
+                                getattr(endpoint_limit, 'scope', None),
+                                getattr(endpoint_limit, 'per_method', False),
+                                False,
+                            )
+                        except AttributeError as attr_err:
+                            logger.error(f"AttributeError in rate limiting: {attr_err}. Endpoint limit may not have required attributes.")
+                            # In development, we'll let the request through
+                            if IS_PRODUCTION:
+                                raise
                     logger.debug(f"Rate limit applied: {limit} for path {path}")
                 except Exception as e:
                     # Log the error but don't block the request

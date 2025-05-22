@@ -15,6 +15,14 @@ import logging
 from datetime import datetime
 import re
 
+# Import enhanced JSON parsing
+from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
+from backend.services.processing.persona_formation_service_enhanced import parse_llm_json_response_enhanced
+from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
+from domain.models.persona_schema import Persona as PersonaModel
+# Import new Instructor-based parser
+from backend.utils.json.instructor_parser import parse_llm_json_response_with_instructor
+
 # Import our modules
 from .transcript_structuring_service import TranscriptStructuringService
 from .attribute_extractor import AttributeExtractor
@@ -123,10 +131,14 @@ class PersonaFormationService:
         self.evidence_linking_service = EvidenceLinkingService(llm_service)
         self.trait_formatting_service = TraitFormattingService(llm_service)
 
+        # Initialize the Instructor client (lazy loading - will be created when needed)
+        self._instructor_client = None
+
         # No longer using TranscriptProcessor - all functionality is now in TranscriptStructuringService
         logger.info("Using TranscriptStructuringService for transcript processing")
         logger.info("Using EvidenceLinkingService for enhanced evidence linking")
         logger.info("Using TraitFormattingService for improved trait value formatting")
+        logger.info("Using Instructor for structured outputs from LLMs")
 
         logger.info(f"Initialized PersonaFormationService with {llm_service.__class__.__name__}")
 
@@ -268,7 +280,13 @@ class PersonaFormationService:
                 logger.info(f"Text sample: {text[:200]}...")
 
                 # Use the new TranscriptStructuringService to structure the transcript
-                structured_transcript = await self.transcript_structuring_service.structure_transcript(text)
+                # Pass filename if available in context
+                filename = None
+                if context and "filename" in context:
+                    filename = context.get("filename")
+                    logger.info(f"Using filename from context for transcript structuring: {filename}")
+
+                structured_transcript = await self.transcript_structuring_service.structure_transcript(text, filename=filename)
 
                 if structured_transcript and len(structured_transcript) > 0:
                     logger.info(f"Successfully structured transcript using LLM: {len(structured_transcript)} segments")
@@ -393,11 +411,11 @@ class PersonaFormationService:
                         **(context or {})
                     }
 
-                    # Create a prompt based on the role
-                    prompt = self.prompt_generator.create_persona_prompt(text, role)
+                    # Create a prompt based on the role using simplified format
+                    prompt = self.prompt_generator.create_simplified_persona_prompt(text, role)
 
                     # Log the prompt length for debugging
-                    logger.info(f"Created prompt for {speaker} with length: {len(prompt)} chars")
+                    logger.info(f"Created simplified prompt for {speaker} with length: {len(prompt)} chars")
 
                     # Call LLM to generate persona
                     # Use the full text for analysis with Gemini 2.5 Flash's large context window
@@ -410,12 +428,20 @@ class PersonaFormationService:
                         "text": text_to_analyze,
                         "prompt": prompt,
                         "enforce_json": True,  # Flag to enforce JSON output using response_mime_type
+                        "response_mime_type": "application/json",  # Explicitly request JSON response
                         "speaker": speaker,
                         "role": role
                     }
 
                     # Call LLM to generate persona
                     llm_response = await self.llm_service.analyze(request_data)
+
+                    # --- ADD DETAILED LOGGING HERE ---
+                    logger.info(f"[PersonaFormationService] Raw LLM response for persona_formation (first 500 chars): {str(llm_response)[:500]}")
+                    # If it's a string, log the full string for debugging if it's not too long
+                    if isinstance(llm_response, str) and len(llm_response) < 2000:
+                        logger.debug(f"[PersonaFormationService] Full raw LLM response string: {llm_response}")
+                    # --- END DETAILED LOGGING ---
 
                     # Parse the response
                     persona_data = self._parse_llm_json_response(llm_response, f"form_personas_from_transcript for {speaker}")
@@ -512,23 +538,118 @@ class PersonaFormationService:
             # Create a prompt for pattern-based persona formation
             prompt = self.prompt_generator.create_pattern_prompt(pattern_descriptions)
 
-            # Call LLM to analyze patterns
-            llm_response = await self.llm_service.analyze({
-                "task": "persona_formation",
-                "text": pattern_descriptions,
-                "prompt": prompt,
-                "enforce_json": True
-            })
+            # Try using Instructor first
+            try:
+                logger.info("Using Instructor for pattern-based persona formation")
 
-            # Parse the response
-            attributes = self._parse_llm_json_response(llm_response, "_analyze_patterns_for_persona")
+                # Add specific instructions for JSON formatting
+                system_instruction = """
+                You are an expert in creating user personas based on pattern analysis.
+                Create a detailed, evidence-based persona that captures the key characteristics,
+                goals, challenges, and behaviors based on the identified patterns.
+                """
 
-            if attributes and isinstance(attributes, dict):
-                logger.info(f"Successfully parsed persona attributes from patterns.")
+                # Generate with Instructor
+                try:
+                    persona_response = await self.instructor_client.generate_with_model_async(
+                        prompt=prompt,
+                        model_class=PersonaModel,
+                        temperature=0.0,  # Use deterministic output for structured data
+                        system_instruction=system_instruction,
+                        max_output_tokens=65536,  # Use large token limit for detailed personas
+                        response_mime_type="application/json"  # Force JSON output
+                    )
+                except Exception as e:
+                    logger.error(f"Error using Instructor for pattern-based persona formation: {str(e)}", exc_info=True)
+                    # Try one more time with even more strict settings
+                    persona_response = await self.instructor_client.generate_with_model_async(
+                        prompt=prompt,
+                        model_class=PersonaModel,
+                        temperature=0.0,
+                        system_instruction=system_instruction + "\nYou MUST output valid JSON that conforms to the schema.",
+                        max_output_tokens=65536,
+                        response_mime_type="application/json",
+                        top_p=1.0,
+                        top_k=1
+                    )
+
+                logger.info("Received structured persona response from Instructor")
+
+                # Convert Pydantic model to dictionary
+                attributes = persona_response.model_dump()
+
+                logger.info(f"Successfully generated persona '{attributes.get('name', 'Unnamed')}' from patterns using Instructor")
                 return attributes
-            else:
-                logger.warning("Failed to parse valid JSON attributes from LLM for pattern analysis.")
-                return self._create_fallback_attributes(patterns)
+            except Exception as instructor_error:
+                logger.error(f"Error using Instructor for pattern-based persona formation: {str(instructor_error)}", exc_info=True)
+                logger.info("Falling back to original method for pattern-based persona formation")
+
+                # Fall back to original implementation
+                # Import Pydantic model for response schema
+                from backend.domain.models.persona_schema import Persona
+
+                # Create a response schema for structured output
+                response_schema = {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "archetype": {"type": "string"},
+                        "demographics": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        },
+                        "goals_and_motivations": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        },
+                        "challenges_and_frustrations": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        }
+                    },
+                    "required": ["name", "description"]
+                }
+
+                # Call LLM to analyze patterns
+                llm_response = await self.llm_service.analyze({
+                    "task": "persona_formation",
+                    "text": pattern_descriptions,
+                    "prompt": prompt,
+                    "enforce_json": True,
+                    "temperature": 0.0,
+                    "response_mime_type": "application/json",
+                    "response_schema": response_schema
+                })
+
+                # --- ADD DETAILED LOGGING HERE ---
+                logger.info(f"[_analyze_patterns_for_persona] Raw LLM response (first 500 chars): {str(llm_response)[:500]}")
+                # If it's a string, log the full string for debugging if it's not too long
+                if isinstance(llm_response, str) and len(llm_response) < 2000:
+                    logger.debug(f"[_analyze_patterns_for_persona] Full raw LLM response string: {llm_response}")
+                # --- END DETAILED LOGGING ---
+
+                # Parse the response
+                attributes = self._parse_llm_json_response(llm_response, "_analyze_patterns_for_persona")
+
+                if attributes and isinstance(attributes, dict):
+                    logger.info(f"Successfully parsed persona attributes from patterns.")
+                    return attributes
+                else:
+                    logger.warning("Failed to parse valid JSON attributes from LLM for pattern analysis.")
+                    return self._create_fallback_attributes(patterns)
 
         except Exception as e:
             logger.error(f"Error analyzing patterns for persona: {str(e)}", exc_info=True)
@@ -561,12 +682,28 @@ class PersonaFormationService:
             # Import constants for LLM configuration
             from infrastructure.constants.llm_constants import PERSONA_FORMATION_TEMPERATURE
 
+            # Create a response schema for structured output
+            response_schema = {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "speaker": {"type": "string"},
+                        "text": {"type": "string"},
+                        "role": {"type": "string"}
+                    },
+                    "required": ["speaker", "text"]
+                }
+            }
+
             # Call LLM to convert text to structured format
             llm_response = await self.llm_service.analyze({
                 "task": "persona_formation",
                 "prompt": prompt,
                 "is_json_task": True,
-                "temperature": PERSONA_FORMATION_TEMPERATURE
+                "temperature": PERSONA_FORMATION_TEMPERATURE,
+                "response_mime_type": "application/json",
+                "response_schema": response_schema
             })
 
             # Parse the response
@@ -617,12 +754,53 @@ class PersonaFormationService:
                 # Create a prompt for persona formation
                 prompt = self.prompt_generator.create_participant_prompt(original_text)
 
+                # Import Pydantic model for response schema
+                from backend.domain.models.persona_schema import Persona
+
+                # Create a response schema for structured output
+                response_schema = {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "archetype": {"type": "string"},
+                        "demographics": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        },
+                        "goals_and_motivations": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        },
+                        "challenges_and_frustrations": {
+                            "type": "object",
+                            "properties": {
+                                "value": {"type": "string"},
+                                "confidence": {"type": "number"},
+                                "evidence": {"type": "array", "items": {"type": "string"}}
+                            }
+                        }
+                    },
+                    "required": ["name", "description"]
+                }
+
                 # Call LLM for persona creation
                 llm_response = await self.llm_service.analyze({
                     "task": "persona_formation",
                     "text": original_text,
                     "prompt": prompt,
-                    "enforce_json": True
+                    "enforce_json": True,
+                    "temperature": 0.0,
+                    "response_mime_type": "application/json",
+                    "response_schema": response_schema
                 })
 
                 # Parse the response
@@ -697,6 +875,129 @@ class PersonaFormationService:
             "evidence": ["Fallback due to analysis error"]
         }
 
+    @property
+    def instructor_client(self) -> InstructorGeminiClient:
+        """
+        Get the Instructor-patched Gemini client.
+
+        Returns:
+            InstructorGeminiClient: The Instructor-patched Gemini client
+        """
+        if self._instructor_client is None:
+            # Try to get API key from config or environment
+            api_key = None
+            if hasattr(self.config, "llm") and hasattr(self.config.llm, "api_key"):
+                api_key = self.config.llm.api_key
+
+            self._instructor_client = InstructorGeminiClient(api_key=api_key)
+            logger.info(f"Initialized InstructorGeminiClient")
+        return self._instructor_client
+
+    async def _generate_persona_from_attributes_with_instructor(self, attributes: Dict[str, Any], transcript_id: str) -> Dict[str, Any]:
+        """
+        Generate a persona from extracted attributes using Instructor.
+
+        Args:
+            attributes: Dictionary of extracted attributes
+            transcript_id: ID of the transcript
+
+        Returns:
+            Persona dictionary
+        """
+        logger.info(f"Generating persona from attributes using Instructor for transcript {transcript_id}")
+
+        # Prepare the prompt for persona formation
+        prompt = self._prepare_persona_formation_prompt(attributes)
+
+        # Generate the persona using Instructor
+        try:
+            logger.info(f"Calling Instructor for persona formation for transcript {transcript_id}")
+
+            # Add specific instructions for JSON formatting
+            system_instruction = """
+            You are an expert in creating user personas based on interview data.
+            Create a detailed, evidence-based persona that captures the key characteristics,
+            goals, challenges, and behaviors of the interview subject.
+            """
+
+            # Generate with Instructor
+            try:
+                persona_response = await self.instructor_client.generate_with_model_async(
+                    prompt=prompt,
+                    model_class=PersonaModel,
+                    temperature=0.0,  # Use deterministic output for structured data
+                    system_instruction=system_instruction,
+                    max_output_tokens=65536,  # Use large token limit for detailed personas
+                    response_mime_type="application/json"  # Force JSON output
+                )
+            except Exception as e:
+                logger.error(f"Error using Instructor for persona formation: {str(e)}", exc_info=True)
+                # Try one more time with even more strict settings
+                persona_response = await self.instructor_client.generate_with_model_async(
+                    prompt=prompt,
+                    model_class=PersonaModel,
+                    temperature=0.0,
+                    system_instruction=system_instruction + "\nYou MUST output valid JSON that conforms to the schema.",
+                    max_output_tokens=65536,
+                    response_mime_type="application/json",
+                    top_p=1.0,
+                    top_k=1
+                )
+
+            logger.info(f"Received structured persona response for transcript {transcript_id}")
+
+            # Convert Pydantic model to dictionary
+            persona = persona_response.model_dump()
+
+            logger.info(f"Successfully generated persona '{persona.get('name', 'Unnamed')}' for transcript {transcript_id}")
+            return persona
+        except Exception as e:
+            logger.error(f"Error generating persona with Instructor for transcript {transcript_id}: {str(e)}", exc_info=True)
+
+            # Fall back to the original method
+            logger.info(f"Falling back to original method for transcript {transcript_id}")
+            return await self._generate_persona_from_attributes_original(attributes, transcript_id)
+
+    async def _generate_persona_from_attributes_original(self, attributes: Dict[str, Any], transcript_id: str) -> Dict[str, Any]:
+        """
+        Original implementation of persona generation for fallback.
+
+        Args:
+            attributes: Dictionary of extracted attributes
+            transcript_id: ID of the transcript
+
+        Returns:
+            Persona dictionary
+        """
+        # Prepare the prompt for persona formation
+        prompt = self._prepare_persona_formation_prompt(attributes)
+
+        # Call LLM to generate persona
+        try:
+            logger.info(f"Calling LLM for persona formation for transcript {transcript_id}")
+
+            # Call LLM for persona formation
+            llm_response = await self.llm_service.analyze({
+                "task": "persona_formation",
+                "prompt": prompt,
+                "is_json_task": True,
+                "temperature": 0.0,
+                "response_mime_type": "application/json"
+            })
+
+            # Parse the response
+            persona_data = self._parse_llm_json_response(llm_response, f"persona_formation_{transcript_id}")
+
+            if persona_data and isinstance(persona_data, dict):
+                logger.info(f"Successfully generated persona for transcript {transcript_id}")
+                return persona_data
+            else:
+                logger.warning(f"Failed to generate valid persona data for transcript {transcript_id}")
+                return self._create_fallback_persona(transcript_id)
+        except Exception as e:
+            logger.error(f"Error generating persona for transcript {transcript_id}: {str(e)}", exc_info=True)
+            return self._create_fallback_persona(transcript_id)
+
     def _parse_llm_json_response(self, response: Union[str, Dict[str, Any]], context: str = "") -> Dict[str, Any]:
         """
         Parse JSON response from LLM with enhanced error recovery.
@@ -708,180 +1009,26 @@ class PersonaFormationService:
         Returns:
             Parsed JSON as dictionary
         """
-        if not response:
-            logger.warning(f"Empty response from LLM in {context}")
-            return {}
-
-        # If response is already a dictionary, return it directly
-        if isinstance(response, dict):
-            logger.info(f"Response is already a dictionary in {context}")
-
-            # Check if it's a personas wrapper
-            if "personas" in response and isinstance(response["personas"], list) and len(response["personas"]) > 0:
-                logger.info(f"Found personas wrapper in response, extracting first persona")
-                return response["personas"][0]
-
-            return response
-
-        # If response is not a string, convert it to string
-        if not isinstance(response, str):
-            logger.warning(f"Response is not a string or dict in {context}: {type(response)}")
-            response_str = str(response)
-        else:
-            response_str = response
-
-        # Log a sample of the response for debugging
-        logger.info(f"Response sample in {context}: {response_str[:200]}...")
-
-        # Multi-stage parsing approach
+        # First try the new Instructor-based parser
         try:
-            # Attempt 1: Try to parse as JSON directly
-            logger.debug(f"Attempting direct JSON parsing in {context}")
-            parsed_json = json.loads(response_str)
+            # Use the Instructor-based parser with task-specific handling
+            result = parse_llm_json_response_with_instructor(
+                response,
+                context=context,
+                task="persona_formation"
+            )
 
-            # Check if it's a personas wrapper
-            if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
-                logger.info(f"Found personas wrapper in response, extracting first persona")
-                return parsed_json["personas"][0]
-
-            return parsed_json
-
-        except json.JSONDecodeError as e1:
-            logger.warning(f"Direct JSON parsing failed in {context}: {e1}")
-
-            # Attempt 2: Try to extract JSON from markdown code blocks
-            code_block_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response_str)
-            if code_block_match:
-                try:
-                    json_str = code_block_match.group(1)
-                    logger.debug(f"Found JSON in code block in {context}: {json_str[:100]}...")
-                    parsed_json = json.loads(json_str)
-
-                    # Check if it's a personas wrapper
-                    if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
-                        logger.info(f"Found personas wrapper in code block, extracting first persona")
-                        return parsed_json["personas"][0]
-
-                    return parsed_json
-                except json.JSONDecodeError:
-                    logger.warning(f"Code block extraction failed in {context}")
-
-            # Attempt 3: Try to find JSON object with regex
-            json_match = re.search(r'({[\s\S]*})', response_str)
-            if json_match:
-                try:
-                    json_str = json_match.group(1)
-                    logger.debug(f"Found JSON object in {context}: {json_str[:100]}...")
-                    parsed_json = json.loads(json_str)
-
-                    # Check if it's a personas wrapper
-                    if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
-                        logger.info(f"Found personas wrapper in regex match, extracting first persona")
-                        return parsed_json["personas"][0]
-
-                    return parsed_json
-                except json.JSONDecodeError:
-                    logger.warning(f"JSON object extraction failed in {context}")
-
-            # Attempt 4: Advanced JSON repair
-            try:
-                # Fix common JSON issues
-                fixed_json = response_str
-
-                # Remove non-JSON content before first {
-                first_brace = fixed_json.find('{')
-                if first_brace >= 0:
-                    fixed_json = fixed_json[first_brace:]
-
-                # Remove non-JSON content after last }
-                last_brace = fixed_json.rfind('}')
-                if last_brace >= 0:
-                    fixed_json = fixed_json[:last_brace+1]
-
-                # Fix trailing commas
-                fixed_json = re.sub(r',\s*}', '}', fixed_json)
-                fixed_json = re.sub(r',\s*]', ']', fixed_json)
-
-                # Fix missing quotes around property names
-                fixed_json = re.sub(r'([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', fixed_json)
-
-                # Fix single quotes used instead of double quotes
-                fixed_json = re.sub(r"'([^']*)':", r'"\1":', fixed_json)
-                fixed_json = re.sub(r': *\'([^\']*)\'', r': "\1"', fixed_json)
-
-                # Fix unescaped quotes in strings
-                fixed_json = re.sub(r'": "([^"]*)"([^"]*)"([^"]*)"', r'": "\1\\\"\2\\\"\3"', fixed_json)
-
-                # Fix newlines in strings
-                fixed_json = re.sub(r'": "([^"]*)\n([^"]*)"', r'": "\1\\n\2"', fixed_json)
-
-                # Try to parse the fixed JSON
-                logger.debug(f"Attempting to parse fixed JSON in {context}")
-                parsed_json = json.loads(fixed_json)
-                logger.info(f"Successfully parsed JSON after repair in {context}")
-
-                # Check if it's a personas wrapper
-                if isinstance(parsed_json, dict) and "personas" in parsed_json and isinstance(parsed_json["personas"], list) and len(parsed_json["personas"]) > 0:
-                    logger.info(f"Found personas wrapper in repaired JSON, extracting first persona")
-                    return parsed_json["personas"][0]
-
-                return parsed_json
-
-            except (json.JSONDecodeError, Exception) as e2:
-                logger.error(f"JSON repair failed in {context}: {e2}")
-
-                # Attempt 5: Extract key-value pairs with regex as last resort
-                try:
-                    # Extract "key": "value" or "key": value patterns
-                    kv_pattern = r'"([^"]+)"\s*:\s*(?:"([^"]+)"|(\d+(?:\.\d+)?)|true|false|null|\{[^}]*\}|\[[^\]]*\])'
-                    matches = re.findall(kv_pattern, response_str)
-
-                    result = {}
-                    for key, str_val, num_val in matches:
-                        result[key] = str_val if str_val else (
-                            float(num_val) if num_val and '.' in num_val else
-                            int(num_val) if num_val else None
-                        )
-
-                    if result:
-                        logger.warning(f"Created partial result from regex in {context}")
-                        return result
-                except Exception as e3:
-                    logger.error(f"Regex extraction failed in {context}: {e3}")
-
-                # Attempt 6: Try to extract structured data from text
-                try:
-                    # Look for key patterns like "Name:" or "Demographics:"
-                    persona_data = {}
-
-                    # Extract name
-                    name_match = re.search(r'(?:Name|Person):\s*([^\n]+)', response_str)
-                    if name_match:
-                        persona_data["name"] = name_match.group(1).strip()
-
-                    # Extract description
-                    desc_match = re.search(r'(?:Description|Summary):\s*([^\n]+(?:\n[^\n]+)*?)(?:\n\n|\n[A-Z])', response_str)
-                    if desc_match:
-                        persona_data["description"] = desc_match.group(1).strip()
-
-                    # Extract archetype
-                    arch_match = re.search(r'(?:Archetype|Role|Type):\s*([^\n]+)', response_str)
-                    if arch_match:
-                        persona_data["archetype"] = arch_match.group(1).strip()
-
-                    # If we found at least some structured data, return it
-                    if persona_data:
-                        logger.warning(f"Created partial result from text patterns in {context}")
-                        return persona_data
-                except Exception as e4:
-                    logger.error(f"Text pattern extraction failed in {context}: {e4}")
+            # If we got a valid result, return it
+            if result and isinstance(result, dict) and len(result) > 0:
+                logger.info(f"Successfully parsed JSON with Instructor in {context}")
+                return result
 
         except Exception as e:
-            logger.error(f"Error in JSON parsing pipeline in {context}: {str(e)}", exc_info=True)
+            logger.warning(f"Instructor-based parsing failed in {context}: {e}")
 
-        # If all parsing attempts fail, return empty dict
-        logger.error(f"All parsing methods failed in {context}")
-        return {}
+        # Fall back to the enhanced JSON parsing implementation
+        logger.info(f"Falling back to enhanced JSON parsing in {context}")
+        return parse_llm_json_response_enhanced(response, context)
 
     def _group_patterns(self, patterns: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """

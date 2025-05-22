@@ -304,9 +304,13 @@ class DataService:
                     "filename": file.filename,
                     "content_type": file.content_type,
                     "is_free_text": True,
+                    # Add a flag for Problem_demo files to help with special handling
+                    "is_problem_demo": "Problem_demo" in file.filename if file.filename else False,
                 },
             }
             logger.info(f"Processed text file: {file.filename}")
+            if "Problem_demo" in file.filename:
+                logger.info(f"Detected Problem_demo file: {file.filename}. Adding special handling flag.")
 
         # Store as JSON string for consistency in storage
         json_content = json.dumps(data)

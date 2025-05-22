@@ -14,7 +14,7 @@ class TranscriptStructuringPrompts:
     def get_prompt(request: Dict[str, Any] = None) -> str:
         """
         Get the system prompt for transcript structuring.
-        
+
         Returns:
             str: The system prompt for transcript structuring.
         """
@@ -36,12 +36,13 @@ Follow these steps meticulously:
     *   Break down the transcript into these individual speaking turns.
 4.  **Infer Speaker Roles:**
     *   For each identified speaker, infer their primary role in the conversation.
-    *   Valid roles are: "Interviewer", "Interviewee", "Participant".
+    *   Valid roles are ONLY: "Interviewer", "Interviewee", "Participant".
     *   Base role inference on:
         *   The nature of their dialogue (e.g., asking questions vs. providing detailed answers).
         *   Explicit mentions of roles (e.g., "Interviewer:", "Participant Name:").
         *   Common conversational patterns in interviews.
     *   If a role is genuinely ambiguous after careful analysis, default to "Participant".
+    *   IMPORTANT: Do not use any other role values besides the three specified above.
 5.  **Handle Transcript Artifacts:**
     *   **Timestamps:** (e.g., "[00:01:23]", "09:05 AM") IGNORE these. Do NOT include them in the `speaker_id` or `dialogue`.
     *   **Metadata Lines:** (e.g., "Attendees: John, Sarah", "Date: 2025-01-15") IGNORE these. Do NOT include them as dialogue.
@@ -50,10 +51,13 @@ Follow these steps meticulously:
 6.  **Construct JSON Output:**
     *   The final output MUST be a JSON array.
     *   Each element in the array will be an object representing a single speaking turn.
-    *   Each turn object MUST have the following three keys:
+    *   Each turn object MUST have EXACTLY the following three keys (no more, no less):
         *   `speaker_id`: (String) The identified name or generic identifier of the speaker for that turn. Be consistent.
-        *   `role`: (String) The inferred role ("Interviewer", "Interviewee", or "Participant").
+        *   `role`: (String) The inferred role (MUST be one of: "Interviewer", "Interviewee", or "Participant").
         *   `dialogue`: (String) The exact transcribed speech for that turn, including any relevant action descriptions. Preserve original wording. **CRITICALLY IMPORTANT: Ensure all special characters within this string are properly JSON-escaped. For example, double quotes (`"`) inside the dialogue must be escaped as `\\"`, backslashes (`\\`) as `\\\\`, newlines as `\\n`, etc.**
+    *   Do NOT add any additional fields to the objects.
+    *   Do NOT use any nested objects or arrays within these objects.
+    *   Each object MUST follow this exact structure.
 
 EXAMPLE OUTPUT STRUCTURE:
 [
@@ -73,6 +77,32 @@ EXAMPLE OUTPUT STRUCTURE:
     "dialogue": "Interesting. What specific challenges have you faced with Jira?"
   }
 ]
+
+ALTERNATIVE VALID OUTPUT STRUCTURE (if you prefer):
+[
+  {
+    "speaker_id": "Speaker 1",
+    "role": "Interviewer",
+    "dialogue": "Can you tell me about your experience with the product?"
+  },
+  {
+    "speaker_id": "Speaker 2",
+    "role": "Interviewee",
+    "dialogue": "I've been using it for about 6 months now. It's generally good but has some issues with the user interface."
+  },
+  {
+    "speaker_id": "Speaker 1",
+    "role": "Interviewer",
+    "dialogue": "What specific UI issues have you encountered?"
+  }
+]
+
+IMPORTANT VALIDATION RULES:
+1. Each object MUST have exactly the three keys: "speaker_id", "role", and "dialogue".
+2. The "role" value MUST be one of: "Interviewer", "Interviewee", or "Participant".
+3. All values MUST be strings (not numbers, booleans, objects, or arrays).
+4. The JSON must be properly formatted with no syntax errors.
+5. The entire output must be ONLY the JSON array, with no additional text before or after.
 
 Ensure accuracy and completeness in segmenting the dialogue and assigning speakers/roles.
 The entire output must be ONLY the JSON array.

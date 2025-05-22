@@ -40,8 +40,8 @@ class AnalysisRequest(BaseModel):
     )
     # Enhanced theme analysis is now always enabled by default
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "data_id": 1,
                 "llm_provider": "openai",
@@ -49,6 +49,7 @@ class AnalysisRequest(BaseModel):
                 "industry": "healthcare"
             }
         }
+    }
 
 
 class PersonaGenerationRequest(BaseModel):
@@ -63,15 +64,20 @@ class PersonaGenerationRequest(BaseModel):
     llm_model: Optional[str] = Field(
         "models/gemini-2.5-flash-preview-04-17", description="Specific LLM model to use"
     )
+    filename: Optional[str] = Field(
+        None, description="Optional filename of the source file (for special handling)"
+    )
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "text": "I'm a frontend developer working on web applications. I typically use React, TypeScript, and sometimes Angular. My biggest challenge is dealing with legacy code that's poorly documented.",
                 "llm_provider": "gemini",
                 "llm_model": "models/gemini-2.5-flash-preview-04-17",
+                "filename": "Interview_SoftwareTech_Demo.txt"
             }
         }
+    }
 
 
 # Response Models
@@ -217,8 +223,8 @@ class Theme(BaseModel):
         default=None, description="Legacy field. Use frequency instead."
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "name": "User Interface",
                 "frequency": 0.25,
@@ -235,6 +241,7 @@ class Theme(BaseModel):
                 }
             }
         }
+    }
 
 
 class Pattern(BaseModel):
@@ -299,7 +306,8 @@ class SentimentOverview(BaseModel):
     neutral: float
     negative: float
 
-    @validator("positive", "neutral", "negative")
+    @field_validator("positive", "neutral", "negative")
+    @classmethod
     def ensure_percentages(cls, v):
         """Ensure sentiment values are between 0 and 1"""
         if not 0 <= v <= 1:
@@ -518,8 +526,8 @@ class Insight(BaseModel):
         None, description="Indicates urgency/importance of the insight"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "topic": "Navigation Complexity",
                 "observation": "Users consistently struggle to find key features in the application interface",
@@ -532,6 +540,7 @@ class Insight(BaseModel):
                 "priority": "High",
             }
         }
+    }
 
 
 class EnhancedThemeResponse(BaseModel):
@@ -544,8 +553,8 @@ class EnhancedThemeResponse(BaseModel):
         description="List of enhanced themes with detailed analysis"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "enhanced_themes": [
                     {
@@ -570,6 +579,7 @@ class EnhancedThemeResponse(BaseModel):
                 ]
             }
         }
+    }
 
 
 class DetailedAnalysisResult(BaseModel):

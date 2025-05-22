@@ -118,7 +118,7 @@ class TestConfig:
         # Combined configuration for GeminiService
         self.config = {
             "api_key": self.api_key,
-            "model": "gemini-2.5-flash-preview-04-17",
+            "model": "gemini-2.5-flash-preview-05-20",
             "max_output_tokens": 65536,
             "temperature": 0.0,
             "top_p": 0.95,

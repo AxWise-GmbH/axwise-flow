@@ -8,7 +8,7 @@ with task-specific profiles, schema definitions, and validation.
 import logging
 from enum import Enum
 from typing import Dict, Any, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from google.genai import types
 from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategory, HarmBlockThreshold, Schema
@@ -120,7 +120,8 @@ class GenAIConfigModel(BaseModel):
     response_schema: Optional[Any] = None
     safety_settings: Optional[List[Dict[str, Any]]] = None
 
-    @validator('safety_settings', pre=True)
+    @field_validator('safety_settings', mode='before')
+    @classmethod
     def validate_safety_settings(cls, v):
         """Validate safety settings format."""
         if v is None:

@@ -7,7 +7,7 @@ import re
 import time
 import random
 from datetime import datetime
-from typing import Dict, Any, List, Union, Optional, AsyncGenerator
+from typing import Dict, Any, List, Union, Optional, AsyncGenerator, Type, TypeVar
 
 import httpx
 import google.genai as genai
@@ -15,7 +15,9 @@ from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategor
 from pydantic import BaseModel, Field, ValidationError
 
 from backend.utils.json.json_repair import repair_json, repair_enhanced_themes_json, parse_json_safely, parse_json_array_safely
+from backend.utils.json.instructor_parser import parse_json_with_instructor, parse_llm_json_response_with_instructor
 from domain.interfaces.llm_unified import ILLMService
+from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
 
 from backend.schemas import Theme
 from backend.services.llm.prompts.gemini_prompts import GeminiPrompts
@@ -47,6 +49,9 @@ class GeminiService:
             # Initialize the client using the new client-based pattern from google-genai 1.2.0+
             self.client = genai.Client(api_key=self.api_key)
             logger.info(f"Successfully initialized genai with Client() constructor.")
+
+            # Initialize the Instructor client (lazy loading - will be created when needed)
+            self._instructor_client = None
         except Exception as e:
             logger.error(f"An unexpected error occurred during genai client initialization: {e}")
             raise ValueError(f"Failed to initialize Gemini client: {e}") from e
@@ -209,10 +214,10 @@ class GeminiService:
                     "safety_settings": safety_settings
                 }
 
-                if "response_mime_type" in config_dict:
-                    response_mime_type = config_dict["response_mime_type"]
-                    logger.info(f"Using response_mime_type={response_mime_type} from config")
-                    config_kwargs["response_mime_type"] = response_mime_type
+                # Get response_mime_type from config_dict
+                response_mime_type = config_dict["response_mime_type"]
+                logger.info(f"Using response_mime_type={response_mime_type} from config")
+                config_kwargs["response_mime_type"] = response_mime_type
 
                 # Note: We're not using response_schema directly due to compatibility issues
                 # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
@@ -361,10 +366,10 @@ class GeminiService:
                         "safety_settings": safety_settings
                     }
 
-                    if "response_mime_type" in config_dict:
-                        response_mime_type = config_dict["response_mime_type"]
-                        logger.info(f"Using response_mime_type={response_mime_type} from config for streaming")
-                        config_kwargs["response_mime_type"] = response_mime_type
+                    # Get response_mime_type from config_dict
+                    response_mime_type = config_dict["response_mime_type"]
+                    logger.info(f"Using response_mime_type={response_mime_type} from config for streaming")
+                    config_kwargs["response_mime_type"] = response_mime_type
 
                     # Note: We're not using response_schema directly due to compatibility issues
                     # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
@@ -458,6 +463,83 @@ class GeminiService:
         # Fallback if no specific exception was caught but retries exhausted (should not happen if loop completes)
         raise LLMServiceError(f"Failed to generate text after {max_retries} retries for model {model_name}.")
 
+    @property
+    def instructor_client(self) -> InstructorGeminiClient:
+        """
+        Get the Instructor-patched Gemini client.
+
+        Returns:
+            InstructorGeminiClient: The Instructor-patched Gemini client
+        """
+        if self._instructor_client is None:
+            self._instructor_client = InstructorGeminiClient(api_key=self.api_key, model_name=self.default_model_name)
+            logger.info(f"Initialized InstructorGeminiClient with model {self.default_model_name}")
+        return self._instructor_client
+
+    async def analyze_with_instructor(self, task: str, data: Dict[str, Any]) -> Any:
+        """
+        Analyze content using the Instructor-patched client.
+
+        Args:
+            task: The task to perform
+            data: The data for the task
+
+        Returns:
+            The analysis result
+        """
+        if task != "persona_formation":
+            # Only use Instructor for persona formation initially
+            logger.info(f"Task {task} is not supported by Instructor yet, falling back to standard analyze method")
+            return await self.analyze(task, data)
+
+        try:
+            logger.info(f"Using Instructor for task: {task}")
+
+            # Get the prompt from the data
+            prompt = data.get("prompt", "")
+            if not prompt and "text" in data:
+                prompt = data["text"]
+
+            # Get the system instruction if any
+            system_instruction = data.get("system_instruction", None)
+            if not system_instruction:
+                system_instruction = self._get_system_message(task, data)
+
+            # Import the Persona model
+            from domain.models.persona_schema import Persona
+
+            # Generate with Instructor
+            try:
+                persona = await self.instructor_client.generate_with_model_async(
+                    prompt=prompt,
+                    model_class=Persona,
+                    temperature=data.get("temperature", 0.0),
+                    system_instruction=system_instruction,
+                    max_output_tokens=65536,
+                    response_mime_type="application/json"  # Force JSON output
+                )
+            except Exception as e:
+                logger.error(f"Error using Instructor for {task}: {str(e)}", exc_info=True)
+                # Try one more time with even more strict settings
+                persona = await self.instructor_client.generate_with_model_async(
+                    prompt=prompt,
+                    model_class=Persona,
+                    temperature=0.0,
+                    system_instruction=system_instruction + "\nYou MUST output valid JSON that conforms to the schema.",
+                    max_output_tokens=65536,
+                    response_mime_type="application/json",
+                    top_p=1.0,
+                    top_k=1
+                )
+
+            # Convert to dictionary
+            return persona.model_dump()
+        except Exception as e:
+            logger.error(f"Error using Instructor for {task}: {str(e)}", exc_info=True)
+            # Fall back to the original method
+            logger.info(f"Falling back to standard analyze method for {task}")
+            return await self.analyze(task, data)
+
     async def analyze(self, text: str, task: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         data = data or {}
         system_message_content = self._get_system_message(task, data)
@@ -476,6 +558,39 @@ class GeminiService:
         # Define JSON tasks
         json_tasks = ["transcript_structuring", "persona_formation", "theme_analysis", "theme_analysis_enhanced", "insight_generation", "pattern_analysis", "pattern_recognition", "sentiment_analysis"]
         is_json_task = task in json_tasks
+
+        # Check if content_info is provided in data
+        content_info = data.get("content_info", {})
+        if content_info:
+            logger.info(f"Using content_info in LLM request: {content_info}")
+
+            # Add special handling instructions based on content type
+            if content_info.get("is_problem_focused", False):
+                logger.info("Detected problem-focused content. Adding special handling instructions.")
+
+                # Add special handling instructions to system message based on task
+                if task == "transcript_structuring":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately structuring the dialogue without interpreting the content. Ensure the output is a valid JSON array with proper speaker_id, role, and dialogue fields."
+                elif task == "persona_formation":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately extracting persona attributes from the dialogue. Pay special attention to the structure of the dialogue and ensure the output is a valid JSON object with all required persona fields."
+                elif task == "theme_analysis" or task == "theme_analysis_enhanced":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately identifying themes from the dialogue. Ensure the output is a valid JSON object with proper theme structure including name, definition, statements, and other required fields."
+                elif task == "pattern_recognition":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately identifying patterns from the dialogue. Ensure the output is a valid JSON object with proper pattern structure including name, description, evidence, and other required fields."
+                elif task == "sentiment_analysis":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately analyzing sentiment from the dialogue. Ensure the output is a valid JSON object with proper sentiment structure including positive, neutral, and negative categories with supporting statements."
+                elif task == "insight_generation":
+                    system_message_content += "\n\nIMPORTANT: This is a problem-focused interview. Focus on accurately generating insights from the dialogue. Ensure the output is a valid JSON object with proper insight structure including title, description, evidence, and other required fields."
+
+            # Add special handling for content with timestamps
+            if content_info.get("has_timestamps", False):
+                logger.info("Detected content with timestamps. Adding special handling instructions.")
+                system_message_content += "\n\nNOTE: This content contains timestamps. Ensure you ignore timestamps when processing the content and focus on the actual dialogue."
+
+            # Add special handling for high complexity content
+            if content_info.get("content_complexity") == "high":
+                logger.info("Detected high complexity content. Adding special handling instructions.")
+                system_message_content += "\n\nNOTE: This is a complex transcript. Pay special attention to maintaining the correct sequence and context throughout your analysis."
 
         # Get base generation config
         current_generation_config = self._get_generation_config(task, data)
@@ -499,12 +614,46 @@ class GeminiService:
         # Check if we should enforce JSON output
         enforce_json = data.get("enforce_json", False)
 
+        # Initialize response_mime_type variable
+        response_mime_type = None
+
+        # Special handling for problem-focused content
+        if content_info.get("is_problem_focused", False) and is_json_task:
+            # Always enforce JSON output
+            enforce_json = True
+            logger.info("Enforcing JSON output for problem-focused content")
+
+            # Set temperature to 0 for deterministic output
+            config_params["temperature"] = 0.0
+            logger.info("Setting temperature=0.0 for problem-focused content")
+
+            # Set response_mime_type to application/json
+            response_mime_type = "application/json"
+            logger.info("Setting response_mime_type=application/json for problem-focused content")
+
+        # Also enforce JSON output for high complexity content
+        elif content_info.get("content_complexity") == "high" and is_json_task:
+            # Always enforce JSON output
+            enforce_json = True
+            logger.info("Enforcing JSON output for high complexity content")
+
+            # Set temperature to 0 for deterministic output
+            config_params["temperature"] = 0.0
+            logger.info("Setting temperature=0.0 for high complexity content")
+
+            # Set response_mime_type to application/json
+            response_mime_type = "application/json"
+            logger.info("Setting response_mime_type=application/json for high complexity content")
+
         # Prepare response mime type and schema
-        response_mime_type = data.get("output_format") if data.get("output_format") == "application/json" else None
+        # Check if response_mime_type is already set by content type handling
+        if not response_mime_type:
+            # Get from data if available and is application/json
+            response_mime_type = data.get("output_format") if data.get("output_format") == "application/json" else None
         response_schema = data.get("response_schema", None)
 
         # Check if we should enforce JSON output
-        if enforce_json or is_json_task or task == "pattern_recognition" or task == "theme_analysis_enhanced":
+        if enforce_json or is_json_task or task == "pattern_recognition" or task == "theme_analysis_enhanced" or task == "persona_formation":
             # Add response_mime_type to config_params to enforce JSON output
             config_params["response_mime_type"] = "application/json"
             response_mime_type = "application/json"
@@ -512,8 +661,68 @@ class GeminiService:
             # Set temperature to 0 for deterministic output when generating structured data
             config_params["temperature"] = 0.0
 
-            # Note: We're not using response_schema directly due to compatibility issues
-            # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
+            # Add specific instructions for persona_formation to ensure proper JSON formatting
+            if task == "persona_formation":
+                logger.info("Adding special JSON formatting instructions for persona formation")
+                if "prompt" in data and isinstance(data["prompt"], str):
+                    json_formatting_instructions = """
+CRITICAL: Your response MUST be valid JSON. Follow these formatting rules exactly:
+1. Always include commas between array elements: [item1, item2, item3]
+2. Always include commas between object properties: {"prop1": value1, "prop2": value2}
+3. Never include a comma after the last element in an array or object
+4. All property names must be in double quotes
+5. String values must be in double quotes
+6. Boolean values must be lowercase: true or false
+7. Null values must be lowercase: null
+8. Numbers should not be quoted
+
+IMPORTANT: Double-check your JSON for missing commas before responding.
+"""
+                    data["prompt"] += "\n\n" + json_formatting_instructions
+
+                    # Add a JSON schema to guide the response format
+                    if "response_schema" not in data:
+                        # Define a basic persona schema
+                        persona_schema = {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "archetype": {"type": "string"},
+                                "demographics": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {"type": "string"},
+                                        "confidence": {"type": "number"},
+                                        "evidence": {"type": "array", "items": {"type": "string"}}
+                                    }
+                                },
+                                "goals_and_motivations": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {"type": "string"},
+                                        "confidence": {"type": "number"},
+                                        "evidence": {"type": "array", "items": {"type": "string"}}
+                                    }
+                                },
+                                "challenges_and_frustrations": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {"type": "string"},
+                                        "confidence": {"type": "number"},
+                                        "evidence": {"type": "array", "items": {"type": "string"}}
+                                    }
+                                }
+                            },
+                            "required": ["name", "description"]
+                        }
+
+                        # Add the schema to the request
+                        data["response_schema"] = persona_schema
+                        logger.info("Added persona schema to guide JSON response format")
+
+            # Note: We're using both response_mime_type="application/json" and response_schema
+            # to enforce structured output, along with our JSON repair functions as a fallback
 
             logger.info(f"Enforcing JSON output for task: {task}")
 
@@ -624,10 +833,15 @@ class GeminiService:
                 if not text_response.strip().endswith("}") and not text_response.strip().endswith("]"):
                     logger.warning(f"LLM response for task '{task}' (JSON expected) might be truncated. Attempting repair.")
                     try:
-                        # Use specialized repair function for enhanced themes
+                        # Use specialized repair function for enhanced themes or persona formation
                         if task == "theme_analysis_enhanced":
                             logger.info(f"Using specialized enhanced themes JSON repair function for task '{task}'")
                             text_response = repair_enhanced_themes_json(text_response)
+                        elif task == "persona_formation":
+                            logger.info(f"Using enhanced JSON repair for persona formation task")
+                            # Import here to avoid circular imports
+                            from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
+                            text_response = EnhancedJSONRepair.repair_json(text_response)
                         else:
                             text_response = repair_json(text_response)
                         logger.info(f"Successfully repaired JSON response for task '{task}'.")
@@ -637,9 +851,12 @@ class GeminiService:
 
             if response_mime_type == "application/json":
                 try:
-                    parsed_response = json.loads(text_response)
+                    # First try using the Instructor-based parser
+                    logger.info(f"[{task}] Attempting to parse JSON with Instructor")
+                    parsed_response = parse_json_with_instructor(text_response, context=f"GeminiService.analyze for task '{task}'")
+
                     # Log the parsed response structure
-                    logger.info(f"Successfully parsed JSON response for task '{task}'. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}")
+                    logger.info(f"Successfully parsed JSON response for task '{task}' with Instructor. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}")
 
                     # Check if the parsed JSON is an error object from the LLM
                     if isinstance(parsed_response, dict) and "error" in parsed_response:
@@ -653,122 +870,32 @@ class GeminiService:
                         raise LLMAPIError(f"LLM reported an error for task '{task}': {llm_error_message}")
 
                     result = parsed_response
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON response for task '{task}': {e}. Response: {text_response}")
-                    logger.warning(f"[{task}] JSON parsing failed. Trying repair...")
+                except Exception as e:
+                    logger.error(f"Failed to parse JSON response with Instructor for task '{task}': {e}. Response: {text_response[:500]}")
+                    logger.warning(f"[{task}] Instructor-based JSON parsing failed. Falling back to legacy parsers...")
                     try:
-                        # Use specialized repair function for enhanced themes
-                        if task == "theme_analysis_enhanced":
-                            logger.info(f"[{task}] Using specialized enhanced themes JSON repair function")
-                            repaired = repair_enhanced_themes_json(text_response)
-                        else:
-                            repaired = repair_json(text_response)
-
-                        result = json.loads(repaired)
-                        logger.info(f"[{task}] Successfully parsed JSON after repair.")
-
-                        # Check if the parsed repaired JSON is an error object from the LLM
-                        if isinstance(result, dict) and "error" in result:
-                            llm_error_message = result.get("error", "LLM returned a JSON error object after repair.")
-                            if isinstance(llm_error_message, dict) and "message" in llm_error_message:
-                                llm_error_message = llm_error_message.get("message", str(llm_error_message))
-                            elif not isinstance(llm_error_message, str):
-                                llm_error_message = str(llm_error_message)
-
-                            logger.error(f"[{task}] LLM returned a JSON error object after repair: {llm_error_message}")
-                            raise LLMAPIError(f"LLM reported an error for task '{task}' (after repair): {llm_error_message}")
-                    except json.JSONDecodeError as e2:
-                        logger.error(f"[{task}] Failed to parse JSON even after repair: {e2}")
-
-                        # Special handling for insights task
-                        if task == "insight_generation":
-                            logger.warning(f"[{task}] Using default insights structure due to JSON parsing failure")
-                            # Return a default structure if parsing fails
-                            return {
-                                "insights": [
-                                    {
-                                        "topic": "Data Analysis",
-                                        "observation": "Analysis completed but results could not be structured properly.",
-                                        "evidence": [
-                                            "Processing completed with non-structured output."
-                                        ],
-                                    }
-                                ],
-                                "metadata": {
-                                    "quality_score": 0.5,
-                                    "confidence_scores": {
-                                        "themes": 0.6,
-                                        "patterns": 0.6,
-                                        "sentiment": 0.6,
-                                    },
-                                },
-                            }
-                        # Special handling for enhanced themes task
-                        elif task == "theme_analysis_enhanced":
-                            logger.warning(f"[{task}] Using default enhanced themes structure due to JSON parsing failure")
-                            # Return a default structure if parsing fails
-                            return {
-                                "enhanced_themes": [
-                                    {
-                                        "type": "theme",
-                                        "name": "Analysis Incomplete",
-                                        "definition": "The enhanced theme analysis could not be properly structured.",
-                                        "keywords": ["incomplete", "analysis", "error"],
-                                        "frequency": 0.5,
-                                        "sentiment": 0.0,
-                                        "statements": ["Processing completed with non-structured output."],
-                                        "codes": ["PROCESSING_ERROR"],
-                                        "reliability": 0.5,
-                                        "process": "enhanced",
-                                        "sentiment_distribution": {
-                                            "positive": 0.0,
-                                            "neutral": 1.0,
-                                            "negative": 0.0
-                                        }
-                                    }
-                                ]
-                            }
-                        else:
-                            # Return a structured error response instead of raising an exception
-                            return {
-                                "error": f"Failed to decode JSON response for task '{task}' even after repair: {e2}",
-                                "type": task
-                            }
-            else:
-                # If we are here, it means response_mime_type was not 'application/json'
-                # However, the task might still have been intended to be a JSON task.
-                logger.debug(f"Raw response text (non-JSON path) for task {task}:\n{text_response[:500]}")
-
-                # If it was an expected JSON task, but we are in the non-JSON path, attempt parsing.
-                if is_json_task:
-                    logger.info(f"[{task}] Attempting JSON parse for an expected JSON task in non-JSON response path.")
-                    try:
-                        result = json.loads(text_response)
-                        logger.info(f"[{task}] Successfully parsed JSON in non-JSON path.")
-
-                        # Check if the parsed JSON is an error object from the LLM
-                        if isinstance(result, dict) and "error" in result:
-                            llm_error_message = result.get("error", "LLM returned a JSON error object.")
-                            if isinstance(llm_error_message, dict) and "message" in llm_error_message:
-                                llm_error_message = llm_error_message.get("message", str(llm_error_message))
-                            elif not isinstance(llm_error_message, str):
-                                llm_error_message = str(llm_error_message)
-
-                            logger.error(f"[{task}] LLM returned a JSON error object: {llm_error_message}")
-                            raise LLMAPIError(f"LLM reported an error for task '{task}': {llm_error_message}")
-
-                        return result
-                    except json.JSONDecodeError as e_non_json_path:
-                        logger.warning(f"[{task}] JSON parsing failed in non-JSON path: {e_non_json_path}. Trying repair...")
+                        # Try direct JSON parsing first
+                        parsed_response = json.loads(text_response)
+                        logger.info(f"Successfully parsed JSON response for task '{task}' with direct parsing.")
+                        result = parsed_response
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Direct JSON parsing failed for task '{task}': {e}. Response: {text_response[:500]}")
+                        logger.warning(f"[{task}] JSON parsing failed. Trying repair...")
                         try:
-                            # Use specialized repair function for enhanced themes
+                            # Use specialized repair function for enhanced themes or persona formation
                             if task == "theme_analysis_enhanced":
-                                logger.info(f"[{task}] Using specialized enhanced themes JSON repair function in non-JSON path")
+                                logger.info(f"[{task}] Using specialized enhanced themes JSON repair function")
                                 repaired = repair_enhanced_themes_json(text_response)
+                            elif task == "persona_formation":
+                                logger.info(f"[{task}] Using enhanced JSON repair for persona formation task")
+                                # Import here to avoid circular imports
+                                from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
+                                repaired = EnhancedJSONRepair.repair_json(text_response)
                             else:
                                 repaired = repair_json(text_response)
+
                             result = json.loads(repaired)
-                            logger.info(f"[{task}] Successfully parsed JSON in non-JSON path after repair.")
+                            logger.info(f"[{task}] Successfully parsed JSON after repair.")
 
                             # Check if the parsed repaired JSON is an error object from the LLM
                             if isinstance(result, dict) and "error" in result:
@@ -782,10 +909,130 @@ class GeminiService:
                                 raise LLMAPIError(f"LLM reported an error for task '{task}' (after repair): {llm_error_message}")
 
                             return result
-                        except json.JSONDecodeError as e2_non_json_path:
-                            logger.error(f"[{task}] Failed to parse JSON in non-JSON path even after repair: {e2_non_json_path}")
-                            error_message = f"All parsing attempts failed in non-JSON path for task '{task}'. Detail: {e2_non_json_path}. Raw preview: {text_response[:200]}"
-                            raise LLMResponseParseError(error_message)
+                        except json.JSONDecodeError as e2:
+                            logger.error(f"[{task}] Failed to parse JSON even after repair: {e2}")
+
+                            # Special handling for insights task
+                            if task == "insight_generation":
+                                logger.warning(f"[{task}] Using default insights structure due to JSON parsing failure")
+                                # Return a default structure if parsing fails
+                                return {
+                                    "insights": [
+                                        {
+                                            "topic": "Data Analysis",
+                                            "observation": "Analysis completed but results could not be structured properly.",
+                                            "evidence": [
+                                                "Processing completed with non-structured output."
+                                            ],
+                                        }
+                                    ],
+                                    "metadata": {
+                                        "quality_score": 0.5,
+                                        "confidence_scores": {
+                                            "themes": 0.6,
+                                            "patterns": 0.6,
+                                            "sentiment": 0.6,
+                                        },
+                                    },
+                                }
+                            # Special handling for enhanced themes task
+                            elif task == "theme_analysis_enhanced":
+                                logger.warning(f"[{task}] Using default enhanced themes structure due to JSON parsing failure")
+                                # Return a default structure if parsing fails
+                                return {
+                                    "enhanced_themes": [
+                                        {
+                                            "type": "theme",
+                                            "name": "Analysis Incomplete",
+                                            "definition": "The enhanced theme analysis could not be properly structured.",
+                                            "keywords": ["incomplete", "analysis", "error"],
+                                            "frequency": 0.5,
+                                            "sentiment": 0.0,
+                                            "statements": ["Processing completed with non-structured output."],
+                                            "codes": ["PROCESSING_ERROR"],
+                                            "reliability": 0.5,
+                                            "process": "enhanced",
+                                            "sentiment_distribution": {
+                                                "positive": 0.0,
+                                                "neutral": 1.0,
+                                                "negative": 0.0
+                                            }
+                                        }
+                                    ]
+                                }
+                            else:
+                                # Return a structured error response instead of raising an exception
+                                return {
+                                    "error": f"Failed to decode JSON response for task '{task}' even after repair: {e2}",
+                                    "type": task
+                                }
+            else:
+                # If we are here, it means response_mime_type was not 'application/json'
+                # However, the task might still have been intended to be a JSON task.
+                logger.debug(f"Raw response text (non-JSON path) for task {task}:\n{text_response[:500]}")
+
+                # If it was an expected JSON task, but we are in the non-JSON path, attempt parsing.
+                if is_json_task:
+                    logger.info(f"[{task}] Attempting JSON parse for an expected JSON task in non-JSON response path.")
+                    try:
+                        # First try using the Instructor-based parser
+                        logger.info(f"[{task}] Attempting to parse JSON with Instructor in non-JSON path")
+                        result = parse_json_with_instructor(text_response, context=f"GeminiService.analyze non-JSON path for task '{task}'")
+                        logger.info(f"[{task}] Successfully parsed JSON in non-JSON path with Instructor.")
+
+                        # Check if the parsed JSON is an error object from the LLM
+                        if isinstance(result, dict) and "error" in result:
+                            llm_error_message = result.get("error", "LLM returned a JSON error object.")
+                            if isinstance(llm_error_message, dict) and "message" in llm_error_message:
+                                llm_error_message = llm_error_message.get("message", str(llm_error_message))
+                            elif not isinstance(llm_error_message, str):
+                                llm_error_message = str(llm_error_message)
+
+                            logger.error(f"[{task}] LLM returned a JSON error object: {llm_error_message}")
+                            raise LLMAPIError(f"LLM reported an error for task '{task}': {llm_error_message}")
+
+                        return result
+                    except Exception as e:
+                        logger.error(f"Failed to parse JSON with Instructor in non-JSON path for task '{task}': {e}. Response: {text_response[:500]}")
+                        logger.warning(f"[{task}] Instructor-based JSON parsing failed in non-JSON path. Falling back to legacy parsers...")
+                        try:
+                            # Try direct JSON parsing
+                            result = json.loads(text_response)
+                            logger.info(f"[{task}] Successfully parsed JSON in non-JSON path with direct parsing.")
+                            return result
+                        except json.JSONDecodeError as e_non_json_path:
+                            logger.warning(f"[{task}] JSON parsing failed in non-JSON path: {e_non_json_path}. Trying repair...")
+                            try:
+                                # Use specialized repair function for enhanced themes or persona formation
+                                if task == "theme_analysis_enhanced":
+                                    logger.info(f"[{task}] Using specialized enhanced themes JSON repair function in non-JSON path")
+                                    repaired = repair_enhanced_themes_json(text_response)
+                                elif task == "persona_formation":
+                                    logger.info(f"[{task}] Using enhanced JSON repair for persona formation task in non-JSON path")
+                                    # Import here to avoid circular imports
+                                    from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
+                                    repaired = EnhancedJSONRepair.repair_json(text_response)
+                                else:
+                                    repaired = repair_json(text_response)
+                                result = json.loads(repaired)
+                                logger.info(f"[{task}] Successfully parsed JSON in non-JSON path after repair.")
+
+                                # Check if the parsed repaired JSON is an error object from the LLM
+                                if isinstance(result, dict) and "error" in result:
+                                    llm_error_message = result.get("error", "LLM returned a JSON error object after repair.")
+                                    if isinstance(llm_error_message, dict) and "message" in llm_error_message:
+                                        llm_error_message = llm_error_message.get("message", str(llm_error_message))
+                                    elif not isinstance(llm_error_message, str):
+                                        llm_error_message = str(llm_error_message)
+
+                                    logger.error(f"[{task}] LLM returned a JSON error object after repair: {llm_error_message}")
+                                    raise LLMAPIError(f"LLM reported an error for task '{task}' (after repair): {llm_error_message}")
+
+                                return result
+                            except json.JSONDecodeError as e2_non_json_path:
+                                logger.error(f"[{task}] Failed to parse JSON in non-JSON path even after repair: {e2_non_json_path}")
+                                error_message = f"All parsing attempts failed in non-JSON path for task '{task}'. Detail: {e2_non_json_path}. Raw preview: {text_response[:200]}"
+                                raise LLMResponseParseError(error_message)
                 else:
                     # For non-JSON tasks, just return the text
                     logger.info(f"[{task}] Returning raw text for non-JSON task in non-JSON path.")

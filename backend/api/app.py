@@ -896,6 +896,7 @@ async def generate_persona_from_text(
             text=persona_request.text,
             llm_provider=persona_request.llm_provider,
             llm_model=persona_request.llm_model,
+            filename=persona_request.filename,
         )
 
         return result

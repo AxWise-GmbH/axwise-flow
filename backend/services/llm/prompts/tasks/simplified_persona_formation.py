@@ -88,34 +88,105 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
   "description": "A brief overview of the persona",
   "archetype": "A general category this persona falls into",
 
-  // IMPORTANT: All fields below should be SIMPLE STRINGS or LISTS, NOT nested objects
-  // Do NOT use nested structures with "value", "confidence", or "evidence" fields
+  // TRAIT FIELDS: Most fields should be NESTED OBJECTS with "value", "confidence", and "evidence" fields
+  // The "value" field should contain the trait description (string)
+  // The "confidence" field should be a number between 0.0 and 1.0
+  // The "evidence" field should be a list of direct quotes (strings) from the transcript
+  // EXCEPTION: "key_quotes" and "patterns" have different structures (see below)
 
-  "role_context": "How this person functions in their {role} capacity",
-  "key_responsibilities": "Main duties and responsibilities",
-  "tools_used": "Specific tools and technologies mentioned",
-  "collaboration_style": "How they work with others",
-  "analysis_approach": "How they analyze problems and make decisions",
-  "pain_points": "Specific challenges and frustrations",
-  "demographics": "Age, experience level, etc. (if mentioned)",
-  "goals_and_motivations": "Primary objectives and driving factors",
-  "skills_and_expertise": "Technical and soft skills",
-  "workflow_and_environment": "Work processes and context",
-  "challenges_and_frustrations": "Obstacles and sources of frustration",
-  "needs_and_desires": "Specific needs and wants",
-  "technology_and_tools": "Software and hardware used",
-  "attitude_towards_research": "Views on research and data",
-  "attitude_towards_ai": "Perspective on AI and automation",
+  "demographics": {
+    "value": "Age, experience level, etc. (if mentioned)",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "goals_and_motivations": {
+    "value": "Primary objectives and driving factors",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "skills_and_expertise": {
+    "value": "Technical and soft skills",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "workflow_and_environment": {
+    "value": "Work processes and context",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "challenges_and_frustrations": {
+    "value": "Obstacles and sources of frustration",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "needs_and_desires": {
+    "value": "Specific needs and wants",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "technology_and_tools": {
+    "value": "Software and hardware used",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "attitude_towards_research": {
+    "value": "Views on research and data",
+    "confidence": 0.7,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "attitude_towards_ai": {
+    "value": "Perspective on AI and automation",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
 
-  // The only list in the response should be key_quotes
-  "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
-  "overall_confidence_score": 0.75
+  "role_context": {
+    "value": "How this person functions in their {role} capacity",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "key_responsibilities": {
+    "value": "Main duties and responsibilities",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "tools_used": {
+    "value": "Specific tools or methods used",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "collaboration_style": {
+    "value": "How they work with others",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "analysis_approach": {
+    "value": "How they approach problems/analysis",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "pain_points": {
+    "value": "Specific challenges mentioned",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+
+  "key_quotes": {
+    "value": "Representative quotes that capture the persona's authentic voice",
+    "confidence": 0.95,
+    "evidence": ["Actual quote 1 from transcript", "Actual quote 2 from transcript", "Actual quote 3 from transcript", "Actual quote 4 from transcript", "Actual quote 5 from transcript"]
+  },
+
+  // "patterns" should be a DIRECT LIST of strings.
+  "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+
+  "overall_confidence_score": 0.85
 }}
 
 IMPORTANT:
 - Include ONLY information that can be reasonably inferred from the text.
 - For any field where you don't have enough information, provide your best estimate and note the uncertainty.
-- The "key_quotes" field should contain actual quotes from the text that best represent the persona's perspective.
+- The "key_quotes" field should contain a "value" that describes the quotes and an "evidence" array with actual direct quotes from the text that best represent the persona's perspective.
 - The "overall_confidence_score" should be a number between 0.0 and 1.0 reflecting your confidence in the accuracy of this persona.
 """
 
@@ -154,33 +225,104 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
   "description": "A brief overview of the persona",
   "archetype": "A general category this persona falls into",
 
-  // IMPORTANT: All fields below should be SIMPLE STRINGS or LISTS, NOT nested objects
-  // Do NOT use nested structures with "value", "confidence", or "evidence" fields
+  // TRAIT FIELDS: Most fields should be NESTED OBJECTS with "value", "confidence", and "evidence" fields
+  // The "value" field should contain the trait description (string)
+  // The "confidence" field should be a number between 0.0 and 1.0
+  // The "evidence" field should be a list of direct quotes (strings) from the transcript
+  // EXCEPTION: "key_quotes" and "patterns" have different structures (see below)
 
-  "role_context": "How this person functions in their {role} capacity",
-  "key_responsibilities": "Main duties and responsibilities",
-  "tools_used": "Specific tools and technologies mentioned",
-  "collaboration_style": "How they work with others",
-  "analysis_approach": "How they analyze problems and make decisions",
-  "pain_points": "Specific challenges and frustrations",
-  "demographics": "Age, experience level, etc. (if mentioned)",
-  "goals_and_motivations": "Primary objectives and driving factors",
-  "skills_and_expertise": "Technical and soft skills",
-  "workflow_and_environment": "Work processes and context",
-  "challenges_and_frustrations": "Obstacles and sources of frustration",
-  "needs_and_desires": "Specific needs and wants",
-  "technology_and_tools": "Software and hardware used",
-  "attitude_towards_research": "Views on research and data",
-  "attitude_towards_ai": "Perspective on AI and automation",
+  "demographics": {
+    "value": "Age, experience level, etc. (if mentioned)",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "goals_and_motivations": {
+    "value": "Primary objectives and driving factors",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "skills_and_expertise": {
+    "value": "Technical and soft skills",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "workflow_and_environment": {
+    "value": "Work processes and context",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "challenges_and_frustrations": {
+    "value": "Obstacles and sources of frustration",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "needs_and_desires": {
+    "value": "Specific needs and wants",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "technology_and_tools": {
+    "value": "Software and hardware used",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "attitude_towards_research": {
+    "value": "Views on research and data",
+    "confidence": 0.7,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "attitude_towards_ai": {
+    "value": "Perspective on AI and automation",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
 
-  // The only list in the response should be key_quotes
-  "key_quotes": ["Quote 1", "Quote 2", "Quote 3"],
-  "overall_confidence_score": 0.75
+  "role_context": {
+    "value": "How this person functions in their {role} capacity",
+    "confidence": 0.85,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "key_responsibilities": {
+    "value": "Main duties and responsibilities",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "tools_used": {
+    "value": "Specific tools or methods used",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "collaboration_style": {
+    "value": "How they work with others",
+    "confidence": 0.75,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "analysis_approach": {
+    "value": "How they approach problems/analysis",
+    "confidence": 0.8,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+  "pain_points": {
+    "value": "Specific challenges mentioned",
+    "confidence": 0.9,
+    "evidence": ["Quote 1", "Quote 2"]
+  },
+
+  "key_quotes": {
+    "value": "Representative quotes that capture the persona's authentic voice",
+    "confidence": 0.95,
+    "evidence": ["Actual quote 1 from transcript", "Actual quote 2 from transcript", "Actual quote 3 from transcript", "Actual quote 4 from transcript", "Actual quote 5 from transcript"]
+  },
+
+  // "patterns" should be a DIRECT LIST of strings.
+  "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
+
+  "overall_confidence_score": 0.85
 }}
 
 IMPORTANT:
 - Include ONLY information that can be reasonably inferred from the text.
 - For any field where you don't have enough information, provide your best estimate and note the uncertainty.
-- The "key_quotes" field should contain actual quotes from the text that best represent the persona's perspective.
+- The "key_quotes" field should contain a "value" that describes the quotes and an "evidence" array with actual direct quotes from the text that best represent the persona's perspective.
 - The "overall_confidence_score" should be a number between 0.0 and 1.0 reflecting your confidence in the accuracy of this persona.
 """

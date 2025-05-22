@@ -145,12 +145,23 @@ class AnalysisService:
             is_free_text: Whether to parse as free text
 
         Returns:
-            Parsed data (dict, list, or string)
+            Parsed data (dict, list, or string) with metadata
 
         Raises:
             HTTPException: For parsing errors
         """
         try:
+            # Create metadata dictionary with filename
+            metadata = {
+                "filename": interview_data.filename,
+                "input_type": interview_data.input_type,
+                "is_free_text": is_free_text,
+                "is_problem_demo": "Problem_demo" in interview_data.filename if interview_data.filename else False
+            }
+
+            # Log metadata for debugging
+            logger.info(f"Interview data metadata: {metadata}")
+
             data = json.loads(interview_data.original_data)
 
             # Handle free text format
@@ -193,15 +204,22 @@ class AnalysisService:
                         )
                         data = ""
 
-                # Wrap in a dict with free_text field
-                data = {"free_text": data}
+                # Wrap in a dict with free_text field and metadata
+                data = {
+                    "free_text": data,
+                    "metadata": metadata
+                }
 
                 # Log the extracted free text
                 logger.info(
                     f"Extracted free text (first 100 chars): {data['free_text'][:100]}..."
                 )
             elif not isinstance(data, list):
-                data = [data]
+                # Wrap single object in a list and add metadata
+                data = [{**data, "metadata": metadata}]
+            else:
+                # Add metadata to the list
+                data = [*data, {"metadata": metadata}]
 
             return data
 
