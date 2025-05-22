@@ -5,6 +5,7 @@ import asyncio
 import json
 import re
 import copy
+import importlib.util
 from typing import Dict, Any, List, Tuple
 from domain.interfaces.llm_unified import ILLMService
 
@@ -19,6 +20,18 @@ class NLPProcessor:
     def __init__(self):
         """Initialize NLP processor without dependencies"""
         logger.info("Initializing NLP processor")
+
+        # Try to import the extract_patterns method
+        try:
+            # Check if the extract_patterns module exists
+            if importlib.util.find_spec("backend.services.nlp.extract_patterns"):
+                # Import the module
+                from backend.services.nlp.extract_patterns import extract_patterns
+                # Monkey patch the extract_patterns method
+                self.extract_patterns = extract_patterns.__get__(self, NLPProcessor)
+                logger.info("Using new extract_patterns implementation")
+        except ImportError:
+            logger.info("Using legacy extract_patterns implementation")
 
     async def parse_free_text(self, text: str) -> List[Dict[str, str]]:
         """

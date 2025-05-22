@@ -7,6 +7,7 @@ It also re-exports SQLAlchemy models from the main backend.models module for com
 
 # Import Pydantic models
 from backend.models.transcript import TranscriptSegment, TranscriptMetadata, StructuredTranscript
+from backend.models.pattern import Pattern, PatternResponse, PatternEvidence
 
 # Re-export SQLAlchemy models from the original location for backward compatibility
 # Use importlib to avoid circular imports
@@ -36,6 +37,9 @@ __all__ = [
     'TranscriptSegment',
     'TranscriptMetadata',
     'StructuredTranscript',
+    'Pattern',
+    'PatternResponse',
+    'PatternEvidence',
 
     # SQLAlchemy models
     'User',
