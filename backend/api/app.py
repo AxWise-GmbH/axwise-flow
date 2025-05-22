@@ -249,6 +249,12 @@ app.include_router(priority_insights_router, prefix="/api/analysis")
 app.include_router(export_router)
 app.include_router(prd_router)
 
+# Include subscription and payment routers
+from backend.api.routes.subscription import router as subscription_router
+from backend.api.routes.stripe_webhook import router as stripe_webhook_router
+app.include_router(subscription_router)
+app.include_router(stripe_webhook_router)
+
 # Include debug router
 from backend.api.endpoints.debug import router as debug_router
 app.include_router(debug_router, prefix="/api")

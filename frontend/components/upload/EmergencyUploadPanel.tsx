@@ -224,7 +224,7 @@ export default function EmergencyUploadPanel() {
 
         // Redirect to results page anyway, as the analysis might be complete
         if (analysisResultId) {
-          router.push(`/results/${analysisResultId}`);
+          router.push(`/unified-dashboard/visualize?analysisId=${analysisResultId}`);
         }
         return;
       }

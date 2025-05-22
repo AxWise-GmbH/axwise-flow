@@ -61,9 +61,9 @@ async def generate_prd(
         # Get results data
         results_data = analysis_results.get("results", {})
 
-        # Create PRD generation service with enhanced_gemini provider and database session
+        # Create PRD generation service with enhanced_gemini provider, database session, and user
         llm_service = LLMServiceFactory.create("enhanced_gemini")
-        prd_service = PRDGenerationService(db=db, llm_service=llm_service)
+        prd_service = PRDGenerationService(db=db, llm_service=llm_service, user=user)
 
         # Get industry from results if available
         industry = results_data.get("industry")

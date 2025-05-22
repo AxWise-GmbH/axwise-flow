@@ -33,7 +33,7 @@ const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
         setSteps(steps);
         setOverallProgress(overallProgress);
         setError(error);
-        
+
         // Check if processing is complete
         if (overallProgress >= 1) {
           setIsComplete(true);
@@ -74,7 +74,7 @@ const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   };
 
   const handleViewResults = (): void => { // Add return type
-    window.location.href = `/results/${analysisId}`;
+    window.location.href = `/unified-dashboard/visualize?analysisId=${analysisId}`;
   };
 
   const handleRetry = (): void => { // Add return type
@@ -87,7 +87,7 @@ const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
         setSteps(steps);
         setOverallProgress(overallProgress);
         setError(error);
-        
+
         if (overallProgress >= 1) {
           setIsComplete(true);
           onComplete?.();
@@ -150,4 +150,4 @@ const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   );
 };
 
-export default AnalysisProgress; 
+export default AnalysisProgress;

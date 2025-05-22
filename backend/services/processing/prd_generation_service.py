@@ -8,9 +8,10 @@ import json
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 from backend.services.llm import LLMServiceFactory
-from backend.models import CachedPRD
+from backend.models import CachedPRD, User
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +20,17 @@ class PRDGenerationService:
     Service for generating Product Requirements Documents (PRDs) from analysis results.
     """
 
-    def __init__(self, db: Optional[Session] = None, llm_service=None):
+    def __init__(self, db: Optional[Session] = None, llm_service=None, user: Optional[User] = None):
         """
         Initialize the PRD generation service.
 
         Args:
             db: Database session for caching PRDs
             llm_service: LLM service to use for PRD generation
+            user: User model instance for usage tracking
         """
         self.db = db
+        self.user = user
         self.llm_service = llm_service or LLMServiceFactory.create("enhanced_gemini")
         logger.info(f"Initialized PRDGenerationService with {self.llm_service.__class__.__name__}")
 
@@ -53,6 +56,18 @@ class PRDGenerationService:
             Generated PRD
         """
         try:
+            # Check if user can generate PRD
+            if self.db and self.user:
+                from backend.services.usage_tracking_service import UsageTrackingService
+                usage_service = UsageTrackingService(self.db, self.user)
+
+                can_generate = await usage_service.can_generate_prd()
+                if not can_generate:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="You have reached your monthly PRD generation limit. Please upgrade your subscription to continue."
+                    )
+
             # Check cache first if database session is available and not forcing regeneration
             if self.db and result_id and not force_regenerate:
                 cached_prd = self._get_cached_prd(result_id, prd_type)
@@ -106,6 +121,12 @@ class PRDGenerationService:
             # Cache the PRD if database session is available
             if self.db and result_id:
                 self._cache_prd(result_id, prd_type, prd_data)
+
+                # Track usage after generating the PRD
+                if self.user:
+                    from backend.services.usage_tracking_service import UsageTrackingService
+                    usage_service = UsageTrackingService(self.db, self.user)
+                    await usage_service.track_prd_generation(result_id)
 
             logger.info(f"Successfully generated PRD with type: {prd_type}")
             return prd_data

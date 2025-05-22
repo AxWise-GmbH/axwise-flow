@@ -59,9 +59,23 @@ class AnalysisService:
             dict: Result with result_id and success status
 
         Raises:
+            HTTPException: If user has reached their analysis limit
+
+        Raises:
             HTTPException: For invalid configurations or missing data
         """
         try:
+            # Check if user can perform analysis
+            from backend.services.usage_tracking_service import UsageTrackingService
+            usage_service = UsageTrackingService(self.db, self.user)
+
+            can_perform = await usage_service.can_perform_analysis()
+            if not can_perform:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You have reached your monthly analysis limit. Please upgrade your subscription to continue."
+                )
+
             # Validate LLM provider and get default model if needed
             if llm_model is None:
                 llm_model = (
@@ -102,6 +116,14 @@ class AnalysisService:
             analysis_result = self._create_analysis_record(
                 data_id, llm_provider, llm_model, industry
             )
+
+            # Track usage after creating the analysis result
+            try:
+                await usage_service.track_analysis(analysis_result.result_id)
+            except Exception as usage_error:
+                # Log the error but continue with the analysis
+                logger.warning(f"Error tracking usage: {str(usage_error)}")
+                # This is non-critical, so we can continue
 
             # Start background processing task
             asyncio.create_task(
