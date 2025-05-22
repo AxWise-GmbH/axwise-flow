@@ -26,11 +26,11 @@ interface ThemeChartProps {
   themes: AnalyzedTheme[];
 }
 
-export function ThemeChart({ themes }: ThemeChartProps) {
+export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter themes based on search term
-  const getFilteredThemes = () => {
+  const getFilteredThemes = (): AnalyzedTheme[] => {
     // Filter by search term if provided
     if (searchTerm.trim()) {
       return themes.filter(theme => {
@@ -70,7 +70,7 @@ export function ThemeChart({ themes }: ThemeChartProps) {
   };
 
   // Helper function for rendering theme values with better handling of missing data
-  const renderThemeValue = (value: any, fallback: string = "Not available"): React.ReactNode => {
+  const renderThemeValue = (value: string | string[] | undefined | null, fallback: string = "Not available"): React.ReactNode => {
     if (value === undefined || value === null) {
       return <span className="text-muted-foreground text-sm italic">{fallback}</span>;
     }
@@ -164,7 +164,7 @@ export function ThemeChart({ themes }: ThemeChartProps) {
                     <div className="space-y-3 pt-2">
                       <div className="space-y-1">
                         <h4 className="text-sm font-medium">Definition:</h4>
-                        <div className="p-2 bg-muted rounded-md">
+                        <div className="p-2 bg-muted dark:bg-muted/30 rounded-md">
                           {renderThemeValue(theme.definition, "No definition available")}
                         </div>
                       </div>
@@ -199,21 +199,21 @@ export function ThemeChart({ themes }: ThemeChartProps) {
 
                       {/* Supporting Statements */}
                       <div>
-                        <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted dark:bg-muted/30 px-2 py-1 rounded-sm inline-block mb-2">
                           Supporting Statements
                         </span>
-                        <div className="rounded-md border p-4">
+                        <div className="rounded-md border dark:border-slate-700 p-4">
                           {theme.statements && theme.statements.length > 0 ? (
                             <ul className="space-y-2 text-sm">
                               {theme.statements.map((statement, i) => (
-                                <li key={`${theme.id || theme.name}-statement-${i}`} className="relative bg-muted/30 p-3 rounded-md">
-                                  <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
+                                <li key={`${theme.id || theme.name}-statement-${i}`} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
+                                  <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
                                   <p className="italic text-muted-foreground text-sm">&quot;{statement}&quot;</p>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <div className="p-2 bg-muted/50 rounded-md">
+                            <div className="p-2 bg-muted/50 dark:bg-slate-800/50 rounded-md">
                               {renderThemeValue(null, "No supporting statements available")}
                             </div>
                           )}

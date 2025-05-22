@@ -35,7 +35,7 @@ export function InsightList({ insights, className }: InsightListProps) {
         <Accordion type="multiple" className="w-full">
           {insights.map((insight, index) => (
             <AccordionItem key={`insight-${index}`} value={`insight-${index}`}>
-              <AccordionTrigger className="hover:bg-muted/50 px-4 py-2 rounded-md">
+              <AccordionTrigger className="hover:bg-muted/50 dark:hover:bg-muted/20 px-4 py-2 rounded-md">
                 <div className="flex items-center gap-2 text-left">
                   <span className="font-medium">{insight.topic}</span>
                   {insight.priority && (
@@ -47,7 +47,7 @@ export function InsightList({ insights, className }: InsightListProps) {
                       {insight.priority} Priority
                     </Badge>
                   )}
-                  <Badge variant="outline" className="ml-2">
+                  <Badge variant="outline" className="ml-2 dark:border-slate-700 dark:bg-slate-800/50">
                     {insight.evidence.length} {insight.evidence.length === 1 ? 'evidence' : 'evidences'}
                   </Badge>
                 </div>
@@ -80,11 +80,16 @@ export function InsightList({ insights, className }: InsightListProps) {
                   {insight.evidence && insight.evidence.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium mb-2">Supporting Evidence</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                        {insight.evidence.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
+                      <div className="pl-3 border-l-2 border-primary/20 dark:border-primary/30">
+                        <ul className="space-y-2">
+                          {insight.evidence.map((item, i) => (
+                            <li key={i} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
+                              <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
+                              <p className="text-sm text-muted-foreground">{item}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   )}
                 </div>

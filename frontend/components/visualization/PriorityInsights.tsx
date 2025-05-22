@@ -183,13 +183,13 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
   const getUrgencyColorClass = (urgency: string) => {
     switch (urgency) {
       case 'high':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
       case 'medium':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
       case 'low':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700';
     }
   };
 
@@ -198,7 +198,9 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
     return (
       <Badge
         variant="outline"
-        className={type === 'theme' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}
+        className={type === 'theme'
+          ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+          : 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800'}
       >
         {type.charAt(0).toUpperCase() + type.slice(1)}
       </Badge>
@@ -206,7 +208,7 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
   };
 
   // Get error icon based on error type
-  const getErrorIcon = () => {
+  const getErrorIcon = (): React.ReactNode => {
     if (!errorDetails) return <AlertCircle className="h-5 w-5" />;
 
     switch (errorDetails.type) {
@@ -247,7 +249,7 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
           <CardDescription>Unable to load insights</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700 mb-4">
+          <div className="p-4 border border-red-200 dark:border-red-800 rounded-md bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 mb-4">
             <div className="flex items-center gap-2 mb-3">
               {getErrorIcon()}
               <span className="font-semibold">
@@ -259,7 +261,7 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
             </div>
             <p>{error}</p>
             {errorDetails?.statusCode && (
-              <p className="mt-2 text-sm text-red-600">Status code: {errorDetails.statusCode}</p>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">Status code: {errorDetails.statusCode}</p>
             )}
             {autoRetrying && (
               <p className="mt-2 text-sm flex items-center">
@@ -293,7 +295,7 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'high' | 'medium' | 'low')}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all">
               All ({priorityData?.insights.length || 0})
@@ -327,12 +329,12 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
                         <span className="font-medium capitalize">{insight.urgency} Priority</span>
                         {getTypeBadge(insight.type)}
                         {insight.category && (
-                          <Badge variant="outline" className="bg-white">
+                          <Badge variant="outline" className="bg-white dark:bg-slate-800 dark:border-slate-700">
                             {insight.category}
                           </Badge>
                         )}
                       </div>
-                      <Badge variant="outline" className="bg-white">
+                      <Badge variant="outline" className="bg-white dark:bg-slate-800 dark:border-slate-700">
                         Score: {insight.priority_score}
                       </Badge>
                     </div>
@@ -351,30 +353,46 @@ export function PriorityInsights({ analysisId }: PriorityInsightsProps) {
 
                     {/* Display supporting statements (evidence for patterns, statements for themes) */}
                     {insight.type === 'pattern' && (insight.original as PatternOriginal).evidence && (insight.original as PatternOriginal).evidence!.length > 0 && (
-                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
-                        {(insight.original as PatternOriginal).evidence!.map((evidence: string, i: number) => (
-                          <p key={i} className="text-sm text-muted-foreground italic mb-2">{evidence}</p>
-                        ))}
+                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+                        <div className="space-y-2">
+                          {(insight.original as PatternOriginal).evidence!.map((evidence: string, i: number) => (
+                            <div key={i} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
+                              <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
+                              <p className="text-sm text-muted-foreground italic">{evidence}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {insight.type === 'theme' && (insight.original as ThemeOriginal).statements && (insight.original as ThemeOriginal).statements!.length > 0 && (
-                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200">
-                        {(insight.original as ThemeOriginal).statements!.map((statement: string, i: number) => (
-                          <p key={i} className="text-sm text-muted-foreground italic mb-2">{statement}</p>
-                        ))}
+                      <div className="mt-2 mb-3 pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+                        <div className="space-y-2">
+                          {(insight.original as ThemeOriginal).statements!.map((statement: string, i: number) => (
+                            <div key={i} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
+                              <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
+                              <p className="text-sm text-muted-foreground italic">{statement}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     <div className="flex items-center gap-3 text-xs">
                       <span className="flex items-center gap-1">
                         <span className="font-medium">Sentiment:</span>
-                        <Badge variant="outline" className={insight.sentiment > 0 ? 'bg-green-50' : (insight.sentiment < 0 ? 'bg-red-50' : 'bg-blue-50')}>
+                        <Badge variant="outline" className={
+                          insight.sentiment > 0
+                            ? 'bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+                            : (insight.sentiment < 0
+                                ? 'bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+                                : 'bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800')
+                        }>
                           {insight.sentiment > 0 ? 'Positive' : (insight.sentiment < 0 ? 'Negative' : 'Neutral')}
                         </Badge>
                       </span>
                       <span className="flex items-center gap-1">
                         <span className="font-medium">Frequency:</span>
-                        <Badge variant="outline" className="bg-white">
+                        <Badge variant="outline" className="bg-white dark:bg-slate-800 dark:border-slate-700">
                           {Math.round(insight.frequency * 100)}%
                         </Badge>
                       </span>

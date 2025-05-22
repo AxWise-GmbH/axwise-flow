@@ -54,15 +54,15 @@ export function PatternList({ patterns, className }: PatternListProps) {
 
   const getPatternColors = (sentiment: number | undefined) => {
     if (typeof sentiment !== 'number') {
-      return { border: 'border-slate-300', bg: 'bg-slate-50' };
+      return { border: 'border-slate-300 dark:border-slate-700', bg: 'bg-slate-50 dark:bg-slate-900/50' };
     }
     if (sentiment >= 0.2) {
-      return { border: 'border-green-300', bg: 'bg-green-50' };
+      return { border: 'border-green-300 dark:border-green-800', bg: 'bg-green-50 dark:bg-green-900/20' };
     }
     if (sentiment <= -0.2) {
-      return { border: 'border-red-300', bg: 'bg-red-50' };
+      return { border: 'border-red-300 dark:border-red-800', bg: 'bg-red-50 dark:bg-red-900/20' };
     }
-    return { border: 'border-slate-300', bg: 'bg-slate-50' };
+    return { border: 'border-slate-300 dark:border-slate-700', bg: 'bg-slate-50 dark:bg-slate-900/50' };
   };
 
   // const handlePatternSelect = (pattern: Pattern) => {
@@ -177,12 +177,12 @@ export function PatternList({ patterns, className }: PatternListProps) {
                           {pattern.evidence && pattern.evidence.length > 0 && (
 
                             <div className="mt-3">
-                              <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
-                              <div className="pl-3 border-l-2 border-primary/20">
+                              <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted dark:bg-muted/30 px-2 py-1 rounded-sm inline-block mb-2">Supporting Statements</span>
+                              <div className="pl-3 border-l-2 border-primary/20 dark:border-primary/30">
                                 <ul className="space-y-3">
                                   {pattern.evidence.map((evidence: string, i: number) => (
-                                    <li key={`${patternKey}-evidence-${i}-${evidence.slice(0, 10).replace(/\s+/g, '-')}`} className="relative bg-muted/30 p-3 rounded-md">
-                                      <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 rounded-l-md"></div>
+                                    <li key={`${patternKey}-evidence-${i}-${evidence.slice(0, 10).replace(/\s+/g, '-')}`} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
+                                      <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
                                       <p className="text-muted-foreground text-sm">{evidence}</p>
                                     </li>
                                   ))}
