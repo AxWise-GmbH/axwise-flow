@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // swcMinify is deprecated in Next.js 15, removed it
+
+  // Output configuration for Firebase App Hosting
+  output: 'standalone',
 
   // Environment variables
   env: {
@@ -52,6 +54,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  // Properly handle middleware for Firebase App Hosting
+  poweredByHeader: false,
+  generateEtags: false,
 }
 
 module.exports = nextConfig
