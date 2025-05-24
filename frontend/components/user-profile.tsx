@@ -1,7 +1,7 @@
 'use client';
 
-import { 
-  UserButton, 
+import {
+  UserButton,
   useUser,
   SignedIn,
   SignedOut,
@@ -23,7 +23,7 @@ export function UserProfile() {
         try {
           const token = await session.getToken();
           if (token) {
-            console.log('Setting auth token from UserProfile component');
+            // Set auth token for API calls
             apiClient.setAuthToken(token);
           }
         } catch (error) {
@@ -43,7 +43,7 @@ export function UserProfile() {
             <span className="text-sm hidden md:block">
               {user.firstName || user.username || 'User'}
             </span>
-            <UserButton 
+            <UserButton
               afterSignOutUrl="/sign-in"
               appearance={{
                 elements: {
@@ -63,4 +63,4 @@ export function UserProfile() {
       </SignedOut>
     </div>
   );
-} 
+}

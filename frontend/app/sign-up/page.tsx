@@ -1,5 +1,9 @@
 import { SignUp } from '@clerk/nextjs';
 import { Metadata } from 'next';
+import Link from 'next/link';
+import { Suspense } from 'react';
+import { LoadingSpinner } from '@/components/loading-spinner';
+import { AuthErrorBoundary } from '@/components/auth-error-boundary';
 
 export const metadata: Metadata = {
   title: 'Sign Up | Interview Insight Analyst',
@@ -17,19 +21,36 @@ export default function SignUpPage(): JSX.Element { // Add return type
           </p>
         </div>
         <div className="mt-8">
-          <SignUp
-            routing="hash"
-            appearance={{
-              elements: {
-                card: 'shadow-xl border-gray-200 dark:border-gray-800',
-                headerTitle: 'text-2xl font-semibold',
-                headerSubtitle: 'text-gray-500 dark:text-gray-400',
-                formButtonPrimary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
-              },
-            }}
-          />
+          <AuthErrorBoundary>
+            <Suspense fallback={<LoadingSpinner label="Loading sign-up..." />}>
+              <SignUp
+                routing="hash"
+                appearance={{
+                  elements: {
+                    card: 'shadow-xl border-gray-200 dark:border-gray-800',
+                    headerTitle: 'text-2xl font-semibold',
+                    headerSubtitle: 'text-gray-500 dark:text-gray-400',
+                    formButtonPrimary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+                  },
+                }}
+              />
+            </Suspense>
+          </AuthErrorBoundary>
+        </div>
+
+        {/* Navigation to Sign In */}
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?{' '}
+            <Link
+              href="/sign-in"
+              className="font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Sign in here
+            </Link>
+          </p>
         </div>
       </div>
     </div>
   );
-} 
+}

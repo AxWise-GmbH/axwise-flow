@@ -1,16 +1,36 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
+// Define public routes that should be accessible without authentication
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/contact',
+  '/impressum',
+  '/privacy-policy',
+  '/terms-of-service',
+  '/pricing',
+  '/api/webhook(.*)', // Allow webhooks
+]);
+
 // Define protected routes that require authentication
 const isProtectedRoute = createRouteMatcher([
   '/unified-dashboard(.*)',
   '/results(.*)',
   '/analysis(.*)',
   '/settings(.*)',
-  '/profile(.*)'
+  '/profile(.*)',
+  '/admin(.*)',
+  '/firebase-test(.*)'
 ]);
 
 // Simplified Clerk middleware using recommended patterns
 export default clerkMiddleware(async (auth, req) => {
+  // Allow public routes without authentication
+  if (isPublicRoute(req)) {
+    return;
+  }
+
   // Protect routes that require authentication
   if (isProtectedRoute(req)) {
     await auth.protect();
