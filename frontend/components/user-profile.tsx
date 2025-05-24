@@ -5,7 +5,6 @@ import {
   useUser,
   SignedIn,
   SignedOut,
-  SignInButton,
   useSession
 } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
@@ -14,25 +13,8 @@ import { apiClient } from '@/lib/apiClient';
 import { isClerkConfigured } from '@/lib/clerk-config';
 import Link from 'next/link';
 
-export function UserProfile() {
-  // Development mode fallback when Clerk is not configured
-  if (!isClerkConfigured) {
-    return (
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-yellow-600 dark:text-yellow-400">
-            Dev Mode
-          </span>
-          <Link href="/sign-in">
-            <Button variant="outline" size="sm">
-              Sign In
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
+// Component that uses Clerk hooks - only rendered when Clerk is available
+function ClerkUserProfile(): JSX.Element {
   const { isSignedIn, user, isLoaded } = useUser();
   const { session } = useSession();
 
@@ -79,12 +61,36 @@ export function UserProfile() {
         )}
       </SignedIn>
       <SignedOut>
-        <SignInButton mode="modal">
+        <Link href="/sign-in">
           <Button variant="outline" size="sm">
             Sign In
           </Button>
-        </SignInButton>
+        </Link>
       </SignedOut>
     </div>
   );
+}
+
+// Main UserProfile component that conditionally renders based on Clerk configuration
+export function UserProfile(): JSX.Element {
+  // Development mode fallback when Clerk is not configured
+  if (!isClerkConfigured) {
+    return (
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-yellow-600 dark:text-yellow-400">
+            Dev Mode
+          </span>
+          <Link href="/sign-in">
+            <Button variant="outline" size="sm">
+              Sign In
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Clerk-enabled component when Clerk is configured
+  return <ClerkUserProfile />;
 }
