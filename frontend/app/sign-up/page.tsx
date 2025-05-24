@@ -46,7 +46,7 @@ export default function SignUpPage() {
                   <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
                     <p>
                       Clerk authentication is not configured for localhost.
-                      Production keys are restricted to flow.axwise.de domain.
+                      Production keys are restricted to axwise.de domain.
                     </p>
                     <p className="mt-2">
                       <Link
