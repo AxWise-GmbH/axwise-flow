@@ -61,10 +61,22 @@ export async function initializeAuth(): Promise<void> {
     const token = await getAuthToken();
     if (token) {
       setAuthToken(token);
-      console.log('Authentication initialized successfully');
+      console.log('Authentication initialized successfully with Clerk token');
     } else {
-      console.log('No authentication token available - user not signed in');
-      clearAuthToken();
+      // Check if we're in development mode and Clerk validation is disabled
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableClerkValidation = process.env.ENABLE_CLERK_...=***REMOVED*** 'true';
+
+      if (!isProduction && !enableClerkValidation) {
+        // For development mode only, provide a test token
+        const devToken = 'DEV_TOKEN_REDACTED';
+        setAuthToken(devToken);
+        console.log('Authentication initialized with development token (development mode only)');
+      } else {
+        // In production or when Clerk validation is enabled, require proper authentication
+        console.log('No authentication token available - user must sign in');
+        clearAuthToken();
+      }
     }
   } catch (error) {
     console.error('Error initializing authentication:', error);

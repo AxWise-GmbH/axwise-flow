@@ -32,6 +32,11 @@ ENABLE_CLERK_...=***REMOVED***
     os.getenv("ENABLE_CLERK_VALIDATION", "false").lower() == "true"
 )
 
+# Check if we're in production environment
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+logger.info(f"Auth middleware initialized - Clerk validation: {ENABLE_CLERK_VALIDATION}, Production: {IS_PRODUCTION}")
+
 # Development token prefix for easier identification - only used in development
 DEV_TOKEN_PREFIX = "dev_test_token_"
 

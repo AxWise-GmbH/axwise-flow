@@ -20,12 +20,19 @@ class ClerkService:
 
     def __init__(self):
         """Initialize the Clerk service."""
-        self.jwks_url = os.getenv("CLERK_JWKS_URL", "https://grown-seasnail-35.clerk.accounts.dev/.well-known/jwks.json")
+        # Use production JWKS URL for axwise.de domain
+        self.jwks_url = os.getenv("CLERK_JWKS_URL", "https://clerk.axwise.de/.well-known/jwks.json")
         self.CLERK_...=***REMOVED***"CLERK_API_URL", "https://api.clerk.com")
         self.CLERK_...=***REMOVED***"CLERK_SECRET_KEY", "")
         self.jwks = None
         self.jwks_last_updated = 0
         self.jwks_cache_ttl = 3600  # 1 hour in seconds
+
+        # Validate configuration
+        if not self.clerk_secret:
+            logger.warning("CLERK_SECRET_KEY not configured - authentication will fail in production")
+
+        logger.info(f"Clerk service initialized with JWKS URL: {self.jwks_url}")
 
         # Load JWKS on initialization
         self._load_jwks()

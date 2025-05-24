@@ -1,6 +1,6 @@
 /**
  * Authentication utilities for the application
- * 
+ *
  * Last Updated: 2025-03-25
  */
 
@@ -13,20 +13,31 @@ import { apiClient } from './apiClient';
 export const initializeAuth = async (): Promise<void> => {
   try {
     // Check if a Clerk token is available
-    const clerksToken = await apiClient.getAuthToken();
-    
-    if (clerksToken) {
+    const clerkToken = await apiClient.getAuthToken();
+
+    if (clerkToken) {
       console.log('Setting Clerk auth token');
-      apiClient.setAuthToken(clerksToken);
+      apiClient.setAuthToken(clerkToken);
       return;
     }
-    
-    // For development mode, provide a test token
-    // This matches the "testuser123" ID expected by the backend in dev mode
-    const devToken = 'DEV_TOKEN_REDACTED';
-    console.log('Setting development auth token');
-    apiClient.setAuthToken(devToken);
+
+    // Check if we're in development mode and Clerk validation is disabled
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.ENABLE_CLERK_...=***REMOVED*** 'true';
+
+    if (!isProduction && !enableClerkValidation) {
+      // For development mode only, provide a test token
+      const devToken = 'DEV_TOKEN_REDACTED';
+      console.log('Setting development auth token (development mode only)');
+      apiClient.setAuthToken(devToken);
+    } else {
+      // In production or when Clerk validation is enabled, require proper authentication
+      console.log('No authentication token available - user must sign in');
+      apiClient.clearAuthToken();
+    }
   } catch (error) {
     console.error('Error initializing authentication:', error);
+    // In case of error, clear any existing tokens
+    apiClient.clearAuthToken();
   }
-}; 
+};
