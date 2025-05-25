@@ -59,9 +59,21 @@ export function initializeFirebaseSafe(): {
     if (app && !auth) {
       auth = getAuth(app);
     }
-    
+
     if (app && !db) {
       db = getFirestore(app);
+
+      // Enable network connectivity for Firestore
+      try {
+        // Import enableNetwork dynamically to avoid SSR issues
+        import('firebase/firestore').then(({ enableNetwork }) => {
+          enableNetwork(db).catch(error => {
+            console.warn('Failed to enable Firestore network:', error);
+          });
+        });
+      } catch (error) {
+        console.warn('Failed to import enableNetwork:', error);
+      }
     }
 
     return { app, auth, db };

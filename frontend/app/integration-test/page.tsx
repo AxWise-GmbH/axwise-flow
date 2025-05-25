@@ -33,7 +33,7 @@ export default function IntegrationTestPage() {
     try {
       // Step 1: Check Clerk Authentication
       addResult('1. Clerk Auth Check', 'info', 'Checking Clerk authentication state...');
-      
+
       if (!isLoaded) {
         addResult('1. Clerk Auth Check', 'error', 'Clerk not loaded yet');
         return;
@@ -48,7 +48,7 @@ export default function IntegrationTestPage() {
 
       // Step 2: Check Firebase Configuration
       addResult('2. Firebase Config', 'info', 'Checking Firebase configuration...');
-      
+
       if (!isFirebaseEnabled) {
         addResult('2. Firebase Config', 'error', 'Firebase integration disabled');
         return;
@@ -58,9 +58,9 @@ export default function IntegrationTestPage() {
 
       // Step 3: Initialize Firebase Instances
       addResult('3. Firebase Init', 'info', 'Initializing Firebase instances...');
-      
+
       const { auth, app, db } = getFirebaseInstances();
-      
+
       if (!app) {
         addResult('3. Firebase Init', 'error', 'Firebase app not initialized');
         return;
@@ -80,14 +80,14 @@ export default function IntegrationTestPage() {
 
       // Step 4: Get Firebase Token from Clerk
       addResult('4. Clerk Token', 'info', 'Getting Firebase token from Clerk...');
-      
+
       const tokenStartTime = Date.now();
       let token;
-      
+
       try {
         token = await getToken({ template: 'integration_firebase' });
         const tokenEndTime = Date.now();
-        
+
         if (!token) {
           addResult('4. Clerk Token', 'error', 'Token is null/undefined');
           return;
@@ -105,13 +105,13 @@ export default function IntegrationTestPage() {
 
       // Step 5: Sign in to Firebase
       addResult('5. Firebase Auth', 'info', 'Signing into Firebase with custom token...');
-      
+
       const firebaseStartTime = Date.now();
-      
+
       try {
         const userCredentials = await signInWithCustomToken(auth, token);
         const firebaseEndTime = Date.now();
-        
+
         addResult('5. Firebase Auth', 'success', `Firebase sign-in completed in ${firebaseEndTime - firebaseStartTime}ms`, {
           uid: userCredentials.user.uid,
           email: userCredentials.user.email,
@@ -123,22 +123,72 @@ export default function IntegrationTestPage() {
         return;
       }
 
-      // Step 6: Test Firestore Access
+      // Step 6: Enhanced Firestore Diagnostics
       if (db) {
-        addResult('6. Firestore Test', 'info', 'Testing Firestore access...');
-        
+        addResult('6. Firestore Diagnostics', 'info', 'Running comprehensive Firestore diagnostics...');
+
         try {
-          const { doc, getDoc } = await import('firebase/firestore');
-          const testDoc = doc(db, 'test', 'integration-test');
-          const docSnap = await getDoc(testDoc);
-          
-          addResult('6. Firestore Test', 'success', 'Firestore access successful', {
-            exists: docSnap.exists(),
-            data: docSnap.exists() ? docSnap.data() : null
-          });
-        } catch (error) {
-          addResult('6. Firestore Test', 'error', `Firestore access failed: ${error.message}`, error);
+          const { doc, getDoc, collection, addDoc, enableNetwork, connectFirestoreEmulator } = await import('firebase/firestore');
+
+          // Sub-test 6a: Check Firestore connection
+          addResult('6a. Network Check', 'info', 'Checking Firestore network connectivity...');
+
+          try {
+            await enableNetwork(db);
+            addResult('6a. Network Check', 'success', 'Firestore network enabled');
+          } catch (networkError) {
+            addResult('6a. Network Check', 'error', `Network enable failed: ${networkError.message}`, networkError);
+          }
+
+          // Sub-test 6b: Try to read a simple document
+          addResult('6b. Document Read', 'info', 'Attempting to read test document...');
+
+          try {
+            const testDoc = doc(db, 'test', 'integration-test');
+            const docSnap = await getDoc(testDoc);
+
+            addResult('6b. Document Read', 'success', 'Document read successful', {
+              exists: docSnap.exists(),
+              data: docSnap.exists() ? docSnap.data() : null,
+              path: testDoc.path
+            });
+          } catch (readError) {
+            addResult('6b. Document Read', 'error', `Document read failed: ${readError.message}`, {
+              code: readError.code,
+              name: readError.name,
+              stack: readError.stack
+            });
+          }
+
+          // Sub-test 6c: Try to write a document (if read failed)
+          addResult('6c. Document Write', 'info', 'Attempting to create test document...');
+
+          try {
+            const testCollection = collection(db, 'test');
+            const docRef = await addDoc(testCollection, {
+              message: 'Integration test document',
+              timestamp: new Date().toISOString(),
+              userId: userId,
+              testType: 'clerk-firebase-integration'
+            });
+
+            addResult('6c. Document Write', 'success', 'Document write successful', {
+              docId: docRef.id,
+              path: docRef.path
+            });
+          } catch (writeError) {
+            addResult('6c. Document Write', 'error', `Document write failed: ${writeError.message}`, {
+              code: writeError.code,
+              name: writeError.name,
+              details: writeError
+            });
+          }
+
+        } catch (importError) {
+          addResult('6. Firestore Diagnostics', 'error', `Firestore import failed: ${importError.message}`, importError);
         }
+      } else {
+        addResult('6. Firestore Diagnostics', 'error', 'Firestore database instance not available');
       }
 
       addResult('COMPLETE', 'success', '🎉 Integration test completed successfully!');
@@ -158,19 +208,19 @@ export default function IntegrationTestPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">🧪 Clerk-Firebase Integration Test</h1>
-        
+
         <div className="bg-card p-6 rounded-lg border mb-6">
           <h2 className="text-xl font-semibold mb-4">Test Controls</h2>
           <div className="space-x-4">
-            <button 
+            <button
               onClick={runIntegrationTest}
               disabled={isRunning}
               className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 disabled:opacity-50"
             >
               {isRunning ? 'Running Test...' : 'Run Integration Test'}
             </button>
-            
-            <button 
+
+            <button
               onClick={clearResults}
               disabled={isRunning}
               className="bg-secondary text-secondary-foreground px-4 py-2 rounded hover:bg-secondary/90 disabled:opacity-50"
@@ -182,13 +232,13 @@ export default function IntegrationTestPage() {
 
         <div className="bg-card p-6 rounded-lg border">
           <h2 className="text-xl font-semibold mb-4">Test Results</h2>
-          
+
           {testResults.length === 0 ? (
             <p className="text-muted-foreground">No test results yet. Click "Run Integration Test" to start.</p>
           ) : (
             <div className="space-y-3">
               {testResults.map((result, index) => (
-                <div 
+                <div
                   key={index}
                   className={`p-3 rounded border-l-4 ${
                     result.status === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' :
