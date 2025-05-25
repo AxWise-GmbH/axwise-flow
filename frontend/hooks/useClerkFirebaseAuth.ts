@@ -24,58 +24,120 @@ export function useClerkFirebaseAuth() {
    * Authenticate with Firebase using Clerk token
    */
   const authenticateWithFirebase = useCallback(async (forceRetry = false) => {
+    console.log('🔥 [CLERK-FIREBASE] Starting authentication process...', {
+      isFirebaseEnabled,
+      isSignedIn,
+      userId,
+      isLoaded,
+      isFirebaseSignedIn,
+      forceRetry
+    });
+
     // Only proceed if Firebase is enabled and user is signed in with Clerk
-    if (!isFirebaseEnabled || !isSignedIn || !userId || !isLoaded) {
+    if (!isFirebaseEnabled) {
+      console.log('🔥 [CLERK-FIREBASE] Firebase integration disabled');
+      return false;
+    }
+
+    if (!isSignedIn || !userId || !isLoaded) {
+      console.log('🔥 [CLERK-FIREBASE] Clerk not ready:', { isSignedIn, userId, isLoaded });
       return false;
     }
 
     // Skip if already authenticated and not forcing retry
     if (isFirebaseSignedIn && !forceRetry) {
+      console.log('🔥 [CLERK-FIREBASE] Already authenticated, skipping');
       return true;
     }
 
+    console.log('🔥 [CLERK-FIREBASE] Proceeding with Firebase authentication...');
     setIsFirebaseLoading(true);
     setFirebaseError(null);
 
     try {
-      const { auth } = getFirebaseInstances();
-      
+      // Step 1: Get Firebase instances
+      console.log('🔥 [CLERK-FIREBASE] Step 1: Getting Firebase instances...');
+      const { auth, app } = getFirebaseInstances();
+
+      if (!app) {
+        throw new Error('Firebase app not initialized');
+      }
+
       if (!auth) {
         throw new Error('Firebase auth not initialized');
       }
 
-      // Get Firebase token from Clerk using the official integration template
-      console.log('🔥 Getting Firebase token from Clerk...');
+      console.log('🔥 [CLERK-FIREBASE] Firebase instances ready:', {
+        app: !!app,
+        auth: !!auth,
+        authCurrentUser: auth.currentUser?.uid || 'none'
+      });
+
+      // Step 2: Get Firebase token from Clerk
+      console.log('🔥 [CLERK-FIREBASE] Step 2: Getting Firebase token from Clerk...');
+      console.log('🔥 [CLERK-FIREBASE] Calling getToken({ template: "integration_firebase" })...');
+
+      const tokenStartTime = Date.now();
       const token = await getToken({ template: 'integration_firebase' });
-      
+      const tokenEndTime = Date.now();
+
+      console.log('🔥 [CLERK-FIREBASE] Token request completed in', tokenEndTime - tokenStartTime, 'ms');
+
       if (!token) {
-        throw new Error('Failed to get Firebase token from Clerk');
+        throw new Error('Failed to get Firebase token from Clerk - token is null/undefined');
       }
 
-      console.log('🔥 Signing into Firebase with Clerk token...');
-      // Sign in to Firebase with the custom token
+      console.log('🔥 [CLERK-FIREBASE] Token received:', {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + '...',
+        tokenSuffix: '...' + token.substring(token.length - 20)
+      });
+
+      // Step 3: Sign in to Firebase with custom token
+      console.log('🔥 [CLERK-FIREBASE] Step 3: Signing into Firebase with custom token...');
+
+      const firebaseStartTime = Date.now();
       const userCredentials = await signInWithCustomToken(auth, token);
-      
-      console.log('🔥 Firebase authentication successful:', userCredentials.user.uid);
+      const firebaseEndTime = Date.now();
+
+      console.log('🔥 [CLERK-FIREBASE] Firebase sign-in completed in', firebaseEndTime - firebaseStartTime, 'ms');
+      console.log('🔥 [CLERK-FIREBASE] Firebase authentication successful!', {
+        uid: userCredentials.user.uid,
+        email: userCredentials.user.email,
+        providerId: userCredentials.user.providerId,
+        isAnonymous: userCredentials.user.isAnonymous
+      });
+
       setIsFirebaseSignedIn(true);
       setRetryCount(0); // Reset retry count on success
+
+      console.log('🔥 [CLERK-FIREBASE] ✅ INTEGRATION COMPLETE - User authenticated with both Clerk and Firebase');
       return true;
 
     } catch (error) {
-      console.error('🔥 Firebase authentication error:', error);
+      console.error('🔥 [CLERK-FIREBASE] ❌ Authentication error:', error);
+      console.error('🔥 [CLERK-FIREBASE] Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+
       const errorMessage = error instanceof Error ? error.message : 'Failed to authenticate with Firebase';
       setFirebaseError(errorMessage);
-      
+
       // Retry logic for transient errors
       if (retryCount < MAX_RETRIES && !forceRetry) {
-        console.log(`🔥 Retrying Firebase authentication (${retryCount + 1}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
+        console.log(`🔥 [CLERK-FIREBASE] Retrying Firebase authentication (${retryCount + 1}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
         setRetryCount(prev => prev + 1);
-        
+
         setTimeout(() => {
           authenticateWithFirebase(false);
         }, RETRY_DELAY);
+      } else {
+        console.error(`🔥 [CLERK-FIREBASE] Max retries reached or forced retry failed. Giving up.`);
       }
-      
+
       return false;
     } finally {
       setIsFirebaseLoading(false);
@@ -124,22 +186,45 @@ export function useClerkFirebaseAuth() {
 
   // Monitor Firebase auth state
   useEffect(() => {
-    if (!isFirebaseEnabled) return;
+    if (!isFirebaseEnabled) {
+      console.log('🔥 [FIREBASE-MONITOR] Firebase integration disabled, skipping auth state monitoring');
+      return;
+    }
 
     const { auth } = getFirebaseInstances();
-    if (!auth) return;
+    if (!auth) {
+      console.log('🔥 [FIREBASE-MONITOR] Firebase auth not available, skipping monitoring');
+      return;
+    }
+
+    console.log('🔥 [FIREBASE-MONITOR] Setting up Firebase auth state monitoring...');
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       const wasSignedIn = isFirebaseSignedIn;
       const isNowSignedIn = !!user;
-      
+
+      console.log('🔥 [FIREBASE-MONITOR] Firebase auth state changed:', {
+        wasSignedIn,
+        isNowSignedIn,
+        user: user ? {
+          uid: user.uid,
+          email: user.email,
+          providerId: user.providerId,
+          isAnonymous: user.isAnonymous,
+          emailVerified: user.emailVerified
+        } : null
+      });
+
       if (wasSignedIn !== isNowSignedIn) {
-        console.log('🔥 Firebase auth state changed:', isNowSignedIn ? 'signed in' : 'signed out');
+        console.log('🔥 [FIREBASE-MONITOR] Updating Firebase signed-in state:', isNowSignedIn ? 'signed in' : 'signed out');
         setIsFirebaseSignedIn(isNowSignedIn);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log('🔥 [FIREBASE-MONITOR] Cleaning up Firebase auth state monitoring');
+      unsubscribe();
+    };
   }, [isFirebaseEnabled, isFirebaseSignedIn]);
 
   return {
@@ -147,20 +232,20 @@ export function useClerkFirebaseAuth() {
     isFirebaseSignedIn,
     isFirebaseLoading,
     firebaseError,
-    
+
     // Clerk auth state (for convenience)
     isClerkSignedIn: isSignedIn,
     clerkUserId: userId,
     isClerkLoaded: isLoaded,
-    
+
     // Integration state
     isFirebaseEnabled,
     isFullyAuthenticated: isSignedIn && (isFirebaseSignedIn || !isFirebaseEnabled),
-    
+
     // Actions
     retryFirebaseAuth,
     signOutFromFirebase,
-    
+
     // Status
     retryCount,
     maxRetries: MAX_RETRIES,
