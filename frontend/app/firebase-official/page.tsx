@@ -1,10 +1,10 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { signInWithCustomToken } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { getFirebaseInstances } from '@/lib/firebase-safe';
 
 /**
  * Official Clerk-Firebase Integration Test Page
@@ -12,27 +12,15 @@ import { useState } from 'react';
  * https://clerk.com/docs/integrations/databases/firebase
  */
 
-// Firebase configuration object
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
-
-// Connect to your Firebase app
-const app = initializeApp(firebaseConfig);
-// Connect to your Firestore database
-const db = getFirestore(app);
-// Connect to Firebase auth
-const auth = getAuth(app);
+// Firebase instances will be initialized safely using the utility
 
 // Example Firestore operations (from official docs)
-const getFirestoreData = async () => {
+const getFirestoreData = async (): Promise<any> => {
+  const { db } = getFirebaseInstances();
+  if (!db) {
+    throw new Error('Firestore not initialized');
+  }
+
   const docRef = doc(db, 'example', 'example-document');
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
@@ -44,7 +32,12 @@ const getFirestoreData = async () => {
   }
 };
 
-const setFirestoreData = async (data: any) => {
+const setFirestoreData = async (data: any): Promise<void> => {
+  const { db } = getFirebaseInstances();
+  if (!db) {
+    throw new Error('Firestore not initialized');
+  }
+
   const docRef = doc(db, 'example', 'example-document');
   await setDoc(docRef, data);
   console.log('Document written successfully');
@@ -56,10 +49,16 @@ export default function FirebaseOfficialPage() {
   const [firestoreData, setFirestoreData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   // Check if Firebase integration is enabled
   const isFirebaseEnabled = process.env.NEXT_PUBLIC_...=***REMOVED*** 'true';
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // Ensure we're on the client side before rendering Firebase components
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Handle if the user is not signed in
   if (!userId) {
@@ -76,9 +75,20 @@ export default function FirebaseOfficialPage() {
   }
 
   // Official Clerk-Firebase integration method (from docs)
-  const signIntoFirebaseWithClerk = async () => {
+  const signIntoFirebaseWithClerk = async (): Promise<void> => {
+    if (!isClient) {
+      setError('Client-side rendering required for Firebase operations');
+      return;
+    }
+
     if (!isFirebaseEnabled) {
       setError('Firebase integration is disabled in this environment');
+      return;
+    }
+
+    const { auth } = getFirebaseInstances();
+    if (!auth) {
+      setError('Firebase auth not initialized');
       return;
     }
 
@@ -125,7 +135,7 @@ export default function FirebaseOfficialPage() {
   };
 
   // Test Firestore write operation
-  const testFirestoreWrite = async () => {
+  const testFirestoreWrite = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
@@ -145,6 +155,21 @@ export default function FirebaseOfficialPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading state during hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Official Clerk-Firebase Integration</h1>
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">

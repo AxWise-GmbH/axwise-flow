@@ -1,14 +1,30 @@
+'use client';
+
 import { SignUp } from '@clerk/nextjs';
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { isClerkConfigured } from '@/lib/clerk-config';
+import { useState, useEffect } from 'react';
 
-export const metadata: Metadata = {
-  title: 'Sign Up - AxWise',
-  description: 'Sign up to start analyzing interview data with AI',
-};
+export default function SignUpPage(): JSX.Element {
+  const [isClient, setIsClient] = useState(false);
+  const [clerkConfigured, setClerkConfigured] = useState(false);
 
-export default function SignUpPage() {
+  useEffect(() => {
+    setIsClient(true);
+    setClerkConfigured(isClerkConfigured());
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
@@ -19,15 +35,17 @@ export default function SignUpPage() {
           </p>
         </div>
         <div className="mt-8">
-          {isClerkConfigured ? (
+          {clerkConfigured ? (
             <SignUp
-              routing="hash"
+              routing="path"
+              path="/sign-up"
+              signInUrl="/sign-in"
               appearance={{
                 elements: {
                   card: 'shadow-xl border-gray-200 dark:border-gray-800',
                   headerTitle: 'text-2xl font-semibold',
                   headerSubtitle: 'text-gray-500 dark:text-gray-400',
-                  formButtonPrimary: 'bg-primary hover:bg-primary/90 text-primary-foreground',
+                  formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-white',
                 },
               }}
             />
@@ -69,7 +87,7 @@ export default function SignUpPage() {
             Already have an account?{' '}
             <Link
               href="/sign-in"
-              className="font-medium text-primary hover:text-primary/80 transition-colors"
+              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
             >
               Sign in here
             </Link>
