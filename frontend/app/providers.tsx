@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ToastProvider } from '@/components/providers/toast-provider';
+import { AuthProvider } from '@/components/providers/auth-provider';
 import { ClerkProvider } from '@clerk/nextjs';
 
 import { getClerkProviderConfig } from '@/lib/clerk-config';
@@ -33,16 +34,18 @@ export function Providers({ children }: ProvidersProps): JSX.Element {
   if (isClerkConfigured) {
     return (
       <ClerkProvider {...clerkConfig}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
-            {children}
-          </ToastProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
+              {children}
+            </ToastProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </ClerkProvider>
     );
   }

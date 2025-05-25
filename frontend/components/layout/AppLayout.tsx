@@ -6,6 +6,7 @@ import Footer from './Footer';
 import { initializeAuth } from '@/lib/authUtils';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsentBanner from '@/components/cookie-consent';
+import { AuthStatus } from '@/components/providers/auth-provider';
 
 interface AppLayoutProps extends PropsWithChildren {
   className?: string;
@@ -32,6 +33,7 @@ export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Ele
       <Footer />
       <Toaster />
       <CookieConsentBanner />
+      <AuthStatus />
     </div>
   );
 }
