@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get authentication from Clerk
     const { userId, getToken } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -18,13 +18,21 @@ export async function POST(request: NextRequest) {
 
     // Get the auth token
     const token = await getToken();
-    
+
+    if (!token) {
+      console.error('🔄 [ANALYZE] No auth token available');
+      return NextResponse.json(
+        { error: 'Authentication token not available' },
+        { status: 401 }
+      );
+    }
+
     // Get the backend URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    
+
     // Get the request body
     const body = await request.json();
-    
+
     // Forward the request to the Python backend
     const response = await fetch(`${backendUrl}/api/analyze`, {
       method: 'POST',
