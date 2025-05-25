@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get authentication from Clerk
     const { userId, getToken } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -18,13 +18,17 @@ export async function POST(request: NextRequest) {
 
     // Get the auth token
     const token = await getToken();
-    
+
     // Get the backend URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    
+
+    console.log('🔄 [UPLOAD] Backend URL:', backendUrl);
+
     // Forward the request to the Python backend
     const formData = await request.formData();
-    
+
+    console.log('🔄 [UPLOAD] Calling:', `${backendUrl}/api/data`);
+
     const response = await fetch(`${backendUrl}/api/data`, {
       method: 'POST',
       headers: {
