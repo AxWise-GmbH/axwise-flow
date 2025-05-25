@@ -65,7 +65,9 @@ export async function initializeAuth(): Promise<void> {
     } else {
       // Check if we're in development mode and Clerk validation is disabled
       const isProduction = process.env.NODE_ENV === 'production';
-      const enableClerkValidation = process.env.ENABLE_CLERK_...=***REMOVED*** 'true';
+      const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED*** 'true';
+
+      console.log('API Auth initialization:', { isProduction, enableClerkValidation, nodeEnv: process.env.NODE_ENV });
 
       if (!isProduction && !enableClerkValidation) {
         // For development mode only, provide a test token
