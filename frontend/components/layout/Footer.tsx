@@ -27,25 +27,25 @@ export function Footer(): JSX.Element {
             {/* Navigation Links */}
             <div className="flex flex-wrap justify-center gap-6">
               <Link
-                href="/impressum.html"
+                href="/impressum"
                 className="text-sm text-white no-underline transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/50"
               >
                 Impressum
               </Link>
               <Link
-                href="/privacy-policy.html"
+                href="/privacy-policy"
                 className="text-sm text-white no-underline transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/50"
               >
                 Privacy Policy
               </Link>
               <Link
-                href="/terms-of-service.html"
+                href="/terms-of-service"
                 className="text-sm text-white no-underline transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/50"
               >
                 Terms of Service
               </Link>
               <Link
-                href="/contact.html"
+                href="/contact"
                 className="text-sm text-white no-underline transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-white/50"
               >
                 Contact

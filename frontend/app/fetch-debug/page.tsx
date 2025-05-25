@@ -29,7 +29,7 @@ export default function FetchDebugPage() {
     try {
       const response = await fetch(url, options);
       const endTime = Date.now();
-      
+
       const result = {
         url,
         status: response.status,
@@ -104,7 +104,7 @@ export default function FetchDebugPage() {
     // Test 4: Authenticated API calls
     if (isSignedIn) {
       addResult('4. Authenticated API', 'info', 'Testing authenticated API calls...');
-      
+
       try {
         const token = await getToken();
         const authTest = await testFetch('/api/protected', {
@@ -113,7 +113,7 @@ export default function FetchDebugPage() {
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (authTest.ok) {
           addResult('4. Authenticated API', 'success', `Authenticated call successful (${authTest.status})`, authTest);
         } else {
@@ -129,13 +129,18 @@ export default function FetchDebugPage() {
     // Test 5: File upload simulation
     addResult('5. File Upload Test', 'info', 'Testing file upload endpoint...');
     const formData = new FormData();
+
+    // Create a test file
+    const testFileContent = 'This is a test file for upload testing.';
+    const testFile = new File([testFileContent], 'test-file.txt', { type: 'text/plain' });
+    formData.append('file', testFile);
     formData.append('test', 'true');
-    
+
     const uploadTest = await testFetch('/api/upload', {
       method: 'POST',
       body: formData
     });
-    
+
     if (uploadTest.ok) {
       addResult('5. File Upload Test', 'success', `Upload endpoint accessible (${uploadTest.status})`, uploadTest);
     } else {
@@ -163,19 +168,19 @@ export default function FetchDebugPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">🌐 Fetch Error Diagnostic</h1>
-        
+
         <div className="bg-card p-6 rounded-lg border mb-6">
           <h2 className="text-xl font-semibold mb-4">Test Controls</h2>
           <div className="space-x-4">
-            <button 
+            <button
               onClick={runFetchTests}
               disabled={isRunning}
               className="bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 disabled:opacity-50"
             >
               {isRunning ? 'Running Tests...' : 'Run Fetch Tests'}
             </button>
-            
-            <button 
+
+            <button
               onClick={clearResults}
               disabled={isRunning}
               className="bg-secondary text-secondary-foreground px-4 py-2 rounded hover:bg-secondary/90 disabled:opacity-50"
@@ -187,13 +192,13 @@ export default function FetchDebugPage() {
 
         <div className="bg-card p-6 rounded-lg border">
           <h2 className="text-xl font-semibold mb-4">Test Results</h2>
-          
+
           {testResults.length === 0 ? (
             <p className="text-muted-foreground">No test results yet. Click "Run Fetch Tests" to start.</p>
           ) : (
             <div className="space-y-3">
               {testResults.map((result, index) => (
-                <div 
+                <div
                   key={index}
                   className={`p-3 rounded border-l-4 ${
                     result.status === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' :
