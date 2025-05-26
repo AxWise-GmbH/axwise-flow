@@ -6,58 +6,58 @@ import { Star, Quote } from 'lucide-react';
 export const TestimonialsSection = () => {
   const testimonials = [
     {
-      name: "Sarah Chen",
+      name: "Krists",
       role: "Senior Product Manager",
-      company: "TechFlow Inc.",
-      avatar: "SC",
+      company: "VMware/Volkswagen",
+      avatar: "KR",
       rating: 5,
-      quote: "AxWise transformed how we handle user research. What used to take our team 3 weeks now takes 3 hours. The insights are deeper and more actionable than anything we've produced manually.",
-      highlight: "3 weeks → 3 hours"
+      quote: "AxWise transformed how we handle user research at scale. The AI-powered insights help us identify patterns across interviews that would take our team weeks to discover manually.",
+      highlight: "Weeks → Hours"
     },
     {
-      name: "Marcus Rodriguez",
-      role: "UX Research Lead",
-      company: "InnovateLabs",
-      avatar: "MR",
+      name: "Denis",
+      role: "Product Designer",
+      company: "Alibaba",
+      avatar: "DN",
       rating: 5,
-      quote: "The AI catches patterns across interviews that we completely missed. Our stakeholder buy-in has increased dramatically because the insights are so clear and compelling.",
-      highlight: "Patterns we missed"
+      quote: "As a designer working with global teams, AxWise helps me quickly extract actionable insights from user interviews. The persona generation is incredibly detailed and saves us significant time.",
+      highlight: "Global Scale Insights"
     },
     {
-      name: "Emily Watson",
-      role: "Founder & CEO",
-      company: "StartupXYZ",
-      avatar: "EW",
+      name: "Typhanie",
+      role: "Senior Product Designer",
+      company: "10+ years experience",
+      avatar: "TY",
       rating: 5,
-      quote: "As a startup, we can't afford a full research team. AxWise gives us enterprise-level insights with a fraction of the cost and time investment.",
-      highlight: "Enterprise insights, startup budget"
+      quote: "After a decade in product design, I can say AxWise is a game-changer. It turns raw interview data into structured insights that actually drive product decisions.",
+      highlight: "10+ Years Validated"
     },
     {
-      name: "David Kim",
-      role: "Head of Product",
-      company: "ScaleUp Co.",
-      avatar: "DK",
+      name: "Zuzanna",
+      role: "Product Lead",
+      company: "Rocket Internet/Automotive",
+      avatar: "ZU",
       rating: 5,
-      quote: "The PRD generation feature is a game-changer. We go from user interviews directly to development plans. Our time-to-market has improved by 40%.",
-      highlight: "40% faster time-to-market"
+      quote: "From startup environments to automotive giants, AxWise adapts to any research workflow. The structured analysis helps us move from insights to action faster than ever.",
+      highlight: "Startup to Enterprise"
     },
     {
-      name: "Lisa Thompson",
-      role: "Design Director",
-      company: "CreativeStudio",
-      avatar: "LT",
+      name: "Alex",
+      role: "Senior Product Designer",
+      company: "20 years automotive experience",
+      avatar: "AL",
       rating: 5,
-      quote: "The persona generation is incredibly detailed and accurate. It's like having a senior researcher analyze every interview with perfect consistency.",
-      highlight: "Perfect consistency"
+      quote: "Two decades in automotive product design taught me the value of deep user understanding. AxWise captures nuances in user feedback that traditional analysis often misses.",
+      highlight: "20 Years Experience"
     },
     {
-      name: "Alex Johnson",
-      role: "VP of Product",
-      company: "GrowthTech",
-      avatar: "AJ",
+      name: "Joris",
+      role: "Startup Founder",
+      company: "20 years experience",
+      avatar: "JO",
       rating: 5,
-      quote: "AxWise has become essential to our product development process. The insights drive our roadmap decisions and the team alignment is unprecedented.",
-      highlight: "Drives our roadmap"
+      quote: "As a founder with 20 years of experience, I know good tools when I see them. AxWise gives startups enterprise-level research capabilities without the enterprise overhead.",
+      highlight: "Founder Approved"
     }
   ];
 
@@ -77,7 +77,7 @@ export const TestimonialsSection = () => {
             What Product Teams Are <span className="text-primary">Saying</span>
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Don't just take our word for it. See how AxWise is transforming 
+            Don't just take our word for it. See how AxWise is transforming
             product development for teams around the world.
           </p>
         </div>
@@ -104,7 +104,9 @@ export const TestimonialsSection = () => {
                   <div className="flex-1">
                     <h4 className="font-semibold text-sm">{testimonial.name}</h4>
                     <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                    <p className="text-xs text-muted-foreground">{testimonial.company}</p>
+                    {testimonial.company && (
+                      <p className="text-xs text-muted-foreground">{testimonial.company}</p>
+                    )}
                   </div>
                   <div className="flex">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -112,14 +114,14 @@ export const TestimonialsSection = () => {
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="relative">
                   <Quote className="w-6 h-6 text-primary/20 absolute -top-2 -left-2" />
                   <p className="text-sm text-muted-foreground mb-3 pl-4">
                     {testimonial.quote}
                   </p>
                 </div>
-                
+
                 <Badge variant="secondary" className="text-xs">
                   {testimonial.highlight}
                 </Badge>
@@ -132,10 +134,25 @@ export const TestimonialsSection = () => {
         <div className="text-center">
           <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-8 md:p-12 border border-primary/20">
             <h3 className="text-2xl md:text-3xl font-bold mb-4">
-              Join 500+ Product Teams Already Using AxWise
+              Trusted by people and teams from industry-recognized EU and US corporate companies and Constructor Tech University
             </h3>
+
+            {/* Constructor University Partnership */}
+            <div className="mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <img
+                  src="/constructor-university-logo.svg"
+                  alt="Constructor University"
+                  className="h-12 w-auto dark:invert"
+                />
+              </div>
+              <Badge variant="default" className="text-sm px-4 py-2 mb-4 bg-primary text-primary-foreground">
+                🏆 Top 30 among 3000 startups in Constructor Tech University's first batch accelerator program
+              </Badge>
+            </div>
+
             <p className="text-lg text-muted-foreground mb-6">
-              From startups to enterprises, product teams worldwide trust AxWise 
+              From startups to enterprises, product teams worldwide trust AxWise
               to transform their user research process.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
@@ -143,10 +160,10 @@ export const TestimonialsSection = () => {
                 🚀 Startups
               </Badge>
               <Badge variant="outline" className="text-sm px-4 py-2">
-                🏢 Enterprises
+                🏢 EU/US Corporations
               </Badge>
               <Badge variant="outline" className="text-sm px-4 py-2">
-                🎨 Design Agencies
+                🎓 Constructor University
               </Badge>
               <Badge variant="outline" className="text-sm px-4 py-2">
                 📊 Research Teams

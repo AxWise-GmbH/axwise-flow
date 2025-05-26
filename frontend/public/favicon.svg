@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#7b68ee"/>
-  <text x="16" y="22" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="white">Ax</text>
+  <rect width="32" height="32" rx="8" fill="url(#paint0_linear_axwise)"/>
+  <path d="M6 24L10.5 8H14.5L19 24H15.5L14.6 21.2H10.4L9.5 24H6ZM11.2 18H13.8L12.5 13.5L11.2 18Z" fill="white"/>
+  <path d="M19 24L15 16L19 8H23L19 16L23 24H19Z" fill="white"/>
+  <defs>
+    <linearGradient id="paint0_linear_axwise" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#6366F1"/>
+    </linearGradient>
+  </defs>
 </svg>

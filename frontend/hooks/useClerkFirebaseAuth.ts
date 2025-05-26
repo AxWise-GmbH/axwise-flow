@@ -116,12 +116,19 @@ export function useClerkFirebaseAuth() {
 
     } catch (error) {
       console.error('🔥 [CLERK-FIREBASE] ❌ Authentication error:', error);
-      console.error('🔥 [CLERK-FIREBASE] Error details:', {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
+
+      // Type-safe error handling
+      const errorDetails: Record<string, unknown> = {};
+      if (error instanceof Error) {
+        errorDetails.name = error.name;
+        errorDetails.message = error.message;
+        errorDetails.stack = error.stack;
+      }
+      if (error && typeof error === 'object' && 'code' in error) {
+        errorDetails.code = (error as { code: unknown }).code;
+      }
+
+      console.error('🔥 [CLERK-FIREBASE] Error details:', errorDetails);
 
       const errorMessage = error instanceof Error ? error.message : 'Failed to authenticate with Firebase';
       setFirebaseError(errorMessage);

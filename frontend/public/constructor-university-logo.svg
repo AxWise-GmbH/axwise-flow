@@ -1,0 +1,13 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Constructor University Logo -->
+  <rect x="0" y="0" width="40" height="40" rx="8" fill="#0066CC"/>
+  <rect x="8" y="8" width="24" height="24" rx="4" fill="white"/>
+  <rect x="12" y="12" width="16" height="16" rx="2" fill="#0066CC"/>
+  
+  <!-- Text -->
+  <text x="50" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Constructor</text>
+  <text x="50" y="35" font-family="Arial, sans-serif" font-size="12" fill="currentColor">University</text>
+  
+  <!-- Subtitle -->
+  <text x="50" y="50" font-family="Arial, sans-serif" font-size="8" fill="currentColor">Bremen, Germany</text>
+</svg>

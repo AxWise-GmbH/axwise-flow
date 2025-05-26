@@ -1,17 +1,41 @@
+'use client';
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, GitBranch, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { trackCTAClick, trackButtonClick, ButtonLocation } from '@/lib/analytics';
 
 export const HeroSection = () => {
   return (
-    <section className="relative pt-16 pb-10 md:pt-20 overflow-hidden">
+    <section className="relative pt-8 pb-10 md:pt-12 overflow-hidden">
       {/* Background elements */}
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-accent/5 -z-10"></div>
       <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"></div>
       <div className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-accent/10 rounded-full blur-3xl -z-10"></div>
 
       <div className="container px-4 md:px-6 mx-auto">
+        {/* Open Source Announcement Banner */}
+        <div className="mb-4 md:mb-6 flex justify-center">
+          <Link
+            href="https://github.com/AxWise-GmbH/Flow"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackButtonClick('Open Source GitHub', ButtonLocation.HERO, 'https://github.com/AxWise-GmbH/Flow')}
+            className="hover:scale-105 transition-transform duration-200"
+          >
+            <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-sm cursor-pointer">
+              <GitBranch className="w-4 h-4 text-green-600 dark:text-green-400" />
+              <span className="text-xs font-medium text-foreground">
+                <span className="text-green-600 dark:text-green-400 font-semibold">AxWise is open source</span>
+                {" • "}
+                <span className="text-muted-foreground">Open source release coming soon in June 2025</span>
+              </span>
+              <Heart className="w-3 h-3 text-red-500" />
+            </div>
+          </Link>
+        </div>
+
         <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-12">
           <div className="flex-1 space-y-6 md:space-y-8 animate-fade-in mb-8 md:mb-12">
             <div>
@@ -28,19 +52,21 @@ export const HeroSection = () => {
                 <Button
                   size="lg"
                   className="gradient-btn text-white font-medium text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-xl shadow-lg w-full sm:w-auto"
+                  onClick={() => trackCTAClick('Get Started', ButtonLocation.HERO, 'primary')}
                 >
                   Get Started <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   <span className="block text-xs sm:text-sm font-normal mt-1">Start Analyzing Now</span>
                 </Button>
               </Link>
 
-              <Link href="/presentation">
+              <Link href="/pricing">
                 <Button
                   variant="outline"
                   size="lg"
                   className="border-primary text-primary hover:text-primary-foreground px-6 sm:px-8 py-5 sm:py-6 w-full sm:w-auto"
+                  onClick={() => trackButtonClick('View Pricing', ButtonLocation.HERO, '/pricing')}
                 >
-                  View Presentation
+                  View Pricing
                 </Button>
               </Link>
             </div>
@@ -63,7 +89,7 @@ export const HeroSection = () => {
 
         <div className="mt-12 sm:mt-16 md:mt-20 flex flex-wrap justify-center gap-4 sm:gap-8">
           <div className="text-center">
-            <p className="text-base sm:text-lg italic text-muted-foreground">Trusted by product builders at leading startups & enterprises</p>
+            <p className="text-base sm:text-lg italic text-muted-foreground">Join 10-20+ years of experience UXR, Product Managers and Product Designers from EU/US Corporations and Startups who make them more effective</p>
           </div>
         </div>
       </div>

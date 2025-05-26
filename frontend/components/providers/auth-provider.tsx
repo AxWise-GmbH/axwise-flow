@@ -13,13 +13,13 @@ interface AuthContextType {
   firebaseError: string | null;
 
   // Clerk auth state
-  isClerkSignedIn: boolean;
+  isClerkSignedIn: boolean | undefined;
   clerkUserId: string | null | undefined;
   isClerkLoaded: boolean;
 
   // Integration state
   isFirebaseEnabled: boolean;
-  isFullyAuthenticated: boolean;
+  isFullyAuthenticated: boolean | undefined;
 
   // Actions
   retryFirebaseAuth: () => Promise<boolean>;
@@ -65,7 +65,7 @@ export function useAuthContext() {
 
 /**
  * Authentication Status Component
- * Shows the current authentication state for debugging
+ * Shows the current authentication state with color-coded feedback
  */
 export function AuthStatus() {
   const {
@@ -91,7 +91,7 @@ export function AuthStatus() {
         <div className="flex items-center gap-2">
           <span>Clerk:</span>
           <span className={isClerkSignedIn ? 'text-green-600' : 'text-red-600'}>
-            {isClerkSignedIn ? '✅' : '❌'}
+            {isClerkSignedIn ? '✅' : '🔴'}
           </span>
         </div>
         {isFirebaseEnabled && (
@@ -101,7 +101,7 @@ export function AuthStatus() {
               <span className="text-yellow-600">⏳</span>
             ) : (
               <span className={isFirebaseSignedIn ? 'text-green-600' : 'text-red-600'}>
-                {isFirebaseSignedIn ? '✅' : '❌'}
+                {isFirebaseSignedIn ? '✅' : '🔴'}
               </span>
             )}
           </div>
@@ -109,7 +109,7 @@ export function AuthStatus() {
         <div className="flex items-center gap-2">
           <span>Ready:</span>
           <span className={isFullyAuthenticated ? 'text-green-600' : 'text-red-600'}>
-            {isFullyAuthenticated ? '✅' : '❌'}
+            {isFullyAuthenticated ? '✅' : '🔴'}
           </span>
         </div>
 

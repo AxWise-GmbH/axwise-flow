@@ -4,7 +4,7 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
 // Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -38,13 +38,18 @@ if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_...=***REM
 }
 
 // Initialize Analytics conditionally (only in browser)
-let analytics = null;
+let analytics: Analytics | null = null;
 if (typeof window !== 'undefined') {
   // Check if analytics is supported in this environment
   isSupported().then(supported => {
     if (supported) {
       analytics = getAnalytics(app);
+      console.log('🔥 Firebase Analytics initialized successfully');
+    } else {
+      console.warn('🔥 Firebase Analytics not supported in this environment');
     }
+  }).catch(error => {
+    console.error('🔥 Firebase Analytics initialization error:', error);
   });
 }
 

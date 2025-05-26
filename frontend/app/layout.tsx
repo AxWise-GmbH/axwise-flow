@@ -32,8 +32,6 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Fix for vendor.js message channel error */}
-        <Script src="/fix-vendor-error.js" strategy="beforeInteractive" />
       </head>
       <body className={inter.className}>
         <ErrorBoundary>

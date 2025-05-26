@@ -14,15 +14,16 @@ export default function Icon() {
       // ImageResponse JSX element
       <div
         style={{
-          fontSize: 24,
-          background: '#7b68ee', // Purple color matching our branding
+          fontSize: 20,
+          background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)', // Purple gradient
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'white',
-          borderRadius: '6px',
+          borderRadius: '8px',
+          fontWeight: 'bold',
         }}
       >
         Ax

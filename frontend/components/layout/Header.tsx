@@ -6,6 +6,8 @@ import { UserProfile } from '../user-profile';
 import Link from 'next/link';
 import { LogoHorizontal, LogoDark } from '@/components/icons';
 import { useState } from 'react';
+import { trackNavigation, trackButtonClick, ButtonLocation } from '@/lib/analytics';
+import { usePathname } from 'next/navigation';
 
 /**
  * Application header component containing theme controls and user authentication
@@ -14,6 +16,7 @@ import { useState } from 'react';
 export function Header(): JSX.Element {
   const { theme, setTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const toggleTheme = (): void => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -53,24 +56,40 @@ export function Header(): JSX.Element {
             <Link
               href="/unified-dashboard"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
+              onClick={() => {
+                try {
+                  trackNavigation('Dashboard', pathname, '/unified-dashboard', ButtonLocation.HEADER);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+              }}
             >
               Dashboard
             </Link>
-            <Link
-              href="/onepager-presentation/index.html"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-            >
-              Presentation
-            </Link>
+
             <Link
               href="/pricing"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
+              onClick={() => {
+                try {
+                  trackNavigation('Pricing', pathname, '/pricing', ButtonLocation.HEADER);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+              }}
             >
               Pricing
             </Link>
             <Link
               href="/contact"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
+              onClick={() => {
+                try {
+                  trackNavigation('Contact Us', pathname, '/contact', ButtonLocation.HEADER);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+              }}
             >
               Contact Us
             </Link>
@@ -111,28 +130,43 @@ export function Header(): JSX.Element {
             <Link
               href="/unified-dashboard"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={closeMobileMenu}
+              onClick={() => {
+                try {
+                  trackNavigation('Dashboard', pathname, '/unified-dashboard', ButtonLocation.MOBILE_MENU);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+                closeMobileMenu();
+              }}
             >
               Dashboard
             </Link>
-            <Link
-              href="/onepager-presentation/index.html"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={closeMobileMenu}
-            >
-              Presentation
-            </Link>
+
             <Link
               href="/pricing"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={closeMobileMenu}
+              onClick={() => {
+                try {
+                  trackNavigation('Pricing', pathname, '/pricing', ButtonLocation.MOBILE_MENU);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+                closeMobileMenu();
+              }}
             >
               Pricing
             </Link>
             <Link
               href="/contact"
               className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={closeMobileMenu}
+              onClick={() => {
+                try {
+                  trackNavigation('Contact Us', pathname, '/contact', ButtonLocation.MOBILE_MENU);
+                } catch (error) {
+                  console.warn('Analytics tracking failed:', error);
+                }
+                closeMobileMenu();
+              }}
             >
               Contact Us
             </Link>

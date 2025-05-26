@@ -11,9 +11,9 @@ export const HowItWorksSection = () => {
       icon: Upload,
       step: "01",
       title: "Upload Your Interviews",
-      description: "Simply drag and drop your interview files (audio, video, or text) into AxWise",
+      description: "Simply drag and drop your interview files (text, JSON, or Excel) into AxWise",
       details: [
-        "Supports multiple formats (MP3, MP4, TXT, DOCX)",
+        "Supports multiple formats (JSON, TXT, XLSX, XLS)",
         "Batch upload for multiple interviews",
         "Secure, encrypted file handling"
       ],

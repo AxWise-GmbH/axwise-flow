@@ -1,9 +1,12 @@
+'use client';
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Check, Star, Zap } from 'lucide-react';
 import Link from 'next/link';
+import { trackCTAClick, trackPricingInteraction, ButtonLocation } from '@/lib/analytics';
 
 export const CTASection = () => {
   const pricingTiers = [
@@ -146,6 +149,7 @@ export const CTASection = () => {
                         : 'variant-outline'
                     }`}
                     size="lg"
+                    onClick={() => trackPricingInteraction('select_plan', tier.name, tier.price)}
                   >
                     {tier.cta}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -182,13 +186,22 @@ export const CTASection = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/unified-dashboard">
-                <Button size="lg" className="gradient-btn text-white font-medium px-8 py-6">
+                <Button
+                  size="lg"
+                  className="gradient-btn text-white font-medium px-8 py-6"
+                  onClick={() => trackCTAClick('Start Free Analysis', ButtonLocation.CTA, 'primary')}
+                >
                   Start Free Analysis <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
 
               <Link href="/contact">
-                <Button variant="outline" size="lg" className="px-8 py-6">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="px-8 py-6"
+                  onClick={() => trackCTAClick('Schedule Demo', ButtonLocation.CTA, 'secondary')}
+                >
                   Schedule Demo
                 </Button>
               </Link>
@@ -200,17 +213,7 @@ export const CTASection = () => {
           </div>
         </div>
 
-        {/* Trust Indicators */}
-        <div className="mt-16 text-center">
-          <p className="text-sm text-muted-foreground mb-4">Trusted by product teams at</p>
-          <div className="flex flex-wrap justify-center gap-8 opacity-60">
-            <div className="text-lg font-semibold">TechFlow Inc.</div>
-            <div className="text-lg font-semibold">InnovateLabs</div>
-            <div className="text-lg font-semibold">StartupXYZ</div>
-            <div className="text-lg font-semibold">ScaleUp Co.</div>
-            <div className="text-lg font-semibold">GrowthTech</div>
-          </div>
-        </div>
+
       </div>
     </section>
   );

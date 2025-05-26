@@ -7,6 +7,7 @@ import { roadmapData } from '@/lib/roadmapData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar, Target } from 'lucide-react';
+import { trackRoadmapInteraction, trackButtonClick, ButtonLocation } from '@/lib/analytics';
 
 export const RoadmapComponent: React.FC = () => {
   const [activePhase, setActivePhase] = useState(0);
@@ -29,14 +30,22 @@ export const RoadmapComponent: React.FC = () => {
           <Button
             variant={view === 'timeline' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setView('timeline')}
+            onClick={() => {
+              setView('timeline');
+              trackRoadmapInteraction('toggle_view', undefined, 'timeline');
+            }}
           >
             Timeline View
           </Button>
           <Button
             variant={view === 'detail' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => view === 'timeline' ? handlePhaseSelect(0) : null}
+            onClick={() => {
+              if (view === 'timeline') {
+                handlePhaseSelect(0);
+                trackRoadmapInteraction('toggle_view', 1, 'detail');
+              }
+            }}
             disabled={view === 'detail'}
           >
             Detail View
@@ -55,7 +64,7 @@ export const RoadmapComponent: React.FC = () => {
             phase={roadmapData.phases[activePhase]}
             phaseIndex={activePhase}
             onBack={handleBackToTimeline}
-            onNavigate={(direction) => {
+            onNavigate={(direction: 'prev' | 'next') => {
               if (direction === 'next' && activePhase < roadmapData.phases.length - 1) {
                 setActivePhase(activePhase + 1);
               } else if (direction === 'prev' && activePhase > 0) {
@@ -104,6 +113,7 @@ export const RoadmapComponent: React.FC = () => {
               onClick={() => {
                 if (activePhase > 0) {
                   setActivePhase(activePhase - 1);
+                  trackRoadmapInteraction('navigate', activePhase, 'detail');
                 }
               }}
               disabled={activePhase === 0}
@@ -134,6 +144,7 @@ export const RoadmapComponent: React.FC = () => {
               onClick={() => {
                 if (activePhase < roadmapData.phases.length - 1) {
                   setActivePhase(activePhase + 1);
+                  trackRoadmapInteraction('navigate', activePhase + 2, 'detail');
                 }
               }}
               disabled={activePhase === roadmapData.phases.length - 1}
