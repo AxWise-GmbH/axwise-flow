@@ -146,7 +146,7 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    logger.info(f"Authentication successful for user_id: {user_id}")
+    logger.info(f"🔍 Authentication successful for user_id: {user_id}, ENABLE_CLERK_...=***REMOVED*** IS_PRODUCTION: {IS_PRODUCTION}")
 
     # Get or create user
     try:

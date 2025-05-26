@@ -22,7 +22,12 @@ const isProtectedRoute = createRouteMatcher([
   '/settings(.*)',
   '/profile(.*)',
   '/admin(.*)',
-  '/firebase-test(.*)'
+  '/clerk-debug(.*)',
+  '/firebase-official(.*)',
+  '/firebase-test(.*)',
+  '/fetch-debug(.*)',
+  '/integration-test(.*)',
+  '/test-clerk(.*)'
 ]);
 
 // Simplified Clerk middleware using recommended patterns
@@ -37,8 +42,7 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect();
   }
 
-  // For any other routes not explicitly defined, allow them but log for debugging
-  console.log(`[Middleware] Unmatched route: ${req.nextUrl.pathname}`);
+  // For any other routes not explicitly defined, allow them
 });
 
 // Use Clerk's recommended matcher configuration

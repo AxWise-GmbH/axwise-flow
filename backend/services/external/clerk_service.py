@@ -9,7 +9,7 @@ import time
 from typing import Dict, Any, Optional, Tuple
 import requests
 from jose import jwt, JWTError
-from jose.backends.base import Key
+from jose.backends import RSAKey
 from jose.constants import ALGORITHMS
 
 # Configure logging
@@ -55,7 +55,7 @@ class ClerkService:
         if time.time() - self.jwks_last_updated > self.jwks_cache_ttl:
             self._load_jwks()
 
-    def _get_key_from_jwks(self, kid: str) -> Optional[Key]:
+    def _get_key_from_jwks(self, kid: str) -> Optional[RSAKey]:
         """Get the key with the matching key ID from the JWKS."""
         self._refresh_jwks_if_needed()
 
@@ -65,7 +65,14 @@ class ClerkService:
 
         for key in self.jwks['keys']:
             if key.get('kid') == kid:
-                return jwt.get_key_from_jwk(json.dumps(key), ALGORITHMS.RS256)
+                try:
+                    # Convert JWK to RSA key
+                    rsa_key = RSAKey(key, ALGORITHMS.RS256)
+                    # Return the RSA key object directly for jose.jwt.decode
+                    return rsa_key
+                except Exception as e:
+                    logger.error(f"Error converting JWK to RSA key: {str(e)}")
+                    return None
 
         logger.error(f"Key with ID {kid} not found in JWKS")
         return None

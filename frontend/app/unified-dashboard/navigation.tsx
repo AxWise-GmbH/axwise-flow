@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { FileText, BarChart3, Clock, BookOpen } from 'lucide-react';
+import { FileText, BarChart3, Clock, BookOpen, Shield } from 'lucide-react';
+import { useAdminAccess } from '@/hooks/use-admin-access';
 
 /**
  * Client Component for Dashboard Navigation
@@ -13,56 +14,83 @@ export default function DashboardNav(): JSX.Element { // Add return type
   const router = useRouter();
   const pathname = usePathname();
   const [isHistory, setIsHistory] = useState(false);
-  
+  const { isAdmin, isLoading, user } = useAdminAccess();
+
+  // Debug logging
+  console.log('DashboardNav - Admin Access Debug:', {
+    isAdmin,
+    isLoading,
+    userEmail: user?.primaryEmailAddress?.emailAddress,
+    userRole: user?.publicMetadata?.role
+  });
+
   // Keep track of current path for highlighting active tab
   useEffect(() => {
     setIsHistory(pathname?.includes('/history'));
   }, [pathname]);
-  
+
   // Handle tab navigation with clean URL parameters
   const handleTabNavigation = (tab: string): void => { // Add return type
     // Add cache busting to ensure clean state
     const cacheBuster = Date.now();
     router.push(`/unified-dashboard?tab=${tab}&_=${cacheBuster}`);
   };
-  
+
   return (
     <nav className="flex space-x-1 rounded-lg bg-muted p-1">
       {/* Upload Tab */}
-      <button 
+      <button
         onClick={() => handleTabNavigation('upload')}
         className={`flex items-center px-3 py-2 text-sm rounded-md ${!isHistory && !pathname?.includes('visualize') && !pathname?.includes('documentation') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
       >
         <FileText className="mr-2 h-4 w-4" />
         Upload
       </button>
-      
+
       {/* Visualize Tab */}
-      <button 
+      <button
         onClick={() => handleTabNavigation('visualize')}
         className={`flex items-center px-3 py-2 text-sm rounded-md ${pathname?.includes('visualize') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
       >
         <BarChart3 className="mr-2 h-4 w-4" />
         Visualize
       </button>
-      
+
       {/* History Tab - Uses Link as it's a page route */}
-      <Link 
+      <Link
         href="/unified-dashboard/history"
         className={`flex items-center px-3 py-2 text-sm rounded-md ${isHistory ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
       >
         <Clock className="mr-2 h-4 w-4" />
         History
       </Link>
-      
+
       {/* Documentation Tab */}
-      <button 
+      <button
         onClick={() => handleTabNavigation('documentation')}
         className={`flex items-center px-3 py-2 text-sm rounded-md ${pathname?.includes('documentation') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
       >
         <BookOpen className="mr-2 h-4 w-4" />
         Documentation
       </button>
+
+      {/* Admin Tab - Only visible to admin users */}
+      {!isLoading && isAdmin && (
+        <Link
+          href="/admin"
+          className="flex items-center px-3 py-2 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 border-l border-border ml-2 pl-4"
+        >
+          <Shield className="mr-2 h-4 w-4" />
+          Admin
+        </Link>
+      )}
+
+      {/* Temporary debug info - remove after testing */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-muted-foreground ml-4 p-2 bg-muted rounded">
+          Debug: isAdmin={isAdmin.toString()}, isLoading={isLoading.toString()}, email={user?.primaryEmailAddress?.emailAddress}
+        </div>
+      )}
     </nav>
   );
-} 
+}
