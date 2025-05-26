@@ -61,6 +61,20 @@ const nextConfig = {
   poweredByHeader: false,
   generateEtags: false,
 
+  // Add rewrites for legacy static pages
+  async rewrites() {
+    return [
+      {
+        source: '/onepager-presentation',
+        destination: '/onepager-presentation/index.html',
+      },
+      {
+        source: '/workshop-designthinking',
+        destination: '/workshop-designthinking/index.html',
+      },
+    ];
+  },
+
   // Custom webpack configuration to ensure middleware manifest is in the right place
   webpack: (config, { isServer }) => {
     // This helps ensure middleware files are properly generated
