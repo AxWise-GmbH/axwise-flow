@@ -1,14 +1,14 @@
 /**
  * Onepager Presentation Page
  *
- * This page serves the onepager presentation content directly as an iframe
- * to ensure compatibility with Firebase App Hosting.
+ * This page serves the onepager presentation content directly
+ * using the static files from the public directory.
  */
 export default function OnepagerPresentationPage() {
   return (
     <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0 }}>
       <iframe
-        src="/api/static/onepager-presentation"
+        src="/onepager-presentation/index.html"
         style={{
           width: '100%',
           height: '100%',

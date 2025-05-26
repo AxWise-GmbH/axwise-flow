@@ -1,14 +1,14 @@
 /**
  * Design Thinking Workshop Page
  *
- * This page serves the workshop content directly as an iframe
- * to ensure compatibility with Firebase App Hosting.
+ * This page serves the workshop content directly
+ * using the static files from the public directory.
  */
 export default function WorkshopDesignThinkingPage() {
   return (
     <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0 }}>
       <iframe
-        src="/api/static/workshop-designthinking"
+        src="/workshop-designthinking/index.html"
         style={{
           width: '100%',
           height: '100%',
