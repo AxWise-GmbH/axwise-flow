@@ -8,7 +8,7 @@ export default function WorkshopDesignThinkingPage() {
   return (
     <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0 }}>
       <iframe
-        src="/workshop-designthinking-static"
+        src="/api/workshop-designthinking"
         style={{
           width: '100%',
           height: '100%',

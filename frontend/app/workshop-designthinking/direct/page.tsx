@@ -1,6 +1,6 @@
 /**
  * Direct Workshop Design Thinking Page
- * 
+ *
  * This page serves the workshop content directly as a React component
  * instead of redirecting to the static HTML file.
  */
@@ -8,7 +8,7 @@ export default function DirectWorkshopPage() {
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <iframe
-        src="/workshop-designthinking/index.html"
+        src="/api/workshop-designthinking"
         style={{
           width: '100%',
           height: '100%',
