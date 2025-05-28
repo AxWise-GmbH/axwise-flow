@@ -5,14 +5,21 @@
 :root {
   /* Colors */
   --color-primary: #7b68ee;
+  --color-primary-light: #e8e4ff;
   --color-secondary: #ff6b8b;
+  --color-secondary-light: #ffe4ea;
+  --color-text-primary: #232946;
+  --color-text-secondary: #5d6387;
   --color-text-dark: #232946;
   --color-text-subtitle: #5d6387;
+  --color-background: #ffffff;
+  --color-white: #ffffff;
+  --color-border: #e5e7eb;
   --color-bg-light: #e8f7f4;
   --color-bg-mint: #e4f7f1;
   --color-bg-pink: #f8e5e8;
   --color-success: #4acb9a;
-  
+
   /* Typography */
   --font-size-xs: 0.85rem;
   --font-size-sm: 0.95rem;
@@ -23,7 +30,12 @@
   --font-size-xxl: 1.8rem;
   --font-size-xxxl: 2.2rem;
   --font-size-hero: 3.5rem;
-  
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
   /* Spacing */
   --spacing-xxs: 4px;
   --spacing-xs: 8px;
@@ -31,19 +43,19 @@
   --spacing-md: 24px;
   --spacing-lg: 40px;
   --spacing-xl: 60px;
-  
+
   /* Layout */
   --container-width: 1200px;
   --border-radius-sm: 8px;
   --border-radius-md: 16px;
   --border-radius-lg: 24px;
   --border-radius-pill: 30px;
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(123,104,238,0.07);
   --shadow-md: 0 4px 16px rgba(123,104,238,0.1);
   --shadow-lg: 0 6px 24px rgba(123,104,238,0.15);
-  
+
   /* Transitions */
   --transition-fast: 0.2s ease;
   --transition-medium: 0.3s ease;
