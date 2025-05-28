@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import { Providers } from './providers';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,7 +10,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AxWise - Your AI Co-Pilot for Product Development',
   description: 'Transform your raw ideas into validated, actionable plans with AxWise\'s powerful AI co-pilot',
-  // The icons are now handled by the app/favicon.ico, app/icon.tsx, and app/apple-icon.tsx files
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export const viewport = {
