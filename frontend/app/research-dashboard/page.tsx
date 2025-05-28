@@ -6,23 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar, Users, Target, CheckCircle, Clock, Trash2, Eye } from 'lucide-react';
-
-interface ResearchSession {
-  id: number;
-  session_id: string;
-  business_idea: string;
-  industry: string;
-  stage: string;
-  status: string;
-  questions_generated: boolean;
-  created_at: string;
-  message_count: number;
-}
+import {
+  getResearchSessions,
+  getResearchSession,
+  deleteResearchSession,
+  LocalResearchStorage,
+  type ResearchSession as APIResearchSession
+} from '@/lib/api/research';
 
 export default function ResearchDashboard() {
-  const [sessions, setSessions] = useState<ResearchSession[]>([]);
+  const [sessions, setSessions] = useState<APIResearchSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<APIResearchSession | null>(null);
 
   useEffect(() => {
     fetchSessions();
@@ -30,11 +25,9 @@ export default function ResearchDashboard() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/research/sessions');
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data);
-      }
+      // Get sessions from local storage (for anonymous users)
+      const data = await getResearchSessions(20);
+      setSessions(data);
     } catch (error) {
       console.error('Error fetching sessions:', error);
     } finally {
@@ -44,48 +37,28 @@ export default function ResearchDashboard() {
 
   const viewSession = async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/research/sessions/${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedSession(data);
-      }
+      const data = await getResearchSession(sessionId);
+      setSelectedSession(data);
     } catch (error) {
       console.error('Error fetching session details:', error);
     }
   };
 
-  const deleteSession = async (sessionId: string) => {
+  const handleDeleteSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to delete this session? This action cannot be undone.')) return;
 
     try {
-      console.log('Deleting session:', sessionId);
+      await deleteResearchSession(sessionId);
 
-      // Try the direct backend endpoint first
-      const response = await fetch(`http://localhost:8000/api/research/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Remove from local state
+      setSessions(sessions.filter(s => s.session_id !== sessionId));
 
-      console.log('Delete response status:', response.status);
-
-      if (response.ok) {
-        // Remove from local state
-        setSessions(sessions.filter(s => s.session_id !== sessionId));
-
-        // Clear selected session if it was the deleted one
-        if (selectedSession && selectedSession.session_id === sessionId) {
-          setSelectedSession(null);
-        }
-
-        console.log('Session deleted successfully');
-        alert('Session deleted successfully');
-      } else {
-        const errorText = await response.text();
-        console.error('Delete failed:', response.status, errorText);
-        alert(`Failed to delete session: ${response.status} ${errorText}`);
+      // Clear selected session if it was the deleted one
+      if (selectedSession && selectedSession.session_id === sessionId) {
+        setSelectedSession(null);
       }
+
+      console.log('Session deleted successfully');
     } catch (error) {
       console.error('Error deleting session:', error);
       alert(`Error deleting session: ${error}`);
@@ -181,7 +154,7 @@ export default function ResearchDashboard() {
                               <Calendar className="h-3 w-3" />
                               {new Date(session.created_at).toLocaleDateString()}
                             </span>
-                            <span>{session.message_count} messages</span>
+                            <span>{session.message_count || session.messages?.length || 0} messages</span>
                           </div>
                         </div>
 
@@ -202,7 +175,7 @@ export default function ResearchDashboard() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deleteSession(session.session_id);
+                              handleDeleteSession(session.session_id);
                             }}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                           >

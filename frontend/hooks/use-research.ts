@@ -2,6 +2,14 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  generateResearchQuestions,
+  LocalResearchStorage,
+  getResearchSession,
+  type ResearchSession as APIResearchSession,
+  type Message,
+  type GeneratedQuestions as APIGeneratedQuestions
+} from '@/lib/api/research';
 
 export interface ResearchQuestion {
   id: string;
@@ -71,28 +79,13 @@ export function useResearch(): UseResearchReturn {
     setContext(prev => ({ ...prev, ...updates }));
   }, []);
 
-  // Generate questions using your existing API
-  const generateQuestions = useCallback(async (conversationHistory: any[]): Promise<GeneratedQuestions | null> => {
+  // Generate questions using the API
+  const generateQuestions = useCallback(async (conversationHistory: Message[]): Promise<GeneratedQuestions | null> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/api/research/generate-questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          context,
-          conversationHistory,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate questions');
-      }
-
-      const data = await response.json();
+      const data = await generateResearchQuestions(context, conversationHistory);
       const generatedQuestions: GeneratedQuestions = {
         problemDiscovery: data.problemDiscovery || [],
         solutionValidation: data.solutionValidation || [],
@@ -101,6 +94,18 @@ export function useResearch(): UseResearchReturn {
 
       setQuestions(generatedQuestions);
       updateContext({ questionsGenerated: true });
+
+      // Save to local storage
+      const currentSession = LocalResearchStorage.getCurrentSession();
+      if (currentSession) {
+        const updatedSession = {
+          ...currentSession,
+          questions_generated: true,
+          updated_at: new Date().toISOString(),
+        };
+        LocalResearchStorage.saveSession(updatedSession);
+        LocalResearchStorage.setCurrentSession(updatedSession);
+      }
 
       return generatedQuestions;
     } catch (err) {
@@ -112,17 +117,43 @@ export function useResearch(): UseResearchReturn {
     }
   }, [context, updateContext]);
 
-  // Save session to your backend
+  // Save session to local storage (for anonymous users)
   const saveSession = useCallback(async () => {
     if (!context.businessIdea || !questions) return;
 
     setIsLoading(true);
     try {
-      const sessionData = {
-        businessIdea: context.businessIdea,
-        targetCustomer: context.targetCustomer || '',
+      const currentSession = LocalResearchStorage.getCurrentSession();
+      const sessionId = currentSession?.session_id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const sessionData: APIResearchSession = {
+        id: currentSession?.id || Date.now(),
+        session_id: sessionId,
+        user_id: currentSession?.user_id || 'anonymous',
+        business_idea: context.businessIdea,
+        target_customer: context.targetCustomer || '',
         problem: context.problem || '',
-        stage: context.stage || '',
+        industry: currentSession?.industry || 'general',
+        stage: context.stage || 'completed',
+        status: 'active',
+        questions_generated: true,
+        created_at: currentSession?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        message_count: currentSession?.message_count || 0,
+        messages: currentSession?.messages || [],
+        isLocal: true,
+      };
+
+      LocalResearchStorage.saveSession(sessionData);
+      LocalResearchStorage.setCurrentSession(sessionData);
+
+      // Convert to hook format for state
+      const hookSession: ResearchSession = {
+        id: sessionData.session_id,
+        businessIdea: sessionData.business_idea || '',
+        targetCustomer: sessionData.target_customer || '',
+        problem: sessionData.problem || '',
+        stage: sessionData.stage,
         questions: [
           ...questions.problemDiscovery.map((q, i) => ({
             id: `discovery_${i}`,
@@ -143,22 +174,11 @@ export function useResearch(): UseResearchReturn {
             purpose: 'Gather additional insights',
           })),
         ],
+        createdAt: new Date(sessionData.created_at),
+        updatedAt: new Date(sessionData.updated_at),
       };
 
-      const response = await fetch('/api/research/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sessionData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save session');
-      }
-
-      const savedSession = await response.json();
-      setCurrentSession(savedSession);
+      setCurrentSession(hookSession);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save session';
       setError(errorMessage);
@@ -167,36 +187,42 @@ export function useResearch(): UseResearchReturn {
     }
   }, [context, questions]);
 
-  // Load existing session
+  // Load existing session from local storage or API
   const loadSession = useCallback(async (sessionId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/research/sessions/${sessionId}`);
+      const session = await getResearchSession(sessionId);
 
-      if (!response.ok) {
-        throw new Error('Failed to load session');
-      }
-
-      const session = await response.json();
-      setCurrentSession(session);
-
-      // Reconstruct context and questions from session
-      setContext({
-        businessIdea: session.businessIdea,
-        targetCustomer: session.targetCustomer,
-        problem: session.problem,
+      // Convert API session to hook format
+      const hookSession: ResearchSession = {
+        id: session.session_id,
+        businessIdea: session.business_idea || '',
+        targetCustomer: session.target_customer || '',
+        problem: session.problem || '',
         stage: session.stage,
-        questionsGenerated: true,
-      });
-
-      // Group questions by category
-      const groupedQuestions: GeneratedQuestions = {
-        problemDiscovery: session.questions.filter((q: any) => q.category === 'discovery').map((q: any) => q.question),
-        solutionValidation: session.questions.filter((q: any) => q.category === 'validation').map((q: any) => q.question),
-        followUp: session.questions.filter((q: any) => q.category === 'follow_up').map((q: any) => q.question),
+        questions: [], // Will be populated from messages or generated questions
+        createdAt: new Date(session.created_at),
+        updatedAt: new Date(session.updated_at),
       };
 
-      setQuestions(groupedQuestions);
+      setCurrentSession(hookSession);
+
+      // Reconstruct context from session
+      setContext({
+        businessIdea: session.business_idea,
+        targetCustomer: session.target_customer,
+        problem: session.problem,
+        stage: session.stage,
+        questionsGenerated: session.questions_generated,
+      });
+
+      // If it's a local session, set it as current
+      if (session.isLocal) {
+        LocalResearchStorage.setCurrentSession(session);
+      }
+
+      // For now, clear questions - they'll be regenerated if needed
+      setQuestions(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
       setError(errorMessage);
@@ -301,7 +327,35 @@ ${questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
     return 'solution_validation';
   }, [context]);
 
-  // Auto-save context changes
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    const currentSession = LocalResearchStorage.getCurrentSession();
+    if (currentSession) {
+      setContext({
+        businessIdea: currentSession.business_idea,
+        targetCustomer: currentSession.target_customer,
+        problem: currentSession.problem,
+        stage: currentSession.stage,
+        questionsGenerated: currentSession.questions_generated,
+      });
+
+      // Convert to hook format
+      const hookSession: ResearchSession = {
+        id: currentSession.session_id,
+        businessIdea: currentSession.business_idea || '',
+        targetCustomer: currentSession.target_customer || '',
+        problem: currentSession.problem || '',
+        stage: currentSession.stage,
+        questions: [],
+        createdAt: new Date(currentSession.created_at),
+        updatedAt: new Date(currentSession.updated_at),
+      };
+
+      setCurrentSession(hookSession);
+    }
+  }, []);
+
+  // Auto-save context changes to localStorage
   useEffect(() => {
     if (context.businessIdea && context.targetCustomer && context.problem) {
       // Auto-save when we have enough context
