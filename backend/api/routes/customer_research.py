@@ -105,6 +105,8 @@ async def research_chat(
 
         # Handle session management
         session_id = request.session_id
+        is_local_session = session_id and session_id.startswith('local_')
+
         if not session_id:
             # Create new session
             session_data = ResearchSessionCreate(
@@ -115,8 +117,12 @@ async def research_chat(
             )
             session = session_service.create_session(session_data)
             session_id = session.session_id
+        elif is_local_session:
+            # Local session - skip database lookup, just use the session_id
+            logger.info(f"Processing local session: {session_id}")
+            session = None  # We don't need the session object for local sessions
         else:
-            # Get existing session
+            # Get existing database session
             session = session_service.get_session(session_id)
             if not session:
                 raise HTTPException(status_code=404, detail="Session not found")
@@ -155,28 +161,29 @@ async def research_chat(
                 "I need to clarify something"
             ]
 
-            # Save messages to session for confirmation flow
-            user_message = {
-                "id": f"user_{len(request.messages)}",
-                "content": request.input,
-                "role": "user",
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            session_service.add_message(session_id, user_message)
-
-            assistant_message = {
-                "id": f"assistant_{len(request.messages)}",
-                "content": confirmation_response,
-                "role": "assistant",
-                "timestamp": datetime.utcnow().isoformat(),
-                "metadata": {
-                    "questionCategory": "confirmation",
-                    "researchStage": "confirmation",
-                    "needs_confirmation": True,
-                    "suggestions": confirmation_suggestions
+            # Save messages to session for confirmation flow (skip for local sessions)
+            if not is_local_session:
+                user_message = {
+                    "id": f"user_{len(request.messages)}",
+                    "content": request.input,
+                    "role": "user",
+                    "timestamp": datetime.utcnow().isoformat()
                 }
-            }
-            session_service.add_message(session_id, assistant_message)
+                session_service.add_message(session_id, user_message)
+
+                assistant_message = {
+                    "id": f"assistant_{len(request.messages)}",
+                    "content": confirmation_response,
+                    "role": "assistant",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "metadata": {
+                        "questionCategory": "confirmation",
+                        "researchStage": "confirmation",
+                        "needs_confirmation": True,
+                        "suggestions": confirmation_suggestions
+                    }
+                }
+                session_service.add_message(session_id, assistant_message)
 
             # Extract context for confirmation response too
             extracted_context = await extract_context_with_llm(
@@ -235,32 +242,35 @@ These questions are designed specifically for your business idea. Would you like
                 # Use fallback suggestions
                 suggestions = generate_fallback_suggestions(request.input, response_content)
 
-        # Save user message to session
-        user_message = {
-            "id": f"user_{len(request.messages)}",
-            "content": request.input,
-            "role": "user",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        logger.info(f"Saving user message: {user_message}")
-        session_service.add_message(session_id, user_message)
-        logger.info("User message saved successfully")
-
-        # Save assistant response to session
-        assistant_message = {
-            "id": f"assistant_{len(request.messages)}",
-            "content": response_content,
-            "role": "assistant",
-            "timestamp": datetime.utcnow().isoformat(),
-            "metadata": {
-                "questionCategory": "validation" if questions else "discovery",
-                "researchStage": determine_research_stage(request.context),
-                "suggestions": suggestions
+        # Save user message to session (skip for local sessions)
+        if not is_local_session:
+            user_message = {
+                "id": f"user_{len(request.messages)}",
+                "content": request.input,
+                "role": "user",
+                "timestamp": datetime.utcnow().isoformat()
             }
-        }
-        logger.info(f"Saving assistant message: {assistant_message}")
-        session_service.add_message(session_id, assistant_message)
-        logger.info("Assistant message saved successfully")
+            logger.info(f"Saving user message: {user_message}")
+            session_service.add_message(session_id, user_message)
+            logger.info("User message saved successfully")
+
+            # Save assistant response to session
+            assistant_message = {
+                "id": f"assistant_{len(request.messages)}",
+                "content": response_content,
+                "role": "assistant",
+                "timestamp": datetime.utcnow().isoformat(),
+                "metadata": {
+                    "questionCategory": "validation" if questions else "discovery",
+                    "researchStage": determine_research_stage(request.context),
+                    "suggestions": suggestions
+                }
+            }
+            logger.info(f"Saving assistant message: {assistant_message}")
+            session_service.add_message(session_id, assistant_message)
+            logger.info("Assistant message saved successfully")
+        else:
+            logger.info("Skipping database save for local session")
 
         # Extract context using LLM analysis
         extracted_context = await extract_context_with_llm(
@@ -271,28 +281,31 @@ These questions are designed specifically for your business idea. Would you like
         if questions:
             extracted_context['questions_generated'] = True
 
-        # Update session context with LLM-extracted information
-        industry = "general"
-        if extracted_context.get('business_idea') and extracted_context.get('target_customer') and extracted_context.get('problem'):
-            industry = detect_industry_context(
-                extracted_context.get('business_idea', ''),
-                extracted_context.get('target_customer', ''),
-                extracted_context.get('problem', '')
+        # Update session context with LLM-extracted information (skip for local sessions)
+        if not is_local_session:
+            industry = "general"
+            if extracted_context.get('business_idea') and extracted_context.get('target_customer') and extracted_context.get('problem'):
+                industry = detect_industry_context(
+                    extracted_context.get('business_idea', ''),
+                    extracted_context.get('target_customer', ''),
+                    extracted_context.get('problem', '')
+                )
+
+            update_data = ResearchSessionUpdate(
+                business_idea=extracted_context.get('business_idea'),
+                target_customer=extracted_context.get('target_customer'),
+                problem=extracted_context.get('problem'),
+                industry=industry,
+                stage=determine_research_stage_from_context(extracted_context),
+                conversation_context=conversation_context
             )
+            session_service.update_session(session_id, update_data)
 
-        update_data = ResearchSessionUpdate(
-            business_idea=extracted_context.get('business_idea'),
-            target_customer=extracted_context.get('target_customer'),
-            problem=extracted_context.get('problem'),
-            industry=industry,
-            stage=determine_research_stage_from_context(extracted_context),
-            conversation_context=conversation_context
-        )
-        session_service.update_session(session_id, update_data)
-
-        # If questions were generated, mark session as completed
-        if questions:
-            session_service.complete_session(session_id, questions.dict())
+            # If questions were generated, mark session as completed
+            if questions:
+                session_service.complete_session(session_id, questions.dict())
+        else:
+            logger.info("Skipping session update for local session")
 
         return ChatResponse(
             content=response_content,
