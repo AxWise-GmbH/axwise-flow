@@ -199,6 +199,7 @@ def create_tables():
         # Import models here to avoid circular imports
         # Use absolute imports to avoid issues with relative imports
         import backend.models  # This will ensure models.py is loaded correctly
+        import backend.models.research_session  # Ensure research session models are loaded
 
         # Create tables
         Base.metadata.create_all(bind=engine)

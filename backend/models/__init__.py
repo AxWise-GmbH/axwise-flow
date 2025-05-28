@@ -8,6 +8,14 @@ It also re-exports SQLAlchemy models from the main backend.models module for com
 # Import Pydantic models
 from backend.models.transcript import TranscriptSegment, TranscriptMetadata, StructuredTranscript
 from backend.models.pattern import Pattern, PatternResponse, PatternEvidence
+from backend.models.research_session import (
+    ResearchSession,
+    ResearchExport,
+    ResearchSessionCreate,
+    ResearchSessionUpdate,
+    ResearchSessionResponse,
+    ResearchSessionSummary
+)
 
 # Re-export SQLAlchemy models from the original location for backward compatibility
 # Use importlib to avoid circular imports
@@ -40,6 +48,12 @@ __all__ = [
     'Pattern',
     'PatternResponse',
     'PatternEvidence',
+    'ResearchSession',
+    'ResearchExport',
+    'ResearchSessionCreate',
+    'ResearchSessionUpdate',
+    'ResearchSessionResponse',
+    'ResearchSessionSummary',
 
     # SQLAlchemy models
     'User',
