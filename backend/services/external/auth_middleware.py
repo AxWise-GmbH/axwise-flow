@@ -118,11 +118,13 @@ async def get_current_user(
         else:
             user_id = token[len(DEV_TOKEN_PREFIX) :]
             logger.info(f"Development token used with user_id: {user_id}")
-    # IMPORTANT: Always use the same user ID for development if not using dev token
+    # IMPORTANT: Use email-based user ID for development if not using dev token
     elif not ENABLE_CLERK_VALIDATION:
-        # For development, always use testuser123 to access all analyses
-        user_id = "testuser123"
-        logger.info(f"Development mode: Using fixed user_id: {user_id}")
+        # For development, use email-based user ID (default to vitalijs@axwise.de)
+        # This allows webhook to work properly with actual email addresses
+        dev_email = "vitalijs@axwise.de"  # Default development email
+        user_id = dev_email.replace("@", "_").replace(".", "_")
+        logger.info(f"Development mode: Using email-based user_id: {user_id} for email: {dev_email}")
     else:
         # Validate JWT token with Clerk
         is_valid, payload = clerk_service.validate_token(token)
@@ -169,12 +171,23 @@ async def get_current_user(
                     last_name=user_info.get("last_name") if user_info else None,
                 )
             else:
-                # For non-validated tokens, create a simple user record
+                # For non-validated tokens, create a user record with proper email
+                # Convert user_id back to email format if it's email-based
+                if "_" in user_id and not user_id.startswith("testuser"):
+                    # This is likely an email-based user_id, convert back to email
+                    email = user_id.replace("_", "@", 1).replace("_", ".", 1)
+                    first_name = email.split("@")[0].title()
+                else:
+                    # Fallback for other user IDs
+                    email = f"{user_id}@example.com"
+                    first_name = "Test"
+
                 new_user = User(
                     user_id=user_id,
-                    email=f"{user_id}@example.com",
-                    first_name="Test",
-                    last_name="User",
+                    email=email,
+                    first_name=first_name,
+                    last_name="Dev",
+                    usage_data={}
                 )
 
             db.add(new_user)
