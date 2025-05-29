@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/firebase-build.js",
+    "build": "next build",
     "build:local": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
