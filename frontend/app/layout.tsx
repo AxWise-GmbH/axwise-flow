@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
             <AppLayout>
               {children}
             </AppLayout>
+            <Toaster />
           </Providers>
         </ErrorBoundary>
       </body>
