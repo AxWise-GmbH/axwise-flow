@@ -52,23 +52,29 @@ class StripeService:
             db: SQLAlchemy database session
             user: User model instance (optional)
         """
+        logger.info("StripeService.__init__ starting...")
         self.db = db
         self.user = user
+        logger.info(f"StripeService.__init__ - db: {type(db)}, user: {type(user) if user else None}")
 
         # Configure Stripe API key
+        logger.info("StripeService.__init__ - Getting STRIPE_SECRET_KEY...")
         api_key = os.getenv("STRIPE_SECRET_KEY")
         if not api_key:
             logger.warning("STRIPE_SECRET_KEY not configured")
             raise ValueError("STRIPE_SECRET_KEY not configured. Please set this environment variable.")
 
         # Set the API key globally for the stripe module
+        logger.info("StripeService.__init__ - Setting Stripe API key...")
         stripe.api_key = api_key
 
         # Print the first few characters of the API key for debugging
         logger.info(f"Stripe API Key configured: {api_key[:8]}...")
 
         self.stripe = stripe
+        logger.info("StripeService.__init__ - Initializing ClerkService...")
         self.CLERK_...=***REMOVED***
+        logger.info("StripeService.__init__ completed successfully!")
 
     async def get_or_create_customer(self) -> str:
         """

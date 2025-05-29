@@ -28,18 +28,21 @@ export interface StartTrialResponse {
 }
 
 export interface SubscriptionInfo {
-  subscription_id?: string;
-  subscription_status?: string;
-  subscription_tier?: string;
-  trial_end?: number;
-  current_period_end?: number;
+  tier: 'free' | 'starter' | 'pro';
+  status: 'active' | 'trialing' | 'canceled' | 'past_due' | 'inactive';
+  renewalDate?: string;
+  trialEnd?: string;
   cancel_at_period_end?: boolean;
-  usage_data?: {
-    analyses_used?: number;
-    analyses_limit?: number;
-    prd_generations_used?: number;
-    prd_generations_limit?: number;
+  limits?: {
+    analysesPerMonth?: number;
+    prdGenerationsPerMonth?: number;
   };
+  currentUsage?: {
+    analyses?: number;
+    prdGenerations?: number;
+  };
+  canPerformAnalysis?: boolean;
+  canGeneratePRD?: boolean;
 }
 
 /**
@@ -109,7 +112,7 @@ export async function getSubscriptionInfo(): Promise<SubscriptionInfo> {
   }
 
   const response = await apiCore.getClient().get<SubscriptionInfo>(
-    '/api/subscription/info'
+    '/api/subscription/status'
   );
 
   return response.data;
@@ -145,6 +148,24 @@ export async function reactivateSubscription(): Promise<{ success: boolean }> {
 
   const response = await apiCore.getClient().post<{ success: boolean }>(
     '/api/subscription/reactivate',
+    {}
+  );
+
+  return response.data;
+}
+
+/**
+ * Reset subscription status (for testing purposes)
+ */
+export async function resetSubscription(): Promise<{ success: boolean; message: string }> {
+  // Ensure auth token is set
+  const token = await getAuthToken();
+  if (token) {
+    apiCore.setHeader('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await apiCore.getClient().post<{ success: boolean; message: string }>(
+    '/api/subscription/reset-subscription',
     {}
   );
 

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import { isClerkConfigured } from '@/lib/clerk-config';
+import { SubscriptionStatus } from '@/components/subscription-status';
 import Link from 'next/link';
 
 // Component that uses Clerk hooks - only rendered when Clerk is available
@@ -45,18 +46,20 @@ function ClerkUserProfile(): JSX.Element {
     <div className="flex items-center gap-4">
       <SignedIn>
         {isLoaded && user && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm hidden md:block">
-              {user.firstName || user.username || 'User'}
-            </span>
-            <UserButton
-              afterSignOutUrl="/sign-in"
-              appearance={{
-                elements: {
-                  userButtonAvatarBox: 'w-8 h-8',
-                }
-              }}
-            />
+          <div className="flex items-center gap-4">
+            <SubscriptionStatus />
+            <div className="flex items-center gap-2">
+              <span className="text-sm hidden md:block">
+                {user.firstName || user.username || 'User'}
+              </span>
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: 'w-8 h-8',
+                  }
+                }}
+              />
+            </div>
           </div>
         )}
       </SignedIn>
@@ -77,6 +80,7 @@ export function UserProfile(): JSX.Element {
   if (!isClerkConfigured) {
     return (
       <div className="flex items-center gap-4">
+        <SubscriptionStatus />
         <div className="flex items-center gap-2">
           <span className="text-sm text-yellow-600 dark:text-yellow-400">
             Dev Mode
