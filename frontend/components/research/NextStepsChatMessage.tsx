@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Target,
   Calendar,
   Users,
@@ -16,9 +16,9 @@ interface NextStepsChatMessageProps {
   onStartResearch?: () => void;
 }
 
-export function NextStepsChatMessage({ 
-  onExportQuestions, 
-  onStartResearch 
+export function NextStepsChatMessage({
+  onExportQuestions,
+  onStartResearch
 }: NextStepsChatMessageProps) {
   return (
     <Card className="border-green-200 bg-green-50 max-w-none">
@@ -38,7 +38,7 @@ export function NextStepsChatMessage({
             <div className="flex-1">
               <div className="font-medium text-sm">Find 5-10 people who match your target customer</div>
               <div className="text-xs text-gray-600 mt-1">
-                Focus on dealership service managers, parts managers, and service advisors
+                Focus on your primary stakeholders and decision makers
               </div>
             </div>
             <Users className="h-4 w-4 text-green-600 mt-1" />

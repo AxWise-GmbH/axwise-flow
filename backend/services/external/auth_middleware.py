@@ -169,6 +169,13 @@ async def get_current_user(
                     ),
                     first_name=user_info.get("first_name") if user_info else None,
                     last_name=user_info.get("last_name") if user_info else None,
+                    usage_data={
+                        "subscription": {
+                            "tier": "free",
+                            "status": "active"
+                        },
+                        "usage": {}
+                    }
                 )
             else:
                 # For non-validated tokens, create a user record with proper email
@@ -187,7 +194,13 @@ async def get_current_user(
                     email=email,
                     first_name=first_name,
                     last_name="Dev",
-                    usage_data={}
+                    usage_data={
+                        "subscription": {
+                            "tier": "free",
+                            "status": "active"
+                        },
+                        "usage": {}
+                    }
                 )
 
             db.add(new_user)
@@ -204,6 +217,13 @@ async def get_current_user(
             email=f"{user_id}@example.com",
             first_name="Temporary",
             last_name="User",
+            usage_data={
+                "subscription": {
+                    "tier": "free",
+                    "status": "active"
+                },
+                "usage": {}
+            }
         )
         logger.info(f"Created temporary user object: {user_id}")
 

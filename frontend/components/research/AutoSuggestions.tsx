@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, ArrowRight } from 'lucide-react';
+import { AUTO_SUGGESTION_CONFIG, RESEARCH_CONFIG } from '@/lib/config/research-config';
 
 interface AutoSuggestion {
   id: string;
@@ -20,59 +21,13 @@ interface AutoSuggestionsProps {
   className?: string;
 }
 
-const SUGGESTION_TEMPLATES = {
-  initial: [
-    { id: '1', text: 'I have a business idea', category: 'business_type' as const },
-    { id: '2', text: 'I want to decide about one feature', category: 'business_type' as const },
-    { id: '3', text: 'I have a mobile app idea', category: 'business_type' as const },
-    { id: '4', text: 'I have a SaaS product idea', category: 'business_type' as const },
-    { id: '5', text: 'I want to start a service business', category: 'business_type' as const },
-    { id: '6', text: 'I have a physical product idea', category: 'business_type' as const },
-    { id: '7', text: 'I need help with customer research', category: 'business_type' as const },
-    { id: '8', text: 'I want to validate my idea', category: 'business_type' as const },
-  ],
-  business_idea: [
-    { id: '5', text: 'Small business owners', category: 'target_customer' as const },
-    { id: '6', text: 'Busy professionals', category: 'target_customer' as const },
-    { id: '7', text: 'Students and educators', category: 'target_customer' as const },
-    { id: '8', text: 'Parents with young children', category: 'target_customer' as const },
-    { id: '9', text: 'Healthcare professionals', category: 'target_customer' as const },
-  ],
-  target_customer: [
-    { id: '10', text: 'They waste too much time on manual tasks', category: 'problem' as const },
-    { id: '11', text: 'Current solutions are too expensive', category: 'problem' as const },
-    { id: '12', text: 'They struggle with organization', category: 'problem' as const },
-    { id: '13', text: 'Communication between teams is difficult', category: 'problem' as const },
-  ],
-  problem_validation: [
-    { id: '14', text: 'Yes, I\'ve talked to a few people', category: 'stage' as const },
-    { id: '15', text: 'No, I haven\'t done any research yet', category: 'stage' as const },
-    { id: '16', text: 'I\'ve done some online research', category: 'stage' as const },
-  ],
-  solution_validation: [
-    { id: '17', text: 'I have a working prototype', category: 'stage' as const },
-    { id: '18', text: 'I have detailed mockups', category: 'stage' as const },
-    { id: '19', text: 'It\'s still just an idea', category: 'stage' as const },
-  ],
-};
-
+// Use configuration instead of hardcoded templates
+const SUGGESTION_TEMPLATES = AUTO_SUGGESTION_CONFIG.stageTemplates;
 const DYNAMIC_SUGGESTIONS = {
-  business_types: [
-    'mobile app', 'web application', 'SaaS platform', 'e-commerce store',
-    'consulting service', 'online course', 'subscription service', 'marketplace'
-  ],
-  industries: [
-    'healthcare', 'education', 'finance', 'retail', 'manufacturing',
-    'real estate', 'food & beverage', 'fitness', 'travel', 'entertainment'
-  ],
-  customer_types: [
-    'small business owners', 'enterprise companies', 'freelancers', 'students',
-    'parents', 'seniors', 'professionals', 'entrepreneurs', 'developers'
-  ],
-  problems: [
-    'save time', 'reduce costs', 'improve communication', 'increase productivity',
-    'better organization', 'automate processes', 'improve customer service'
-  ]
+  business_types: AUTO_SUGGESTION_CONFIG.businessTypes,
+  industries: AUTO_SUGGESTION_CONFIG.industries,
+  customer_types: AUTO_SUGGESTION_CONFIG.customerTypes,
+  problems: AUTO_SUGGESTION_CONFIG.problems,
 };
 
 export function AutoSuggestions({
@@ -128,16 +83,16 @@ export function AutoSuggestions({
       );
     }
 
-    // Limit to 6 suggestions and shuffle
+    // Limit to configured max suggestions and shuffle
     const shuffled = newSuggestions.sort(() => 0.5 - Math.random());
-    setSuggestions(shuffled.slice(0, 6));
+    setSuggestions(shuffled.slice(0, RESEARCH_CONFIG.maxSuggestionsToShow));
   };
 
   const handleSuggestionClick = (suggestion: AutoSuggestion) => {
     onSuggestionClick(suggestion.text);
     // Hide suggestions briefly after click
     setIsVisible(false);
-    setTimeout(() => setIsVisible(true), 1000);
+    setTimeout(() => setIsVisible(true), RESEARCH_CONFIG.suggestionHideDelayMs);
   };
 
   if (!isVisible || suggestions.length === 0) {

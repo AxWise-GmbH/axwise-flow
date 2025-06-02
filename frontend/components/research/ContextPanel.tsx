@@ -21,6 +21,13 @@ interface ResearchContext {
   stage?: string;
   questionsGenerated?: boolean;
   completionPercentage?: number;
+  multiStakeholderConsidered?: boolean;
+  multiStakeholderDetected?: boolean;
+  detectedStakeholders?: {
+    primary: (string | { name: string; description: string })[];
+    secondary: (string | { name: string; description: string })[];
+    industry?: string;
+  };
 }
 
 interface GeneratedQuestions {
@@ -175,9 +182,119 @@ export function ContextPanel({
         </CardContent>
       </Card>
 
+      {/* Multi-Stakeholder Detection */}
+      {context.multiStakeholderDetected && (
+        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Multi-Stakeholder Opportunity
+            </CardTitle>
+            <CardDescription>
+              Your business involves multiple user groups with different needs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {context.detectedStakeholders && (
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Primary Stakeholders</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {context.detectedStakeholders.primary.map((stakeholder, index) => (
+                      <Badge key={index} variant="default" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        {typeof stakeholder === 'string' ? stakeholder : stakeholder.name || 'Unknown'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
+                <div>
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Secondary Stakeholders</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {context.detectedStakeholders.secondary.map((stakeholder, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {typeof stakeholder === 'string' ? stakeholder : stakeholder.name || 'Unknown'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
 
+                {context.detectedStakeholders.industry && (
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Industry Context</h4>
+                    <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300">
+                      {context.detectedStakeholders.industry}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
 
+            <div className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h4 className="text-sm font-medium mb-2">Benefits of Multi-Stakeholder Research:</h4>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• Validate assumptions across different user groups</li>
+                <li>• Understand varying decision-making processes</li>
+                <li>• Identify potential conflicts in requirements</li>
+                <li>• Create targeted value propositions</li>
+              </ul>
+            </div>
+
+            <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900 p-2 rounded">
+              💡 Consider a phased approach: Start with primary stakeholders, then validate with secondary users
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Questions Summary */}
+      {questions && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
+              Generated Questions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3">
+              <div>
+                <Badge variant="outline" className="mb-2">Problem Discovery</Badge>
+                <p className="text-sm text-muted-foreground">
+                  {questions.problemDiscovery?.length || 0} questions to understand current challenges
+                </p>
+              </div>
+              <div>
+                <Badge variant="outline" className="mb-2">Solution Validation</Badge>
+                <p className="text-sm text-muted-foreground">
+                  {questions.solutionValidation?.length || 0} questions to validate your solution approach
+                </p>
+              </div>
+              <div>
+                <Badge variant="outline" className="mb-2">Follow-up</Badge>
+                <p className="text-sm text-muted-foreground">
+                  {questions.followUp?.length || 0} questions for deeper insights
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              {onExport && (
+                <Button variant="outline" size="sm" onClick={onExport} className="flex-1">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              )}
+              {onContinueToAnalysis && (
+                <Button size="sm" onClick={onContinueToAnalysis} className="flex-1">
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Continue
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

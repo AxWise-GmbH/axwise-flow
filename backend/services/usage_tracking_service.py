@@ -52,6 +52,47 @@ class UsageTrackingService:
         self.user = user
         self.CLERK_...=***REMOVED***
 
+        # Ensure user has proper usage_data structure
+        self._ensure_usage_data_initialized()
+
+    def _ensure_usage_data_initialized(self):
+        """
+        Ensure the user has proper usage_data structure initialized.
+        This helps with users created before the proper initialization was added.
+        """
+        try:
+            # Initialize usage_data if not exists or invalid
+            if not self.user.usage_data or not isinstance(self.user.usage_data, dict):
+                self.user.usage_data = {
+                    "subscription": {
+                        "tier": "free",
+                        "status": "active"
+                    },
+                    "usage": {}
+                }
+                self.db.commit()
+                logger.info(f"Initialized usage_data for user {self.user.user_id}")
+
+            # Ensure subscription section exists
+            elif "subscription" not in self.user.usage_data:
+                self.user.usage_data["subscription"] = {
+                    "tier": "free",
+                    "status": "active"
+                }
+                self.db.commit()
+                logger.info(f"Added subscription section to usage_data for user {self.user.user_id}")
+
+            # Ensure usage section exists
+            elif "usage" not in self.user.usage_data:
+                self.user.usage_data["usage"] = {}
+                self.db.commit()
+                logger.info(f"Added usage section to usage_data for user {self.user.user_id}")
+
+        except Exception as e:
+            logger.error(f"Error initializing usage_data for user {self.user.user_id}: {str(e)}")
+            # Don't fail the entire service if this fails
+            pass
+
     async def get_current_month_usage(self) -> Dict[str, int]:
         """
         Get the current month's usage statistics.

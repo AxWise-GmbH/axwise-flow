@@ -96,9 +96,9 @@ ENDPOINT_LIMITS: Dict[str, str] = {
     "/health": "120/minute",
     "/api/health": "120/minute",
 
-    # Customer research endpoints - moderate limits
-    "/api/research/chat": "30/minute",
-    "/api/research/generate-questions": "20/minute",
+    # Customer research endpoints - more lenient limits for development
+    "/api/research/chat": "100/minute" if not IS_PRODUCTION else "30/minute",
+    "/api/research/generate-questions": "50/minute" if not IS_PRODUCTION else "20/minute",
 }
 
 def get_path_key(request: Request) -> str:
@@ -243,9 +243,11 @@ def configure_rate_limiter(app):
 
                     # Check if endpoint_limit is an object or a string
                     if isinstance(endpoint_limit, str):
-                        # If it's a string, we can't apply the rate limit directly
-                        # Just log a warning and continue
-                        logger.warning(f"Rate limit '{endpoint_limit}' is a string, not an object. Skipping rate limiting for this request.")
+                        # If it's a string, skip rate limiting in development
+                        if not IS_PRODUCTION:
+                            logger.debug(f"Skipping rate limiting for {path} in development mode")
+                        else:
+                            logger.warning(f"Rate limit '{endpoint_limit}' is a string, not an object. Skipping rate limiting for this request.")
                     else:
                         # Get the key function from the endpoint limit
                         # Try multiple attribute names and fall back to our custom function

@@ -3,14 +3,20 @@
  * Handles all customer research related API calls with local storage for anonymous users
  */
 
+import { RESEARCH_CONFIG, validateMessage, sanitizeInput } from '@/lib/config/research-config';
+import {
+  withRetry,
+  withTimeout,
+  ErrorHandler,
+  NetworkError,
+  ValidationError,
+  logError
+} from '@/lib/utils/research-error-handler';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Local storage keys
-const STORAGE_KEYS = {
-  SESSIONS: 'axwise_research_sessions',
-  CURRENT_SESSION: 'axwise_current_session',
-  USER_ID: 'axwise_anonymous_user_id',
-} as const;
+// Use configuration for storage keys
+const STORAGE_KEYS = RESEARCH_CONFIG.storageKeys;
 
 // Generate anonymous user ID
 function getOrCreateAnonymousUserId(): string {
@@ -37,6 +43,14 @@ export interface ResearchContext {
   targetCustomer?: string;
   problem?: string;
   stage?: string;
+  questionsGenerated?: boolean;
+  multiStakeholderConsidered?: boolean;
+  multiStakeholderDetected?: boolean;
+  detectedStakeholders?: {
+    primary: string[];
+    secondary: string[];
+    industry?: string;
+  };
 }
 
 export interface ChatRequest {
@@ -177,77 +191,94 @@ export class LocalResearchStorage {
  * For anonymous users, this only calls the LLM API without storing in database
  */
 export async function sendResearchChatMessage(request: ChatRequest): Promise<ChatResponse> {
+  // Validate input message
+  const validation = validateMessage(request.input);
+  if (!validation.isValid) {
+    throw new ValidationError(validation.error);
+  }
+
+  // Sanitize input
+  const sanitizedInput = sanitizeInput(request.input);
+
   // For anonymous users, use a local session ID and don't store in database
   const anonymousUserId = getOrCreateAnonymousUserId();
   const sessionId = request.session_id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const requestWithAnonymousUser = {
     ...request,
+    input: sanitizedInput,
     session_id: sessionId,
     user_id: anonymousUserId,
   };
 
-  const response = await fetch(`${API_BASE_URL}/api/research/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestWithAnonymousUser),
+  // Use retry and timeout wrappers
+  return await withRetry(async () => {
+    return await withTimeout(async () => {
+      const response = await fetch(`${API_BASE_URL}/api/research/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestWithAnonymousUser),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const error = new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        (error as any).status = response.status;
+        throw error;
+      }
+
+      const result = await response.json();
+
+      // Store the conversation locally for anonymous users
+      if (typeof window !== 'undefined') {
+        const currentSession = LocalResearchStorage.getCurrentSession();
+        const messages = currentSession?.messages || [];
+
+        // Add user message
+        messages.push({
+          id: `user_${Date.now()}`,
+          content: request.input,
+          role: 'user',
+          timestamp: new Date().toISOString(),
+        });
+
+        // Add assistant response
+        messages.push({
+          id: `assistant_${Date.now()}`,
+          content: result.content,
+          role: 'assistant',
+          timestamp: new Date().toISOString(),
+          metadata: result.metadata,
+        });
+
+        // Update or create session
+        const session: ResearchSession = {
+          id: Date.now(),
+          session_id: sessionId,
+          user_id: anonymousUserId,
+          business_idea: result.metadata?.extracted_context?.business_idea || currentSession?.business_idea,
+          target_customer: result.metadata?.extracted_context?.target_customer || currentSession?.target_customer,
+          problem: result.metadata?.extracted_context?.problem || currentSession?.problem,
+          industry: result.metadata?.extracted_context?.industry || currentSession?.industry || 'general',
+          stage: result.metadata?.extracted_context?.stage || currentSession?.stage || 'initial',
+          status: 'active',
+          questions_generated: !!result.questions || currentSession?.questions_generated || false,
+          created_at: currentSession?.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          message_count: messages.length,
+          messages,
+          isLocal: true,
+        };
+
+        LocalResearchStorage.saveSession(session);
+        LocalResearchStorage.setCurrentSession(session);
+      }
+
+      return result;
+    });
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-
-  // Store the conversation locally for anonymous users
-  if (typeof window !== 'undefined') {
-    const currentSession = LocalResearchStorage.getCurrentSession();
-    const messages = currentSession?.messages || [];
-
-    // Add user message
-    messages.push({
-      id: `user_${Date.now()}`,
-      content: request.input,
-      role: 'user',
-      timestamp: new Date().toISOString(),
-    });
-
-    // Add assistant response
-    messages.push({
-      id: `assistant_${Date.now()}`,
-      content: result.content,
-      role: 'assistant',
-      timestamp: new Date().toISOString(),
-      metadata: result.metadata,
-    });
-
-    // Update or create session
-    const session: ResearchSession = {
-      id: Date.now(),
-      session_id: sessionId,
-      user_id: anonymousUserId,
-      business_idea: result.metadata?.extracted_context?.business_idea || currentSession?.business_idea,
-      target_customer: result.metadata?.extracted_context?.target_customer || currentSession?.target_customer,
-      problem: result.metadata?.extracted_context?.problem || currentSession?.problem,
-      industry: result.metadata?.extracted_context?.industry || currentSession?.industry || 'general',
-      stage: result.metadata?.extracted_context?.stage || currentSession?.stage || 'initial',
-      status: 'active',
-      questions_generated: !!result.questions || currentSession?.questions_generated || false,
-      created_at: currentSession?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      message_count: messages.length,
-      messages,
-      isLocal: true,
-    };
-
-    LocalResearchStorage.saveSession(session);
-    LocalResearchStorage.setCurrentSession(session);
-  }
-
-  return result;
 }
 
 /**

@@ -5,13 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  Building2, 
-  Car, 
-  Truck, 
-  ChevronRight, 
-  Clock, 
+import {
+  Users,
+  Building2,
+  Car,
+  Truck,
+  ChevronRight,
+  Clock,
   Target,
   CheckCircle,
   AlertCircle,
@@ -35,22 +35,22 @@ interface MultiStakeholderSummaryProps {
   onStartResearch?: (stakeholderId: string) => void;
 }
 
-export function MultiStakeholderSummary({ 
-  stakeholders, 
-  onExportPlan, 
-  onStartResearch 
+export function MultiStakeholderSummary({
+  stakeholders,
+  onExportPlan,
+  onStartResearch
 }: MultiStakeholderSummaryProps) {
   const [selectedPhase, setSelectedPhase] = useState('overview');
 
   const defaultStakeholders: Stakeholder[] = [
     {
-      id: 'dealerships',
-      name: 'Dealerships',
+      id: 'primary_stakeholders',
+      name: 'Primary Stakeholders',
       icon: <Building2 className="h-5 w-5" />,
-      description: 'Service managers, parts managers, and service advisors',
+      description: 'Decision makers and key users',
       priority: 'primary',
       sampleSize: '5-7 interviews',
-      keyFocus: ['API integration needs', 'Workflow efficiency', 'ROI expectations'],
+      keyFocus: ['Integration needs', 'Workflow efficiency', 'ROI expectations'],
       timeframe: 'Week 1-2'
     },
     {
@@ -141,8 +141,8 @@ export function MultiStakeholderSummary({
                     </div>
                   </div>
                   {onStartResearch && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="w-full mt-3"
                       onClick={() => onStartResearch(stakeholder.id)}
                     >
@@ -246,7 +246,7 @@ export function MultiStakeholderSummary({
               <div className="mt-4 p-3 bg-orange-50 rounded-lg">
                 <div className="font-medium text-orange-800 mb-2">Why Second:</div>
                 <ul className="text-sm text-orange-700 space-y-1">
-                  <li>• Validate that dealership assumptions align with user needs</li>
+                  <li>• Validate that primary stakeholder assumptions align with user needs</li>
                   <li>• Understand actual user decision-making process</li>
                   <li>• Identify potential adoption barriers</li>
                 </ul>

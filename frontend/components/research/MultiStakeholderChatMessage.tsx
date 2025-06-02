@@ -38,7 +38,7 @@ export function MultiStakeholderChatMessage({
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
             <Building2 className="h-5 w-5 text-green-600" />
             <div>
-              <div className="font-medium text-sm">Dealerships</div>
+              <div className="font-medium text-sm">Primary Stakeholders</div>
               <div className="text-xs text-gray-600">Decision makers</div>
               <Badge variant="default" className="text-xs mt-1">Primary</Badge>
             </div>
@@ -68,7 +68,7 @@ export function MultiStakeholderChatMessage({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-3 w-3 text-green-500" />
-                <span>Validate dealership assumptions with actual users</span>
+                <span>Validate primary stakeholder assumptions with actual users</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-3 w-3 text-blue-500" />
@@ -98,7 +98,7 @@ export function MultiStakeholderChatMessage({
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <span><strong>Phased approach</strong> starting with primary stakeholders (dealerships)</span>
+              <span><strong>Phased approach</strong> starting with primary stakeholders</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -111,7 +111,7 @@ export function MultiStakeholderChatMessage({
         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
           <div className="font-medium text-yellow-800 mb-2">⚠️ Remember: Primary Objective First</div>
           <div className="text-sm text-yellow-700">
-            Start with dealership research to validate your core assumptions, then expand to secondary stakeholders to refine your approach.
+            Start with primary stakeholder research to validate your core assumptions, then expand to secondary stakeholders to refine your approach.
           </div>
         </div>
 

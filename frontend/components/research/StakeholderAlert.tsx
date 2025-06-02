@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  Building2, 
-  Car, 
-  Truck, 
-  ChevronRight, 
+import {
+  Users,
+  Building2,
+  Car,
+  Truck,
+  ChevronRight,
   Info,
   ArrowRight,
   X
@@ -20,12 +20,14 @@ interface StakeholderAlertProps {
   onViewPlan?: () => void;
   onDismiss?: () => void;
   onContinueWithCurrent?: () => void;
+  onViewMultiStakeholder?: () => void;
 }
 
-export function StakeholderAlert({ 
-  onViewPlan, 
-  onDismiss, 
-  onContinueWithCurrent 
+export function StakeholderAlert({
+  onViewPlan,
+  onDismiss,
+  onContinueWithCurrent,
+  onViewMultiStakeholder
 }: StakeholderAlertProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -35,7 +37,7 @@ export function StakeholderAlert({
         <Info className="h-4 w-4" />
         <AlertDescription className="flex items-center justify-between">
           <span>
-            <strong>Multiple stakeholders detected:</strong> Your business involves dealerships, car owners, and fleet managers. 
+            <strong>Multiple stakeholders detected:</strong> Your business involves multiple stakeholder groups.
             Consider a multi-phase research approach for better insights.
           </span>
           <div className="flex gap-2 ml-4">
@@ -68,7 +70,7 @@ export function StakeholderAlert({
           )}
         </div>
         <CardDescription>
-          Your Service Cam API feature involves multiple user groups with different needs and perspectives.
+          Your business involves multiple user groups with different needs and perspectives.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -77,24 +79,24 @@ export function StakeholderAlert({
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
             <Building2 className="h-5 w-5 text-green-600" />
             <div>
-              <div className="font-medium text-sm">Dealerships</div>
+              <div className="font-medium text-sm">Primary Stakeholders</div>
               <div className="text-xs text-gray-600">Decision makers</div>
               <Badge variant="default" className="text-xs mt-1">Primary</Badge>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-            <Car className="h-5 w-5 text-blue-600" />
+            <Users className="h-5 w-5 text-blue-600" />
             <div>
-              <div className="font-medium text-sm">Car Owners</div>
-              <div className="text-xs text-gray-600">End users</div>
+              <div className="font-medium text-sm">End Users</div>
+              <div className="text-xs text-gray-600">Primary users</div>
               <Badge variant="secondary" className="text-xs mt-1">Secondary</Badge>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-            <Truck className="h-5 w-5 text-purple-600" />
+            <Building2 className="h-5 w-5 text-purple-600" />
             <div>
-              <div className="font-medium text-sm">Fleet Managers</div>
-              <div className="text-xs text-gray-600">B2B users</div>
+              <div className="font-medium text-sm">Business Users</div>
+              <div className="text-xs text-gray-600">Enterprise users</div>
               <Badge variant="secondary" className="text-xs mt-1">Secondary</Badge>
             </div>
           </div>
@@ -107,7 +109,7 @@ export function StakeholderAlert({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Validate dealership assumptions with actual users</span>
+                <span>Validate primary stakeholder assumptions with actual users</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -133,7 +135,7 @@ export function StakeholderAlert({
           <div className="flex items-center gap-2 text-sm text-green-700">
             <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs font-medium">Week 1-2</span>
             <ArrowRight className="h-3 w-3" />
-            <span>Start with 5-7 dealership interviews</span>
+            <span>Start with 5-7 primary stakeholder interviews</span>
             <ArrowRight className="h-3 w-3" />
             <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-xs font-medium">Week 3</span>
             <ArrowRight className="h-3 w-3" />
@@ -148,8 +150,8 @@ export function StakeholderAlert({
               Continue with Current Questions
             </Button>
           )}
-          {onViewPlan && (
-            <Button onClick={onViewPlan} className="flex-1">
+          {(onViewPlan || onViewMultiStakeholder) && (
+            <Button onClick={onViewPlan || onViewMultiStakeholder} className="flex-1">
               View Multi-Stakeholder Plan
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
