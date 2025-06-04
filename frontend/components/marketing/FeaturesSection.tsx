@@ -4,74 +4,83 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, Palette, Zap, Shield, BarChart3, FileText } from 'lucide-react';
 
 export const FeaturesSection = () => {
-  const features = [
+  const coreFeatures = [
     {
       icon: Brain,
-      title: "Advanced AI Analysis",
-      description: "Powered by cutting-edge LLMs to extract deep insights from unstructured interview data",
-      benefits: ["Pattern recognition", "Sentiment analysis", "Automated categorization"]
-    },
-    {
-      icon: Palette,
-      title: "Intuitive UI",
-      description: "Clean, user-friendly interface designed for product managers and researchers",
-      benefits: ["Drag & drop uploads", "Visual insights", "Export capabilities"]
-    },
-    {
-      icon: Zap,
-      title: "API-First Architecture",
-      description: "Seamlessly integrate with your existing workflow and tools",
-      benefits: ["REST API access", "Webhook support", "Custom integrations"]
-    },
-    {
-      icon: BarChart3,
-      title: "Rich Visualizations",
-      description: "Transform complex data into clear, actionable visual insights",
-      benefits: ["Interactive charts", "Persona mapping", "Trend analysis"]
+      title: "Customer Research Assistant",
+      description: "AI-powered research question generation and dynamic forms",
+      benefits: ["Custom research questions", "No experience needed", "5-minute setup"],
+      highlight: "Like Google Forms, but intelligent"
     },
     {
       icon: FileText,
-      title: "Automated Documentation",
-      description: "Generate comprehensive reports and PRDs from your research",
-      benefits: ["PRD generation", "Executive summaries", "Action plans"]
+      title: "Interview Analysis",
+      description: "Transform raw interviews into structured insights automatically",
+      benefits: ["Pattern recognition", "Sentiment analysis", "Persona generation"],
+      highlight: "Automated insight extraction"
+    },
+    {
+      icon: BarChart3,
+      title: "PRD Generation",
+      description: "Create comprehensive product requirements documents from insights",
+      benefits: ["Operational PRDs", "Technical specifications", "Action plans"],
+      highlight: "From insights to implementation"
+    }
+  ];
+
+  const capabilities = [
+    {
+      icon: Zap,
+      title: "Fast & Efficient",
+      metric: "Minutes, not weeks",
+      description: "Streamlined workflow from research to PRD generation"
+    },
+    {
+      icon: Palette,
+      title: "No Expertise Required",
+      metric: "User-friendly design",
+      description: "Intuitive interface designed for any team member"
     },
     {
       icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-grade security to protect your sensitive research data",
-      benefits: ["End-to-end encryption", "SOC 2 in progress", "Data residency"]
+      title: "Enterprise Ready",
+      metric: "Secure & Compliant",
+      description: "SOC 2 Type II in progress and end-to-end encryption"
     }
   ];
 
   return (
     <section className="py-16 md:py-24">
       <div className="container px-4 md:px-6 mx-auto">
+        {/* Core Features */}
         <div className="text-center mb-16">
-          <Badge variant="default" className="mb-4">Features</Badge>
+          <Badge variant="outline" className="mb-4">Core Features</Badge>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-            Everything You Need to <span className="text-primary">Transform</span> Research into Results
+            Complete Research & Development <span className="text-primary">Workflow</span>
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            AxWise combines powerful AI with intuitive design to make user research analysis
-            faster, deeper, and more actionable than ever before.
+            From idea validation to product launch—everything you need in one integrated platform.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <Card key={index} className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          {coreFeatures.map((feature, index) => (
+            <Card key={index} className="border-primary/20 hover:border-primary/40 transition-colors relative">
               <CardHeader>
                 <div className="w-12 h-12 mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <CardTitle className="text-xl">{feature.title}</CardTitle>
+                <Badge variant="secondary" className="absolute top-4 right-4 text-xs">
+                  {feature.highlight}
+                </Badge>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">{feature.description}</p>
                 <ul className="space-y-2">
                   {feature.benefits.map((benefit, benefitIndex) => (
                     <li key={benefitIndex} className="flex items-center text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mr-2"></div>
+                      <div className="w-1.5 h-1.5 bg-primary rounded-full mr-2"></div>
                       {benefit}
                     </li>
                   ))}
@@ -81,27 +90,27 @@ export const FeaturesSection = () => {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-8 md:p-12 border border-primary/20">
-            <h3 className="text-2xl md:text-3xl font-bold mb-4">
-              Ready to see AxWise in action?
-            </h3>
-            <p className="text-lg text-muted-foreground mb-6">
-              Experience the power of AI-driven user research analysis
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Badge variant="outline" className="text-sm px-4 py-2">
-                🚀 Upload interviews in seconds
-              </Badge>
-              <Badge variant="outline" className="text-sm px-4 py-2">
-                🧠 Get insights in minutes
-              </Badge>
-              <Badge variant="outline" className="text-sm px-4 py-2">
-                📊 Build better products
-              </Badge>
-            </div>
-          </div>
+        {/* Capabilities */}
+        <div className="text-center mb-12">
+          <h3 className="text-2xl md:text-3xl font-bold mb-6">
+            Why Teams Choose AxWise
+          </h3>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {capabilities.map((capability, index) => (
+            <div key={index} className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <capability.icon className="w-8 h-8 text-primary" />
+              </div>
+              <h4 className="font-semibold text-lg mb-2">{capability.title}</h4>
+              <p className="text-primary font-medium mb-2">{capability.metric}</p>
+              <p className="text-sm text-muted-foreground">{capability.description}</p>
+            </div>
+          ))}
+        </div>
+
+
       </div>
     </section>
   );
