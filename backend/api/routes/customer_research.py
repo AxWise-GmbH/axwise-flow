@@ -434,7 +434,7 @@ async def generate_research_response(
     industry = "general"
     if has_business_idea and has_target_customer and has_problem:
         # Build conversation context for industry detection
-        conversation_text = "\n".join([f"{msg.role}: {msg.content}" for msg in messages[-5:]])
+        conversation_text = "\n".join([f"{msg.role}: {msg.content}" for msg in messages])
         try:
             industry_data = await classify_industry_with_llm(
                 llm_service, conversation_text, user_input
@@ -512,7 +512,7 @@ Based on the intent analysis, respond appropriately. If they rejected your under
 
         elif conversation_length < 20:  # Continue exploring for reasonable length
             # Analyze conversation to avoid loops
-            recent_messages = [msg.content for msg in messages[-6:] if msg.role == "assistant"]
+            recent_messages = [msg.content for msg in messages if msg.role == "assistant"]
             recent_topics = " ".join(recent_messages).lower()
 
             # Choose different exploration areas based on what hasn't been covered
@@ -659,8 +659,11 @@ async def generate_contextual_suggestions(
     # Build a concise prompt for generating suggestions
     prompt = f"""Generate 3 short quick replies that the USER might say in response to the assistant's message:
 
-User said: "{user_input}"
-Assistant responded: "{assistant_response}"
+Conversation context:
+{conversation_context}
+
+User's latest input: "{user_input}"
+Assistant's response: "{assistant_response}"
 
 Generate what the USER might say NEXT as natural responses to the assistant's question or comment.
 
@@ -744,7 +747,7 @@ async def detect_stakeholders_with_llm(
 
     # Build conversation text for analysis
     conversation_text = "\n".join([
-        f"{msg.role}: {msg.content}" for msg in conversation_history[-10:]  # Last 10 messages for context
+        f"{msg.role}: {msg.content}" for msg in conversation_history
     ])
 
     business_idea = context.businessIdea or "Not specified"
@@ -804,65 +807,96 @@ Description Examples:
 Make descriptions specific to the business idea, target customers, and problem being solved."""
 
     try:
-        response = await llm_service.generate_text(
-            prompt=prompt,
-            temperature=0.3,
-            max_tokens=8000
-        )
+        # Try Instructor first for structured output
+        try:
+            from backend.models.comprehensive_questions import StakeholderDetection
+            from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
 
-        logger.info(f"LLM stakeholder detection raw response: {response}")
+            logger.info("🚀 Using Instructor for stakeholder detection")
 
-        # Parse JSON response
-        import json
-        response_clean = response.strip()
-        if response_clean.startswith('```json'):
-            response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
-            response_clean = response_clean[:-3]
-        response_clean = response_clean.strip()
+            # Create Instructor client
+            instructor_client = InstructorGeminiClient()
 
-        logger.info(f"Cleaned response for JSON parsing: {response_clean}")
+            # Generate structured output using Instructor
+            stakeholder_data = await instructor_client.generate_with_model_async(
+                prompt=prompt,
+                model_class=StakeholderDetection,
+                temperature=0.3,
+                max_output_tokens=8000,
+                system_instruction="You are an expert business analyst. Identify the most relevant stakeholders for customer research interviews."
+            )
 
-        stakeholder_data = json.loads(response_clean)
-        logger.info(f"Parsed stakeholder data: {stakeholder_data}")
+            logger.info(f"✅ Instructor detected stakeholders successfully")
+            logger.info(f"Primary: {[s['name'] for s in stakeholder_data.primary]}")
+            logger.info(f"Secondary: {[s['name'] for s in stakeholder_data.secondary]}")
+            logger.info(f"Industry: {stakeholder_data.industry}")
 
-        # Validate structure - now expecting objects with name/description
-        if not isinstance(stakeholder_data.get('primary'), list):
-            raise ValueError("Invalid primary stakeholders format")
-        if not isinstance(stakeholder_data.get('secondary'), list):
-            raise ValueError("Invalid secondary stakeholders format")
+            # Convert to dict for API compatibility
+            return stakeholder_data.dict()
 
-        # Handle both old format (strings) and new format (objects with name/description)
-        # Convert old format to new format if needed
-        def convert_stakeholder_format(stakeholders_list):
-            converted = []
-            for stakeholder in stakeholders_list:
-                if isinstance(stakeholder, str):
-                    # Old format - convert to new format with generic description
-                    logger.warning(f"Converting old format stakeholder: {stakeholder}")
-                    converted.append({
-                        "name": stakeholder,
-                        "description": f"Stakeholder involved in {stakeholder.lower()} activities"
-                    })
-                elif isinstance(stakeholder, dict) and 'name' in stakeholder and 'description' in stakeholder:
-                    # New format - use as is
-                    converted.append(stakeholder)
-                else:
-                    # Invalid format
-                    logger.error(f"Invalid stakeholder format: {stakeholder}")
-                    raise ValueError(f"Invalid stakeholder format: {stakeholder}")
-            return converted
+        except Exception as instructor_error:
+            logger.warning(f"Instructor failed, falling back to manual JSON parsing: {instructor_error}")
 
-        # Convert both primary and secondary stakeholders
-        stakeholder_data['primary'] = convert_stakeholder_format(stakeholder_data.get('primary', []))
-        stakeholder_data['secondary'] = convert_stakeholder_format(stakeholder_data.get('secondary', []))
+            # Fallback to manual JSON parsing
+            response = await llm_service.generate_text(
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=8000
+            )
 
-        logger.info(f"Successfully processed stakeholder data with descriptions")
-        return stakeholder_data
+            logger.info(f"LLM stakeholder detection raw response: {response}")
+
+            # Parse JSON response
+            import json
+            response_clean = response.strip()
+            if response_clean.startswith('```json'):
+                response_clean = response_clean[7:]
+            if response_clean.endswith('```'):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            logger.info(f"Cleaned response for JSON parsing: {response_clean}")
+
+            stakeholder_data = json.loads(response_clean)
+            logger.info(f"Parsed stakeholder data: {stakeholder_data}")
+
+            # Validate structure - now expecting objects with name/description
+            if not isinstance(stakeholder_data.get('primary'), list):
+                raise ValueError("Invalid primary stakeholders format")
+            if not isinstance(stakeholder_data.get('secondary'), list):
+                raise ValueError("Invalid secondary stakeholders format")
+
+            # Handle both old format (strings) and new format (objects with name/description)
+            # Convert old format to new format if needed
+            def convert_stakeholder_format(stakeholders_list):
+                converted = []
+                for stakeholder in stakeholders_list:
+                    if isinstance(stakeholder, str):
+                        # Old format - convert to new format with generic description
+                        logger.warning(f"Converting old format stakeholder: {stakeholder}")
+                        converted.append({
+                            "name": stakeholder,
+                            "description": f"Stakeholder involved in {stakeholder.lower()} activities"
+                        })
+                    elif isinstance(stakeholder, dict) and 'name' in stakeholder and 'description' in stakeholder:
+                        # New format - use as is
+                        converted.append(stakeholder)
+                    else:
+                        # Invalid format
+                        logger.error(f"Invalid stakeholder format: {stakeholder}")
+                        raise ValueError(f"Invalid stakeholder format: {stakeholder}")
+                return converted
+
+            # Convert both primary and secondary stakeholders
+            stakeholder_data['primary'] = convert_stakeholder_format(stakeholder_data.get('primary', []))
+            stakeholder_data['secondary'] = convert_stakeholder_format(stakeholder_data.get('secondary', []))
+
+            logger.info(f"Successfully processed stakeholder data with descriptions")
+            return stakeholder_data
 
     except Exception as e:
-        logger.error(f"Error detecting stakeholders with LLM: {str(e)}")
-        logger.error(f"Raw response was: {response if 'response' in locals() else 'No response'}")
+        logger.error(f"Error detecting stakeholders: {str(e)}")
+        logger.error(f"Falling back to keyword-based detection")
         # Fallback to simple detection based on keywords
         return detect_stakeholders_fallback(business_idea, target_customer, problem)
 
@@ -926,72 +960,247 @@ def detect_stakeholders_fallback(business_idea: str, target_customer: str, probl
             "reasoning": "General business stakeholders (fallback)"
         }
 
+async def generate_comprehensive_research_questions(
+    llm_service,
+    context: ResearchContext,
+    conversation_history: List[Message],
+    stakeholder_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Generate comprehensive research questions with stakeholder integration using Instructor."""
+
+    # Import Pydantic models and Instructor client
+    from backend.models.comprehensive_questions import ComprehensiveQuestions, StakeholderDetection
+    from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
+
+    # First detect stakeholders if not provided
+    if not stakeholder_data:
+        stakeholder_data = await detect_stakeholders_with_llm(
+            llm_service=llm_service,
+            context=context,
+            conversation_history=conversation_history
+        )
+
+    # Build comprehensive prompt for stakeholder-specific questions
+    business_idea = context.businessIdea or 'Not specified'
+    target_customer = context.targetCustomer or 'Not specified'
+    problem = context.problem or 'Not specified'
+
+    # Extract stakeholder information
+    primary_stakeholders = stakeholder_data.get('primary', [])
+    secondary_stakeholders = stakeholder_data.get('secondary', [])
+    industry = stakeholder_data.get('industry', 'general')
+
+    # Create optimized prompt for Instructor structured output
+    primary_names = [s.get('name', s) if isinstance(s, dict) else s for s in primary_stakeholders]
+    secondary_names = [s.get('name', s) if isinstance(s, dict) else s for s in secondary_stakeholders]
+
+    prompt = f"""Generate comprehensive customer research questions for this business:
+
+BUSINESS CONTEXT:
+- Business Idea: {business_idea}
+- Target Customer: {target_customer}
+- Problem: {problem}
+- Industry: {industry}
+
+STAKEHOLDERS TO CREATE QUESTIONS FOR:
+Primary: {', '.join(primary_names)}
+Secondary: {', '.join(secondary_names)}
+
+REQUIREMENTS:
+1. Create 5 problem discovery questions per stakeholder (understand current challenges)
+2. Create 5 solution validation questions per stakeholder (test the proposed solution)
+3. Create 3 follow-up questions per stakeholder (gather additional insights)
+4. Make questions specific to each stakeholder's perspective and role
+5. Use the exact business terminology and context provided
+6. Ensure questions are actionable and will provide valuable insights
+7. Avoid generic questions - make them specific to this business situation
+
+Focus on creating questions that will help validate the market need and refine the solution for each stakeholder group."""
+
+    try:
+        # Use Instructor for structured output generation
+        logger.info("🚀 Using Instructor for comprehensive question generation")
+
+        # Create Instructor client
+        instructor_client = InstructorGeminiClient()
+
+        # Generate structured output using Instructor
+        comprehensive_questions = await instructor_client.generate_with_model_async(
+            prompt=prompt,
+            model_class=ComprehensiveQuestions,
+            temperature=0.3,
+            max_output_tokens=32000,  # Keep high token limit for comprehensive output
+            system_instruction="You are an expert customer research consultant. Generate comprehensive, specific research questions tailored to each stakeholder group."
+        )
+
+        logger.info(f"✅ Instructor generated comprehensive questions successfully")
+        logger.info(f"Generated {len(comprehensive_questions.primaryStakeholders)} primary and {len(comprehensive_questions.secondaryStakeholders)} secondary stakeholders")
+
+        # Calculate and update time estimates
+        total_questions = comprehensive_questions.get_total_questions()
+        min_time, max_time = comprehensive_questions.get_estimated_time_range()
+
+        # Update the time estimate with calculated values
+        comprehensive_questions.timeEstimate.totalQuestions = total_questions
+        comprehensive_questions.timeEstimate.estimatedMinutes = f"{min_time}-{max_time}"
+        comprehensive_questions.timeEstimate.breakdown = {
+            'primary': sum(len(s.questions.problemDiscovery) + len(s.questions.solutionValidation) + len(s.questions.followUp)
+                          for s in comprehensive_questions.primaryStakeholders),
+            'secondary': sum(len(s.questions.problemDiscovery) + len(s.questions.solutionValidation) + len(s.questions.followUp)
+                            for s in comprehensive_questions.secondaryStakeholders),
+            'baseTime': min_time,
+            'withBuffer': max_time,
+            'perQuestion': 2.5
+        }
+
+        # Convert to dict for API compatibility
+        return comprehensive_questions.dict()
+
+    except Exception as e:
+        logger.error(f"Error generating comprehensive research questions with Instructor: {str(e)}")
+        logger.error(f"Falling back to manual question generation")
+        # Return fallback comprehensive questions
+        return generate_comprehensive_fallback_questions(context, stakeholder_data)
+
 async def generate_research_questions(
     llm_service,
     context: ResearchContext,
     conversation_history: List[Message]
 ) -> ResearchQuestions:
-    """Generate structured research questions using Gemini."""
+    """Generate structured research questions using Gemini - backward compatibility wrapper."""
 
-    # Build a simple, direct prompt for JSON generation
-    prompt = f"""Generate customer research questions for this business:
+    # Use the comprehensive function and extract basic questions for backward compatibility
+    comprehensive_result = await generate_comprehensive_research_questions(
+        llm_service=llm_service,
+        context=context,
+        conversation_history=conversation_history
+    )
 
-Business Idea: {context.businessIdea or 'Not specified'}
-Target Customer: {context.targetCustomer or 'Not specified'}
-Problem: {context.problem or 'Not specified'}
+    # Extract questions from all stakeholders and combine them
+    all_problem_discovery = []
+    all_solution_validation = []
+    all_follow_up = []
 
-Create 5 problem discovery questions, 5 solution validation questions, and 3 follow-up questions.
+    # Combine primary stakeholder questions
+    for stakeholder in comprehensive_result.get('primaryStakeholders', []):
+        questions = stakeholder.get('questions', {})
+        all_problem_discovery.extend(questions.get('problemDiscovery', []))
+        all_solution_validation.extend(questions.get('solutionValidation', []))
+        all_follow_up.extend(questions.get('followUp', []))
 
-Return ONLY valid JSON in this exact format:
-{{
-  "problemDiscovery": [
-    "How do you currently handle [specific problem]?",
-    "What's the most frustrating part of your current process?",
-    "How much time do you spend on this each week?",
-    "What tools or methods have you tried before?",
-    "What would an ideal solution look like to you?"
-  ],
-  "solutionValidation": [
-    "If there was a solution like [their idea], would you use it?",
-    "What features would be most important to you?",
-    "How much would you be willing to pay for this?",
-    "What concerns would you have about switching?",
-    "How do you typically evaluate new solutions?"
-  ],
-  "followUp": [
-    "Who else do you know with this problem?",
-    "How do you usually discover new solutions?",
-    "What would convince you to try something new?"
-  ]
-}}
+    # Limit to 5, 5, 3 for backward compatibility
+    return ResearchQuestions(
+        problemDiscovery=all_problem_discovery[:5],
+        solutionValidation=all_solution_validation[:5],
+        followUp=all_follow_up[:3]
+    )
 
-Make the questions specific to their business idea and target customer. Use their exact terminology."""
+def generate_comprehensive_fallback_questions(context: ResearchContext, stakeholder_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Generate comprehensive fallback questions when LLM fails."""
 
-    try:
-        # Use direct text generation with JSON request
-        response = await llm_service.generate_text(
-            prompt=prompt,
-            temperature=0.3,
-            max_tokens=16000  # Increased to use more of the 65k available for JSON responses
-        )
+    business_type = context.businessIdea or "solution"
+    customer_type = context.targetCustomer or "customers"
+    problem_area = context.problem or "challenge"
 
-        # Parse the JSON response
-        import json
-        # Clean the response to extract just the JSON
-        response_clean = response.strip()
-        if response_clean.startswith('```json'):
-            response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
-            response_clean = response_clean[:-3]
-        response_clean = response_clean.strip()
+    # Use stakeholder data if available, otherwise create default
+    if not stakeholder_data:
+        stakeholder_data = {
+            'primary': [{'name': 'Decision Makers', 'description': 'Key decision makers'}],
+            'secondary': [{'name': 'End Users', 'description': 'Primary users of the solution'}],
+            'industry': 'general'
+        }
 
-        questions_data = json.loads(response_clean)
-        return ResearchQuestions(**questions_data)
+    def generate_stakeholder_questions(stakeholder_name: str, stakeholder_desc: str, is_primary: bool = True):
+        if is_primary:
+            return {
+                'problemDiscovery': [
+                    f"How do {stakeholder_name.lower()} currently handle {problem_area}?",
+                    f"What's the most frustrating part of {problem_area} for {stakeholder_name.lower()}?",
+                    f"How much time do {stakeholder_name.lower()} spend on this each week?",
+                    f"What tools or methods have {stakeholder_name.lower()} tried before?",
+                    f"What would an ideal solution look like for {stakeholder_name.lower()}?"
+                ],
+                'solutionValidation': [
+                    f"Would {stakeholder_name.lower()} be interested in trying a {business_type}?",
+                    f"What features would be most important to {stakeholder_name.lower()}?",
+                    f"How much would {stakeholder_name.lower()} be willing to pay for this?",
+                    f"What concerns would {stakeholder_name.lower()} have about switching?",
+                    f"How do {stakeholder_name.lower()} typically evaluate new solutions?"
+                ],
+                'followUp': [
+                    f"Who else would {stakeholder_name.lower()} involve in the decision?",
+                    f"How would {stakeholder_name.lower()} measure success?",
+                    f"What timeline would {stakeholder_name.lower()} expect?"
+                ]
+            }
+        else:
+            return {
+                'problemDiscovery': [
+                    f"How do {stakeholder_name.lower()} interact with current solutions?",
+                    f"What challenges do {stakeholder_name.lower()} face daily?",
+                    f"How important is ease of use for {stakeholder_name.lower()}?",
+                    f"What information do {stakeholder_name.lower()} need to feel confident?",
+                    f"How do {stakeholder_name.lower()} prefer to learn new systems?"
+                ],
+                'solutionValidation': [
+                    f"Would {stakeholder_name.lower()} find this solution helpful?",
+                    f"What would make {stakeholder_name.lower()} want to use this?",
+                    f"How important is training and support for {stakeholder_name.lower()}?",
+                    f"What would prevent {stakeholder_name.lower()} from adopting this?",
+                    f"How would {stakeholder_name.lower()} want to provide feedback?"
+                ],
+                'followUp': [
+                    f"What other tools do {stakeholder_name.lower()} use daily?",
+                    f"How do {stakeholder_name.lower()} stay updated on new solutions?",
+                    f"What would convince {stakeholder_name.lower()} to recommend this?"
+                ]
+            }
 
-    except Exception as e:
-        logger.error(f"Error generating research questions: {str(e)}")
-        # Return fallback questions customized to their context
-        return generate_fallback_questions(context)
+    # Generate questions for all stakeholders
+    primary_stakeholders = []
+    for stakeholder in stakeholder_data.get('primary', []):
+        name = stakeholder.get('name', stakeholder) if isinstance(stakeholder, dict) else stakeholder
+        desc = stakeholder.get('description', f'Primary stakeholder: {name}') if isinstance(stakeholder, dict) else f'Primary stakeholder: {name}'
+        primary_stakeholders.append({
+            'name': name,
+            'description': desc,
+            'questions': generate_stakeholder_questions(name, desc, True)
+        })
+
+    secondary_stakeholders = []
+    for stakeholder in stakeholder_data.get('secondary', []):
+        name = stakeholder.get('name', stakeholder) if isinstance(stakeholder, dict) else stakeholder
+        desc = stakeholder.get('description', f'Secondary stakeholder: {name}') if isinstance(stakeholder, dict) else f'Secondary stakeholder: {name}'
+        secondary_stakeholders.append({
+            'name': name,
+            'description': desc,
+            'questions': generate_stakeholder_questions(name, desc, False)
+        })
+
+    # Calculate time estimates
+    total_questions = 0
+    for stakeholder in primary_stakeholders + secondary_stakeholders:
+        questions = stakeholder.get('questions', {})
+        total_questions += len(questions.get('problemDiscovery', []))
+        total_questions += len(questions.get('solutionValidation', []))
+        total_questions += len(questions.get('followUp', []))
+
+    base_time = int(total_questions * 2.5)
+    max_time = int(base_time * 1.2)
+
+    return {
+        'primaryStakeholders': primary_stakeholders,
+        'secondaryStakeholders': secondary_stakeholders,
+        'timeEstimate': {
+            'totalQuestions': total_questions,
+            'estimatedMinutes': f"{base_time}-{max_time}",
+            'breakdown': {
+                'baseTime': base_time,
+                'withBuffer': max_time,
+                'perQuestion': 2.5
+            }
+        }
+    }
 
 def generate_fallback_questions(context: ResearchContext) -> ResearchQuestions:
     """Generate fallback questions when Gemini is not working."""
@@ -1373,7 +1582,7 @@ Last assistant message: "{last_assistant_message}"
 User's response: "{latest_input}"
 
 Full conversation context:
-{conversation_context[-1000:]}  # Last 1000 chars for context
+{conversation_context}
 
 Determine the user's intent and return ONLY valid JSON:
 

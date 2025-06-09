@@ -14,6 +14,7 @@ import { NextStepsChatMessage } from './NextStepsChatMessage';
 import { FormattedQuestionsComponent } from './FormattedQuestionsComponent';
 import { EnhancedMultiStakeholderComponent } from './EnhancedMultiStakeholderComponent';
 import { StakeholderQuestionsComponent } from './StakeholderQuestionsComponent';
+import { ComprehensiveQuestionsComponent } from './ComprehensiveQuestionsComponent';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useResearch } from '@/hooks/use-research';
 import { sendResearchChatMessage, getResearchSession, type Message as ApiMessage } from '@/lib/api/research';
@@ -685,77 +686,142 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
 
       // If questions were generated, use the API response directly and display rich components
       if (data.questions) {
-        // Set questions from API response directly (don't call generateQuestions again)
-        const apiQuestions = {
-          problemDiscovery: data.questions.problemDiscovery || [],
-          solutionValidation: data.questions.solutionValidation || [],
-          followUp: data.questions.followUp || []
-        };
-
-        // Update the questions state directly
-        setLocalQuestions(apiQuestions);
-        updateQuestions(apiQuestions); // Also update the useResearch hook
-        updateContext({ questionsGenerated: true });
-
-        // Use LLM-detected stakeholders from API response if available, otherwise fallback to local detection
-        let stakeholderData = null;
-        if (data.metadata?.extracted_context?.detected_stakeholders) {
-          stakeholderData = data.metadata.extracted_context.detected_stakeholders;
-          console.log('LLM-detected stakeholders from API:', stakeholderData);
-        } else {
-          console.log('No LLM stakeholders in API response, using fallback detection');
-          // Fallback to local detection
-          const stakeholderDetection = detectMultipleStakeholders(context, [...messages, userMessage, assistantMessage]);
-          if (stakeholderDetection.detected && stakeholderDetection.stakeholders) {
-            stakeholderData = stakeholderDetection.stakeholders;
-          }
-        }
-
-        if (stakeholderData) {
-          // Update context with stakeholder information for the right panel
-          updateContext({
-            multiStakeholderConsidered: true,
-            multiStakeholderDetected: true,
-            detectedStakeholders: stakeholderData
-          });
-        }
-
-        // Add formatted questions component
-        const questionsMessage: Message = {
-          id: Date.now().toString() + '_questions',
-          content: 'FORMATTED_QUESTIONS_COMPONENT',
-          role: 'assistant',
-          timestamp: new Date(),
-          metadata: { type: 'component', questions: apiQuestions }
-        };
-
-        setMessages(prev => [...prev, questionsMessage]);
-
-        // Add enhanced multi-stakeholder component if detected (only in chat, not in right panel)
-        if (stakeholderData) {
-          const enhancedMultiStakeholderMessage: Message = {
-            id: Date.now().toString() + '_enhanced_multistakeholder',
-            content: 'ENHANCED_MULTISTAKEHOLDER_COMPONENT',
-            role: 'assistant',
-            timestamp: new Date(),
-            metadata: { type: 'component', stakeholders: stakeholderData }
+        // Check if we have comprehensive questions (V3 enhanced format)
+        if ((data.questions as any).primaryStakeholders || (data.questions as any).secondaryStakeholders) {
+          // V3 Enhanced comprehensive questions format
+          const comprehensiveQuestions = {
+            primaryStakeholders: (data.questions as any).primaryStakeholders || [],
+            secondaryStakeholders: (data.questions as any).secondaryStakeholders || [],
+            timeEstimate: (data.questions as any).timeEstimate || {
+              totalQuestions: 0,
+              estimatedMinutes: "0-0",
+              breakdown: { baseTime: 0, withBuffer: 0, perQuestion: 2.5 }
+            }
           };
 
-          setMessages(prev => [...prev, enhancedMultiStakeholderMessage]);
-        }
+          // Add comprehensive questions component
+          const comprehensiveQuestionsMessage: Message = {
+            id: Date.now().toString() + '_comprehensive_questions',
+            content: 'COMPREHENSIVE_QUESTIONS_COMPONENT',
+            role: 'assistant',
+            timestamp: new Date(),
+            metadata: {
+              type: 'component',
+              comprehensiveQuestions,
+              businessContext: (data as any).context_analysis?.business_idea || context.businessIdea
+            }
+          };
 
-        // Always add next steps
-        const nextStepsMessage: Message = {
-          id: Date.now().toString() + '_nextsteps',
-          content: 'NEXT_STEPS_COMPONENT',
-          role: 'assistant',
-          timestamp: new Date()
-        };
+          setMessages(prev => [...prev, comprehensiveQuestionsMessage]);
 
-        setMessages(prev => [...prev, nextStepsMessage]);
+          // Update local questions state for backward compatibility
+          const allQuestions = {
+            problemDiscovery: [] as string[],
+            solutionValidation: [] as string[],
+            followUp: [] as string[]
+          };
 
-        if (onComplete) {
-          onComplete(apiQuestions);
+          // Combine all stakeholder questions for backward compatibility
+          [...comprehensiveQuestions.primaryStakeholders, ...comprehensiveQuestions.secondaryStakeholders].forEach((stakeholder: any) => {
+            if (stakeholder.questions) {
+              allQuestions.problemDiscovery.push(...(stakeholder.questions.problemDiscovery || []));
+              allQuestions.solutionValidation.push(...(stakeholder.questions.solutionValidation || []));
+              allQuestions.followUp.push(...(stakeholder.questions.followUp || []));
+            }
+          });
+
+          setLocalQuestions(allQuestions);
+          updateQuestions(allQuestions);
+          updateContext({ questionsGenerated: true });
+
+          // Skip the old multi-stakeholder components since comprehensive questions include everything
+          // Always add next steps for comprehensive questions
+          const nextStepsMessage: Message = {
+            id: Date.now().toString() + '_nextsteps',
+            content: 'NEXT_STEPS_COMPONENT',
+            role: 'assistant',
+            timestamp: new Date()
+          };
+
+          setMessages(prev => [...prev, nextStepsMessage]);
+
+          if (onComplete) {
+            onComplete(allQuestions);
+          }
+
+          return; // Exit early to avoid duplicate processing
+
+        } else {
+          // Legacy format (V1/V2) - fallback to old component
+          const apiQuestions = {
+            problemDiscovery: data.questions.problemDiscovery || [],
+            solutionValidation: data.questions.solutionValidation || [],
+            followUp: data.questions.followUp || []
+          };
+
+          // Update the questions state directly
+          setLocalQuestions(apiQuestions);
+          updateQuestions(apiQuestions); // Also update the useResearch hook
+          updateContext({ questionsGenerated: true });
+
+          // Add formatted questions component (legacy)
+          const questionsMessage: Message = {
+            id: Date.now().toString() + '_questions',
+            content: 'FORMATTED_QUESTIONS_COMPONENT',
+            role: 'assistant',
+            timestamp: new Date(),
+            metadata: { type: 'component', questions: apiQuestions }
+          };
+
+          setMessages(prev => [...prev, questionsMessage]);
+          // Legacy path - add stakeholder components if needed
+          // Use LLM-detected stakeholders from API response if available, otherwise fallback to local detection
+          let stakeholderData = null;
+          if (data.metadata?.extracted_context?.detected_stakeholders) {
+            stakeholderData = data.metadata.extracted_context.detected_stakeholders;
+            console.log('LLM-detected stakeholders from API:', stakeholderData);
+          } else {
+            console.log('No LLM stakeholders in API response, using fallback detection');
+            // Fallback to local detection
+            const stakeholderDetection = detectMultipleStakeholders(context, [...messages, userMessage, assistantMessage]);
+            if (stakeholderDetection.detected && stakeholderDetection.stakeholders) {
+              stakeholderData = stakeholderDetection.stakeholders;
+            }
+          }
+
+          if (stakeholderData) {
+            // Update context with stakeholder information for the right panel
+            updateContext({
+              multiStakeholderConsidered: true,
+              multiStakeholderDetected: true,
+              detectedStakeholders: stakeholderData
+            });
+
+            // Add enhanced multi-stakeholder component if detected (only in chat, not in right panel)
+            const enhancedMultiStakeholderMessage: Message = {
+              id: Date.now().toString() + '_enhanced_multistakeholder',
+              content: 'ENHANCED_MULTISTAKEHOLDER_COMPONENT',
+              role: 'assistant',
+              timestamp: new Date(),
+              metadata: { type: 'component', stakeholders: stakeholderData }
+            };
+
+            setMessages(prev => [...prev, enhancedMultiStakeholderMessage]);
+          }
+
+          // Always add next steps for legacy format
+          const nextStepsMessage: Message = {
+            id: Date.now().toString() + '_nextsteps',
+            content: 'NEXT_STEPS_COMPONENT',
+            role: 'assistant',
+            timestamp: new Date()
+          };
+
+          setMessages(prev => [...prev, nextStepsMessage]);
+
+          if (onComplete) {
+            onComplete(apiQuestions);
+          }
         }
       }
     } catch (error) {
@@ -910,6 +976,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         message.content === 'NEXT_STEPS_COMPONENT' ||
                         message.content === 'STAKEHOLDER_ALERT_COMPONENT' ||
                         message.content === 'FORMATTED_QUESTIONS_COMPONENT' ||
+                        message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
                         message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ||
                         message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ||
                         message.content === 'THINKING_PROCESS_COMPONENT'
@@ -1060,6 +1127,30 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                       onExport={() => exportQuestions('txt').catch(console.error)}
                       onContinue={() => continueToAnalysis()}
                     />
+                  ) : message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ? (
+                    (() => {
+                      const comprehensiveQuestions = message.metadata?.comprehensiveQuestions;
+                      const businessContext = message.metadata?.businessContext;
+
+                      if (!comprehensiveQuestions) {
+                        return <div>Error: No comprehensive questions data available</div>;
+                      }
+
+                      return (
+                        <ComprehensiveQuestionsComponent
+                          primaryStakeholders={comprehensiveQuestions.primaryStakeholders || []}
+                          secondaryStakeholders={comprehensiveQuestions.secondaryStakeholders || []}
+                          timeEstimate={comprehensiveQuestions.timeEstimate || {
+                            totalQuestions: 0,
+                            estimatedMinutes: "0-0",
+                            breakdown: { baseTime: 0, withBuffer: 0, perQuestion: 2.5 }
+                          }}
+                          businessContext={businessContext}
+                          onExport={() => exportQuestions('txt').catch(console.error)}
+                          onContinue={() => continueToAnalysis()}
+                        />
+                      );
+                    })()
                   ) : message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ? (
                     (() => {
                       // Use message metadata if available, otherwise detect from context
@@ -1306,6 +1397,7 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
                    message.content !== 'NEXT_STEPS_COMPONENT' &&
                    message.content !== 'STAKEHOLDER_ALERT_COMPONENT' &&
                    message.content !== 'FORMATTED_QUESTIONS_COMPONENT' &&
+                   message.content !== 'COMPREHENSIVE_QUESTIONS_COMPONENT' &&
                    message.content !== 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' &&
                    message.content !== 'STAKEHOLDER_QUESTIONS_COMPONENT' &&
                    message.content !== 'THINKING_PROCESS_COMPONENT' && (

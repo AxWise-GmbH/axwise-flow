@@ -12,7 +12,7 @@ import os
 from typing import Type, TypeVar, Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 
-import google.generativeai as genai
+import google.genai as genai
 import instructor
 from pydantic import BaseModel, ValidationError
 
@@ -86,16 +86,13 @@ class EnhancedInstructorGeminiClient:
             if not api_key:
                 raise ValueError(f"No API key provided and {ENV_GEMINI_API_KEY} environment variable not set")
 
-        # Configure genai with API key
-        genai.configure(api_key=api_key)
-
-        # Create the Gemini model
-        self.base_model = genai.GenerativeModel(model_name=model_name)
+        # Create the Gemini client using google.genai (consistent with rest of system)
+        self.genai_client = genai.Client(api_key=api_key)
 
         # Initialize the Instructor-patched client
-        self.instructor_client = instructor.from_gemini(
-            client=self.base_model,
-            mode=instructor.Mode.GEMINI_JSON
+        self.instructor_client = instructor.from_genai(
+            client=self.genai_client,
+            mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS
         )
 
         self.model_name = model_name
@@ -185,21 +182,24 @@ class EnhancedInstructorGeminiClient:
 
         logger.info(f"Generating content with model {self.model_name} and response model {model_class.__name__}")
 
-        # Prepare messages
+        # Prepare messages for google.genai format
         messages = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
 
-        # Base parameters
+        # Base parameters for google.genai
         base_params = {
             "model": self.model_name,
             "messages": messages,
             "response_model": model_class,
-            "temperature": temperature,
-            "max_tokens": max_output_tokens,
-            "top_p": top_p,
-            "top_k": top_k,
+            "config": {
+                "temperature": temperature,
+                "max_output_tokens": max_output_tokens,
+                "top_p": top_p,
+                "top_k": top_k,
+                "response_mime_type": "application/json"
+            },
             **kwargs
         }
 
@@ -207,7 +207,7 @@ class EnhancedInstructorGeminiClient:
 
         # Try initial generation
         try:
-            response = self.instructor_client.chat.completions.create(**base_params)
+            response = self.instructor_client.generate_content(**base_params)
             self._finalize_metrics(metrics, success=True)
             logger.info(f"Successfully generated content with model {model_class.__name__}")
             return response
@@ -236,7 +236,7 @@ class EnhancedInstructorGeminiClient:
             retry_params.update(strategy)
 
             try:
-                response = self.instructor_client.chat.completions.create(**retry_params)
+                response = self.instructor_client.generate_content(**retry_params)
                 self._finalize_metrics(metrics, success=True)
                 logger.info(f"Successfully generated content on retry {retry_count + 1}")
                 return response
@@ -285,17 +285,9 @@ class EnhancedInstructorGeminiClient:
         Returns:
             Parsed response as an instance of the specified model class
         """
-        # Initialize async client if needed
-        if not hasattr(self, 'async_instructor_client'):
-            self.async_instructor_client = instructor.from_genai(
-                self.standard_client,
-                mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
-                use_async=True
-            )
-
         logger.info(f"Generating content asynchronously with model {self.model_name} and response model {model_class.__name__}")
 
-        # Prepare messages
+        # Prepare messages for google.genai format
         messages = []
         if system_instruction:
             messages.append({"role": "system", "content": system_instruction})
@@ -303,27 +295,26 @@ class EnhancedInstructorGeminiClient:
 
         # Generate content
         try:
-            # Create async instructor client for this request
-            async_instructor_client = instructor.from_gemini(
-                client=self.base_model,
-                mode=instructor.Mode.GEMINI_JSON,
-                use_async=True
-            )
-
-            # Prepare generation config for Gemini
-            generation_config = {
-                "temperature": temperature,
-                "max_output_tokens": max_output_tokens,
-                "top_p": top_p,
-                "top_k": top_k,
-                "response_mime_type": "application/json"
+            # Use the existing instructor client for async operations
+            # Prepare generation config for google.genai
+            generation_params = {
+                "model": self.model_name,
+                "messages": messages,
+                "response_model": model_class,
+                "config": {
+                    "temperature": temperature,
+                    "max_output_tokens": max_output_tokens,
+                    "top_p": top_p,
+                    "top_k": top_k,
+                    "response_mime_type": "application/json"
+                },
+                **kwargs
             }
 
-            response = await async_instructor_client.chat.completions.create(
-                messages=messages,
-                response_model=model_class,
-                generation_config=generation_config,
-                **kwargs
+            # Use asyncio to run the sync method in a thread pool
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.instructor_client.generate_content(**generation_params)
             )
         except Exception as e:
             logger.error(f"Error generating content asynchronously with Instructor: {str(e)}")
@@ -331,19 +322,23 @@ class EnhancedInstructorGeminiClient:
             if "JSON" in str(e) or "json" in str(e):
                 logger.warning("JSON parsing error detected. Retrying with more strict settings...")
                 # Retry with more strict settings
-                strict_config = {
-                    "temperature": 0.0,
-                    "max_output_tokens": max_output_tokens,
-                    "top_p": 1.0,
-                    "top_k": 1,
-                    "response_mime_type": "application/json"
+                strict_params = {
+                    "model": self.model_name,
+                    "messages": messages,
+                    "response_model": model_class,
+                    "config": {
+                        "temperature": 0.0,
+                        "max_output_tokens": max_output_tokens,
+                        "top_p": 1.0,
+                        "top_k": 1,
+                        "response_mime_type": "application/json"
+                    },
+                    **kwargs
                 }
 
-                response = await async_instructor_client.chat.completions.create(
-                    messages=messages,
-                    response_model=model_class,
-                    generation_config=strict_config,
-                    **kwargs
+                response = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self.instructor_client.generate_content(**strict_params)
                 )
             else:
                 raise
