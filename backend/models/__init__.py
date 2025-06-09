@@ -6,9 +6,9 @@ It also re-exports SQLAlchemy models from the main backend.models module for com
 """
 
 # Import Pydantic models
-from backend.models.transcript import TranscriptSegment, TranscriptMetadata, StructuredTranscript
-from backend.models.pattern import Pattern, PatternResponse, PatternEvidence
-from backend.models.research_session import (
+from .transcript import TranscriptSegment, TranscriptMetadata, StructuredTranscript
+from .pattern import Pattern, PatternResponse, PatternEvidence
+from .research_session import (
     ResearchSession,
     ResearchExport,
     ResearchSessionCreate,

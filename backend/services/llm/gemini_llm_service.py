@@ -109,10 +109,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         Returns:
             The generated text
         """
-        result = await self.service.analyze({
-            "task": "text_generation",
-            "text": prompt
-        })
+        result = await self.service.analyze(
+            text=prompt,
+            task="text_generation",
+            data=kwargs
+        )
 
         if isinstance(result, dict) and "text" in result:
             return result["text"]
@@ -159,7 +160,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             logger.info(f"Using industry-specific guidance for theme analysis: {industry}")
 
         # Call the Gemini service
-        result = await self.service.analyze(request_data)
+        result = await self.service.analyze(
+            text=interview_text,
+            task=task,
+            data={"industry": industry} if industry else {}
+        )
 
         # Add the industry to the result if provided
         if industry:
@@ -196,7 +201,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             logger.info(f"Using industry-specific guidance for pattern recognition: {industry}")
 
         # Call the Gemini service
-        result = await self.service.analyze(request_data)
+        result = await self.service.analyze(
+            text=interview_text,
+            task="pattern_recognition",
+            data={"industry": industry} if industry else {}
+        )
 
         # Add the industry to the result if provided
         if industry:
@@ -234,7 +243,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
                 logger.info(f"Using industry-specific guidance for sentiment analysis: {industry}")
 
             # Call the Gemini service
-            result = await self.service.analyze(request_data)
+            result = await self.service.analyze(
+                text=interview_text,
+                task="sentiment_analysis",
+                data={"industry": industry} if industry else {}
+            )
 
             # Add the industry to the result if provided
             if industry:
@@ -274,7 +287,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             logger.info(f"Using industry-specific guidance for persona formation: {industry}")
 
         # Call the Gemini service
-        result = await self.service.analyze(request_data)
+        result = await self.service.analyze(
+            text=interview_text,
+            task="persona_formation",
+            data={"industry": industry} if industry else {}
+        )
 
         # Add the industry to the result if provided
         if industry:

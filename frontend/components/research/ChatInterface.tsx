@@ -6,20 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw } from 'lucide-react';
-import { AutoSuggestions } from './AutoSuggestions';
 import { ContextPanel } from './ContextPanel';
 import { StakeholderAlert } from './StakeholderAlert';
-import { MultiStakeholderSummary } from './MultiStakeholderSummary';
 import { MultiStakeholderChatMessage } from './MultiStakeholderChatMessage';
 import { NextStepsChatMessage } from './NextStepsChatMessage';
 
 import { FormattedQuestionsComponent } from './FormattedQuestionsComponent';
 import { EnhancedMultiStakeholderComponent } from './EnhancedMultiStakeholderComponent';
 import { StakeholderQuestionsComponent } from './StakeholderQuestionsComponent';
+import { ThinkingProcess } from './ThinkingProcess';
 import { useResearch } from '@/hooks/use-research';
-import { sendResearchChatMessage, getResearchSession, type Message as ApiMessage, type ResearchContext } from '@/lib/api/research';
-import { RESEARCH_CONFIG, validateMessage } from '@/lib/config/research-config';
-import { ErrorHandler, formatErrorForUser, logError } from '@/lib/utils/research-error-handler';
+import { sendResearchChatMessage, getResearchSession, type Message as ApiMessage } from '@/lib/api/research';
+import { validateMessage } from '@/lib/config/research-config';
+import { formatErrorForUser, logError } from '@/lib/utils/research-error-handler';
 
 interface Message {
   id: string;
@@ -73,6 +72,9 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   const [showStakeholderAlert, setShowStakeholderAlert] = useState(false);
   const [showMultiStakeholderPlan, setShowMultiStakeholderPlan] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const [progressPollingInterval, setProgressPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [thinkingProcessVisible, setThinkingProcessVisible] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -332,7 +334,67 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
     scrollToBottomIfNeeded();
   }, [messages]);
 
+  // Progressive thinking process polling
+  const startProgressPolling = (requestId: string, thinkingMessageId: string) => {
+    // Clear any existing polling
+    if (progressPollingInterval) {
+      clearInterval(progressPollingInterval);
+    }
 
+    const pollProgress = async () => {
+      try {
+        const response = await fetch(`/api/research/v3-simple/thinking-progress/${requestId}`);
+        if (response.ok) {
+          const progressData = await response.json();
+
+          // Update the thinking process message with current steps
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === thinkingMessageId && msg.metadata?.isLive) {
+              const currentSteps = progressData.thinking_steps || [];
+
+              return {
+                ...msg,
+                metadata: {
+                  ...msg.metadata,
+                  thinking_steps: currentSteps,
+                  isLive: progressData.is_active
+                }
+              };
+            }
+            return msg;
+          }));
+
+          // Stop polling if analysis is complete
+          if (!progressData.is_active) {
+            if (progressPollingInterval) {
+              clearInterval(progressPollingInterval);
+              setProgressPollingInterval(null);
+            }
+            setActiveRequestId(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling thinking progress:', error);
+      }
+    };
+
+    // Start polling every 500ms for smooth updates
+    const interval = setInterval(pollProgress, 500);
+    setProgressPollingInterval(interval);
+    setActiveRequestId(requestId);
+
+    // Initial poll
+    pollProgress();
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (progressPollingInterval) {
+        clearInterval(progressPollingInterval);
+      }
+    };
+  }, [progressPollingInterval]);
 
   // Load session when loadSessionId changes
   useEffect(() => {
@@ -405,6 +467,9 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
     setIsLoading(true);
     setConversationStarted(true);
 
+    // Add empty thinking process component - backend will populate with real steps
+    const thinkingMessageId = (Date.now() + 1).toString() + '_thinking';
+
     // Context updates now handled by backend LLM analysis
 
     try {
@@ -417,45 +482,189 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
         metadata: msg.metadata
       }));
 
-      // Call the research API using the new client
+      // Call the research API using the new client with V3 Simple features enabled
       const data = await sendResearchChatMessage({
         messages: apiMessages,
         input: textToSend,
         context: context,
         session_id: sessionId || undefined,
         user_id: undefined, // Will be populated when auth is added
+        // Enable V3 Simple features
+        enable_enhanced_analysis: true,
+        enable_thinking_process: true,
       });
+
+      // Start progressive polling if we have a request ID
+      const requestId = (data as any).metadata?.request_id || (data as any).request_id;
+
+      // Create thinking process component with request ID
+      const thinkingMessage: Message = {
+        id: thinkingMessageId,
+        content: 'THINKING_PROCESS_COMPONENT',
+        role: 'assistant',
+        timestamp: new Date(),
+        metadata: {
+          type: 'component',
+          thinking_steps: [{
+            step: 'Analysis Starting',
+            status: 'in_progress' as 'in_progress' | 'completed' | 'failed',
+            details: 'Initializing comprehensive analysis pipeline...',
+            duration_ms: 0,
+            timestamp: Date.now()
+          }], // Start with minimal loading indicator
+          isLive: true, // Flag to indicate this is a live thinking process
+          request_id: requestId
+        }
+      };
+
+      // Set thinking process as visible for this request
+      if (requestId) {
+        setThinkingProcessVisible(prev => ({
+          ...prev,
+          [requestId]: true
+        }));
+      }
+
+      setMessages(prev => [...prev, thinkingMessage]);
+
+      if (requestId) {
+        startProgressPolling(requestId, thinkingMessageId);
+      }
 
       // Debug: Log what the backend is returning
       console.log('Backend response:', {
         hasQuestions: !!data.questions,
         questionsData: data.questions,
         extractedContext: data.metadata?.extracted_context,
-        messageCount: apiMessages.length
+        messageCount: apiMessages.length,
+        thinkingProcess: data.thinking_process
       });
 
+      // Replace the loading step with real backend analysis steps only
+      setMessages(prev => prev.map(msg => {
+        if (msg.content === 'THINKING_PROCESS_COMPONENT' && msg.metadata?.isLive) {
+          // Completely replace with real backend thinking process steps
+          const realSteps = data.thinking_process || [];
+
+          // If no real steps from backend, remove the thinking component entirely
+          if (realSteps.length === 0) {
+            return {
+              ...msg,
+              metadata: {
+                ...msg.metadata,
+                thinking_steps: [],
+                isLive: false
+              }
+            };
+          }
+
+          return {
+            ...msg,
+            metadata: {
+              ...msg.metadata,
+              thinking_steps: realSteps, // Only real backend steps
+              isLive: false // Mark as completed
+            }
+          };
+        }
+        return msg;
+      }));
+
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: (Date.now() + 2).toString(),
         content: data.content,
         role: 'assistant',
         timestamp: new Date(),
         metadata: {
-          questionCategory: data.metadata?.questionCategory as 'discovery' | 'validation' | 'follow_up' | undefined,
-          researchStage: data.metadata?.researchStage as 'initial' | 'validation' | 'analysis' | undefined,
+          questionCategory: (data.metadata?.questionCategory === 'discovery' ||
+                           data.metadata?.questionCategory === 'validation' ||
+                           data.metadata?.questionCategory === 'follow_up')
+                           ? data.metadata.questionCategory as 'discovery' | 'validation' | 'follow_up' : undefined,
+          researchStage: (data.metadata?.researchStage === 'initial' ||
+                         data.metadata?.researchStage === 'validation' ||
+                         data.metadata?.researchStage === 'analysis')
+                         ? data.metadata.researchStage as 'initial' | 'validation' | 'analysis' : undefined,
+          // Include all other metadata from the API response
+          ...data.metadata
         },
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Hide thinking process for the current request when final response arrives
+      if (requestId) {
+        setThinkingProcessVisible(prev => ({
+          ...prev,
+          [requestId]: false
+        }));
+      }
 
       // Update session ID from response
       if (data.session_id && !sessionId) {
         setSessionId(data.session_id);
       }
 
-      // Update suggestions from API response
-      if (data.metadata?.suggestions) {
-        setCurrentSuggestions(data.metadata.suggestions);
+      // Update suggestions from API response with better extraction and fallbacks
+      let suggestions: string[] = [];
+
+      // Try to extract suggestions from the API response metadata
+      if (data.metadata?.suggestions && Array.isArray(data.metadata.suggestions)) {
+        suggestions = data.metadata.suggestions;
+      } else if (data.metadata && 'contextual_suggestions' in data.metadata && Array.isArray((data.metadata as any).contextual_suggestions)) {
+        suggestions = (data.metadata as any).contextual_suggestions;
       }
+
+      // If no suggestions from API, generate contextual fallback suggestions
+      // Note: Generate suggestions even when questions are present, unless it's the final question set
+      if (suggestions.length === 0) {
+        const businessContext = data.metadata?.extracted_context?.business_idea || context.businessIdea || '';
+        const customerContext = data.metadata?.extracted_context?.target_customer || context.targetCustomer || '';
+
+        // Only skip suggestions if we have a complete question set (all three categories)
+        const hasCompleteQuestions = data.questions &&
+          data.questions.problemDiscovery && data.questions.problemDiscovery.length > 0 &&
+          data.questions.solutionValidation && data.questions.solutionValidation.length > 0 &&
+          data.questions.followUp && data.questions.followUp.length > 0;
+
+        if (!hasCompleteQuestions) {
+          if (businessContext && customerContext) {
+            suggestions = [
+              `Tell me more about ${customerContext}`,
+              `What challenges do ${customerContext} face?`,
+              `How would ${businessContext} help them?`
+            ];
+          } else if (businessContext) {
+            suggestions = [
+              'Who would use this?',
+              'What problem does this solve?',
+              'Tell me more about the market'
+            ];
+          } else {
+            suggestions = [
+              'Can you be more specific?',
+              'What industry is this for?',
+              'Who are your target customers?'
+            ];
+          }
+        }
+      }
+
+      setCurrentSuggestions(suggestions);
+      console.log('🔧 SUGGESTIONS DEBUG:', {
+        finalSuggestions: suggestions,
+        suggestionsLength: suggestions.length,
+        hasQuestions: !!data.questions,
+        hasCompleteQuestions: data.questions &&
+          data.questions.problemDiscovery && data.questions.problemDiscovery.length > 0 &&
+          data.questions.solutionValidation && data.questions.solutionValidation.length > 0 &&
+          data.questions.followUp && data.questions.followUp.length > 0,
+        metadataSuggestions: data.metadata?.suggestions,
+        contextualSuggestions: (data.metadata as any)?.contextual_suggestions,
+        businessContext: data.metadata?.extracted_context?.business_idea || context.businessIdea,
+        customerContext: data.metadata?.extracted_context?.target_customer || context.targetCustomer,
+        apiSuggestions: (data as any).suggestions,
+        fullMetadata: data.metadata
+      });
 
       // Update context from LLM-extracted information in API response
       if (data.metadata?.extracted_context) {
@@ -570,6 +779,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   // Note: updateContextFromMessage function removed - now using LLM-based context extraction from backend
 
   const handleSuggestionClick = (suggestion: string) => {
+    console.log('🔧 Suggestion clicked:', suggestion);
     handleSend(suggestion);
   };
 
@@ -701,7 +911,8 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         message.content === 'STAKEHOLDER_ALERT_COMPONENT' ||
                         message.content === 'FORMATTED_QUESTIONS_COMPONENT' ||
                         message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ||
-                        message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT'
+                        message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ||
+                        message.content === 'THINKING_PROCESS_COMPONENT'
                           ? ''
                           : `rounded-lg p-2 lg:p-3 text-sm lg:text-base ${
                               message.role === 'user'
@@ -1050,15 +1261,54 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
                         continueToAnalysis();
                       }}
                     />
+                  ) : message.content === 'THINKING_PROCESS_COMPONENT' ? (
+                    <ThinkingProcess
+                      steps={message.metadata?.thinking_steps || []}
+                      isExpanded={false}
+                      className="max-w-none"
+                      isVisible={thinkingProcessVisible[message.metadata?.request_id || ''] !== false}
+                      isLive={message.metadata?.isLive || false}
+                      onToggleVisibility={() => {
+                        const requestId = message.metadata?.request_id;
+                        if (requestId) {
+                          setThinkingProcessVisible(prev => ({
+                            ...prev,
+                            [requestId]: !prev[requestId]
+                          }));
+                        }
+                      }}
+                    />
                   ) : (
-                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    <div>
+                      {/* Show thinking process if available for assistant messages */}
+                      {message.role === 'assistant' && message.metadata?.thinking_steps && message.metadata.thinking_steps.length > 0 && (
+                        <div className="mb-4">
+                          <ThinkingProcess
+                            steps={message.metadata.thinking_steps}
+                            isExpanded={false}
+                            className="max-w-none"
+                            isVisible={thinkingProcessVisible[message.metadata?.request_id || message.id] !== false}
+                            isLive={false} // Assistant messages are always complete
+                            onToggleVisibility={() => {
+                              const requestId = message.metadata?.request_id || message.id;
+                              setThinkingProcessVisible(prev => ({
+                                ...prev,
+                                [requestId]: !prev[requestId]
+                              }));
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap">{message.content}</div>
+                    </div>
                   )}
                   {message.content !== 'MULTI_STAKEHOLDER_COMPONENT' &&
                    message.content !== 'NEXT_STEPS_COMPONENT' &&
                    message.content !== 'STAKEHOLDER_ALERT_COMPONENT' &&
                    message.content !== 'FORMATTED_QUESTIONS_COMPONENT' &&
                    message.content !== 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' &&
-                   message.content !== 'STAKEHOLDER_QUESTIONS_COMPONENT' && (
+                   message.content !== 'STAKEHOLDER_QUESTIONS_COMPONENT' &&
+                   message.content !== 'THINKING_PROCESS_COMPONENT' && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs opacity-70">
                         {message.timestamp.toLocaleTimeString()}
@@ -1086,8 +1336,12 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
                 )}
               </div>
 
-              {/* Show suggestions after assistant messages */}
-              {message.role === 'assistant' && index === messages.length - 1 && !isLoading && currentSuggestions.length > 0 && (
+              {/* Show suggestions after assistant messages (but not after component messages) */}
+              {message.role === 'assistant' &&
+               index === messages.length - 1 &&
+               !isLoading &&
+               currentSuggestions.length > 0 &&
+               !message.content.includes('_COMPONENT') && (
                 <div className="mt-3 ml-8 lg:ml-11">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs text-muted-foreground">💡 Quick replies:</span>
@@ -1105,6 +1359,16 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
                       </Button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Debug: Show current suggestions state */}
+              {process.env.NODE_ENV === 'development' && message.role === 'assistant' && index === messages.length - 1 && (
+                <div className="mt-2 ml-8 lg:ml-11 text-xs text-gray-500">
+                  Debug: Suggestions count: {currentSuggestions.length}, Loading: {isLoading.toString()}
+                  {currentSuggestions.length > 0 && (
+                    <div>Suggestions: {JSON.stringify(currentSuggestions)}</div>
+                  )}
                 </div>
               )}
             </div>

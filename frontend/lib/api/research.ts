@@ -1,16 +1,19 @@
 /**
- * Research API Client
+ * Research API Client - V3 Simplified
  * Handles all customer research related API calls with local storage for anonymous users
+ *
+ * MIGRATED TO V3 SIMPLE: Now uses /api/research/v3-simple/chat endpoint
+ * - Enhanced analysis capabilities
+ * - Thinking process tracking
+ * - Improved performance and stability
+ * - Maintains compatibility with existing frontend code
  */
 
 import { RESEARCH_CONFIG, validateMessage, sanitizeInput } from '@/lib/config/research-config';
 import {
   withRetry,
   withTimeout,
-  ErrorHandler,
-  NetworkError,
-  ValidationError,
-  logError
+  ValidationError
 } from '@/lib/utils/research-error-handler';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -22,10 +25,10 @@ const STORAGE_KEYS = RESEARCH_CONFIG.storageKeys;
 function getOrCreateAnonymousUserId(): string {
   if (typeof window === 'undefined') return 'anonymous';
 
-  let userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  let userId = localStorage.getItem(STORAGE_KEYS.userId);
   if (!userId) {
-    userId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+    userId = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    localStorage.setItem(STORAGE_KEYS.userId, userId);
   }
   return userId;
 }
@@ -59,6 +62,9 @@ export interface ChatRequest {
   context?: ResearchContext;
   session_id?: string;
   user_id?: string;
+  // V3 Simple options
+  enable_enhanced_analysis?: boolean;
+  enable_thinking_process?: boolean;
 }
 
 export interface ChatResponse {
@@ -71,6 +77,16 @@ export interface ChatResponse {
   };
   questions?: GeneratedQuestions;
   session_id?: string;
+  thinking_process?: Array<{
+    step: string;
+    status: 'in_progress' | 'completed' | 'failed';
+    details: string;
+    duration_ms: number;
+    timestamp: number;
+  }>;
+  enhanced_analysis?: Record<string, any>;
+  performance_metrics?: Record<string, any>;
+  api_version?: string;
 }
 
 export interface GeneratedQuestions {
@@ -104,7 +120,7 @@ export class LocalResearchStorage {
     if (typeof window === 'undefined') return [];
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.SESSIONS);
+      const stored = localStorage.getItem(STORAGE_KEYS.sessions);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
       console.error('Error reading sessions from localStorage:', error);
@@ -125,7 +141,7 @@ export class LocalResearchStorage {
         sessions.push({ ...session, isLocal: true });
       }
 
-      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+      localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(sessions));
     } catch (error) {
       console.error('Error saving session to localStorage:', error);
     }
@@ -141,7 +157,7 @@ export class LocalResearchStorage {
 
     try {
       const sessions = this.getSessions().filter(s => s.session_id !== sessionId);
-      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+      localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(sessions));
     } catch (error) {
       console.error('Error deleting session from localStorage:', error);
     }
@@ -151,7 +167,7 @@ export class LocalResearchStorage {
     if (typeof window === 'undefined') return null;
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEYS.CURRENT_SESSION);
+      const stored = localStorage.getItem(STORAGE_KEYS.currentSession);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
       console.error('Error reading current session from localStorage:', error);
@@ -164,9 +180,9 @@ export class LocalResearchStorage {
 
     try {
       if (session) {
-        localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, JSON.stringify(session));
+        localStorage.setItem(STORAGE_KEYS.currentSession, JSON.stringify(session));
       } else {
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION);
+        localStorage.removeItem(STORAGE_KEYS.currentSession);
       }
     } catch (error) {
       console.error('Error saving current session to localStorage:', error);
@@ -177,9 +193,9 @@ export class LocalResearchStorage {
     if (typeof window === 'undefined') return;
 
     try {
-      localStorage.removeItem(STORAGE_KEYS.SESSIONS);
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION);
-      localStorage.removeItem(STORAGE_KEYS.USER_ID);
+      localStorage.removeItem(STORAGE_KEYS.sessions);
+      localStorage.removeItem(STORAGE_KEYS.currentSession);
+      localStorage.removeItem(STORAGE_KEYS.userId);
     } catch (error) {
       console.error('Error clearing localStorage:', error);
     }
@@ -202,19 +218,20 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
 
   // For anonymous users, use a local session ID and don't store in database
   const anonymousUserId = getOrCreateAnonymousUserId();
-  const sessionId = request.session_id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const sessionId = request.session_id || `local_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
   const requestWithAnonymousUser = {
     ...request,
     input: sanitizedInput,
     session_id: sessionId,
     user_id: anonymousUserId,
+    // Simple endpoint doesn't need these options
   };
 
   // Use retry and timeout wrappers
   return await withRetry(async () => {
     return await withTimeout(async () => {
-      const response = await fetch(`${API_BASE_URL}/api/research/v2/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/research/v3-simple/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
