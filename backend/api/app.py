@@ -264,12 +264,10 @@ from backend.api.routes.customer_research import router as customer_research_rou
 from backend.api.routes.customer_research_v2 import router as customer_research_v2_router
 from backend.api.routes.customer_research_v3 import router as customer_research_v3_router
 from backend.api.routes.customer_research_v3_simple import router as customer_research_v3_simple_router
-from backend.api.routes.customer_research_simple import router as customer_research_simple_router
 app.include_router(customer_research_router)
 app.include_router(customer_research_v2_router)
 app.include_router(customer_research_v3_router)
 app.include_router(customer_research_v3_simple_router)
-app.include_router(customer_research_simple_router, prefix="/api/research/simple")
 
 # Initialize database tables
 create_tables()
