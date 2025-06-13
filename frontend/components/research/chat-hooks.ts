@@ -20,9 +20,6 @@ export const useChatState = () => {
   const [showStakeholderAlert, setShowStakeholderAlert] = useState(false);
   const [showMultiStakeholderPlan, setShowMultiStakeholderPlan] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
-  const [progressPollingInterval, setProgressPollingInterval] = useState<NodeJS.Timeout | null>(null);
-  const [thinkingProcessVisible, setThinkingProcessVisible] = useState<Record<string, boolean>>({});
   const [localQuestions, setLocalQuestions] = useState<any>(null);
 
   const state: ChatState = {
@@ -35,9 +32,6 @@ export const useChatState = () => {
     showStakeholderAlert,
     showMultiStakeholderPlan,
     showClearConfirm,
-    activeRequestId,
-    progressPollingInterval,
-    thinkingProcessVisible,
     localQuestions
   };
 
@@ -51,9 +45,6 @@ export const useChatState = () => {
     setShowStakeholderAlert,
     setShowMultiStakeholderPlan,
     setShowClearConfirm,
-    setActiveRequestId,
-    setProgressPollingInterval,
-    setThinkingProcessVisible,
     setLocalQuestions
   };
 
@@ -74,78 +65,7 @@ export const useScrollManagement = (messages: Message[]) => {
   return { messagesEndRef };
 };
 
-/**
- * Hook for managing progressive thinking process polling
- */
-export const useProgressPolling = (
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>,
-  setActiveRequestId: React.Dispatch<React.SetStateAction<string | null>>,
-  progressPollingInterval: NodeJS.Timeout | null,
-  setProgressPollingInterval: React.Dispatch<React.SetStateAction<NodeJS.Timeout | null>>
-) => {
-  const startProgressPolling = useCallback((requestId: string, thinkingMessageId: string) => {
-    // Clear any existing polling
-    if (progressPollingInterval) {
-      clearInterval(progressPollingInterval);
-    }
 
-    const pollProgress = async () => {
-      try {
-        const response = await fetch(`/api/research/v3-simple/thinking-progress/${requestId}`);
-        if (response.ok) {
-          const progressData = await response.json();
-
-          // Update the thinking process message with current steps
-          setMessages(prev => prev.map(msg => {
-            if (msg.id === thinkingMessageId && msg.metadata?.isLive) {
-              const currentSteps = progressData.thinking_steps || [];
-
-              return {
-                ...msg,
-                metadata: {
-                  ...msg.metadata,
-                  thinking_steps: currentSteps,
-                  isLive: progressData.is_active
-                }
-              };
-            }
-            return msg;
-          }));
-
-          // Stop polling if analysis is complete
-          if (!progressData.is_active) {
-            if (progressPollingInterval) {
-              clearInterval(progressPollingInterval);
-              setProgressPollingInterval(null);
-            }
-            setActiveRequestId(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error polling thinking progress:', error);
-      }
-    };
-
-    // Start polling every 500ms for smooth updates
-    const interval = setInterval(pollProgress, 500);
-    setProgressPollingInterval(interval);
-    setActiveRequestId(requestId);
-
-    // Initial poll
-    pollProgress();
-  }, [progressPollingInterval, setMessages, setActiveRequestId, setProgressPollingInterval]);
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (progressPollingInterval) {
-        clearInterval(progressPollingInterval);
-      }
-    };
-  }, [progressPollingInterval]);
-
-  return { startProgressPolling };
-};
 
 /**
  * Hook for managing keyboard interactions
@@ -281,7 +201,7 @@ export const useFormValidation = () => {
     if (!input.trim()) {
       return { isValid: false, error: 'Please enter a message' };
     }
-    
+
     if (input.length > 1000) {
       return { isValid: false, error: 'Message is too long (max 1000 characters)' };
     }

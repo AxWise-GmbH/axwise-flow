@@ -6,20 +6,37 @@ This module contains all FastAPI route handlers for the V3 Simple system.
 Extracted from customer_research_v3_simple.py for better modularity.
 """
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional
 from fastapi import BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from backend.database.database import get_db
+from backend.database import get_db
 from .v3_simple_types import (
-    ChatRequest, ChatResponse, HealthResponse, 
+    ChatRequest, ChatResponse, HealthResponse,
     GenerateQuestionsRequest, ResearchQuestions, SimplifiedConfig
 )
 from .v3_simple_service import SimplifiedResearchService
 
 logger = logging.getLogger(__name__)
+
+
+async def delayed_cleanup(service: SimplifiedResearchService, delay_seconds: int = 30):
+    """Clean up service instance after a delay to allow frontend polling."""
+    try:
+        logger.debug(f"Scheduling cleanup for service {service.request_id} in {delay_seconds} seconds")
+        await asyncio.sleep(delay_seconds)
+
+        if hasattr(service, 'cleanup'):
+            service.cleanup()
+            logger.debug(f"Delayed cleanup completed for service {service.request_id}")
+        else:
+            logger.warning(f"Service {service.request_id} has no cleanup method")
+
+    except Exception as e:
+        logger.error(f"Error during delayed cleanup for service {getattr(service, 'request_id', 'unknown')}: {e}")
 
 
 async def chat_v3_simple(
@@ -118,9 +135,9 @@ async def chat_v3_simple(
 
         logger.info(f"V3 Simple chat completed successfully in {analysis_result.get('performance_metrics', {}).get('total_duration_ms', 0)}ms")
 
-        # Clean up instance from registry after completion
-        if hasattr(service, 'cleanup'):
-            service.cleanup()
+        # Schedule delayed cleanup to allow frontend polling
+        # Don't clean up immediately - let frontend poll for thinking progress
+        background_tasks.add_task(delayed_cleanup, service, 30)  # Clean up after 30 seconds
 
         return response
 

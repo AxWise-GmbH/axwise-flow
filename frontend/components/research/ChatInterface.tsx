@@ -7,21 +7,22 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw } from 'lucide-react';
 import { ContextPanel } from './ContextPanel';
 import { NextStepsChatMessage } from './NextStepsChatMessage';
-import { ThinkingProcess } from './ThinkingProcess';
+
 import { ComprehensiveQuestionsComponent } from './ComprehensiveQuestionsComponent';
 import { FormattedQuestionsComponent } from './FormattedQuestionsComponent';
 import { EnhancedMultiStakeholderComponent } from './EnhancedMultiStakeholderComponent';
 import { StakeholderQuestionsComponent } from './StakeholderQuestionsComponent';
 import { MultiStakeholderChatMessage } from './MultiStakeholderChatMessage';
 import { StakeholderAlert } from './StakeholderAlert';
+import { SimpleThinkingDisplay } from './SimpleThinkingDisplay';
 import { useResearch } from '@/hooks/use-research';
+import { useThinkingProgress } from './use-thinking-progress';
 
 // Import modular components
 import { ChatInterfaceProps } from './types';
 import {
   useChatState,
   useScrollManagement,
-  useProgressPolling,
   useChatClear,
   useSessionLoading,
   useClipboard
@@ -44,14 +45,16 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   // Use modular hooks for state management
   const { state, actions } = useChatState();
   const { messagesEndRef } = useScrollManagement(state.messages);
-  const { startProgressPolling } = useProgressPolling(
-    actions.setMessages,
-    actions.setActiveRequestId,
-    state.progressPollingInterval,
-    actions.setProgressPollingInterval
-  );
   const { copyMessage } = useClipboard();
-  const { handleClearClick, clearChat } = useChatClear(
+  const {
+    thinkingSteps,
+    isThinking,
+    thinkingError,
+    startThinking,
+    stopThinking,
+    clearThinking
+  } = useThinkingProgress();
+  const { handleClearClick, clearChat: originalClearChat } = useChatClear(
     state.messages,
     actions.setMessages,
     actions.setInput,
@@ -62,6 +65,12 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
     actions.setShowClearConfirm,
     updateContext
   );
+
+  // Enhanced clear chat that also clears thinking
+  const clearChat = () => {
+    clearThinking();
+    originalClearChat();
+  };
 
   // Local state for questions to handle API responses directly
   const currentQuestions = state.localQuestions || questions;
@@ -76,7 +85,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
       updateContext,
       updateQuestions,
       onComplete,
-      startProgressPolling
+      startThinking
     );
   };
 
@@ -271,8 +280,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         message.content === 'FORMATTED_QUESTIONS_COMPONENT' ||
                         message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
                         message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ||
-                        message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ||
-                        message.content === 'THINKING_PROCESS_COMPONENT'
+                        message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT'
                           ? ''
                           : `rounded-lg p-2 lg:p-3 text-sm lg:text-base ${
                               message.role === 'user'
@@ -282,24 +290,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                       }`}
                     >
                       {/* Component rendering logic */}
-                      {message.content === 'THINKING_PROCESS_COMPONENT' ? (
-                        <ThinkingProcess
-                          steps={message.metadata?.thinking_steps || []}
-                          isExpanded={false}
-                          className="max-w-none"
-                          isVisible={state.thinkingProcessVisible[message.metadata?.request_id || ''] !== false}
-                          isLive={message.metadata?.isLive || false}
-                          onToggleVisibility={() => {
-                            const requestId = message.metadata?.request_id;
-                            if (requestId) {
-                              actions.setThinkingProcessVisible(prev => ({
-                                ...prev,
-                                [requestId]: !prev[requestId]
-                              }));
-                            }
-                          }}
-                        />
-                      ) : message.content === 'FORMATTED_QUESTIONS_COMPONENT' ? (
+                      {message.content === 'FORMATTED_QUESTIONS_COMPONENT' ? (
                         <FormattedQuestionsComponent
                           questions={message.metadata?.questions || []}
                           onExport={() => exportQuestions('txt')}
@@ -359,26 +350,17 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         </div>
                       ) : (
                         <div>
-                          {/* Show thinking process if available for assistant messages */}
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+
+                          {/* Show thinking process if available */}
                           {message.role === 'assistant' && message.metadata?.thinking_steps && message.metadata.thinking_steps.length > 0 && (
-                            <div className="mb-4">
-                              <ThinkingProcess
+                            <div className="mt-4">
+                              <SimpleThinkingDisplay
                                 steps={message.metadata.thinking_steps}
-                                isExpanded={false}
                                 className="max-w-none"
-                                isVisible={state.thinkingProcessVisible[message.metadata?.request_id || message.id] !== false}
-                                isLive={false} // Assistant messages are always complete
-                                onToggleVisibility={() => {
-                                  const requestId = message.metadata?.request_id || message.id;
-                                  actions.setThinkingProcessVisible(prev => ({
-                                    ...prev,
-                                    [requestId]: !prev[requestId]
-                                  }));
-                                }}
                               />
                             </div>
                           )}
-                          <div className="whitespace-pre-wrap">{message.content}</div>
                         </div>
                       )}
 
@@ -439,6 +421,8 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                 </div>
               ))}
 
+
+
               {state.isLoading && (
                 <div className="flex gap-2 lg:gap-3 justify-start">
                   <div className="flex-shrink-0">
@@ -452,6 +436,28 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                       <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                       <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Live Thinking Progress - Show during analysis */}
+              {(isThinking || (state.isLoading && thinkingSteps.length > 0)) && (
+                <div className="flex gap-2 lg:gap-3 justify-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Bot className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
+                    </div>
+                  </div>
+                  <div className="max-w-[85%] lg:max-w-[80%]">
+                    <SimpleThinkingDisplay
+                      steps={thinkingSteps}
+                      className="max-w-none"
+                    />
+                    {thinkingError && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                        Thinking process error: {thinkingError}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

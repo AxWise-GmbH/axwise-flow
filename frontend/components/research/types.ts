@@ -105,9 +105,6 @@ export interface ChatState {
   showStakeholderAlert: boolean;
   showMultiStakeholderPlan: boolean;
   showClearConfirm: boolean;
-  activeRequestId: string | null;
-  progressPollingInterval: NodeJS.Timeout | null;
-  thinkingProcessVisible: Record<string, boolean>;
   localQuestions: any;
 }
 
@@ -121,9 +118,6 @@ export interface ChatActions {
   setShowStakeholderAlert: React.Dispatch<React.SetStateAction<boolean>>;
   setShowMultiStakeholderPlan: React.Dispatch<React.SetStateAction<boolean>>;
   setShowClearConfirm: React.Dispatch<React.SetStateAction<boolean>>;
-  setActiveRequestId: React.Dispatch<React.SetStateAction<string | null>>;
-  setProgressPollingInterval: React.Dispatch<React.SetStateAction<NodeJS.Timeout | null>>;
-  setThinkingProcessVisible: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   setLocalQuestions: React.Dispatch<React.SetStateAction<any>>;
 }
 

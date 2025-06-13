@@ -100,7 +100,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export const RESEARCH_CONFIG: ResearchConfig = {
   // API Configuration
-  requestTimeoutMs: parseInt(process.env.NEXT_PUBLIC_RESEARCH_TIMEOUT_MS || (isProduction ? '30000' : '60000')),
+  requestTimeoutMs: parseInt(process.env.NEXT_PUBLIC_RESEARCH_TIMEOUT_MS || (isProduction ? '60000' : '120000')),
   maxRetries: parseInt(process.env.NEXT_PUBLIC_RESEARCH_MAX_RETRIES || '3'),
   retryDelayMs: parseInt(process.env.NEXT_PUBLIC_RESEARCH_RETRY_DELAY_MS || '1000'),
 

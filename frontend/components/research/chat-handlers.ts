@@ -7,10 +7,9 @@ import { Message, ApiResponse, ChatState, ChatActions } from './types';
 import { sendResearchChatMessage, getResearchSession, type Message as ApiMessage } from '@/lib/api/research';
 import { validateMessage } from '@/lib/config/research-config';
 import { formatErrorForUser, logError } from '@/lib/utils/research-error-handler';
-import { 
-  createUserMessage, 
-  createAssistantMessage, 
-  createThinkingMessage,
+import {
+  createUserMessage,
+  createAssistantMessage,
   extractSuggestions,
   hasCompleteQuestions,
   convertToSimpleQuestions,
@@ -29,7 +28,7 @@ export const handleSendMessage = async (
   updateContext: (updates: any) => void,
   updateQuestions: (questions: any) => void,
   onComplete?: (questions: any) => void,
-  startProgressPolling?: (requestId: string, thinkingMessageId: string) => void
+  startThinking?: (requestId: string) => void
 ) => {
   const textToSend = messageText || state.input;
   if (!textToSend.trim() || state.isLoading) return;
@@ -54,6 +53,15 @@ export const handleSendMessage = async (
   actions.setIsLoading(true);
   actions.setConversationStarted(true);
 
+  // Generate a temporary request ID for thinking progress
+  const tempRequestId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Start thinking visualization immediately
+  if (startThinking) {
+    console.log('🧠 Starting immediate thinking visualization with temp ID:', tempRequestId);
+    startThinking(tempRequestId);
+  }
+
   try {
     // Convert messages to API format
     const apiMessages: ApiMessage[] = [...state.messages, userMessage].map(msg => ({
@@ -76,24 +84,14 @@ export const handleSendMessage = async (
       enable_thinking_process: true,
     });
 
-    // Start progressive polling if we have a request ID
-    const requestId = (data as any).metadata?.request_id || (data as any).request_id;
+    // Get real request ID from backend response for debugging
+    const realRequestId = (data as any).metadata?.request_id || (data as any).request_id;
 
-    // Create thinking process component with request ID
-    const thinkingMessage = createThinkingMessage(requestId);
-
-    // Set thinking process as visible for this request
-    if (requestId) {
-      actions.setThinkingProcessVisible(prev => ({
-        ...prev,
-        [requestId]: true
-      }));
-    }
-
-    actions.setMessages(prev => [...prev, thinkingMessage]);
-
-    if (requestId && startProgressPolling) {
-      startProgressPolling(requestId, thinkingMessage.id);
+    // If we have a real request ID and it's different from temp ID, update thinking progress
+    if (realRequestId && realRequestId !== tempRequestId && startThinking) {
+      console.log('🧠 Switching to real request ID:', realRequestId);
+      // Note: For now we'll keep using the temp ID since the backend thinking is already complete
+      // In a real-time system, we'd switch to polling the real ID
     }
 
     // Debug: Log what the backend is returning
@@ -102,38 +100,10 @@ export const handleSendMessage = async (
       questionsData: data.questions,
       extractedContext: data.metadata?.extracted_context,
       messageCount: apiMessages.length,
-      thinkingProcess: data.thinking_process
+      requestId: realRequestId,
+      thinkingProcess: data.thinking_process,
+      thinkingStepsCount: data.thinking_process?.length || 0
     });
-
-    // Replace the loading step with real backend analysis steps only
-    actions.setMessages(prev => prev.map(msg => {
-      if (msg.content === 'THINKING_PROCESS_COMPONENT' && msg.metadata?.isLive) {
-        // Completely replace with real backend thinking process steps
-        const realSteps = data.thinking_process || [];
-
-        // If no real steps from backend, remove the thinking component entirely
-        if (realSteps.length === 0) {
-          return {
-            ...msg,
-            metadata: {
-              ...msg.metadata,
-              thinking_steps: [],
-              isLive: false
-            }
-          };
-        }
-
-        return {
-          ...msg,
-          metadata: {
-            ...msg.metadata,
-            thinking_steps: realSteps, // Only real backend steps
-            isLive: false // Mark as completed
-          }
-        };
-      }
-      return msg;
-    }));
 
     const assistantMessage = createAssistantMessage(data.content, {
       questionCategory: (data.metadata?.questionCategory === 'discovery' ||
@@ -144,19 +114,13 @@ export const handleSendMessage = async (
                      data.metadata?.researchStage === 'validation' ||
                      data.metadata?.researchStage === 'analysis')
                      ? data.metadata.researchStage as 'initial' | 'validation' | 'analysis' : undefined,
+      // Include thinking process from backend response
+      thinking_steps: data.thinking_process || [],
       // Include all other metadata from the API response
       ...data.metadata
     });
 
     actions.setMessages(prev => [...prev, assistantMessage]);
-
-    // Hide thinking process for the current request when final response arrives
-    if (requestId) {
-      actions.setThinkingProcessVisible(prev => ({
-        ...prev,
-        [requestId]: false
-      }));
-    }
 
     // Update session ID from response
     if (data.session_id && !state.sessionId) {
@@ -166,7 +130,7 @@ export const handleSendMessage = async (
     // Update suggestions from API response with better extraction and fallbacks
     const suggestions = extractSuggestions(data, context, hasCompleteQuestions(data.questions));
     actions.setCurrentSuggestions(suggestions);
-    
+
     logSuggestionsDebug(suggestions, data, context);
 
     // Update context from LLM-extracted information in API response
@@ -209,6 +173,8 @@ export const handleSendMessage = async (
     actions.setMessages(prev => [...prev, errorMessage]);
   } finally {
     actions.setIsLoading(false);
+    // Note: We don't stop thinking here because the final thinking steps
+    // from the backend response should be displayed in the message
   }
 };
 
@@ -368,10 +334,10 @@ export const handleSuggestionClick = (
   updateContext: (updates: any) => void,
   updateQuestions: (questions: any) => void,
   onComplete?: (questions: any) => void,
-  startProgressPolling?: (requestId: string, thinkingMessageId: string) => void
+  startThinking?: (requestId: string) => void
 ) => {
   console.log('🔧 Suggestion clicked:', suggestion);
-  handleSendMessage(suggestion, state, actions, context, updateContext, updateQuestions, onComplete, startProgressPolling);
+  handleSendMessage(suggestion, state, actions, context, updateContext, updateQuestions, onComplete, startThinking);
 };
 
 /**

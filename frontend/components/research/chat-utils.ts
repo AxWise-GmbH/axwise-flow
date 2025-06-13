@@ -262,27 +262,7 @@ export const createAssistantMessage = (content: string, metadata?: any): Message
   metadata
 });
 
-/**
- * Create thinking process message
- */
-export const createThinkingMessage = (requestId: string): Message => ({
-  id: (Date.now() + 1).toString() + '_thinking',
-  content: 'THINKING_PROCESS_COMPONENT',
-  role: 'assistant',
-  timestamp: new Date(),
-  metadata: {
-    type: 'component',
-    thinking_steps: [{
-      step: 'Analysis Starting',
-      status: 'in_progress' as const,
-      details: 'Initializing comprehensive analysis pipeline...',
-      duration_ms: 0,
-      timestamp: Date.now()
-    }],
-    isLive: true,
-    request_id: requestId
-  }
-});
+
 
 /**
  * Debug logging for suggestions
