@@ -109,6 +109,32 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   // Local state for questions to handle API responses directly
   const currentQuestions = state.localQuestions || questions;
 
+  // FIXED: Add proper handler functions for broken buttons
+  const handleContinueWithCurrent = () => {
+    // Continue with current stakeholder configuration
+    actions.sendMessage("Let's proceed with the current stakeholder configuration.");
+  };
+
+  const handleViewDetailedPlan = () => {
+    // Show detailed research plan
+    actions.sendMessage("Please show me a detailed research plan for these stakeholders.");
+  };
+
+  const handleViewPlan = () => {
+    // Show research plan
+    actions.sendMessage("Can you show me the research plan?");
+  };
+
+  const handleDismissAlert = () => {
+    // Dismiss the stakeholder alert
+    actions.sendMessage("I understand. Let's continue with the current approach.");
+  };
+
+  const handleViewMultiStakeholder = () => {
+    // View multi-stakeholder options
+    actions.sendMessage("Please show me multi-stakeholder research options.");
+  };
+
   // Create handlers using modular functions
   const handleSendLocal = async (messageText?: string) => {
     await handleSendMessage(
@@ -123,7 +149,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   };
 
   const handleSuggestionClickLocal = (suggestion: string) => {
-    console.log('🔧 Suggestion clicked:', suggestion);
+    // FIXED: Removed console.log placeholder, using actual functionality
 
     // Handle special suggestions
     if (suggestion === "I don't know") {
@@ -166,18 +192,32 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
         breakdown: {
           baseTime: 0,
           withBuffer: 0,
-          perQuestion: 2.5
+          perQuestion: 3.0  // Updated to 3 minutes per question (realistic 2-4 minute range)
         }
       };
     }
 
+    // Handle new backend format: {min: 15, max: 20, totalQuestions: 13}
+    if (timeEstimate.min !== undefined && timeEstimate.max !== undefined) {
+      return {
+        totalQuestions: timeEstimate.totalQuestions || 0,
+        estimatedMinutes: `${timeEstimate.min}-${timeEstimate.max}`,
+        breakdown: {
+          baseTime: timeEstimate.min || 0,
+          withBuffer: timeEstimate.max || 0,
+          perQuestion: timeEstimate.totalQuestions > 0 ? (timeEstimate.min / timeEstimate.totalQuestions) : 3.0  // Updated to 3 minutes per question
+        }
+      };
+    }
+
+    // Handle legacy format: {estimatedMinutes: "15-20", totalQuestions: 13, breakdown: {...}}
     return {
       totalQuestions: timeEstimate.totalQuestions || 0,
       estimatedMinutes: timeEstimate.estimatedMinutes || "0-0",
       breakdown: {
         baseTime: timeEstimate.breakdown?.baseTime || 0,
         withBuffer: timeEstimate.breakdown?.withBuffer || 0,
-        perQuestion: timeEstimate.breakdown?.perQuestion || 2.5
+        perQuestion: timeEstimate.breakdown?.perQuestion || 3.0  // Updated to 3 minutes per question
       }
     };
   };
@@ -358,8 +398,8 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                           industry={message.metadata?.industry}
                           stakeholders={normalizeStakeholdersForEnhanced(message.metadata?.stakeholders)}
                           businessContext={message.metadata?.businessContext}
-                          onContinueWithCurrent={() => console.log('Continue with current')}
-                          onViewDetailedPlan={() => console.log('View detailed plan')}
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewDetailedPlan={handleViewDetailedPlan}
                         />
                       ) : message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ? (
                         <StakeholderQuestionsComponent
@@ -370,15 +410,15 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         />
                       ) : message.content === 'MULTI_STAKEHOLDER_COMPONENT' ? (
                         <MultiStakeholderChatMessage
-                          onContinueWithCurrent={() => console.log('Continue with current')}
-                          onViewDetailedPlan={() => console.log('View detailed plan')}
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewDetailedPlan={handleViewDetailedPlan}
                         />
                       ) : message.content === 'STAKEHOLDER_ALERT_COMPONENT' ? (
                         <StakeholderAlert
-                          onViewPlan={() => console.log('View plan')}
-                          onDismiss={() => console.log('Dismiss alert')}
-                          onContinueWithCurrent={() => console.log('Continue with current')}
-                          onViewMultiStakeholder={() => console.log('View multi-stakeholder')}
+                          onViewPlan={handleViewPlan}
+                          onDismiss={handleDismissAlert}
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewMultiStakeholder={handleViewMultiStakeholder}
                         />
                       ) : message.content === 'NEXT_STEPS_COMPONENT' ? (
                         <NextStepsChatMessage

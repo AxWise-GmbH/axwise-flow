@@ -33,30 +33,37 @@ interface ComprehensiveQuestionsProps {
   onContinue?: () => void;
 }
 
-export function ComprehensiveQuestionsComponent({ 
-  primaryStakeholders, 
-  secondaryStakeholders, 
+export function ComprehensiveQuestionsComponent({
+  primaryStakeholders,
+  secondaryStakeholders,
   timeEstimate,
-  businessContext, 
-  onExport, 
-  onContinue 
+  businessContext,
+  onExport,
+  onContinue
 }: ComprehensiveQuestionsProps) {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
   const copyAllQuestions = async () => {
     const formatStakeholderQuestions = (stakeholders: StakeholderQuestions[], type: string) => {
       return stakeholders.map(stakeholder => {
+        // FIXED: Add safety checks for undefined questions
+        const questions = stakeholder.questions || {
+          problemDiscovery: [],
+          solutionValidation: [],
+          followUp: []
+        };
+
         return `## ${stakeholder.name}
 ${stakeholder.description}
 
 ### 🔍 Problem Discovery Questions
-${stakeholder.questions.problemDiscovery.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+${(questions.problemDiscovery || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 ### ✅ Solution Validation Questions
-${stakeholder.questions.solutionValidation.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+${(questions.solutionValidation || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 ### 💡 Follow-up Questions
-${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
+${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
       }).join('\n\n---\n\n');
     };
 
@@ -79,7 +86,7 @@ ${formatStakeholderQuestions(secondaryStakeholders, 'Secondary')}
 
 ## ⏱️ Interview Planning
 - **Base time:** ${timeEstimate.breakdown.baseTime} minutes
-- **With buffer:** ${timeEstimate.breakdown.withBuffer} minutes  
+- **With buffer:** ${timeEstimate.breakdown.withBuffer} minutes
 - **Per question:** ${timeEstimate.breakdown.perQuestion} minutes average
 - **Total questions:** ${timeEstimate.totalQuestions}
 
@@ -99,17 +106,24 @@ ${formatStakeholderQuestions(secondaryStakeholders, 'Secondary')}
   };
 
   const copyStakeholderQuestions = async (stakeholder: StakeholderQuestions, index: number) => {
+    // FIXED: Add safety checks for undefined questions
+    const questions = stakeholder.questions || {
+      problemDiscovery: [],
+      solutionValidation: [],
+      followUp: []
+    };
+
     const formattedText = `## ${stakeholder.name}
 ${stakeholder.description}
 
 ### 🔍 Problem Discovery Questions
-${stakeholder.questions.problemDiscovery.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+${(questions.problemDiscovery || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 ### ✅ Solution Validation Questions
-${stakeholder.questions.solutionValidation.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+${(questions.solutionValidation || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 ### 💡 Follow-up Questions
-${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
+${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
 
     try {
       await navigator.clipboard.writeText(formattedText);
@@ -121,23 +135,30 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
   };
 
   const renderStakeholderSection = (stakeholder: StakeholderQuestions, index: number, isPrimary: boolean) => {
+    // FIXED: Add safety checks for undefined questions structure
+    const questions = stakeholder.questions || {
+      problemDiscovery: [],
+      solutionValidation: [],
+      followUp: []
+    };
+
     const questionCategories = [
       {
         title: '🔍 Problem Discovery Questions',
         description: 'Understand current state and pain points',
-        questions: stakeholder.questions.problemDiscovery,
+        questions: questions.problemDiscovery || [],
         priority: 'high' as const
       },
       {
-        title: '✅ Solution Validation Questions', 
+        title: '✅ Solution Validation Questions',
         description: 'Validate your proposed solution approach',
-        questions: stakeholder.questions.solutionValidation,
+        questions: questions.solutionValidation || [],
         priority: 'medium' as const
       },
       {
         title: '💡 Follow-up Questions',
         description: 'Deeper insights and next steps',
-        questions: stakeholder.questions.followUp,
+        questions: questions.followUp || [],
         priority: 'low' as const
       }
     ];
@@ -178,7 +199,7 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
                 </Badge>
               </div>
               <p className="text-xs text-gray-500">{category.description}</p>
-              
+
               <div className="space-y-2">
                 {category.questions.map((question, questionIndex) => (
                   <div
@@ -261,7 +282,7 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           Start with these {primaryStakeholders.length} stakeholder{primaryStakeholders.length !== 1 ? 's' : ''} to validate core business assumptions.
         </p>
         <div className="space-y-4">
-          {primaryStakeholders.map((stakeholder, index) => 
+          {primaryStakeholders.map((stakeholder, index) =>
             renderStakeholderSection(stakeholder, index, true)
           )}
         </div>
@@ -279,7 +300,7 @@ ${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
             Expand to these {secondaryStakeholders.length} stakeholder{secondaryStakeholders.length !== 1 ? 's' : ''} after validating primary assumptions.
           </p>
           <div className="space-y-4">
-            {secondaryStakeholders.map((stakeholder, index) => 
+            {secondaryStakeholders.map((stakeholder, index) =>
               renderStakeholderSection(stakeholder, index, false)
             )}
           </div>

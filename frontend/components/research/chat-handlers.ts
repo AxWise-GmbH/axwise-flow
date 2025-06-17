@@ -179,15 +179,40 @@ const processGeneratedQuestions = async (
   onComplete?: (questions: any) => void
 ) => {
   // Check if we have comprehensive questions (V3 enhanced format)
-  if ((data.questions as any).primaryStakeholders || (data.questions as any).secondaryStakeholders) {
-    // V3 Enhanced comprehensive questions format
+  // Backend returns: { questions: { stakeholders: { primary: [...], secondary: [...] }, estimatedTime: {...} } }
+  if ((data.questions as any).stakeholders || (data.questions as any).estimatedTime) {
+    // V3 Enhanced comprehensive questions format - fix data structure mapping
+    const stakeholders = (data.questions as any).stakeholders || {};
+    const timeEstimate = (data.questions as any).estimatedTime || {};
+
+    // FIXED: Map stakeholder data correctly to include questions for each stakeholder
     const comprehensiveQuestions = {
-      primaryStakeholders: (data.questions as any).primaryStakeholders || [],
-      secondaryStakeholders: (data.questions as any).secondaryStakeholders || [],
-      timeEstimate: (data.questions as any).timeEstimate || {
-        totalQuestions: 0,
-        estimatedMinutes: "0-0",
-        breakdown: { baseTime: 0, withBuffer: 0, perQuestion: 2.5 }
+      primaryStakeholders: (stakeholders.primary || []).map((stakeholder: any) => ({
+        name: stakeholder.name || 'Primary Stakeholder',
+        description: stakeholder.description || 'Primary stakeholder description',
+        questions: {
+          problemDiscovery: stakeholder.questions?.problemDiscovery || [],
+          solutionValidation: stakeholder.questions?.solutionValidation || [],
+          followUp: stakeholder.questions?.followUp || []
+        }
+      })),
+      secondaryStakeholders: (stakeholders.secondary || []).map((stakeholder: any) => ({
+        name: stakeholder.name || 'Secondary Stakeholder',
+        description: stakeholder.description || 'Secondary stakeholder description',
+        questions: {
+          problemDiscovery: stakeholder.questions?.problemDiscovery || [],
+          solutionValidation: stakeholder.questions?.solutionValidation || [],
+          followUp: stakeholder.questions?.followUp || []
+        }
+      })),
+      timeEstimate: {
+        totalQuestions: timeEstimate.totalQuestions || 0,
+        estimatedMinutes: timeEstimate.min && timeEstimate.max ? `${timeEstimate.min}-${timeEstimate.max}` : "0-0",
+        breakdown: {
+          baseTime: timeEstimate.min || 0,
+          withBuffer: timeEstimate.max || 0,
+          perQuestion: 2.5
+        }
       }
     };
 

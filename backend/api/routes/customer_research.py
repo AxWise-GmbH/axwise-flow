@@ -15,11 +15,20 @@ from backend.models import User
 from backend.services.llm import LLMServiceFactory
 from backend.services.research_session_service import ResearchSessionService
 from backend.models.research_session import ResearchSessionCreate, ResearchSessionUpdate
-from backend.config.research_config import RESEARCH_CONFIG, INDUSTRY_GUIDANCE, ERROR_CONFIG
+from backend.config.research_config import (
+    RESEARCH_CONFIG,
+    INDUSTRY_GUIDANCE,
+    ERROR_CONFIG,
+)
 from backend.utils.research_validation import validate_research_request, ValidationError
 from backend.utils.research_error_handler import (
-    ErrorHandler, with_retry, with_timeout, APIError, APITimeoutError,
-    ServiceUnavailableError, safe_execute
+    ErrorHandler,
+    with_retry,
+    with_timeout,
+    APIError,
+    APITimeoutError,
+    ServiceUnavailableError,
+    safe_execute,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,6 +39,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 # Pydantic models for request/response
 class Message(BaseModel):
     id: str
@@ -37,6 +47,7 @@ class Message(BaseModel):
     role: str
     timestamp: str
     metadata: Optional[Dict[str, Any]] = None
+
 
 class ResearchContext(BaseModel):
     businessIdea: Optional[str] = None
@@ -48,6 +59,7 @@ class ResearchContext(BaseModel):
     multiStakeholderDetected: Optional[bool] = None
     detectedStakeholders: Optional[Dict[str, Any]] = None
 
+
 class ChatRequest(BaseModel):
     messages: List[Message]
     input: str
@@ -55,14 +67,19 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None
 
+
 class GenerateQuestionsRequest(BaseModel):
     context: ResearchContext
     conversationHistory: List[Message]
+
 
 class ResearchQuestions(BaseModel):
     problemDiscovery: List[str]
     solutionValidation: List[str]
     followUp: List[str]
+    stakeholders: Optional[Dict[str, Any]] = None  # Added stakeholder data support
+    estimatedTime: Optional[Dict[str, Any]] = None  # Added time estimation support
+
 
 class ChatResponse(BaseModel):
     content: str
@@ -70,6 +87,7 @@ class ChatResponse(BaseModel):
     questions: Optional[ResearchQuestions] = None
     suggestions: Optional[List[str]] = None
     session_id: Optional[str] = None
+
 
 # System prompt for customer research
 RESEARCH_SYSTEM_PROMPT = """You are a customer research expert helping entrepreneurs validate their business ideas.
@@ -94,21 +112,22 @@ When generating questions, use this structure:
 
 Always be supportive and help them feel confident about doing customer research."""
 
+
 @router.post("/chat", response_model=ChatResponse)
-async def research_chat(
-    request: ChatRequest,
-    db: Session = Depends(get_db)
-):
+async def research_chat(request: ChatRequest, db: Session = Depends(get_db)):
     """
     Handle customer research chat conversation.
     """
     try:
         logger.info("Processing research chat request")
-        logger.info(f"Request data: messages={len(request.messages)}, input='{request.input}', session_id={request.session_id}")
+        logger.info(
+            f"Request data: messages={len(request.messages)}, input='{request.input}', session_id={request.session_id}"
+        )
 
         # Simple input sanitization for research chat (skip strict validation)
-        if hasattr(request, 'input') and request.input:
+        if hasattr(request, "input") and request.input:
             from backend.utils.research_validation import ResearchValidator
+
             # Just sanitize the input without strict validation
             request.input = ResearchValidator.sanitize_input(request.input)
             logger.debug(f"Sanitized input: {request.input}")
@@ -125,15 +144,17 @@ async def research_chat(
 
         # Handle session management
         session_id = request.session_id
-        is_local_session = session_id and session_id.startswith('local_')
+        is_local_session = session_id and session_id.startswith("local_")
 
         if not session_id:
             # Create new session
             session_data = ResearchSessionCreate(
                 user_id=request.user_id,
                 business_idea=request.context.businessIdea if request.context else None,
-                target_customer=request.context.targetCustomer if request.context else None,
-                problem=request.context.problem if request.context else None
+                target_customer=(
+                    request.context.targetCustomer if request.context else None
+                ),
+                problem=request.context.problem if request.context else None,
             )
             session = session_service.create_session(session_data)
             session_id = session.session_id
@@ -148,10 +169,12 @@ async def research_chat(
                 raise HTTPException(status_code=404, detail="Session not found")
 
         # Build conversation context
-        conversation_context = "\n".join([
-            f"{msg.role}: {msg.content}" for msg in request.messages
-        ])
-        logger.info(f"Conversation context built: {len(conversation_context)} characters")
+        conversation_context = "\n".join(
+            [f"{msg.role}: {msg.content}" for msg in request.messages]
+        )
+        logger.info(
+            f"Conversation context built: {len(conversation_context)} characters"
+        )
 
         # Generate proper conversational response using LLM with error handling
         try:
@@ -160,16 +183,18 @@ async def research_chat(
                 messages=request.messages,
                 user_input=request.input,
                 context=request.context,
-                conversation_context=conversation_context
+                conversation_context=conversation_context,
             )
             logger.info(f"Generated response: {response_content}")
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}")
-            error_response, error_code = ErrorHandler.handle_llm_error(e, {"stage": "response_generation"})
+            error_response, error_code = ErrorHandler.handle_llm_error(
+                e, {"stage": "response_generation"}
+            )
             return ChatResponse(
                 content=error_response,
                 metadata={"error_code": error_code},
-                session_id=request.session_id
+                session_id=request.session_id,
             )
 
         # Use LLM-based business validation to determine readiness and confirmation needs
@@ -183,30 +208,34 @@ async def research_chat(
         )
 
         # Extract intent from LLM analysis
-        user_confirmed = user_intent.get('intent') == 'confirmation'
-        user_rejected = user_intent.get('intent') == 'rejection'
-        user_wants_clarification = user_intent.get('intent') == 'clarification'
+        user_confirmed = user_intent.get("intent") == "confirmation"
+        user_rejected = user_intent.get("intent") == "rejection"
+        user_wants_clarification = user_intent.get("intent") == "clarification"
 
         # Check if we should confirm before generating questions
         should_confirm = (
-            business_validation.get('ready_for_questions', False) and
-            business_validation.get('conversation_quality') in ['medium', 'high'] and
-            not user_confirmed and
-            not user_rejected and
-            not user_wants_clarification  # Don't confirm if user wants to clarify
+            business_validation.get("ready_for_questions", False)
+            and business_validation.get("conversation_quality") in ["medium", "high"]
+            and not user_confirmed
+            and not user_rejected
+            and not user_wants_clarification  # Don't confirm if user wants to clarify
         )
 
         if should_confirm:
             # Generate confirmation message instead of regular response
             confirmation_response = await generate_confirmation_response(
-                llm_service, request.messages, request.input, request.context, conversation_context
+                llm_service,
+                request.messages,
+                request.input,
+                request.context,
+                conversation_context,
             )
 
             # Generate confirmation-specific suggestions
             confirmation_suggestions = [
                 "Yes, that's correct",
                 "Let me add something",
-                "I need to clarify something"
+                "I need to clarify something",
             ]
 
             # Save messages to session for confirmation flow (skip for local sessions)
@@ -215,7 +244,7 @@ async def research_chat(
                     "id": f"user_{len(request.messages)}",
                     "content": request.input,
                     "role": "user",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.utcnow().isoformat(),
                 }
                 session_service.add_message(session_id, user_message)
 
@@ -228,8 +257,8 @@ async def research_chat(
                         "questionCategory": "confirmation",
                         "researchStage": "confirmation",
                         "needs_confirmation": True,
-                        "suggestions": confirmation_suggestions
-                    }
+                        "suggestions": confirmation_suggestions,
+                    },
                 }
                 session_service.add_message(session_id, assistant_message)
 
@@ -245,10 +274,10 @@ async def research_chat(
                     "researchStage": "confirmation",
                     "needs_confirmation": True,
                     "suggestions": confirmation_suggestions,
-                    "extracted_context": extracted_context
+                    "extracted_context": extracted_context,
                 },
                 suggestions=confirmation_suggestions,
-                session_id=session_id
+                session_id=session_id,
             )
 
         # If user rejected or wants clarification, continue with normal conversation flow (don't generate questions)
@@ -263,14 +292,14 @@ async def research_chat(
             questions = await generate_research_questions(
                 llm_service=llm_service,
                 context=request.context or ResearchContext(),
-                conversation_history=request.messages
+                conversation_history=request.messages,
             )
 
             # Detect stakeholders using LLM
             stakeholder_data = await detect_stakeholders_with_llm(
                 llm_service=llm_service,
                 context=request.context or ResearchContext(),
-                conversation_history=request.messages
+                conversation_history=request.messages,
             )
 
             # If questions were generated, create a simple response without duplicating the questions
@@ -282,12 +311,18 @@ async def research_chat(
         if not questions:
             try:
                 suggestions = await generate_contextual_suggestions(
-                    llm_service, request.messages, request.input, response_content, conversation_context
+                    llm_service,
+                    request.messages,
+                    request.input,
+                    response_content,
+                    conversation_context,
                 )
             except Exception as e:
                 logger.error(f"Error generating suggestions: {str(e)}")
                 # Use fallback suggestions
-                suggestions = generate_fallback_suggestions(request.input, response_content)
+                suggestions = generate_fallback_suggestions(
+                    request.input, response_content
+                )
 
         # Save user message to session (skip for local sessions)
         if not is_local_session:
@@ -295,7 +330,7 @@ async def research_chat(
                 "id": f"user_{len(request.messages)}",
                 "content": request.input,
                 "role": "user",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
             logger.info(f"Saving user message: {user_message}")
             session_service.add_message(session_id, user_message)
@@ -310,8 +345,8 @@ async def research_chat(
                 "metadata": {
                     "questionCategory": "validation" if questions else "discovery",
                     "researchStage": determine_research_stage(request.context),
-                    "suggestions": suggestions
-                }
+                    "suggestions": suggestions,
+                },
             }
             logger.info(f"Saving assistant message: {assistant_message}")
             session_service.add_message(session_id, assistant_message)
@@ -326,10 +361,10 @@ async def research_chat(
 
         # Mark questions as generated if they were created
         if questions:
-            extracted_context['questions_generated'] = True
+            extracted_context["questions_generated"] = True
             # Include stakeholder data in extracted context
-            if 'stakeholder_data' in locals():
-                extracted_context['detected_stakeholders'] = stakeholder_data
+            if "stakeholder_data" in locals():
+                extracted_context["detected_stakeholders"] = stakeholder_data
 
         # Update session context with LLM-extracted information (skip for local sessions)
         if not is_local_session:
@@ -337,21 +372,21 @@ async def research_chat(
             industry_data = await classify_industry_with_llm(
                 llm_service, conversation_context, request.input
             )
-            industry = industry_data.get('industry', 'general')
+            industry = industry_data.get("industry", "general")
 
             update_data = ResearchSessionUpdate(
-                business_idea=extracted_context.get('business_idea'),
-                target_customer=extracted_context.get('target_customer'),
-                problem=extracted_context.get('problem'),
+                business_idea=extracted_context.get("business_idea"),
+                target_customer=extracted_context.get("target_customer"),
+                problem=extracted_context.get("problem"),
                 industry=industry,
                 stage=determine_research_stage_from_context(extracted_context),
-                conversation_context=conversation_context
+                conversation_context=conversation_context,
             )
             session_service.update_session(session_id, update_data)
 
             # If questions were generated, mark session as completed
             if questions:
-                session_service.complete_session(session_id, questions.dict())
+                session_service.complete_session(session_id, questions.model_dump())
         else:
             logger.info("Skipping session update for local session")
 
@@ -359,29 +394,33 @@ async def research_chat(
             content=response_content,
             metadata={
                 "questionCategory": "validation" if questions else "discovery",
-                "researchStage": determine_research_stage_from_context(extracted_context),
+                "researchStage": determine_research_stage_from_context(
+                    extracted_context
+                ),
                 "suggestions": suggestions,
-                "extracted_context": extracted_context
+                "extracted_context": extracted_context,
             },
             questions=questions,
             suggestions=suggestions,
-            session_id=session_id
+            session_id=session_id,
         )
 
     except Exception as e:
         logger.error(f"Error in research chat: {str(e)}")
         # Use error handler for consistent error responses
-        error_response, error_code = ErrorHandler.handle_llm_error(e, {"stage": "general"})
+        error_response, error_code = ErrorHandler.handle_llm_error(
+            e, {"stage": "general"}
+        )
         return ChatResponse(
             content=error_response,
             metadata={"error_code": error_code},
-            session_id=request.session_id
+            session_id=request.session_id,
         )
+
 
 @router.post("/generate-questions", response_model=ResearchQuestions)
 async def generate_questions_endpoint(
-    request: GenerateQuestionsRequest,
-    db: Session = Depends(get_db)
+    request: GenerateQuestionsRequest, db: Session = Depends(get_db)
 ):
     """
     Generate research questions based on context and conversation history.
@@ -396,14 +435,17 @@ async def generate_questions_endpoint(
         questions = await generate_research_questions(
             llm_service=llm_service,
             context=request.context,
-            conversation_history=request.conversationHistory
+            conversation_history=request.conversationHistory,
         )
 
         return questions
 
     except Exception as e:
         logger.error(f"Error generating questions: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Question generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Question generation failed: {str(e)}"
+        )
+
 
 @with_retry(max_retries=RESEARCH_CONFIG.MAX_RETRIES)
 @with_timeout(timeout_seconds=RESEARCH_CONFIG.REQUEST_TIMEOUT_SECONDS)
@@ -412,19 +454,20 @@ async def generate_research_response_with_retry(
     messages: List[Message],
     user_input: str,
     context: Optional[ResearchContext],
-    conversation_context: str
+    conversation_context: str,
 ) -> str:
     """Generate research response with retry logic and timeout"""
     return await generate_research_response(
         llm_service, messages, user_input, context, conversation_context
     )
 
+
 async def generate_research_response(
     llm_service,
     messages: List[Message],
     user_input: str,
     context: Optional[ResearchContext],
-    conversation_context: str
+    conversation_context: str,
 ) -> str:
     """Generate conversational response using Gemini."""
 
@@ -437,12 +480,14 @@ async def generate_research_response(
     industry = "general"
     if has_business_idea and has_target_customer and has_problem:
         # Build conversation context for industry detection
-        conversation_text = "\n".join([f"{msg.role}: {msg.content}" for msg in messages])
+        conversation_text = "\n".join(
+            [f"{msg.role}: {msg.content}" for msg in messages]
+        )
         try:
             industry_data = await classify_industry_with_llm(
                 llm_service, conversation_text, user_input
             )
-            industry = industry_data.get('industry', 'general')
+            industry = industry_data.get("industry", "general")
         except Exception as e:
             logger.error(f"Error in LLM industry detection: {str(e)}")
             industry = "general"
@@ -476,16 +521,16 @@ Help them clarify the specific problem they're solving. Ask about the pain point
         )
 
         # Handle different intents
-        if user_intent.get('intent') == 'confirmation':
+        if user_intent.get("intent") == "confirmation":
             # This is handled in the main chat function, not here
             # Return a simple response to trigger question generation in main flow
             return "Perfect! Let me generate your research questions now..."
 
         # Check if user rejected a confirmation or wants clarification
-        if user_intent.get('intent') in ['rejection', 'clarification']:
-            intent_reasoning = user_intent.get('reasoning', '')
-            specific_feedback = user_intent.get('specific_feedback', '')
-            next_action = user_intent.get('next_action', '')
+        if user_intent.get("intent") in ["rejection", "clarification"]:
+            intent_reasoning = user_intent.get("reasoning", "")
+            specific_feedback = user_intent.get("specific_feedback", "")
+            next_action = user_intent.get("next_action", "")
 
             prompt = f"""You are a customer research expert. The user's intent analysis shows:
 - Intent: {user_intent.get('intent')}
@@ -504,9 +549,7 @@ Based on the intent analysis, respond appropriately. If they rejected your under
 
             try:
                 response = await llm_service.generate_text(
-                    prompt=prompt,
-                    temperature=0.7,
-                    max_tokens=4000
+                    prompt=prompt, temperature=0.7, max_tokens=4000
                 )
                 return response.strip()
             except Exception as e:
@@ -515,7 +558,9 @@ Based on the intent analysis, respond appropriately. If they rejected your under
 
         elif conversation_length < 20:  # Continue exploring for reasonable length
             # Analyze conversation to avoid loops
-            recent_messages = [msg.content for msg in messages if msg.role == "assistant"]
+            recent_messages = [
+                msg.content for msg in messages if msg.role == "assistant"
+            ]
             recent_topics = " ".join(recent_messages).lower()
 
             # Choose different exploration areas based on what hasn't been covered
@@ -530,7 +575,9 @@ Based on the intent analysis, respond appropriately. If they rejected your under
             elif "market" not in recent_topics and "competitor" not in recent_topics:
                 focus_area = "market size, competition, or industry landscape"
             else:
-                focus_area = "specific pain points or frustrations in their current process"
+                focus_area = (
+                    "specific pain points or frustrations in their current process"
+                )
 
             prompt = f"""You are a customer research expert. The user has shared:
 - Business idea: {context.businessIdea if context else ''}
@@ -560,7 +607,7 @@ You have enough information to generate research questions. Let them know you're
         response = await llm_service.generate_text(
             prompt=prompt,
             temperature=0.7,
-            max_tokens=8000  # Increased to use more of the 65k available
+            max_tokens=8000,  # Increased to use more of the 65k available
         )
         return response.strip()
     except Exception as e:
@@ -573,7 +620,10 @@ You have enough information to generate research questions. Let them know you're
             logger.error(f"Fallback also failed: {str(fallback_e)}")
             return "I'm sorry, I encountered an error. Could you please try rephrasing your message?"
 
-async def generate_simple_fallback_response(user_input: str, context: Optional[ResearchContext]) -> str:
+
+async def generate_simple_fallback_response(
+    user_input: str, context: Optional[ResearchContext]
+) -> str:
     """Generate simple fallback responses when Gemini is not working."""
 
     has_business_idea = context and context.businessIdea
@@ -589,12 +639,13 @@ async def generate_simple_fallback_response(user_input: str, context: Optional[R
     else:
         return f"Excellent! I have enough information to create research questions for your idea. You want to build {context.businessIdea} for {context.targetCustomer} to solve {context.problem}. Let me generate some targeted research questions for you!"
 
+
 async def generate_confirmation_response(
     llm_service,
     messages: List[Message],
     user_input: str,
     context: Optional[ResearchContext],
-    conversation_context: str
+    conversation_context: str,
 ) -> str:
     """Generate confirmation message summarizing what we've learned."""
 
@@ -620,7 +671,7 @@ Be conversational and encouraging. Keep it to 3-4 sentences maximum. Make sure y
         response = await llm_service.generate_text(
             prompt=prompt,
             temperature=0.7,
-            max_tokens=8000  # Increased to use more of the 65k available
+            max_tokens=8000,  # Increased to use more of the 65k available
         )
         return response.strip()
     except Exception as e:
@@ -650,12 +701,13 @@ Be conversational and encouraging. Keep it to 3-4 sentences maximum. Make sure y
 
 Does this capture it correctly? If so, I'm ready to generate specific research questions tailored to your situation. Or let me know if there's anything you'd like to add or correct!"""
 
+
 async def generate_contextual_suggestions(
     llm_service,
     messages: List[Message],
     user_input: str,
     assistant_response: str,
-    conversation_context: str
+    conversation_context: str,
 ) -> List[str]:
     """Generate contextual quick reply suggestions based on the conversation."""
 
@@ -684,16 +736,17 @@ Make replies:
     try:
         response = await llm_service.generate_text(
             prompt=prompt,
-            temperature=0.7,
-            max_tokens=2000  # Increased for suggestions generation
+            temperature=0.0,  # Use 0.0 for JSON array responses
+            max_tokens=2000,  # Increased for suggestions generation
         )
 
         # Parse JSON response
         import json
+
         response_clean = response.strip()
-        if response_clean.startswith('```json'):
+        if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
+        if response_clean.endswith("```"):
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
@@ -711,47 +764,68 @@ Make replies:
         # Fallback suggestions based on conversation stage
         return generate_fallback_suggestions(user_input, assistant_response)
 
-def generate_fallback_suggestions(user_input: str, assistant_response: str) -> List[str]:
+
+def generate_fallback_suggestions(
+    user_input: str, assistant_response: str
+) -> List[str]:
     """Generate fallback suggestions when LLM fails."""
 
     user_lower = user_input.lower()
     response_lower = assistant_response.lower()
 
     # If assistant is asking about business idea or problem
-    if any(phrase in response_lower for phrase in ["business", "idea", "problem", "solve", "core problem"]):
-        return ["Data management solution", "Customer analytics platform", "Workflow automation tool"]
+    if any(
+        phrase in response_lower
+        for phrase in ["business", "idea", "problem", "solve", "core problem"]
+    ):
+        return [
+            "Data management solution",
+            "Customer analytics platform",
+            "Workflow automation tool",
+        ]
 
     # If assistant is asking about customers or target market
-    elif any(phrase in response_lower for phrase in ["customer", "who", "target", "audience", "clients"]):
+    elif any(
+        phrase in response_lower
+        for phrase in ["customer", "who", "target", "audience", "clients"]
+    ):
         return ["Small businesses", "Enterprise companies", "Individual users"]
 
     # If assistant is asking about specific problems or pain points
-    elif any(phrase in response_lower for phrase in ["pain", "challenge", "frustrating", "difficulty"]):
+    elif any(
+        phrase in response_lower
+        for phrase in ["pain", "challenge", "frustrating", "difficulty"]
+    ):
         return ["Time consuming process", "Lack of visibility", "Manual work required"]
 
     # If assistant is asking about features or functionality
-    elif any(phrase in response_lower for phrase in ["feature", "functionality", "how", "what does"]):
+    elif any(
+        phrase in response_lower
+        for phrase in ["feature", "functionality", "how", "what does"]
+    ):
         return ["Data integration", "Real-time analytics", "Automated reporting"]
 
     # If assistant is confirming understanding
-    elif any(phrase in response_lower for phrase in ["confirm", "understand", "correct", "right", "sound"]):
+    elif any(
+        phrase in response_lower
+        for phrase in ["confirm", "understand", "correct", "right", "sound"]
+    ):
         return ["Yes, that's correct", "Let me add something", "I need to clarify"]
 
     # Default suggestions - user responses to continue conversation
     else:
         return ["Let me explain more", "That's exactly right", "I have more details"]
 
+
 async def detect_stakeholders_with_llm(
-    llm_service,
-    context: ResearchContext,
-    conversation_history: List[Message]
+    llm_service, context: ResearchContext, conversation_history: List[Message]
 ) -> dict:
     """Use LLM to intelligently detect stakeholders from conversation context."""
 
     # Build conversation text for analysis
-    conversation_text = "\n".join([
-        f"{msg.role}: {msg.content}" for msg in conversation_history
-    ])
+    conversation_text = "\n".join(
+        [f"{msg.role}: {msg.content}" for msg in conversation_history]
+    )
 
     business_idea = context.businessIdea or "Not specified"
     target_customer = context.targetCustomer or "Not specified"
@@ -806,7 +880,9 @@ Make descriptions specific to the business idea, target customers, and problem b
         # Try Instructor first for structured output
         try:
             from backend.models.comprehensive_questions import StakeholderDetection
-            from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
+            from backend.services.llm.instructor_gemini_client import (
+                InstructorGeminiClient,
+            )
 
             logger.info("🚀 Using Instructor for stakeholder detection")
 
@@ -817,7 +893,7 @@ Make descriptions specific to the business idea, target customers, and problem b
             stakeholder_data = await instructor_client.generate_with_model_async(
                 prompt=prompt,
                 model_class=StakeholderDetection,
-                system_instruction="You are an expert business analyst. Identify the most relevant stakeholders for customer research interviews."
+                system_instruction="You are an expert business analyst. Identify the most relevant stakeholders for customer research interviews.",
             )
 
             logger.info(f"✅ Instructor detected stakeholders successfully")
@@ -829,23 +905,24 @@ Make descriptions specific to the business idea, target customers, and problem b
             return stakeholder_data.dict()
 
         except Exception as instructor_error:
-            logger.warning(f"Instructor failed, falling back to manual JSON parsing: {instructor_error}")
+            logger.warning(
+                f"Instructor failed, falling back to manual JSON parsing: {instructor_error}"
+            )
 
-            # Fallback to manual JSON parsing
+            # Fallback to manual JSON parsing - use temperature=0.0 for JSON responses
             response = await llm_service.generate_text(
-                prompt=prompt,
-                temperature=0.3,
-                max_tokens=8000
+                prompt=prompt, temperature=0.0, max_tokens=8000
             )
 
             logger.info(f"LLM stakeholder detection raw response: {response}")
 
             # Parse JSON response
             import json
+
             response_clean = response.strip()
-            if response_clean.startswith('```json'):
+            if response_clean.startswith("```json"):
                 response_clean = response_clean[7:]
-            if response_clean.endswith('```'):
+            if response_clean.endswith("```"):
                 response_clean = response_clean[:-3]
             response_clean = response_clean.strip()
 
@@ -855,9 +932,9 @@ Make descriptions specific to the business idea, target customers, and problem b
             logger.info(f"Parsed stakeholder data: {stakeholder_data}")
 
             # Validate structure - now expecting objects with name/description
-            if not isinstance(stakeholder_data.get('primary'), list):
+            if not isinstance(stakeholder_data.get("primary"), list):
                 raise ValueError("Invalid primary stakeholders format")
-            if not isinstance(stakeholder_data.get('secondary'), list):
+            if not isinstance(stakeholder_data.get("secondary"), list):
                 raise ValueError("Invalid secondary stakeholders format")
 
             # Handle both old format (strings) and new format (objects with name/description)
@@ -867,12 +944,20 @@ Make descriptions specific to the business idea, target customers, and problem b
                 for stakeholder in stakeholders_list:
                     if isinstance(stakeholder, str):
                         # Old format - convert to new format with generic description
-                        logger.warning(f"Converting old format stakeholder: {stakeholder}")
-                        converted.append({
-                            "name": stakeholder,
-                            "description": f"Stakeholder involved in {stakeholder.lower()} activities"
-                        })
-                    elif isinstance(stakeholder, dict) and 'name' in stakeholder and 'description' in stakeholder:
+                        logger.warning(
+                            f"Converting old format stakeholder: {stakeholder}"
+                        )
+                        converted.append(
+                            {
+                                "name": stakeholder,
+                                "description": f"Stakeholder involved in {stakeholder.lower()} activities",
+                            }
+                        )
+                    elif (
+                        isinstance(stakeholder, dict)
+                        and "name" in stakeholder
+                        and "description" in stakeholder
+                    ):
                         # New format - use as is
                         converted.append(stakeholder)
                     else:
@@ -882,8 +967,12 @@ Make descriptions specific to the business idea, target customers, and problem b
                 return converted
 
             # Convert both primary and secondary stakeholders
-            stakeholder_data['primary'] = convert_stakeholder_format(stakeholder_data.get('primary', []))
-            stakeholder_data['secondary'] = convert_stakeholder_format(stakeholder_data.get('secondary', []))
+            stakeholder_data["primary"] = convert_stakeholder_format(
+                stakeholder_data.get("primary", [])
+            )
+            stakeholder_data["secondary"] = convert_stakeholder_format(
+                stakeholder_data.get("secondary", [])
+            )
 
             logger.info(f"Successfully processed stakeholder data with descriptions")
             return stakeholder_data
@@ -894,99 +983,160 @@ Make descriptions specific to the business idea, target customers, and problem b
         # Fallback to simple detection based on keywords
         return detect_stakeholders_fallback(business_idea, target_customer, problem)
 
-def detect_stakeholders_fallback(business_idea: str, target_customer: str, problem: str) -> dict:
+
+def detect_stakeholders_fallback(
+    business_idea: str, target_customer: str, problem: str
+) -> dict:
     """Fallback stakeholder detection when LLM fails."""
 
     all_text = f"{business_idea} {target_customer} {problem}".lower()
 
     # Simple keyword-based detection as fallback with name/description structure
-    if any(word in all_text for word in ['ux', 'user research', 'design', 'product']):
+    if any(word in all_text for word in ["ux", "user research", "design", "product"]):
         return {
             "primary": [
-                {"name": "UX Researchers", "description": "Conduct user research and usability testing"},
-                {"name": "Product Managers", "description": "Define product strategy and requirements"},
-                {"name": "Designers", "description": "Create user interfaces and experiences"}
+                {
+                    "name": "UX Researchers",
+                    "description": "Conduct user research and usability testing",
+                },
+                {
+                    "name": "Product Managers",
+                    "description": "Define product strategy and requirements",
+                },
+                {
+                    "name": "Designers",
+                    "description": "Create user interfaces and experiences",
+                },
             ],
             "secondary": [
-                {"name": "Research Operations", "description": "Coordinate and scale research activities"},
-                {"name": "Engineering Teams", "description": "Develop technical solutions"}
+                {
+                    "name": "Research Operations",
+                    "description": "Coordinate and scale research activities",
+                },
+                {
+                    "name": "Engineering Teams",
+                    "description": "Develop technical solutions",
+                },
             ],
             "industry": "ux_research",
-            "reasoning": "Detected UX/Product context from keywords"
+            "reasoning": "Detected UX/Product context from keywords",
         }
-    elif any(word in all_text for word in ['healthcare', 'medical', 'patient', 'doctor']):
+    elif any(
+        word in all_text for word in ["healthcare", "medical", "patient", "doctor"]
+    ):
         return {
             "primary": [
-                {"name": "Healthcare Providers", "description": "Deliver medical care and treatment to patients"},
-                {"name": "Patients", "description": "Receive medical care and treatment"}
+                {
+                    "name": "Healthcare Providers",
+                    "description": "Deliver medical care and treatment to patients",
+                },
+                {
+                    "name": "Patients",
+                    "description": "Receive medical care and treatment",
+                },
             ],
             "secondary": [
-                {"name": "Hospital Administrators", "description": "Manage hospital operations and resources"},
-                {"name": "Insurance Companies", "description": "Provide healthcare coverage and reimbursement"}
+                {
+                    "name": "Hospital Administrators",
+                    "description": "Manage hospital operations and resources",
+                },
+                {
+                    "name": "Insurance Companies",
+                    "description": "Provide healthcare coverage and reimbursement",
+                },
             ],
             "industry": "healthcare",
-            "reasoning": "Detected healthcare context from keywords"
+            "reasoning": "Detected healthcare context from keywords",
         }
-    elif any(word in all_text for word in ['education', 'teacher', 'student', 'school']):
+    elif any(
+        word in all_text for word in ["education", "teacher", "student", "school"]
+    ):
         return {
             "primary": [
-                {"name": "Teachers", "description": "Educate students and manage classroom activities"},
-                {"name": "Students", "description": "Learn and participate in educational activities"}
+                {
+                    "name": "Teachers",
+                    "description": "Educate students and manage classroom activities",
+                },
+                {
+                    "name": "Students",
+                    "description": "Learn and participate in educational activities",
+                },
             ],
             "secondary": [
-                {"name": "School Administrators", "description": "Manage school operations and policies"},
-                {"name": "Parents", "description": "Support student learning and school involvement"}
+                {
+                    "name": "School Administrators",
+                    "description": "Manage school operations and policies",
+                },
+                {
+                    "name": "Parents",
+                    "description": "Support student learning and school involvement",
+                },
             ],
             "industry": "education",
-            "reasoning": "Detected education context from keywords"
+            "reasoning": "Detected education context from keywords",
         }
     else:
         return {
             "primary": [
-                {"name": "Decision Makers", "description": "Evaluate and approve new solutions"},
-                {"name": "End Users", "description": "Use the product in their daily work"}
+                {
+                    "name": "Decision Makers",
+                    "description": "Evaluate and approve new solutions",
+                },
+                {
+                    "name": "End Users",
+                    "description": "Use the product in their daily work",
+                },
             ],
             "secondary": [
                 {"name": "IT Teams", "description": "Manage technology infrastructure"},
-                {"name": "Support Staff", "description": "Provide customer assistance"}
+                {"name": "Support Staff", "description": "Provide customer assistance"},
             ],
             "industry": "general",
-            "reasoning": "General business stakeholders (fallback)"
+            "reasoning": "General business stakeholders (fallback)",
         }
+
 
 async def generate_comprehensive_research_questions(
     llm_service,
     context: ResearchContext,
     conversation_history: List[Message],
-    stakeholder_data: Optional[Dict[str, Any]] = None
+    stakeholder_data: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Generate comprehensive research questions with stakeholder integration using Instructor."""
 
     # Import Pydantic models and Instructor client
-    from backend.models.comprehensive_questions import ComprehensiveQuestions, StakeholderDetection
+    from backend.models.comprehensive_questions import (
+        ComprehensiveQuestions,
+        StakeholderDetection,
+    )
     from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
 
-    # First detect stakeholders if not provided
+    # FIXED: Detect stakeholders first if not provided
     if not stakeholder_data:
+        logger.info("🔧 Detecting stakeholders from business context")
         stakeholder_data = await detect_stakeholders_with_llm(
             llm_service=llm_service,
             context=context,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
         )
 
     # Build comprehensive prompt for stakeholder-specific questions
-    business_idea = context.businessIdea or 'Not specified'
-    target_customer = context.targetCustomer or 'Not specified'
-    problem = context.problem or 'Not specified'
+    business_idea = context.businessIdea or "Not specified"
+    target_customer = context.targetCustomer or "Not specified"
+    problem = context.problem or "Not specified"
 
     # Extract stakeholder information
-    primary_stakeholders = stakeholder_data.get('primary', [])
-    secondary_stakeholders = stakeholder_data.get('secondary', [])
-    industry = stakeholder_data.get('industry', 'general')
+    primary_stakeholders = stakeholder_data.get("primary", [])
+    secondary_stakeholders = stakeholder_data.get("secondary", [])
+    industry = stakeholder_data.get("industry", "general")
 
     # Create optimized prompt for Instructor structured output
-    primary_names = [s.get('name', s) if isinstance(s, dict) else s for s in primary_stakeholders]
-    secondary_names = [s.get('name', s) if isinstance(s, dict) else s for s in secondary_stakeholders]
+    primary_names = [
+        s.get("name", s) if isinstance(s, dict) else s for s in primary_stakeholders
+    ]
+    secondary_names = [
+        s.get("name", s) if isinstance(s, dict) else s for s in secondary_stakeholders
+    ]
 
     prompt = f"""Generate comprehensive customer research questions for this business:
 
@@ -1034,11 +1184,13 @@ The response must be a valid JSON structure matching the ComprehensiveQuestions 
         comprehensive_questions = await instructor_client.generate_with_model_async(
             prompt=prompt,
             model_class=ComprehensiveQuestions,
-            system_instruction="You are an expert customer research consultant. You must generate a complete ComprehensiveQuestions object with properly structured stakeholder objects. Each stakeholder must have a name, description, and questions object with problemDiscovery, solutionValidation, and followUp arrays. Never return empty objects or null values."
+            system_instruction="You are an expert customer research consultant. You must generate a complete ComprehensiveQuestions object with properly structured stakeholder objects. Each stakeholder must have a name, description, and questions object with problemDiscovery, solutionValidation, and followUp arrays. Never return empty objects or null values.",
         )
 
         logger.info(f"✅ Instructor generated comprehensive questions successfully")
-        logger.info(f"Generated {len(comprehensive_questions.primaryStakeholders)} primary and {len(comprehensive_questions.secondaryStakeholders)} secondary stakeholders")
+        logger.info(
+            f"Generated {len(comprehensive_questions.primaryStakeholders)} primary and {len(comprehensive_questions.secondaryStakeholders)} secondary stakeholders"
+        )
 
         # Calculate and update time estimates
         total_questions = comprehensive_questions.get_total_questions()
@@ -1048,28 +1200,37 @@ The response must be a valid JSON structure matching the ComprehensiveQuestions 
         comprehensive_questions.timeEstimate.totalQuestions = total_questions
         comprehensive_questions.timeEstimate.estimatedMinutes = f"{min_time}-{max_time}"
         comprehensive_questions.timeEstimate.breakdown = {
-            'primary': sum(len(s.questions.problemDiscovery) + len(s.questions.solutionValidation) + len(s.questions.followUp)
-                          for s in comprehensive_questions.primaryStakeholders),
-            'secondary': sum(len(s.questions.problemDiscovery) + len(s.questions.solutionValidation) + len(s.questions.followUp)
-                            for s in comprehensive_questions.secondaryStakeholders),
-            'baseTime': min_time,
-            'withBuffer': max_time,
-            'perQuestion': 2.5
+            "primary": sum(
+                len(s.questions.problemDiscovery)
+                + len(s.questions.solutionValidation)
+                + len(s.questions.followUp)
+                for s in comprehensive_questions.primaryStakeholders
+            ),
+            "secondary": sum(
+                len(s.questions.problemDiscovery)
+                + len(s.questions.solutionValidation)
+                + len(s.questions.followUp)
+                for s in comprehensive_questions.secondaryStakeholders
+            ),
+            "baseTime": min_time,
+            "withBuffer": max_time,
+            "perQuestion": 3.0,  # FIXED: Realistic average of 2-4 minutes per question
         }
 
         # Convert to dict for API compatibility
-        return comprehensive_questions.dict()
+        return comprehensive_questions.model_dump()
 
     except Exception as e:
-        logger.error(f"Error generating comprehensive research questions with Instructor: {str(e)}")
+        logger.error(
+            f"Error generating comprehensive research questions with Instructor: {str(e)}"
+        )
         logger.error(f"Falling back to manual question generation")
         # Return fallback comprehensive questions
         return generate_comprehensive_fallback_questions(context, stakeholder_data)
 
+
 async def generate_research_questions(
-    llm_service,
-    context: ResearchContext,
-    conversation_history: List[Message]
+    llm_service, context: ResearchContext, conversation_history: List[Message]
 ) -> ResearchQuestions:
     """Generate structured research questions using Gemini - backward compatibility wrapper."""
 
@@ -1077,7 +1238,7 @@ async def generate_research_questions(
     comprehensive_result = await generate_comprehensive_research_questions(
         llm_service=llm_service,
         context=context,
-        conversation_history=conversation_history
+        conversation_history=conversation_history,
     )
 
     # Extract questions from all stakeholders and combine them
@@ -1086,20 +1247,112 @@ async def generate_research_questions(
     all_follow_up = []
 
     # Combine primary stakeholder questions
-    for stakeholder in comprehensive_result.get('primaryStakeholders', []):
-        questions = stakeholder.get('questions', {})
-        all_problem_discovery.extend(questions.get('problemDiscovery', []))
-        all_solution_validation.extend(questions.get('solutionValidation', []))
-        all_follow_up.extend(questions.get('followUp', []))
+    for stakeholder in comprehensive_result.get("primaryStakeholders", []):
+        questions = stakeholder.get("questions", {})
+        all_problem_discovery.extend(questions.get("problemDiscovery", []))
+        all_solution_validation.extend(questions.get("solutionValidation", []))
+        all_follow_up.extend(questions.get("followUp", []))
 
-    # Limit to 5, 5, 3 for backward compatibility
-    return ResearchQuestions(
+    # Also combine secondary stakeholder questions for comprehensive coverage
+    for stakeholder in comprehensive_result.get("secondaryStakeholders", []):
+        questions = stakeholder.get("questions", {})
+        all_problem_discovery.extend(questions.get("problemDiscovery", []))
+        all_solution_validation.extend(questions.get("solutionValidation", []))
+        all_follow_up.extend(questions.get("followUp", []))
+
+    # CRITICAL FIX: Create enhanced ResearchQuestions that includes stakeholder and time data
+    basic_questions = ResearchQuestions(
         problemDiscovery=all_problem_discovery[:5],
         solutionValidation=all_solution_validation[:5],
-        followUp=all_follow_up[:3]
+        followUp=all_follow_up[:3],
     )
 
-def generate_comprehensive_fallback_questions(context: ResearchContext, stakeholder_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    # FIXED: Use actual stakeholder data from comprehensive result including questions
+    primary_stakeholders = []
+    print(
+        f"🔍 DEBUG: Processing {len(comprehensive_result.get('primaryStakeholders', []))} primary stakeholders"
+    )
+    for i, stakeholder in enumerate(
+        comprehensive_result.get("primaryStakeholders", [])
+    ):
+        print(
+            f"🔍 DEBUG: Primary stakeholder {i+1}: {stakeholder.get('name', 'Unknown')}"
+        )
+        print(f"🔍 DEBUG: Available keys: {list(stakeholder.keys())}")
+
+        stakeholder_data = {
+            "name": stakeholder.get("name", "Primary Stakeholder"),
+            "description": stakeholder.get(
+                "description", "Primary stakeholder description"
+            ),
+        }
+        # Include questions if available - debug logging
+        if "questions" in stakeholder:
+            questions = stakeholder["questions"]
+            stakeholder_data["questions"] = questions
+            print(
+                f"✅ DEBUG: Added questions for primary stakeholder: {stakeholder_data['name']}"
+            )
+            print(
+                f"✅ DEBUG: Question counts: {len(questions.get('problemDiscovery', []))} + {len(questions.get('solutionValidation', []))} + {len(questions.get('followUp', []))}"
+            )
+        else:
+            print(
+                f"❌ DEBUG: No questions found for primary stakeholder: {stakeholder_data['name']}"
+            )
+        primary_stakeholders.append(stakeholder_data)
+
+    secondary_stakeholders = []
+    for stakeholder in comprehensive_result.get("secondaryStakeholders", []):
+        stakeholder_data = {
+            "name": stakeholder.get("name", "Secondary Stakeholder"),
+            "description": stakeholder.get(
+                "description", "Secondary stakeholder description"
+            ),
+        }
+        # Include questions if available - debug logging
+        if "questions" in stakeholder:
+            stakeholder_data["questions"] = stakeholder["questions"]
+            logger.info(
+                f"✅ Added questions for secondary stakeholder: {stakeholder_data['name']}"
+            )
+        else:
+            logger.warning(
+                f"❌ No questions found for secondary stakeholder: {stakeholder_data['name']}"
+            )
+            logger.info(f"Available keys: {list(stakeholder.keys())}")
+        secondary_stakeholders.append(stakeholder_data)
+
+    # Add actual stakeholder data from comprehensive result
+    basic_questions.stakeholders = {
+        "primary": primary_stakeholders,
+        "secondary": secondary_stakeholders,
+    }
+
+    # Add time estimation from comprehensive result or calculate
+    time_estimate = comprehensive_result.get("timeEstimate", {})
+    total_questions = (
+        len(basic_questions.problemDiscovery)
+        + len(basic_questions.solutionValidation)
+        + len(basic_questions.followUp)
+    )
+
+    basic_questions.estimatedTime = {
+        "min": time_estimate.get("breakdown", {}).get(
+            "baseTime", max(15, total_questions * 2)
+        ),
+        "max": time_estimate.get("breakdown", {}).get(
+            "withBuffer", max(20, total_questions * 4)
+        ),
+        "totalQuestions": time_estimate.get("totalQuestions", total_questions),
+    }
+
+    return basic_questions
+
+
+def generate_comprehensive_fallback_questions(
+    context: ResearchContext, stakeholder_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """Generate comprehensive fallback questions when LLM fails."""
 
     # Use the full context instead of generic fallbacks
@@ -1123,108 +1376,138 @@ def generate_comprehensive_fallback_questions(context: ResearchContext, stakehol
             business_type = "solution"
             solution_context = "solution"
     else:
-        business_type = business_idea if business_idea != "your solution" else "solution"
+        business_type = (
+            business_idea if business_idea != "your solution" else "solution"
+        )
         solution_context = business_type
 
     # Use stakeholder data if available, otherwise create default
     if not stakeholder_data:
         stakeholder_data = {
-            'primary': [{'name': 'Decision Makers', 'description': 'Key decision makers'}],
-            'secondary': [{'name': 'End Users', 'description': 'Primary users of the solution'}],
-            'industry': 'general'
+            "primary": [
+                {"name": "Decision Makers", "description": "Key decision makers"}
+            ],
+            "secondary": [
+                {"name": "End Users", "description": "Primary users of the solution"}
+            ],
+            "industry": "general",
         }
 
-    def generate_stakeholder_questions(stakeholder_name: str, stakeholder_desc: str, is_primary: bool = True):
+    def generate_stakeholder_questions(
+        stakeholder_name: str, stakeholder_desc: str, is_primary: bool = True
+    ):
         if is_primary:
             return {
-                'problemDiscovery': [
+                "problemDiscovery": [
                     f"How do {stakeholder_name.lower()} currently handle {problem_context}?",
                     f"What's the most frustrating part of {problem_context} for {stakeholder_name.lower()}?",
                     f"How much time do {stakeholder_name.lower()} spend dealing with this each week?",
                     f"What alternatives or solutions have {stakeholder_name.lower()} tried before?",
-                    f"What would an ideal solution look like for {stakeholder_name.lower()}?"
+                    f"What would an ideal solution look like for {stakeholder_name.lower()}?",
                 ],
-                'solutionValidation': [
+                "solutionValidation": [
                     f"Would {stakeholder_name.lower()} be interested in trying {business_idea}?",
                     f"What features would be most important to {stakeholder_name.lower()} in a {solution_context}?",
                     f"How much would {stakeholder_name.lower()} be willing to pay for this {solution_context}?",
                     f"What concerns would {stakeholder_name.lower()} have about using a new {solution_context}?",
-                    f"How do {stakeholder_name.lower()} typically evaluate new {solution_context}s?"
+                    f"How do {stakeholder_name.lower()} typically evaluate new {solution_context}s?",
                 ],
-                'followUp': [
+                "followUp": [
                     f"Who else would {stakeholder_name.lower()} involve in the decision to use this {solution_context}?",
                     f"How would {stakeholder_name.lower()} measure success with this {solution_context}?",
-                    f"What timeline would {stakeholder_name.lower()} expect for implementation?"
-                ]
+                    f"What timeline would {stakeholder_name.lower()} expect for implementation?",
+                ],
             }
         else:
             return {
-                'problemDiscovery': [
+                "problemDiscovery": [
                     f"How do {stakeholder_name.lower()} interact with current solutions for {problem_context}?",
                     f"What challenges do {stakeholder_name.lower()} face when dealing with {problem_context}?",
                     f"How important is ease of use for {stakeholder_name.lower()} when choosing a {solution_context}?",
                     f"What information do {stakeholder_name.lower()} need to feel confident about a new {solution_context}?",
-                    f"How do {stakeholder_name.lower()} prefer to learn about new {solution_context}s?"
+                    f"How do {stakeholder_name.lower()} prefer to learn about new {solution_context}s?",
                 ],
-                'solutionValidation': [
+                "solutionValidation": [
                     f"Would {stakeholder_name.lower()} find this {solution_context} helpful for {problem_context}?",
                     f"What would make {stakeholder_name.lower()} want to use this {solution_context}?",
                     f"How important is training and support for {stakeholder_name.lower()} when adopting a new {solution_context}?",
                     f"What would prevent {stakeholder_name.lower()} from adopting this {solution_context}?",
-                    f"How would {stakeholder_name.lower()} want to provide feedback about this {solution_context}?"
+                    f"How would {stakeholder_name.lower()} want to provide feedback about this {solution_context}?",
                 ],
-                'followUp': [
+                "followUp": [
                     f"What other {solution_context}s do {stakeholder_name.lower()} use for similar needs?",
                     f"How do {stakeholder_name.lower()} stay updated on new {solution_context}s in this area?",
-                    f"What would convince {stakeholder_name.lower()} to recommend this {solution_context}?"
-                ]
+                    f"What would convince {stakeholder_name.lower()} to recommend this {solution_context}?",
+                ],
             }
 
     # Generate questions for all stakeholders
     primary_stakeholders = []
-    for stakeholder in stakeholder_data.get('primary', []):
-        name = stakeholder.get('name', stakeholder) if isinstance(stakeholder, dict) else stakeholder
-        desc = stakeholder.get('description', f'Primary stakeholder: {name}') if isinstance(stakeholder, dict) else f'Primary stakeholder: {name}'
-        primary_stakeholders.append({
-            'name': name,
-            'description': desc,
-            'questions': generate_stakeholder_questions(name, desc, True)
-        })
+    for stakeholder in stakeholder_data.get("primary", []):
+        name = (
+            stakeholder.get("name", stakeholder)
+            if isinstance(stakeholder, dict)
+            else stakeholder
+        )
+        desc = (
+            stakeholder.get("description", f"Primary stakeholder: {name}")
+            if isinstance(stakeholder, dict)
+            else f"Primary stakeholder: {name}"
+        )
+        primary_stakeholders.append(
+            {
+                "name": name,
+                "description": desc,
+                "questions": generate_stakeholder_questions(name, desc, True),
+            }
+        )
 
     secondary_stakeholders = []
-    for stakeholder in stakeholder_data.get('secondary', []):
-        name = stakeholder.get('name', stakeholder) if isinstance(stakeholder, dict) else stakeholder
-        desc = stakeholder.get('description', f'Secondary stakeholder: {name}') if isinstance(stakeholder, dict) else f'Secondary stakeholder: {name}'
-        secondary_stakeholders.append({
-            'name': name,
-            'description': desc,
-            'questions': generate_stakeholder_questions(name, desc, False)
-        })
+    for stakeholder in stakeholder_data.get("secondary", []):
+        name = (
+            stakeholder.get("name", stakeholder)
+            if isinstance(stakeholder, dict)
+            else stakeholder
+        )
+        desc = (
+            stakeholder.get("description", f"Secondary stakeholder: {name}")
+            if isinstance(stakeholder, dict)
+            else f"Secondary stakeholder: {name}"
+        )
+        secondary_stakeholders.append(
+            {
+                "name": name,
+                "description": desc,
+                "questions": generate_stakeholder_questions(name, desc, False),
+            }
+        )
 
     # Calculate time estimates
     total_questions = 0
     for stakeholder in primary_stakeholders + secondary_stakeholders:
-        questions = stakeholder.get('questions', {})
-        total_questions += len(questions.get('problemDiscovery', []))
-        total_questions += len(questions.get('solutionValidation', []))
-        total_questions += len(questions.get('followUp', []))
+        questions = stakeholder.get("questions", {})
+        total_questions += len(questions.get("problemDiscovery", []))
+        total_questions += len(questions.get("solutionValidation", []))
+        total_questions += len(questions.get("followUp", []))
 
-    base_time = int(total_questions * 2.5)
-    max_time = int(base_time * 1.2)
+    # FIXED: Use realistic 2-4 minutes per question instead of 2.5 minutes
+    min_time = max(15, total_questions * 2)  # 2 minutes per question minimum
+    max_time = max(20, total_questions * 4)  # 4 minutes per question maximum
 
     return {
-        'primaryStakeholders': primary_stakeholders,
-        'secondaryStakeholders': secondary_stakeholders,
-        'timeEstimate': {
-            'totalQuestions': total_questions,
-            'estimatedMinutes': f"{base_time}-{max_time}",
-            'breakdown': {
-                'baseTime': base_time,
-                'withBuffer': max_time,
-                'perQuestion': 2.5
-            }
-        }
+        "primaryStakeholders": primary_stakeholders,
+        "secondaryStakeholders": secondary_stakeholders,
+        "timeEstimate": {
+            "totalQuestions": total_questions,
+            "estimatedMinutes": f"{min_time}-{max_time}",
+            "breakdown": {
+                "baseTime": min_time,
+                "withBuffer": max_time,
+                "perQuestion": 3.0,  # Realistic average of 2-4 minutes
+            },
+        },
     }
+
 
 def generate_fallback_questions(context: ResearchContext) -> ResearchQuestions:
     """Generate fallback questions when Gemini is not working."""
@@ -1253,26 +1536,25 @@ def generate_fallback_questions(context: ResearchContext) -> ResearchQuestions:
             f"What's the most frustrating part of dealing with {problem_area}?",
             "How much time do you spend on this each week?",
             "What tools or methods have you tried before to solve this?",
-            f"What would an ideal solution look like for {customer_type}?"
+            f"What would an ideal solution look like for {customer_type}?",
         ],
         solutionValidation=[
             f"Would you be interested in trying a {business_context} like this?",
             f"What features would be most important to you in a {solution_context}?",
             f"How much would you be willing to pay for a {solution_context} that solves this problem?",
             "What concerns would you have about switching to something new?",
-            f"How do you typically evaluate new {solution_context}s in this area?"
+            f"How do you typically evaluate new {solution_context}s in this area?",
         ],
         followUp=[
             "Who else do you know with this same problem?",
             f"How do you usually discover new {solution_context}s like this?",
-            "What would convince you to try something new in this area?"
-        ]
+            "What would convince you to try something new in this area?",
+        ],
     )
 
+
 def should_generate_research_questions(
-    messages: List[Message],
-    user_input: str,
-    conversation_context: str
+    messages: List[Message], user_input: str, conversation_context: str
 ) -> bool:
     """Determine if we have enough information to generate research questions."""
 
@@ -1280,12 +1562,23 @@ def should_generate_research_questions(
     input_lower = user_input.lower()
 
     # Check if user explicitly asks for questions
-    user_wants_questions = any(phrase in input_lower for phrase in [
-        'generate questions', 'create questions', 'research questions',
-        'questions for', 'help me with questions', 'what questions',
-        'interview questions', 'customer questions', 'ready for questions',
-        "let's create questions", 'build questions', 'make questions'
-    ])
+    user_wants_questions = any(
+        phrase in input_lower
+        for phrase in [
+            "generate questions",
+            "create questions",
+            "research questions",
+            "questions for",
+            "help me with questions",
+            "what questions",
+            "interview questions",
+            "customer questions",
+            "ready for questions",
+            "let's create questions",
+            "build questions",
+            "make questions",
+        ]
+    )
 
     if user_wants_questions:
         return True
@@ -1294,40 +1587,87 @@ def should_generate_research_questions(
     has_enough_exchanges = len(messages) >= 20  # 10 user + 10 assistant messages
 
     # Check for comprehensive business understanding
-    has_business_idea = any(phrase in context_lower for phrase in [
-        'business idea', 'product', 'service', 'app', 'platform',
-        'solution', 'startup', 'company', 'build', 'create', 'develop'
-    ])
+    has_business_idea = any(
+        phrase in context_lower
+        for phrase in [
+            "business idea",
+            "product",
+            "service",
+            "app",
+            "platform",
+            "solution",
+            "startup",
+            "company",
+            "build",
+            "create",
+            "develop",
+        ]
+    )
 
-    has_target_customer = any(phrase in context_lower for phrase in [
-        'customer', 'user', 'client', 'people', 'business', 'company',
-        'target', 'audience', 'market', 'who would use', 'who needs'
-    ])
+    has_target_customer = any(
+        phrase in context_lower
+        for phrase in [
+            "customer",
+            "user",
+            "client",
+            "people",
+            "business",
+            "company",
+            "target",
+            "audience",
+            "market",
+            "who would use",
+            "who needs",
+        ]
+    )
 
-    has_problem_context = any(phrase in context_lower for phrase in [
-        'problem', 'challenge', 'pain', 'solve', 'help', 'improve',
-        'frustration', 'difficulty', 'issue', 'need', 'value', 'benefit'
-    ])
+    has_problem_context = any(
+        phrase in context_lower
+        for phrase in [
+            "problem",
+            "challenge",
+            "pain",
+            "solve",
+            "help",
+            "improve",
+            "frustration",
+            "difficulty",
+            "issue",
+            "need",
+            "value",
+            "benefit",
+        ]
+    )
 
-    has_feature_context = any(phrase in context_lower for phrase in [
-        'feature', 'functionality', 'capability', 'does', 'works',
-        'enables', 'allows', 'provides', 'offers', 'how it works'
-    ])
+    has_feature_context = any(
+        phrase in context_lower
+        for phrase in [
+            "feature",
+            "functionality",
+            "capability",
+            "does",
+            "works",
+            "enables",
+            "allows",
+            "provides",
+            "offers",
+            "how it works",
+        ]
+    )
 
     # Only generate questions if we have comprehensive understanding AND long conversation
     comprehensive_context = (
-        has_business_idea and
-        has_target_customer and
-        (has_problem_context or has_feature_context) and
-        has_enough_exchanges
+        has_business_idea
+        and has_target_customer
+        and (has_problem_context or has_feature_context)
+        and has_enough_exchanges
     )
 
     return comprehensive_context
 
+
 def should_confirm_before_questions(
-    messages: List[Message],
-    user_input: str,
-    conversation_context: str
+    messages: List[Message], user_input: str, conversation_context: str
 ) -> bool:
     """Check if we should confirm understanding before generating questions."""
 
@@ -1335,42 +1675,93 @@ def should_confirm_before_questions(
     input_lower = user_input.lower()
 
     # Check if user explicitly confirms or asks for questions
-    user_confirms = any(phrase in input_lower for phrase in RESEARCH_CONFIG.USER_CONFIRMATION_PHRASES)
+    user_confirms = any(
+        phrase in input_lower for phrase in RESEARCH_CONFIG.USER_CONFIRMATION_PHRASES
+    )
 
     if user_confirms:
         return False  # Don't need confirmation, proceed to questions
 
     # Check if we have enough context for confirmation
-    has_business_idea = any(phrase in context_lower for phrase in [
-        'business idea', 'product', 'service', 'app', 'platform',
-        'solution', 'startup', 'company', 'build', 'create', 'develop'
-    ])
+    has_business_idea = any(
+        phrase in context_lower
+        for phrase in [
+            "business idea",
+            "product",
+            "service",
+            "app",
+            "platform",
+            "solution",
+            "startup",
+            "company",
+            "build",
+            "create",
+            "develop",
+        ]
+    )
 
-    has_target_customer = any(phrase in context_lower for phrase in [
-        'customer', 'user', 'client', 'people', 'business', 'company',
-        'target', 'audience', 'market', 'who would use', 'who needs'
-    ])
+    has_target_customer = any(
+        phrase in context_lower
+        for phrase in [
+            "customer",
+            "user",
+            "client",
+            "people",
+            "business",
+            "company",
+            "target",
+            "audience",
+            "market",
+            "who would use",
+            "who needs",
+        ]
+    )
 
-    has_problem_context = any(phrase in context_lower for phrase in [
-        'problem', 'challenge', 'pain', 'solve', 'help', 'improve',
-        'frustration', 'difficulty', 'issue', 'need', 'value', 'benefit'
-    ])
+    has_problem_context = any(
+        phrase in context_lower
+        for phrase in [
+            "problem",
+            "challenge",
+            "pain",
+            "solve",
+            "help",
+            "improve",
+            "frustration",
+            "difficulty",
+            "issue",
+            "need",
+            "value",
+            "benefit",
+        ]
+    )
 
-    has_feature_context = any(phrase in context_lower for phrase in [
-        'feature', 'functionality', 'capability', 'does', 'works',
-        'enables', 'allows', 'provides', 'offers', 'how it works'
-    ])
+    has_feature_context = any(
+        phrase in context_lower
+        for phrase in [
+            "feature",
+            "functionality",
+            "capability",
+            "does",
+            "works",
+            "enables",
+            "allows",
+            "provides",
+            "offers",
+            "how it works",
+        ]
+    )
 
     # Need good conversation (configurable minimum exchanges)
     has_enough_exchanges = len(messages) >= RESEARCH_CONFIG.MIN_EXCHANGES_FOR_QUESTIONS
 
     # Should confirm if we have good context but haven't confirmed yet
     return (
-        has_business_idea and
-        has_target_customer and
-        (has_problem_context or has_feature_context) and
-        has_enough_exchanges
+        has_business_idea
+        and has_target_customer
+        and (has_problem_context or has_feature_context)
+        and has_enough_exchanges
     )
+
 
 def determine_research_stage(context: Optional[ResearchContext]) -> str:
     """Determine the current research stage based on context."""
@@ -1386,11 +1777,16 @@ def determine_research_stage(context: Optional[ResearchContext]) -> str:
     else:
         return "validation"
 
+
 # Note: detect_industry_context function replaced with LLM-based classify_industry_with_llm
+
 
 def get_industry_guidance(industry: str) -> str:
     """Get industry-specific guidance for research questions."""
-    return INDUSTRY_GUIDANCE.GUIDANCE_TEMPLATES.get(industry, INDUSTRY_GUIDANCE.GUIDANCE_TEMPLATES["general"])
+    return INDUSTRY_GUIDANCE.GUIDANCE_TEMPLATES.get(
+        industry, INDUSTRY_GUIDANCE.GUIDANCE_TEMPLATES["general"]
+    )
+
 
 def format_questions_for_chat(questions: ResearchQuestions) -> str:
     """Format research questions for display in chat."""
@@ -1416,7 +1812,10 @@ def format_questions_for_chat(questions: ResearchQuestions) -> str:
 
     return formatted.strip()
 
-async def extract_context_with_llm(llm_service, conversation_context: str, latest_input: str) -> dict:
+
+async def extract_context_with_llm(
+    llm_service, conversation_context: str, latest_input: str
+) -> dict:
     """Extract business context using LLM analysis instead of keyword matching."""
 
     prompt = f"""Analyze this customer research conversation and extract the key business context.
@@ -1451,18 +1850,19 @@ Return only valid JSON:"""
     try:
         response = await llm_service.generate_text(
             prompt=prompt,
-            temperature=0.1,
-            max_tokens=4000  # Increased from 1000 to handle longer conversations
+            temperature=0.0,  # Use 0.0 for JSON responses to ensure consistent formatting
+            max_tokens=4000,  # Increased from 1000 to handle longer conversations
         )
 
         logger.info(f"LLM context extraction response: {response}")
 
         # Parse JSON response
         import json
+
         response_clean = response.strip()
-        if response_clean.startswith('```json'):
+        if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
+        if response_clean.endswith("```"):
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
@@ -1474,17 +1874,18 @@ Return only valid JSON:"""
 
     except Exception as e:
         logger.error(f"Error extracting context with LLM: {str(e)}")
-        logger.error(f"Raw response was: {response if 'response' in locals() else 'No response'}")
+        logger.error(
+            f"Raw response was: {response if 'response' in locals() else 'No response'}"
+        )
 
         # Fallback: extract context manually from conversation
         fallback_context = extract_context_manually(conversation_context, latest_input)
         logger.info(f"Using fallback context: {fallback_context}")
         return fallback_context
 
+
 async def classify_industry_with_llm(
-    llm_service,
-    conversation_context: str,
-    latest_input: str
+    llm_service, conversation_context: str, latest_input: str
 ) -> dict:
     """Classify industry using LLM analysis instead of keyword matching."""
 
@@ -1526,18 +1927,19 @@ Rules:
     try:
         response = await llm_service.generate_text(
             prompt=prompt,
-            temperature=0.2,
-            max_tokens=4000
+            temperature=0.0,
+            max_tokens=4000,  # Use 0.0 for JSON responses
         )
 
         logger.info(f"LLM industry classification response: {response}")
 
         # Parse JSON response
         import json
+
         response_clean = response.strip()
-        if response_clean.startswith('```json'):
+        if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
+        if response_clean.endswith("```"):
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
@@ -1550,46 +1952,49 @@ Rules:
         # Fallback to simple keyword-based classification
         return classify_industry_fallback(conversation_context, latest_input)
 
+
 def classify_industry_fallback(conversation_context: str, latest_input: str) -> dict:
     """Fallback industry classification when LLM fails."""
 
     combined_text = f"{conversation_context} {latest_input}".lower()
 
     # Simple keyword-based detection as fallback
-    if any(word in combined_text for word in ['ux', 'user research', 'design', 'usability']):
+    if any(
+        word in combined_text for word in ["ux", "user research", "design", "usability"]
+    ):
         return {
             "industry": "ux_research",
             "confidence": 0.7,
             "reasoning": "Detected UX/design keywords in conversation",
-            "sub_categories": ["user research", "design"]
+            "sub_categories": ["user research", "design"],
         }
-    elif any(word in combined_text for word in ['product', 'feature', 'roadmap']):
+    elif any(word in combined_text for word in ["product", "feature", "roadmap"]):
         return {
             "industry": "product_management",
             "confidence": 0.7,
             "reasoning": "Detected product management keywords",
-            "sub_categories": ["product development", "features"]
+            "sub_categories": ["product development", "features"],
         }
-    elif any(word in combined_text for word in ['healthcare', 'medical', 'patient', 'doctor']):
+    elif any(
+        word in combined_text for word in ["healthcare", "medical", "patient", "doctor"]
+    ):
         return {
             "industry": "healthcare",
             "confidence": 0.8,
             "reasoning": "Detected healthcare keywords",
-            "sub_categories": ["medical", "patient care"]
+            "sub_categories": ["medical", "patient care"],
         }
     else:
         return {
             "industry": "general",
             "confidence": 0.5,
             "reasoning": "Could not determine specific industry from conversation",
-            "sub_categories": ["business", "general"]
+            "sub_categories": ["business", "general"],
         }
 
+
 async def analyze_user_intent_with_llm(
-    llm_service,
-    conversation_context: str,
-    latest_input: str,
-    messages: List[Message]
+    llm_service, conversation_context: str, latest_input: str, messages: List[Message]
 ) -> dict:
     """Analyze user intent using LLM instead of keyword matching."""
 
@@ -1638,18 +2043,19 @@ Examples:
     try:
         response = await llm_service.generate_text(
             prompt=prompt,
-            temperature=0.2,
-            max_tokens=2000
+            temperature=0.0,
+            max_tokens=2000,  # Use 0.0 for JSON responses
         )
 
         logger.info(f"LLM user intent analysis response: {response}")
 
         # Parse JSON response
         import json
+
         response_clean = response.strip()
-        if response_clean.startswith('```json'):
+        if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
+        if response_clean.endswith("```"):
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
@@ -1662,6 +2068,7 @@ Examples:
         # Fallback to simple keyword matching
         return analyze_user_intent_fallback(latest_input, last_assistant_message)
 
+
 def analyze_user_intent_fallback(user_input: str, last_assistant_message: str) -> dict:
     """Fallback user intent analysis when LLM fails."""
 
@@ -1669,45 +2076,63 @@ def analyze_user_intent_fallback(user_input: str, last_assistant_message: str) -
     assistant_lower = last_assistant_message.lower()
 
     # Check if assistant was asking for confirmation
-    was_asking_confirmation = any(phrase in assistant_lower for phrase in [
-        'does this sound', 'is this correct', 'does this capture', 'sound right'
-    ])
+    was_asking_confirmation = any(
+        phrase in assistant_lower
+        for phrase in [
+            "does this sound",
+            "is this correct",
+            "does this capture",
+            "sound right",
+        ]
+    )
 
     if was_asking_confirmation:
         # User is responding to a confirmation request
-        if any(phrase in input_lower for phrase in ['yes', 'correct', 'right', 'exactly', 'sounds good']):
+        if any(
+            phrase in input_lower
+            for phrase in ["yes", "correct", "right", "exactly", "sounds good"]
+        ):
             return {
                 "intent": "confirmation",
                 "confidence": 0.7,
                 "reasoning": "User responded positively to confirmation request",
                 "specific_feedback": "Confirmed assistant's understanding",
-                "next_action": "Generate research questions"
+                "next_action": "Generate research questions",
             }
-        elif any(phrase in input_lower for phrase in ['no', 'nope', 'not', 'wrong', 'incorrect']):
+        elif any(
+            phrase in input_lower
+            for phrase in ["no", "nope", "not", "wrong", "incorrect"]
+        ):
             return {
                 "intent": "rejection",
                 "confidence": 0.7,
                 "reasoning": "User responded negatively to confirmation request",
                 "specific_feedback": "Rejected assistant's understanding",
-                "next_action": "Ask for clarification on what was wrong"
+                "next_action": "Ask for clarification on what was wrong",
             }
-        elif any(phrase in input_lower for phrase in ['but', 'also', 'more', 'clarify', 'add']):
+        elif any(
+            phrase in input_lower
+            for phrase in ["but", "also", "more", "clarify", "add"]
+        ):
             return {
                 "intent": "clarification",
                 "confidence": 0.6,
                 "reasoning": "User wants to add or clarify information",
                 "specific_feedback": "Wants to provide additional information",
-                "next_action": "Ask what they want to clarify or add"
+                "next_action": "Ask what they want to clarify or add",
             }
 
     # Check for explicit question requests
-    if any(phrase in input_lower for phrase in ['generate questions', 'create questions', 'ready for questions']):
+    if any(
+        phrase in input_lower
+        for phrase in ["generate questions", "create questions", "ready for questions"]
+    ):
         return {
             "intent": "question_request",
             "confidence": 0.8,
             "reasoning": "User explicitly requested research questions",
             "specific_feedback": "Wants research questions generated",
-            "next_action": "Generate research questions"
+            "next_action": "Generate research questions",
         }
 
     # Default to continuation
@@ -1716,13 +2141,12 @@ def analyze_user_intent_fallback(user_input: str, last_assistant_message: str) -
         "confidence": 0.5,
         "reasoning": "User is continuing the conversation with more information",
         "specific_feedback": "Providing additional information",
-        "next_action": "Continue conversation and gather more details"
+        "next_action": "Continue conversation and gather more details",
     }
 
+
 async def validate_business_readiness_with_llm(
-    llm_service,
-    conversation_context: str,
-    latest_input: str
+    llm_service, conversation_context: str, latest_input: str
 ) -> dict:
     """Validate business readiness for question generation using LLM analysis."""
 
@@ -1782,18 +2206,19 @@ The user must still explicitly confirm before questions are generated."""
     try:
         response = await llm_service.generate_text(
             prompt=prompt,
-            temperature=0.2,
-            max_tokens=4000
+            temperature=0.0,
+            max_tokens=4000,  # Use 0.0 for JSON responses
         )
 
         logger.info(f"LLM business validation response: {response}")
 
         # Parse JSON response
         import json
+
         response_clean = response.strip()
-        if response_clean.startswith('```json'):
+        if response_clean.startswith("```json"):
             response_clean = response_clean[7:]
-        if response_clean.endswith('```'):
+        if response_clean.endswith("```"):
             response_clean = response_clean[:-3]
         response_clean = response_clean.strip()
 
@@ -1806,63 +2231,135 @@ The user must still explicitly confirm before questions are generated."""
         # Fallback to simple validation
         return validate_business_readiness_fallback(conversation_context, latest_input)
 
-def validate_business_readiness_fallback(conversation_context: str, latest_input: str) -> dict:
+
+def validate_business_readiness_fallback(
+    conversation_context: str, latest_input: str
+) -> dict:
     """Fallback business validation when LLM fails."""
 
     context_lower = conversation_context.lower()
 
     # Check for specific, detailed business elements (not just keywords)
-    has_specific_business_idea = any(word in context_lower for word in [
-        'app', 'platform', 'tool', 'service', 'product', 'system', 'software', 'api', 'dashboard'
-    ]) and any(word in context_lower for word in [
-        'build', 'create', 'develop', 'make', 'design', 'automation', 'management'
-    ])
-
-    has_specific_customers = any(word in context_lower for word in [
-        'researcher', 'manager', 'developer', 'designer', 'team', 'company', 'business', 'organization'
-    ]) or (
-        any(word in context_lower for word in ['customer', 'user', 'client']) and
-        any(word in context_lower for word in ['who', 'target', 'specific', 'type'])
+    has_specific_business_idea = any(
+        word in context_lower
+        for word in [
+            "app",
+            "platform",
+            "tool",
+            "service",
+            "product",
+            "system",
+            "software",
+            "api",
+            "dashboard",
+        ]
+    ) and any(
+        word in context_lower
+        for word in [
+            "build",
+            "create",
+            "develop",
+            "make",
+            "design",
+            "automation",
+            "management",
+        ]
     )
 
-    has_specific_problem = any(word in context_lower for word in [
-        'manual', 'time consuming', 'difficult', 'hard', 'slow', 'inefficient', 'frustrating'
-    ]) or (
-        any(word in context_lower for word in ['problem', 'challenge', 'pain']) and
-        any(word in context_lower for word in ['because', 'since', 'takes', 'costs', 'waste'])
+    has_specific_customers = any(
+        word in context_lower
+        for word in [
+            "researcher",
+            "manager",
+            "developer",
+            "designer",
+            "team",
+            "company",
+            "business",
+            "organization",
+        ]
+    ) or (
+        any(word in context_lower for word in ["customer", "user", "client"])
+        and any(word in context_lower for word in ["who", "target", "specific", "type"])
+    )
+
+    has_specific_problem = any(
+        word in context_lower
+        for word in [
+            "manual",
+            "time consuming",
+            "difficult",
+            "hard",
+            "slow",
+            "inefficient",
+            "frustrating",
+        ]
+    ) or (
+        any(word in context_lower for word in ["problem", "challenge", "pain"])
+        and any(
+            word in context_lower
+            for word in ["because", "since", "takes", "costs", "waste"]
+        )
     )
 
     # Check for content depth indicators
-    has_detail_indicators = any(phrase in context_lower for phrase in [
-        'because', 'since', 'currently', 'right now', 'takes too long', 'hard to', 'difficult to',
-        'specifically', 'particularly', 'especially', 'for example', 'such as'
-    ])
+    has_detail_indicators = any(
+        phrase in context_lower
+        for phrase in [
+            "because",
+            "since",
+            "currently",
+            "right now",
+            "takes too long",
+            "hard to",
+            "difficult to",
+            "specifically",
+            "particularly",
+            "especially",
+            "for example",
+            "such as",
+        ]
+    )
 
     # Focus on content completeness, not conversation length
-    ready = has_specific_business_idea and has_specific_customers and has_specific_problem and has_detail_indicators
+    ready = (
+        has_specific_business_idea
+        and has_specific_customers
+        and has_specific_problem
+        and has_detail_indicators
+    )
 
     return {
         "ready_for_questions": ready,
         "confidence": 0.6,
         "reasoning": f"Content-based validation: specific_business_idea={has_specific_business_idea}, specific_customers={has_specific_customers}, specific_problem={has_specific_problem}, detail_indicators={has_detail_indicators}",
-        "missing_elements": [elem for elem, present in [
-            ("specific_business_idea", has_specific_business_idea),
-            ("specific_target_customers", has_specific_customers),
-            ("specific_problem_definition", has_specific_problem),
-            ("contextual_details", has_detail_indicators)
-        ] if not present],
+        "missing_elements": [
+            elem
+            for elem, present in [
+                ("specific_business_idea", has_specific_business_idea),
+                ("specific_target_customers", has_specific_customers),
+                ("specific_problem_definition", has_specific_problem),
+                ("contextual_details", has_detail_indicators),
+            ]
+            if not present
+        ],
         "conversation_quality": "medium" if ready else "low",
         "business_clarity": {
             "idea_clarity": 0.7 if has_specific_business_idea else 0.3,
             "customer_clarity": 0.7 if has_specific_customers else 0.3,
-            "problem_clarity": 0.7 if has_specific_problem else 0.3
+            "problem_clarity": 0.7 if has_specific_problem else 0.3,
         },
-        "recommendations": [] if ready else [
-            "Provide more specific details about what you're building",
-            "Identify specific customer roles or personas",
-            "Explain the specific problem and why it matters"
-        ]
+        "recommendations": (
+            []
+            if ready
+            else [
+                "Provide more specific details about what you're building",
+                "Identify specific customer roles or personas",
+                "Explain the specific problem and why it matters",
+            ]
+        ),
     }
+
 
 def extract_context_manually(conversation_context: str, latest_input: str) -> dict:
     """Manual fallback context extraction when LLM fails."""
@@ -1874,13 +2371,18 @@ def extract_context_manually(conversation_context: str, latest_input: str) -> di
     business_idea = None
     if "feature" in input_lower:
         business_idea = "feature or product development"
-    elif "api" in context_lower and ("legacy" in context_lower or "system" in context_lower):
+    elif "api" in context_lower and (
+        "legacy" in context_lower or "system" in context_lower
+    ):
         business_idea = "API that transforms legacy systems into reliable endpoints"
     elif "middleware" in context_lower:
         business_idea = "Internal middleware tool for syncing data between systems"
     elif "api" in context_lower:
         business_idea = "API service for data integration"
-    elif any(word in context_lower for word in ["app", "tool", "service", "platform", "product", "solution"]):
+    elif any(
+        word in context_lower
+        for word in ["app", "tool", "service", "platform", "product", "solution"]
+    ):
         business_idea = "digital product or service"
 
     # Extract target customer - be more generous
@@ -1891,7 +2393,9 @@ def extract_context_manually(conversation_context: str, latest_input: str) -> di
         target_customer = "Internal services within the organization"
     elif "services" in context_lower and "organisation" in context_lower:
         target_customer = "Other services within the organization"
-    elif any(word in context_lower for word in ["user", "client", "people", "business"]):
+    elif any(
+        word in context_lower for word in ["user", "client", "people", "business"]
+    ):
         target_customer = "users or clients"
 
     # Extract problem - be more generous
@@ -1902,35 +2406,41 @@ def extract_context_manually(conversation_context: str, latest_input: str) -> di
         problem = "Hard to have custom integrations between systems"
     elif "syncing data" in context_lower:
         problem = "Difficulty syncing data between different systems"
-    elif "month to have a full integration" in context_lower and "maintenance is hard" in context_lower:
+    elif (
+        "month to have a full integration" in context_lower
+        and "maintenance is hard" in context_lower
+    ):
         problem = "Time-consuming integrations (around a month) and hard-to-maintain direct integrations"
     elif "parallel development" in context_lower:
         problem = "Forces parallel development due to integration difficulties"
-    elif any(word in context_lower for word in ["hard", "difficult", "challenge", "problem", "issue"]):
+    elif any(
+        word in context_lower
+        for word in ["hard", "difficult", "challenge", "problem", "issue"]
+    ):
         problem = "operational or technical challenges"
 
     return {
         "business_idea": business_idea,
         "target_customer": target_customer,
-        "problem": problem
+        "problem": problem,
     }
+
 
 def determine_research_stage_from_context(context: dict) -> str:
     """Determine research stage from extracted context."""
-    if not context.get('business_idea'):
+    if not context.get("business_idea"):
         return "initial"
-    elif not context.get('target_customer'):
+    elif not context.get("target_customer"):
         return "business_idea"
-    elif not context.get('problem'):
+    elif not context.get("problem"):
         return "target_customer"
     else:
         return "validation"
 
+
 @router.get("/sessions")
 async def get_research_sessions(
-    user_id: Optional[str] = None,
-    limit: int = 20,
-    db: Session = Depends(get_db)
+    user_id: Optional[str] = None, limit: int = 20, db: Session = Depends(get_db)
 ):
     """Get research sessions for dashboard."""
     try:
@@ -1954,11 +2464,9 @@ async def get_research_sessions(
         logger.error(f"Error getting sessions: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get sessions: {str(e)}")
 
+
 @router.get("/sessions/{session_id}")
-async def get_research_session(
-    session_id: str,
-    db: Session = Depends(get_db)
-):
+async def get_research_session(session_id: str, db: Session = Depends(get_db)):
     """Get a specific research session."""
     try:
         session_service = ResearchSessionService(db)
@@ -1982,7 +2490,7 @@ async def get_research_session(
             "research_questions": session.research_questions,
             "created_at": session.created_at,
             "updated_at": session.updated_at,
-            "completed_at": session.completed_at
+            "completed_at": session.completed_at,
         }
 
     except HTTPException:
@@ -1991,11 +2499,9 @@ async def get_research_session(
         logger.error(f"Error getting session: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get session: {str(e)}")
 
+
 @router.delete("/sessions/{session_id}")
-async def delete_research_session(
-    session_id: str,
-    db: Session = Depends(get_db)
-):
+async def delete_research_session(session_id: str, db: Session = Depends(get_db)):
     """Delete a specific research session."""
     try:
         session_service = ResearchSessionService(db)
@@ -2010,7 +2516,10 @@ async def delete_research_session(
         raise
     except Exception as e:
         logger.error(f"Error deleting session: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete session: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete session: {str(e)}"
+        )
+
 
 @router.post("/test-simple-chat")
 async def test_simple_chat(db: Session = Depends(get_db)):
@@ -2025,7 +2534,7 @@ async def test_simple_chat(db: Session = Depends(get_db)):
             user_id="test_user",
             business_idea="Test Business",
             target_customer="Test Customers",
-            problem="Test Problem"
+            problem="Test Problem",
         )
         session = session_service.create_session(session_data)
         session_id = session.session_id
@@ -2036,7 +2545,7 @@ async def test_simple_chat(db: Session = Depends(get_db)):
             "id": "user_1",
             "content": "I want to test message saving",
             "role": "user",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         # Save user message
@@ -2049,7 +2558,7 @@ async def test_simple_chat(db: Session = Depends(get_db)):
             "id": "assistant_1",
             "content": "Thank you for testing! Your message has been saved.",
             "role": "assistant",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         # Save assistant message
@@ -2063,20 +2572,24 @@ async def test_simple_chat(db: Session = Depends(get_db)):
         return {
             "status": "success",
             "session_id": session_id,
-            "messages_saved": len(retrieved_session.messages) if retrieved_session.messages else 0,
+            "messages_saved": (
+                len(retrieved_session.messages) if retrieved_session.messages else 0
+            ),
             "messages": retrieved_session.messages,
-            "message": "Simple chat test completed successfully"
+            "message": "Simple chat test completed successfully",
         }
 
     except Exception as e:
         logger.error(f"Simple chat test failed: {str(e)}")
         import traceback
+
         logger.error(f"Full traceback: {traceback.format_exc()}")
         return {
             "status": "error",
             "error": str(e),
-            "message": "Simple chat test failed"
+            "message": "Simple chat test failed",
         }
+
 
 @router.post("/test-gemini")
 async def test_gemini():
@@ -2094,10 +2607,7 @@ async def test_gemini():
         simple_response = await client.generate_content(
             task=TaskType.TEXT_GENERATION,
             prompt="Hello, please respond with just the word 'working'",
-            custom_config={
-                "temperature": 0.0,
-                "max_output_tokens": 10
-            }
+            custom_config={"temperature": 0.0, "max_output_tokens": 10},
         )
 
         logger.info(f"Direct client test response: {simple_response}")
@@ -2108,7 +2618,7 @@ async def test_gemini():
         service_response = await llm_service.generate_text(
             prompt="Hello, please respond with just the word 'working'",
             temperature=0.0,
-            max_tokens=10
+            max_tokens=10,
         )
 
         logger.info(f"LLM service test response: {service_response}")
@@ -2117,15 +2627,12 @@ async def test_gemini():
             "status": "success",
             "direct_client_response": simple_response,
             "llm_service_response": service_response,
-            "message": "Gemini tests completed"
+            "message": "Gemini tests completed",
         }
 
     except Exception as e:
         logger.error(f"Gemini test failed: {str(e)}")
         import traceback
+
         logger.error(f"Full traceback: {traceback.format_exc()}")
-        return {
-            "status": "error",
-            "error": str(e),
-            "message": "Gemini test failed"
-        }
+        return {"status": "error", "error": str(e), "message": "Gemini test failed"}
