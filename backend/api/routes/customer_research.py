@@ -1509,7 +1509,9 @@ def generate_comprehensive_fallback_questions(
     }
 
 
-def generate_fallback_questions(context: ResearchContext) -> ResearchQuestions:
+async def generate_fallback_questions(
+    context: ResearchContext, llm_service=None
+) -> ResearchQuestions:
     """Generate fallback questions when Gemini is not working."""
 
     business_type = context.businessIdea or "solution"
@@ -1530,27 +1532,47 @@ def generate_fallback_questions(context: ResearchContext) -> ResearchQuestions:
         business_context = "solution"
         solution_context = "solution"
 
-    return ResearchQuestions(
-        problemDiscovery=[
-            f"How do {customer_type} currently handle this type of challenge?",
-            f"What's the most frustrating part of dealing with {problem_area}?",
-            "How much time do you spend on this each week?",
-            "What tools or methods have you tried before to solve this?",
-            f"What would an ideal solution look like for {customer_type}?",
-        ],
-        solutionValidation=[
-            f"Would you be interested in trying a {business_context} like this?",
-            f"What features would be most important to you in a {solution_context}?",
-            f"How much would you be willing to pay for a {solution_context} that solves this problem?",
-            "What concerns would you have about switching to something new?",
-            f"How do you typically evaluate new {solution_context}s in this area?",
-        ],
-        followUp=[
-            "Who else do you know with this same problem?",
-            f"How do you usually discover new {solution_context}s like this?",
-            "What would convince you to try something new in this area?",
-        ],
-    )
+    # Generate contextual questions using LLM instead of templates
+    try:
+        if llm_service:
+            contextual_questions = await _generate_fallback_questions_with_llm(
+                llm_service,
+                business_context,
+                customer_type,
+                problem_area,
+                solution_context,
+            )
+        else:
+            raise Exception("No LLM service available")
+        return ResearchQuestions(
+            problemDiscovery=contextual_questions.get("problemDiscovery", []),
+            solutionValidation=contextual_questions.get("solutionValidation", []),
+            followUp=contextual_questions.get("followUp", []),
+        )
+    except Exception as e:
+        logger.error(f"LLM fallback question generation failed: {e}")
+        # Ultimate fallback to context-aware templates
+        return ResearchQuestions(
+            problemDiscovery=[
+                f"How do {customer_type} currently handle challenges with {business_context}?",
+                f"What's the most frustrating part of dealing with {problem_area}?",
+                f"How much time do {customer_type} spend on this each week?",
+                f"What tools or methods have {customer_type} tried before to solve this?",
+                f"What would an ideal {solution_context} look like for {customer_type}?",
+            ],
+            solutionValidation=[
+                f"Would {customer_type} be interested in trying a {business_context} like this?",
+                f"What features would be most important to {customer_type} in a {solution_context}?",
+                f"How much would {customer_type} be willing to pay for a {solution_context} that solves this problem?",
+                f"What concerns would {customer_type} have about switching to something new?",
+                f"How do {customer_type} typically evaluate new {solution_context}s in this area?",
+            ],
+            followUp=[
+                "Who else do you know with this same problem?",
+                f"How do you usually discover new {solution_context}s like this?",
+                "What would convince you to try something new in this area?",
+            ],
+        )
 
 
 def should_generate_research_questions(
@@ -1882,6 +1904,218 @@ Return only valid JSON:"""
         fallback_context = extract_context_manually(conversation_context, latest_input)
         logger.info(f"Using fallback context: {fallback_context}")
         return fallback_context
+
+
+async def _generate_fallback_questions_with_llm(
+    llm_service,
+    business_context: str,
+    customer_type: str,
+    problem_area: str,
+    solution_context: str,
+) -> Dict[str, List[str]]:
+    """Generate contextual fallback questions using LLM instead of hardcoded templates"""
+    try:
+        # Create LLM prompt for contextual question generation
+        prompt = f"""
+Generate specific, contextual research questions based on this business context.
+
+BUSINESS CONTEXT:
+Business Type: {business_context}
+Target Customer: {customer_type}
+Problem Area: {problem_area}
+Solution Type: {solution_context}
+
+INSTRUCTIONS:
+Generate questions that are:
+1. Specific to this business context (reference actual business details)
+2. Relevant to the target customer type
+3. Focused on understanding real problems and needs
+4. Professional but conversational in tone
+5. Avoid generic templates - make them contextual
+
+Return a JSON object with exactly this structure:
+{{
+    "problemDiscovery": [
+        "Question 1 specific to the business context",
+        "Question 2 about current challenges",
+        "Question 3 about time/effort spent",
+        "Question 4 about existing solutions tried",
+        "Question 5 about ideal solution"
+    ],
+    "solutionValidation": [
+        "Question 1 about interest in this specific solution",
+        "Question 2 about important features",
+        "Question 3 about pricing/value",
+        "Question 4 about concerns or barriers",
+        "Question 5 about evaluation criteria"
+    ],
+    "followUp": [
+        "Question 1 about recommendations",
+        "Question 2 about discovery methods",
+        "Question 3 about decision factors"
+    ]
+}}
+
+IMPORTANT:
+- Reference the actual business context, customer type, and problem area in questions
+- Make questions specific to the solution type
+- Avoid generic phrases like "this service" or "your needs"
+- Use the actual context provided
+"""
+
+        # Call LLM with temperature 0 for consistent results
+        response = await llm_service.generate_text(
+            prompt=prompt, temperature=0, max_tokens=1500
+        )
+
+        # Parse LLM response
+        import json
+
+        try:
+            # Clean response
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            questions = json.loads(response_clean)
+
+            # Validate structure
+            required_keys = ["problemDiscovery", "solutionValidation", "followUp"]
+            for key in required_keys:
+                if key not in questions or not isinstance(questions[key], list):
+                    raise ValueError(f"Missing or invalid {key} in LLM response")
+
+            logger.info(f"✅ Generated contextual fallback questions")
+            return questions
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM fallback question response: {e}")
+            raise
+
+    except Exception as e:
+        logger.error(f"Error generating contextual fallback questions: {e}")
+        # Return minimal context-aware questions as ultimate fallback
+        return {
+            "problemDiscovery": [
+                f"How do {customer_type} currently handle challenges with {business_context}?",
+                f"What's the most frustrating part of dealing with {problem_area}?",
+                f"How much time do {customer_type} spend on this each week?",
+                f"What tools or methods have {customer_type} tried before to solve this?",
+                f"What would an ideal {solution_context} look like for {customer_type}?",
+            ],
+            "solutionValidation": [
+                f"Would {customer_type} be interested in trying a {business_context} like this?",
+                f"What features would be most important to {customer_type} in a {solution_context}?",
+                f"How much would {customer_type} be willing to pay for a {solution_context} that solves this problem?",
+                f"What concerns would {customer_type} have about switching to something new?",
+                f"How do {customer_type} typically evaluate new {solution_context}s in this area?",
+            ],
+            "followUp": [
+                f"Who else do {customer_type} know with this same problem?",
+                f"How do {customer_type} usually discover new {solution_context}s like this?",
+                f"What would convince {customer_type} to try something new in this area?",
+            ],
+        }
+
+
+async def _generate_dynamic_stakeholders_from_conversation(
+    llm_service, conversation_text: str, context_analysis: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate stakeholders dynamically using LLM based on conversation context"""
+    try:
+        # Create LLM prompt for stakeholder extraction
+        stakeholder_prompt = f"""
+Based on this customer research conversation, extract the specific stakeholders mentioned and generate appropriate names and descriptions.
+
+CONVERSATION:
+{conversation_text}
+
+CONTEXT ANALYSIS:
+Business Idea: {context_analysis.get('business_idea', 'Not specified')}
+Target Customer: {context_analysis.get('target_customer', 'Not specified')}
+Problem: {context_analysis.get('problem', 'Not specified')}
+
+INSTRUCTIONS:
+1. Extract stakeholders actually mentioned in the conversation
+2. Generate stakeholder names that reflect the conversation context
+3. Create descriptions based on actual conversation details
+4. Identify both primary users and secondary supporters/helpers
+
+Return a JSON object with this structure:
+{{
+    "primary": [
+        {{
+            "name": "Specific name based on conversation",
+            "description": "Description based on actual conversation details"
+        }}
+    ],
+    "secondary": [
+        {{
+            "name": "Helper/stakeholder mentioned in conversation",
+            "description": "Based on actual conversation context"
+        }}
+    ],
+    "industry": "detected_industry",
+    "reasoning": "Why these stakeholders were identified"
+}}
+
+IMPORTANT:
+- Use ONLY stakeholders actually mentioned in the conversation
+- Base descriptions on actual conversation details
+- Do NOT add generic stakeholders unless specifically mentioned
+- Make names and descriptions contextual to the business discussed
+"""
+
+        # Call LLM with temperature 0 for consistent JSON
+        response = await llm_service.generate_text(
+            prompt=stakeholder_prompt, temperature=0, max_tokens=1000
+        )
+
+        # Parse LLM response
+        import json
+
+        try:
+            # Clean response
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            dynamic_stakeholders = json.loads(response_clean)
+
+            logger.info(
+                f"✅ Generated dynamic stakeholders from conversation: {dynamic_stakeholders}"
+            )
+            return dynamic_stakeholders
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM stakeholder response: {e}")
+            raise
+
+    except Exception as e:
+        logger.error(f"Error generating dynamic stakeholders from conversation: {e}")
+        # Fallback to conversation-aware defaults
+        return {
+            "primary": [
+                {
+                    "name": f"{context_analysis.get('target_customer', 'Target Customers')}",
+                    "description": f"Primary users of {context_analysis.get('business_idea', 'the service')}",
+                }
+            ],
+            "secondary": [
+                {
+                    "name": "Support Network",
+                    "description": "People who help with current challenges",
+                }
+            ],
+            "industry": "general",
+            "reasoning": "Generated from conversation context",
+        }
 
 
 async def classify_industry_with_llm(

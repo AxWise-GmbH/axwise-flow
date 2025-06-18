@@ -22,7 +22,7 @@ async def generate_response_enhanced(
     business_validation: Dict[str, Any],
     industry_analysis: Optional[Dict[str, Any]],
     stakeholder_detection: Optional[Dict[str, Any]],
-    conversation_flow: Dict[str, Any]
+    conversation_flow: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Generate enhanced response with V3 features."""
 
@@ -35,15 +35,24 @@ async def generate_response_enhanced(
         if should_generate_questions:
             logger.info("Generating comprehensive questions")
             return await _generate_comprehensive_questions(
-                service, context_analysis, stakeholder_detection,
-                industry_analysis, conversation_flow
+                service,
+                context_analysis,
+                stakeholder_detection,
+                industry_analysis,
+                conversation_flow,
             )
         else:
             logger.info("Generating UX research methodology-based guidance response")
             return await _generate_guidance_response(
-                service, conversation_context, latest_input, context_analysis,
-                intent_analysis, business_validation, conversation_flow,
-                industry_analysis, stakeholder_detection
+                service,
+                conversation_context,
+                latest_input,
+                context_analysis,
+                intent_analysis,
+                business_validation,
+                conversation_flow,
+                industry_analysis,
+                stakeholder_detection,
             )
 
     except Exception as e:
@@ -55,39 +64,46 @@ def _should_generate_questions(
     context_analysis: Dict[str, Any],
     intent_analysis: Dict[str, Any],
     business_validation: Dict[str, Any],
-    conversation_flow: Dict[str, Any]
+    conversation_flow: Dict[str, Any],
 ) -> bool:
     """Determine if we should generate questions (V1 sustainable pattern)."""
 
     try:
         # V1 SUSTAINABLE PATTERN: Simple intent-based decision
-        user_intent = intent_analysis.get('intent', '')
-        user_wants_questions = user_intent in ['question_request', 'generate_questions']
+        user_intent = intent_analysis.get("intent", "")
+        user_wants_questions = user_intent in ["question_request", "generate_questions"]
 
         # V1 SUSTAINABLE PATTERN: Basic context check (not complex multi-condition)
-        business_idea_1 = context_analysis.get('businessIdea')
-        business_idea_2 = context_analysis.get('business_idea')
+        business_idea_1 = context_analysis.get("businessIdea")
+        business_idea_2 = context_analysis.get("business_idea")
         has_business_context = bool(business_idea_1 or business_idea_2)
 
         # SIMPLE DECISION: User wants questions + has some business context
         should_generate = user_wants_questions and has_business_context
 
         logger.info(f"🎯 V1 Sustainable Question Decision: {should_generate}")
-        logger.info(f"  - User wants questions: {user_wants_questions} (intent: {user_intent})")
+        logger.info(
+            f"  - User wants questions: {user_wants_questions} (intent: {user_intent})"
+        )
         logger.info(f"  - Has business context: {has_business_context}")
         logger.info(f"  - businessIdea: {business_idea_1}")
         logger.info(f"  - business_idea: {business_idea_2}")
         logger.info(f"  - context_analysis keys: {list(context_analysis.keys())}")
 
         # Log additional context for debugging (but don't use in decision)
-        logger.debug(f"  - Business ready: {business_validation.get('ready_for_questions', False)}")
-        logger.debug(f"  - Conversation ready: {conversation_flow.get('readiness_for_questions', False)}")
+        logger.debug(
+            f"  - Business ready: {business_validation.get('ready_for_questions', False)}"
+        )
+        logger.debug(
+            f"  - Conversation ready: {conversation_flow.get('readiness_for_questions', False)}"
+        )
 
         return should_generate
 
     except Exception as e:
         logger.error(f"🚨 CRITICAL ERROR in question generation decision: {e}")
         import traceback
+
         logger.error(f"🚨 Full traceback: {traceback.format_exc()}")
         return False
 
@@ -97,51 +113,64 @@ async def _generate_comprehensive_questions(
     context_analysis: Dict[str, Any],
     stakeholder_detection: Optional[Dict[str, Any]],
     industry_analysis: Optional[Dict[str, Any]],
-    conversation_flow: Dict[str, Any]
+    conversation_flow: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Generate comprehensive questions using V3 stakeholder data with V1 Instructor reliability."""
 
     try:
-        logger.info("🚀 V3 SUSTAINABLE: Using Instructor for reliable question generation")
+        logger.info(
+            "🚀 V3 SUSTAINABLE: Using Instructor for reliable question generation"
+        )
 
         # V3 SUSTAINABLE: Use proven V1 question generation with Pydantic
-        logger.info("🚀 V3 SUSTAINABLE: Using proven V1 question generation with Pydantic")
+        logger.info(
+            "🚀 V3 SUSTAINABLE: Using proven V1 question generation with Pydantic"
+        )
 
         # Import V1 proven comprehensive question generation
-        from backend.api.routes.customer_research import generate_comprehensive_research_questions, ResearchContext
+        from backend.api.routes.customer_research import (
+            generate_comprehensive_research_questions,
+            ResearchContext,
+        )
         from backend.services.llm import LLMServiceFactory
 
         # Create LLM service
         llm_service = LLMServiceFactory.create("gemini")
 
         # Convert context to V1 format
-        business_idea = context_analysis.get('businessIdea') or context_analysis.get('business_idea', 'your business')
-        target_customer = context_analysis.get('targetCustomer') or context_analysis.get('target_customer', 'customers')
-        problem = context_analysis.get('problem', 'challenges they face')
+        business_idea = context_analysis.get("businessIdea") or context_analysis.get(
+            "business_idea", "your business"
+        )
+        target_customer = context_analysis.get(
+            "targetCustomer"
+        ) or context_analysis.get("target_customer", "customers")
+        problem = context_analysis.get("problem", "challenges they face")
 
         v1_context = ResearchContext(
-            businessIdea=business_idea,
-            targetCustomer=target_customer,
-            problem=problem
+            businessIdea=business_idea, targetCustomer=target_customer, problem=problem
         )
 
         # Use V1 proven comprehensive question generation with Instructor + Pydantic
-        logger.info("🎯 V3 SUSTAINABLE: Using V1 proven question generation with Pydantic models")
+        logger.info(
+            "🎯 V3 SUSTAINABLE: Using V1 proven question generation with Pydantic models"
+        )
         comprehensive_questions = await generate_comprehensive_research_questions(
             llm_service=llm_service,
             context=v1_context,
             conversation_history=[],  # V3 doesn't use conversation history for questions
-            stakeholder_data=stakeholder_detection  # Pass V3 stakeholder data if available
+            stakeholder_data=stakeholder_detection,  # Pass V3 stakeholder data if available
         )
 
         # Extract key metrics for logging and frontend display
-        primary_count = len(comprehensive_questions.get('primaryStakeholders', []))
-        secondary_count = len(comprehensive_questions.get('secondaryStakeholders', []))
-        time_estimate = comprehensive_questions.get('timeEstimate', {})
-        total_questions = time_estimate.get('totalQuestions', 0)
-        estimated_minutes = time_estimate.get('estimatedMinutes', '0-0')
+        primary_count = len(comprehensive_questions.get("primaryStakeholders", []))
+        secondary_count = len(comprehensive_questions.get("secondaryStakeholders", []))
+        time_estimate = comprehensive_questions.get("timeEstimate", {})
+        total_questions = time_estimate.get("totalQuestions", 0)
+        estimated_minutes = time_estimate.get("estimatedMinutes", "0-0")
 
-        logger.info(f"✅ V1 Instructor generated comprehensive questions: {primary_count} primary, {secondary_count} secondary stakeholders, {total_questions} total questions, {estimated_minutes} minutes")
+        logger.info(
+            f"✅ V1 Instructor generated comprehensive questions: {primary_count} primary, {secondary_count} secondary stakeholders, {total_questions} total questions, {estimated_minutes} minutes"
+        )
 
         # Return response with comprehensive questions and all metadata
         return {
@@ -161,78 +190,71 @@ async def _generate_comprehensive_questions(
                     "secondary_stakeholders": secondary_count,
                     "total_questions": total_questions,
                     "estimated_minutes": estimated_minutes,
-                    "breakdown": time_estimate.get('breakdown', {})
-                }
-            }
+                    "breakdown": time_estimate.get("breakdown", {}),
+                },
+            },
         }
 
     except Exception as e:
         logger.error(f"Comprehensive question generation failed: {e}")
-        return _create_emergency_questions(context_analysis)
+        return await _create_emergency_questions(context_analysis)
 
 
 # Removed broken Instructor function - V3 now uses proven V1 question generation directly
 
 
-def _generate_stakeholder_questions(
+async def _generate_stakeholder_questions(
     stakeholder: Dict[str, Any],
     business_idea: str,
     target_customer: str,
     problem: str,
-    stakeholder_type: str
+    stakeholder_type: str,
 ) -> Dict[str, Any]:
     """Generate questions for a specific stakeholder."""
 
     try:
-        stakeholder_name = stakeholder.get('name', 'Stakeholder') if isinstance(stakeholder, dict) else str(stakeholder)
-        stakeholder_desc = stakeholder.get('description', 'Key stakeholder') if isinstance(stakeholder, dict) else f'Key stakeholder: {stakeholder}'
+        stakeholder_name = (
+            stakeholder.get("name", "Stakeholder")
+            if isinstance(stakeholder, dict)
+            else str(stakeholder)
+        )
+        stakeholder_desc = (
+            stakeholder.get("description", "Key stakeholder")
+            if isinstance(stakeholder, dict)
+            else f"Key stakeholder: {stakeholder}"
+        )
 
-        if stakeholder_type == 'primary':
+        if stakeholder_type == "primary":
+            # Generate contextual questions using LLM instead of templates
+            contextual_questions = await _generate_contextual_questions_with_llm(
+                business_idea,
+                target_customer,
+                problem,
+                stakeholder_name,
+                stakeholder_desc,
+                "primary",
+            )
+
             return {
                 "name": stakeholder_name,
                 "description": stakeholder_desc,
-                "questions": {
-                    "problemDiscovery": [
-                        f"What challenges do you currently face with {_extract_service_type(business_idea)}?",
-                        f"How do you currently handle {_extract_problem_area(problem)}?",
-                        "What's the most frustrating part of your current situation?",
-                        "How often do you encounter these problems?",
-                        "What would make this easier for you?"
-                    ],
-                    "solutionValidation": [
-                        f"Would a {business_idea} help solve your problem?",
-                        "What features would be most important to you?",
-                        "How much would you be willing to pay for this service?",
-                        "What would convince you to try this service?",
-                        "What concerns would you have about using this?"
-                    ],
-                    "followUp": [
-                        "Would you recommend this to others in your situation?",
-                        "What else should we know about your needs?",
-                        "Any other feedback or suggestions?"
-                    ]
-                }
+                "questions": contextual_questions,
             }
         else:  # secondary
+            # Generate contextual questions using LLM instead of templates
+            contextual_questions = await _generate_contextual_questions_with_llm(
+                business_idea,
+                target_customer,
+                problem,
+                stakeholder_name,
+                stakeholder_desc,
+                "secondary",
+            )
+
             return {
                 "name": stakeholder_name,
                 "description": stakeholder_desc,
-                "questions": {
-                    "problemDiscovery": [
-                        f"How do you currently help {target_customer} with their needs?",
-                        "What challenges do you see them facing?",
-                        "How does this affect you or your family?"
-                    ],
-                    "solutionValidation": [
-                        f"Would you support using a {business_idea}?",
-                        "What would you want to see in this service?",
-                        "What concerns would you have?"
-                    ],
-                    "followUp": [
-                        "Would you help them access this service?",
-                        "Any other thoughts?"
-                    ]
-                }
+                "questions": contextual_questions,
             }
 
     except Exception as e:
@@ -243,8 +265,132 @@ def _generate_stakeholder_questions(
             "questions": {
                 "problemDiscovery": ["What challenges do you face?"],
                 "solutionValidation": ["Would this help you?"],
-                "followUp": ["Any other thoughts?"]
-            }
+                "followUp": ["Any other thoughts?"],
+            },
+        }
+
+
+async def _generate_contextual_questions_with_llm(
+    business_idea: str,
+    target_customer: str,
+    problem: str,
+    stakeholder_name: str,
+    stakeholder_desc: str,
+    stakeholder_type: str,
+) -> Dict[str, List[str]]:
+    """Generate contextual questions using LLM instead of hardcoded templates"""
+    try:
+        from backend.services.llm import LLMServiceFactory
+
+        llm_service = LLMServiceFactory.create("gemini")
+
+        # Create LLM prompt for contextual question generation
+        prompt = f"""
+Generate specific, contextual research questions for this stakeholder based on the business context.
+
+BUSINESS CONTEXT:
+Business Idea: {business_idea}
+Target Customer: {target_customer}
+Problem: {problem}
+
+STAKEHOLDER:
+Name: {stakeholder_name}
+Description: {stakeholder_desc}
+Type: {stakeholder_type}
+
+INSTRUCTIONS:
+Generate questions that are:
+1. Specific to this business context (reference actual business details)
+2. Relevant to this stakeholder's role and perspective
+3. Focused on understanding real problems and needs
+4. Professional but conversational in tone
+5. Avoid generic templates - make them contextual
+
+Return a JSON object with exactly this structure:
+{{
+    "problemDiscovery": [
+        "Question 1 specific to the business context",
+        "Question 2 that references actual stakeholder role",
+        "Question 3 about specific problems mentioned",
+        "Question 4 about current situation",
+        "Question 5 about pain points"
+    ],
+    "solutionValidation": [
+        "Question 1 about the specific solution proposed",
+        "Question 2 about features relevant to this stakeholder",
+        "Question 3 about willingness to use/support",
+        "Question 4 about concerns specific to this context",
+        "Question 5 about decision factors"
+    ],
+    "followUp": [
+        "Question 1 about recommendations",
+        "Question 2 about additional needs",
+        "Question 3 about other insights"
+    ]
+}}
+
+IMPORTANT:
+- Reference the actual business idea, target customer, and problems in questions
+- Make questions specific to the stakeholder's perspective
+- Avoid generic phrases like "this service" or "your needs"
+- Use the actual business context provided
+"""
+
+        # Call LLM with temperature 0 for consistent results
+        response = await llm_service.generate_text(
+            prompt=prompt, temperature=0, max_tokens=1500
+        )
+
+        # Parse LLM response
+        import json
+
+        try:
+            # Clean response
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            questions = json.loads(response_clean)
+
+            # Validate structure
+            required_keys = ["problemDiscovery", "solutionValidation", "followUp"]
+            for key in required_keys:
+                if key not in questions or not isinstance(questions[key], list):
+                    raise ValueError(f"Missing or invalid {key} in LLM response")
+
+            logger.info(f"✅ Generated contextual questions for {stakeholder_name}")
+            return questions
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM question response: {e}")
+            raise
+
+    except Exception as e:
+        logger.error(f"Error generating contextual questions: {e}")
+        # Fallback to minimal context-aware questions
+        return {
+            "problemDiscovery": [
+                f"What challenges do you currently face with {business_idea or 'this type of service'}?",
+                f"How do you currently handle {problem or 'these needs'}?",
+                "What's the most frustrating part of your current situation?",
+                "How often do you encounter these problems?",
+                "What would make this easier for you?",
+            ],
+            "solutionValidation": [
+                f"Would {business_idea or 'this solution'} help solve your problem?",
+                "What features would be most important to you?",
+                "How much would you be willing to pay for this service?",
+                "What would convince you to try this service?",
+                "What concerns would you have about using this?",
+            ],
+            "followUp": [
+                "Would you recommend this to others in your situation?",
+                "What else should we know about your needs?",
+                "Any other feedback or suggestions?",
+            ],
         }
 
 
@@ -271,7 +417,7 @@ def _extract_problem_area(problem: str) -> str:
             return "these needs"
 
         # Extract first part before punctuation
-        problem_area = problem.split('.')[0].split(',')[0]
+        problem_area = problem.split(".")[0].split(",")[0]
         return problem_area.lower() if problem_area else "these needs"
 
     except Exception:
@@ -287,49 +433,71 @@ async def _generate_guidance_response(
     business_validation: Dict[str, Any],
     conversation_flow: Dict[str, Any],
     industry_analysis: Optional[Dict[str, Any]] = None,
-    stakeholder_detection: Optional[Dict[str, Any]] = None
+    stakeholder_detection: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Generate UX research methodology-based guidance response with V3 enhanced analysis."""
 
     try:
         # Use V1's proven response generation with UX research methodology enhancements
         from backend.services.llm import LLMServiceFactory
-        from backend.api.routes.customer_research import generate_research_response_with_retry
+        from backend.api.routes.customer_research import (
+            generate_research_response_with_retry,
+        )
 
         llm_service = LLMServiceFactory.create("gemini")
 
         # Convert to V1 format for proven response generation
-        business_idea = context_analysis.get('businessIdea') or context_analysis.get('business_idea', '')
-        target_customer = context_analysis.get('targetCustomer') or context_analysis.get('target_customer', '')
-        problem = context_analysis.get('problem', '')
+        business_idea = context_analysis.get("businessIdea") or context_analysis.get(
+            "business_idea", ""
+        )
+        target_customer = context_analysis.get(
+            "targetCustomer"
+        ) or context_analysis.get("target_customer", "")
+        problem = context_analysis.get("problem", "")
 
         # Create V1-compatible context object
-        v1_context = type('Context', (), {
-            'businessIdea': business_idea,
-            'targetCustomer': target_customer,
-            'problem': problem
-        })()
+        v1_context = type(
+            "Context",
+            (),
+            {
+                "businessIdea": business_idea,
+                "targetCustomer": target_customer,
+                "problem": problem,
+            },
+        )()
 
         # Create V1-compatible messages (simplified for V3)
-        v1_messages = [
-            type('Message', (), {'role': 'user', 'content': latest_input})()
-        ]
+        v1_messages = [type("Message", (), {"role": "user", "content": latest_input})()]
 
         # Use V1's proven response generation with UX research methodology prompt enhancement
         response_content = await _generate_ux_research_response_v1_proven(
-            llm_service, v1_messages, latest_input, v1_context, conversation_context,
-            context_analysis, intent_analysis, business_validation, industry_analysis
+            llm_service,
+            v1_messages,
+            latest_input,
+            v1_context,
+            conversation_context,
+            context_analysis,
+            intent_analysis,
+            business_validation,
+            industry_analysis,
         )
 
         # Determine UX research stage for contextual suggestions
-        ux_research_stage = _determine_ux_research_stage(context_analysis, intent_analysis, business_validation)
+        ux_research_stage = _determine_ux_research_stage(
+            context_analysis, intent_analysis, business_validation
+        )
         industry_context = _extract_industry_context_for_conversation(context_analysis)
-        ready_for_questions = business_validation.get('ready_for_questions', False)
+        ready_for_questions = business_validation.get("ready_for_questions", False)
 
         # Use V1's proven LLM-based suggestion generation with UX research enhancements
         contextual_suggestions = await _generate_contextual_suggestions_v1_proven(
-            llm_service, conversation_context, latest_input, response_content,
-            ux_research_stage, industry_context, ready_for_questions
+            llm_service,
+            conversation_context,
+            latest_input,
+            response_content,
+            ux_research_stage,
+            industry_context,
+            ready_for_questions,
         )
 
         return {
@@ -340,12 +508,14 @@ async def _generate_guidance_response(
                 "ux_research_stage": ux_research_stage,
                 "industry_context": industry_context,
                 "methodology": "v1_proven_with_ux_research_enhancements",
-                "extracted_context": context_analysis
-            }
+                "extracted_context": context_analysis,
+            },
         }
 
     except Exception as e:
-        logger.error(f"V1 proven + UX research guidance response generation failed: {e}")
+        logger.error(
+            f"V1 proven + UX research guidance response generation failed: {e}"
+        )
         return _create_fallback_response(context_analysis)
 
 
@@ -356,7 +526,7 @@ async def _generate_contextual_suggestions_v1_proven(
     assistant_response: str,
     ux_research_stage: str,
     industry_context: str,
-    ready_for_questions: bool = False
+    ready_for_questions: bool = False,
 ) -> List[str]:
     """Generate contextual suggestions using V1's proven LLM-based approach with UX research methodology."""
 
@@ -370,28 +540,45 @@ async def _generate_contextual_suggestions_v1_proven(
             messages=[],  # V3 doesn't use message history for suggestions
             user_input=latest_input,
             assistant_response=assistant_response,
-            conversation_context=conversation_context
+            conversation_context=conversation_context,
         )
 
-        logger.info(f"🔍 V1 base suggestions generated: {base_suggestions} (count: {len(base_suggestions) if base_suggestions else 0})")
-        logger.info(f"🔍 UX research stage: {ux_research_stage}, ready_for_questions: {ready_for_questions}")
+        logger.info(
+            f"🔍 V1 base suggestions generated: {base_suggestions} (count: {len(base_suggestions) if base_suggestions else 0})"
+        )
+        logger.info(
+            f"🔍 UX research stage: {ux_research_stage}, ready_for_questions: {ready_for_questions}"
+        )
 
         # Enhance with UX research methodology and special options
         enhanced_suggestions = []
 
         if ready_for_questions:
             # Confirmation phase - use V1 proven suggestions without special options
-            enhanced_suggestions = base_suggestions or ["Yes, that's right", "Generate research questions", "Let me clarify something"]
+            enhanced_suggestions = base_suggestions or [
+                "Yes, that's right",
+                "Generate research questions",
+                "Let me clarify something",
+            ]
         else:
             # Discovery phase - ALWAYS add special options for UX research methodology
             if base_suggestions and len(base_suggestions) >= 1:
                 # Add special options at the beginning as specified in requirements
-                enhanced_suggestions = ["All of the above", "I don't know"] + base_suggestions
-                logger.info(f"✅ Added special options to V1 suggestions: {enhanced_suggestions}")
+                enhanced_suggestions = [
+                    "All of the above",
+                    "I don't know",
+                ] + base_suggestions
+                logger.info(
+                    f"✅ Added special options to V1 suggestions: {enhanced_suggestions}"
+                )
             else:
                 # Fallback to UX research stage-specific suggestions (which also include special options)
-                enhanced_suggestions = _get_ux_research_fallback_suggestions(ux_research_stage, industry_context)
-                logger.info(f"✅ Using fallback suggestions with special options: {enhanced_suggestions}")
+                enhanced_suggestions = _get_ux_research_fallback_suggestions(
+                    ux_research_stage, industry_context
+                )
+                logger.info(
+                    f"✅ Using fallback suggestions with special options: {enhanced_suggestions}"
+                )
 
         # Ensure we have 3-5 suggestions as specified in requirements
         if len(enhanced_suggestions) > 5:
@@ -404,7 +591,9 @@ async def _generate_contextual_suggestions_v1_proven(
     except Exception as e:
         logger.error(f"V1 proven suggestion generation failed: {e}")
         # Fallback to UX research methodology-based suggestions
-        return _get_ux_research_fallback_suggestions(ux_research_stage, industry_context)
+        return _get_ux_research_fallback_suggestions(
+            ux_research_stage, industry_context
+        )
 
 
 def _generate_contextual_suggestions(
@@ -413,85 +602,106 @@ def _generate_contextual_suggestions(
     business_validation: Dict[str, Any],
     conversation_flow: Dict[str, Any],
     industry_analysis: Optional[Dict[str, Any]] = None,
-    stakeholder_detection: Optional[Dict[str, Any]] = None
+    stakeholder_detection: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """Generate UX research methodology-based contextual suggestions - DEPRECATED: Use V1 proven method instead."""
 
     try:
         # Get current state and UX research stage
-        business_idea = context_analysis.get('businessIdea') or context_analysis.get('business_idea', '')
-        ready_for_questions = business_validation.get('ready_for_questions', False)
+        business_idea = context_analysis.get("businessIdea") or context_analysis.get(
+            "business_idea", ""
+        )
+        ready_for_questions = business_validation.get("ready_for_questions", False)
 
         # Determine UX research stage for scoped suggestions
-        ux_research_stage = _determine_ux_research_stage(context_analysis, intent_analysis, business_validation)
+        ux_research_stage = _determine_ux_research_stage(
+            context_analysis, intent_analysis, business_validation
+        )
 
         # Use V3 enhanced industry analysis if available, otherwise extract from context
-        if industry_analysis and industry_analysis.get('industry'):
+        if industry_analysis and industry_analysis.get("industry"):
             industry_context = f"{industry_analysis.get('industry')}/{industry_analysis.get('sub_industry', 'General')}"
         else:
-            industry_context = _extract_industry_context_for_conversation(context_analysis)
+            industry_context = _extract_industry_context_for_conversation(
+                context_analysis
+            )
 
         # Return fallback suggestions - V1 proven method should be used instead
-        return _get_ux_research_fallback_suggestions(ux_research_stage, industry_context)
+        return _get_ux_research_fallback_suggestions(
+            ux_research_stage, industry_context
+        )
 
     except Exception:
         # UX research fallback with special options
-        return _get_ux_research_fallback_suggestions('business_discovery', 'General Business')
+        return _get_ux_research_fallback_suggestions(
+            "business_discovery", "General Business"
+        )
 
 
-def _get_ux_research_fallback_suggestions(ux_research_stage: str, industry_context: str) -> List[str]:
+def _get_ux_research_fallback_suggestions(
+    ux_research_stage: str, industry_context: str
+) -> List[str]:
     """Get UX research methodology-based fallback suggestions."""
 
     try:
         suggestions = []
 
         # UX Research Methodology: Scoped suggestions based on current discovery stage
-        if ux_research_stage == 'business_discovery':
-            suggestions.extend([
-                "A mobile app for busy professionals",
-                "A service-based business",
-                "A physical location business"
-            ])
-        elif ux_research_stage == 'customer_discovery':
-            if 'laundry' in industry_context.lower():
-                suggestions.extend([
-                    "Busy professionals without in-unit laundry",
-                    "Families in apartments",
-                    "College students"
-                ])
+        if ux_research_stage == "business_discovery":
+            suggestions.extend(
+                [
+                    "A mobile app for busy professionals",
+                    "A service-based business",
+                    "A physical location business",
+                ]
+            )
+        elif ux_research_stage == "customer_discovery":
+            if "laundry" in industry_context.lower():
+                suggestions.extend(
+                    [
+                        "Busy professionals without in-unit laundry",
+                        "Families in apartments",
+                        "College students",
+                    ]
+                )
             else:
-                suggestions.extend([
-                    "Small business owners",
-                    "Individual consumers",
-                    "Enterprise clients"
-                ])
-        elif ux_research_stage == 'problem_discovery':
-            suggestions.extend([
-                "Time constraints and convenience",
-                "Cost and affordability issues",
-                "Quality and reliability concerns"
-            ])
-        elif ux_research_stage == 'validation_and_refinement':
-            suggestions.extend([
-                "Market size and competition",
-                "Pricing and business model",
-                "Customer acquisition strategy"
-            ])
-        elif ux_research_stage == 'ready_for_questions':
-            suggestions.extend([
-                "Yes, that's right",
-                "Generate research questions"
-            ])
+                suggestions.extend(
+                    [
+                        "Small business owners",
+                        "Individual consumers",
+                        "Enterprise clients",
+                    ]
+                )
+        elif ux_research_stage == "problem_discovery":
+            suggestions.extend(
+                [
+                    "Time constraints and convenience",
+                    "Cost and affordability issues",
+                    "Quality and reliability concerns",
+                ]
+            )
+        elif ux_research_stage == "validation_and_refinement":
+            suggestions.extend(
+                [
+                    "Market size and competition",
+                    "Pricing and business model",
+                    "Customer acquisition strategy",
+                ]
+            )
+        elif ux_research_stage == "ready_for_questions":
+            suggestions.extend(["Yes, that's right", "Generate research questions"])
         else:
             # Fallback to general discovery suggestions
-            suggestions.extend([
-                "Tell me more about the challenges",
-                "Who else might be involved?",
-                "What's the biggest pain point?"
-            ])
+            suggestions.extend(
+                [
+                    "Tell me more about the challenges",
+                    "Who else might be involved?",
+                    "What's the biggest pain point?",
+                ]
+            )
 
         # Add special options for non-confirmation phases (UX research best practice)
-        if suggestions and ux_research_stage != 'ready_for_questions':
+        if suggestions and ux_research_stage != "ready_for_questions":
             # Insert special options at the beginning as specified in requirements
             suggestions.insert(0, "All of the above")
             suggestions.insert(1, "I don't know")
@@ -506,42 +716,81 @@ def _get_ux_research_fallback_suggestions(ux_research_stage: str, industry_conte
 
     except Exception:
         # Ultimate fallback
-        return ["All of the above", "I don't know", "Tell me more", "Continue", "What else?"]
+        return [
+            "All of the above",
+            "I don't know",
+            "Tell me more",
+            "Continue",
+            "What else?",
+        ]
 
 
-def _create_emergency_questions(context_analysis: Dict[str, Any]) -> Dict[str, Any]:
+async def _create_emergency_questions(
+    context_analysis: Dict[str, Any],
+) -> Dict[str, Any]:
     """Create emergency fallback questions."""
 
     try:
-        business_idea = context_analysis.get('businessIdea') or context_analysis.get('business_idea', 'your business')
+        business_idea = context_analysis.get("businessIdea") or context_analysis.get(
+            "business_idea", "your business"
+        )
+
+        # Generate emergency questions using LLM for better context
+        try:
+            emergency_stakeholder_questions = (
+                await _generate_contextual_questions_with_llm(
+                    business_idea,
+                    "target customers",
+                    "current challenges",
+                    "Primary Users",
+                    f"Users of the {business_idea}",
+                    "primary",
+                )
+            )
+        except Exception:
+            # Ultimate fallback if LLM fails
+            emergency_stakeholder_questions = {
+                "problemDiscovery": [
+                    f"What challenges do you currently face with {business_idea or 'this type of service'}?",
+                    "How do you handle this now?",
+                    "What's most frustrating about the current situation?",
+                ],
+                "solutionValidation": [
+                    f"Would {business_idea or 'this solution'} help you?",
+                    "What features are most important?",
+                    "How much would you pay for this?",
+                ],
+                "followUp": [
+                    "Would you recommend this to others?",
+                    "Any other thoughts?",
+                ],
+            }
 
         emergency_questions = {
-            "primaryStakeholders": [{
-                "name": "Primary Users",
-                "description": f"Users of the {business_idea}",
-                "questions": {
-                    "problemDiscovery": [
-                        "What challenges do you currently face?",
-                        "How do you handle this now?",
-                        "What's most frustrating about the current situation?"
-                    ],
-                    "solutionValidation": [
-                        "Would this solution help you?",
-                        "What features are most important?",
-                        "How much would you pay for this?"
-                    ],
-                    "followUp": [
-                        "Would you recommend this to others?",
-                        "Any other thoughts?"
-                    ]
+            "primaryStakeholders": [
+                {
+                    "name": "Primary Users",
+                    "description": f"Users of the {business_idea}",
+                    "questions": emergency_stakeholder_questions,
                 }
-            }],
+            ],
             "secondaryStakeholders": [],
             "timeEstimate": {
-                "totalQuestions": 8,
-                "estimatedMinutes": "16-24",
-                "breakdown": {"primary": 8, "secondary": 0}
-            }
+                "totalQuestions": len(
+                    emergency_stakeholder_questions.get("problemDiscovery", [])
+                )
+                + len(emergency_stakeholder_questions.get("solutionValidation", []))
+                + len(emergency_stakeholder_questions.get("followUp", [])),
+                "estimatedMinutes": f"{(len(emergency_stakeholder_questions.get('problemDiscovery', [])) + len(emergency_stakeholder_questions.get('solutionValidation', [])) + len(emergency_stakeholder_questions.get('followUp', []))) * 2}-{(len(emergency_stakeholder_questions.get('problemDiscovery', [])) + len(emergency_stakeholder_questions.get('solutionValidation', [])) + len(emergency_stakeholder_questions.get('followUp', []))) * 4}",
+                "breakdown": {
+                    "primary": len(
+                        emergency_stakeholder_questions.get("problemDiscovery", [])
+                    )
+                    + len(emergency_stakeholder_questions.get("solutionValidation", []))
+                    + len(emergency_stakeholder_questions.get("followUp", [])),
+                    "secondary": 0,
+                },
+            },
         }
 
         return {
@@ -552,8 +801,8 @@ def _create_emergency_questions(context_analysis: Dict[str, Any]) -> Dict[str, A
                 "comprehensiveQuestions": emergency_questions,
                 "businessContext": business_idea,
                 "type": "component",
-                "emergency_fallback": True
-            }
+                "emergency_fallback": True,
+            },
         }
 
     except Exception:
@@ -564,7 +813,7 @@ def _create_fallback_response(context_analysis: Dict[str, Any]) -> Dict[str, Any
     """Create UX research methodology-based fallback response."""
 
     # Use UX research approach even in fallback
-    ux_research_stage = 'business_discovery'  # Default to initial discovery
+    ux_research_stage = "business_discovery"  # Default to initial discovery
 
     return {
         "content": "I'd love to understand what you're building. Can you walk me through your business idea in your own words?",
@@ -574,14 +823,14 @@ def _create_fallback_response(context_analysis: Dict[str, Any]) -> Dict[str, Any
             "I don't know",
             "A mobile app for busy professionals",
             "A service-based business",
-            "A physical location business"
+            "A physical location business",
         ],
         "metadata": {
             "fallback_response": True,
             "ux_research_stage": ux_research_stage,
             "methodology": "professional_ux_research",
-            "extracted_context": context_analysis
-        }
+            "extracted_context": context_analysis,
+        },
     }
 
 
@@ -592,23 +841,25 @@ async def _generate_guidance_response_with_llm(
     latest_input: str,
     context_analysis: Dict[str, Any],
     intent_analysis: Dict[str, Any],
-    business_validation: Dict[str, Any]
+    business_validation: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Generate UX research methodology-based guidance response."""
 
     # Extract V3 enhanced analysis data
-    business_idea = context_analysis.get('business_idea', '')
-    target_customer = context_analysis.get('target_customer', '')
-    problem = context_analysis.get('problem', '')
-    business_clarity = context_analysis.get('business_clarity', {})
+    business_idea = context_analysis.get("business_idea", "")
+    target_customer = context_analysis.get("target_customer", "")
+    problem = context_analysis.get("problem", "")
+    business_clarity = context_analysis.get("business_clarity", {})
 
     # Get conversation stage and intent
-    conversation_stage = intent_analysis.get('conversation_stage', 'initial')
-    user_intent = intent_analysis.get('intent', 'clarify_business')
-    readiness_score = business_validation.get('readiness_score', 0.0)
+    conversation_stage = intent_analysis.get("conversation_stage", "initial")
+    user_intent = intent_analysis.get("intent", "clarify_business")
+    readiness_score = business_validation.get("readiness_score", 0.0)
 
     # Determine UX research conversation stage
-    ux_research_stage = _determine_ux_research_stage(context_analysis, intent_analysis, business_validation)
+    ux_research_stage = _determine_ux_research_stage(
+        context_analysis, intent_analysis, business_validation
+    )
 
     # Get industry context for informed questioning
     industry_context = _extract_industry_context_for_conversation(context_analysis)
@@ -650,116 +901,132 @@ Return ONLY a JSON object with:
 Return only valid JSON, no other text."""
 
     try:
-        response = await llm_service.generate_text(prompt, max_tokens=600, temperature=0.2)
+        response = await llm_service.generate_text(
+            prompt, max_tokens=600, temperature=0.2
+        )
 
         import json
         import re
 
         # Remove markdown code blocks
         json_text = response.strip()
-        if json_text.startswith('```json'):
-            json_text = re.sub(r'^```json\s*', '', json_text)
-            json_text = re.sub(r'\s*```$', '', json_text)
-        elif json_text.startswith('```'):
-            json_text = re.sub(r'^```\s*', '', json_text)
-            json_text = re.sub(r'\s*```$', '', json_text)
+        if json_text.startswith("```json"):
+            json_text = re.sub(r"^```json\s*", "", json_text)
+            json_text = re.sub(r"\s*```$", "", json_text)
+        elif json_text.startswith("```"):
+            json_text = re.sub(r"^```\s*", "", json_text)
+            json_text = re.sub(r"\s*```$", "", json_text)
 
         result = json.loads(json_text.strip())
 
         # Add default fields if missing
-        if 'content' not in result:
-            result['content'] = _get_fallback_ux_question(ux_research_stage, business_idea, industry_context)
-        if 'questions' not in result:
-            result['questions'] = None
-        if 'suggestions' not in result:
-            result['suggestions'] = []
-        if 'metadata' not in result:
-            result['metadata'] = {}
+        if "content" not in result:
+            result["content"] = _get_fallback_ux_question(
+                ux_research_stage, business_idea, industry_context
+            )
+        if "questions" not in result:
+            result["questions"] = None
+        if "suggestions" not in result:
+            result["suggestions"] = []
+        if "metadata" not in result:
+            result["metadata"] = {}
 
         # Add UX research metadata
-        result['metadata']['ux_research_stage'] = ux_research_stage
-        result['metadata']['industry_context'] = industry_context
-        result['metadata']['methodology'] = 'professional_ux_research'
+        result["metadata"]["ux_research_stage"] = ux_research_stage
+        result["metadata"]["industry_context"] = industry_context
+        result["metadata"]["methodology"] = "professional_ux_research"
 
         return result
 
     except Exception as e:
         logger.error(f"Error generating UX research guidance response: {e}")
         return {
-            "content": _get_fallback_ux_question(ux_research_stage, business_idea, industry_context),
+            "content": _get_fallback_ux_question(
+                ux_research_stage, business_idea, industry_context
+            ),
             "questions": None,
             "suggestions": [],
-            "metadata": {"llm_fallback": True, "ux_research_stage": ux_research_stage}
+            "metadata": {"llm_fallback": True, "ux_research_stage": ux_research_stage},
         }
 
 
 def _determine_ux_research_stage(
     context_analysis: Dict[str, Any],
     intent_analysis: Dict[str, Any],
-    business_validation: Dict[str, Any]
+    business_validation: Dict[str, Any],
 ) -> str:
     """Determine current UX research conversation stage."""
 
     try:
-        business_idea = context_analysis.get('business_idea', '')
-        target_customer = context_analysis.get('target_customer', '')
-        problem = context_analysis.get('problem', '')
-        user_intent = intent_analysis.get('intent', '')
+        business_idea = context_analysis.get("business_idea", "")
+        target_customer = context_analysis.get("target_customer", "")
+        problem = context_analysis.get("problem", "")
+        user_intent = intent_analysis.get("intent", "")
 
         # UX Research Stage Logic
-        if user_intent in ['generate_questions', 'question_request']:
-            return 'ready_for_questions'
+        if user_intent in ["generate_questions", "question_request"]:
+            return "ready_for_questions"
         elif not business_idea or len(business_idea.strip()) < 10:
-            return 'business_discovery'
+            return "business_discovery"
         elif not target_customer or len(target_customer.strip()) < 5:
-            return 'customer_discovery'
+            return "customer_discovery"
         elif not problem or len(problem.strip()) < 5:
-            return 'problem_discovery'
+            return "problem_discovery"
         else:
-            return 'validation_and_refinement'
+            return "validation_and_refinement"
 
     except Exception:
-        return 'business_discovery'
+        return "business_discovery"
 
 
 def _extract_industry_context_for_conversation(context_analysis: Dict[str, Any]) -> str:
     """Extract industry context to inform conversational intelligence."""
 
     try:
-        business_idea = context_analysis.get('business_idea', '').lower()
+        business_idea = context_analysis.get("business_idea", "").lower()
 
         # Industry-specific context mapping for informed questioning
-        if 'laundromat' in business_idea or 'laundry' in business_idea:
-            return 'Consumer Services/Laundry - location-dependent, utility-intensive, self-service model'
-        elif 'restaurant' in business_idea or 'food' in business_idea:
-            return 'Food Service - location-dependent, health regulations, customer experience focus'
-        elif 'app' in business_idea or 'software' in business_idea or 'platform' in business_idea:
-            return 'Technology/Software - user experience focus, scalability considerations'
-        elif 'consulting' in business_idea or 'service' in business_idea:
-            return 'Professional Services - relationship-based, expertise-driven'
-        elif 'retail' in business_idea or 'store' in business_idea or 'shop' in business_idea:
-            return 'Retail - customer journey focus, inventory considerations'
+        if "laundromat" in business_idea or "laundry" in business_idea:
+            return "Consumer Services/Laundry - location-dependent, utility-intensive, self-service model"
+        elif "restaurant" in business_idea or "food" in business_idea:
+            return "Food Service - location-dependent, health regulations, customer experience focus"
+        elif (
+            "app" in business_idea
+            or "software" in business_idea
+            or "platform" in business_idea
+        ):
+            return "Technology/Software - user experience focus, scalability considerations"
+        elif "consulting" in business_idea or "service" in business_idea:
+            return "Professional Services - relationship-based, expertise-driven"
+        elif (
+            "retail" in business_idea
+            or "store" in business_idea
+            or "shop" in business_idea
+        ):
+            return "Retail - customer journey focus, inventory considerations"
         else:
-            return 'General Business - customer-centric approach'
+            return "General Business - customer-centric approach"
 
     except Exception:
-        return 'General Business'
+        return "General Business"
 
 
-def _get_fallback_ux_question(ux_research_stage: str, business_idea: str, industry_context: str) -> str:
+def _get_fallback_ux_question(
+    ux_research_stage: str, business_idea: str, industry_context: str
+) -> str:
     """Get fallback UX research question based on stage."""
 
     try:
-        if ux_research_stage == 'business_discovery':
+        if ux_research_stage == "business_discovery":
             return "I'd love to understand what you're building. Can you walk me through your business idea in your own words?"
-        elif ux_research_stage == 'customer_discovery':
-            if 'laundromat' in business_idea.lower():
+        elif ux_research_stage == "customer_discovery":
+            if "laundromat" in business_idea.lower():
                 return f"Interesting - a {business_idea}. Who specifically would be your primary customers? Are you thinking busy professionals, families without in-unit laundry, or a different group?"
             else:
                 return f"Thanks for sharing about your {business_idea}. Who specifically would be your primary customers?"
-        elif ux_research_stage == 'problem_discovery':
+        elif ux_research_stage == "problem_discovery":
             return "What's the main problem or frustration that your customers are currently experiencing?"
-        elif ux_research_stage == 'validation_and_refinement':
+        elif ux_research_stage == "validation_and_refinement":
             return "That gives me a good picture. What's the biggest challenge or uncertainty you have about this business idea?"
         else:
             return "I'd be happy to help you develop research questions. What would you like to explore first?"
@@ -777,22 +1044,26 @@ async def _generate_ux_research_response_v1_proven(
     context_analysis: Dict[str, Any],
     intent_analysis: Dict[str, Any],
     business_validation: Dict[str, Any],
-    industry_analysis: Optional[Dict[str, Any]]
+    industry_analysis: Optional[Dict[str, Any]],
 ) -> str:
     """Generate UX research methodology-based response using V1's proven approach."""
 
     try:
         # Determine UX research stage and industry context
-        ux_research_stage = _determine_ux_research_stage(context_analysis, intent_analysis, business_validation)
+        ux_research_stage = _determine_ux_research_stage(
+            context_analysis, intent_analysis, business_validation
+        )
 
         # Get industry context for informed questioning
-        if industry_analysis and industry_analysis.get('industry'):
+        if industry_analysis and industry_analysis.get("industry"):
             industry_context = f"{industry_analysis.get('industry')}/{industry_analysis.get('sub_industry', 'General')}"
         else:
-            industry_context = _extract_industry_context_for_conversation(context_analysis)
+            industry_context = _extract_industry_context_for_conversation(
+                context_analysis
+            )
 
         # Get business clarity metrics
-        business_clarity = context_analysis.get('business_clarity', {})
+        business_clarity = context_analysis.get("business_clarity", {})
 
         # Enhanced UX research methodology prompt based on V1's proven structure
         has_business_idea = context and context.businessIdea
@@ -835,7 +1106,7 @@ Generate a natural, conversational response that asks one focused question to co
         response = await llm_service.generate_text(
             prompt=ux_research_prompt,
             temperature=0.7,  # V1's proven temperature
-            max_tokens=8000   # V1's proven token limit
+            max_tokens=8000,  # V1's proven token limit
         )
 
         return response.strip()
@@ -844,4 +1115,7 @@ Generate a natural, conversational response that asks one focused question to co
         logger.error(f"UX research response generation failed: {e}")
         # Fallback to V1's proven simple response generation
         from backend.api.routes.customer_research import generate_research_response
-        return await generate_research_response(llm_service, messages, user_input, context, conversation_context)
+
+        return await generate_research_response(
+            llm_service, messages, user_input, context, conversation_context
+        )

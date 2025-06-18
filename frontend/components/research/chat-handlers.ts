@@ -243,7 +243,11 @@ const processGeneratedQuestions = async (
       id: Date.now().toString() + '_nextsteps',
       content: 'NEXT_STEPS_COMPONENT',
       role: 'assistant',
-      timestamp: new Date()
+      timestamp: new Date(),
+      metadata: {
+        type: 'component',
+        timeEstimate: comprehensiveQuestions.timeEstimate
+      }
     };
 
     actions.setMessages(prev => [...prev, nextStepsMessage]);
@@ -282,11 +286,27 @@ const processGeneratedQuestions = async (
     await processLegacyStakeholders(data, actions, updateContext, context);
 
     // Always add next steps for legacy format
+    // Calculate time estimate for legacy format
+    const totalQuestions = apiQuestions.problemDiscovery.length + apiQuestions.solutionValidation.length + apiQuestions.followUp.length;
+    const legacyTimeEstimate = {
+      totalQuestions,
+      estimatedMinutes: `${totalQuestions * 2}-${totalQuestions * 4}`,
+      breakdown: {
+        baseTime: totalQuestions * 2,
+        withBuffer: totalQuestions * 4,
+        perQuestion: 3.0
+      }
+    };
+
     const nextStepsMessage: Message = {
       id: Date.now().toString() + '_nextsteps',
       content: 'NEXT_STEPS_COMPONENT',
       role: 'assistant',
-      timestamp: new Date()
+      timestamp: new Date(),
+      metadata: {
+        type: 'component',
+        timeEstimate: legacyTimeEstimate
+      }
     };
 
     actions.setMessages(prev => [...prev, nextStepsMessage]);

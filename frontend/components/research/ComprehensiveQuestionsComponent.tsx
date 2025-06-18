@@ -43,6 +43,18 @@ export function ComprehensiveQuestionsComponent({
 }: ComprehensiveQuestionsProps) {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
+  // Debug logging to understand the data flow issue
+  console.log('🔍 ComprehensiveQuestionsComponent props:', {
+    primaryStakeholders: primaryStakeholders?.length || 0,
+    secondaryStakeholders: secondaryStakeholders?.length || 0,
+    primaryStakeholdersData: primaryStakeholders,
+    timeEstimate
+  });
+
+  // Safety checks for empty arrays
+  const safePrimaryStakeholders = primaryStakeholders || [];
+  const safeSecondaryStakeholders = secondaryStakeholders || [];
+
   const copyAllQuestions = async () => {
     const formatStakeholderQuestions = (stakeholders: StakeholderQuestions[], type: string) => {
       return stakeholders.map(stakeholder => {
@@ -75,13 +87,13 @@ ${businessContext ? `**Business:** ${businessContext}\n` : ''}
 ## 🎯 Primary Stakeholders (Focus First)
 Start with these stakeholders to validate core assumptions.
 
-${formatStakeholderQuestions(primaryStakeholders, 'Primary')}
+${formatStakeholderQuestions(safePrimaryStakeholders, 'Primary')}
 
-${secondaryStakeholders.length > 0 ? `
+${safeSecondaryStakeholders.length > 0 ? `
 ## 👥 Secondary Stakeholders (Research Later)
 Expand to these stakeholders after validating primary assumptions.
 
-${formatStakeholderQuestions(secondaryStakeholders, 'Secondary')}
+${formatStakeholderQuestions(safeSecondaryStakeholders, 'Secondary')}
 ` : ''}
 
 ## ⏱️ Interview Planning
@@ -91,7 +103,7 @@ ${formatStakeholderQuestions(secondaryStakeholders, 'Secondary')}
 - **Total questions:** ${timeEstimate.totalQuestions}
 
 ## 📋 Research Strategy
-1. **Start with Primary Stakeholders:** Focus on ${primaryStakeholders.length} primary stakeholder${primaryStakeholders.length !== 1 ? 's' : ''} first
+1. **Start with Primary Stakeholders:** Focus on ${safePrimaryStakeholders.length} primary stakeholder${safePrimaryStakeholders.length !== 1 ? 's' : ''} first
 2. **Validate Core Value:** Ensure your solution addresses primary stakeholder pain points
 3. **Expand Strategically:** Research secondary stakeholders to refine your approach
 4. **Look for Patterns:** Identify common themes and prioritize features by stakeholder impact`;
@@ -279,17 +291,17 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           <Badge variant="default" className="text-xs">Focus First</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Start with these {primaryStakeholders.length} stakeholder{primaryStakeholders.length !== 1 ? 's' : ''} to validate core business assumptions.
+          Start with these {safePrimaryStakeholders.length} stakeholder{safePrimaryStakeholders.length !== 1 ? 's' : ''} to validate core business assumptions.
         </p>
         <div className="space-y-4">
-          {primaryStakeholders.map((stakeholder, index) =>
+          {safePrimaryStakeholders.map((stakeholder, index) =>
             renderStakeholderSection(stakeholder, index, true)
           )}
         </div>
       </div>
 
       {/* Secondary Stakeholders */}
-      {secondaryStakeholders.length > 0 && (
+      {safeSecondaryStakeholders.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
@@ -297,10 +309,10 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
             <Badge variant="secondary" className="text-xs">Research Later</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Expand to these {secondaryStakeholders.length} stakeholder{secondaryStakeholders.length !== 1 ? 's' : ''} after validating primary assumptions.
+            Expand to these {safeSecondaryStakeholders.length} stakeholder{safeSecondaryStakeholders.length !== 1 ? 's' : ''} after validating primary assumptions.
           </p>
           <div className="space-y-4">
-            {secondaryStakeholders.map((stakeholder, index) =>
+            {safeSecondaryStakeholders.map((stakeholder, index) =>
               renderStakeholderSection(stakeholder, index, false)
             )}
           </div>
@@ -316,7 +328,7 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
         <div className="space-y-2 text-sm">
           <div className="flex items-start gap-2">
             <span className="font-medium text-blue-700">1.</span>
-            <span><strong>Start with Primary Stakeholders:</strong> Focus on {primaryStakeholders.length} primary stakeholder{primaryStakeholders.length !== 1 ? 's' : ''} first to validate core assumptions.</span>
+            <span><strong>Start with Primary Stakeholders:</strong> Focus on {safePrimaryStakeholders.length} primary stakeholder{safePrimaryStakeholders.length !== 1 ? 's' : ''} first to validate core assumptions.</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="font-medium text-blue-700">2.</span>

@@ -890,28 +890,20 @@ class CustomerResearchServiceV3Rebuilt:
                             questions, "solutionValidation", []
                         ),
                         "followUp": getattr(questions, "followUp", []),
-                        "stakeholders": {
-                            "primary": [
-                                {
-                                    "name": "Elderly Women in Bremen",
-                                    "description": "Primary target customers who need convenient laundry services",
-                                }
-                            ],
-                            "secondary": [
-                                {
-                                    "name": "Family Members",
-                                    "description": "Adult children and relatives who help with laundry during visits",
-                                },
-                                {
-                                    "name": "Care Assistants (Pflegehilfe)",
-                                    "description": "Professional care workers who assist with household tasks",
-                                },
-                                {
-                                    "name": "Social Services",
-                                    "description": "Community support services that help elderly with daily tasks",
-                                },
-                            ],
-                        },
+                        "stakeholders": await self._generate_dynamic_stakeholders_with_llm(
+                            llm_service,
+                            context_analysis,
+                            v1_messages,
+                            {
+                                "problemDiscovery": getattr(
+                                    questions, "problemDiscovery", []
+                                ),
+                                "solutionValidation": getattr(
+                                    questions, "solutionValidation", []
+                                ),
+                                "followUp": getattr(questions, "followUp", []),
+                            },
+                        ),
                     }
 
                     total_questions = (
@@ -964,32 +956,17 @@ class CustomerResearchServiceV3Rebuilt:
                     "followUp": questions_dict.get("followUp", []),
                 }
 
-                questions_dict["stakeholders"] = {
-                    "primary": [
-                        {
-                            "name": "Elderly Women in Bremen Nord",
-                            "description": "Primary target customers who need convenient laundry services in Bremen Nord area",
-                            "questions": stakeholder_questions,
-                        }
-                    ],
-                    "secondary": [
-                        {
-                            "name": "Family Members",
-                            "description": "Adult children and relatives who help with laundry during visits",
-                            "questions": stakeholder_questions,
-                        },
-                        {
-                            "name": "Care Assistants (Pflegehilfe)",
-                            "description": "Professional care workers who assist with household tasks",
-                            "questions": stakeholder_questions,
-                        },
-                        {
-                            "name": "Social Services",
-                            "description": "Community support services that help elderly with daily tasks",
-                            "questions": stakeholder_questions,
-                        },
-                    ],
-                }
+                # LLM-BASED DYNAMIC GENERATION: Extract context from conversation
+                dynamic_stakeholders = (
+                    await self._generate_dynamic_stakeholders_with_llm(
+                        llm_service,
+                        context_analysis,
+                        v1_messages,
+                        stakeholder_questions,
+                    )
+                )
+
+                questions_dict["stakeholders"] = dynamic_stakeholders
 
                 total_questions = (
                     len(questions_dict.get("problemDiscovery", []))
@@ -1958,6 +1935,129 @@ USER CONFIRMATION DETECTION:
                     "confidence": 0.0,
                     "reasoning": "Analysis failed",
                 },
+            }
+
+    async def _generate_dynamic_stakeholders_with_llm(
+        self,
+        llm_service,
+        context_analysis: Dict[str, Any],
+        messages: List[Any],
+        stakeholder_questions: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Generate stakeholders dynamically using LLM based on conversation context"""
+        try:
+            # Extract conversation text
+            conversation_text = "\n".join(
+                [
+                    f"{msg.get('role', 'user')}: {msg.get('content', '')}"
+                    for msg in messages[-10:]  # Last 10 messages for context
+                ]
+            )
+
+            # Create LLM prompt for stakeholder extraction
+            stakeholder_prompt = f"""
+Based on this customer research conversation, extract the specific stakeholders mentioned and generate appropriate names and descriptions.
+
+CONVERSATION:
+{conversation_text}
+
+CONTEXT ANALYSIS:
+Business Idea: {context_analysis.get('business_idea', 'Not specified')}
+Target Customer: {context_analysis.get('target_customer', 'Not specified')}
+Problem: {context_analysis.get('problem', 'Not specified')}
+
+INSTRUCTIONS:
+1. Extract the EXACT location mentioned in the conversation (e.g., "Wolfsburg", "Bremen", etc.)
+2. Extract the EXACT target customer description from the conversation
+3. Identify who helps or is involved based on what was actually discussed
+4. Generate stakeholder names that reflect the conversation, not generic templates
+
+Return a JSON object with this structure:
+{{
+    "primary": [
+        {{
+            "name": "Specific name based on conversation (include actual location)",
+            "description": "Description based on actual conversation details",
+            "questions": {{
+                "problemDiscovery": [],
+                "solutionValidation": [],
+                "followUp": []
+            }}
+        }}
+    ],
+    "secondary": [
+        {{
+            "name": "Helper/stakeholder mentioned in conversation",
+            "description": "Based on actual conversation context",
+            "questions": {{
+                "problemDiscovery": [],
+                "solutionValidation": [],
+                "followUp": []
+            }}
+        }}
+    ]
+}}
+
+IMPORTANT:
+- Use ONLY stakeholders actually mentioned in the conversation
+- Include the EXACT location from the conversation
+- Do NOT add generic stakeholders like "Social Services" unless specifically mentioned
+- Base descriptions on actual conversation details (e.g., "20-minute drive", "heavy duvets", etc.)
+"""
+
+            # Call LLM with temperature 0 for consistent JSON
+            response = await llm_service.generate_text(
+                prompt=stakeholder_prompt, temperature=0, max_tokens=1000
+            )
+
+            # Parse LLM response
+            import json
+
+            try:
+                # Clean response
+                response_clean = response.strip()
+                if response_clean.startswith("```json"):
+                    response_clean = response_clean[7:]
+                if response_clean.endswith("```"):
+                    response_clean = response_clean[:-3]
+                response_clean = response_clean.strip()
+
+                dynamic_stakeholders = json.loads(response_clean)
+
+                # Add the questions to each stakeholder
+                for stakeholder in dynamic_stakeholders.get("primary", []):
+                    stakeholder["questions"] = stakeholder_questions
+
+                for stakeholder in dynamic_stakeholders.get("secondary", []):
+                    stakeholder["questions"] = stakeholder_questions
+
+                logger.info(
+                    f"✅ Generated dynamic stakeholders: {dynamic_stakeholders}"
+                )
+                return dynamic_stakeholders
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse LLM stakeholder response: {e}")
+                raise
+
+        except Exception as e:
+            logger.error(f"Error generating dynamic stakeholders: {e}")
+            # Fallback to conversation-aware defaults
+            return {
+                "primary": [
+                    {
+                        "name": f"{context_analysis.get('target_customer', 'Target Customers')}",
+                        "description": f"Primary users of {context_analysis.get('business_idea', 'the service')}",
+                        "questions": stakeholder_questions,
+                    }
+                ],
+                "secondary": [
+                    {
+                        "name": "Support Network",
+                        "description": "People who help with current challenges",
+                        "questions": stakeholder_questions,
+                    }
+                ],
             }
 
 

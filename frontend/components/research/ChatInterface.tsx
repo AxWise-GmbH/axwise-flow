@@ -424,6 +424,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         <NextStepsChatMessage
                           onExportQuestions={() => exportQuestions('txt')}
                           onStartResearch={continueToAnalysis}
+                          timeEstimate={message.metadata?.timeEstimate}
                         />
                       ) : message.content.includes('_COMPONENT') ? (
                         <div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
