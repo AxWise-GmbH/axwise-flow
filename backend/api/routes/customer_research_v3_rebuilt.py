@@ -93,30 +93,76 @@ class UXResearchMethodology:
 
             # For discovery phase: Add special options AFTER first 3 contextual suggestions
             if v1_suggestions and len(v1_suggestions) >= 1:
-                # Filter out any existing special options to avoid duplicates
+                # Filter out generic suggestions and replace with context-specific ones
                 filtered_suggestions = [
                     s
                     for s in v1_suggestions
-                    if s not in ["All of the above", "I don't know"]
+                    if s
+                    not in [
+                        "All of the above",
+                        "I don't know",
+                        "Okay",
+                        "Sounds good",
+                        "Go ahead",
+                    ]
                 ]
 
-                # Take first 3 contextual suggestions, then add special options
+                # Take first 3 contextual suggestions, then add meaningful business context options
                 contextual_suggestions = filtered_suggestions[:3]
-                enhanced = contextual_suggestions + ["All of the above", "I don't know"]
+
+                # Generate context-specific suggestions based on conversation stage
+                context_suggestions = self._generate_context_specific_suggestions(
+                    conversation_stage
+                )
+
+                # Combine: Keep good V1 suggestions + add context-specific ones
+                enhanced = contextual_suggestions + context_suggestions[:2]
                 return enhanced[:5]  # Limit to 5 total
             else:
-                # Fallback with special options at the end
-                return [
-                    "Tell me more",
-                    "Continue",
-                    "What else?",
-                    "All of the above",
-                    "I don't know",
-                ]
+                # Fallback with meaningful business context suggestions
+                return self._generate_context_specific_suggestions(conversation_stage)
 
         except Exception as e:
             logger.error(f"UX methodology enhancement failed: {e}")
             return v1_suggestions  # Always return V1 suggestions if enhancement fails
+
+    def _generate_context_specific_suggestions(
+        self, conversation_stage: str
+    ) -> List[str]:
+        """Generate context-specific suggestions based on conversation stage"""
+
+        if conversation_stage == "discovery":
+            return [
+                "Tell me more about your target customers",
+                "What's the main problem you're solving?",
+                "How does your business model work?",
+                "What makes this different from competitors?",
+                "Continue with more details",
+            ]
+        elif conversation_stage == "clarification":
+            return [
+                "Help me understand the problem better",
+                "Can you elaborate on that?",
+                "What about the business model?",
+                "Tell me more about your customers",
+                "What challenges do they face?",
+            ]
+        elif conversation_stage == "validation":
+            return [
+                "That sounds interesting, tell me more",
+                "How would customers discover this?",
+                "What would make them choose you?",
+                "What's your competitive advantage?",
+                "Continue with more context",
+            ]
+        else:  # confirmation or other stages
+            return [
+                "Yes, that's correct",
+                "Generate the questions",
+                "Let's proceed",
+                "That sounds right",
+                "Continue",
+            ]
 
     def validate_response_methodology(self, response_content: str) -> bool:
         """Validate that response follows UX research methodology"""
@@ -669,31 +715,9 @@ class CustomerResearchServiceV3Rebuilt:
                         "solutionValidation": basic_questions["solutionValidation"][:5],
                         "followUp": basic_questions["followUp"][:3],
                         "stakeholders": comprehensive_questions,  # Use V3 stakeholder structure directly
-                        "estimatedTime": {
-                            "min": max(
-                                15,
-                                (
-                                    len(basic_questions["problemDiscovery"][:5])
-                                    + len(basic_questions["solutionValidation"][:5])
-                                    + len(basic_questions["followUp"][:3])
-                                )
-                                * 3,  # V3: 3 minutes per question (more realistic)
-                            ),
-                            "max": max(
-                                20,
-                                (
-                                    len(basic_questions["problemDiscovery"][:5])
-                                    + len(basic_questions["solutionValidation"][:5])
-                                    + len(basic_questions["followUp"][:3])
-                                )
-                                * 5,  # V3: 5 minutes per question (more realistic)
-                            ),
-                            "totalQuestions": len(
-                                basic_questions["problemDiscovery"][:5]
-                            )
-                            + len(basic_questions["solutionValidation"][:5])
-                            + len(basic_questions["followUp"][:3]),
-                        },
+                        "estimatedTime": self._calculate_stakeholder_time_estimates(
+                            comprehensive_questions
+                        ),
                     }
 
                     logger.info(
@@ -706,32 +730,45 @@ class CustomerResearchServiceV3Rebuilt:
                         f"🎯 TIME ESTIMATE: {questions.get('estimatedTime', {})}"
                     )
 
-                    # CRITICAL FIX: If comprehensive generation returns empty stakeholder data, add fallback data
+                    # CRITICAL FIX: If comprehensive generation returns empty stakeholder data, add dynamic fallback data
                     if not questions.get("stakeholders", {}).get("primary", []):
                         logger.info(
-                            "🔧 ADDING FALLBACK STAKEHOLDER DATA: Comprehensive generation returned empty stakeholders"
+                            "🔧 ADDING DYNAMIC FALLBACK STAKEHOLDER DATA: Comprehensive generation returned empty stakeholders"
                         )
+
+                        # Use our dynamic contextual stakeholder generation instead of hardcoded examples
+                        business_idea = context_analysis.get(
+                            "business_idea", ""
+                        ) or context_analysis.get("businessIdea", "")
+                        target_customer = context_analysis.get(
+                            "target_customer", ""
+                        ) or context_analysis.get("targetCustomer", "")
+                        problem = context_analysis.get("problem", "")
+
+                        # Generate contextual stakeholders based on actual business context
+                        contextual_stakeholders = (
+                            self._get_contextual_secondary_stakeholders(
+                                business_idea, target_customer
+                            )
+                        )
+
                         questions["stakeholders"] = {
                             "primary": [
                                 {
-                                    "name": "Elderly Women in Bremen Nord",
-                                    "description": "Primary target customers who need convenient laundry services in Bremen Nord area",
+                                    "name": target_customer or "Target Customers",
+                                    "description": f"Primary users of {business_idea or 'the service'}",
                                 }
                             ],
-                            "secondary": [
-                                {
-                                    "name": "Family Members",
-                                    "description": "Adult children and relatives who help with laundry during visits",
-                                },
-                                {
-                                    "name": "Care Assistants (Pflegehilfe)",
-                                    "description": "Professional care workers who assist with household tasks",
-                                },
-                                {
-                                    "name": "Social Services",
-                                    "description": "Community support services that help elderly with daily tasks",
-                                },
-                            ],
+                            "secondary": (
+                                contextual_stakeholders[:3]
+                                if contextual_stakeholders
+                                else [
+                                    {
+                                        "name": "Industry Partners",
+                                        "description": "Key partners and collaborators within the industry",
+                                    }
+                                ]
+                            ),
                         }
 
                     # CRITICAL FIX: If comprehensive generation returns empty time data, add fallback data
@@ -832,27 +869,38 @@ class CustomerResearchServiceV3Rebuilt:
                 if isinstance(questions, dict):
                     # Questions is already a dict, ensure it has required fields
                     if "stakeholders" not in questions:
+                        # Use dynamic contextual stakeholder generation instead of hardcoded examples
+                        business_idea = context_analysis.get(
+                            "business_idea", ""
+                        ) or context_analysis.get("businessIdea", "")
+                        target_customer = context_analysis.get(
+                            "target_customer", ""
+                        ) or context_analysis.get("targetCustomer", "")
+
+                        # Generate contextual stakeholders based on actual business context
+                        contextual_stakeholders = (
+                            self._get_contextual_secondary_stakeholders(
+                                business_idea, target_customer
+                            )
+                        )
+
                         questions["stakeholders"] = {
                             "primary": [
                                 {
-                                    "name": "Elderly Women in Bremen",
-                                    "description": "Primary target customers who need convenient laundry services",
+                                    "name": target_customer or "Target Customers",
+                                    "description": f"Primary users of {business_idea or 'the service'}",
                                 }
                             ],
-                            "secondary": [
-                                {
-                                    "name": "Family Members",
-                                    "description": "Adult children and relatives who help with laundry during visits",
-                                },
-                                {
-                                    "name": "Care Assistants (Pflegehilfe)",
-                                    "description": "Professional care workers who assist with household tasks",
-                                },
-                                {
-                                    "name": "Social Services",
-                                    "description": "Community support services that help elderly with daily tasks",
-                                },
-                            ],
+                            "secondary": (
+                                contextual_stakeholders[:3]
+                                if contextual_stakeholders
+                                else [
+                                    {
+                                        "name": "Industry Partners",
+                                        "description": "Key partners and collaborators within the industry",
+                                    }
+                                ]
+                            ),
                         }
 
                     if "estimatedTime" not in questions:
@@ -1185,6 +1233,70 @@ class CustomerResearchServiceV3Rebuilt:
         enhanced_response["v3_enhancements"] = applied_enhancements
 
         return enhanced_response
+
+    def _calculate_stakeholder_time_estimates(
+        self, stakeholders_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Calculate realistic time estimates separated by stakeholder type"""
+
+        primary_stakeholders = stakeholders_data.get("primary", [])
+        secondary_stakeholders = stakeholders_data.get("secondary", [])
+
+        # Calculate questions per stakeholder type
+        primary_questions = 0
+        secondary_questions = 0
+
+        for stakeholder in primary_stakeholders:
+            questions = stakeholder.get("questions", {})
+            primary_questions += (
+                len(questions.get("problemDiscovery", []))
+                + len(questions.get("solutionValidation", []))
+                + len(questions.get("followUp", []))
+            )
+
+        for stakeholder in secondary_stakeholders:
+            questions = stakeholder.get("questions", {})
+            secondary_questions += (
+                len(questions.get("problemDiscovery", []))
+                + len(questions.get("solutionValidation", []))
+                + len(questions.get("followUp", []))
+            )
+
+        # Realistic time estimates: 4-7 minutes per question (includes follow-ups, clarifications)
+        primary_min = max(10, primary_questions * 4) if primary_questions > 0 else 0
+        primary_max = max(15, primary_questions * 7) if primary_questions > 0 else 0
+
+        secondary_min = (
+            max(10, secondary_questions * 4) if secondary_questions > 0 else 0
+        )
+        secondary_max = (
+            max(15, secondary_questions * 7) if secondary_questions > 0 else 0
+        )
+
+        return {
+            "primary": {
+                "questions": primary_questions,
+                "min": primary_min,
+                "max": primary_max,
+                "description": f"Primary stakeholders: {primary_questions} questions, {primary_min}-{primary_max} minutes",
+            },
+            "secondary": {
+                "questions": secondary_questions,
+                "min": secondary_min,
+                "max": secondary_max,
+                "description": f"Secondary stakeholders: {secondary_questions} questions, {secondary_min}-{secondary_max} minutes",
+            },
+            "total": {
+                "questions": primary_questions + secondary_questions,
+                "min": primary_min + secondary_min,
+                "max": primary_max + secondary_max,
+                "description": f"Total: {primary_questions + secondary_questions} questions, {primary_min + secondary_min}-{primary_max + secondary_max} minutes",
+            },
+            # Legacy compatibility
+            "min": primary_min + secondary_min,
+            "max": primary_max + secondary_max,
+            "totalQuestions": primary_questions + secondary_questions,
+        }
 
     async def _enhanced_business_readiness_check(
         self,
@@ -2001,13 +2113,21 @@ USER CONFIRMATION DETECTION:
         """Legacy LLM-based stakeholder generation with improved JSON parsing"""
         logger.info(f"🔧 Using legacy LLM approach with robust JSON parsing")
         try:
-            # Extract conversation text
-            conversation_text = "\n".join(
-                [
-                    f"{msg.get('role', 'user')}: {msg.get('content', '')}"
-                    for msg in messages[-10:]  # Last 10 messages for context
-                ]
-            )
+            # Extract conversation text - handle both Message objects and dicts
+            conversation_text = ""
+            for msg in messages[-10:]:  # Last 10 messages for context
+                # Convert Message object to dict if needed
+                if hasattr(msg, "model_dump"):
+                    msg_dict = msg.model_dump()
+                elif hasattr(msg, "dict"):
+                    msg_dict = msg.dict()
+                else:
+                    msg_dict = msg if isinstance(msg, dict) else {}
+
+                role = msg_dict.get("role", "user")
+                content = msg_dict.get("content", "")
+                if content:
+                    conversation_text += f"{role}: {content}\n"
 
             # Create LLM prompt for stakeholder extraction
             stakeholder_prompt = f"""
@@ -2229,13 +2349,21 @@ IMPORTANT:
     ) -> Dict[str, Any]:
         """Generate stakeholder names and descriptions from conversation context"""
         try:
-            # Extract conversation text
-            conversation_text = "\n".join(
-                [
-                    f"{msg.get('role', 'user')}: {msg.get('content', '')}"
-                    for msg in messages[-10:]  # Last 10 messages for context
-                ]
-            )
+            # Extract conversation text - handle both Message objects and dicts
+            conversation_text = ""
+            for msg in messages[-10:]:  # Last 10 messages for context
+                # Convert Message object to dict if needed
+                if hasattr(msg, "model_dump"):
+                    msg_dict = msg.model_dump()
+                elif hasattr(msg, "dict"):
+                    msg_dict = msg.dict()
+                else:
+                    msg_dict = msg if isinstance(msg, dict) else {}
+
+                role = msg_dict.get("role", "user")
+                content = msg_dict.get("content", "")
+                if content:
+                    conversation_text += f"{role}: {content}\n"
 
             # Create LLM prompt for stakeholder extraction
             stakeholder_prompt = f"""
@@ -2360,12 +2488,12 @@ CRITICAL INSTRUCTIONS FOR STAKEHOLDER TYPE:
 
 If stakeholder_type is "primary":
 - These are DIRECT USERS/CUSTOMERS who personally experience the problem
-- EVERY question MUST use direct personal language: "you", "your", "do you", "would you", "have you"
-- Questions should focus on THEIR PERSONAL EXPERIENCE with the problem
-- Ask about their current pain points, frustrations, and needs using "YOU" language
-- Focus on their willingness to PAY and USE the solution personally
-- MANDATORY: Start questions with phrases like "How often do YOU...", "What would make YOU...", "How much would YOU...", "Do YOU personally...", "Would YOU be willing to..."
-- AVOID third-person references - always address them directly as "you"
+- Use natural, conversational language that feels like a friendly interview
+- Questions should focus on their personal experience with the problem
+- Ask about their current pain points, frustrations, and needs in a natural way
+- Focus on their willingness to pay and use the solution
+- Use phrases like "How often do you...", "What would make this valuable to you...", "Tell me about your experience with..."
+- Keep questions conversational and approachable, not overly formal
 
 If stakeholder_type is "secondary":
 - These are SUPPORTERS/INFLUENCERS who help or influence the primary users
@@ -2376,39 +2504,40 @@ If stakeholder_type is "secondary":
 - Reference the primary users as "them", "the [target customer]", or specific names
 
 LANGUAGE REQUIREMENTS:
-- Primary questions: MUST use "you", "your", "do you", "would you" in EVERY question
-- Secondary questions: MUST use "help", "recommend", "support", "concerns about them" language
-- Make the perspective difference crystal clear in every single question
+- Primary questions: Use natural, conversational language that feels like a friendly interview
+- Secondary questions: Focus on their support role and influence over others
+- Make questions professional yet approachable, suitable for user research interviews
+- Avoid excessive emphasis on "YOU" - keep it natural and conversational
 
 Return a JSON object with exactly this structure:
 {{
     "problemDiscovery": [
-        "Question 1 with direct YOU language for primary OR help/support language for secondary",
-        "Question 2 with direct YOU language for primary OR help/support language for secondary",
-        "Question 3 with direct YOU language for primary OR help/support language for secondary",
-        "Question 4 with direct YOU language for primary OR help/support language for secondary",
-        "Question 5 with direct YOU language for primary OR help/support language for secondary"
+        "Natural, conversational question about their experience with the problem",
+        "Question about challenges they face in this area",
+        "Question about current solutions they use",
+        "Question about pain points and frustrations",
+        "Question about their ideal solution"
     ],
     "solutionValidation": [
-        "Question 1 with direct YOU language for primary OR help/support language for secondary",
-        "Question 2 with direct YOU language for primary OR help/support language for secondary",
-        "Question 3 with direct YOU language for primary OR help/support language for secondary",
-        "Question 4 with direct YOU language for primary OR help/support language for secondary",
-        "Question 5 with direct YOU language for primary OR help/support language for secondary"
+        "Question about what would make the solution valuable",
+        "Question about important features or characteristics",
+        "Question about pricing expectations or concerns",
+        "Question about hesitations or concerns",
+        "Question about what would convince them to try it"
     ],
     "followUp": [
-        "Question 1 with direct YOU language for primary OR help/support language for secondary",
-        "Question 2 with direct YOU language for primary OR help/support language for secondary",
-        "Question 3 with direct YOU language for primary OR help/support language for secondary"
+        "Question about recommendation to others",
+        "Question about discovery methods",
+        "Question about additional needs or context"
     ]
 }}
 
 IMPORTANT:
-- EVERY primary question must contain "you", "your", "do you", or "would you"
-- EVERY secondary question must contain "help", "recommend", "support", or reference to "them/others"
-- Make questions DISTINCTLY DIFFERENT based on stakeholder_type
-- Reference the actual business idea, target customer, and problems
-- Use the stakeholder's specific name and description in questions
+- Make questions sound natural and conversational, like a professional user researcher would ask
+- Primary questions should focus on personal experience in a natural way
+- Secondary questions should focus on their support/influence role naturally
+- Reference the actual business idea, target customer, and problems contextually
+- Use the stakeholder's specific name and description appropriately
 """
 
             # Call LLM with temperature 0 for consistent results
@@ -2467,49 +2596,60 @@ IMPORTANT:
         """Generate fallback questions that are different for primary vs secondary stakeholders"""
 
         if stakeholder_type == "primary":
-            # Primary stakeholders: Direct user experience questions
+            # Primary stakeholders: Conversational, natural questions (matching our Fix #2 improvements)
+            business_name = (
+                business_idea
+                if business_idea and len(business_idea) < 50
+                else "this service"
+            )
             return {
                 "problemDiscovery": [
-                    f"How often do you personally experience challenges with {business_idea or 'this type of service'}?",
-                    f"What's the most frustrating part of {problem or 'your current situation'}?",
-                    f"How much time do you spend dealing with this problem each week?",
-                    f"What solutions have you tried before to solve this?",
-                    f"What would an ideal solution look like for you personally?",
+                    f"Tell me about your experience with {business_name} - what challenges come up most often?",
+                    f"What's the most frustrating part of {problem if problem else 'your current situation'}?",
+                    f"How much time does this problem typically take from your week?",
+                    f"What solutions have you tried before, and how did they work out?",
+                    f"If you could design the perfect solution, what would it look like?",
                 ],
                 "solutionValidation": [
-                    f"Would you personally use {business_idea or 'this solution'}?",
-                    f"What features would be most important to you in {business_idea or 'this solution'}?",
-                    f"How much would you be willing to pay for {business_idea or 'this solution'}?",
-                    f"What concerns would you have about using {business_idea or 'this solution'}?",
-                    f"What would convince you to switch to {business_idea or 'this solution'}?",
+                    f"What would make {business_name} valuable in your daily life?",
+                    f"Which features would matter most to you?",
+                    f"What's a reasonable price point for something like this?",
+                    f"Any concerns or hesitations about {business_name}?",
+                    f"What would convince you to give it a try?",
                 ],
                 "followUp": [
-                    f"Would you recommend {business_idea or 'this solution'} to others like you?",
-                    f"How do you typically discover new solutions like {business_idea or 'this'}?",
-                    f"What else should we know about your needs as a {target_customer or 'customer'}?",
+                    f"Would you recommend {business_name} to others in your situation?",
+                    f"How do you usually discover new services like this?",
+                    f"Anything else about your needs that would be helpful to know?",
                 ],
             }
         else:
-            # Secondary stakeholders: Support and influence questions
+            # Secondary stakeholders: Conversational support and influence questions
+            business_name = (
+                business_idea
+                if business_idea and len(business_idea) < 50
+                else "this service"
+            )
+            customer_group = target_customer if target_customer else "people"
             return {
                 "problemDiscovery": [
-                    f"How do you currently help {target_customer or 'people'} with {problem or 'their challenges'}?",
-                    f"What challenges do you see {target_customer or 'them'} facing with {business_idea or 'this type of service'}?",
-                    f"How does {problem or 'their situation'} affect you or your relationship with them?",
+                    f"How do you currently help {customer_group} with {problem if problem else 'their challenges'}?",
+                    f"What challenges do you see {customer_group} facing with services like {business_name}?",
+                    f"How does their situation affect you or your relationship with them?",
                     f"What role do you play in helping them find solutions?",
-                    f"What barriers do you see preventing them from getting help?",
+                    f"What barriers prevent them from getting the help they need?",
                 ],
                 "solutionValidation": [
-                    f"Would you support {target_customer or 'them'} using {business_idea or 'this solution'}?",
-                    f"What would you want to see in {business_idea or 'this solution'} to feel confident recommending it?",
-                    f"What concerns would you have about {target_customer or 'them'} using {business_idea or 'this solution'}?",
-                    f"How important is it that {business_idea or 'this solution'} is easy for {target_customer or 'them'} to use?",
-                    f"Would you be willing to help {target_customer or 'them'} access or use {business_idea or 'this solution'}?",
+                    f"Would you support {customer_group} using {business_name}?",
+                    f"What would you want to see in {business_name} to feel confident recommending it?",
+                    f"What concerns would you have about them using {business_name}?",
+                    f"How important is it that {business_name} is easy for them to use?",
+                    f"Would you be willing to help them access or use {business_name}?",
                 ],
                 "followUp": [
-                    f"Who else do you know who might benefit from {business_idea or 'this solution'}?",
-                    f"How do you typically help {target_customer or 'people'} discover new solutions?",
-                    f"What would make you confident in recommending {business_idea or 'this solution'} to others?",
+                    f"Who else do you know who might benefit from {business_name}?",
+                    f"How do you typically help {customer_group} discover new solutions?",
+                    f"What would make you confident in recommending {business_name} to others?",
                 ],
             }
 
@@ -2636,27 +2776,8 @@ IMPORTANT:
 
         stakeholders = []
 
-        # Pokemon Go Coffee Shop - Specific case
-        if ("pokemon" in business_lower or "pokemon go" in business_lower) and (
-            "coffee" in business_lower or "cafe" in business_lower
-        ):
-            stakeholders = [
-                {
-                    "name": "Pokemon Go Community Leaders",
-                    "description": "Local raid coordinators, Discord admins, and community organizers who influence player behavior and can recommend gathering spots to the Pokemon Go community",
-                },
-                {
-                    "name": "Local Gaming Store Owners",
-                    "description": "Owners of gaming/hobby stores who already serve the gaming community and understand player spending habits and needs",
-                },
-                {
-                    "name": "Coffee and Gaming Supply Partners",
-                    "description": "Coffee suppliers and gaming-themed merchandise vendors who could provide products tailored to the gaming community",
-                },
-            ]
-
-        # Gaming + Food/Beverage businesses
-        elif any(
+        # Gaming + Food/Beverage businesses (includes all gaming cafes, not just specific games)
+        if any(
             keyword in business_lower for keyword in ["game", "gaming", "esports"]
         ) and any(
             keyword in business_lower
@@ -2783,163 +2904,27 @@ IMPORTANT:
         target_customer: str,
         problem: str,
     ) -> Dict[str, List[str]]:
-        """Generate contextually appropriate questions for specific stakeholder types."""
+        """Generate contextually appropriate questions using our improved conversational approach."""
 
-        # Pokemon Go Community Leaders
-        if (
-            "pokemon go community" in stakeholder_name.lower()
-            or "community leaders" in stakeholder_name.lower()
-        ):
-            return {
-                "problemDiscovery": [
-                    "Where do Pokemon Go players in your community typically gather or meet up for raids and events?",
-                    "What challenges do you see Pokemon Go players facing when they need to take breaks during long gaming sessions?",
-                    "How do players in your community currently handle phone battery issues during extended gameplay?",
-                    "What feedback have you received from players about needing indoor spaces during bad weather?",
-                    "Are there any locations in the area that players frequently request or wish existed for gaming meetups?",
-                ],
-                "solutionValidation": [
-                    "Would you recommend a Pokemon Go-friendly coffee shop to your community members?",
-                    "What features would make you most likely to organize community events at this type of venue?",
-                    "How important would reliable phone charging stations be for your community events?",
-                    "Would you be interested in partnering with a coffee shop for Pokemon Go community events or meetups?",
-                    "What concerns, if any, would you have about recommending this venue to your community?",
-                ],
-                "followUp": [
-                    "How do you typically communicate new venue recommendations to your Pokemon Go community?",
-                    "What other amenities or services would make this coffee shop ideal for Pokemon Go players?",
-                    "Would you be willing to help promote or test this concept with your community members?",
-                ],
-            }
+        # Use our improved fallback method that generates conversational questions
+        # This replaces all the hardcoded templates with dynamic, conversational questions
 
-        # Local Gaming Store Owners
-        elif (
-            "gaming store" in stakeholder_name.lower()
-            or "hobby store" in stakeholder_name.lower()
-        ):
-            return {
-                "problemDiscovery": [
-                    "What do you observe about Pokemon Go players' spending habits and preferences when they visit your store?",
-                    "Do Pokemon Go players ever mention needing places to rest or recharge during their gaming sessions?",
-                    "How do weather conditions affect Pokemon Go player traffic and behavior in your area?",
-                    "What products or services do Pokemon Go players most frequently ask for that you don't currently offer?",
-                    "Have you noticed any patterns in when Pokemon Go players are most active in your neighborhood?",
-                ],
-                "solutionValidation": [
-                    "Would a Pokemon Go-friendly coffee shop complement or compete with your business?",
-                    "What partnership opportunities could you see between your store and a Pokemon Go coffee shop?",
-                    "How might increased Pokemon Go player foot traffic in the area benefit your business?",
-                    "Would you consider cross-promoting with a Pokemon Go coffee shop if it opened nearby?",
-                    "What concerns would you have about a gaming-focused coffee shop in your area?",
-                ],
-                "followUp": [
-                    "What advice would you give to someone opening a Pokemon Go-focused business in this area?",
-                    "How do you currently market to the Pokemon Go community?",
-                    "What products could a coffee shop stock that would appeal to Pokemon Go players?",
-                ],
-            }
+        # Determine if this is a primary or secondary stakeholder based on description
+        is_primary = any(
+            keyword in stakeholder_description.lower()
+            for keyword in ["primary", "target", "customer", "user", "player", "client"]
+        )
 
-        # Coffee and Gaming Supply Partners
-        elif (
-            "supply" in stakeholder_name.lower()
-            or "supplier" in stakeholder_name.lower()
-        ):
-            return {
-                "problemDiscovery": [
-                    "What gaming-themed food and beverage products are currently popular in the market?",
-                    "How do you currently serve businesses that cater to gaming communities?",
-                    "What challenges do specialty coffee shops face when trying to source unique or themed products?",
-                    "Are there specific products that gaming-focused venues typically request?",
-                    "What seasonal or event-based products work well for gaming communities?",
-                ],
-                "solutionValidation": [
-                    "Would you be interested in supplying a Pokemon Go-themed coffee shop?",
-                    "What gaming-themed products could you provide for a coffee shop targeting Pokemon Go players?",
-                    "How would you price specialty gaming-themed products compared to standard coffee shop items?",
-                    "What minimum order quantities or requirements would you have for a new gaming coffee shop?",
-                    "Could you provide Pokemon Go-themed merchandise or promotional items?",
-                ],
-                "followUp": [
-                    "What other gaming-focused venues do you currently supply?",
-                    "How far in advance would you need to plan for custom or themed product orders?",
-                    "What payment terms and delivery schedules work best for new coffee shop clients?",
-                ],
-            }
+        stakeholder_type = "primary" if is_primary else "secondary"
 
-        # Healthcare Administrators (for healthcare businesses)
-        elif "healthcare administrator" in stakeholder_name.lower():
-            return {
-                "problemDiscovery": [
-                    "What challenges do you face when evaluating new healthcare technologies or services?",
-                    "How do you currently assess whether a healthcare solution will integrate with existing systems?",
-                    "What compliance and regulatory requirements must new healthcare services meet?",
-                    "How do you measure the ROI of new healthcare technologies or services?",
-                    "What feedback do you get from staff about current healthcare technology pain points?",
-                ],
-                "solutionValidation": [
-                    "What criteria do you use to evaluate new healthcare technology vendors?",
-                    "How important is integration with existing EMR systems for new healthcare solutions?",
-                    "What budget approval process would a new healthcare service need to go through?",
-                    "How do you typically pilot or test new healthcare technologies before full implementation?",
-                    "What documentation and certifications do you require from healthcare technology vendors?",
-                ],
-                "followUp": [
-                    "Who else is typically involved in healthcare technology purchasing decisions?",
-                    "What timeline do you usually follow for implementing new healthcare technologies?",
-                    "How do you prefer to receive information about new healthcare solutions?",
-                ],
-            }
-
-        # IT Decision Makers (for technology businesses)
-        elif (
-            "it decision" in stakeholder_name.lower()
-            or "technical decision" in stakeholder_name.lower()
-        ):
-            return {
-                "problemDiscovery": [
-                    "What are your biggest challenges when evaluating new software platforms or technologies?",
-                    "How do you assess security and compliance requirements for new technology solutions?",
-                    "What integration challenges do you typically face when implementing new software?",
-                    "How do you measure the technical performance and reliability of potential vendors?",
-                    "What support and maintenance requirements do you have for new technology platforms?",
-                ],
-                "solutionValidation": [
-                    "What technical criteria are most important when evaluating new software platforms?",
-                    "How do you typically conduct technical due diligence on new vendors?",
-                    "What documentation and technical specifications do you require from software vendors?",
-                    "How important is API availability and integration capability for new platforms?",
-                    "What security certifications and compliance standards do you require?",
-                ],
-                "followUp": [
-                    "What is your typical timeline for evaluating and implementing new technology solutions?",
-                    "Who else is involved in technical purchasing decisions at your organization?",
-                    "How do you prefer to receive technical information and conduct vendor evaluations?",
-                ],
-            }
-
-        # Generic fallback for unrecognized stakeholder types
-        else:
-            return {
-                "problemDiscovery": [
-                    f"How does your role relate to businesses serving {target_customer}?",
-                    f"What challenges do you see in the {business_idea.split()[0] if business_idea else 'industry'} space?",
-                    f"How do current solutions address {problem} in your experience?",
-                    f"What gaps do you see in how {target_customer} are currently served?",
-                    f"What trends are you seeing that might affect businesses like this?",
-                ],
-                "solutionValidation": [
-                    f"How would you evaluate the viability of {business_idea}?",
-                    f"What would make you confident in recommending this type of solution?",
-                    f"What concerns would you have about this approach to solving {problem}?",
-                    f"How important is it that this solution addresses {problem} effectively?",
-                    f"What would success look like for this type of business from your perspective?",
-                ],
-                "followUp": [
-                    f"Who else should be involved in evaluating solutions for {target_customer}?",
-                    f"How do you typically learn about new solutions in this space?",
-                    f"What additional information would help you assess this business concept?",
-                ],
-            }
+        # Use our improved fallback question generation
+        return self._get_fallback_questions_by_type(
+            stakeholder_type=stakeholder_type,
+            business_idea=business_idea,
+            target_customer=target_customer,
+            problem=problem,
+            stakeholder_name=stakeholder_name,
+        )
 
     async def _generate_stakeholders_with_instructor(
         self,
@@ -2956,33 +2941,78 @@ IMPORTANT:
         # Create Instructor client
         instructor_client = InstructorGeminiClient()
 
-        # Extract conversation text
-        conversation_text = "\n".join(
-            [
-                f"{msg.get('role', 'user')}: {msg.get('content', '')}"
-                for msg in messages[-10:]  # Last 10 messages for context
-            ]
-        )
+        # Extract conversation text - handle both Message objects and dicts
+        conversation_text = ""
+        for msg in messages[-10:]:  # Last 10 messages for context
+            # Convert Message object to dict if needed
+            if hasattr(msg, "model_dump"):
+                msg_dict = msg.model_dump()
+            elif hasattr(msg, "dict"):
+                msg_dict = msg.dict()
+            else:
+                msg_dict = msg if isinstance(msg, dict) else {}
+
+            role = msg_dict.get("role", "user")
+            content = msg_dict.get("content", "")
+            if content:
+                conversation_text += f"{role}: {content}\n"
 
         # Create structured prompt
         system_instruction = """You are an expert business analyst specializing in stakeholder identification for customer research.
 Your task is to analyze business context and conversation to identify relevant primary and secondary stakeholders."""
 
-        # Determine industry from business context
+        # Dynamic industry classification based on business context
         business_idea = context_analysis.get("business_idea", "").lower()
-        if "coffee" in business_idea or "cafe" in business_idea:
-            industry = "Food & Beverage"
-        elif "app" in business_idea or "software" in business_idea:
-            industry = "Technology"
-        elif "health" in business_idea or "medical" in business_idea:
-            industry = "Healthcare"
-        elif "game" in business_idea or "gaming" in business_idea:
-            industry = "Gaming & Entertainment"
-        else:
-            industry = "General Business"
+        target_customer = context_analysis.get("target_customer", "").lower()
+
+        # More nuanced industry detection
+        industry_keywords = {
+            "Food & Beverage": [
+                "coffee",
+                "cafe",
+                "restaurant",
+                "food",
+                "drink",
+                "catering",
+            ],
+            "Technology": ["app", "software", "platform", "tech", "digital", "saas"],
+            "Healthcare": [
+                "health",
+                "medical",
+                "doctor",
+                "patient",
+                "clinic",
+                "therapy",
+            ],
+            "Gaming & Entertainment": [
+                "game",
+                "gaming",
+                "esports",
+                "entertainment",
+            ],
+            "Fitness & Wellness": ["fitness", "gym", "workout", "wellness", "exercise"],
+            "Education": ["education", "learning", "school", "training", "course"],
+            "Retail & E-commerce": [
+                "shop",
+                "store",
+                "retail",
+                "ecommerce",
+                "marketplace",
+            ],
+        }
+
+        # Find best matching industry
+        industry = "General Business"
+        for industry_name, keywords in industry_keywords.items():
+            if any(
+                keyword in business_idea or keyword in target_customer
+                for keyword in keywords
+            ):
+                industry = industry_name
+                break
 
         prompt = f"""
-Analyze this business context and identify relevant stakeholders:
+Analyze this business context and identify relevant stakeholders for customer research:
 
 Business Context:
 - Business Idea: {context_analysis.get('business_idea', 'Not specified')}
@@ -2993,22 +3023,19 @@ Business Context:
 Recent Conversation:
 {conversation_text}
 
-You must identify:
-1. PRIMARY stakeholders: The main target customers/users who will directly use the product/service
-2. SECONDARY stakeholders: Supporting people, partners, or influencers relevant to this business
-3. INDUSTRY: The business industry classification
+Instructions:
+1. Identify PRIMARY stakeholders: The main target customers/users who will directly use the product/service
+2. Identify SECONDARY stakeholders: Supporting people, partners, or influencers who affect or are affected by this business
+3. Base stakeholders on the ACTUAL business context provided, not generic templates
 
-For a Pokemon Go coffee shop:
-- Primary: Pokemon Go players, mobile gamers, coffee enthusiasts
-- Secondary: Local business partners, gaming community leaders, coffee suppliers
-- Industry: Food & Beverage
+Guidelines:
+- For specialty businesses (like gaming cafes), include both the service aspect (coffee customers) AND the specialty aspect (gaming community)
+- For technology businesses, consider both end users and technical decision makers
+- For healthcare businesses, consider patients, providers, and administrators
+- For retail businesses, consider customers, suppliers, and local business community
+- Always make stakeholder names and descriptions specific to the actual business described
 
-For a healthcare app:
-- Primary: Patients, healthcare consumers
-- Secondary: Healthcare administrators, doctors, insurance providers
-- Industry: Healthcare
-
-Provide specific, meaningful stakeholder names and detailed descriptions.
+Provide specific, meaningful stakeholder names and detailed descriptions based on the actual business context.
 """
 
         # Generate structured output
@@ -3173,8 +3200,8 @@ Provide specific, meaningful stakeholder names and detailed descriptions.
                     # Simple extraction - this is basic but better than failing
                     result["primary"] = [
                         {
-                            "name": "Pokemon Go Players in Bremen",
-                            "description": "Primary users",
+                            "name": "Target Customers",
+                            "description": "Primary users of the service",
                         }
                     ]
 
