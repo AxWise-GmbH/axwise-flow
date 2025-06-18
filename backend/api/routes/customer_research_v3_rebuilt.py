@@ -126,6 +126,48 @@ class UXResearchMethodology:
             logger.error(f"UX methodology enhancement failed: {e}")
             return v1_suggestions  # Always return V1 suggestions if enhancement fails
 
+    async def enhance_suggestions_with_llm(
+        self,
+        v1_suggestions: List[str],
+        business_context: Dict[str, Any],
+        conversation_stage: str,
+        assistant_response: str,
+        conversation_history: List[Any],
+        llm_service,
+    ) -> List[str]:
+        """Enhanced suggestion generation using LLM for business-aware contextual suggestions"""
+
+        try:
+            # Only skip LLM enhancement for explicit confirmation phase
+            if conversation_stage == "confirmation":
+                # Don't modify confirmation phase - V1 handles this perfectly
+                return v1_suggestions
+
+            # Try LLM-based contextual suggestion generation first
+            llm_suggestions = await self.generate_contextual_quick_replies(
+                business_context=business_context,
+                conversation_stage=conversation_stage,
+                assistant_response=assistant_response,
+                conversation_history=conversation_history,
+                llm_service=llm_service,
+            )
+
+            if llm_suggestions and len(llm_suggestions) >= 3:
+                logger.info(
+                    f"✅ Using LLM-generated contextual suggestions: {len(llm_suggestions)} suggestions"
+                )
+                return llm_suggestions
+            else:
+                logger.warning(
+                    "⚠️ LLM suggestions insufficient, falling back to enhanced V1"
+                )
+                return self.enhance_suggestions(v1_suggestions, conversation_stage)
+
+        except Exception as e:
+            logger.warning(f"⚠️ LLM suggestion enhancement failed: {e}")
+            # Fallback to regular enhancement
+            return self.enhance_suggestions(v1_suggestions, conversation_stage)
+
     def _generate_context_specific_suggestions(
         self, conversation_stage: str
     ) -> List[str]:
@@ -163,6 +205,142 @@ class UXResearchMethodology:
                 "That sounds right",
                 "Continue",
             ]
+
+    async def generate_contextual_quick_replies(
+        self,
+        business_context: Dict[str, Any],
+        conversation_stage: str,
+        assistant_response: str,
+        conversation_history: List[Any],
+        llm_service,
+    ) -> List[str]:
+        """Generate contextual quick reply suggestions using LLM analysis"""
+
+        try:
+            # Extract business context
+            business_idea = business_context.get(
+                "business_idea", ""
+            ) or business_context.get("businessIdea", "")
+            target_customer = business_context.get(
+                "target_customer", ""
+            ) or business_context.get("targetCustomer", "")
+            problem = business_context.get("problem", "")
+
+            # Build conversation context for LLM
+            recent_conversation = ""
+            for msg in conversation_history[-6:]:  # Last 6 messages for context
+                if hasattr(msg, "content") and hasattr(msg, "role"):
+                    recent_conversation += f"{msg.role}: {msg.content}\n"
+
+            # CRITICAL FIX: Analyze what type of response the assistant is expecting
+            assistant_expecting_confirmation = any(
+                phrase in assistant_response.lower()
+                for phrase in [
+                    "is this correct",
+                    "does this sound right",
+                    "is this accurate",
+                    "would you like me to generate",
+                    "shall i generate",
+                    "ready to generate",
+                    "confirm",
+                    "summary",
+                    "does this capture",
+                    "is this right",
+                ]
+            )
+
+            # Create LLM prompt for contextual suggestions
+            prompt = f"""Generate 4-5 contextual quick reply suggestions for a customer research chat interface.
+
+BUSINESS CONTEXT:
+- Business Idea: {business_idea or 'Not specified yet'}
+- Target Customer: {target_customer or 'Not specified yet'}
+- Problem: {problem or 'Not specified yet'}
+- Conversation Stage: {conversation_stage}
+
+RECENT CONVERSATION:
+{recent_conversation}
+
+LATEST ASSISTANT MESSAGE:
+{assistant_response}
+
+CRITICAL CONTEXT ANALYSIS:
+- Assistant expecting confirmation: {assistant_expecting_confirmation}
+
+REQUIREMENTS:
+1. Generate 4-5 quick reply options that match what the assistant is expecting from the user
+2. If assistant is asking for confirmation, provide confirmation responses
+3. If assistant is asking for information, provide information responses
+4. Use natural, conversational language that feels like helpful user responses
+5. Avoid generic options like "Okay", "Sounds good" unless they make contextual sense
+
+CONVERSATION FLOW LOGIC:
+- If assistant asks for CONFIRMATION: User should respond with confirmation/clarification options
+  Examples: "Yes, that's correct", "Generate the questions", "Let me clarify something", "That sounds right"
+
+- If assistant asks for INFORMATION: User should provide business information or ask for guidance
+  Examples: "It's a mobile app for busy professionals", "The main challenge is...", "Tell me more about that"
+
+- If assistant asks OPEN QUESTIONS: User should provide specific business details
+  Examples: Business model details, target customer specifics, problem descriptions
+
+BUSINESS-AWARE CONTENT (only when assistant is asking for information):
+- For gaming/entertainment businesses: Focus on community, engagement, monetization
+- For healthcare businesses: Focus on compliance, patient outcomes, provider workflows
+- For e-commerce businesses: Focus on customer acquisition, conversion, logistics
+- For SaaS/tech businesses: Focus on user adoption, integration, scalability
+
+Return ONLY a JSON array of 4-5 suggestion strings:
+["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4", "suggestion 5"]
+
+IMPORTANT: Match the suggestions to what the assistant is actually asking for, not what the user might want to ask back.
+"""
+
+            # Generate suggestions with LLM
+            response = await llm_service.generate_text(
+                prompt=prompt,
+                temperature=0.3,  # Some creativity but still focused
+                max_tokens=800,
+            )
+
+            # Parse JSON response
+            import json
+
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            suggestions = json.loads(response_clean)
+
+            # Validate and return suggestions
+            if isinstance(suggestions, list) and len(suggestions) >= 3:
+                # Ensure we have 4-5 suggestions and they're strings
+                validated_suggestions = [str(s) for s in suggestions[:5]]
+
+                # Add "All of the above" if we have multiple specific options
+                if len(validated_suggestions) >= 3 and not any(
+                    "all of the above" in s.lower() for s in validated_suggestions
+                ):
+                    # Only add if suggestions are specific and complementary
+                    if all(
+                        len(s) > 20 for s in validated_suggestions[:3]
+                    ):  # Reasonably detailed suggestions
+                        validated_suggestions.append("All of the above")
+
+                logger.info(
+                    f"✅ Generated {len(validated_suggestions)} contextual quick replies using LLM"
+                )
+                return validated_suggestions
+            else:
+                raise ValueError("Invalid suggestions format from LLM")
+
+        except Exception as e:
+            logger.warning(f"⚠️ LLM-based suggestion generation failed: {e}")
+            # Fallback to stage-based suggestions
+            return self._generate_context_specific_suggestions(conversation_stage)
 
     def validate_response_methodology(self, response_content: str) -> bool:
         """Validate that response follows UX research methodology"""
@@ -877,11 +1055,13 @@ class CustomerResearchServiceV3Rebuilt:
                             "target_customer", ""
                         ) or context_analysis.get("targetCustomer", "")
 
-                        # Generate contextual stakeholders based on actual business context
-                        contextual_stakeholders = (
-                            self._get_contextual_secondary_stakeholders(
-                                business_idea, target_customer
-                            )
+                        # Generate intelligent stakeholders using LLM analysis
+                        from backend.services.llm import LLMServiceFactory
+
+                        llm_service = LLMServiceFactory.create("gemini")
+
+                        contextual_stakeholders = await self._get_contextual_secondary_stakeholders_with_llm_intelligence(
+                            business_idea, target_customer, llm_service
                         )
 
                         questions["stakeholders"] = {
@@ -1153,7 +1333,7 @@ class CustomerResearchServiceV3Rebuilt:
         enhanced_response = v1_response.copy()
         applied_enhancements = []
 
-        # Enhancement 1: UX Research Methodology (Special Options)
+        # Enhancement 1: LLM-Based Contextual Quick Replies
         if self.enhancement_monitor.is_enabled("ux_methodology"):
             try:
                 conversation_stage = self._determine_conversation_stage(v1_response)
@@ -1163,16 +1343,59 @@ class CustomerResearchServiceV3Rebuilt:
                     original_suggestions = enhanced_response["suggestions"]
                     logger.info(f"🔍 Original suggestions: {original_suggestions}")
 
-                    enhanced_suggestions = self.ux_methodology.enhance_suggestions(
-                        original_suggestions, conversation_stage
-                    )
-                    enhanced_response["suggestions"] = enhanced_suggestions
-                    applied_enhancements.append("ux_methodology")
-                    self.enhancement_monitor.record_success("ux_methodology")
+                    # Try LLM-based contextual suggestion generation first
+                    try:
+                        from backend.services.llm import LLMServiceFactory
 
-                    logger.info(
-                        f"✅ UX methodology: {original_suggestions} → {enhanced_suggestions}"
-                    )
+                        llm_service = LLMServiceFactory.create("gemini")
+
+                        # Extract business context from metadata
+                        business_context = enhanced_response.get("metadata", {}).get(
+                            "extracted_context", {}
+                        )
+                        assistant_response = enhanced_response.get("content", "")
+
+                        # Convert request messages to conversation history
+                        conversation_history = (
+                            request.messages if hasattr(request, "messages") else []
+                        )
+
+                        # Use LLM-based contextual suggestion generation
+                        enhanced_suggestions = (
+                            await self.ux_methodology.enhance_suggestions_with_llm(
+                                v1_suggestions=original_suggestions,
+                                business_context=business_context,
+                                conversation_stage=conversation_stage,
+                                assistant_response=assistant_response,
+                                conversation_history=conversation_history,
+                                llm_service=llm_service,
+                            )
+                        )
+
+                        enhanced_response["suggestions"] = enhanced_suggestions
+                        applied_enhancements.append("llm_contextual_suggestions")
+                        self.enhancement_monitor.record_success("ux_methodology")
+
+                        logger.info(
+                            f"✅ LLM Contextual Suggestions: {len(original_suggestions)} → {len(enhanced_suggestions)} suggestions"
+                        )
+                        logger.info(f"✅ Enhanced suggestions: {enhanced_suggestions}")
+
+                    except Exception as llm_error:
+                        logger.warning(
+                            f"LLM suggestion enhancement failed, falling back to basic enhancement: {llm_error}"
+                        )
+
+                        # Fallback to basic enhancement
+                        enhanced_suggestions = self.ux_methodology.enhance_suggestions(
+                            original_suggestions, conversation_stage
+                        )
+                        enhanced_response["suggestions"] = enhanced_suggestions
+                        applied_enhancements.append("ux_methodology_fallback")
+
+                        logger.info(
+                            f"✅ UX methodology (fallback): {original_suggestions} → {enhanced_suggestions}"
+                        )
                 else:
                     logger.warning(
                         f"🔍 No suggestions found in enhanced_response for UX enhancement"
@@ -1739,13 +1962,39 @@ Is this summary an accurate and complete representation of the business idea, ta
             }
 
     def _determine_conversation_stage(self, v1_response: Dict[str, Any]) -> str:
-        """Determine conversation stage from V1 response"""
+        """Determine conversation stage from V1 response and assistant message content"""
 
         try:
             metadata = v1_response.get("metadata", {})
+            assistant_response = v1_response.get("content", "")
 
-            # Only return ready_for_questions if user explicitly confirmed
-            # Don't skip UX enhancements just because questions were generated
+            # CRITICAL FIX: Check if assistant is asking for confirmation
+            assistant_asking_for_confirmation = any(
+                phrase in assistant_response.lower()
+                for phrase in [
+                    "is this correct",
+                    "does this sound right",
+                    "is this accurate",
+                    "would you like me to generate",
+                    "shall i generate",
+                    "ready to generate",
+                    "confirm",
+                    "summary",
+                    "does this capture",
+                    "is this right",
+                    "is this summary",
+                    "does this look correct",
+                    "ready for questions",
+                    "generate research questions",
+                    "proceed with questions",
+                ]
+            )
+
+            # If assistant is explicitly asking for confirmation, this is confirmation stage
+            if assistant_asking_for_confirmation:
+                return "confirmation"
+
+            # Legacy metadata checks for confirmation
             if metadata.get("questionCategory") == "confirmation" and metadata.get(
                 "needs_confirmation"
             ):
@@ -1758,9 +2007,31 @@ Is this summary an accurate and complete representation of the business idea, ta
             ):
                 return "confirmation"
 
-            # Always use discovery phase for UX enhancements unless explicitly in confirmation
-            # This ensures "All of the above" and "I don't know" are added to suggestions
-            return "discovery"
+            # Check if user has confirmed and we're ready for questions
+            user_confirmation = metadata.get("user_confirmation", {})
+            if user_confirmation.get("is_confirmation", False):
+                return "confirmation"
+
+            # Determine stage based on conversation progression
+            context = metadata.get("extracted_context", {})
+            business_idea = context.get("business_idea", "") or context.get(
+                "businessIdea", ""
+            )
+            target_customer = context.get("target_customer", "") or context.get(
+                "targetCustomer", ""
+            )
+            problem = context.get("problem", "")
+
+            # Progressive stages based on information completeness
+            if not business_idea or len(business_idea.strip()) < 10:
+                return "discovery"
+            elif not target_customer or len(target_customer.strip()) < 5:
+                return "clarification"
+            elif not problem or len(problem.strip()) < 10:
+                return "validation"
+            else:
+                # Have all basic info, but not asking for confirmation yet
+                return "validation"
 
         except Exception:
             return "discovery"
@@ -2199,18 +2470,16 @@ IMPORTANT:
                     f"🔍 LLM returned {primary_count} primary, {secondary_count} secondary stakeholders"
                 )
 
-                # If no secondary stakeholders, add contextual ones
+                # If no secondary stakeholders, add intelligent contextual ones
                 if secondary_count == 0:
                     logger.info(
-                        f"🔧 No secondary stakeholders from LLM, adding contextual ones"
+                        f"🔧 No secondary stakeholders from LLM, using intelligent analysis"
                     )
                     business_idea = context_analysis.get("business_idea", "")
                     target_customer = context_analysis.get("target_customer", "")
 
-                    contextual_stakeholders = (
-                        self._get_contextual_secondary_stakeholders(
-                            business_idea, target_customer
-                        )
+                    contextual_stakeholders = await self._get_contextual_secondary_stakeholders_with_llm_intelligence(
+                        business_idea, target_customer, llm_service
                     )
 
                     # Add questions to the first stakeholder (for backward compatibility)
@@ -2243,15 +2512,18 @@ IMPORTANT:
             logger.error(f"🔴 LLM STAKEHOLDER GENERATION FAILED (AS EXPECTED): {e}")
             logger.info(f"🎯 USING SMART CONTEXTUAL FALLBACK INSTEAD")
 
-            # SMART CONTEXTUAL FALLBACK - BETTER THAN BROKEN LLM
+            # SMART CONTEXTUAL FALLBACK - Use simple fallback when LLM fails
             business_idea = context_analysis.get("business_idea", "")
             target_customer = context_analysis.get("target_customer", "")
 
             primary_name = target_customer or "Target Customers"
             primary_description = f"Primary users of {business_idea or 'the service'}"
 
-            contextual_stakeholders = self._get_contextual_secondary_stakeholders(
-                business_idea, target_customer
+            # Use simple fallback method when LLM intelligence fails
+            contextual_stakeholders = (
+                self._get_contextual_secondary_stakeholders_fallback(
+                    business_idea, target_customer
+                )
             )
 
             # Use first stakeholder for backward compatibility
@@ -2767,134 +3039,214 @@ IMPORTANT:
                 ],
             }
 
+    async def _get_contextual_secondary_stakeholders_with_llm_intelligence(
+        self, business_idea: str, target_customer: str, llm_service
+    ) -> List[Dict[str, str]]:
+        """Use LLM intelligence to determine if secondary stakeholders are needed and generate appropriate ones."""
+
+        # First, use LLM to determine if secondary stakeholders are actually needed
+        should_have_secondary = await self._should_generate_secondary_stakeholders_llm(
+            business_idea, target_customer, llm_service
+        )
+
+        if not should_have_secondary:
+            logger.info(
+                f"🎯 LLM determined no secondary stakeholders needed for: {business_idea}"
+            )
+            return []
+
+        # If secondary stakeholders are needed, generate them intelligently
+        return await self._generate_intelligent_secondary_stakeholders_llm(
+            business_idea, target_customer, llm_service
+        )
+
+    async def _should_generate_secondary_stakeholders_llm(
+        self, business_idea: str, target_customer: str, llm_service
+    ) -> bool:
+        """Use LLM to intelligently determine if secondary stakeholders are genuinely needed."""
+
+        try:
+            prompt = f"""Analyze this business and determine if it genuinely needs secondary stakeholders for customer research.
+
+Business Idea: {business_idea}
+Target Customer: {target_customer}
+
+Consider these factors:
+1. SIMPLE LOCAL SERVICES targeting INDIVIDUALS typically need only ONE stakeholder group:
+   - Examples: Photography for individuals, haircuts, personal training, tutoring, massage therapy
+   - These serve individual consumers directly with no complex decision-making process
+
+2. COMPLEX BUSINESSES typically need MULTIPLE stakeholder groups:
+   - B2B services (multiple decision makers in companies)
+   - Platforms/marketplaces (buyers AND sellers)
+   - Healthcare (patients AND providers AND administrators)
+   - Technology solutions (end users AND IT decision makers)
+
+3. AVOID RIDICULOUS STAKEHOLDERS:
+   - Don't suggest interviewing large platforms/companies (like "Tinder Platform", "Facebook", "Google")
+   - Don't suggest stakeholders you can't realistically interview
+   - Focus on people/groups you can actually talk to
+
+Question: Does this business genuinely need secondary stakeholders for meaningful customer research?
+
+Return ONLY a JSON response:
+{{
+  "needs_secondary_stakeholders": true/false,
+  "reasoning": "Brief explanation of why secondary stakeholders are or aren't needed",
+  "business_complexity": "simple_local_service|complex_business|platform|b2b",
+  "confidence": 0.0-1.0
+}}"""
+
+            response = await llm_service.generate_text(
+                prompt=prompt, temperature=0.1, max_tokens=300
+            )
+
+            # Parse JSON response
+            import json
+
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            analysis = json.loads(response_clean)
+
+            needs_secondary = analysis.get("needs_secondary_stakeholders", True)
+            reasoning = analysis.get("reasoning", "No reasoning provided")
+            confidence = analysis.get("confidence", 0.5)
+
+            logger.info(f"🧠 LLM Stakeholder Analysis:")
+            logger.info(f"   Needs Secondary: {needs_secondary}")
+            logger.info(f"   Reasoning: {reasoning}")
+            logger.info(f"   Confidence: {confidence}")
+
+            # Only skip secondary stakeholders if LLM is confident
+            return needs_secondary and confidence >= 0.7
+
+        except Exception as e:
+            logger.error(f"LLM stakeholder analysis failed: {e}")
+            # Conservative fallback - assume secondary stakeholders are needed
+            return True
+
+    async def _generate_intelligent_secondary_stakeholders_llm(
+        self, business_idea: str, target_customer: str, llm_service
+    ) -> List[Dict[str, str]]:
+        """Generate contextually intelligent secondary stakeholders using LLM."""
+
+        try:
+            prompt = f"""Generate 1-2 realistic secondary stakeholders for customer research for this business.
+
+Business Idea: {business_idea}
+Target Customer: {target_customer}
+
+Guidelines:
+1. REALISTIC STAKEHOLDERS ONLY - people/groups you can actually interview
+2. AVOID large platforms/companies (no "Tinder Platform", "Facebook", "Google", etc.)
+3. Focus on LOCAL/ACCESSIBLE stakeholders:
+   - Local business partners who might refer customers
+   - Suppliers or service providers who support the business
+   - Community members who influence the target customers
+   - Complementary service providers (not competitors)
+
+4. CONTEXTUAL RELEVANCE:
+   - For photography: local businesses, event planners, other service providers
+   - For food/beverage: suppliers, local business community, delivery partners
+   - For fitness: healthcare providers, equipment suppliers, wellness professionals
+   - For technology: integration partners, resellers, industry consultants
+
+Return ONLY a JSON array of 1-2 stakeholders:
+[
+  {{
+    "name": "Specific, realistic stakeholder name",
+    "description": "Clear description of who they are and why they're relevant"
+  }}
+]
+
+Focus on stakeholders that would provide genuinely different perspectives from your primary customers."""
+
+            response = await llm_service.generate_text(
+                prompt=prompt, temperature=0.2, max_tokens=500
+            )
+
+            # Parse JSON response
+            import json
+
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
+            stakeholders = json.loads(response_clean)
+
+            # Validate the response
+            if isinstance(stakeholders, list) and len(stakeholders) > 0:
+                logger.info(
+                    f"✅ LLM generated {len(stakeholders)} intelligent secondary stakeholders"
+                )
+                for stakeholder in stakeholders:
+                    logger.info(
+                        f"   - {stakeholder.get('name', 'Unknown')}: {stakeholder.get('description', 'No description')}"
+                    )
+                return stakeholders
+            else:
+                logger.warning(
+                    "LLM returned invalid stakeholder format, using fallback"
+                )
+                return self._get_contextual_secondary_stakeholders_fallback(
+                    business_idea, target_customer
+                )
+
+        except Exception as e:
+            logger.error(f"LLM secondary stakeholder generation failed: {e}")
+            return self._get_contextual_secondary_stakeholders_fallback(
+                business_idea, target_customer
+            )
+
+    def _get_contextual_secondary_stakeholders_fallback(
+        self, business_idea: str, target_customer: str
+    ) -> List[Dict[str, str]]:
+        """Fallback method for generating secondary stakeholders when LLM fails."""
+        business_lower = (business_idea or "").lower()
+
+        # Simple pattern-based fallback (much shorter than before)
+        if any(
+            keyword in business_lower for keyword in ["photo", "photography", "studio"]
+        ):
+            return [
+                {
+                    "name": "Local Business Partners",
+                    "description": "Event planners, venues, and businesses that could refer photography clients",
+                }
+            ]
+        elif any(
+            keyword in business_lower for keyword in ["food", "coffee", "restaurant"]
+        ):
+            return [
+                {
+                    "name": "Local Business Community",
+                    "description": "Nearby business owners who could partner for cross-promotion",
+                }
+            ]
+        else:
+            # For unknown business types, return minimal generic stakeholder
+            return [
+                {
+                    "name": "Industry Partners",
+                    "description": "Key partners and collaborators who support similar businesses",
+                }
+            ]
+
     def _get_contextual_secondary_stakeholders(
         self, business_idea: str, target_customer: str
     ) -> List[Dict[str, str]]:
-        """Generate contextually relevant secondary stakeholders based on business analysis."""
-        business_lower = (business_idea or "").lower()
-        customer_lower = (target_customer or "").lower()
-
-        stakeholders = []
-
-        # Gaming + Food/Beverage businesses (includes all gaming cafes, not just specific games)
-        if any(
-            keyword in business_lower for keyword in ["game", "gaming", "esports"]
-        ) and any(
-            keyword in business_lower
-            for keyword in ["food", "coffee", "cafe", "restaurant"]
-        ):
-            stakeholders = [
-                {
-                    "name": "Gaming Community Influencers",
-                    "description": "Local gaming community leaders, streamers, and event organizers who can influence gaming community behavior",
-                },
-                {
-                    "name": "Food and Beverage Suppliers",
-                    "description": "Suppliers who can provide gaming-themed food items, energy drinks, and specialty beverages for gamers",
-                },
-            ]
-
-        # Healthcare/Medical businesses
-        elif any(
-            keyword in business_lower
-            for keyword in [
-                "health",
-                "medical",
-                "doctor",
-                "patient",
-                "clinic",
-                "therapy",
-            ]
-        ):
-            stakeholders = [
-                {
-                    "name": "Healthcare Administrators",
-                    "description": "Hospital administrators, clinic managers, and healthcare system decision-makers who influence healthcare service adoption",
-                },
-                {
-                    "name": "Insurance Providers",
-                    "description": "Insurance companies and benefits administrators who determine coverage and reimbursement for healthcare services",
-                },
-            ]
-
-        # Technology/Software businesses
-        elif any(
-            keyword in business_lower
-            for keyword in ["app", "software", "platform", "tech", "digital"]
-        ):
-            stakeholders = [
-                {
-                    "name": "IT Decision Makers",
-                    "description": "IT managers, CTOs, and technical decision-makers who evaluate and approve technology solutions",
-                },
-                {
-                    "name": "Integration Partners",
-                    "description": "Technology vendors and system integrators who would need to work with or connect to the platform",
-                },
-            ]
-
-        # Food & Beverage businesses (general)
-        elif any(
-            keyword in business_lower
-            for keyword in ["food", "restaurant", "cafe", "coffee", "drink", "catering"]
-        ):
-            stakeholders = [
-                {
-                    "name": "Food and Beverage Suppliers",
-                    "description": "Suppliers, distributors, and vendors who provide ingredients, equipment, and products for food service businesses",
-                },
-                {
-                    "name": "Local Business Community",
-                    "description": "Nearby business owners who could be affected by foot traffic, parking, or could partner for cross-promotion",
-                },
-            ]
-
-        # E-commerce/Retail businesses
-        elif any(
-            keyword in business_lower
-            for keyword in ["shop", "store", "retail", "ecommerce", "marketplace"]
-        ):
-            stakeholders = [
-                {
-                    "name": "Supply Chain Partners",
-                    "description": "Suppliers, distributors, logistics providers, and inventory management partners essential for retail operations",
-                },
-                {
-                    "name": "Payment and Platform Providers",
-                    "description": "Payment processors, e-commerce platforms, and technology vendors that enable online retail operations",
-                },
-            ]
-
-        # Fitness/Wellness businesses
-        elif any(
-            keyword in business_lower
-            for keyword in ["fitness", "gym", "wellness", "health", "exercise"]
-        ):
-            stakeholders = [
-                {
-                    "name": "Fitness Industry Partners",
-                    "description": "Equipment suppliers, fitness instructors, and wellness professionals who support fitness businesses",
-                },
-                {
-                    "name": "Healthcare Providers",
-                    "description": "Doctors, physical therapists, and healthcare professionals who might refer patients or collaborate on wellness programs",
-                },
-            ]
-
-        # Default fallback - Generic business stakeholders
-        else:
-            stakeholders = [
-                {
-                    "name": "Industry Partners",
-                    "description": "Key partners, suppliers, and collaborators within the industry who support similar businesses",
-                },
-                {
-                    "name": "Regulatory and Compliance Bodies",
-                    "description": "Government agencies, licensing bodies, and regulatory organizations that oversee the industry",
-                },
-            ]
-
-        return stakeholders
+        """Legacy method - kept for backward compatibility. Use LLM version when possible."""
+        return self._get_contextual_secondary_stakeholders_fallback(
+            business_idea, target_customer
+        )
 
     def _generate_contextual_questions_for_stakeholder(
         self,
