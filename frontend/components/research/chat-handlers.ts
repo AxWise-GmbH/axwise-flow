@@ -82,9 +82,14 @@ export const handleSendMessage = async (
 
 
     // Debug: Log what the backend is returning
-    console.log('Backend response:', {
+    console.log('🔧 DUPLICATE DEBUG: Backend response:', {
       hasQuestions: !!data.questions,
       questionsData: data.questions,
+      questionsType: typeof data.questions,
+      questionsKeys: data.questions ? Object.keys(data.questions) : [],
+      hasStakeholders: !!(data.questions as any)?.stakeholders,
+      hasEstimatedTime: !!(data.questions as any)?.estimatedTime,
+      hasProblemDiscovery: !!(data.questions as any)?.problemDiscovery,
       extractedContext: data.metadata?.extracted_context,
       messageCount: apiMessages.length
     });
@@ -178,6 +183,14 @@ const processGeneratedQuestions = async (
   context: any,
   onComplete?: (questions: any) => void
 ) => {
+  console.log('🔧 DUPLICATE DEBUG: processGeneratedQuestions called with:', {
+    questionsData: data.questions,
+    hasStakeholders: !!(data.questions as any)?.stakeholders,
+    hasEstimatedTime: !!(data.questions as any)?.estimatedTime,
+    hasProblemDiscovery: !!(data.questions as any)?.problemDiscovery,
+    questionsKeys: data.questions ? Object.keys(data.questions) : []
+  });
+
   // Check if we have comprehensive questions (V3 enhanced format)
   // Backend returns: { questions: { stakeholders: { primary: [...], secondary: [...] }, estimatedTime: {...} } }
   if ((data.questions as any).stakeholders || (data.questions as any).estimatedTime) {
@@ -216,9 +229,24 @@ const processGeneratedQuestions = async (
       }
     };
 
+    console.log('🔧 DUPLICATE DEBUG: Adding COMPREHENSIVE_QUESTIONS_COMPONENT with data:', {
+      primaryStakeholdersCount: comprehensiveQuestions.primaryStakeholders.length,
+      secondaryStakeholdersCount: comprehensiveQuestions.secondaryStakeholders.length,
+      totalQuestions: comprehensiveQuestions.timeEstimate.totalQuestions,
+      estimatedMinutes: comprehensiveQuestions.timeEstimate.estimatedMinutes
+    });
+
+    // Log whether this has actual questions or not
+    if (comprehensiveQuestions.timeEstimate.totalQuestions === 0) {
+      console.log('🔧 DUPLICATE DEBUG: This is an empty component (totalQuestions=0)');
+    } else {
+      console.log('🔧 DUPLICATE DEBUG: This has actual questions (totalQuestions=' + comprehensiveQuestions.timeEstimate.totalQuestions + ')');
+    }
+
     // Add comprehensive questions component
+    const messageId = Date.now().toString() + '_comprehensive_questions';
     const comprehensiveQuestionsMessage: Message = {
-      id: Date.now().toString() + '_comprehensive_questions',
+      id: messageId,
       content: 'COMPREHENSIVE_QUESTIONS_COMPONENT',
       role: 'assistant',
       timestamp: new Date(),
@@ -229,7 +257,40 @@ const processGeneratedQuestions = async (
       }
     };
 
-    actions.setMessages(prev => [...prev, comprehensiveQuestionsMessage]);
+    console.log('🔧 DUPLICATE DEBUG: Adding message with ID:', messageId);
+    actions.setMessages(prev => {
+      console.log('🔧 DUPLICATE DEBUG: Current messages before adding:', prev.map(m => ({ id: m.id, content: m.content })));
+
+      // Check if we already have a COMPREHENSIVE_QUESTIONS_COMPONENT with actual questions
+      const existingComprehensiveComponent = prev.find(m => {
+        if (m.content !== 'COMPREHENSIVE_QUESTIONS_COMPONENT') return false;
+        const existingQuestions = m.metadata?.comprehensiveQuestions?.timeEstimate?.totalQuestions || 0;
+        return existingQuestions > 0; // Only consider it existing if it has actual questions
+      });
+
+      if (existingComprehensiveComponent) {
+        console.log('🔧 DUPLICATE DEBUG: COMPREHENSIVE_QUESTIONS_COMPONENT with actual questions already exists, skipping. Existing ID:', existingComprehensiveComponent.id);
+        return prev; // Return unchanged array
+      }
+
+      // If we have an empty component and this new one has questions, replace the empty one
+      const emptyComprehensiveComponent = prev.find(m => {
+        if (m.content !== 'COMPREHENSIVE_QUESTIONS_COMPONENT') return false;
+        const existingQuestions = m.metadata?.comprehensiveQuestions?.timeEstimate?.totalQuestions || 0;
+        return existingQuestions === 0; // Find empty component
+      });
+
+      if (emptyComprehensiveComponent && comprehensiveQuestions.timeEstimate.totalQuestions > 0) {
+        console.log('🔧 DUPLICATE DEBUG: Replacing empty component with actual questions. Empty ID:', emptyComprehensiveComponent.id);
+        // Remove the empty component and add the new one
+        const filteredMessages = prev.filter(m => m.id !== emptyComprehensiveComponent.id);
+        return [...filteredMessages, comprehensiveQuestionsMessage];
+      }
+
+      const newMessages = [...prev, comprehensiveQuestionsMessage];
+      console.log('🔧 DUPLICATE DEBUG: New messages after adding:', newMessages.map(m => ({ id: m.id, content: m.content })));
+      return newMessages;
+    });
 
     // Update local questions state for backward compatibility
     const allQuestions = convertToSimpleQuestions(comprehensiveQuestions);

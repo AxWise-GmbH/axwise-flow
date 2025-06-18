@@ -1,6 +1,9 @@
 """
 FastAPI application for handling interview data and analysis.
 
+📚 IMPLEMENTATION REFERENCE: See docs/pydantic-instructor-implementation-guide.md
+   for proper Pydantic Instructor usage, JSON parsing, and structured output handling.
+
 Last Updated: 2025-03-24
 """
 
@@ -50,7 +53,9 @@ from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
 from backend.models import User, InterviewData, AnalysisResult
 from infrastructure.config.settings import settings
-from backend.services.processing.persona_formation_service import PersonaFormationService
+from backend.services.processing.persona_formation_service import (
+    PersonaFormationService,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -157,14 +162,20 @@ app.add_middleware(
 
 # Configure rate limiting
 from backend.services.external.rate_limiter import configure_rate_limiter
+
 configure_rate_limiter(app)
 
 # Configure input validation
 from backend.services.external.input_validation import configure_input_validation
+
 configure_input_validation(app)
 
 # Import Firebase logging
-from backend.services.external.firebase_logging import firebase_logging, SecurityEventType
+from backend.services.external.firebase_logging import (
+    firebase_logging,
+    SecurityEventType,
+)
+
 
 # Configure security logging middleware
 @app.middleware("http")
@@ -199,7 +210,7 @@ async def security_logging_middleware(request: Request, call_next):
                 user_id=user_id,
                 ip_address=client_host,
                 user_agent=user_agent,
-                status_code=status_code
+                status_code=status_code,
             )
 
         # Log rate limit exceeded
@@ -211,7 +222,7 @@ async def security_logging_middleware(request: Request, call_next):
                 user_id=user_id,
                 ip_address=client_host,
                 user_agent=user_agent,
-                status_code=status_code
+                status_code=status_code,
             )
 
         # Log access to sensitive endpoints
@@ -223,7 +234,7 @@ async def security_logging_middleware(request: Request, call_next):
                 user_id=user_id,
                 ip_address=client_host,
                 user_agent=user_agent,
-                status_code=status_code
+                status_code=status_code,
             )
 
         return response
@@ -237,12 +248,13 @@ async def security_logging_middleware(request: Request, call_next):
             metadata={
                 "method": method,
                 "ip_address": client_host,
-                "user_agent": user_agent
-            }
+                "user_agent": user_agent,
+            },
         )
 
         # Re-raise the exception
         raise
+
 
 # Include routers
 app.include_router(priority_insights_router, prefix="/api/analysis")
@@ -252,17 +264,24 @@ app.include_router(prd_router)
 # Include subscription and payment routers
 from backend.api.routes.subscription import router as subscription_router
 from backend.api.routes.stripe_webhook import router as stripe_webhook_router
+
 app.include_router(subscription_router)
 app.include_router(stripe_webhook_router)
 
 # Include debug router
 from backend.api.endpoints.debug import router as debug_router
+
 app.include_router(debug_router, prefix="/api")
 
 # Include customer research routers
 from backend.api.routes.customer_research import router as main_customer_research_router
-from backend.api.routes.customer_research_v3_simple_modular import router as customer_research_router
-from backend.api.routes.customer_research_v3_rebuilt import router as customer_research_v3_rebuilt_router
+from backend.api.routes.customer_research_v3_simple_modular import (
+    router as customer_research_router,
+)
+from backend.api.routes.customer_research_v3_rebuilt import (
+    router as customer_research_v3_rebuilt_router,
+)
+
 app.include_router(main_customer_research_router)
 app.include_router(customer_research_router)
 app.include_router(customer_research_v3_rebuilt_router)
@@ -296,12 +315,16 @@ def get_persona_service():
                 # Ensure we have the API key directly from environment
                 gemini_key = os.getenv("GEMINI_API_KEY")
                 if gemini_key and not settings.llm_providers["gemini"].get("api_key"):
-                    logger.info("Directly loading Gemini API key from environment for persona service")
+                    logger.info(
+                        "Directly loading Gemini API key from environment for persona service"
+                    )
                     settings.llm_providers["gemini"]["api_key"] = gemini_key
 
                 # Import constants for LLM configuration
                 from infrastructure.constants.llm_constants import (
-                    GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS
+                    GEMINI_MODEL_NAME,
+                    GEMINI_TEMPERATURE,
+                    GEMINI_MAX_TOKENS,
                 )
 
                 self.llm = type(
@@ -316,7 +339,9 @@ def get_persona_service():
                     },
                 )
                 self.processing = type(
-                    "obj", (object,), {"batch_size": 10, "max_tokens": GEMINI_MAX_TOKENS}
+                    "obj",
+                    (object,),
+                    {"batch_size": 10, "max_tokens": GEMINI_MAX_TOKENS},
                 )
                 self.validation = type("obj", (object,), {"min_confidence": 0.4})
 
@@ -366,7 +391,7 @@ async def upload_data(
         logger.error(f"[UploadData - Error] Invalid content type: {content_type}")
         raise HTTPException(
             status_code=415,
-            detail="Unsupported media type. Please use multipart/form-data."
+            detail="Unsupported media type. Please use multipart/form-data.",
         )
 
     try:
@@ -378,28 +403,38 @@ async def upload_data(
         for key in form:
             value = form[key]
             if isinstance(value, UploadFile):
-                logger.info(f"[UploadData - Form] Field: {key}, Type: UploadFile, Filename: {value.filename}, Content-Type: {value.content_type}")
+                logger.info(
+                    f"[UploadData - Form] Field: {key}, Type: UploadFile, Filename: {value.filename}, Content-Type: {value.content_type}"
+                )
             else:
-                logger.info(f"[UploadData - Form] Field: {key}, Type: {type(value)}, Value: {value}")
+                logger.info(
+                    f"[UploadData - Form] Field: {key}, Type: {type(value)}, Value: {value}"
+                )
 
         # Extract file from form data
         file = None
         if "file" in form:
             file = form["file"]
             # Check if file has the necessary attributes instead of using isinstance
-            if not hasattr(file, 'filename') or not hasattr(file, 'read'):
-                logger.error(f"[UploadData - Error] 'file' field is not a valid file object: {type(file)}")
+            if not hasattr(file, "filename") or not hasattr(file, "read"):
+                logger.error(
+                    f"[UploadData - Error] 'file' field is not a valid file object: {type(file)}"
+                )
                 logger.error(f"[UploadData - Error] File attributes: {dir(file)}")
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid file upload. The 'file' field must contain a file."
+                    detail="Invalid file upload. The 'file' field must contain a file.",
                 )
-            logger.info(f"[UploadData - Success] Found valid file object in 'file' field: {file.filename}")
+            logger.info(
+                f"[UploadData - Success] Found valid file object in 'file' field: {file.filename}"
+            )
         else:
             # Try to find any file-like object in the form as a fallback
             for key, value in form.items():
-                if hasattr(value, 'filename') and hasattr(value, 'read'):
-                    logger.info(f"[UploadData - Recovery] Found file in form with key: {key}")
+                if hasattr(value, "filename") and hasattr(value, "read"):
+                    logger.info(
+                        f"[UploadData - Recovery] Found file in form with key: {key}"
+                    )
                     file = value
                     break
 
@@ -408,7 +443,7 @@ async def upload_data(
             logger.error("[UploadData - Error] No file found in the request")
             raise HTTPException(
                 status_code=400,
-                detail="No file uploaded. Please ensure you're sending a file in the 'file' field."
+                detail="No file uploaded. Please ensure you're sending a file in the 'file' field.",
             )
 
         # Extract is_free_text parameter
@@ -434,23 +469,29 @@ async def upload_data(
             if not file_sample:
                 logger.error("[UploadData - Error] File is empty")
                 raise HTTPException(
-                    status_code=400,
-                    detail="The uploaded file is empty."
+                    status_code=400, detail="The uploaded file is empty."
                 )
 
             logger.info(f"[UploadData - File] Sample size: {len(file_sample)} bytes")
 
             # Try to decode the sample as UTF-8 to check for encoding issues
             try:
-                sample_text = file_sample.decode('utf-8')
-                logger.info(f"[UploadData - File] Sample decodes as UTF-8: {sample_text[:100]}...")
+                sample_text = file_sample.decode("utf-8")
+                logger.info(
+                    f"[UploadData - File] Sample decodes as UTF-8: {sample_text[:100]}..."
+                )
             except UnicodeDecodeError:
-                logger.warning("[UploadData - File] Sample cannot be decoded as UTF-8, might be binary data")
+                logger.warning(
+                    "[UploadData - File] Sample cannot be decoded as UTF-8, might be binary data"
+                )
         except Exception as sample_error:
-            logger.error(f"[UploadData - Error] Failed to read file sample: {str(sample_error)}")
+            logger.error(
+                f"[UploadData - Error] Failed to read file sample: {str(sample_error)}"
+            )
 
         # Use DataService to handle upload logic
         from backend.services.data_service import DataService
+
         data_service = DataService(db, current_user)
 
         # Process the upload
@@ -647,8 +688,8 @@ async def get_analysis_status(
                 detail={
                     "message": "Analysis result not found",
                     "code": "ANALYSIS_NOT_FOUND",
-                    "request_id": request_id
-                }
+                    "request_id": request_id,
+                },
             )
 
         status = analysis_result.status
@@ -666,7 +707,7 @@ async def get_analysis_status(
                 # Naive datetime - assume it's UTC and add timezone info
                 dt = dt.replace(tzinfo=timezone.utc)
             # Convert to UTC and format consistently
-            return dt.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+            return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
         response_data = {
             "status": status,
@@ -679,7 +720,9 @@ async def get_analysis_status(
             results_data = json.loads(analysis_result.results or "{}")
 
             # Extract progress information
-            if "progress" in results_data and isinstance(results_data["progress"], (int, float)):
+            if "progress" in results_data and isinstance(
+                results_data["progress"], (int, float)
+            ):
                 progress = float(results_data["progress"])
                 response_data["progress"] = progress
 
@@ -689,7 +732,9 @@ async def get_analysis_status(
                 response_data["current_stage"] = current_stage
 
             # Extract stage states
-            if "stage_states" in results_data and isinstance(results_data["stage_states"], dict):
+            if "stage_states" in results_data and isinstance(
+                results_data["stage_states"], dict
+            ):
                 stage_states = results_data["stage_states"]
                 response_data["stage_states"] = stage_states
 
@@ -701,7 +746,9 @@ async def get_analysis_status(
                     or "Analysis failed with an unspecified error."
                 )
                 response_data["error"] = error_message
-                response_data["error_code"] = results_data.get("error_code", "ANALYSIS_FAILED")
+                response_data["error_code"] = results_data.get(
+                    "error_code", "ANALYSIS_FAILED"
+                )
 
             # For processing status, ensure we have a progress value
             if status == "processing" and "progress" not in response_data:
@@ -712,7 +759,9 @@ async def get_analysis_status(
                     current_time = datetime.now(timezone.utc)
                     if analysis_result.analysis_date.tzinfo is None:
                         # Naive datetime - assume it's UTC
-                        start_time = analysis_result.analysis_date.replace(tzinfo=timezone.utc)
+                        start_time = analysis_result.analysis_date.replace(
+                            tzinfo=timezone.utc
+                        )
                     else:
                         start_time = analysis_result.analysis_date
                     elapsed_seconds = (current_time - start_time).total_seconds()
@@ -732,7 +781,9 @@ async def get_analysis_status(
                 f"[GetStatus - JSONDecodeError] RequestID: {request_id}, ResultID: {result_id}"
             )
             if status == "failed":
-                error_message = "Analysis failed, and error details could not be parsed."
+                error_message = (
+                    "Analysis failed, and error details could not be parsed."
+                )
                 response_data["error"] = error_message
                 response_data["error_code"] = "JSON_PARSE_ERROR"
 
@@ -773,8 +824,8 @@ async def get_analysis_status(
             detail={
                 "message": f"Internal server error checking status: {str(e)}",
                 "code": "INTERNAL_SERVER_ERROR",
-                "request_id": request_id
-            }
+                "request_id": request_id,
+            },
         )
 
 
@@ -791,10 +842,7 @@ async def health_check():
     Simple health check endpoint.
     """
     # Return dict instead of HealthCheckResponse to control timestamp format
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @app.get(

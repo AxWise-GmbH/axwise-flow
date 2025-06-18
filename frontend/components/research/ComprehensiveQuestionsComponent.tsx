@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, FileText, Copy, Users, Target, MessageCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Download, Copy, Users, Target, MessageCircle, Clock, CheckCircle2 } from 'lucide-react';
 
 interface StakeholderQuestions {
   name: string;
@@ -55,6 +55,63 @@ export function ComprehensiveQuestionsComponent({
   const safePrimaryStakeholders = primaryStakeholders || [];
   const safeSecondaryStakeholders = secondaryStakeholders || [];
 
+  // Calculate actual time estimate from stakeholder data if timeEstimate is empty/default
+  const calculateActualTimeEstimate = () => {
+    const allStakeholders = [...safePrimaryStakeholders, ...safeSecondaryStakeholders];
+    let totalQuestions = 0;
+
+    allStakeholders.forEach(stakeholder => {
+      const questions = stakeholder.questions || {};
+      totalQuestions += (questions.problemDiscovery || []).length;
+      totalQuestions += (questions.solutionValidation || []).length;
+      totalQuestions += (questions.followUp || []).length;
+    });
+
+    if (totalQuestions > 0) {
+      const minTime = totalQuestions * 2; // 2 minutes per question minimum
+      const maxTime = totalQuestions * 4; // 4 minutes per question maximum
+      return {
+        totalQuestions,
+        estimatedMinutes: `${minTime}-${maxTime}`,
+        breakdown: {
+          baseTime: minTime,
+          withBuffer: maxTime,
+          perQuestion: 3.0
+        }
+      };
+    }
+
+    return timeEstimate;
+  };
+
+  // Use calculated time estimate if the provided one is empty/default
+  const actualTimeEstimate = (timeEstimate.totalQuestions === 0 || !timeEstimate.totalQuestions)
+    ? calculateActualTimeEstimate()
+    : timeEstimate;
+
+  // Calculate separate estimates for primary and secondary stakeholders
+  const calculateStakeholderEstimate = (stakeholders: StakeholderQuestions[]) => {
+    const totalQuestions = stakeholders.reduce((total, stakeholder) => {
+      const questions = stakeholder.questions || { problemDiscovery: [], solutionValidation: [], followUp: [] };
+      return total +
+        (questions.problemDiscovery?.length || 0) +
+        (questions.solutionValidation?.length || 0) +
+        (questions.followUp?.length || 0);
+    }, 0);
+
+    const perQuestionTime = actualTimeEstimate.breakdown?.perQuestion || 3.0;
+    const minTime = Math.round(totalQuestions * perQuestionTime * 0.8); // 80% of base time
+    const maxTime = Math.round(totalQuestions * perQuestionTime * 1.2); // 120% of base time
+
+    return {
+      questions: totalQuestions,
+      timeRange: `${minTime}-${maxTime}`
+    };
+  };
+
+  const primaryEstimate = calculateStakeholderEstimate(safePrimaryStakeholders);
+  const secondaryEstimate = calculateStakeholderEstimate(safeSecondaryStakeholders);
+
   const copyAllQuestions = async () => {
     const formatStakeholderQuestions = (stakeholders: StakeholderQuestions[], type: string) => {
       return stakeholders.map(stakeholder => {
@@ -81,8 +138,8 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
 
     const formattedText = `# Customer Research Questionnaire
 ${businessContext ? `**Business:** ${businessContext}\n` : ''}
-**Total Questions:** ${timeEstimate.totalQuestions}
-**Estimated Interview Time:** ${timeEstimate.estimatedMinutes} minutes
+**Total Questions:** ${actualTimeEstimate.totalQuestions}
+**Estimated Interview Time:** ${actualTimeEstimate.estimatedMinutes} minutes
 
 ## 🎯 Primary Stakeholders (Focus First)
 Start with these stakeholders to validate core assumptions.
@@ -97,10 +154,10 @@ ${formatStakeholderQuestions(safeSecondaryStakeholders, 'Secondary')}
 ` : ''}
 
 ## ⏱️ Interview Planning
-- **Base time:** ${timeEstimate.breakdown.baseTime} minutes
-- **With buffer:** ${timeEstimate.breakdown.withBuffer} minutes
-- **Per question:** ${timeEstimate.breakdown.perQuestion} minutes average
-- **Total questions:** ${timeEstimate.totalQuestions}
+- **Base time:** ${actualTimeEstimate.breakdown.baseTime} minutes
+- **With buffer:** ${actualTimeEstimate.breakdown.withBuffer} minutes
+- **Per question:** ${actualTimeEstimate.breakdown.perQuestion} minutes average
+- **Total questions:** ${actualTimeEstimate.totalQuestions}
 
 ## 📋 Research Strategy
 1. **Start with Primary Stakeholders:** Focus on ${safePrimaryStakeholders.length} primary stakeholder${safePrimaryStakeholders.length !== 1 ? 's' : ''} first
@@ -247,11 +304,11 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
         <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <MessageCircle className="h-4 w-4" />
-            <span>{timeEstimate.totalQuestions} questions</span>
+            <span>{actualTimeEstimate.totalQuestions} questions</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            <span>Estimated time: {timeEstimate.estimatedMinutes} minutes</span>
+            <span>Estimated time: {actualTimeEstimate.estimatedMinutes} minutes</span>
           </div>
         </div>
         <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
@@ -290,9 +347,21 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           <h3 className="text-lg font-semibold">🎯 Primary Stakeholders</h3>
           <Badge variant="default" className="text-xs">Focus First</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Start with these {safePrimaryStakeholders.length} stakeholder{safePrimaryStakeholders.length !== 1 ? 's' : ''} to validate core business assumptions.
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Start with these {safePrimaryStakeholders.length} stakeholder{safePrimaryStakeholders.length !== 1 ? 's' : ''} to validate core business assumptions.
+          </p>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <MessageCircle className="h-3 w-3" />
+              <span>{primaryEstimate.questions} questions</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{primaryEstimate.timeRange} minutes</span>
+            </div>
+          </div>
+        </div>
         <div className="space-y-4">
           {safePrimaryStakeholders.map((stakeholder, index) =>
             renderStakeholderSection(stakeholder, index, true)
@@ -308,9 +377,21 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
             <h3 className="text-lg font-semibold">👥 Secondary Stakeholders</h3>
             <Badge variant="secondary" className="text-xs">Research Later</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Expand to these {safeSecondaryStakeholders.length} stakeholder{safeSecondaryStakeholders.length !== 1 ? 's' : ''} after validating primary assumptions.
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Expand to these {safeSecondaryStakeholders.length} stakeholder{safeSecondaryStakeholders.length !== 1 ? 's' : ''} after validating primary assumptions.
+            </p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" />
+                <span>{secondaryEstimate.questions} questions</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{secondaryEstimate.timeRange} minutes</span>
+              </div>
+            </div>
+          </div>
           <div className="space-y-4">
             {safeSecondaryStakeholders.map((stakeholder, index) =>
               renderStakeholderSection(stakeholder, index, false)
@@ -318,32 +399,6 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           </div>
         </div>
       )}
-
-      {/* Research Strategy */}
-      <Card className="p-6 bg-blue-50 border-blue-200">
-        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <FileText className="h-5 w-5 text-blue-600" />
-          📋 Research Strategy
-        </h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-blue-700">1.</span>
-            <span><strong>Start with Primary Stakeholders:</strong> Focus on {safePrimaryStakeholders.length} primary stakeholder{safePrimaryStakeholders.length !== 1 ? 's' : ''} first to validate core assumptions.</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-blue-700">2.</span>
-            <span><strong>Validate Core Value:</strong> Ensure your solution addresses primary stakeholder pain points before expanding research.</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-blue-700">3.</span>
-            <span><strong>Expand Strategically:</strong> Once primary validation is complete, research secondary stakeholders to refine your approach.</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="font-medium text-blue-700">4.</span>
-            <span><strong>Look for Patterns:</strong> Identify common themes, pain points, and feature priorities across all stakeholder groups.</span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

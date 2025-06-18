@@ -270,14 +270,16 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
         ? stakeholders.primary
         : [stakeholders.primary];
       primaryStakeholders.forEach((s: any) => {
+        // Extract actual questions from backend response
+        const questions = s.questions || {};
         result.push({
           name: typeof s === 'string' ? s : s.name || 'Primary Stakeholder',
           type: 'primary',
           description: typeof s === 'string' ? 'Primary stakeholder' : s.description || 'Primary stakeholder',
           questions: {
-            discovery: ['What challenges do you currently face?', 'How do you handle this today?'],
-            validation: ['Would this solution help you?', 'What features are most important?'],
-            followUp: ['Any other thoughts?', 'Would you recommend this?']
+            discovery: questions.problemDiscovery || ['What challenges do you currently face?', 'How do you handle this today?'],
+            validation: questions.solutionValidation || ['Would this solution help you?', 'What features are most important?'],
+            followUp: questions.followUp || ['Any other thoughts?', 'Would you recommend this?']
           }
         });
       });
@@ -287,14 +289,16 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
         ? stakeholders.secondary
         : [stakeholders.secondary];
       secondaryStakeholders.forEach((s: any) => {
+        // Extract actual questions from backend response
+        const questions = s.questions || {};
         result.push({
           name: typeof s === 'string' ? s : s.name || 'Secondary Stakeholder',
           type: 'secondary',
           description: typeof s === 'string' ? 'Secondary stakeholder' : s.description || 'Secondary stakeholder',
           questions: {
-            discovery: ['How does this affect you?', 'What do you see as the main challenges?'],
-            validation: ['Would you support this solution?', 'What concerns would you have?'],
-            followUp: ['Any additional feedback?', 'What else should we know?']
+            discovery: questions.problemDiscovery || ['How does this affect you?', 'What do you see as the main challenges?'],
+            validation: questions.solutionValidation || ['Would you support this solution?', 'What concerns would you have?'],
+            followUp: questions.followUp || ['Any additional feedback?', 'What else should we know?']
           }
         });
       });
@@ -386,9 +390,20 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         />
                       ) : message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ? (
                         <ComprehensiveQuestionsComponent
-                          primaryStakeholders={message.metadata?.comprehensiveQuestions?.primaryStakeholders || []}
-                          secondaryStakeholders={message.metadata?.comprehensiveQuestions?.secondaryStakeholders || []}
-                          timeEstimate={normalizeTimeEstimate(message.metadata?.comprehensiveQuestions?.timeEstimate)}
+                          primaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.primaryStakeholders ||
+                            message.questions?.stakeholders?.primary ||
+                            []
+                          }
+                          secondaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.secondaryStakeholders ||
+                            message.questions?.stakeholders?.secondary ||
+                            []
+                          }
+                          timeEstimate={normalizeTimeEstimate(
+                            message.metadata?.comprehensiveQuestions?.timeEstimate ||
+                            message.questions?.estimatedTime
+                          )}
                           businessContext={message.metadata?.businessContext}
                           onExport={() => exportQuestions('txt')}
                           onContinue={continueToAnalysis}
@@ -403,7 +418,10 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                         />
                       ) : message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ? (
                         <StakeholderQuestionsComponent
-                          stakeholders={normalizeStakeholdersForQuestions(message.metadata?.stakeholders)}
+                          stakeholders={normalizeStakeholdersForQuestions(
+                            message.metadata?.stakeholders ||
+                            message.questions?.stakeholders
+                          )}
                           businessContext={message.metadata?.businessContext}
                           onExport={() => exportQuestions('txt')}
                           onContinue={continueToAnalysis}

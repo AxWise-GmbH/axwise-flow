@@ -1,5 +1,8 @@
 """
 Customer Research API routes.
+
+📚 IMPLEMENTATION REFERENCE: See docs/pydantic-instructor-implementation-guide.md
+   for proper Pydantic Instructor usage, JSON parsing, and structured output handling.
 """
 
 import logging
@@ -2109,8 +2112,8 @@ IMPORTANT:
             ],
             "secondary": [
                 {
-                    "name": "Support Network",
-                    "description": "People who help with current challenges",
+                    "name": "Industry Partners",
+                    "description": "Supporting stakeholders and business partners",
                 }
             ],
             "industry": "general",

@@ -1,6 +1,9 @@
 """
 Pydantic models for comprehensive research questions with stakeholder integration.
 
+📚 IMPLEMENTATION REFERENCE: See docs/pydantic-instructor-implementation-guide.md
+   for proper Pydantic Instructor usage, JSON parsing, and structured output handling.
+
 This module defines the structured data models for comprehensive customer research
 questions that are generated using Instructor with proper validation.
 """

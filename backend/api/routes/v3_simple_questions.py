@@ -284,9 +284,9 @@ async def _generate_contextual_questions_with_llm(
 
         llm_service = LLMServiceFactory.create("gemini")
 
-        # Create LLM prompt for contextual question generation
+        # Enhanced LLM prompt that clearly differentiates stakeholder types
         prompt = f"""
-Generate specific, contextual research questions for this stakeholder based on the business context.
+Generate specific, contextual research questions for this stakeholder based on their role and relationship to the business.
 
 BUSINESS CONTEXT:
 Business Idea: {business_idea}
@@ -298,42 +298,59 @@ Name: {stakeholder_name}
 Description: {stakeholder_desc}
 Type: {stakeholder_type}
 
-INSTRUCTIONS:
-Generate questions that are:
-1. Specific to this business context (reference actual business details)
-2. Relevant to this stakeholder's role and perspective
-3. Focused on understanding real problems and needs
-4. Professional but conversational in tone
-5. Avoid generic templates - make them contextual
+CRITICAL INSTRUCTIONS FOR STAKEHOLDER TYPE:
+
+If stakeholder_type is "primary":
+- These are DIRECT USERS/CUSTOMERS who personally experience the problem
+- EVERY question MUST use direct personal language: "you", "your", "do you", "would you", "have you"
+- Questions should focus on THEIR PERSONAL EXPERIENCE with the problem
+- Ask about their current pain points, frustrations, and needs using "YOU" language
+- Focus on their willingness to PAY and USE the solution personally
+- MANDATORY: Start questions with phrases like "How often do YOU...", "What would make YOU...", "How much would YOU...", "Do YOU personally...", "Would YOU be willing to..."
+- AVOID third-person references - always address them directly as "you"
+
+If stakeholder_type is "secondary":
+- These are SUPPORTERS/INFLUENCERS who help or influence the primary users
+- Questions should focus on their SUPPORT ROLE and INFLUENCE over others
+- Ask about how they currently HELP the primary users
+- Focus on their willingness to RECOMMEND and SUPPORT the solution for others
+- Use phrases like "How do you help...", "Would you recommend...", "What concerns would you have about [others] using...", "How do you support..."
+- Reference the primary users as "them", "the [target customer]", or specific names
+
+LANGUAGE REQUIREMENTS:
+- Primary questions: MUST use "you", "your", "do you", "would you" in EVERY question
+- Secondary questions: MUST use "help", "recommend", "support", "concerns about them" language
+- Make the perspective difference crystal clear in every single question
 
 Return a JSON object with exactly this structure:
 {{
     "problemDiscovery": [
-        "Question 1 specific to the business context",
-        "Question 2 that references actual stakeholder role",
-        "Question 3 about specific problems mentioned",
-        "Question 4 about current situation",
-        "Question 5 about pain points"
+        "Question 1 with direct YOU language for primary OR help/support language for secondary",
+        "Question 2 with direct YOU language for primary OR help/support language for secondary",
+        "Question 3 with direct YOU language for primary OR help/support language for secondary",
+        "Question 4 with direct YOU language for primary OR help/support language for secondary",
+        "Question 5 with direct YOU language for primary OR help/support language for secondary"
     ],
     "solutionValidation": [
-        "Question 1 about the specific solution proposed",
-        "Question 2 about features relevant to this stakeholder",
-        "Question 3 about willingness to use/support",
-        "Question 4 about concerns specific to this context",
-        "Question 5 about decision factors"
+        "Question 1 with direct YOU language for primary OR help/support language for secondary",
+        "Question 2 with direct YOU language for primary OR help/support language for secondary",
+        "Question 3 with direct YOU language for primary OR help/support language for secondary",
+        "Question 4 with direct YOU language for primary OR help/support language for secondary",
+        "Question 5 with direct YOU language for primary OR help/support language for secondary"
     ],
     "followUp": [
-        "Question 1 about recommendations",
-        "Question 2 about additional needs",
-        "Question 3 about other insights"
+        "Question 1 with direct YOU language for primary OR help/support language for secondary",
+        "Question 2 with direct YOU language for primary OR help/support language for secondary",
+        "Question 3 with direct YOU language for primary OR help/support language for secondary"
     ]
 }}
 
 IMPORTANT:
-- Reference the actual business idea, target customer, and problems in questions
-- Make questions specific to the stakeholder's perspective
-- Avoid generic phrases like "this service" or "your needs"
-- Use the actual business context provided
+- EVERY primary question must contain "you", "your", "do you", or "would you"
+- EVERY secondary question must contain "help", "recommend", "support", or reference to "them/others"
+- Make questions DISTINCTLY DIFFERENT based on stakeholder_type
+- Reference the actual business idea, target customer, and problems
+- Use the stakeholder's specific name and description in questions
 """
 
         # Call LLM with temperature 0 for consistent results
