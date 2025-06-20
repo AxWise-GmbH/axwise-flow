@@ -825,7 +825,7 @@ async def detect_stakeholders_with_llm(
 ) -> dict:
     """Use LLM to intelligently detect stakeholders from conversation context."""
 
-    # Build conversation text for analysis
+    # Build conversation text for analysis - include full context for LLM understanding
     conversation_text = "\n".join(
         [f"{msg.role}: {msg.content}" for msg in conversation_history]
     )
@@ -834,34 +834,51 @@ async def detect_stakeholders_with_llm(
     target_customer = context.targetCustomer or "Not specified"
     problem = context.problem or "Not specified"
 
-    prompt = f"""Analyze this customer research conversation and identify the key stakeholders who would be involved in evaluating, purchasing, or using this solution.
+    prompt = f"""You are analyzing a customer research conversation to identify business stakeholders for interviews.
 
 Business Context:
 - Business Idea: {business_idea}
 - Target Customer: {target_customer}
 - Problem: {problem}
 
-Recent Conversation:
+Conversation:
 {conversation_text}
 
-Identify the most relevant stakeholders for customer research interviews. You must provide:
+CRITICAL UNDERSTANDING:
+Distinguish between:
+1. CONVERSATION ROLES: The current participants in this research conversation (the user seeking help and the assistant providing guidance)
+2. BUSINESS STAKEHOLDERS: People who would interact with the actual business solution being discussed
+
+Your task is to identify BUSINESS STAKEHOLDERS ONLY - people who would evaluate, purchase, use, or be affected by the business solution described above.
+
+IMPORTANT DISTINCTION:
+- If the business solution serves research assistants, consultants, or similar professionals, then those ARE valid business stakeholders
+- However, do NOT include the specific "Customer Research Assistant" role that is currently helping conduct this conversation
+- Focus on the TARGET USERS of the business solution, not the people conducting this research session
+
+Examples:
+- For a design thinking automation tool → Research Assistants, Consultants, UX Designers ARE valid stakeholders
+- For energy storage solutions → Arctic Research Stations, Telecom Operators ARE valid stakeholders
+- But the "Customer Research Assistant" conducting THIS conversation is NOT a stakeholder for either business
+
+Guidelines:
+- Include roles that match the target customer description, even if they have similar names to conversation participants
+- Exclude only the specific assistant role conducting this research conversation
+- Focus on people who would actually use, buy, or be impacted by the business solution
+
+Identify the most relevant BUSINESS stakeholders for customer research interviews:
 
 1. PRIMARY STAKEHOLDERS (2-3 most important):
-   - Main decision makers, daily users, or people who directly benefit
+   - Main decision makers, daily users, or people who directly benefit from the business solution
    - Each must have a specific "name" and detailed "description"
 
 2. SECONDARY STAKEHOLDERS (1-3 additional perspectives):
-   - Influencers, occasional users, or indirect beneficiaries
+   - Influencers, occasional users, or indirect beneficiaries of the business solution
    - Each must have a specific "name" and detailed "description"
 
 3. INDUSTRY classification (single word)
 
-For this business context:
-- Business: {business_idea}
-- Customers: {target_customer}
-- Problem: {problem}
-
-Focus on stakeholders who would provide valuable insights for customer research interviews.
+Focus on stakeholders who would provide valuable insights about the business solution: {business_idea} for {target_customer} solving {problem}.
 
 Guidelines:
 - Primary stakeholders: Main decision makers, daily users, or people who directly benefit (max 3)
@@ -896,7 +913,7 @@ Make descriptions specific to the business idea, target customers, and problem b
             stakeholder_data = await instructor_client.generate_with_model_async(
                 prompt=prompt,
                 model_class=StakeholderDetection,
-                system_instruction="You are an expert business analyst. Identify the most relevant stakeholders for customer research interviews.",
+                system_instruction="You are an expert business analyst. Identify business stakeholders who would interact with the actual business solution. Include target users even if they have similar titles to conversation participants (e.g., 'Research Assistants' can be valid stakeholders for research tools). Exclude only the specific 'Customer Research Assistant' role conducting this conversation.",
             )
 
             logger.info(f"✅ Instructor detected stakeholders successfully")
@@ -905,7 +922,7 @@ Make descriptions specific to the business idea, target customers, and problem b
             logger.info(f"Industry: {stakeholder_data.industry}")
 
             # Convert to dict for API compatibility
-            return stakeholder_data.dict()
+            return stakeholder_data.model_dump()
 
         except Exception as instructor_error:
             logger.warning(
