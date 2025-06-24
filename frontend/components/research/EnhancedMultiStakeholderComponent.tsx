@@ -155,10 +155,10 @@ export function EnhancedMultiStakeholderComponent({
               {secondaryStakeholders.map((stakeholder, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200"
+                  className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800"
                 >
-                  <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-orange-700">
+                  <div className="w-8 h-8 bg-orange-200 dark:bg-orange-800 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-orange-700 dark:text-orange-200">
                       {index + 1}
                     </span>
                   </div>
@@ -166,7 +166,7 @@ export function EnhancedMultiStakeholderComponent({
                     <h4 className="font-medium text-foreground">{stakeholder.name}</h4>
                     <p className="text-sm text-muted-foreground">{stakeholder.description}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
+                  <Badge variant="outline" className="text-xs border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300">
                     Medium Priority
                   </Badge>
                 </div>
@@ -177,29 +177,29 @@ export function EnhancedMultiStakeholderComponent({
       )}
 
       {/* Recommendations */}
-      <Card className="p-4 lg:p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+      <Card className="p-4 lg:p-6 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-200 dark:border-purple-800">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-purple-900">Research Strategy</h3>
+            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-200">Research Strategy</h3>
           </div>
 
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-2">
               <span className="text-purple-600 font-medium">1.</span>
-              <p className="text-purple-800">
+              <p className="text-purple-800 dark:text-purple-200">
                 <strong>Start with Primary Stakeholders:</strong> Focus on {primaryStakeholders.length} primary stakeholder{primaryStakeholders.length !== 1 ? 's' : ''} first to validate core business assumptions.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-purple-600 font-medium">2.</span>
-              <p className="text-purple-800">
+              <p className="text-purple-800 dark:text-purple-200">
                 <strong>Validate Core Value:</strong> Ensure your solution addresses primary stakeholder pain points before expanding research.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-purple-600 font-medium">3.</span>
-              <p className="text-purple-800">
+              <p className="text-purple-800 dark:text-purple-200">
                 <strong>Expand Strategically:</strong> Once primary validation is complete, research secondary stakeholders to refine your approach.
               </p>
             </div>

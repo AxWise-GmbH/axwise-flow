@@ -82,7 +82,7 @@ export function MultiStakeholderSummary({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-6 w-6 text-blue-600" />
@@ -107,7 +107,7 @@ export function MultiStakeholderSummary({
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {activeStakeholders.map((stakeholder) => (
               <Card key={stakeholder.id} className={`relative ${
-                stakeholder.priority === 'primary' ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                stakeholder.priority === 'primary' ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30' : 'border-gray-200 dark:border-gray-700'
               }`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -131,7 +131,7 @@ export function MultiStakeholderSummary({
                     <span>{stakeholder.timeframe}</span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-600">Key Focus Areas:</p>
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Key Focus Areas:</p>
                     <div className="flex flex-wrap gap-1">
                       {stakeholder.keyFocus.map((focus, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
@@ -164,23 +164,23 @@ export function MultiStakeholderSummary({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{activeStakeholders.length}</div>
-                  <div className="text-sm text-gray-600">Stakeholder Groups</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Stakeholder Groups</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">
                     {activeStakeholders.reduce((sum, s) => sum + parseInt(s.sampleSize.split('-')[1] || s.sampleSize.split(' ')[0]), 0)}
                   </div>
-                  <div className="text-sm text-gray-600">Total Interviews</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Interviews</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-purple-600">3-4</div>
-                  <div className="text-sm text-gray-600">Weeks Duration</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Weeks Duration</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-orange-600">
                     {primaryStakeholders.length}
                   </div>
-                  <div className="text-sm text-gray-600">Primary Groups</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Primary Groups</div>
                 </div>
               </div>
             </CardContent>
@@ -201,18 +201,18 @@ export function MultiStakeholderSummary({
             </CardHeader>
             <CardContent className="space-y-3">
               {primaryStakeholders.map((stakeholder) => (
-                <div key={stakeholder.id} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                <div key={stakeholder.id} className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   {stakeholder.icon}
                   <div className="flex-1">
                     <div className="font-medium">{stakeholder.name}</div>
-                    <div className="text-sm text-gray-600">{stakeholder.sampleSize}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{stakeholder.sampleSize}</div>
                   </div>
                   <Badge variant="outline">{stakeholder.timeframe}</Badge>
                 </div>
               ))}
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="font-medium text-blue-800 mb-2">Why Start Here:</div>
-                <ul className="text-sm text-blue-700 space-y-1">
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                <div className="font-medium text-blue-800 dark:text-blue-200 mb-2">Why Start Here:</div>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
                   <li>• They're your paying customers and decision makers</li>
                   <li>• Technical requirements and constraints come from them</li>
                   <li>• Their insights shape the solution architecture</li>
@@ -234,18 +234,18 @@ export function MultiStakeholderSummary({
             </CardHeader>
             <CardContent className="space-y-3">
               {secondaryStakeholders.map((stakeholder) => (
-                <div key={stakeholder.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                <div key={stakeholder.id} className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   {stakeholder.icon}
                   <div className="flex-1">
                     <div className="font-medium">{stakeholder.name}</div>
-                    <div className="text-sm text-gray-600">{stakeholder.sampleSize}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{stakeholder.sampleSize}</div>
                   </div>
                   <Badge variant="outline">{stakeholder.timeframe}</Badge>
                 </div>
               ))}
-              <div className="mt-4 p-3 bg-orange-50 rounded-lg">
-                <div className="font-medium text-orange-800 mb-2">Why Second:</div>
-                <ul className="text-sm text-orange-700 space-y-1">
+              <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+                <div className="font-medium text-orange-800 dark:text-orange-200 mb-2">Why Second:</div>
+                <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
                   <li>• Validate that primary stakeholder assumptions align with user needs</li>
                   <li>• Understand actual user decision-making process</li>
                   <li>• Identify potential adoption barriers</li>
@@ -298,7 +298,7 @@ export function MultiStakeholderSummary({
             <CardContent>
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Detailed question sets will be generated based on your specific stakeholder groups
                 </p>
                 <Button variant="outline">

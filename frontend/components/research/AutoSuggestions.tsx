@@ -118,7 +118,7 @@ export function AutoSuggestions({
       <div className="mt-2">
         <div className="flex items-center gap-2 mb-2">
           <Lightbulb className="h-3 w-3 text-yellow-600" />
-          <span className="text-xs text-gray-600">Quick replies:</span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">Quick replies:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {suggestions.slice(0, 3).map((suggestion) => (
@@ -156,7 +156,7 @@ export function AutoSuggestions({
               <div className="flex-1">
                 <div className="text-sm">{suggestion.text}</div>
                 {suggestion.context && (
-                  <div className="text-xs text-gray-500 mt-1">{suggestion.context}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{suggestion.context}</div>
                 )}
               </div>
               <div className="flex items-center gap-2 ml-2">
@@ -174,7 +174,7 @@ export function AutoSuggestions({
       </div>
 
       <div className="mt-3 pt-3 border-t">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           💡 Click any suggestion to use it, or type your own response
         </p>
       </div>

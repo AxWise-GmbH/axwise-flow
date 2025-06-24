@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AxWise Gründungsexistenz - Zugang</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+      }
+      .logo {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+      }
+      .subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+      }
+      .form-group {
+        margin-bottom: 1.5rem;
+        text-align: left;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+      }
+      input[type="password"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 5px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+        box-sizing: border-box;
+      }
+      input[type="password"]:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .btn {
+        width: 100%;
+        padding: 0.75rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .error {
+        color: #e74c3c;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        display: none;
+      }
+      .footer {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="logo">AxWise</div>
+      <div class="subtitle">Gründungsexistenz Businessplan</div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="password">Passwort:</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+          />
+          <div class="error" id="error">
+            Falsches Passwort. Bitte versuchen Sie es erneut.
+          </div>
+        </div>
+        <button type="submit" class="btn">Zugang gewähren</button>
+      </form>
+
+      <div class="footer">Für Starthaus Bremen und autorisierte Prüfer</div>
+    </div>
+
+    <script>
+      const correctPassword = "grunder2025@";
+
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const password = document.getElementById("password").value;
+          const errorDiv = document.getElementById("error");
+
+          if (password === correctPassword) {
+            // Store access in sessionStorage (expires when browser closes)
+            sessionStorage.setItem("axwise_grund_access", "granted");
+            // Redirect to business plan
+            window.location.href = "businessplande.html";
+          } else {
+            errorDiv.style.display = "block";
+            document.getElementById("password").value = "";
+            document.getElementById("password").focus();
+
+            // Hide error after 3 seconds
+            setTimeout(() => {
+              errorDiv.style.display = "none";
+            }, 3000);
+          }
+        });
+
+      // Check if already authenticated
+      if (sessionStorage.getItem("axwise_grund_access") === "granted") {
+        window.location.href = "businessplande.html";
+      }
+
+      // Focus password field on load
+      document.getElementById("password").focus();
+    </script>
+  </body>
+</html>

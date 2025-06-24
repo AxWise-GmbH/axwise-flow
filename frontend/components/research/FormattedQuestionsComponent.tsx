@@ -21,20 +21,20 @@ const categoryConfig = {
   discovery: {
     title: '🔍 Problem Discovery Questions',
     description: 'Understand the current state and pain points',
-    color: 'bg-blue-50 border-blue-200 text-blue-800',
-    badgeColor: 'bg-blue-100 text-blue-800'
+    color: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+    badgeColor: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
   },
   validation: {
     title: '✅ Solution Validation Questions',
     description: 'Validate your proposed solution approach',
-    color: 'bg-green-50 border-green-200 text-green-800',
-    badgeColor: 'bg-green-100 text-green-800'
+    color: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
+    badgeColor: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
   },
   follow_up: {
     title: '💡 Follow-up Questions',
     description: 'Deeper insights and next steps',
-    color: 'bg-purple-50 border-purple-200 text-purple-800',
-    badgeColor: 'bg-purple-100 text-purple-800'
+    color: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200',
+    badgeColor: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
   }
 };
 
@@ -147,15 +147,15 @@ export function FormattedQuestionsComponent({ questions, onExport, onContinue }:
                   {categoryQuestions.map((question, index) => (
                     <div
                       key={question.id}
-                      className="flex gap-3 p-3 bg-white/50 rounded-lg border border-white/20"
+                      className="flex gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-white/20 dark:border-gray-700/20"
                     >
                       <div className="flex-shrink-0">
-                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                        <div className="w-6 h-6 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">
                           {index + 1}
                         </div>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm lg:text-base text-gray-800 leading-relaxed">
+                        <p className="text-sm lg:text-base text-gray-800 dark:text-gray-200 leading-relaxed">
                           {question.text}
                         </p>
                         {question.priority && (

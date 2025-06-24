@@ -62,7 +62,7 @@ export function NextStepsChatMessage({
     return `Based on ~${questionsPerStakeholder} questions per stakeholder plus conversation buffer`;
   };
   return (
-    <Card className="border-green-200 bg-green-50 max-w-none">
+    <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 max-w-none">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Target className="h-5 w-5 text-green-600" />
@@ -72,52 +72,52 @@ export function NextStepsChatMessage({
       <CardContent className="space-y-4">
         {/* Steps */}
         <div className="space-y-3">
-          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
-            <div className="bg-green-100 text-green-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+            <div className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
               1
             </div>
             <div className="flex-1">
               <div className="font-medium text-sm">Find 5-10 people who match your target customer</div>
-              <div className="text-xs text-gray-600 mt-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 Focus on your primary stakeholders and decision makers
               </div>
             </div>
             <Users className="h-4 w-4 text-green-600 mt-1" />
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
-            <div className="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+            <div className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
               2
             </div>
             <div className="flex-1">
               <div className="font-medium text-sm">Schedule {getTimingRecommendation()}</div>
-              <div className="text-xs text-gray-600 mt-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 {getSchedulingDescription()}
               </div>
             </div>
             <Calendar className="h-4 w-4 text-blue-600 mt-1" />
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
-            <div className="bg-purple-100 text-purple-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+            <div className="bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
               3
             </div>
             <div className="flex-1">
               <div className="font-medium text-sm">Use your questions and listen carefully</div>
-              <div className="text-xs text-gray-600 mt-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 Ask follow-up questions and dig deeper into their specific pain points
               </div>
             </div>
             <Target className="h-4 w-4 text-purple-600 mt-1" />
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-white rounded-lg border">
-            <div className="bg-orange-100 text-orange-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+          <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+            <div className="bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
               4
             </div>
             <div className="flex-1">
               <div className="font-medium text-sm">Look for patterns in their responses</div>
-              <div className="text-xs text-gray-600 mt-1">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 Identify common themes, pain points, and feature priorities
               </div>
             </div>
@@ -125,29 +125,29 @@ export function NextStepsChatMessage({
           </div>
 
           {/* Step 5: Analysis with AxWise */}
-          <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg border border-teal-200">
-            <div className="bg-teal-100 text-teal-700 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+          <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-teal-50 to-cyan-50 dark:from-teal-950/30 dark:to-cyan-950/30 rounded-lg border border-teal-200 dark:border-teal-800">
+            <div className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
               5
             </div>
             <div className="flex-1">
-              <div className="font-medium text-sm text-teal-900">Analyze your interview data for insights</div>
-              <div className="text-xs text-teal-700 mt-1">
+              <div className="font-medium text-sm text-teal-900 dark:text-teal-200">Analyze your interview data for insights</div>
+              <div className="text-xs text-teal-700 dark:text-teal-300 mt-1">
                 Upload your interview transcripts to AxWise for automated analysis
               </div>
               <div className="mt-2 space-y-1">
-                <div className="flex items-center gap-1 text-xs text-teal-600">
+                <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                   <div className="w-1 h-1 bg-teal-400 rounded-full"></div>
                   <span>Automatically identifies themes and patterns from responses</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-teal-600">
+                <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                   <div className="w-1 h-1 bg-teal-400 rounded-full"></div>
                   <span>Generates Product Requirement Documentation (PRD)</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-teal-600">
+                <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                   <div className="w-1 h-1 bg-teal-400 rounded-full"></div>
                   <span>Creates user stories based on interview insights</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-teal-600">
+                <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
                   <div className="w-1 h-1 bg-teal-400 rounded-full"></div>
                   <span>Analysis completed in approximately 2 minutes</span>
                 </div>
@@ -178,7 +178,7 @@ export function NextStepsChatMessage({
           <div className="flex justify-center">
             <Button
               variant="outline"
-              className="border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-300"
+              className="border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/30 hover:border-teal-300 dark:hover:border-teal-700"
               onClick={() => {
                 // TODO: Add navigation to AxWise analysis page or modal
                 console.log('Navigate to AxWise Analysis');
@@ -191,9 +191,9 @@ export function NextStepsChatMessage({
           </div>
         </div>
 
-        <div className="text-xs text-gray-600 text-center space-y-1">
+        <div className="text-xs text-gray-600 dark:text-gray-400 text-center space-y-1">
           <p>Good luck with your customer research! Remember, the goal is to validate your assumptions and understand real user needs.</p>
-          <p className="text-teal-600">
+          <p className="text-teal-600 dark:text-teal-400">
             💡 <strong>Pro tip:</strong> After completing your interviews, use AxWise to automatically transform your insights into actionable product requirements.
           </p>
         </div>

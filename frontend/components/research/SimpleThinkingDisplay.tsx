@@ -84,16 +84,16 @@ export function SimpleThinkingDisplay({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'border-green-200 bg-green-50';
+        return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30';
       case 'failed':
-        return 'border-red-200 bg-red-50';
+        return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30';
       default:
-        return 'border-blue-200 bg-blue-50';
+        return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30';
     }
   };
 
   return (
-    <Card className={`border-blue-200 bg-blue-50 mb-4 ${className}`}>
+    <Card className={`border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 mb-4 ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export function SimpleThinkingDisplay({
                 variant="ghost"
                 size="sm"
                 onClick={onHide}
-                className="text-gray-500 hover:text-gray-700 text-xs"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs"
               >
                 <X className="h-3 w-3 mr-1" />
                 Hide
@@ -199,26 +199,26 @@ export function SimpleThinkingDisplay({
           ))}
 
           {/* Summary stats */}
-          <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
+          <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="text-sm">
-              <div className="font-medium text-blue-800 mb-2">Analysis Summary:</div>
+              <div className="font-medium text-blue-800 dark:text-blue-200 mb-2">Analysis Summary:</div>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <span className="text-gray-600">Total Steps:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Total Steps:</span>
                   <span className="ml-2 font-medium">{totalSteps}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Completed:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Completed:</span>
                   <span className="ml-2 font-medium text-green-600">{completedSteps}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Total Time:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Total Time:</span>
                   <span className="ml-2 font-medium">
                     {steps.reduce((sum, step) => sum + step.duration_ms, 0)}ms
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Status:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Status:</span>
                   <span className="ml-2 font-medium text-green-600">Complete</span>
                 </div>
               </div>

@@ -2008,7 +2008,7 @@ Make descriptions specific to this exact business situation, not generic."""
                 prompt=prompt,
                 model_class=StakeholderDetection,
                 temperature=0.0,  # Use deterministic output like pattern processor
-                system_instruction="You are an expert business analyst. Identify the most relevant stakeholders for customer research interviews.",
+                system_instruction="You are an expert business analyst with UX researcher behavioral standards. Maintain objectivity, provide honest constructive feedback, and act as a collaborative partner. Identify the most relevant stakeholders for customer research interviews.",
                 response_mime_type="application/json",  # Force JSON output like pattern processor
                 max_output_tokens=8000,  # Reasonable token limit
             )
@@ -2576,7 +2576,7 @@ Focus on creating questions that will help validate the market need and refine t
                         prompt=prompt,
                         model_class=ComprehensiveQuestions,
                         temperature=0.0,  # Use deterministic output like pattern processor
-                        system_instruction="You are an expert customer research consultant. Generate comprehensive, specific research questions tailored to each stakeholder group.",
+                        system_instruction="You are an expert customer research consultant with UX researcher behavioral standards. Maintain objectivity, provide honest constructive feedback, and act as a collaborative partner. Generate comprehensive, specific research questions tailored to each stakeholder group.",
                         response_mime_type="application/json",  # Force JSON output like pattern processor
                         max_output_tokens=32000,  # Keep high token limit for comprehensive output
                     )

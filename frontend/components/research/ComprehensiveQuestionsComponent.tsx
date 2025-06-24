@@ -281,9 +281,9 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
               <Badge variant={isPrimary ? "default" : "secondary"} className="text-xs">
                 {isPrimary ? 'Primary' : 'Secondary'}
               </Badge>
-              <h3 className="text-lg font-semibold text-gray-900">{stakeholder.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{stakeholder.name}</h3>
             </div>
-            <p className="text-sm text-gray-600">{stakeholder.description}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{stakeholder.description}</p>
           </div>
           <Button
             variant="ghost"
@@ -303,26 +303,26 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           {questionCategories.map((category, categoryIndex) => (
             <div key={categoryIndex} className="space-y-3">
               <div className="flex items-center gap-2">
-                <h4 className="font-medium text-gray-900">{category.title}</h4>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">{category.title}</h4>
                 <Badge variant="outline" className="text-xs">
                   {category.questions.length} questions
                 </Badge>
               </div>
-              <p className="text-xs text-gray-500">{category.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{category.description}</p>
 
               <div className="space-y-2">
                 {category.questions.map((question, questionIndex) => (
                   <div
                     key={questionIndex}
-                    className="flex gap-3 p-3 bg-gray-50 rounded-lg border"
+                    className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border dark:border-gray-700"
                   >
                     <div className="flex-shrink-0">
-                      <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-sm font-medium text-gray-600 border">
+                      <div className="w-6 h-6 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300 border dark:border-gray-600">
                         {questionIndex + 1}
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-800 leading-relaxed">{question}</p>
+                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{question}</p>
                     </div>
                   </div>
                 ))}
@@ -354,7 +354,7 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
             </div>
           )}
           <div className="flex items-center gap-1">
-            <MessageCircle className="h-4 w-4 text-gray-600" />
+            <MessageCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             <span>{actualTimeEstimate.totalQuestions} total questions</span>
           </div>
           <div className="flex items-center gap-1">

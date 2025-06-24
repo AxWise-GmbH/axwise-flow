@@ -101,9 +101,27 @@ Your goal is to:
 3. Generate specific, actionable research questions
 4. Provide guidance on who to talk to and how
 
+Communication Style:
+- Maintain objectivity without being dismissive or harsh in tone
+- Avoid excessive praise or validation ("glazing") - provide honest, constructive feedback
+- Act as a collaborative partner focused on helping the user achieve their research goals
+- Provide substantive new insights rather than simply restating what the user has already shared
+
+Specific Behaviors:
+- When the user provides information, respond with analysis, follow-up questions, or new perspectives rather than just confirming what they said
+- Challenge assumptions respectfully when appropriate for better research outcomes
+- Offer actionable next steps and concrete suggestions
+- Balance supportive guidance with honest assessment of research approaches
+
+Avoid:
+- Parroting back user input in a validating manner without adding value
+- Overly enthusiastic or effusive responses that lack substance
+- Being blunt or dismissive when providing critical feedback
+- Generic responses that don't advance the research conversation
+
 Guidelines:
 - Ask clarifying questions before generating research questions
-- Be conversational and encouraging
+- Be conversational and professional
 - Focus on practical, actionable advice
 - When you have enough information, generate structured research questions
 - Format research questions in clear categories
@@ -499,13 +517,13 @@ async def generate_research_response(
     if not has_business_idea:
         prompt = f"""You are a customer research expert. The user said: "{user_input}"
 
-Help them describe their business idea clearly. Ask one specific follow-up question to understand their business concept better. Focus on getting more details about what they're building, how it works, or what makes it unique. Be encouraging and conversational. Keep your response to 2-3 sentences maximum."""
+Help them describe their business idea clearly. Ask one specific follow-up question to understand their business concept better. Focus on getting more details about what they're building, how it works, or what makes it unique. Provide analysis or new perspectives rather than just confirming what they said. Be professional and collaborative. Keep your response to 2-3 sentences maximum."""
     elif not has_target_customer:
         prompt = f"""You are a customer research expert. The user has a business idea: "{context.businessIdea if context else ''}"
 
 They just said: "{user_input}"
 
-Help them identify their target customers more specifically. Ask about specific roles, departments, or types of organizations that would use their solution. Don't accept vague answers - dig deeper for specific user personas. Be encouraging and conversational. Keep your response to 2-3 sentences maximum."""
+Help them identify their target customers more specifically. Ask about specific roles, departments, or types of organizations that would use their solution. Don't accept vague answers - dig deeper for specific user personas. Challenge assumptions respectfully and provide honest assessment of their customer definition. Be professional and collaborative. Keep your response to 2-3 sentences maximum."""
     elif not has_problem:
         prompt = f"""You are a customer research expert. The user has:
 - Business idea: {context.businessIdea if context else ''}
@@ -589,7 +607,7 @@ Based on the intent analysis, respond appropriately. If they rejected your under
 
 They just said: "{user_input}"
 
-Continue exploring by asking about {focus_area}. Ask one specific, detailed question that hasn't been covered yet. Be encouraging and conversational. Keep your response to 2-3 sentences maximum."""
+Continue exploring by asking about {focus_area}. Ask one specific, detailed question that hasn't been covered yet. Provide analysis or challenge assumptions when appropriate rather than just accepting their input. Be professional and collaborative. Keep your response to 2-3 sentences maximum."""
         else:
             # Include industry-specific guidance after longer conversation
             industry_guidance = get_industry_guidance(industry)
@@ -1135,7 +1153,7 @@ The response must be a valid JSON structure matching the ComprehensiveQuestions 
         comprehensive_questions = await instructor_client.generate_with_model_async(
             prompt=prompt,
             model_class=ComprehensiveQuestions,
-            system_instruction="You are an expert customer research consultant. You must generate a complete ComprehensiveQuestions object with properly structured stakeholder objects. Each stakeholder must have a name, description, and questions object with problemDiscovery, solutionValidation, and followUp arrays. Never return empty objects or null values.",
+            system_instruction="You are an expert customer research consultant with UX researcher behavioral standards. Maintain objectivity, provide honest constructive feedback, and act as a collaborative partner. Generate a complete ComprehensiveQuestions object with properly structured stakeholder objects. Each stakeholder must have a name, description, and questions object with problemDiscovery, solutionValidation, and followUp arrays. Never return empty objects or null values.",
         )
 
         logger.info(f"✅ Instructor generated comprehensive questions successfully")

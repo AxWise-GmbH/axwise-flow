@@ -88,12 +88,13 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: process.env.NODE_ENV === 'development'
-              ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://js.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; img-src 'self' data: https:; font-src 'self' data: https://www.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:3000 https://api.axwise.de https://axwise-backend-oicbg7twja-ez.a.run.app https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://api.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.analytics.google.com https://region1.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com; frame-src https://www.google.com https://challenges.cloudflare.com https://hcaptcha.com; worker-src 'self' blob:;"
-              : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://js.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; img-src 'self' data: https:; font-src 'self' data: https://www.gstatic.com; connect-src 'self' https://api.axwise.de https://axwise-backend-oicbg7twja-ez.a.run.app https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://api.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.analytics.google.com https://region1.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com; frame-src https://www.google.com https://challenges.cloudflare.com https://hcaptcha.com; worker-src 'self' blob:;",
-          },
+          // Temporarily disable CSP for business plan testing
+          // {
+          //   key: 'Content-Security-Policy',
+          //   value: process.env.NODE_ENV === 'development'
+          //     ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://js.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com; connect-src 'self' http://localhost:8000 http://localhost:3000 https://api.axwise.de https://axwise-backend-oicbg7twja-ez.a.run.app https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://api.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.analytics.google.com https://region1.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com; frame-src https://www.google.com https://challenges.cloudflare.com https://hcaptcha.com; worker-src 'self' blob:;"
+          //     : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://js.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com; connect-src 'self' https://api.axwise.de https://axwise-backend-oicbg7twja-ez.a.run.app https://clerk.axwise.de https://distinct-rattler-76.clerk.accounts.dev https://api.stripe.com https://www.google.com https://www.gstatic.com https://challenges.cloudflare.com https://hcaptcha.com https://firebase.googleapis.com https://firebaseinstallations.googleapis.com https://firebaseremoteconfig.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googletagmanager.com https://analytics.google.com https://stats.g.doubleclick.net https://region1.analytics.google.com https://region1.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com; frame-src https://www.google.com https://challenges.cloudflare.com https://hcaptcha.com; worker-src 'self' blob:;",
+          // },
         ],
       },
       // Block access to sensitive files and directories
@@ -194,7 +195,7 @@ const nextConfig = {
     ];
   },
 
-  // Add rewrites for legacy static pages
+  // Add rewrites for legacy static pages and business plan
   async rewrites() {
     return [
       {
@@ -204,6 +205,28 @@ const nextConfig = {
       {
         source: '/workshop-designthinking',
         destination: '/workshop-designthinking/index.html',
+      },
+      // Blog routing
+      {
+        source: '/blog',
+        destination: '/blog/index.html',
+      },
+      {
+        source: '/blog/:path*',
+        destination: '/blog/:path*',
+      },
+      // Business plan routing
+      {
+        source: '/grund',
+        destination: '/grund/index.html',
+      },
+      {
+        source: '/grund/businessplan',
+        destination: '/grund/businessplande.html',
+      },
+      {
+        source: '/businessplan',
+        destination: '/grund/businessplande.html',
       },
     ];
   },

@@ -22,11 +22,11 @@ interface StakeholderQuestionsProps {
   onContinue?: () => void;
 }
 
-export function StakeholderQuestionsComponent({ 
-  stakeholders, 
-  businessContext, 
-  onExport, 
-  onContinue 
+export function StakeholderQuestionsComponent({
+  stakeholders,
+  businessContext,
+  onExport,
+  onContinue
 }: StakeholderQuestionsProps) {
   const primaryStakeholders = stakeholders.filter(s => s.type === 'primary');
   const secondaryStakeholders = stakeholders.filter(s => s.type === 'secondary');
@@ -35,7 +35,7 @@ export function StakeholderQuestionsComponent({
     const formattedText = stakeholders.map(stakeholder => {
       return `${stakeholder.name}\n${stakeholder.description}\n\nProblem Discovery:\n${stakeholder.questions.discovery.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\nSolution Validation:\n${stakeholder.questions.validation.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n\nFollow-up:\n${stakeholder.questions.followUp.map((q, i) => `${i + 1}. ${q}`).join('\n')}\n`;
     }).join('\n---\n\n');
-    
+
     try {
       await navigator.clipboard.writeText(formattedText);
       console.log('All stakeholder questions copied to clipboard');
@@ -55,20 +55,20 @@ export function StakeholderQuestionsComponent({
     discovery: {
       title: '🔍 Problem Discovery',
       description: 'Understand current challenges and pain points',
-      color: 'bg-blue-50 border-blue-200',
-      badgeColor: 'bg-blue-100 text-blue-800'
+      color: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800',
+      badgeColor: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
     },
     validation: {
-      title: '✅ Solution Validation', 
+      title: '✅ Solution Validation',
       description: 'Validate your proposed solution approach',
-      color: 'bg-green-50 border-green-200',
-      badgeColor: 'bg-green-100 text-green-800'
+      color: 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800',
+      badgeColor: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
     },
     followUp: {
       title: '💡 Follow-up Questions',
       description: 'Deeper insights and next steps',
-      color: 'bg-purple-50 border-purple-200',
-      badgeColor: 'bg-purple-100 text-purple-800'
+      color: 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800',
+      badgeColor: 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200'
     }
   };
 
@@ -81,7 +81,7 @@ export function StakeholderQuestionsComponent({
           <h2 className="text-xl font-bold">Multi-Stakeholder Research Questions</h2>
         </div>
         <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-          Tailored questions for each stakeholder group in your business ecosystem. 
+          Tailored questions for each stakeholder group in your business ecosystem.
           Start with primary stakeholders to validate core assumptions.
         </p>
       </div>
@@ -128,7 +128,7 @@ export function StakeholderQuestionsComponent({
             <h3 className="text-lg font-semibold">Primary Stakeholders</h3>
             <Badge variant="default" className="text-xs">High Priority</Badge>
           </div>
-          
+
           {primaryStakeholders.map((stakeholder, stakeholderIndex) => (
             <Card key={stakeholderIndex} className="border-green-200 bg-green-50">
               <div className="p-4 space-y-4">
@@ -136,7 +136,7 @@ export function StakeholderQuestionsComponent({
                   <h4 className="font-semibold text-green-900">{stakeholder.name}</h4>
                   <p className="text-sm text-green-700">{stakeholder.description}</p>
                 </div>
-                
+
                 {Object.entries(stakeholder.questions).map(([category, questions]) => {
                   const config = categoryConfig[category as keyof typeof categoryConfig];
                   return (
@@ -172,7 +172,7 @@ export function StakeholderQuestionsComponent({
             <h3 className="text-lg font-semibold">Secondary Stakeholders</h3>
             <Badge variant="secondary" className="text-xs">Medium Priority</Badge>
           </div>
-          
+
           {secondaryStakeholders.map((stakeholder, stakeholderIndex) => (
             <Card key={stakeholderIndex} className="border-orange-200 bg-orange-50">
               <div className="p-4 space-y-4">
@@ -180,7 +180,7 @@ export function StakeholderQuestionsComponent({
                   <h4 className="font-semibold text-orange-900">{stakeholder.name}</h4>
                   <p className="text-sm text-orange-700">{stakeholder.description}</p>
                 </div>
-                
+
                 {Object.entries(stakeholder.questions).map(([category, questions]) => {
                   const config = categoryConfig[category as keyof typeof categoryConfig];
                   return (
@@ -209,14 +209,14 @@ export function StakeholderQuestionsComponent({
       )}
 
       {/* Research Strategy */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-200 dark:border-purple-800">
         <div className="p-4 space-y-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-purple-900">Research Strategy</h3>
+            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-200">Research Strategy</h3>
           </div>
-          
-          <div className="space-y-2 text-sm text-purple-800">
+
+          <div className="space-y-2 text-sm text-purple-800 dark:text-purple-200">
             <div className="flex items-start gap-2">
               <span className="text-purple-600 font-medium">1.</span>
               <p><strong>Start with Primary:</strong> Focus on {primaryStakeholders.length} primary stakeholder{primaryStakeholders.length !== 1 ? 's' : ''} first to validate core assumptions.</p>

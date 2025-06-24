@@ -33,7 +33,7 @@ export function StakeholderAlert({
 
   if (!isExpanded) {
     return (
-      <Alert className="border-blue-200 bg-blue-50">
+      <Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
         <Info className="h-4 w-4" />
         <AlertDescription className="flex items-center justify-between">
           <span>
@@ -56,7 +56,7 @@ export function StakeholderAlert({
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
+    <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -76,34 +76,34 @@ export function StakeholderAlert({
       <CardContent className="space-y-4">
         {/* Stakeholder Groups */}
         <div className="grid gap-3 md:grid-cols-3">
-          <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+          <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
             <Building2 className="h-5 w-5 text-green-600" />
             <div>
               <div className="font-medium text-sm">Primary Stakeholders</div>
-              <div className="text-xs text-gray-600">Decision makers</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Decision makers</div>
               <Badge variant="default" className="text-xs mt-1">Primary</Badge>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+          <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
             <Users className="h-5 w-5 text-blue-600" />
             <div>
               <div className="font-medium text-sm">End Users</div>
-              <div className="text-xs text-gray-600">Primary users</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Primary users</div>
               <Badge variant="secondary" className="text-xs mt-1">Secondary</Badge>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+          <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
             <Building2 className="h-5 w-5 text-purple-600" />
             <div>
               <div className="font-medium text-sm">Business Users</div>
-              <div className="text-xs text-gray-600">Enterprise users</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Enterprise users</div>
               <Badge variant="secondary" className="text-xs mt-1">Secondary</Badge>
             </div>
           </div>
         </div>
 
         {/* Quick Benefits */}
-        <div className="bg-white p-4 rounded-lg border">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border dark:border-gray-700">
           <div className="font-medium mb-2">Why Multi-Stakeholder Research?</div>
           <div className="grid md:grid-cols-2 gap-3 text-sm">
             <div className="space-y-1">
@@ -130,9 +130,9 @@ export function StakeholderAlert({
         </div>
 
         {/* Simple Approach */}
-        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <div className="font-medium text-green-800 mb-2">Recommended Approach:</div>
-          <div className="flex items-center gap-2 text-sm text-green-700">
+        <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="font-medium text-green-800 dark:text-green-200 mb-2">Recommended Approach:</div>
+          <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
             <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs font-medium">Week 1-2</span>
             <ArrowRight className="h-3 w-3" />
             <span>Start with 5-7 primary stakeholder interviews</span>
@@ -158,7 +158,7 @@ export function StakeholderAlert({
           )}
         </div>
 
-        <div className="text-xs text-gray-600 text-center">
+        <div className="text-xs text-gray-600 dark:text-gray-400 text-center">
           You can always come back to explore the multi-stakeholder approach later
         </div>
       </CardContent>
