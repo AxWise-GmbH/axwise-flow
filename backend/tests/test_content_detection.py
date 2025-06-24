@@ -12,14 +12,20 @@ import logging
 from typing import Dict, Any
 
 # Add the parent directory to the path so we can import the backend modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-from backend.services.processing.transcript_structuring_service import TranscriptStructuringService
+from backend.services.processing.transcript_structuring_service import (
+    TranscriptStructuringService,
+)
 from backend.services.llm.gemini_service import GeminiService
 from backend.services.llm.gemini_llm_service import GeminiLLMService
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Sample problem-focused transcript
@@ -101,6 +107,7 @@ STRUCTURED_TRANSCRIPT = """
 ]
 """
 
+
 async def test_content_detection():
     """Test the content type detection functionality."""
     try:
@@ -112,7 +119,7 @@ async def test_content_detection():
 
         gemini_config = {
             "api_key": api_key,
-            "model": "models/gemini-2.5-flash-preview-05-20",
+            "model": "models/gemini-2.5-flash",
             "temperature": 0.0,
             "max_tokens": 65536,
             "top_p": 0.95,
@@ -126,32 +133,49 @@ async def test_content_detection():
 
         # Test content type detection for problem-focused transcript
         logger.info("Testing content type detection for problem-focused transcript...")
-        problem_content_info = transcript_service._detect_content_type(PROBLEM_FOCUSED_TRANSCRIPT)
+        problem_content_info = transcript_service._detect_content_type(
+            PROBLEM_FOCUSED_TRANSCRIPT
+        )
         logger.info(f"Problem-focused content detection result: {problem_content_info}")
-        assert problem_content_info["is_problem_focused"] == True, "Failed to detect problem-focused content"
+        assert (
+            problem_content_info["is_problem_focused"] == True
+        ), "Failed to detect problem-focused content"
 
         # Test content type detection for timestamped transcript
         logger.info("Testing content type detection for timestamped transcript...")
-        timestamped_content_info = transcript_service._detect_content_type(TIMESTAMPED_TRANSCRIPT)
+        timestamped_content_info = transcript_service._detect_content_type(
+            TIMESTAMPED_TRANSCRIPT
+        )
         logger.info(f"Timestamped content detection result: {timestamped_content_info}")
-        assert timestamped_content_info["has_timestamps"] == True, "Failed to detect timestamps in content"
+        assert (
+            timestamped_content_info["has_timestamps"] == True
+        ), "Failed to detect timestamps in content"
 
         # Test content type detection for high complexity transcript
         logger.info("Testing content type detection for high complexity transcript...")
-        complex_content_info = transcript_service._detect_content_type(HIGH_COMPLEXITY_TRANSCRIPT)
+        complex_content_info = transcript_service._detect_content_type(
+            HIGH_COMPLEXITY_TRANSCRIPT
+        )
         logger.info(f"High complexity content detection result: {complex_content_info}")
-        assert complex_content_info["content_complexity"] == "high", "Failed to detect high complexity content"
+        assert (
+            complex_content_info["content_complexity"] == "high"
+        ), "Failed to detect high complexity content"
 
         # Test content type detection for structured transcript
         logger.info("Testing content type detection for structured transcript...")
-        structured_content_info = transcript_service._detect_content_type(STRUCTURED_TRANSCRIPT)
+        structured_content_info = transcript_service._detect_content_type(
+            STRUCTURED_TRANSCRIPT
+        )
         logger.info(f"Structured content detection result: {structured_content_info}")
-        assert structured_content_info["is_structured"] == True, "Failed to detect structured content"
+        assert (
+            structured_content_info["is_structured"] == True
+        ), "Failed to detect structured content"
 
         logger.info("All content type detection tests completed successfully!")
 
     except Exception as e:
         logger.error(f"Error in test: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
     asyncio.run(test_content_detection())

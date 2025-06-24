@@ -101,7 +101,9 @@ async def test_gemini_direct():
         """
 
         # Generate response using client.aio.models.generate_content
-        logger.info("Sending request to Gemini using client.aio.models.generate_content...")
+        logger.info(
+            "Sending request to Gemini using client.aio.models.generate_content..."
+        )
 
         # Create a dictionary for the GenerateContentConfig fields
         config_fields = {
@@ -109,20 +111,30 @@ async def test_gemini_direct():
             "top_p": 0.95,
             "top_k": 1,
             "max_output_tokens": 65536,
-            "response_mime_type": "application/json"
+            "response_mime_type": "application/json",
         }
 
         # Create Content objects with role="user" (Gemini API only accepts "user" and "model" roles)
-        system_content = types.Content(parts=[{"text": "System instruction: " + system_instruction}], role="user")
+        system_content = types.Content(
+            parts=[{"text": "System instruction: " + system_instruction}], role="user"
+        )
         user_content = types.Content(parts=[{"text": prompt}], role="user")
         contents = [system_content, user_content]
 
         # Create safety settings
         safety_settings = [
-            types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
-            types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+            types.SafetySetting(
+                category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"
+            ),
         ]
 
         # Do NOT add safety settings to the config
@@ -135,7 +147,7 @@ async def test_gemini_direct():
         response = await client.aio.models.generate_content(
             model="gemini-2.5-flash-preview-04-17",
             contents=contents,
-            config=generation_config
+            config=generation_config,
         )
 
         logger.info("Received response")
@@ -209,7 +221,7 @@ async def test_gemini_service_direct():
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-2.5-flash-preview-05-20",
+            "model": "gemini-2.5-flash",
         }
 
         llm_service = GeminiService(llm_config)
@@ -219,7 +231,7 @@ async def test_gemini_service_direct():
         request = {
             "task": "persona_formation",
             "text": SAMPLE_INTERVIEW,
-            "data": {"transcript": SAMPLE_INTERVIEW}
+            "data": {"transcript": SAMPLE_INTERVIEW},
         }
         persona_attributes = await llm_service.analyze(request)
 
@@ -246,13 +258,15 @@ async def test_persona_formation_service():
         )
 
         # Import necessary modules from the project
-        from backend.services.processing.persona_formation_service import PersonaFormationService
+        from backend.services.processing.persona_formation_service import (
+            PersonaFormationService,
+        )
         from backend.services.llm.gemini_service import GeminiService
 
         # Create LLM service directly
         llm_config = {
             "api_key": os.getenv("GEMINI_API_KEY"),
-            "model": "gemini-2.5-flash-preview-05-20",
+            "model": "gemini-2.5-flash",
         }
 
         llm_service = GeminiService(llm_config)

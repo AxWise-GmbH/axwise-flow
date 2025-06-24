@@ -13,15 +13,21 @@ import logging
 from typing import Dict, Any, List
 
 # Add the parent directory to the path so we can import the backend modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-from backend.services.processing.transcript_structuring_service import TranscriptStructuringService
+from backend.services.processing.transcript_structuring_service import (
+    TranscriptStructuringService,
+)
 from backend.services.llm.gemini_service import GeminiService
 from backend.services.llm.gemini_llm_service import GeminiLLMService
 from backend.models.transcript import TranscriptSegment, StructuredTranscript
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Sample transcript for testing
@@ -60,6 +66,7 @@ Sarah: Yes, they were responsive but haven't fixed the problems yet.
 End of Recording
 """
 
+
 async def test_transcript_structuring():
     """Test the transcript structuring service."""
     try:
@@ -71,7 +78,7 @@ async def test_transcript_structuring():
 
         gemini_config = {
             "api_key": api_key,
-            "model": "models/gemini-2.5-flash-preview-05-20",
+            "model": "models/gemini-2.5-flash",
             "temperature": 0.0,
             "max_tokens": 65536,
             "top_p": 0.95,
@@ -85,7 +92,9 @@ async def test_transcript_structuring():
 
         # Test with a clean transcript
         logger.info("Testing with clean transcript...")
-        clean_result = await transcript_service.structure_transcript(SAMPLE_TRANSCRIPT, "test_transcript.txt")
+        clean_result = await transcript_service.structure_transcript(
+            SAMPLE_TRANSCRIPT, "test_transcript.txt"
+        )
 
         # Validate the result
         validate_transcript_structure(clean_result)
@@ -94,17 +103,22 @@ async def test_transcript_structuring():
 
         # Test with a problematic transcript
         logger.info("Testing with problematic transcript...")
-        problem_result = await transcript_service.structure_transcript(PROBLEMATIC_TRANSCRIPT, "test_Problem_demo.txt")
+        problem_result = await transcript_service.structure_transcript(
+            PROBLEMATIC_TRANSCRIPT, "test_Problem_demo.txt"
+        )
 
         # Validate the result
         validate_transcript_structure(problem_result)
-        logger.info(f"Problematic transcript test result: {len(problem_result)} segments")
+        logger.info(
+            f"Problematic transcript test result: {len(problem_result)} segments"
+        )
         logger.info(f"First segment: {problem_result[0]}")
 
         logger.info("All tests completed successfully!")
 
     except Exception as e:
         logger.error(f"Error in test: {e}", exc_info=True)
+
 
 def validate_transcript_structure(transcript: List[Dict[str, str]]):
     """Validate the structure of the transcript."""
@@ -119,15 +133,21 @@ def validate_transcript_structure(transcript: List[Dict[str, str]]):
         # Check required fields
         for field in ["speaker_id", "role", "dialogue"]:
             if field not in segment:
-                raise ValueError(f"Segment {i} is missing required field '{field}': {segment}")
+                raise ValueError(
+                    f"Segment {i} is missing required field '{field}': {segment}"
+                )
 
             # Check field types
             if not isinstance(segment[field], str):
-                raise ValueError(f"Segment {i} field '{field}' is not a string: {segment[field]}")
+                raise ValueError(
+                    f"Segment {i} field '{field}' is not a string: {segment[field]}"
+                )
 
         # Check role values
         if segment["role"] not in ["Interviewer", "Interviewee", "Participant"]:
-            raise ValueError(f"Segment {i} has invalid role '{segment['role']}': {segment}")
+            raise ValueError(
+                f"Segment {i} has invalid role '{segment['role']}': {segment}"
+            )
 
     # Try to validate with Pydantic models
     try:
@@ -142,6 +162,7 @@ def validate_transcript_structure(transcript: List[Dict[str, str]]):
     except Exception as e:
         logger.error(f"Pydantic validation error: {e}")
         raise
+
 
 if __name__ == "__main__":
     asyncio.run(test_transcript_structuring())

@@ -15,7 +15,7 @@ from typing import Dict, Any, List
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,12 @@ logger = logging.getLogger(__name__)
 # Try to load environment variables from .env file
 try:
     from dotenv import load_dotenv
+
     # Look for .env file in the project root directory
-    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+    dotenv_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        ".env",
+    )
     if os.path.exists(dotenv_path):
         logger.info(f"Loading environment variables from {dotenv_path}")
         load_dotenv(dotenv_path)
@@ -32,14 +36,16 @@ try:
     else:
         logger.warning(f".env file not found at {dotenv_path}")
         # Try looking in the current directory
-        if os.path.exists('.env'):
+        if os.path.exists(".env"):
             logger.info("Loading environment variables from ./.env")
             load_dotenv()
             logger.info("Environment variables loaded successfully")
         else:
             logger.warning(".env file not found in current directory")
 except ImportError:
-    logger.warning("python-dotenv package not installed. Environment variables will only be loaded from system environment.")
+    logger.warning(
+        "python-dotenv package not installed. Environment variables will only be loaded from system environment."
+    )
     logger.warning("To install: pip install python-dotenv")
 
 # Add the parent directory to the path so we can import the backend modules
@@ -47,8 +53,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the necessary modules
 try:
-    from backend.services.processing.trait_formatting_service import TraitFormattingService
-    from backend.services.processing.adaptive_tool_recognition_service import AdaptiveToolRecognitionService
+    from backend.services.processing.trait_formatting_service import (
+        TraitFormattingService,
+    )
+    from backend.services.processing.adaptive_tool_recognition_service import (
+        AdaptiveToolRecognitionService,
+    )
     from backend.services.processing.attribute_extractor import AttributeExtractor
     from backend.services.llm.gemini_service import GeminiService
     from backend.domain.interfaces.llm_unified import ILLMService
@@ -80,50 +90,72 @@ Interviewer: What are your biggest challenges?
 Interviewee: Time constraints are a big issue. We often don't have enough time to conduct proper research before deadlines. Also, some stakeholders don't understand the value of UX research.
 """
 
+
 class TestConfig:
     """Test configuration."""
+
     def __init__(self):
         # Debug: Print all environment variables (masked)
         logger.info("Checking environment variables for API keys...")
         for key, value in os.environ.items():
             if "API_KEY" in key or "KEY" in key:
-                masked_value = value[:4] + "..." + value[-4:] if len(value) > 8 else "***"
+                masked_value = (
+                    value[:4] + "..." + value[-4:] if len(value) > 8 else "***"
+                )
                 logger.info(f"Found environment variable: {key}={masked_value}")
 
         # Load API key from environment variable
         self.api_key = os.environ.get("GEMINI_API_KEY", "")
         if self.api_key:
-            masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
+            masked_key = (
+                self.api_key[:4] + "..." + self.api_key[-4:]
+                if len(self.api_key) > 8
+                else "***"
+            )
             logger.info(f"Using GEMINI_API_KEY=***REMOVED***")
         else:
-            logger.warning("GEMINI_API_KEY environment variable not set. Checking for GOOGLE_GEMINI_API_KEY...")
+            logger.warning(
+                "GEMINI_API_KEY environment variable not set. Checking for GOOGLE_GEMINI_API_KEY..."
+            )
             # Try to get from GOOGLE_GEMINI_API_KEY
             self.api_key = os.environ.get("GOOGLE_GEMINI_API_KEY", "")
             if self.api_key:
-                masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
+                masked_key = (
+                    self.api_key[:4] + "..." + self.api_key[-4:]
+                    if len(self.api_key) > 8
+                    else "***"
+                )
                 logger.info(f"Using GOOGLE_GEMINI_API_KEY=***REMOVED***")
             else:
                 # Try other common API key names
                 for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "AI_API_KEY"]:
                     self.api_key = os.environ.get(key, "")
                     if self.api_key:
-                        masked_key = self.api_key[:4] + "..." + self.api_key[-4:] if len(self.api_key) > 8 else "***"
+                        masked_key = (
+                            self.api_key[:4] + "..." + self.api_key[-4:]
+                            if len(self.api_key) > 8
+                            else "***"
+                        )
                         logger.info(f"Using {key}: {masked_key}")
                         break
 
                 if not self.api_key:
-                    logger.warning("No API key found in environment variables. Using mock API key.")
-                    self.api_key = "mock_api_key"  # Use a mock API key to avoid attribute errors
+                    logger.warning(
+                        "No API key found in environment variables. Using mock API key."
+                    )
+                    self.api_key = (
+                        "mock_api_key"  # Use a mock API key to avoid attribute errors
+                    )
 
         # Combined configuration for GeminiService
         self.config = {
             "api_key": self.api_key,
-            "model": "gemini-2.5-flash-preview-05-20",
+            "model": "gemini-2.5-flash",
             "max_output_tokens": 65536,
             "temperature": 0.0,
             "top_p": 0.95,
             "top_k": 1,
-            "response_mime_type": "application/json"
+            "response_mime_type": "application/json",
         }
 
         # LLM configuration for compatibility with different code paths
@@ -133,8 +165,9 @@ class TestConfig:
             "temperature": 0.0,
             "top_p": 0.95,
             "top_k": 1,
-            "response_mime_type": "application/json"
+            "response_mime_type": "application/json",
         }
+
 
 async def test_trait_formatting():
     """Test the TraitFormattingService."""
@@ -162,10 +195,13 @@ async def test_trait_formatting():
     # Verify that formatting improved the traits
     for field, value in formatted_traits.items():
         assert value, f"Formatted value for {field} is empty"
-        assert value != SAMPLE_TRAITS[field], f"Formatted value for {field} is unchanged"
+        assert (
+            value != SAMPLE_TRAITS[field]
+        ), f"Formatted value for {field} is unchanged"
 
     logger.info("TraitFormattingService test completed successfully")
     return formatted_traits
+
 
 async def test_tool_recognition():
     """Test the AdaptiveToolRecognitionService."""
@@ -187,30 +223,34 @@ async def test_tool_recognition():
 
     # If we couldn't create a GeminiService, use mock data
     if gemini_service is None:
-        logger.warning("No GeminiService available. Using mock data for tool recognition.")
+        logger.warning(
+            "No GeminiService available. Using mock data for tool recognition."
+        )
         identified_tools = [
             {
                 "tool_name": "JIRA",
                 "original_mention": "JIRA",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Figma",
                 "original_mention": "Figma",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Miro",
                 "original_mention": "Mirrorboards",
                 "confidence": 0.9,
-                "is_misspelling": True
-            }
+                "is_misspelling": True,
+            },
         ]
         logger.info("Created mock tools for testing:")
         for tool in identified_tools:
-            logger.info(f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}")
+            logger.info(
+                f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}"
+            )
 
         # Skip the actual tool recognition
         logger.info("Formatting tools for persona...")
@@ -223,12 +263,11 @@ async def test_tool_recognition():
     # Create an AdaptiveToolRecognitionService
     try:
         tool_recognition_service = AdaptiveToolRecognitionService(
-            llm_service=gemini_service,
-            similarity_threshold=0.75,
-            learning_enabled=True
+            llm_service=gemini_service, similarity_threshold=0.75, learning_enabled=True
         )
     except Exception as e:
         logger.error(f"Error creating AdaptiveToolRecognitionService: {str(e)}")
+
         # Create a minimal mock service
         class MockToolRecognitionService:
             def format_tools_for_persona(self, tools, format_type):
@@ -242,28 +281,32 @@ async def test_tool_recognition():
                 "tool_name": "JIRA",
                 "original_mention": "JIRA",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Figma",
                 "original_mention": "Figma",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Miro",
                 "original_mention": "Mirrorboards",
                 "confidence": 0.9,
-                "is_misspelling": True
-            }
+                "is_misspelling": True,
+            },
         ]
         logger.info("Created mock tools for testing:")
         for tool in identified_tools:
-            logger.info(f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}")
+            logger.info(
+                f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}"
+            )
 
         # Skip the actual tool recognition
         logger.info("Formatting tools for persona...")
-        formatted_tools = tool_recognition_service.format_tools_for_persona(identified_tools, "bullet")
+        formatted_tools = tool_recognition_service.format_tools_for_persona(
+            identified_tools, "bullet"
+        )
         logger.info(f"Formatted tools:\n{formatted_tools}")
 
         logger.info("Tool recognition test completed with mock data")
@@ -280,7 +323,9 @@ async def test_tool_recognition():
     """
 
     try:
-        identified_tools = await tool_recognition_service.identify_tools_in_text(explicit_transcript)
+        identified_tools = await tool_recognition_service.identify_tools_in_text(
+            explicit_transcript
+        )
     except Exception as e:
         logger.error(f"Error identifying tools: {str(e)}")
         identified_tools = []
@@ -288,39 +333,47 @@ async def test_tool_recognition():
     # Log the identified tools
     logger.info(f"Identified {len(identified_tools)} tools:")
     for tool in identified_tools:
-        logger.info(f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}")
+        logger.info(
+            f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}"
+        )
 
     # If no tools were identified, create some mock tools for testing
     if not identified_tools:
-        logger.warning("No tools identified by the service. Creating mock tools for testing.")
+        logger.warning(
+            "No tools identified by the service. Creating mock tools for testing."
+        )
         identified_tools = [
             {
                 "tool_name": "JIRA",
                 "original_mention": "JIRA",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Figma",
                 "original_mention": "Figma",
                 "confidence": 0.95,
-                "is_misspelling": False
+                "is_misspelling": False,
             },
             {
                 "tool_name": "Miro",
                 "original_mention": "Mirrorboards",
                 "confidence": 0.9,
-                "is_misspelling": True
-            }
+                "is_misspelling": True,
+            },
         ]
         logger.info("Created mock tools for testing:")
         for tool in identified_tools:
-            logger.info(f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}")
+            logger.info(
+                f"Tool: {tool['tool_name']}, Original: {tool['original_mention']}, Confidence: {tool['confidence']}"
+            )
 
     # Test formatting tools for persona
     logger.info("Formatting tools for persona...")
     try:
-        formatted_tools = tool_recognition_service.format_tools_for_persona(identified_tools, "bullet")
+        formatted_tools = tool_recognition_service.format_tools_for_persona(
+            identified_tools, "bullet"
+        )
         logger.info(f"Formatted tools:\n{formatted_tools}")
     except Exception as e:
         logger.error(f"Error formatting tools: {str(e)}")
@@ -329,6 +382,7 @@ async def test_tool_recognition():
 
     logger.info("Tool recognition test completed successfully")
     return identified_tools
+
 
 async def test_full_pipeline():
     """Test the full pipeline with AttributeExtractor."""
@@ -356,7 +410,9 @@ async def test_full_pipeline():
         Interviewee: Time constraints are a big issue. We often don't have enough time to conduct proper research.
         """
 
-        attributes = await attribute_extractor.extract_attributes_from_text(simple_transcript, role="Interviewee")
+        attributes = await attribute_extractor.extract_attributes_from_text(
+            simple_transcript, role="Interviewee"
+        )
 
         # Log the extracted attributes
         logger.info(f"Extracted attributes: {json.dumps(attributes, indent=2)}")
@@ -366,7 +422,10 @@ async def test_full_pipeline():
             logger.info("tools_used found in attributes")
 
             # Check if tools_used is a dict with a value
-            if isinstance(attributes["tools_used"], dict) and "value" in attributes["tools_used"]:
+            if (
+                isinstance(attributes["tools_used"], dict)
+                and "value" in attributes["tools_used"]
+            ):
                 tools_value = attributes["tools_used"]["value"]
                 logger.info(f"tools_used value: {tools_value}")
 
@@ -398,17 +457,22 @@ async def test_full_pipeline():
             "tools_used": {
                 "value": "• JIRA (Project Management)\n• Figma (Design)\n• Miro (Collaboration)",
                 "confidence": 0.9,
-                "evidence": ["I use JIRA for project management, Figma for design reviews, and Miro boards for collaborative sessions."]
+                "evidence": [
+                    "I use JIRA for project management, Figma for design reviews, and Miro boards for collaborative sessions."
+                ],
             },
             "challenges_and_frustrations": {
                 "value": "Time constraints limiting proper research",
                 "confidence": 0.8,
-                "evidence": ["Time constraints are a big issue. We often don't have enough time to conduct proper research."]
-            }
+                "evidence": [
+                    "Time constraints are a big issue. We often don't have enough time to conduct proper research."
+                ],
+            },
         }
 
         logger.info("Full pipeline test completed with mock data")
         return mock_attributes
+
 
 async def main():
     """Run the tests."""
@@ -423,7 +487,9 @@ async def main():
         # Continue even if the API key is "mock_api_key"
         if config.api_key == "mock_api_key":
             logger.warning("=" * 80)
-            logger.warning("USING MOCK API KEY: No real API key found in environment variables or .env file.")
+            logger.warning(
+                "USING MOCK API KEY: No real API key found in environment variables or .env file."
+            )
             logger.warning("Tests will run with mock data only.")
             logger.warning("For real API testing, please ensure one of these is set:")
             logger.warning("1. GEMINI_API_KEY environment variable")
@@ -432,7 +498,9 @@ async def main():
             logger.warning("=" * 80)
         elif not config.api_key:
             logger.error("=" * 80)
-            logger.error("API KEY ERROR: No API key found in environment variables or .env file.")
+            logger.error(
+                "API KEY ERROR: No API key found in environment variables or .env file."
+            )
             logger.error("Please ensure one of these is set:")
             logger.error("1. GEMINI_API_KEY environment variable")
             logger.error("2. GOOGLE_GEMINI_API_KEY environment variable")
@@ -445,13 +513,17 @@ async def main():
         try:
             logger.info(f"Using model: {config.llm_config['model']}")
             logger.info(f"Using temperature: {config.llm_config['temperature']}")
-            logger.info(f"Using max_output_tokens: {config.llm_config['max_output_tokens']}")
+            logger.info(
+                f"Using max_output_tokens: {config.llm_config['max_output_tokens']}"
+            )
         except (AttributeError, KeyError):
             # If llm_config doesn't exist or is missing keys, use config
             try:
                 logger.info(f"Using model: {config.config['model']}")
                 logger.info(f"Using temperature: {config.config['temperature']}")
-                logger.info(f"Using max_output_tokens: {config.config['max_output_tokens']}")
+                logger.info(
+                    f"Using max_output_tokens: {config.config['max_output_tokens']}"
+                )
             except (AttributeError, KeyError):
                 logger.info("Using default configuration")
         logger.info("=" * 80)
@@ -494,6 +566,7 @@ async def main():
         logger.error(f"ERROR running tests: {str(e)}")
         logger.error("=" * 80)
         logger.debug("Detailed error information:", exc_info=True)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

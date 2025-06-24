@@ -27,11 +27,46 @@ class NLPProcessor:
             if importlib.util.find_spec("backend.services.nlp.extract_patterns"):
                 # Import the module
                 from backend.services.nlp.extract_patterns import extract_patterns
+
                 # Monkey patch the extract_patterns method
                 self.extract_patterns = extract_patterns.__get__(self, NLPProcessor)
                 logger.info("Using new extract_patterns implementation")
         except ImportError:
             logger.info("Using legacy extract_patterns implementation")
+
+    def _combine_transcript_text(self, transcript):
+        """
+        Combine transcript text from various formats into a single string.
+
+        Args:
+            transcript: Transcript data in various formats
+
+        Returns:
+            Combined text string
+        """
+        if not transcript:
+            return ""
+
+        texts = []
+
+        if isinstance(transcript, str):
+            return transcript
+        elif isinstance(transcript, list):
+            for item in transcript:
+                if isinstance(item, dict):
+                    if "text" in item:
+                        texts.append(item["text"])
+                    elif "question" in item and "answer" in item:
+                        texts.append(f"Q: {item['question']}\nA: {item['answer']}")
+                elif isinstance(item, str):
+                    texts.append(item)
+        elif isinstance(transcript, dict):
+            if "text" in transcript:
+                texts.append(transcript["text"])
+            elif "question" in transcript and "answer" in transcript:
+                texts.append(f"Q: {transcript['question']}\nA: {transcript['answer']}")
+
+        return "\n\n".join(filter(None, texts))
 
     async def parse_free_text(self, text: str) -> List[Dict[str, str]]:
         """
@@ -132,8 +167,12 @@ class NLPProcessor:
             config = {}
 
         # Solution 1: Enable enhanced theme analysis by default
-        use_enhanced_theme_analysis = config.get("use_enhanced_theme_analysis", True)  # Changed default to True
-        logger.info(f"Enhanced theme analysis is {'enabled' if use_enhanced_theme_analysis else 'disabled'}")
+        use_enhanced_theme_analysis = config.get(
+            "use_enhanced_theme_analysis", True
+        )  # Changed default to True
+        logger.info(
+            f"Enhanced theme analysis is {'enabled' if use_enhanced_theme_analysis else 'disabled'}"
+        )
 
         # Helper function to update progress
         async def update_progress(stage: str, progress: float, message: str):
@@ -159,7 +198,9 @@ class NLPProcessor:
 
                 # Check if this is a Problem_demo file
                 if filename and "Problem_demo" in filename:
-                    logger.info(f"Detected Problem_demo file: {filename}. Special handling will be applied.")
+                    logger.info(
+                        f"Detected Problem_demo file: {filename}. Special handling will be applied."
+                    )
 
             # Detect and handle free-text format
             if isinstance(data, str) or (
@@ -313,7 +354,9 @@ class NLPProcessor:
             logger.info("Starting parallel analysis")
 
             # Update progress: Starting theme analysis
-            await update_progress("THEME_EXTRACTION", 0.2, "Starting enhanced theme analysis")
+            await update_progress(
+                "THEME_EXTRACTION", 0.2, "Starting enhanced theme analysis"
+            )
 
             # Skip basic theme analysis and go directly to enhanced theme analysis
             logger.info("Using enhanced theme analysis directly")
@@ -346,22 +389,30 @@ class NLPProcessor:
                 "task": "theme_analysis_enhanced",
                 "text": answer_only_text,  # Use answer-only text for themes
                 "use_answer_only": True,  # Flag to indicate answer-only processing
-                "industry": config.get("industry")  # Pass industry context if available
+                "industry": config.get(
+                    "industry"
+                ),  # Pass industry context if available
             }
 
             # Add filename to payload if available
             if filename:
                 enhanced_theme_payload["filename"] = filename
-                logger.info(f"Adding filename to enhanced theme analysis payload: {filename}")
+                logger.info(
+                    f"Adding filename to enhanced theme analysis payload: {filename}"
+                )
 
             # Call analyze using the determined service for enhanced theme analysis
-            enhanced_themes_task = target_llm_service_enhanced.analyze(enhanced_theme_payload)
+            enhanced_themes_task = target_llm_service_enhanced.analyze(
+                enhanced_theme_payload
+            )
 
             # Get enhanced themes directly
             enhanced_themes_result = await enhanced_themes_task
 
             # Update progress: Theme analysis completed
-            await update_progress("THEME_EXTRACTION", 0.4, "Enhanced theme analysis completed")
+            await update_progress(
+                "THEME_EXTRACTION", 0.4, "Enhanced theme analysis completed"
+            )
 
             # Store the enhanced themes as the main themes result
             themes_result = {"themes": []}  # Initialize with empty themes
@@ -369,46 +420,77 @@ class NLPProcessor:
             # Solution 2: Improve the handling of enhanced theme results
             try:
                 # Log the full structure of the enhanced_themes_result for debugging
-                logger.info(f"Enhanced theme analysis result structure: {type(enhanced_themes_result)}")
+                logger.info(
+                    f"Enhanced theme analysis result structure: {type(enhanced_themes_result)}"
+                )
                 if isinstance(enhanced_themes_result, dict):
-                    logger.info(f"Enhanced theme analysis result keys: {list(enhanced_themes_result.keys())}")
+                    logger.info(
+                        f"Enhanced theme analysis result keys: {list(enhanced_themes_result.keys())}"
+                    )
                     # Log the raw result for debugging
-                    logger.debug(f"Enhanced theme analysis raw result: {json.dumps(enhanced_themes_result)}")
+                    logger.debug(
+                        f"Enhanced theme analysis raw result: {json.dumps(enhanced_themes_result)}"
+                    )
 
                 # Check for enhanced_themes key first (preferred)
-                if isinstance(enhanced_themes_result, dict) and "enhanced_themes" in enhanced_themes_result and isinstance(enhanced_themes_result["enhanced_themes"], list):
+                if (
+                    isinstance(enhanced_themes_result, dict)
+                    and "enhanced_themes" in enhanced_themes_result
+                    and isinstance(enhanced_themes_result["enhanced_themes"], list)
+                ):
                     logger.info(
                         f"Enhanced theme analysis completed with {len(enhanced_themes_result.get('enhanced_themes', []))} themes"
                     )
                     # Log the first theme if available
                     if enhanced_themes_result["enhanced_themes"]:
                         first_theme = enhanced_themes_result["enhanced_themes"][0]
-                        logger.info(f"First enhanced theme: {first_theme.get('name', 'Unnamed')}")
+                        logger.info(
+                            f"First enhanced theme: {first_theme.get('name', 'Unnamed')}"
+                        )
                 # Fall back to themes key if enhanced_themes is not present
-                elif isinstance(enhanced_themes_result, dict) and "themes" in enhanced_themes_result and isinstance(enhanced_themes_result["themes"], list):
+                elif (
+                    isinstance(enhanced_themes_result, dict)
+                    and "themes" in enhanced_themes_result
+                    and isinstance(enhanced_themes_result["themes"], list)
+                ):
                     logger.info(
                         f"Enhanced theme analysis returned regular themes with {len(enhanced_themes_result.get('themes', []))} themes"
                     )
                     # Copy themes to enhanced_themes for consistent handling
-                    enhanced_themes_result["enhanced_themes"] = enhanced_themes_result["themes"]
-                    logger.info("Copied themes to enhanced_themes for consistent handling")
+                    enhanced_themes_result["enhanced_themes"] = enhanced_themes_result[
+                        "themes"
+                    ]
+                    logger.info(
+                        "Copied themes to enhanced_themes for consistent handling"
+                    )
                     # Log the first theme if available
                     if enhanced_themes_result["themes"]:
                         first_theme = enhanced_themes_result["themes"][0]
-                        logger.info(f"First theme (copied to enhanced_themes): {first_theme.get('name', 'Unnamed')}")
+                        logger.info(
+                            f"First theme (copied to enhanced_themes): {first_theme.get('name', 'Unnamed')}"
+                        )
                 # Handle direct list of themes (no wrapper object)
-                elif isinstance(enhanced_themes_result, list) and len(enhanced_themes_result) > 0:
-                    logger.info(f"Enhanced theme analysis returned a direct list of {len(enhanced_themes_result)} themes")
+                elif (
+                    isinstance(enhanced_themes_result, list)
+                    and len(enhanced_themes_result) > 0
+                ):
+                    logger.info(
+                        f"Enhanced theme analysis returned a direct list of {len(enhanced_themes_result)} themes"
+                    )
                     # Wrap the list in a dictionary with enhanced_themes key
                     enhanced_themes_result = {"enhanced_themes": enhanced_themes_result}
-                    logger.info("Wrapped theme list in enhanced_themes key for consistent handling")
+                    logger.info(
+                        "Wrapped theme list in enhanced_themes key for consistent handling"
+                    )
                 else:
                     logger.warning(
                         f"Enhanced theme analysis did not return expected structure. Keys: {list(enhanced_themes_result.keys()) if isinstance(enhanced_themes_result, dict) else 'not a dictionary'}"
                     )
                     # Create a default structure if the result is not as expected
                     enhanced_themes_result = {"enhanced_themes": []}
-                    logger.warning("Created empty enhanced_themes structure as fallback")
+                    logger.warning(
+                        "Created empty enhanced_themes structure as fallback"
+                    )
             except Exception as e:
                 logger.error(f"Error in enhanced theme analysis: {str(e)}")
                 # Create a fallback enhanced themes result
@@ -417,8 +499,12 @@ class NLPProcessor:
 
             # Solution 3: Improve the fallback mechanism
             # Create default enhanced themes if enhanced themes are missing or empty
-            if not enhanced_themes_result or not enhanced_themes_result.get("enhanced_themes", []):
-                logger.info("Enhanced themes not available or empty, creating default enhanced themes")
+            if not enhanced_themes_result or not enhanced_themes_result.get(
+                "enhanced_themes", []
+            ):
+                logger.info(
+                    "Enhanced themes not available or empty, creating default enhanced themes"
+                )
                 try:
                     # Create default enhanced themes
                     enhanced_themes = []
@@ -436,7 +522,7 @@ class NLPProcessor:
                         "frequency": 0.5,
                         "sentiment": 0.0,
                         "reliability": 0.5,
-                        "process": "enhanced"
+                        "process": "enhanced",
                     }
 
                     # Add reliability metrics
@@ -446,8 +532,8 @@ class NLPProcessor:
                         "percent_agreement": round(reliability, 2),
                         "confidence_interval": [
                             round(max(0, reliability - 0.15), 2),
-                            round(min(1, reliability + 0.15), 2)
-                        ]
+                            round(min(1, reliability + 0.15), 2),
+                        ],
                     }
 
                     # Add sentiment distribution
@@ -455,7 +541,7 @@ class NLPProcessor:
                     enhanced_theme["sentiment_distribution"] = {
                         "positive": round(max(0, (sentiment + 1) / 2), 2),
                         "neutral": round(max(0, 1 - abs(sentiment)), 2),
-                        "negative": round(max(0, (1 - sentiment) / 2), 2)
+                        "negative": round(max(0, (1 - sentiment) / 2), 2),
                     }
 
                     # Add codes
@@ -471,9 +557,9 @@ class NLPProcessor:
                                 {
                                     "code": "GENERAL_THEME_INTERVIEW",
                                     "definition": "Sub-aspect related to interview content",
-                                    "frequency": 0.4
+                                    "frequency": 0.4,
                                 }
-                            ]
+                            ],
                         }
                     ]
 
@@ -490,89 +576,128 @@ class NLPProcessor:
 
                     # Always store in enhanced_themes key for consistency
                     enhanced_themes_result["enhanced_themes"] = enhanced_themes
-                    logger.info(f"Created {len(enhanced_themes)} enhanced themes from basic themes")
+                    logger.info(
+                        f"Created {len(enhanced_themes)} enhanced themes from basic themes"
+                    )
                 except Exception as e:
-                    logger.error(f"Error creating enhanced themes from basic themes: {str(e)}")
+                    logger.error(
+                        f"Error creating enhanced themes from basic themes: {str(e)}"
+                    )
                     # Create a minimal fallback enhanced themes result
                     if enhanced_themes_result is None:
                         enhanced_themes_result = {}
 
-                    enhanced_themes_result["enhanced_themes"] = [{
-                        "type": "theme",
-                        "name": "Fallback Theme",
-                        "definition": "A fallback theme created due to processing error",
-                        "keywords": ["fallback", "error", "recovery"],
-                        "statements": [],
-                        "frequency": 0.5,
-                        "sentiment": 0.0,
-                        "reliability": 0.5,
-                        "process": "enhanced",
-                        "codes": ["ERROR_RECOVERY"],
-                        "sentiment_distribution": {
-                            "positive": 0.2,
-                            "neutral": 0.6,
-                            "negative": 0.2
-                        },
-                        "hierarchical_codes": [
-                            {
-                                "code": "ERROR_RECOVERY",
-                                "definition": "Code representing error recovery",
-                                "frequency": 0.5,
-                                "sub_codes": [
-                                    {
-                                        "code": "ERROR_RECOVERY_FALLBACK",
-                                        "definition": "Sub-aspect related to fallback mechanisms",
-                                        "frequency": 0.4
-                                    }
-                                ]
-                            }
-                        ],
-                        "reliability_metrics": {
-                            "cohen_kappa": 0.45,
-                            "percent_agreement": 0.5,  # Keep between 0 and 1
-                            "confidence_interval": [0.3, 0.6]
-                        },
-                        "relationships": []
-                    }]
-                    logger.warning("Created fallback theme due to error in enhanced theme creation")
+                    enhanced_themes_result["enhanced_themes"] = [
+                        {
+                            "type": "theme",
+                            "name": "Fallback Theme",
+                            "definition": "A fallback theme created due to processing error",
+                            "keywords": ["fallback", "error", "recovery"],
+                            "statements": [],
+                            "frequency": 0.5,
+                            "sentiment": 0.0,
+                            "reliability": 0.5,
+                            "process": "enhanced",
+                            "codes": ["ERROR_RECOVERY"],
+                            "sentiment_distribution": {
+                                "positive": 0.2,
+                                "neutral": 0.6,
+                                "negative": 0.2,
+                            },
+                            "hierarchical_codes": [
+                                {
+                                    "code": "ERROR_RECOVERY",
+                                    "definition": "Code representing error recovery",
+                                    "frequency": 0.5,
+                                    "sub_codes": [
+                                        {
+                                            "code": "ERROR_RECOVERY_FALLBACK",
+                                            "definition": "Sub-aspect related to fallback mechanisms",
+                                            "frequency": 0.4,
+                                        }
+                                    ],
+                                }
+                            ],
+                            "reliability_metrics": {
+                                "cohen_kappa": 0.45,
+                                "percent_agreement": 0.5,  # Keep between 0 and 1
+                                "confidence_interval": [0.3, 0.6],
+                            },
+                            "relationships": [],
+                        }
+                    ]
+                    logger.warning(
+                        "Created fallback theme due to error in enhanced theme creation"
+                    )
 
             # Detect industry from the text
             industry = await self._detect_industry(combined_text, llm_service)
             logger.info(f"Detected industry: {industry}")
 
             # Update progress: Starting pattern detection
-            await update_progress("PATTERN_DETECTION", 0.45, "Starting pattern detection analysis")
+            await update_progress(
+                "PATTERN_DETECTION", 0.45, "Starting pattern detection analysis"
+            )
 
             # Create pattern recognition payload with filename if available
             pattern_payload = {
                 "task": "pattern_recognition",
                 "text": combined_text,
-                "industry": industry
+                "industry": industry,
             }
 
             # Add filename to payload if available
             if filename:
                 pattern_payload["filename"] = filename
-                logger.info(f"Adding filename to pattern recognition payload: {filename}")
+                logger.info(
+                    f"Adding filename to pattern recognition payload: {filename}"
+                )
 
-            # Run pattern recognition with theme data and industry context
-            patterns_task = llm_service.analyze(pattern_payload)
+            # Run pattern recognition using the new PatternService
+            try:
+                # Use the new extract_patterns method if available
+                if hasattr(self, "extract_patterns"):
+                    logger.info("Using new PatternService for pattern extraction")
+
+                    async def get_patterns():
+                        # Create a simple transcript structure from the combined text
+                        simple_transcript = [{"text": combined_text}]
+                        return await self.extract_patterns(
+                            transcript=simple_transcript,
+                            themes=themes_result.get("themes", []),
+                            industry=industry,
+                        )
+
+                    patterns_task = asyncio.create_task(get_patterns())
+                else:
+                    logger.info(
+                        "Falling back to legacy LLM service for pattern extraction"
+                    )
+                    patterns_task = llm_service.analyze(pattern_payload)
+            except Exception as e:
+                logger.error(f"Error in pattern extraction: {str(e)}")
+                logger.info("Falling back to legacy LLM service for pattern extraction")
+                patterns_task = llm_service.analyze(pattern_payload)
 
             # Update progress: Starting sentiment analysis
-            await update_progress("SENTIMENT_ANALYSIS", 0.5, "Starting sentiment analysis")
+            await update_progress(
+                "SENTIMENT_ANALYSIS", 0.5, "Starting sentiment analysis"
+            )
 
             # Create sentiment analysis payload with filename if available
             sentiment_payload = {
                 "task": "sentiment_analysis",
                 "text": self._preprocess_transcript_for_sentiment(combined_text),
                 "themes": themes_result.get("themes", []),
-                "industry": industry
+                "industry": industry,
             }
 
             # Add filename to payload if available
             if filename:
                 sentiment_payload["filename"] = filename
-                logger.info(f"Adding filename to sentiment analysis payload: {filename}")
+                logger.info(
+                    f"Adding filename to sentiment analysis payload: {filename}"
+                )
 
             # Pass themes to sentiment analysis to leverage their statements if needed
             sentiment_task = llm_service.analyze(sentiment_payload)
@@ -583,10 +708,14 @@ class NLPProcessor:
             )
 
             # Update progress: Pattern detection completed
-            await update_progress("PATTERN_DETECTION", 0.6, "Pattern detection completed")
+            await update_progress(
+                "PATTERN_DETECTION", 0.6, "Pattern detection completed"
+            )
 
             # Update progress: Sentiment analysis completed
-            await update_progress("SENTIMENT_ANALYSIS", 0.65, "Sentiment analysis completed")
+            await update_progress(
+                "SENTIMENT_ANALYSIS", 0.65, "Sentiment analysis completed"
+            )
 
             parallel_duration = asyncio.get_event_loop().time() - start_time
             logger.info(
@@ -612,32 +741,38 @@ class NLPProcessor:
                 # Check if we have at least some usable results
                 has_basic_themes = len(themes_result.get("themes", [])) > 0
                 has_enhanced_themes = enhanced_themes_result and (
-                    len(enhanced_themes_result.get("enhanced_themes", [])) > 0 or
-                    len(enhanced_themes_result.get("themes", [])) > 0
+                    len(enhanced_themes_result.get("enhanced_themes", [])) > 0
+                    or len(enhanced_themes_result.get("themes", [])) > 0
                 )
                 has_patterns = len(patterns_result.get("patterns", [])) > 0
 
                 # Log the status of each analysis component
-                logger.info(f"Analysis components status - Basic themes: {has_basic_themes}, " +
-                           f"Enhanced themes: {has_enhanced_themes}, Patterns: {has_patterns}")
+                logger.info(
+                    f"Analysis components status - Basic themes: {has_basic_themes}, "
+                    + f"Enhanced themes: {has_enhanced_themes}, Patterns: {has_patterns}"
+                )
 
                 # Continue if we have at least some usable results
                 # Ideally, we want both themes (basic OR enhanced) AND patterns, but we'll be more resilient
                 if not has_patterns:
-                    logger.warning("No patterns found from LLM, attempting to generate fallback patterns from themes")
+                    logger.warning(
+                        "No patterns found from LLM, attempting to generate fallback patterns from themes"
+                    )
 
                     # Generate fallback patterns from themes
                     fallback_patterns = await self._generate_fallback_patterns(
-                        combined_text,
-                        themes_result.get("themes", []),
-                        llm_service
+                        combined_text, themes_result.get("themes", []), llm_service
                     )
 
                     if fallback_patterns and len(fallback_patterns) > 0:
-                        logger.info(f"Successfully generated {len(fallback_patterns)} fallback patterns from themes")
+                        logger.info(
+                            f"Successfully generated {len(fallback_patterns)} fallback patterns from themes"
+                        )
                         patterns_result["patterns"] = fallback_patterns
                     else:
-                        logger.warning("Failed to generate fallback patterns, returning empty patterns array")
+                        logger.warning(
+                            "Failed to generate fallback patterns, returning empty patterns array"
+                        )
                         patterns_result["patterns"] = []
 
                 # If we have patterns but no themes, we'll continue with empty themes
@@ -653,7 +788,9 @@ class NLPProcessor:
                     logger.info("Using enhanced themes as fallback for basic themes")
                     # Copy enhanced themes to basic themes
                     if "enhanced_themes" in enhanced_themes_result:
-                        themes_result["themes"] = enhanced_themes_result["enhanced_themes"]
+                        themes_result["themes"] = enhanced_themes_result[
+                            "enhanced_themes"
+                        ]
                     elif "themes" in enhanced_themes_result:
                         themes_result["themes"] = enhanced_themes_result["themes"]
             except Exception as e:
@@ -666,7 +803,9 @@ class NLPProcessor:
             insight_start_time = asyncio.get_event_loop().time()
 
             # Update progress: Starting insight generation
-            await update_progress("INSIGHT_GENERATION", 0.7, "Starting insight generation")
+            await update_progress(
+                "INSIGHT_GENERATION", 0.7, "Starting insight generation"
+            )
 
             # Create insight generation payload with filename if available
             insight_payload = {
@@ -680,12 +819,16 @@ class NLPProcessor:
             # Add filename to payload if available
             if filename:
                 insight_payload["filename"] = filename
-                logger.info(f"Adding filename to insight generation payload: {filename}")
+                logger.info(
+                    f"Adding filename to insight generation payload: {filename}"
+                )
 
             insights_result = await llm_service.analyze(insight_payload)
 
             # Update progress: Insight generation completed
-            await update_progress("INSIGHT_GENERATION", 0.8, "Insight generation completed")
+            await update_progress(
+                "INSIGHT_GENERATION", 0.8, "Insight generation completed"
+            )
 
             insight_duration = asyncio.get_event_loop().time() - insight_start_time
             logger.info(
@@ -707,11 +850,15 @@ class NLPProcessor:
                 # If enhanced_themes is empty but themes is available, use that
                 if not enhanced_themes and "themes" in enhanced_themes_result:
                     enhanced_themes = enhanced_themes_result.get("themes", [])
-                    logger.info("Using themes from enhanced_themes_result as enhanced_themes")
+                    logger.info(
+                        "Using themes from enhanced_themes_result as enhanced_themes"
+                    )
 
             # If enhanced_themes is still empty, create from basic themes
             if not enhanced_themes:
-                logger.info("Enhanced themes still empty, using basic themes as enhanced themes")
+                logger.info(
+                    "Enhanced themes still empty, using basic themes as enhanced themes"
+                )
                 basic_themes = themes_result.get("themes", [])
 
                 # Convert basic themes to enhanced themes
@@ -720,48 +867,54 @@ class NLPProcessor:
                     enhanced_theme["process"] = "enhanced"
                     enhanced_themes.append(enhanced_theme)
 
-                logger.info(f"Created {len(enhanced_themes)} enhanced themes from basic themes")
+                logger.info(
+                    f"Created {len(enhanced_themes)} enhanced themes from basic themes"
+                )
 
             # If we still have no enhanced themes, create a minimal default theme
             if not enhanced_themes:
-                logger.warning("No themes available at all, creating minimal default theme")
-                enhanced_themes = [{
-                    "type": "theme",
-                    "name": "General Theme",
-                    "definition": "A general theme extracted from the interview",
-                    "keywords": ["general", "theme", "interview"],
-                    "statements": [],
-                    "frequency": 0.5,
-                    "sentiment": 0.0,
-                    "reliability": 0.5,
-                    "process": "enhanced",
-                    "codes": ["GENERAL_THEME"],
-                    "sentiment_distribution": {
-                        "positive": 0.33,
-                        "neutral": 0.34,
-                        "negative": 0.33
-                    },
-                    "hierarchical_codes": [
-                        {
-                            "code": "GENERAL_THEME",
-                            "definition": "Code representing general theme",
-                            "frequency": 0.5,
-                            "sub_codes": [
-                                {
-                                    "code": "GENERAL_THEME_INTERVIEW",
-                                    "definition": "Sub-aspect related to interview content",
-                                    "frequency": 0.4
-                                }
-                            ]
-                        }
-                    ],
-                    "reliability_metrics": {
-                        "cohen_kappa": 0.45,
-                        "percent_agreement": 0.5,  # Keep between 0 and 1
-                        "confidence_interval": [0.3, 0.6]
-                    },
-                    "relationships": []
-                }]
+                logger.warning(
+                    "No themes available at all, creating minimal default theme"
+                )
+                enhanced_themes = [
+                    {
+                        "type": "theme",
+                        "name": "General Theme",
+                        "definition": "A general theme extracted from the interview",
+                        "keywords": ["general", "theme", "interview"],
+                        "statements": [],
+                        "frequency": 0.5,
+                        "sentiment": 0.0,
+                        "reliability": 0.5,
+                        "process": "enhanced",
+                        "codes": ["GENERAL_THEME"],
+                        "sentiment_distribution": {
+                            "positive": 0.33,
+                            "neutral": 0.34,
+                            "negative": 0.33,
+                        },
+                        "hierarchical_codes": [
+                            {
+                                "code": "GENERAL_THEME",
+                                "definition": "Code representing general theme",
+                                "frequency": 0.5,
+                                "sub_codes": [
+                                    {
+                                        "code": "GENERAL_THEME_INTERVIEW",
+                                        "definition": "Sub-aspect related to interview content",
+                                        "frequency": 0.4,
+                                    }
+                                ],
+                            }
+                        ],
+                        "reliability_metrics": {
+                            "cohen_kappa": 0.45,
+                            "percent_agreement": 0.5,  # Keep between 0 and 1
+                            "confidence_interval": [0.3, 0.6],
+                        },
+                        "relationships": [],
+                    }
+                ]
 
             # Combine results with enhanced themes as the primary themes
             results = {
@@ -772,17 +925,19 @@ class NLPProcessor:
                 "insights": insights_result.get("insights", []),
                 "validation": {"valid": True, "confidence": 0.9, "details": None},
                 "original_text": combined_text,  # Store original text for later use
-                "industry": industry  # Add detected industry to the result
+                "industry": industry,  # Add detected industry to the result
             }
 
-            logger.info(f"Final results contain {len(results['themes'])} themes and {len(results['patterns'])} patterns")
+            logger.info(
+                f"Final results contain {len(results['themes'])} themes and {len(results['patterns'])} patterns"
+            )
 
             # Add metadata about the theme processing
             results["metadata"] = {
                 "theme_processing": {
                     "source": "enhanced",
                     "count": len(results["themes"]),
-                    "has_enhanced_themes": len(enhanced_themes) > 0
+                    "has_enhanced_themes": len(enhanced_themes) > 0,
                 }
             }
 
@@ -814,20 +969,32 @@ class NLPProcessor:
                 "themes",
                 "enhanced_themes",
                 "insights",
-                "personas"
+                "personas",
             ]
 
             # Check for missing required fields (none in this case)
-            missing_fields = [field for field in required_fields if field not in results]
+            missing_fields = [
+                field for field in required_fields if field not in results
+            ]
 
             # Log missing optional fields but don't fail validation
-            missing_optional = [field for field in optional_fields if field not in results]
+            missing_optional = [
+                field for field in optional_fields if field not in results
+            ]
             if missing_optional:
-                logger.warning(f"Missing optional fields in results: {missing_optional}")
+                logger.warning(
+                    f"Missing optional fields in results: {missing_optional}"
+                )
 
             # Initialize missing fields with empty values
             for field in missing_optional:
-                if field in ["patterns", "themes", "enhanced_themes", "insights", "personas"]:
+                if field in [
+                    "patterns",
+                    "themes",
+                    "enhanced_themes",
+                    "insights",
+                    "personas",
+                ]:
                     results[field] = []
                 elif field == "sentiment":
                     results[field] = {"positive": [], "neutral": [], "negative": []}
@@ -843,8 +1010,12 @@ class NLPProcessor:
                 logger.warning("Themes field is not a list, converting to empty list")
                 results["themes"] = []
 
-            if "enhanced_themes" in results and not isinstance(results["enhanced_themes"], list):
-                logger.warning("Enhanced themes field is not a list, converting to empty list")
+            if "enhanced_themes" in results and not isinstance(
+                results["enhanced_themes"], list
+            ):
+                logger.warning(
+                    "Enhanced themes field is not a list, converting to empty list"
+                )
                 results["enhanced_themes"] = []
 
             if "insights" in results and not isinstance(results["insights"], list):
@@ -852,7 +1023,9 @@ class NLPProcessor:
                 results["insights"] = []
 
             if "sentiment" in results and not isinstance(results["sentiment"], dict):
-                logger.warning("Sentiment field is not a dictionary, initializing empty sentiment")
+                logger.warning(
+                    "Sentiment field is not a dictionary, initializing empty sentiment"
+                )
                 results["sentiment"] = {"positive": [], "neutral": [], "negative": []}
 
             if "personas" in results and not isinstance(results["personas"], list):
@@ -861,11 +1034,13 @@ class NLPProcessor:
 
             # Ensure we have at least some useful data
             has_some_data = (
-                ("patterns" in results and len(results["patterns"]) > 0) or
-                ("themes" in results and len(results["themes"]) > 0) or
-                ("enhanced_themes" in results and len(results["enhanced_themes"]) > 0) or
-                ("insights" in results and len(results["insights"]) > 0) or
-                ("personas" in results and len(results["personas"]) > 0)
+                ("patterns" in results and len(results["patterns"]) > 0)
+                or ("themes" in results and len(results["themes"]) > 0)
+                or (
+                    "enhanced_themes" in results and len(results["enhanced_themes"]) > 0
+                )
+                or ("insights" in results and len(results["insights"]) > 0)
+                or ("personas" in results and len(results["personas"]) > 0)
             )
 
             if not has_some_data:
@@ -898,7 +1073,9 @@ class NLPProcessor:
 
         try:
             # Initial progress update
-            await update_progress("INSIGHT_GENERATION", 0.80, "Starting insight generation")
+            await update_progress(
+                "INSIGHT_GENERATION", 0.80, "Starting insight generation"
+            )
 
             # Get original text and extracted insights
             texts = []
@@ -921,7 +1098,9 @@ class NLPProcessor:
             combined_text = "\n\n".join(filter(None, texts))
 
             # Update progress before insight generation
-            await update_progress("INSIGHT_GENERATION", 0.82, "Analyzing themes and patterns for insights")
+            await update_progress(
+                "INSIGHT_GENERATION", 0.82, "Analyzing themes and patterns for insights"
+            )
 
             # Check if we already have insights
             if not results.get("insights") or len(results.get("insights", [])) == 0:
@@ -942,7 +1121,11 @@ class NLPProcessor:
                 logger.info(f"Generated {len(results['insights'])} new insights")
 
                 # Update progress after insight generation
-                await update_progress("INSIGHT_GENERATION", 0.85, f"Generated {len(results['insights'])} insights")
+                await update_progress(
+                    "INSIGHT_GENERATION",
+                    0.85,
+                    f"Generated {len(results['insights'])} insights",
+                )
 
             # Add metadata
             if "insights_result" in locals():
@@ -967,7 +1150,9 @@ class NLPProcessor:
                 }
 
             # Update progress before persona generation
-            await update_progress("PERSONA_FORMATION", 0.9, "Starting persona formation")
+            await update_progress(
+                "PERSONA_FORMATION", 0.9, "Starting persona formation"
+            )
 
             # Generate personas from the text
             logger.info("Generating personas from interview text")
@@ -980,15 +1165,19 @@ class NLPProcessor:
                 raw_text = results.get("original_text", combined_text)
 
                 # Call the LLM service to generate personas
-                logger.info(f"Calling LLM service for persona formation with {len(raw_text[:100])}... chars")
+                logger.info(
+                    f"Calling LLM service for persona formation with {len(raw_text[:100])}... chars"
+                )
 
                 # Use the same LLM service that was used for the rest of the analysis
-                persona_result = await llm_service.analyze({
-                    "task": "persona_formation",
-                    "text": raw_text,
-                    "enforce_json": True,
-                    "industry": results.get("industry", "general")
-                })
+                persona_result = await llm_service.analyze(
+                    {
+                        "task": "persona_formation",
+                        "text": raw_text,
+                        "enforce_json": True,
+                        "industry": results.get("industry", "general"),
+                    }
+                )
 
                 # Extract personas from the result
                 if persona_result and isinstance(persona_result, dict):
@@ -1005,7 +1194,9 @@ class NLPProcessor:
                         # Check structure of first persona
                         first_persona = personas[0]
                         if isinstance(first_persona, dict):
-                            logger.info(f"First persona keys: {list(first_persona.keys())}")
+                            logger.info(
+                                f"First persona keys: {list(first_persona.keys())}"
+                            )
 
                             # Make sure it has the required fields
                             required_fields = [
@@ -1049,13 +1240,19 @@ class NLPProcessor:
                     logger.info(f"Added {len(personas)} personas to analysis results")
 
                     # Update progress after persona processing
-                    await update_progress("PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas")
+                    await update_progress(
+                        "PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas"
+                    )
                 else:
                     logger.warning("Persona formation returned invalid result")
                     results["personas"] = []
 
                     # Update progress with error information
-                    await update_progress("PERSONA_FORMATION", 0.95, "Persona formation returned invalid result, continuing with empty personas")
+                    await update_progress(
+                        "PERSONA_FORMATION",
+                        0.95,
+                        "Persona formation returned invalid result, continuing with empty personas",
+                    )
             except Exception as persona_err:
                 # Log the error but continue processing
                 logger.error(f"Error generating personas: {str(persona_err)}")
@@ -1064,10 +1261,16 @@ class NLPProcessor:
                 results["personas"] = []
 
                 # Log a message about trying again with a different approach
-                logger.info("Consider trying persona generation with a different prompt or more context")
+                logger.info(
+                    "Consider trying persona generation with a different prompt or more context"
+                )
 
                 # Update progress with error information
-                await update_progress("PERSONA_FORMATION", 0.95, "Error generating personas, continuing with empty personas")
+                await update_progress(
+                    "PERSONA_FORMATION",
+                    0.95,
+                    "Error generating personas, continuing with empty personas",
+                )
 
             # Final progress update
             await update_progress("COMPLETION", 1.0, "Analysis completed successfully")
@@ -1078,7 +1281,11 @@ class NLPProcessor:
             logger.error(f"Error extracting insights: {str(e)}")
             # Update progress with error information
             if progress_callback:
-                await update_progress("INSIGHT_GENERATION", 0.95, f"Error during insight extraction: {str(e)}")
+                await update_progress(
+                    "INSIGHT_GENERATION",
+                    0.95,
+                    f"Error during insight extraction: {str(e)}",
+                )
             # Return partial results if available
             return results if isinstance(results, dict) else {}
 
@@ -1142,14 +1349,18 @@ class NLPProcessor:
                 negative = []
 
             # Log the initial sentiment counts
-            logger.info(f"Initial sentiment counts - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}")
+            logger.info(
+                f"Initial sentiment counts - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}"
+            )
 
             # Extract from themes if available and needed - but with higher thresholds
             # Only extract from themes if we have very few statements (less than 10 in any category)
             if (
                 len(positive) < 10 or len(neutral) < 10 or len(negative) < 10
             ) and "themes" in sentiment_result:
-                logger.info("Extracting additional sentiment statements from themes due to insufficient direct statements")
+                logger.info(
+                    "Extracting additional sentiment statements from themes due to insufficient direct statements"
+                )
                 themes = sentiment_result.get("themes", [])
 
                 # Collect statements from themes based on their sentiment scores
@@ -1326,18 +1537,28 @@ class NLPProcessor:
         try:
             # Check if the response is a string wrapped in markdown code blocks
             if isinstance(sentiment_result, str):
-                logger.warning("Sentiment result is a string, attempting to parse as JSON")
+                logger.warning(
+                    "Sentiment result is a string, attempting to parse as JSON"
+                )
 
                 # Check for markdown code blocks
-                if sentiment_result.startswith("```json") and sentiment_result.endswith("```"):
-                    logger.info("Detected markdown code blocks in sentiment result, extracting JSON content")
+                if sentiment_result.startswith("```json") and sentiment_result.endswith(
+                    "```"
+                ):
+                    logger.info(
+                        "Detected markdown code blocks in sentiment result, extracting JSON content"
+                    )
                     # Extract JSON content
                     json_content = sentiment_result[7:-3].strip()
                     try:
                         sentiment_result = json.loads(json_content)
-                        logger.info("Successfully parsed JSON from markdown code blocks")
+                        logger.info(
+                            "Successfully parsed JSON from markdown code blocks"
+                        )
                     except json.JSONDecodeError as e:
-                        logger.error(f"Failed to parse JSON from markdown code blocks: {e}")
+                        logger.error(
+                            f"Failed to parse JSON from markdown code blocks: {e}"
+                        )
                 else:
                     # Try to parse as JSON directly
                     try:
@@ -1367,15 +1588,23 @@ class NLPProcessor:
                     negative_score = overview.get("negative", 0)
 
                     # Check if scores are suspiciously close to 0.33 each (hardcoded fallback values)
-                    if abs(positive_score - 0.33) < 0.01 and abs(neutral_score - 0.34) < 0.01 and abs(negative_score - 0.33) < 0.01:
-                        logger.warning("Detected hardcoded sentiment scores (0.33, 0.34, 0.33). This may indicate a parsing issue.")
+                    if (
+                        abs(positive_score - 0.33) < 0.01
+                        and abs(neutral_score - 0.34) < 0.01
+                        and abs(negative_score - 0.33) < 0.01
+                    ):
+                        logger.warning(
+                            "Detected hardcoded sentiment scores (0.33, 0.34, 0.33). This may indicate a parsing issue."
+                        )
 
                 return {"positive": [], "neutral": [], "negative": []}
         except Exception as e:
             logger.error(f"Error processing sentiment results: {str(e)}")
             return {"positive": [], "neutral": [], "negative": []}
 
-    async def _generate_fallback_patterns(self, text: str, themes: List[Dict[str, Any]], llm_service) -> List[Dict[str, Any]]:
+    async def _generate_fallback_patterns(
+        self, text: str, themes: List[Dict[str, Any]], llm_service
+    ) -> List[Dict[str, Any]]:
         """
         Generate fallback patterns when pattern recognition fails.
 
@@ -1392,20 +1621,25 @@ class NLPProcessor:
         # If we have no text, return a minimal default pattern with improved structure
         if not text or len(text.strip()) < 10:
             logger.warning("Text is too short or empty for fallback pattern generation")
-            return [{
-                "name": "Limited Content",
-                "category": "Workflow",
-                "description": "Users provided minimal information during the interview process, making it difficult to identify specific behavioral patterns or interaction methods.",
-                "frequency": 0.5,
-                "sentiment": 0.0,
-                "evidence": ["Limited interview content", "Insufficient behavioral data"],
-                "impact": "This pattern of limited information sharing affects the ability to draw meaningful conclusions about user behaviors and needs, potentially leading to incomplete understanding of user requirements.",
-                "suggested_actions": [
-                    "Conduct follow-up interviews with more specific behavioral questions",
-                    "Implement observational research methods to directly observe user behaviors",
-                    "Use contextual inquiry techniques to gather richer behavioral data in users' natural environments"
-                ]
-            }]
+            return [
+                {
+                    "name": "Limited Content",
+                    "category": "Workflow",
+                    "description": "Users provided minimal information during the interview process, making it difficult to identify specific behavioral patterns or interaction methods.",
+                    "frequency": 0.5,
+                    "sentiment": 0.0,
+                    "evidence": [
+                        "Limited interview content",
+                        "Insufficient behavioral data",
+                    ],
+                    "impact": "This pattern of limited information sharing affects the ability to draw meaningful conclusions about user behaviors and needs, potentially leading to incomplete understanding of user requirements.",
+                    "suggested_actions": [
+                        "Conduct follow-up interviews with more specific behavioral questions",
+                        "Implement observational research methods to directly observe user behaviors",
+                        "Use contextual inquiry techniques to gather richer behavioral data in users' natural environments",
+                    ],
+                }
+            ]
 
         # If we have themes, convert them to patterns
         if themes and len(themes) > 0:
@@ -1422,13 +1656,23 @@ class NLPProcessor:
                 # Create a pattern from the theme with detailed descriptions
                 pattern = {
                     "name": name,
-                    "category": self._determine_pattern_category(name, description, statements),
-                    "description": self._generate_detailed_description(name, description, statements),
+                    "category": self._determine_pattern_category(
+                        name, description, statements
+                    ),
+                    "description": self._generate_detailed_description(
+                        name, description, statements
+                    ),
                     "frequency": theme.get("frequency", 0.5),
                     "sentiment": sentiment,
-                    "evidence": statements[:5] if statements else ["Based on theme analysis"],
-                    "impact": self._generate_specific_impact(name, description, sentiment, statements),
-                    "suggested_actions": self._generate_actionable_recommendations(name, description, sentiment)
+                    "evidence": (
+                        statements[:5] if statements else ["Based on theme analysis"]
+                    ),
+                    "impact": self._generate_specific_impact(
+                        name, description, sentiment, statements
+                    ),
+                    "suggested_actions": self._generate_actionable_recommendations(
+                        name, description, sentiment
+                    ),
                 }
 
                 patterns.append(pattern)
@@ -1444,39 +1688,51 @@ class NLPProcessor:
 
             # Call LLM to generate patterns
             logger.info("Calling LLM for direct pattern generation")
-            response = await llm_service.analyze({
-                "task": "pattern_recognition",
-                "text": sample_text,
-                "enforce_json": True
-            })
+            response = await llm_service.analyze(
+                {
+                    "task": "pattern_recognition",
+                    "text": sample_text,
+                    "enforce_json": True,
+                }
+            )
 
             # Extract patterns from response
-            if isinstance(response, dict) and "patterns" in response and isinstance(response["patterns"], list):
+            if (
+                isinstance(response, dict)
+                and "patterns" in response
+                and isinstance(response["patterns"], list)
+            ):
                 patterns = response["patterns"]
                 if patterns:
-                    logger.info(f"Successfully generated {len(patterns)} patterns directly")
+                    logger.info(
+                        f"Successfully generated {len(patterns)} patterns directly"
+                    )
                     return patterns
         except Exception as e:
             logger.error(f"Error in direct pattern generation: {str(e)}")
 
         # Last resort: return a generic pattern with improved details
         logger.warning("Falling back to generic pattern")
-        return [{
-            "name": "General Observation",
-            "category": "Workflow",
-            "description": "Users demonstrate specific interaction patterns when engaging with the system, including navigating interfaces, processing information, and completing tasks in a structured manner.",
-            "frequency": 0.7,
-            "sentiment": 0.0,
-            "evidence": ["Interview content indicates consistent user behaviors"],
-            "impact": "This pattern affects task completion efficiency and user satisfaction, creating opportunities for workflow optimization and interface improvements.",
-            "suggested_actions": [
-                "Conduct targeted user research to identify specific workflow patterns",
-                "Analyze task completion paths to identify optimization opportunities",
-                "Implement user journey mapping to visualize and improve common interaction patterns"
-            ]
-        }]
+        return [
+            {
+                "name": "General Observation",
+                "category": "Workflow",
+                "description": "Users demonstrate specific interaction patterns when engaging with the system, including navigating interfaces, processing information, and completing tasks in a structured manner.",
+                "frequency": 0.7,
+                "sentiment": 0.0,
+                "evidence": ["Interview content indicates consistent user behaviors"],
+                "impact": "This pattern affects task completion efficiency and user satisfaction, creating opportunities for workflow optimization and interface improvements.",
+                "suggested_actions": [
+                    "Conduct targeted user research to identify specific workflow patterns",
+                    "Analyze task completion paths to identify optimization opportunities",
+                    "Implement user journey mapping to visualize and improve common interaction patterns",
+                ],
+            }
+        ]
 
-    async def _generate_fallback_patterns(self, text: str, themes: list, llm_service) -> list:
+    async def _generate_fallback_patterns(
+        self, text: str, themes: list, llm_service
+    ) -> list:
         """
         Generate fallback patterns from themes when direct pattern generation fails.
 
@@ -1511,12 +1767,12 @@ class NLPProcessor:
                     "category": self._determine_pattern_category(
                         theme.get("name", ""),
                         theme.get("definition", ""),
-                        theme.get("statements", [])
+                        theme.get("statements", []),
                     ),
                     "frequency": theme.get("frequency", 0.7),
                     "impact": "This pattern affects how users approach their work and may influence tool adoption.",
                     "suggested_actions": "Consider addressing this pattern in the design process.",
-                    "evidence": theme.get("statements", [])
+                    "evidence": theme.get("statements", []),
                 }
 
                 # Add the pattern to the list
@@ -1532,7 +1788,7 @@ class NLPProcessor:
                         {
                             "task": "pattern_enhancement",
                             "text": text[:5000],  # Limit text size
-                            "patterns": patterns
+                            "patterns": patterns,
                         }
                     )
 
@@ -1541,7 +1797,9 @@ class NLPProcessor:
 
                     # If we got enhanced patterns, use them
                     if enhanced_patterns and len(enhanced_patterns) > 0:
-                        logger.info(f"Successfully enhanced {len(enhanced_patterns)} patterns")
+                        logger.info(
+                            f"Successfully enhanced {len(enhanced_patterns)} patterns"
+                        )
                         return enhanced_patterns
                 except Exception as e:
                     logger.error(f"Error enhancing patterns: {str(e)}")
@@ -1566,9 +1824,18 @@ class NLPProcessor:
         try:
             # Define valid industries
             valid_industries = [
-                "healthcare", "tech", "finance", "military", "education",
-                "hospitality", "retail", "manufacturing", "legal",
-                "insurance", "agriculture", "non_profit"
+                "healthcare",
+                "tech",
+                "finance",
+                "military",
+                "education",
+                "hospitality",
+                "retail",
+                "manufacturing",
+                "legal",
+                "insurance",
+                "agriculture",
+                "non_profit",
             ]
 
             # Create a more detailed prompt to detect the industry with structured output
@@ -1594,13 +1861,15 @@ class NLPProcessor:
             """
 
             # Call LLM to detect industry - use JSON format for structured response
-            response = await llm_service.analyze({
-                "task": "text_generation",
-                "text": industry_detection_prompt,
-                "enforce_json": True,  # Changed to True for structured output
-                "temperature": 0.0,  # Use deterministic output
-                "response_mime_type": "application/json"  # Explicitly request JSON
-            })
+            response = await llm_service.analyze(
+                {
+                    "task": "text_generation",
+                    "text": industry_detection_prompt,
+                    "enforce_json": True,  # Changed to True for structured output
+                    "temperature": 0.0,  # Use deterministic output
+                    "response_mime_type": "application/json",  # Explicitly request JSON
+                }
+            )
 
             # Extract industry from response
             industry = "general"  # Default value
@@ -1616,7 +1885,9 @@ class NLPProcessor:
                     explanation = response.get("explanation", "No explanation provided")
                     confidence = response.get("confidence", 0.5)
 
-                    logger.info(f"Detected industry: {detected_industry} with confidence: {confidence}")
+                    logger.info(
+                        f"Detected industry: {detected_industry} with confidence: {confidence}"
+                    )
                     logger.info(f"Explanation: {explanation}")
 
                     # Validate against our list of valid industries
@@ -1626,7 +1897,9 @@ class NLPProcessor:
                     # Try partial matching
                     for valid_industry in valid_industries:
                         if valid_industry in detected_industry:
-                            logger.info(f"Matched partial industry: {valid_industry} from '{detected_industry}'")
+                            logger.info(
+                                f"Matched partial industry: {valid_industry} from '{detected_industry}'"
+                            )
                             return valid_industry
                 elif "text" in response:
                     # Text response that might contain JSON or plain text
@@ -1636,7 +1909,9 @@ class NLPProcessor:
                         if text_content.startswith("{") and text_content.endswith("}"):
                             json_data = json.loads(text_content)
                             if "industry" in json_data:
-                                detected_industry = json_data["industry"].strip().lower()
+                                detected_industry = (
+                                    json_data["industry"].strip().lower()
+                                )
                                 if detected_industry in valid_industries:
                                     return detected_industry
                     except json.JSONDecodeError:
@@ -1672,7 +1947,9 @@ class NLPProcessor:
             logger.error(f"Error detecting industry: {str(e)}")
             return "general"
 
-    def _determine_pattern_category(self, name: str, description: str, statements: List[str]) -> str:
+    def _determine_pattern_category(
+        self, name: str, description: str, statements: List[str]
+    ) -> str:
         """
         Determine the appropriate category for a pattern based on its content.
 
@@ -1689,13 +1966,68 @@ class NLPProcessor:
 
         # Define category keywords
         category_keywords = {
-            "Workflow": ["workflow", "process", "step", "sequence", "procedure", "routine", "method"],
-            "Coping Strategy": ["cope", "strategy", "deal with", "manage", "handle", "overcome", "mitigate"],
-            "Decision Process": ["decision", "choose", "select", "evaluate", "assess", "judge", "determine"],
-            "Workaround": ["workaround", "alternative", "bypass", "circumvent", "hack", "shortcut"],
-            "Habit": ["habit", "regular", "consistently", "always", "frequently", "tend to", "typically"],
-            "Collaboration": ["collaborate", "team", "share", "together", "group", "collective", "joint"],
-            "Communication": ["communicate", "discuss", "talk", "message", "inform", "express", "convey"]
+            "Workflow": [
+                "workflow",
+                "process",
+                "step",
+                "sequence",
+                "procedure",
+                "routine",
+                "method",
+            ],
+            "Coping Strategy": [
+                "cope",
+                "strategy",
+                "deal with",
+                "manage",
+                "handle",
+                "overcome",
+                "mitigate",
+            ],
+            "Decision Process": [
+                "decision",
+                "choose",
+                "select",
+                "evaluate",
+                "assess",
+                "judge",
+                "determine",
+            ],
+            "Workaround": [
+                "workaround",
+                "alternative",
+                "bypass",
+                "circumvent",
+                "hack",
+                "shortcut",
+            ],
+            "Habit": [
+                "habit",
+                "regular",
+                "consistently",
+                "always",
+                "frequently",
+                "tend to",
+                "typically",
+            ],
+            "Collaboration": [
+                "collaborate",
+                "team",
+                "share",
+                "together",
+                "group",
+                "collective",
+                "joint",
+            ],
+            "Communication": [
+                "communicate",
+                "discuss",
+                "talk",
+                "message",
+                "inform",
+                "express",
+                "convey",
+            ],
         }
 
         # Score each category
@@ -1710,7 +2042,9 @@ class NLPProcessor:
 
         return "Workflow"  # Default category
 
-    def _generate_detailed_description(self, name: str, description: str, statements: List[str]) -> str:
+    def _generate_detailed_description(
+        self, name: str, description: str, statements: List[str]
+    ) -> str:
         """
         Generate a detailed behavioral description for a pattern.
 
@@ -1723,13 +2057,19 @@ class NLPProcessor:
             Detailed description focusing on behaviors and actions
         """
         # If the original description is already detailed, use it
-        if description and description != "No description available." and len(description) > 50:
+        if (
+            description
+            and description != "No description available."
+            and len(description) > 50
+        ):
             return description
 
         # Skip verb extraction and use a generic but specific description based on the pattern name
         return f"Users demonstrate specific behaviors related to {name.lower()}, showing consistent patterns in how they interact with the system. These behaviors reflect how users approach and engage with this aspect of the experience."
 
-    def _generate_specific_impact(self, name: str, description: str, sentiment: float, statements: List[str]) -> str:
+    def _generate_specific_impact(
+        self, name: str, description: str, sentiment: float, statements: List[str]
+    ) -> str:
         """
         Generate a specific impact statement for a pattern.
 
@@ -1750,7 +2090,7 @@ class NLPProcessor:
                 "enhances productivity and efficiency",
                 "improves the overall user experience",
                 "strengthens user confidence in the system",
-                "facilitates more effective task completion"
+                "facilitates more effective task completion",
             ]
         elif sentiment < -0.3:
             impact_type = "negative"
@@ -1759,7 +2099,7 @@ class NLPProcessor:
                 "slows down task completion and reduces efficiency",
                 "diminishes user confidence in the system",
                 "leads to workarounds that may introduce errors",
-                "increases cognitive load and user effort"
+                "increases cognitive load and user effort",
             ]
         else:
             impact_type = "mixed"
@@ -1768,7 +2108,7 @@ class NLPProcessor:
                 "creates trade-offs between efficiency and thoroughness",
                 "varies in impact depending on user expertise and context",
                 "affects different user groups in different ways",
-                "presents both opportunities and challenges for design"
+                "presents both opportunities and challenges for design",
             ]
 
         # Select consequences based on pattern name
@@ -1777,7 +2117,9 @@ class NLPProcessor:
 
         for consequence in consequences:
             for word in name_words:
-                if len(word) > 4 and word in consequence:  # Only match significant words
+                if (
+                    len(word) > 4 and word in consequence
+                ):  # Only match significant words
                     selected_consequences.append(consequence)
                     break
 
@@ -1796,7 +2138,9 @@ class NLPProcessor:
 
         return impact_statement
 
-    def _generate_actionable_recommendations(self, name: str, description: str, sentiment: float) -> List[str]:
+    def _generate_actionable_recommendations(
+        self, name: str, description: str, sentiment: float
+    ) -> List[str]:
         """
         Generate specific, actionable recommendations based on the pattern.
 
@@ -1814,21 +2158,21 @@ class NLPProcessor:
             recommendations = [
                 f"Conduct targeted usability testing focused on the {name.lower()} aspect of the experience",
                 f"Redesign the interface elements related to {name.lower()} to reduce friction and improve clarity",
-                f"Develop clear documentation and tooltips to help users navigate the {name.lower()} process more effectively"
+                f"Develop clear documentation and tooltips to help users navigate the {name.lower()} process more effectively",
             ]
         elif sentiment > 0.3:
             # Positive patterns should be enhanced
             recommendations = [
                 f"Expand the {name.lower()} functionality to cover more use cases and scenarios",
                 f"Highlight the {name.lower()} feature in onboarding materials to increase awareness",
-                f"Gather additional user feedback on {name.lower()} to identify further enhancement opportunities"
+                f"Gather additional user feedback on {name.lower()} to identify further enhancement opportunities",
             ]
         else:
             # Neutral patterns need investigation
             recommendations = [
                 f"Conduct further research to better understand user needs related to {name.lower()}",
                 f"Prototype alternative approaches to {name.lower()} and test with users",
-                f"Analyze usage data to identify patterns and opportunities for improving {name.lower()}"
+                f"Analyze usage data to identify patterns and opportunities for improving {name.lower()}",
             ]
 
         return recommendations
