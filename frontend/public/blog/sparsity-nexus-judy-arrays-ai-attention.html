@@ -118,13 +118,17 @@
       .card {
         background-color: white;
         border-radius: 1rem;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+        box-shadow:
+          0 4px 6px -1px rgb(0 0 0 / 0.1),
           0 2px 4px -2px rgb(0 0 0 / 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
       }
       .card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+        box-shadow:
+          0 10px 15px -3px rgb(0 0 0 / 0.1),
           0 4px 6px -4px rgb(0 0 0 / 0.1);
       }
       .flow-diagram-step {
@@ -178,7 +182,9 @@
       <div class="container mx-auto px-4 py-3">
         <ol class="flex items-center space-x-2 text-sm">
           <li>
-            <a href="https://axwise.de" class="text-blue-600 hover:text-blue-800"
+            <a
+              href="https://axwise.de"
+              class="text-blue-600 hover:text-blue-800"
               >AxWise</a
             >
           </li>
@@ -293,7 +299,9 @@
                 <canvas id="scaling-chart"></canvas>
               </div>
               <div class="mt-8 text-center">
-                <label for="sequence-slider" class="block font-medium text-[#003f5c]"
+                <label
+                  for="sequence-slider"
+                  class="block font-medium text-[#003f5c]"
                   >Interactive Sequence Length (N):
                   <span id="slider-value" class="font-bold accent-text"
                     >1024</span
@@ -751,4 +759,5 @@
     </script>
 
 </body>
+</html>
 </html>
