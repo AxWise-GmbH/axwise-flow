@@ -5,7 +5,6 @@ Extracted from customer_research_v3_rebuilt.py - preserves stakeholder detection
 
 import logging
 from typing import Dict, Any, List, Optional
-from backend.api.research.research_types import Message, ResearchContext
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class StakeholderDetector:
         self,
         llm_service,
         context_analysis: Dict[str, Any],
-        messages: List[Message],
+        messages: List[Any],
         business_idea: str,
         target_customer: str,
         problem: str,
@@ -49,7 +48,7 @@ class StakeholderDetector:
             return {"primary": [], "secondary": []}
 
     async def _generate_stakeholder_names_and_descriptions(
-        self, llm_service, context_analysis: Dict[str, Any], messages: List[Message]
+        self, llm_service, context_analysis: Dict[str, Any], messages: List[Any]
     ) -> Dict[str, Any]:
         """Generate stakeholder names and descriptions"""
         try:
@@ -60,7 +59,12 @@ class StakeholderDetector:
             # Build conversation context
             conversation_text = ""
             for msg in messages[-5:]:  # Last 5 messages for context
-                conversation_text += f"{msg.role}: {msg.content}\n"
+                if hasattr(msg, "role") and hasattr(msg, "content"):
+                    conversation_text += f"{msg.role}: {msg.content}\n"
+                elif isinstance(msg, dict):
+                    conversation_text += (
+                        f"{msg.get('role', 'user')}: {msg.get('content', '')}\n"
+                    )
 
             prompt = f"""Analyze this business context and identify specific stakeholders for customer research.
 
@@ -189,32 +193,10 @@ Make stakeholder names specific to this business context."""
                     }
                 )
 
-            # Log successful generation
-            primary_count = len(enhanced_stakeholders.get("primary", []))
-            secondary_count = len(enhanced_stakeholders.get("secondary", []))
-            logger.info(
-                f"✅ Successfully enhanced stakeholders: {primary_count} primary, {secondary_count} secondary"
-            )
-
-            # Log first primary stakeholder for debugging
-            if primary_count > 0:
-                first_primary = enhanced_stakeholders["primary"][0]
-                questions_count = len(
-                    first_primary.get("questions", {}).get("problemDiscovery", [])
-                )
-                logger.info(
-                    f"✅ First primary stakeholder '{first_primary.get('name', 'Unknown')}' has {questions_count} problem discovery questions"
-                )
-
             return enhanced_stakeholders
 
         except Exception as e:
             logger.error(f"Stakeholder question generation failed: {e}")
-            logger.error(f"Original stakeholder_data: {stakeholder_data}")
-            logger.error(f"Enhanced stakeholders so far: {enhanced_stakeholders}")
-            import traceback
-
-            logger.error(f"Full traceback: {traceback.format_exc()}")
             return stakeholder_data  # Return original data without questions
 
     async def _generate_stakeholder_specific_questions(
@@ -227,10 +209,8 @@ Make stakeholder names specific to this business context."""
         problem: str,
         stakeholder_type: str,
     ) -> Dict[str, List[str]]:
-        """Generate categorized questions specific to a stakeholder type using PydanticAI structured output"""
+        """Generate categorized questions specific to a stakeholder type"""
         try:
-            from backend.api.research.research_types import StakeholderQuestions
-
             # Primary stakeholders get more questions per category
             if stakeholder_type == "primary":
                 problem_count, solution_count, followup_count = 3, 3, 2
@@ -272,96 +252,51 @@ Return in this exact JSON format:
   "followUp": ["Follow-up question 1?", ...]
 }}"""
 
-            # Try to use structured output if available
-            try:
-                # Check if LLM service supports structured output
-                if hasattr(llm_service, "generate_structured"):
-                    result = await llm_service.generate_structured(
-                        prompt=prompt,
-                        response_model=StakeholderQuestions,
-                        temperature=0.7,
-                        max_tokens=600,
-                    )
-                    return {
-                        "problemDiscovery": result.problemDiscovery,
-                        "solutionValidation": result.solutionValidation,
-                        "followUp": result.followUp,
-                    }
+            response_data = await llm_service.analyze(
+                text=prompt,
+                task="text_generation",
+                data={"temperature": 0.7, "max_tokens": 600},
+            )
+            response = response_data.get("text", "")
+
+            # Parse JSON response (handle markdown code blocks)
+            import json
+            import re
+
+            # Remove markdown code blocks if present
+            cleaned_response = response.strip()
+            if cleaned_response.startswith("```json"):
+                json_match = re.search(
+                    r"```json\s*\n(.*?)\n```", cleaned_response, re.DOTALL
+                )
+                if json_match:
+                    cleaned_response = json_match.group(1).strip()
                 else:
-                    # Fallback to text generation with JSON parsing
-                    response_data = await llm_service.analyze(
-                        text=prompt,
-                        task="text_generation",
-                        data={"temperature": 0.7, "max_tokens": 600},
+                    cleaned_response = (
+                        cleaned_response.replace("```json", "")
+                        .replace("```", "")
+                        .strip()
                     )
-                    response = response_data.get("text", "")
 
-                    # Parse JSON response (handle markdown code blocks)
-                    import json
-                    import re
-
-                    # Remove markdown code blocks if present
-                    cleaned_response = response.strip()
-                    if cleaned_response.startswith("```json"):
-                        json_match = re.search(
-                            r"```json\s*\n(.*?)\n```", cleaned_response, re.DOTALL
-                        )
-                        if json_match:
-                            cleaned_response = json_match.group(1).strip()
-                        else:
-                            cleaned_response = (
-                                cleaned_response.replace("```json", "")
-                                .replace("```", "")
-                                .strip()
-                            )
-
-                    # Parse and validate with Pydantic
-                    questions_data = json.loads(cleaned_response)
-                    validated_questions = StakeholderQuestions(**questions_data)
-                    return {
-                        "problemDiscovery": validated_questions.problemDiscovery,
-                        "solutionValidation": validated_questions.solutionValidation,
-                        "followUp": validated_questions.followUp,
-                    }
-
-            except Exception as parse_error:
-                logger.warning(
-                    f"Structured parsing failed for {stakeholder_name}: {parse_error}"
-                )
-
-                # Final fallback: generate simple categorized questions with proper context
-                logger.warning(
-                    f"Using fallback questions for {stakeholder_name} - this indicates LLM generation failed"
-                )
-                fallback_questions = {
-                    "problemDiscovery": [
-                        f"What challenges do you currently face related to {problem or 'the current situation'}?",
-                        f"How does the current situation impact your daily life or responsibilities as someone in the {stakeholder_name.lower()} category?",
-                    ],
-                    "solutionValidation": [
-                        f"How interested would you be in a solution that addresses {problem or 'these challenges'}?",
-                        f"What concerns would you have about implementing this type of solution?",
-                    ],
-                    "followUp": [
-                        f"What other aspects of {problem or 'this situation'} should we consider?"
-                    ],
-                }
-
-                # Adjust question count based on stakeholder type
-                if stakeholder_type == "secondary":
-                    fallback_questions["problemDiscovery"] = fallback_questions[
-                        "problemDiscovery"
-                    ][:2]
-                    fallback_questions["solutionValidation"] = fallback_questions[
-                        "solutionValidation"
-                    ][:2]
-                    fallback_questions["followUp"] = fallback_questions["followUp"][:1]
-
-                return fallback_questions
+            questions_data = json.loads(cleaned_response)
+            return {
+                "problemDiscovery": questions_data.get("problemDiscovery", []),
+                "solutionValidation": questions_data.get("solutionValidation", []),
+                "followUp": questions_data.get("followUp", []),
+            }
 
         except Exception as e:
             logger.error(f"Question generation failed for {stakeholder_name}: {e}")
-            return {"problemDiscovery": [], "solutionValidation": [], "followUp": []}
+            # Fallback questions
+            return {
+                "problemDiscovery": [
+                    f"What challenges do you face related to {problem}?"
+                ],
+                "solutionValidation": [
+                    f"How interested would you be in {business_idea}?"
+                ],
+                "followUp": ["What else should we consider?"],
+            }
 
     def calculate_stakeholder_time_estimates(
         self, stakeholders: Dict[str, List[Dict]]
@@ -371,10 +306,16 @@ Return in this exact JSON format:
             total_questions = 0
 
             for primary in stakeholders.get("primary", []):
-                total_questions += len(primary.get("questions", []))
+                questions = primary.get("questions", {})
+                total_questions += len(questions.get("problemDiscovery", []))
+                total_questions += len(questions.get("solutionValidation", []))
+                total_questions += len(questions.get("followUp", []))
 
             for secondary in stakeholders.get("secondary", []):
-                total_questions += len(secondary.get("questions", []))
+                questions = secondary.get("questions", {})
+                total_questions += len(questions.get("problemDiscovery", []))
+                total_questions += len(questions.get("solutionValidation", []))
+                total_questions += len(questions.get("followUp", []))
 
             # Estimate 2-3 minutes per question
             min_time = max(20, total_questions * 2)
@@ -385,35 +326,3 @@ Return in this exact JSON format:
         except Exception as e:
             logger.error(f"Time estimation failed: {e}")
             return "25-40 minutes"
-
-    def get_stakeholder_metadata(
-        self, stakeholders: Dict[str, List[Dict]]
-    ) -> Dict[str, Any]:
-        """Get metadata about detected stakeholders"""
-        try:
-            primary_count = len(stakeholders.get("primary", []))
-            secondary_count = len(stakeholders.get("secondary", []))
-
-            total_questions = 0
-            for primary in stakeholders.get("primary", []):
-                total_questions += len(primary.get("questions", []))
-            for secondary in stakeholders.get("secondary", []):
-                total_questions += len(secondary.get("questions", []))
-
-            return {
-                "enhancement_type": "stakeholder_detection",
-                "version": "v3_rebuilt",
-                "primary_stakeholders": primary_count,
-                "secondary_stakeholders": secondary_count,
-                "total_stakeholder_questions": total_questions,
-                "estimated_time": self.calculate_stakeholder_time_estimates(
-                    stakeholders
-                ),
-            }
-
-        except Exception as e:
-            logger.error(f"Stakeholder metadata generation failed: {e}")
-            return {
-                "enhancement_type": "stakeholder_detection",
-                "version": "v3_rebuilt",
-            }

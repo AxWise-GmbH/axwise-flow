@@ -18,7 +18,9 @@ from .models import (
     extract_context_from_messages,
 )
 from .conversation_routine_prompt import get_conversation_routine_prompt
-from ..v3_enhancements.stakeholder_detector import StakeholderDetector
+
+# Import moved to local - we have our own simple stakeholder detector
+from .stakeholder_detector import StakeholderDetector
 from backend.services.llm.gemini_service import GeminiService
 
 logger = logging.getLogger(__name__)
@@ -76,13 +78,8 @@ class ConversationRoutineService:
                     )
                 )
 
-                # Format for frontend
-                result = {
-                    "stakeholders": stakeholder_data,
-                    "estimatedTime": time_estimates,
-                    "success": True,
-                }
-
+                # Format for frontend - wrap stakeholder data in expected format
+                result = {"stakeholders": stakeholder_data}
                 logger.info(
                     f"✅ Generated questions for {len(stakeholder_data.get('primary', []))} primary + {len(stakeholder_data.get('secondary', []))} secondary stakeholders"
                 )
@@ -190,13 +187,8 @@ class ConversationRoutineService:
                 )
             )
 
-            # Format for frontend
-            result = {
-                "stakeholders": stakeholder_data,
-                "estimatedTime": time_estimates,
-                "success": True,
-            }
-
+            # Format for frontend - wrap stakeholder data in expected format
+            result = {"stakeholders": stakeholder_data}
             logger.info(
                 f"✅ Generated questions for {len(stakeholder_data.get('primary', []))} primary + {len(stakeholder_data.get('secondary', []))} secondary stakeholders"
             )
