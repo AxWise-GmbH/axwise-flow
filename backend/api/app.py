@@ -281,8 +281,15 @@ from backend.api.research.conversation_routines.router import (
 # Use conversation routines (2025 framework) - clean, efficient, single system
 app.include_router(conversation_routines_router)
 
-# Initialize database tables
-create_tables()
+# Initialize database tables (optional for conversation routines)
+try:
+    create_tables()
+    logger.info("✅ Database tables initialized successfully")
+except Exception as e:
+    logger.warning(f"⚠️ Database initialization failed: {e}")
+    logger.info(
+        "🔄 Continuing without database (conversation routines will still work)"
+    )
 
 # Add this function definition before the route definitions
 _persona_service = None
