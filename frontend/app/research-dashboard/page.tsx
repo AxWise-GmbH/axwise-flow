@@ -98,14 +98,35 @@ export default function ResearchDashboard() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4 max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Research Dashboard</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Research Dashboard <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Legacy</span></h1>
           <p className="text-muted-foreground mt-2">Manage and review customer research sessions</p>
-          <Button
-            onClick={() => window.location.href = '/customer-research'}
-            className="mt-4"
-          >
-            Start New Research
-          </Button>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <p className="text-blue-800 text-sm">
+              💡 <strong>New:</strong> Use the <button
+                onClick={() => window.location.href = '/unified-dashboard/research'}
+                className="text-blue-600 underline hover:text-blue-800"
+              >
+                Research Dashboard
+              </button> for the latest features including question generation and session management.
+            </p>
+          </div>
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={() => {
+                // Clear any current session and start fresh
+                localStorage.removeItem('current_research_session');
+                window.location.href = '/customer-research';
+              }}
+            >
+              Start New Research
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/unified-dashboard/research'}
+            >
+              Go to Research Dashboard
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
@@ -219,7 +240,11 @@ export default function ResearchDashboard() {
                       <h4 className="font-medium">Session Info</h4>
                       <Button
                         size="sm"
-                        onClick={() => window.location.href = `/customer-research?session=${selectedSession.session_id}`}
+                        onClick={() => {
+                          // Save the session as current and navigate to unified dashboard
+                          localStorage.setItem('current_research_session', JSON.stringify(selectedSession));
+                          window.location.href = '/unified-dashboard/research';
+                        }}
                       >
                         Continue Session
                       </Button>

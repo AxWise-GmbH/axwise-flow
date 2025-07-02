@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { FileText, BarChart3, Clock, BookOpen, Shield } from 'lucide-react';
+import { FileText, BarChart3, Clock, BookOpen, Shield, MessageSquare } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/use-admin-access';
 
 /**
@@ -41,11 +41,20 @@ export default function DashboardNav(): JSX.Element { // Add return type
       {/* Upload Tab */}
       <button
         onClick={() => handleTabNavigation('upload')}
-        className={`flex items-center px-3 py-2 text-sm rounded-md ${!isHistory && !pathname?.includes('visualize') && !pathname?.includes('documentation') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+        className={`flex items-center px-3 py-2 text-sm rounded-md ${!isHistory && !pathname?.includes('visualize') && !pathname?.includes('documentation') && !pathname?.includes('research') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
       >
         <FileText className="mr-2 h-4 w-4" />
         Upload
       </button>
+
+      {/* Research Tab */}
+      <Link
+        href="/unified-dashboard/research"
+        className={`flex items-center px-3 py-2 text-sm rounded-md ${pathname?.includes('research') ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+      >
+        <MessageSquare className="mr-2 h-4 w-4" />
+        Research
+      </Link>
 
       {/* Visualize Tab */}
       <button

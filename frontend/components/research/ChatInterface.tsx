@@ -392,6 +392,15 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
                               businessContext={message.metadata?.businessContext}
                               onExport={() => exportQuestions('txt')}
                               onContinue={continueToAnalysis}
+                              onDashboard={async () => {
+                                // Save current session before navigating
+                                try {
+                                  await saveSession();
+                                } catch (error) {
+                                  console.error('Failed to save session:', error);
+                                }
+                                window.location.href = '/unified-dashboard/research';
+                              }}
                             />
                           );
                         })()

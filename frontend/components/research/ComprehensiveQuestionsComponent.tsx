@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Copy, Users, Target, MessageCircle, Clock, CheckCircle2 } from 'lucide-react';
+import { Download, Copy, Users, Target, MessageCircle, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
 
 interface StakeholderQuestions {
   name: string;
@@ -53,6 +53,7 @@ interface ComprehensiveQuestionsProps {
   businessContext?: string;
   onExport?: () => void;
   onContinue?: () => void;
+  onDashboard?: () => void;
 }
 
 export function ComprehensiveQuestionsComponent({
@@ -61,7 +62,8 @@ export function ComprehensiveQuestionsComponent({
   timeEstimate,
   businessContext,
   onExport,
-  onContinue
+  onContinue,
+  onDashboard
 }: ComprehensiveQuestionsProps) {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
@@ -387,6 +389,12 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           )}
           Copy All
         </Button>
+        {onDashboard && (
+          <Button onClick={onDashboard} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+            <BarChart3 className="h-4 w-4" />
+            Go to Dashboard
+          </Button>
+        )}
         {onExport && (
           <Button variant="outline" onClick={onExport} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
@@ -394,7 +402,7 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
           </Button>
         )}
         {onContinue && (
-          <Button onClick={onContinue} className="flex items-center gap-2">
+          <Button variant="outline" onClick={onContinue} className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Start Research
           </Button>

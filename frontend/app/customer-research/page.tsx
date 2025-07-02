@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ChatInterface } from '@/components/research/ChatInterface';
 import { SessionManager } from '@/components/research/SessionManager';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,16 @@ import { MessageSquare, FileText, Users, Target, ArrowRight } from 'lucide-react
 export default function CustomerResearchPage() {
   const [showChat, setShowChat] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // Check for session parameter in URL on mount
+  useEffect(() => {
+    const sessionParam = searchParams.get('session');
+    if (sessionParam) {
+      console.log('Loading session from URL:', sessionParam);
+      handleLoadSession(sessionParam);
+    }
+  }, [searchParams]);
 
   const handleQuestionsGenerated = (_questions: any) => {
     // Questions are handled within the ChatInterface component

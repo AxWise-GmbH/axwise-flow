@@ -36,6 +36,8 @@ export default async function UnifiedDashboard({ searchParams }: PageProps): Pro
     redirect('/unified-dashboard/history');
   } else if (tab === 'documentation') {
     redirect('/unified-dashboard/documentation');
+  } else if (tab === 'research') {
+    redirect('/unified-dashboard/research');
   }
 
   // If we reach here, we're either showing the main dashboard or a specific analysis

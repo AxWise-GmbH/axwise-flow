@@ -281,6 +281,20 @@ from backend.api.research.conversation_routines.router import (
 # Use conversation routines (2025 framework) - clean, efficient, single system
 app.include_router(conversation_routines_router)
 
+# Include research dashboard router - dashboard-based question generation
+from backend.api.research.dashboard.router import (
+    router as research_dashboard_router,
+)
+
+app.include_router(research_dashboard_router)
+
+# Include simulation bridge router - bridges questionnaire to analysis
+from backend.api.research.simulation_bridge.router import (
+    router as simulation_bridge_router,
+)
+
+app.include_router(simulation_bridge_router)
+
 # Initialize database tables (optional for conversation routines)
 try:
     create_tables()
