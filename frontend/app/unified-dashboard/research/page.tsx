@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import { useResearch } from '@/hooks/use-research';
 import { ResearchContextDisplay } from '@/components/research/dashboard/ResearchContextDisplay';
-import { EmbeddedChatDisplay } from '@/components/research/dashboard/EmbeddedChatDisplay';
-import { QuestionGenerationPanel } from '@/components/research/dashboard/QuestionGenerationPanel';
-import { SimulationConfigModal } from '@/components/research/simulation/SimulationConfigModal';
+import { QuestionnaireSelector } from '@/components/research/dashboard/QuestionnaireSelector';
+import { SimulationSettingsPanel } from '@/components/research/dashboard/SimulationSettingsPanel';
+
 import { SimulationProgress } from '@/components/research/simulation/SimulationProgress';
 import { SimulationResults } from '@/components/research/simulation/SimulationResults';
 import {
@@ -31,18 +31,14 @@ import {
   BusinessContext
 } from '@/lib/api/simulation';
 import {
-  generateDashboardQuestions,
-  downloadQuestions,
   type DashboardQuestionResponse
 } from '@/lib/api/research-dashboard';
 
 export default function ResearchDashboardPage() {
   const { context, questions, isLoading, generateQuestions, exportQuestions, loadSession } = useResearch();
-  const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<DashboardQuestionResponse | null>(null);
 
   // Simulation state
-  const [showSimulationConfig, setShowSimulationConfig] = useState(false);
   const [showSimulationProgress, setShowSimulationProgress] = useState(false);
   const [simulationResults, setSimulationResults] = useState<SimulationResponse | null>(null);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
@@ -81,6 +77,10 @@ export default function ResearchDashboardPage() {
 
   // Convert research helper questions to dashboard format when available
   useEffect(() => {
+    console.log('🔍 Debug - Questions:', questions);
+    console.log('🔍 Debug - Context:', context);
+    console.log('🔍 Debug - Generated Questions:', generatedQuestions);
+
     if (questions && !generatedQuestions && context.questionsGenerated) {
       console.log('✅ Converting existing research questions to dashboard format');
 
@@ -112,6 +112,37 @@ export default function ResearchDashboardPage() {
       setGeneratedQuestions(dashboardFormat);
       console.log('🔄 Converted questions:', dashboardFormat);
     }
+
+    // Also check if we have questions but questionsGenerated is false
+    if (questions && !generatedQuestions && !context.questionsGenerated) {
+      console.log('⚠️ Found questions but questionsGenerated is false, converting anyway');
+      const dashboardFormat: DashboardQuestionResponse = {
+        success: true,
+        message: 'Questions loaded from research session',
+        questions: {
+          primaryStakeholders: [{
+            name: 'Primary Stakeholder',
+            description: 'Primary stakeholder from research session',
+            questions: {
+              problemDiscovery: questions.problemDiscovery || [],
+              solutionValidation: questions.solutionValidation || [],
+              followUp: questions.followUp || []
+            }
+          }],
+          secondaryStakeholders: []
+        },
+        metadata: {
+          total_questions: (questions.problemDiscovery?.length || 0) +
+                          (questions.solutionValidation?.length || 0) +
+                          (questions.followUp?.length || 0),
+          generation_method: 'research_session',
+          conversation_routine: true
+        }
+      };
+
+      setGeneratedQuestions(dashboardFormat);
+      console.log('🔄 Converted questions (fallback):', dashboardFormat);
+    }
   }, [questions, generatedQuestions, context.questionsGenerated]);
 
   // Check if we have sufficient context for question generation
@@ -121,48 +152,6 @@ export default function ResearchDashboardPage() {
     (context.targetCustomer ? 33 : 0) +
     (context.problem ? 34 : 0);
 
-  const handleGenerateQuestions = async () => {
-    if (!hasContext) return;
-
-    setIsGenerating(true);
-    try {
-      const request = {
-        business_idea: context.businessIdea || '',
-        target_customer: context.targetCustomer || '',
-        problem: context.problem || '',
-        session_id: `dashboard-${Date.now()}`
-      };
-
-      const result = await generateDashboardQuestions(request);
-      if (result.success) {
-        setGeneratedQuestions(result);
-      } else {
-        console.error('Question generation failed:', result.message);
-        // You might want to show an error toast here
-      }
-    } catch (error) {
-      console.error('Failed to generate questions:', error);
-      // You might want to show an error toast here
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleExportQuestions = async (format: 'txt' | 'json' | 'csv' = 'txt') => {
-    if (generatedQuestions?.questions) {
-      downloadQuestions(generatedQuestions.questions, format);
-    }
-  };
-
-  // Simulation handlers
-  const handleStartSimulation = () => {
-    if (!generatedQuestions?.questions) {
-      console.error('No questions available for simulation');
-      return;
-    }
-    setShowSimulationConfig(true);
-  };
-
   const handleConfigureSimulation = async (config: SimulationConfig) => {
     if (!generatedQuestions?.questions || !context.businessIdea) {
       console.error('Missing required data for simulation');
@@ -171,7 +160,6 @@ export default function ResearchDashboardPage() {
 
     try {
       setSimulationConfig(config);
-      setShowSimulationConfig(false);
       setShowSimulationProgress(true);
 
       // Debug: Log the generated questions structure
@@ -325,18 +313,85 @@ export default function ResearchDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Context & Chat */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Research Context */}
+          {/* Left Column - Questionnaire Selection */}
+          <div className="space-y-6">
+            <QuestionnaireSelector
+              generatedQuestions={generatedQuestions}
+              onQuestionnaireSelect={(questionnaire) => {
+                setGeneratedQuestions(questionnaire);
+              }}
+            />
+
+            {/* Debug/Sample Questionnaire Button */}
+            {!generatedQuestions && (
+              <Card>
+                <CardContent className="p-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const sampleQuestionnaire: DashboardQuestionResponse = {
+                        success: true,
+                        message: 'Sample questionnaire for testing',
+                        questions: {
+                          primaryStakeholders: [{
+                            name: 'Account Manager',
+                            description: 'Primary user of the API service',
+                            questions: {
+                              problemDiscovery: [
+                                'How do you currently handle client data from subsidiaries?',
+                                'What challenges do you face with discount application?',
+                                'How often do discount discrepancies occur?'
+                              ],
+                              solutionValidation: [
+                                'Would an automated API service help streamline your workflow?',
+                                'What features would be most valuable in such a system?'
+                              ],
+                              followUp: [
+                                'What would be your biggest concern about implementing this solution?'
+                              ]
+                            }
+                          }],
+                          secondaryStakeholders: [{
+                            name: 'IT Administrator',
+                            description: 'Technical stakeholder for system integration',
+                            questions: {
+                              problemDiscovery: [
+                                'What are the current technical challenges with legacy systems?',
+                                'How do you handle data integration currently?'
+                              ],
+                              solutionValidation: [
+                                'What technical requirements would this API need to meet?'
+                              ],
+                              followUp: []
+                            }
+                          }]
+                        },
+                        metadata: {
+                          total_questions: 8,
+                          generation_method: 'sample',
+                          conversation_routine: false
+                        }
+                      };
+                      setGeneratedQuestions(sampleQuestionnaire);
+                    }}
+                  >
+                    Load Sample Questionnaire
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    For testing simulation functionality
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Middle Column - Research Context */}
+          <div className="space-y-6">
             <ResearchContextDisplay
               context={context}
               completeness={contextCompleteness}
             />
-
-            {/* Embedded Chat Display */}
-            {hasContext && (
-              <EmbeddedChatDisplay context={context} />
-            )}
 
             {/* No Context State */}
             {!hasContext && (
@@ -359,16 +414,20 @@ export default function ResearchDashboardPage() {
             )}
           </div>
 
-          {/* Right Column - Question Generation */}
+          {/* Right Column - Simulation Settings */}
           <div className="space-y-6">
-            <QuestionGenerationPanel
-              hasContext={hasContext}
-              contextCompleteness={contextCompleteness}
-              isGenerating={isGenerating}
-              generatedQuestions={generatedQuestions?.questions}
-              onGenerateQuestions={handleGenerateQuestions}
-              onExportQuestions={handleExportQuestions}
-              onStartSimulation={handleStartSimulation}
+            <SimulationSettingsPanel
+              questionsData={{
+                stakeholders: {
+                  primary: generatedQuestions?.questions?.primaryStakeholders || [],
+                  secondary: generatedQuestions?.questions?.secondaryStakeholders || []
+                },
+                timeEstimate: {
+                  totalQuestions: generatedQuestions?.metadata?.total_questions || 0
+                }
+              }}
+              onStartSimulation={handleConfigureSimulation}
+              disabled={!generatedQuestions?.questions}
             />
 
             {/* Quick Actions */}
@@ -380,15 +439,7 @@ export default function ResearchDashboardPage() {
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => {
-                    // If we have a current session, pass it to the chat
-                    const currentSession = currentSessionData;
-                    if (currentSession?.session_id) {
-                      window.location.href = `/customer-research?session=${currentSession.session_id}`;
-                    } else {
-                      window.location.href = '/customer-research';
-                    }
-                  }}
+                  onClick={() => window.location.href = '/customer-research'}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Continue Research Chat
@@ -415,22 +466,7 @@ export default function ResearchDashboardPage() {
         </div>
       </div>
 
-      {/* Simulation Modals */}
-      <SimulationConfigModal
-        isOpen={showSimulationConfig}
-        onClose={() => setShowSimulationConfig(false)}
-        onStartSimulation={handleConfigureSimulation}
-        questionsData={{
-          stakeholders: {
-            primary: generatedQuestions?.questions?.primary_stakeholders || [],
-            secondary: generatedQuestions?.questions?.secondary_stakeholders || []
-          },
-          timeEstimate: {
-            totalQuestions: generatedQuestions?.questions?.total_questions || 0
-          }
-        }}
-      />
-
+      {/* Simulation Progress and Results */}
       <SimulationProgress
         isVisible={showSimulationProgress}
         simulationId={currentSimulationId || undefined}
