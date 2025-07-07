@@ -288,3 +288,67 @@ export const useLoadingTimer = (isLoading: boolean) => {
 
   return formatTime(elapsedMs);
 };
+
+/**
+ * Hook for saving session data
+ */
+export const useSaveSession = (state: any, context: any) => {
+  const saveSession = useCallback(async () => {
+    try {
+      if (!state.sessionId) {
+        console.warn('No session ID available for saving');
+        return;
+      }
+
+      // Only save local sessions (backend sessions are auto-saved)
+      if (state.sessionId.startsWith('local_')) {
+        console.log('💾 Saving local session:', state.sessionId);
+
+        // Import LocalResearchStorage dynamically
+        const { LocalResearchStorage } = await import('@/lib/api/research');
+
+        // Get current session
+        let session = LocalResearchStorage.getSession(state.sessionId);
+
+        if (session) {
+          // Update session with current state
+          session.messages = state.messages;
+          session.message_count = state.messages.length;
+          session.updated_at = new Date().toISOString();
+
+          // Check if questionnaire was generated
+          const hasQuestionnaire = state.messages.some((msg: any) =>
+            msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
+            msg.metadata?.comprehensiveQuestions
+          );
+
+          if (hasQuestionnaire) {
+            session.questions_generated = true;
+            session.status = 'completed';
+            session.stage = 'completed';
+            session.completed_at = new Date().toISOString();
+          }
+
+          // Update context data
+          if (context.businessIdea) session.business_idea = context.businessIdea;
+          if (context.targetCustomer) session.target_customer = context.targetCustomer;
+          if (context.problem) session.problem = context.problem;
+          if (context.industry) session.industry = context.industry;
+
+          // Save the updated session
+          LocalResearchStorage.saveSession(session);
+          console.log('✅ Local session saved successfully');
+        } else {
+          console.warn('⚠️ Local session not found for saving');
+        }
+      } else {
+        console.log('Backend session - auto-saved via API');
+      }
+    } catch (error) {
+      console.error('❌ Failed to save session:', error);
+      throw error;
+    }
+  }, [state.sessionId, state.messages, context]);
+
+  return { saveSession };
+};

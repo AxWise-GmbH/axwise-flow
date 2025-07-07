@@ -23,6 +23,8 @@ class PersonaGenerator:
             result_type=List[AIPersona],
             system_prompt=self._get_system_prompt(),
         )
+        self.used_names_by_category = {}  # Track used names per stakeholder category
+        self.used_names_global = set()  # Track used names globally for chat simulations
 
     def _get_system_prompt(self) -> str:
         return """You are an expert persona generator for customer research simulations.
@@ -46,6 +48,7 @@ Return a list of AIPersona objects with all required fields populated."""
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
+        global_name_uniqueness: bool = False,
     ) -> List[AIPersona]:
         """Generate AI personas for a specific stakeholder type."""
 
@@ -54,12 +57,37 @@ Return a list of AIPersona objects with all required fields populated."""
                 f"Generating {config.personas_per_stakeholder} personas for stakeholder: {stakeholder.name}"
             )
 
-            prompt = self._build_persona_prompt(stakeholder, business_context, config)
+            prompt = self._build_persona_prompt(
+                stakeholder, business_context, config, global_name_uniqueness
+            )
             logger.info(f"Persona generation prompt: {prompt[:200]}...")
 
-            result = await self.agent.run(
-                prompt, model_settings={"temperature": config.temperature}
-            )
+            # Try with retry logic for Gemini API issues
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    # Use temperature 0 for structured JSON generation to avoid malformed responses
+                    result = await self.agent.run(
+                        prompt, model_settings={"temperature": 0.0}
+                    )
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
+                        logger.warning(
+                            f"Gemini API error on attempt {attempt + 1}, retrying with simpler prompt..."
+                        )
+                        # Simplify the prompt for retry
+                        simple_prompt = f"""Generate {config.personas_per_stakeholder} realistic persona(s) for:
+Stakeholder: {stakeholder.name}
+Business: {business_context.business_idea}
+Target Customer: {business_context.target_customer}
+Problem: {business_context.problem}
+
+Keep responses concise and realistic."""
+                        prompt = simple_prompt
+                        continue
+                    else:
+                        raise  # Re-raise if final attempt or different error
 
             logger.info(f"PydanticAI result: {result}")
             # Use result.output (non-deprecated) - both are identical per our test
@@ -75,12 +103,29 @@ Return a list of AIPersona objects with all required fields populated."""
                     f"Expected {config.personas_per_stakeholder} personas, got {len(personas)}"
                 )
 
-            # Add IDs and stakeholder type
+            # Add IDs and stakeholder type, track names for uniqueness
+            stakeholder_key = f"{stakeholder.name}_{stakeholder.description}"
+            if stakeholder_key not in self.used_names_by_category:
+                self.used_names_by_category[stakeholder_key] = set()
+
             for persona in personas:
                 persona.id = str(uuid.uuid4())
                 persona.stakeholder_type = stakeholder.id
 
-            logger.info(f"Successfully generated {len(personas)} personas")
+                # Track names for uniqueness
+                if global_name_uniqueness:
+                    # Track globally for chat simulations
+                    self.used_names_global.add(persona.name)
+                else:
+                    # Track within stakeholder category for regular simulations
+                    self.used_names_by_category[stakeholder_key].add(persona.name)
+
+            logger.info(
+                f"Successfully generated {len(personas)} personas for {stakeholder.name}"
+            )
+            logger.info(
+                f"Used names for {stakeholder.name}: {sorted(self.used_names_by_category[stakeholder_key])}"
+            )
             return personas
 
         except Exception as e:
@@ -92,8 +137,25 @@ Return a list of AIPersona objects with all required fields populated."""
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
+        global_name_uniqueness: bool = False,
     ) -> str:
         """Build the prompt for persona generation."""
+
+        # Include used names to avoid duplicates
+        used_names_text = ""
+
+        if global_name_uniqueness:
+            # For chat simulations, ensure globally unique names
+            if self.used_names_global:
+                used_names_text = f"\n\nIMPORTANT: Do NOT use these names (already used globally): {', '.join(sorted(self.used_names_global))}"
+        else:
+            # For regular simulations, only avoid duplicates within stakeholder category
+            stakeholder_key = f"{stakeholder.name}_{stakeholder.description}"
+            if (
+                stakeholder_key in self.used_names_by_category
+                and self.used_names_by_category[stakeholder_key]
+            ):
+                used_names_text = f"\n\nIMPORTANT: Do NOT use these names (already used for {stakeholder.name}): {', '.join(sorted(self.used_names_by_category[stakeholder_key]))}"
 
         return f"""Generate {config.personas_per_stakeholder} realistic personas for the following context:
 
@@ -126,16 +188,28 @@ Make sure the personas are diverse in:
 - Personality types
 - Communication preferences
 
-The personas should feel like real people who would genuinely interact with this business idea."""
+CRITICAL REQUIREMENTS:
+- Each persona must have a UNIQUE name within this stakeholder category only
+- Names should reflect the stakeholder's professional context and include position/title
+- Format: "FirstName LastName, Position/Title" (e.g., "Sarah Chen, Senior Finance Director")
+- Personas should be distinctly different from each other within this stakeholder category
+- Focus on realistic diversity within the stakeholder category
+- Different stakeholder categories can have people with similar names (they're different people)
+
+The personas should feel like real people who would genuinely interact with this business idea.{used_names_text}"""
 
     async def generate_all_personas(
         self,
         stakeholders: Dict[str, List[Stakeholder]],
         business_context: BusinessContext,
         config: SimulationConfig,
+        global_name_uniqueness: bool = True,  # Default to True for chat simulations
     ) -> List[AIPersona]:
         """Generate personas for all stakeholder types."""
 
+        # Reset used names for each new simulation
+        self.used_names_by_category.clear()
+        self.used_names_global.clear()
         all_personas = []
 
         for stakeholder_category, stakeholder_list in stakeholders.items():
@@ -149,7 +223,7 @@ The personas should feel like real people who would genuinely interact with this
                 )
                 try:
                     personas = await self.generate_personas(
-                        stakeholder, business_context, config
+                        stakeholder, business_context, config, global_name_uniqueness
                     )
                     logger.info(
                         f"Generated {len(personas)} personas for {stakeholder.name}"

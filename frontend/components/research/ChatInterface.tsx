@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw } from 'lucide-react';
+import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw, Play } from 'lucide-react';
 import { ContextPanel } from './ContextPanel';
 import { NextStepsChatMessage } from './NextStepsChatMessage';
 
@@ -42,7 +42,8 @@ import {
   useChatClear,
   useSessionLoading,
   useClipboard,
-  useLoadingTimer
+  useLoadingTimer,
+  useSaveSession
 } from './chat-hooks';
 import {
   handleSendMessage,
@@ -67,6 +68,7 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
   const { messagesEndRef } = useScrollManagement(state.messages);
   const { copyMessage } = useClipboard();
   const formattedElapsedTime = useLoadingTimer(state.isLoading);
+  const { saveSession } = useSaveSession(state, context);
 
   // Mobile optimization hooks
   const { handleMessageSent, handleNewMessage, ensureInputVisible } = useChatMobileOptimization();
@@ -595,9 +597,169 @@ Ready for simulation bridge and interview analysis`;
                         </div>
                       ) : (
                         <div>
-                          <div className="whitespace-pre-wrap">{message.content}</div>
+                          {/* Check if this is questionnaire content that should be rendered as component */}
+                          {message.content.includes('### Primary Stakeholders:') ||
+                           message.content.includes('## Primary Stakeholders') ||
+                           message.content.includes('**1. ') ||
+                           message.content.includes('Here are the comprehensive research questions') ||
+                           message.content.includes('Here are comprehensive research questions') ||
+                           message.content.includes('categorized by stakeholder') ||
+                           (message.content.includes('stakeholder') && message.content.includes('Questions')) ||
+                           (message.content.includes('Problem Discovery Questions') && message.content.includes('Solution Validation Questions')) ? (
+                            // Parse the questionnaire content and use the proper component
+                            (() => {
+                              // Try to parse the questionnaire content into structured data
+                              const parseQuestionnaireContent = (content: string) => {
+                                const primaryStakeholders: any[] = [];
+                                const secondaryStakeholders: any[] = [];
 
+                                // Split by major sections
+                                const sections = content.split(/(?=##\s)/);
 
+                                sections.forEach(section => {
+                                  if (section.includes('Primary Stakeholders')) {
+                                    // Parse primary stakeholders
+                                    const stakeholderMatches = section.split(/(?=\*\*\d+\.)/);
+                                    stakeholderMatches.forEach(match => {
+                                      const nameMatch = match.match(/\*\*(\d+\.\s+[^*]+)\*\*/);
+                                      const descMatch = match.match(/\*Description:\s*([^*]+)\*/);
+
+                                      if (nameMatch) {
+                                        const name = nameMatch[1];
+                                        const description = descMatch ? descMatch[1].trim() : '';
+
+                                        // Extract questions
+                                        const problemDiscovery: string[] = [];
+                                        const solutionValidation: string[] = [];
+                                        const followUp: string[] = [];
+
+                                        // Simple question extraction
+                                        const lines = match.split('\n');
+                                        let currentCategory = '';
+
+                                        lines.forEach(line => {
+                                          if (line.includes('Problem Discovery Questions')) {
+                                            currentCategory = 'problem';
+                                          } else if (line.includes('Solution Validation Questions')) {
+                                            currentCategory = 'solution';
+                                          } else if (line.includes('Follow-Up Questions') || line.includes('Follow-up Questions')) {
+                                            currentCategory = 'followup';
+                                          } else if (line.trim().startsWith('*') && line.includes('?')) {
+                                            const question = line.replace(/^\s*\*\s*/, '').trim();
+                                            if (currentCategory === 'problem') {
+                                              problemDiscovery.push(question);
+                                            } else if (currentCategory === 'solution') {
+                                              solutionValidation.push(question);
+                                            } else if (currentCategory === 'followup') {
+                                              followUp.push(question);
+                                            }
+                                          }
+                                        });
+
+                                        primaryStakeholders.push({
+                                          name,
+                                          description,
+                                          questions: {
+                                            problemDiscovery,
+                                            solutionValidation,
+                                            followUp
+                                          }
+                                        });
+                                      }
+                                    });
+                                  } else if (section.includes('Secondary Stakeholders')) {
+                                    // Parse secondary stakeholders (similar logic)
+                                    const stakeholderMatches = section.split(/(?=\*\*\d+\.)/);
+                                    stakeholderMatches.forEach(match => {
+                                      const nameMatch = match.match(/\*\*(\d+\.\s+[^*]+)\*\*/);
+                                      const descMatch = match.match(/\*Description:\s*([^*]+)\*/);
+
+                                      if (nameMatch) {
+                                        const name = nameMatch[1];
+                                        const description = descMatch ? descMatch[1].trim() : '';
+
+                                        const problemDiscovery: string[] = [];
+                                        const solutionValidation: string[] = [];
+                                        const followUp: string[] = [];
+
+                                        const lines = match.split('\n');
+                                        let currentCategory = '';
+
+                                        lines.forEach(line => {
+                                          if (line.includes('Problem Discovery Questions')) {
+                                            currentCategory = 'problem';
+                                          } else if (line.includes('Solution Validation Questions')) {
+                                            currentCategory = 'solution';
+                                          } else if (line.includes('Follow-Up Questions') || line.includes('Follow-up Questions')) {
+                                            currentCategory = 'followup';
+                                          } else if (line.trim().startsWith('*') && line.includes('?')) {
+                                            const question = line.replace(/^\s*\*\s*/, '').trim();
+                                            if (currentCategory === 'problem') {
+                                              problemDiscovery.push(question);
+                                            } else if (currentCategory === 'solution') {
+                                              solutionValidation.push(question);
+                                            } else if (currentCategory === 'followup') {
+                                              followUp.push(question);
+                                            }
+                                          }
+                                        });
+
+                                        secondaryStakeholders.push({
+                                          name,
+                                          description,
+                                          questions: {
+                                            problemDiscovery,
+                                            solutionValidation,
+                                            followUp
+                                          }
+                                        });
+                                      }
+                                    });
+                                  }
+                                });
+
+                                return { primaryStakeholders, secondaryStakeholders };
+                              };
+
+                              const parsedData = parseQuestionnaireContent(message.content);
+
+                              // Calculate time estimate
+                              const totalQuestions = parsedData.primaryStakeholders.reduce((acc, s) =>
+                                acc + (s.questions.problemDiscovery?.length || 0) +
+                                      (s.questions.solutionValidation?.length || 0) +
+                                      (s.questions.followUp?.length || 0), 0) +
+                                parsedData.secondaryStakeholders.reduce((acc, s) =>
+                                acc + (s.questions.problemDiscovery?.length || 0) +
+                                      (s.questions.solutionValidation?.length || 0) +
+                                      (s.questions.followUp?.length || 0), 0);
+
+                              const timeEstimate = {
+                                totalQuestions,
+                                estimatedMinutes: `${Math.ceil(totalQuestions * 7)}-${Math.ceil(totalQuestions * 10)}`,
+                                primaryQuestions: parsedData.primaryStakeholders.reduce((acc, s) =>
+                                  acc + (s.questions.problemDiscovery?.length || 0) +
+                                        (s.questions.solutionValidation?.length || 0) +
+                                        (s.questions.followUp?.length || 0), 0),
+                                secondaryQuestions: parsedData.secondaryStakeholders.reduce((acc, s) =>
+                                  acc + (s.questions.problemDiscovery?.length || 0) +
+                                        (s.questions.solutionValidation?.length || 0) +
+                                        (s.questions.followUp?.length || 0), 0)
+                              };
+
+                              return (
+                                <ComprehensiveQuestionsComponent
+                                  primaryStakeholders={parsedData.primaryStakeholders}
+                                  secondaryStakeholders={parsedData.secondaryStakeholders}
+                                  timeEstimate={timeEstimate}
+                                  businessContext={context.businessIdea}
+                                  onExport={() => exportComprehensiveQuestions('txt')}
+                                  onDashboard={() => window.location.href = '/unified-dashboard/research'}
+                                />
+                              );
+                            })()
+                          ) : (
+                            <div className="whitespace-pre-wrap">{message.content}</div>
+                          )}
                         </div>
                       )}
 

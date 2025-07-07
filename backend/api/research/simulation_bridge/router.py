@@ -3,12 +3,25 @@ FastAPI router for the Simulation Bridge system.
 """
 
 import logging
+import os
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 
-from .models import SimulationRequest, SimulationResponse, SimulationProgress
+from .models import (
+    SimulationRequest,
+    SimulationResponse,
+    SimulationProgress,
+    BusinessContext,
+    Stakeholder,
+    SimulationConfig,
+    AIPersona,
+    QuestionsData,
+)
 from .services.orchestrator import SimulationOrchestrator
+from .services.persona_generator import PersonaGenerator
+from .services.interview_simulator import InterviewSimulator
+from pydantic_ai.models.gemini import GeminiModel
 
 logger = logging.getLogger(__name__)
 
@@ -216,10 +229,6 @@ async def test_persona_generation(
     Useful for debugging and development.
     """
     try:
-        import os
-        from pydantic_ai.models.gemini import GeminiModel
-        from .models import BusinessContext, Stakeholder, SimulationConfig
-        from .services.persona_generator import PersonaGenerator
 
         # Convert to proper models
         business_ctx = BusinessContext(**business_context)
@@ -262,8 +271,6 @@ async def test_interview_simulation(
     Useful for debugging and development.
     """
     try:
-        from .models import AIPersona, BusinessContext, Stakeholder, SimulationConfig
-        from .services.interview_simulator import InterviewSimulator
 
         # Convert to proper models
         persona = AIPersona(**persona_data)
@@ -292,6 +299,86 @@ async def test_interview_simulation(
         logger.error(f"Interview simulation test failed: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Interview simulation failed: {str(e)}"
+        )
+
+
+@router.post("/generate-personas")
+async def generate_personas_for_chat(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate personas for chat simulation.
+    Generates one persona per stakeholder type for interactive chat.
+    """
+    try:
+
+        # Parse request data
+        questions_data = QuestionsData(**request.get("questions_data", {}))
+        business_context = BusinessContext(**request.get("business_context", {}))
+        config = SimulationConfig(**request.get("config", {}))
+
+        # Generate personas using orchestrator with global name uniqueness for chat
+        personas = await orchestrator.persona_generator.generate_all_personas(
+            questions_data.stakeholders,
+            business_context,
+            config,
+            global_name_uniqueness=True,
+        )
+
+        return {
+            "success": True,
+            "personas": [persona.dict() for persona in personas],
+            "count": len(personas),
+        }
+
+    except Exception as e:
+        logger.error(f"Persona generation for chat failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Persona generation failed: {str(e)}"
+        )
+
+
+@router.post("/simulate-response")
+async def simulate_single_response(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Simulate a single response from a persona to a question.
+    Used for real-time chat simulation.
+    """
+    try:
+
+        # Parse request data
+        question = request.get("question", "")
+        persona_data = request.get("persona_data", {})
+        business_context_data = request.get("business_context", {})
+        config = request.get("config", {})
+
+        # Convert to proper models
+        persona = AIPersona(**persona_data)
+        business_context = BusinessContext(**business_context_data)
+
+        # Get API key
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
+
+        # Initialize simulator
+        model = GeminiModel("gemini-2.5-flash")
+        simulator = InterviewSimulator(model)
+
+        # Generate single response
+        response = await simulator.generate_single_response(
+            question, persona, business_context, config
+        )
+
+        return {
+            "success": True,
+            "response": response,
+            "persona_id": persona.id,
+            "question": question,
+        }
+
+    except Exception as e:
+        logger.error(f"Single response simulation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Response simulation failed: {str(e)}"
         )
 
 

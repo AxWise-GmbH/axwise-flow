@@ -74,9 +74,27 @@ Return a complete SimulatedInterview object with all responses and metadata."""
             )
             logger.info(f"Interview simulation prompt: {prompt[:200]}...")
 
-            result = await self.agent.run(
-                prompt, model_settings={"temperature": config.temperature}
-            )
+            # Try with retry logic for Gemini API issues
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    # Use user's temperature for creative interview responses
+                    result = await self.agent.run(
+                        prompt, model_settings={"temperature": config.temperature}
+                    )
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
+                        logger.warning(
+                            f"Gemini API error on attempt {attempt + 1}, retrying with temperature 0..."
+                        )
+                        # Use temperature 0 for retry to ensure valid JSON structure
+                        result = await self.agent.run(
+                            prompt, model_settings={"temperature": 0.0}
+                        )
+                        break
+                    else:
+                        raise  # Re-raise if final attempt or different error
 
             logger.info(f"PydanticAI interview result: {result}")
             # Use result.output (non-deprecated) - both are identical per our test
@@ -206,3 +224,117 @@ Create a realistic interview that feels like a genuine conversation with this pe
 
         logger.info(f"Completed {len(all_interviews)} simulated interviews")
         return all_interviews
+
+    async def generate_single_response(
+        self,
+        question: str,
+        persona: AIPersona,
+        business_context: BusinessContext,
+        config: Dict[str, Any],
+    ) -> str:
+        """Generate a single response from a persona to a specific question."""
+
+        try:
+            logger.info(f"Generating single response for persona: {persona.name}")
+
+            # Create a simple agent for single response generation
+            single_response_agent = Agent(
+                model=self.model,
+                result_type=str,
+                system_prompt=self._get_single_response_system_prompt(),
+            )
+
+            prompt = self._build_single_response_prompt(
+                question, persona, business_context, config
+            )
+
+            # Use temperature from config or default
+            temperature = config.get("temperature", 0.7)
+
+            # Generate response with retry logic
+            max_retries = 2
+            for attempt in range(max_retries + 1):
+                try:
+                    result = await single_response_agent.run(
+                        prompt, model_settings={"temperature": temperature}
+                    )
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
+                        logger.warning(
+                            f"Gemini API error on attempt {attempt + 1}, retrying with temperature 0..."
+                        )
+                        result = await single_response_agent.run(
+                            prompt, model_settings={"temperature": 0.0}
+                        )
+                        break
+                    else:
+                        raise  # Re-raise if final attempt or different error
+
+            response = result.output
+            logger.info(f"Generated response: {response[:100]}...")
+            return response
+
+        except Exception as e:
+            logger.error(f"Failed to generate single response: {str(e)}", exc_info=True)
+            # Return a fallback response
+            return f"I'm not sure how to answer that question right now."
+
+    def _get_single_response_system_prompt(self) -> str:
+        """System prompt for single response generation."""
+        return """You are simulating a specific persona in a customer interview.
+
+Your task is to respond to a single interview question as this persona would, staying completely in character.
+
+Guidelines:
+1. Stay completely in character as the given persona
+2. Provide an authentic, realistic response that matches their background and communication style
+3. Include natural human elements like hesitation, personal anecdotes, or tangents
+4. Use language and terminology appropriate to their background
+5. Show genuine emotions and reactions based on their motivations and pain points
+6. Provide a response that feels like real human speech, not AI-generated text
+7. Include specific examples and concrete details when relevant
+8. Keep the response conversational and natural
+
+Return only the response text that this persona would give - no additional formatting or metadata."""
+
+    def _build_single_response_prompt(
+        self,
+        question: str,
+        persona: AIPersona,
+        business_context: BusinessContext,
+        config: Dict[str, Any],
+    ) -> str:
+        """Build prompt for single response generation."""
+
+        response_style = config.get("response_style", "realistic")
+
+        return f"""You are {persona.name}, responding to an interview question about a business idea.
+
+PERSONA DETAILS:
+- Name: {persona.name}
+- Age: {persona.age}
+- Background: {persona.background}
+- Motivations: {', '.join(persona.motivations)}
+- Pain Points: {', '.join(persona.pain_points)}
+- Communication Style: {persona.communication_style}
+
+BUSINESS CONTEXT:
+- Business Idea: {business_context.business_idea}
+- Target Customer: {business_context.target_customer}
+- Problem: {business_context.problem}
+
+QUESTION: {question}
+
+RESPONSE STYLE: {response_style}
+
+Instructions:
+- Answer as {persona.name} would, staying completely in character
+- Use your communication style and background to inform your response
+- Include natural human elements like personal examples or hesitations
+- Show genuine emotions and reactions based on your motivations and pain points
+- Provide a response that varies in length naturally (could be short or detailed)
+- Include specific, concrete details that make your response feel authentic
+- Maintain consistency with your demographic details and background
+
+Respond naturally as {persona.name} would to this question:"""

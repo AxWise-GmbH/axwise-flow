@@ -3,8 +3,21 @@ Pydantic models for the Simulation Bridge system.
 """
 
 from typing import Dict, List, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
+
+
+class DemographicDetails(BaseModel):
+    """Structured demographic details for personas."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    age_range: Optional[str] = None
+    income_level: Optional[str] = None
+    education: Optional[str] = None
+    location: Optional[str] = None
+    industry_experience: Optional[str] = None
+    company_size: Optional[str] = None
 
 
 class SimulationDepth(str, Enum):
@@ -62,6 +75,8 @@ class QuestionsData(BaseModel):
 class AIPersona(BaseModel):
     """Generated AI persona for simulation."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: str
     name: str
     age: int
@@ -70,7 +85,7 @@ class AIPersona(BaseModel):
     pain_points: List[str]
     communication_style: str
     stakeholder_type: str
-    demographic_details: Dict[str, Any]
+    demographic_details: DemographicDetails
 
 
 class InterviewResponse(BaseModel):

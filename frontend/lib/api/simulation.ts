@@ -272,3 +272,31 @@ export async function testInterviewSimulation(
 
   return response.json();
 }
+
+export async function generatePersonasForChat(
+  questionsData: QuestionsData,
+  businessContext: BusinessContext,
+  config: SimulationConfig
+): Promise<{ success: boolean; personas: AIPersona[]; count: number }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/research/simulation-bridge/generate-personas`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        questions_data: questionsData,
+        business_context: businessContext,
+        config: config,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Persona generation failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}

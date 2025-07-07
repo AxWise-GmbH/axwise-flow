@@ -15,7 +15,6 @@ const isPublicRoute = createRouteMatcher([
   '/workshop-designthinking(.*)',
   '/blog(.*)', // Allow blog access
   '/customer-research(.*)', // Allow customer research feature
-  '/research-dashboard(.*)', // Allow research dashboard
   '/api/webhook(.*)', // Allow webhooks
   '/api/research(.*)', // Allow research API routes
   '/api/upload', // Allow upload API route (handles auth internally)
