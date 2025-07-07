@@ -31,7 +31,7 @@ function ClientTimestamp({ timestamp }: { timestamp: Date }) {
 import { MultiStakeholderChatMessage } from './MultiStakeholderChatMessage';
 import { StakeholderAlert } from './StakeholderAlert';
 
-import { useResearch } from '@/hooks/use-research';
+import { useUnifiedResearch } from '@/lib/context/unified-research-context';
 import { useChatMobileOptimization } from '@/hooks/useMobileViewport';
 
 // Import modular components
@@ -46,29 +46,35 @@ import {
   useSaveSession
 } from './chat-hooks';
 import {
-  handleSendMessage,
-  loadSession
+  handleSendMessage
 } from './chat-handlers';
 
 // Legacy conversion function removed - V3 Enhanced format only
 
 export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfaceProps) {
-  const {
-    context,
-    questions,
-    updateContext,
-    updateQuestions,
-    exportQuestions,
-    continueToAnalysis,
-    clearAllData,
-  } = useResearch();
+  const { state: unifiedState, actions: unifiedActions } = useUnifiedResearch();
 
   // Use modular hooks for state management
   const { state, actions } = useChatState();
+
+  // Ensure initial message is present when no session is loading
+  React.useEffect(() => {
+    if (!loadSessionId && state.messages.length === 0 && unifiedState.messages.length === 0) {
+      console.log('Initializing chat with welcome message');
+      const { createInitialMessage } = require('./chat-utils');
+      const initialMessage = createInitialMessage();
+      actions.setMessages([initialMessage]);
+      // Also sync to unified state
+      unifiedActions.setMessages([{
+        ...initialMessage,
+        timestamp: initialMessage.timestamp.toISOString()
+      }]);
+    }
+  }, [loadSessionId, state.messages.length, unifiedState.messages.length, actions, unifiedActions]);
   const { messagesEndRef } = useScrollManagement(state.messages);
   const { copyMessage } = useClipboard();
   const formattedElapsedTime = useLoadingTimer(state.isLoading);
-  const { saveSession } = useSaveSession(state, context);
+  const { saveSession } = useSaveSession(state, unifiedState.businessContext);
 
   // Mobile optimization hooks
   const { handleMessageSent, handleNewMessage, ensureInputVisible } = useChatMobileOptimization();
@@ -82,14 +88,19 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
     actions.setCurrentSuggestions,
     actions.setSessionId,
     actions.setShowClearConfirm,
-    updateContext
+    unifiedActions.updateBusinessContext
   );
 
   // Use original clear chat
   const clearChat = originalClearChat;
 
+  // Simple continue to analysis function
+  const continueToAnalysis = () => {
+    window.location.href = '/unified-dashboard/research';
+  };
+
   // Local state for questions to handle API responses directly
-  const currentQuestions = state.localQuestions || questions;
+  const currentQuestions = state.localQuestions || unifiedState.questionnaire;
 
   // Enhanced export function that uses comprehensive stakeholder questions
   const exportComprehensiveQuestions = (format: 'txt' | 'json' | 'csv' = 'txt') => {
@@ -129,9 +140,9 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
 Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
 
 ## Business Context
-**Business Idea:** ${context.businessIdea || 'Not specified'}
-**Target Customer:** ${context.targetCustomer || 'Not specified'}
-**Problem:** ${context.problem || 'Not specified'}
+**Business Idea:** ${unifiedState.businessContext.businessIdea || 'Not specified'}
+**Target Customer:** ${unifiedState.businessContext.targetCustomer || 'Not specified'}
+**Problem:** ${unifiedState.businessContext.problem || 'Not specified'}
 
 ---
 
@@ -250,9 +261,19 @@ Ready for simulation bridge and interview analysis`;
       messageText,
       state,
       actions,
-      context,
-      updateContext,
-      updateQuestions,
+      unifiedState.businessContext,
+      unifiedActions.updateBusinessContext,
+      (questionnaire: any) => {
+        console.log('📋 Updating questionnaire in unified state:', questionnaire);
+        unifiedActions.setQuestionnaire({
+          primaryStakeholders: questionnaire.primaryStakeholders || [],
+          secondaryStakeholders: questionnaire.secondaryStakeholders || [],
+          timeEstimate: questionnaire.timeEstimate || null,
+          generated: true,
+          generatedAt: new Date().toISOString()
+        });
+        unifiedActions.markQuestionnaireGenerated();
+      },
       onComplete
     );
 
@@ -281,8 +302,8 @@ Ready for simulation bridge and interview analysis`;
   };
 
   const loadSessionLocal = useCallback(async (sessionId: string) => {
-    await loadSession(sessionId, actions, updateContext);
-  }, [actions, updateContext]);
+    await unifiedActions.loadSession(sessionId);
+  }, [unifiedActions]);
 
   // Keyboard handlers
   const handleKeyDownLocal = (e: React.KeyboardEvent) => {
@@ -292,8 +313,68 @@ Ready for simulation bridge and interview analysis`;
     }
   };
 
-  // Session loading hook
-  useSessionLoading(loadSessionId, loadSessionLocal);
+  // Session loading with unified system
+  React.useEffect(() => {
+    if (loadSessionId && !unifiedState.sessionLoading && !unifiedState.currentSession) {
+      console.log('Loading session with unified system:', loadSessionId);
+      unifiedActions.loadSession(loadSessionId);
+    } else if (!loadSessionId && !unifiedState.currentSession) {
+      console.log('No session to load, starting fresh chat');
+      // Ensure we have initial message for fresh chat
+      if (state.messages.length === 0 && unifiedState.messages.length === 0) {
+        const { createInitialMessage } = require('./chat-utils');
+        const initialMessage = createInitialMessage();
+        actions.setMessages([initialMessage]);
+        // Also sync to unified state
+        unifiedActions.setMessages([{
+          ...initialMessage,
+          timestamp: initialMessage.timestamp.toISOString()
+        }]);
+      }
+    }
+  }, [loadSessionId, unifiedState.sessionLoading, unifiedState.currentSession, unifiedActions, state.messages.length, actions]);
+
+  // One-time sync when session loads (no infinite loop)
+  React.useEffect(() => {
+    if (unifiedState.currentSession && unifiedState.messages.length > 0) {
+      console.log('Syncing loaded session messages to chat state:', {
+        sessionId: unifiedState.currentSession.session_id,
+        unifiedMessagesCount: unifiedState.messages.length,
+        currentStateMessagesCount: state.messages.length
+      });
+
+      // Only sync if we don't already have the same messages
+      const needsSync = state.messages.length <= 1 || // Allow sync if we only have initial message
+                       state.messages.length !== unifiedState.messages.length ||
+                       state.messages[0]?.id !== unifiedState.messages[0]?.id;
+
+      if (needsSync) {
+        // Convert unified messages to old format
+        const convertedMessages = unifiedState.messages.map(msg => ({
+          ...msg,
+          timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp) : msg.timestamp
+        }));
+        actions.setMessages(convertedMessages);
+        actions.setConversationStarted(true);
+        console.log('✅ Messages synced successfully');
+      } else {
+        console.log('📋 Messages already synced, skipping');
+      }
+    } else if (!unifiedState.currentSession && !loadSessionId) {
+      // No session to load, ensure we have the initial message
+      console.log('No session to load, ensuring initial message is present');
+      if (state.messages.length === 0 && unifiedState.messages.length === 0) {
+        const { createInitialMessage } = require('./chat-utils');
+        const initialMessage = createInitialMessage();
+        actions.setMessages([initialMessage]);
+        // Also sync to unified state
+        unifiedActions.setMessages([{
+          ...initialMessage,
+          timestamp: initialMessage.timestamp.toISOString()
+        }]);
+      }
+    }
+  }, [unifiedState.currentSession?.session_id, unifiedState.messages.length, loadSessionId]); // Depend on session ID, message count, and loadSessionId
 
   // Handle new messages for mobile optimization
   React.useEffect(() => {
@@ -303,7 +384,7 @@ Ready for simulation bridge and interview analysis`;
   }, [state.messages.length, handleNewMessage]);
 
   // Helper function to normalize timeEstimate for ComprehensiveQuestionsComponent
-  const normalizeTimeEstimate = (timeEstimate: any) => {
+  const normalizeTimeEstimate = React.useCallback((timeEstimate: any) => {
     if (!timeEstimate) {
       return {
         totalQuestions: 0,
@@ -339,7 +420,7 @@ Ready for simulation bridge and interview analysis`;
         perQuestion: timeEstimate.breakdown?.perQuestion || 3.0  // Updated to 3 minutes per question
       }
     };
-  };
+  }, []);
 
   // Helper function to normalize stakeholders for EnhancedMultiStakeholderComponent
   const normalizeStakeholdersForEnhanced = (stakeholders: any): any[] => {
@@ -502,52 +583,31 @@ Ready for simulation bridge and interview analysis`;
                     >
                       {/* Component rendering logic */}
                       {message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ? (
-                        (() => {
-                          // DEBUG: Log what data is actually available in the message
-                          console.log('🔧 ChatInterface COMPREHENSIVE_QUESTIONS_COMPONENT rendering:', {
-                            messageId: message.id,
-                            hasMetadata: !!message.metadata,
-                            hasComprehensiveQuestions: !!message.metadata?.comprehensiveQuestions,
-                            metadataKeys: message.metadata ? Object.keys(message.metadata) : [],
-                            comprehensiveQuestionsKeys: message.metadata?.comprehensiveQuestions ? Object.keys(message.metadata.comprehensiveQuestions) : [],
-                            primaryStakeholdersCount: message.metadata?.comprehensiveQuestions?.primaryStakeholders?.length || 0,
-                            secondaryStakeholdersCount: message.metadata?.comprehensiveQuestions?.secondaryStakeholders?.length || 0,
-                            timeEstimate: message.metadata?.comprehensiveQuestions?.timeEstimate,
-                            fallbackPrimary: message.questions?.stakeholders?.primary?.length || 0,
-                            fallbackSecondary: message.questions?.stakeholders?.secondary?.length || 0
-                          });
-
-                          return (
-                            <ComprehensiveQuestionsComponent
-                              primaryStakeholders={
-                                message.metadata?.comprehensiveQuestions?.primaryStakeholders ||
-                                message.questions?.stakeholders?.primary ||
-                                []
-                              }
-                              secondaryStakeholders={
-                                message.metadata?.comprehensiveQuestions?.secondaryStakeholders ||
-                                message.questions?.stakeholders?.secondary ||
-                                []
-                              }
-                              timeEstimate={normalizeTimeEstimate(
-                                message.metadata?.comprehensiveQuestions?.timeEstimate ||
-                                message.questions?.estimatedTime
-                              )}
-                              businessContext={message.metadata?.businessContext}
-                              onExport={() => exportComprehensiveQuestions('txt')}
-                              onContinue={continueToAnalysis}
-                              onDashboard={async () => {
-                                // Save current session before navigating
-                                try {
-                                  await saveSession();
-                                } catch (error) {
-                                  console.error('Failed to save session:', error);
-                                }
-                                window.location.href = '/unified-dashboard/research';
-                              }}
-                            />
-                          );
-                        })()
+                        <ComprehensiveQuestionsComponent
+                          primaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.primaryStakeholders ||
+                            []
+                          }
+                          secondaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.secondaryStakeholders ||
+                            []
+                          }
+                          timeEstimate={normalizeTimeEstimate(
+                            message.metadata?.comprehensiveQuestions?.timeEstimate
+                          )}
+                          businessContext={message.metadata?.businessContext}
+                          onExport={() => exportComprehensiveQuestions('txt')}
+                          onContinue={continueToAnalysis}
+                          onDashboard={async () => {
+                            // Save current session before navigating
+                            try {
+                              await saveSession();
+                            } catch (error) {
+                              console.error('Failed to save session:', error);
+                            }
+                            window.location.href = '/unified-dashboard/research';
+                          }}
+                        />
                       ) : message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ? (
                         <EnhancedMultiStakeholderComponent
                           industry={message.metadata?.industry}
@@ -559,8 +619,7 @@ Ready for simulation bridge and interview analysis`;
                       ) : message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ? (
                         <StakeholderQuestionsComponent
                           stakeholders={normalizeStakeholdersForQuestions(
-                            message.metadata?.stakeholders ||
-                            message.questions?.stakeholders
+                            message.metadata?.stakeholders
                           )}
                           businessContext={message.metadata?.businessContext}
                           onExport={() => exportComprehensiveQuestions('txt')}
@@ -743,7 +802,12 @@ Ready for simulation bridge and interview analysis`;
                                 secondaryQuestions: parsedData.secondaryStakeholders.reduce((acc, s) =>
                                   acc + (s.questions.problemDiscovery?.length || 0) +
                                         (s.questions.solutionValidation?.length || 0) +
-                                        (s.questions.followUp?.length || 0), 0)
+                                        (s.questions.followUp?.length || 0), 0),
+                                breakdown: {
+                                  baseTime: totalQuestions * 7,
+                                  withBuffer: totalQuestions * 10,
+                                  perQuestion: 7
+                                }
                               };
 
                               return (
@@ -751,7 +815,7 @@ Ready for simulation bridge and interview analysis`;
                                   primaryStakeholders={parsedData.primaryStakeholders}
                                   secondaryStakeholders={parsedData.secondaryStakeholders}
                                   timeEstimate={timeEstimate}
-                                  businessContext={context.businessIdea}
+                                  businessContext={unifiedState.businessContext.businessIdea}
                                   onExport={() => exportComprehensiveQuestions('txt')}
                                   onDashboard={() => window.location.href = '/unified-dashboard/research'}
                                 />
@@ -767,7 +831,7 @@ Ready for simulation bridge and interview analysis`;
                       {!message.content.includes('_COMPONENT') && (
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-xs opacity-70">
-                            <ClientTimestamp timestamp={message.timestamp} />
+                            <ClientTimestamp timestamp={typeof message.timestamp === 'string' ? new Date(message.timestamp) : message.timestamp} />
                           </span>
                           {message.role === 'assistant' && (
                             <Button
@@ -921,7 +985,7 @@ Ready for simulation bridge and interview analysis`;
         <div className="hidden lg:block lg:col-span-1 min-h-0">
           <div className="h-full overflow-y-auto space-y-4 min-h-0">
             <ContextPanel
-              context={context}
+              context={unifiedState.businessContext}
               questions={currentQuestions || undefined}
               onExport={() => exportComprehensiveQuestions('txt')}
               onContinueToAnalysis={continueToAnalysis}

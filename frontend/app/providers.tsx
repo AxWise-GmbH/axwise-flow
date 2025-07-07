@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ToastProvider } from '@/components/providers/toast-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { UnifiedResearchProvider } from '@/lib/context/unified-research-context';
 
 import { getClerkProviderConfig } from '@/lib/clerk-config';
 
@@ -42,7 +43,9 @@ export function Providers({ children }: ProvidersProps): JSX.Element {
             disableTransitionOnChange
           >
             <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
-              {children}
+              <UnifiedResearchProvider>
+                {children}
+              </UnifiedResearchProvider>
             </ToastProvider>
           </ThemeProvider>
         </AuthProvider>
@@ -60,7 +63,9 @@ export function Providers({ children }: ProvidersProps): JSX.Element {
       disableTransitionOnChange
     >
       <ToastProvider defaultPosition="top-right" defaultDuration={5000}>
-        {children}
+        <UnifiedResearchProvider>
+          {children}
+        </UnifiedResearchProvider>
       </ToastProvider>
     </ThemeProvider>
   );

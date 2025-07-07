@@ -84,6 +84,7 @@ class ConversationContext(BaseModel):
 class ConversationMessage(BaseModel):
     """Simple message structure for conversation tracking"""
 
+    id: Optional[str] = Field(None, description="Message ID")
     role: str = Field(..., description="Message role: 'user' or 'assistant'")
     content: str = Field(..., description="Message content")
     timestamp: datetime = Field(default_factory=datetime.now)

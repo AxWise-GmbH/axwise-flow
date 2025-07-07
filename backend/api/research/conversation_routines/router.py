@@ -144,13 +144,18 @@ async def save_conversation_session(
         all_messages = []
 
         # Add existing messages from request
-        for msg in request.messages:
+        for i, msg in enumerate(request.messages):
             all_messages.append(
                 {
-                    "id": msg.id,
+                    "id": getattr(msg, "id", None)
+                    or f"msg_{i}_{int(datetime.now().timestamp() * 1000)}",
                     "role": msg.role,
                     "content": msg.content,
-                    "timestamp": msg.timestamp,
+                    "timestamp": (
+                        msg.timestamp.isoformat()
+                        if hasattr(msg.timestamp, "isoformat")
+                        else str(msg.timestamp)
+                    ),
                     "metadata": getattr(msg, "metadata", {}),
                 }
             )

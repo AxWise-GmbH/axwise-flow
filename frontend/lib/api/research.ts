@@ -421,7 +421,7 @@ export async function getResearchSessions(limit: number = 20, userId?: string): 
         updated_at: session.updated_at,
         completed_at: session.completed_at,
         message_count: session.message_count,
-        messages: [], // Messages loaded separately
+        messages: session.messages || [], // Preserve messages from backend
         isLocal: false
       }));
 

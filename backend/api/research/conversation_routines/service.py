@@ -321,6 +321,59 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 agent_response = await self.agent.run(full_prompt)
                 response_content = str(agent_response.data)
                 logger.info(f"🤖 Agent response: {response_content[:200]}...")
+
+                # Debug: Log the full agent response structure
+                logger.info(f"🔍 Agent response type: {type(agent_response)}")
+                logger.info(f"🔍 Agent response attributes: {dir(agent_response)}")
+
+                # Check if the agent used tools to generate questions
+                questions_generated = False
+                generated_questions = None
+
+                # Try different ways to access tool results
+                if hasattr(agent_response, "all_messages"):
+                    logger.info("🔍 Checking all_messages for tool calls...")
+                    for i, message in enumerate(agent_response.all_messages()):
+                        logger.info(f"🔍 Message {i}: {type(message)} - {dir(message)}")
+                        if hasattr(message, "tool_calls") and message.tool_calls:
+                            logger.info(
+                                f"🔍 Found tool calls: {len(message.tool_calls)}"
+                            )
+                            for tool_call in message.tool_calls:
+                                logger.info(f"🔍 Tool call: {tool_call.tool_name}")
+                                if (
+                                    tool_call.tool_name
+                                    == "generate_stakeholder_questions"
+                                ):
+                                    logger.info(
+                                        "🎯 Found generate_stakeholder_questions tool call"
+                                    )
+                                    questions_generated = True
+
+                # Also check if there are any tool results directly
+                if hasattr(agent_response, "tool_results"):
+                    logger.info(
+                        f"🔍 Found tool_results: {len(agent_response.tool_results)}"
+                    )
+                    for result in agent_response.tool_results:
+                        logger.info(f"🔍 Tool result: {result.tool_name}")
+                        if result.tool_name == "generate_stakeholder_questions":
+                            generated_questions = result.data
+                            questions_generated = True
+                            logger.info(
+                                f"✅ Questions generated via tool: {type(generated_questions)}"
+                            )
+
+                # Check if the response content indicates questions were generated
+                if (
+                    "Here's the breakdown by primary and secondary stakeholders"
+                    in response_content
+                ):
+                    logger.info(
+                        "🎯 Response content indicates questions were generated"
+                    )
+                    questions_generated = True
+
             except Exception as e:
                 logger.error(f"🔴 Agent execution failed: {e}")
                 # Fallback to direct LLM call
@@ -331,9 +384,7 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 )
                 response_content = response_data.get("text", "")
 
-            # Check if questions should be generated
-            questions_generated = False
-            generated_questions = None
+            # Questions variables are now initialized in the try block above
 
             # Check for validation confirmation signals
             user_input_lower = request.input.lower().strip()
