@@ -79,7 +79,7 @@ class DataFormatter:
                 "age": persona.age,
                 "background": persona.background,
                 "stakeholder_type": persona.stakeholder_type,
-                "demographics": persona.demographic_details,
+                "demographics": persona.demographic_details.model_dump(),
                 "profile": {
                     "motivations": persona.motivations,
                     "pain_points": persona.pain_points,

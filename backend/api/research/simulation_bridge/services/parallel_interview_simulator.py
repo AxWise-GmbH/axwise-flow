@@ -200,11 +200,11 @@ Return a complete SimulatedInterview object with all responses and metadata."""
             f"Starting parallel interview simulation for {len(personas)} personas"
         )
 
-        # Create stakeholder lookup
+        # Create stakeholder lookup using stakeholder names
         stakeholder_lookup = {}
         for category, stakeholder_list in stakeholders.items():
             for stakeholder in stakeholder_list:
-                stakeholder_lookup[stakeholder.id] = stakeholder
+                stakeholder_lookup[stakeholder.name] = stakeholder
 
         # Filter personas that have matching stakeholders
         valid_personas = []

@@ -32,6 +32,7 @@ from backend.infrastructure.persistence.simulation_repository import (
     SimulationRepository,
 )
 from backend.infrastructure.persistence.unit_of_work import UnitOfWork
+from backend.database import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,11 @@ class SimulationOrchestrator:
         5. Secondary stakeholders with their questions
 
         For each stakeholder, extract:
-        - Name (e.g., "Account Manager", "IT Systems Administrator")
+        - Name (preserve the EXACT stakeholder name as written in the questionnaire)
         - Description (brief description of their role)
         - Questions (all questions for that stakeholder, cleaned up)
+
+        IMPORTANT: Use the exact stakeholder names from the questionnaire. Do not modify or standardize them.
 
         Content:
         {content}
@@ -127,6 +130,14 @@ class SimulationOrchestrator:
         logger.info("🤖 Using PydanticAI to parse questionnaire")
         result = await parser_agent.run(prompt)
         parsed = result.data
+
+        logger.info(f"📋 Parsed questionnaire - Business idea: {parsed.business_idea}")
+        logger.info(
+            f"📋 Parsed questionnaire - Primary stakeholders: {[s.name for s in parsed.primary_stakeholders]}"
+        )
+        logger.info(
+            f"📋 Parsed questionnaire - Secondary stakeholders: {[s.name for s in parsed.secondary_stakeholders]}"
+        )
 
         # Count total questions
         total_questions = sum(
@@ -149,7 +160,7 @@ class SimulationOrchestrator:
             )
             primary_stakeholders.append(stakeholder)
             logger.info(
-                f"Primary stakeholder: {stakeholder_data.name} ({len(stakeholder_data.questions)} questions)"
+                f"Primary stakeholder: '{stakeholder_data.name}' ({len(stakeholder_data.questions)} questions)"
             )
 
         # Create secondary stakeholders
@@ -163,7 +174,7 @@ class SimulationOrchestrator:
             )
             secondary_stakeholders.append(stakeholder)
             logger.info(
-                f"Secondary stakeholder: {stakeholder_data.name} ({len(stakeholder_data.questions)} questions)"
+                f"Secondary stakeholder: '{stakeholder_data.name}' ({len(stakeholder_data.questions)} questions)"
             )
 
         questions_data = QuestionsData(
@@ -269,7 +280,7 @@ class SimulationOrchestrator:
                 metadata={
                     "total_personas": len(personas),
                     "total_interviews": len(interviews),
-                    "simulation_config": request.config.dict(),
+                    "simulation_config": request.config.model_dump(),
                     "created_at": datetime.utcnow().isoformat(),
                 },
                 personas=personas,
@@ -298,7 +309,7 @@ class SimulationOrchestrator:
             )
 
     async def simulate_with_persistence(
-        self, request: SimulationRequest, user_id: str = "anonymous"
+        self, request: SimulationRequest, user_id: str = "testuser123"
     ) -> SimulationResponse:
         """
         Enhanced simulation with database persistence and parallel processing.
@@ -309,7 +320,7 @@ class SimulationOrchestrator:
             logger.info(f"Starting enhanced simulation: {simulation_id}")
 
             # Initialize database connection
-            async with UnitOfWork() as uow:
+            async with UnitOfWork(SessionLocal) as uow:
                 simulation_repo = SimulationRepository(uow.session)
 
                 # Create simulation record
@@ -317,14 +328,16 @@ class SimulationOrchestrator:
                     simulation_id=simulation_id,
                     user_id=user_id,
                     business_context=(
-                        request.business_context.dict()
+                        request.business_context.model_dump()
                         if request.business_context
                         else {}
                     ),
                     questions_data=(
-                        request.questions_data.dict() if request.questions_data else {}
+                        request.questions_data.model_dump()
+                        if request.questions_data
+                        else {}
                     ),
-                    simulation_config=request.config.dict(),
+                    simulation_config=request.config.model_dump(),
                 )
 
                 await uow.commit()
@@ -416,13 +429,13 @@ class SimulationOrchestrator:
                 simulation_id, "saving_results", 95, "Saving results to database"
             )
 
-            async with UnitOfWork() as uow:
+            async with UnitOfWork(SessionLocal) as uow:
                 simulation_repo = SimulationRepository(uow.session)
                 await simulation_repo.update_simulation_results(
                     simulation_id=simulation_id,
-                    personas=[p.dict() for p in personas],
-                    interviews=[i.dict() for i in interviews],
-                    insights=insights.dict() if insights else None,
+                    personas=[p.model_dump() for p in personas],
+                    interviews=[i.model_dump() for i in interviews],
+                    insights=insights.model_dump() if insights else None,
                     formatted_data=formatted_data,
                 )
                 await uow.commit()
@@ -442,7 +455,7 @@ class SimulationOrchestrator:
                 metadata={
                     "total_personas": len(personas),
                     "total_interviews": len(interviews),
-                    "simulation_config": request.config.dict(),
+                    "simulation_config": request.config.model_dump(),
                     "created_at": datetime.utcnow().isoformat(),
                     "processing_mode": (
                         "parallel" if self.use_parallel else "sequential"
@@ -467,7 +480,7 @@ class SimulationOrchestrator:
 
             # Mark as failed in database
             try:
-                async with UnitOfWork() as uow:
+                async with UnitOfWork(SessionLocal) as uow:
                     simulation_repo = SimulationRepository(uow.session)
                     await simulation_repo.mark_simulation_failed(simulation_id, str(e))
                     await uow.commit()

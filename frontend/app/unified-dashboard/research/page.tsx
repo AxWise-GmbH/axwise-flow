@@ -177,6 +177,19 @@ export default function InterviewSimulationPage() {
       if (response.ok) {
         setSuccess('Simulation completed successfully!');
         setLastSimulationResult(result);
+
+        // Save simulation result to localStorage for simulation history
+        const existingResults = JSON.parse(localStorage.getItem('simulation_results') || '[]');
+        const newSimulationEntry = {
+          simulation_id: result.simulation_id,
+          timestamp: new Date().toISOString(),
+          results: result,
+          source: 'questionnaire_upload'
+        };
+        existingResults.push(newSimulationEntry);
+        localStorage.setItem('simulation_results', JSON.stringify(existingResults));
+        console.log('💾 Saved simulation to localStorage:', result.simulation_id);
+
         loadCompletedSimulations();
       } else {
         setError(result.detail || result.error || 'Failed to process questionnaire');
@@ -205,6 +218,19 @@ export default function InterviewSimulationPage() {
             setLastSimulationResult(result);
             setSuccess('Simulation completed successfully!');
             setCompletedInterviews(result.interviews || []);
+
+            // Save simulation result to localStorage for simulation history
+            const existingResults = JSON.parse(localStorage.getItem('simulation_results') || '[]');
+            const newSimulationEntry = {
+              simulation_id: result.simulation_id,
+              timestamp: new Date().toISOString(),
+              results: result,
+              source: 'polling_completion'
+            };
+            existingResults.push(newSimulationEntry);
+            localStorage.setItem('simulation_results', JSON.stringify(existingResults));
+            console.log('💾 Saved simulation to localStorage:', result.simulation_id);
+
             loadCompletedSimulations();
           }
           setCurrentSimulationId(null);
@@ -380,6 +406,19 @@ export default function InterviewSimulationPage() {
         setSuccess('Simulation completed successfully!');
         setLastSimulationResult(result);
         setCompletedInterviews(result.interviews || result.data?.interviews || []);
+
+        // Save simulation result to localStorage for simulation history
+        const existingResults = JSON.parse(localStorage.getItem('simulation_results') || '[]');
+        const newSimulationEntry = {
+          simulation_id: result.simulation_id,
+          timestamp: new Date().toISOString(),
+          results: result,
+          source: 'direct_completion'
+        };
+        existingResults.push(newSimulationEntry);
+        localStorage.setItem('simulation_results', JSON.stringify(existingResults));
+        console.log('💾 Saved simulation to localStorage:', result.simulation_id);
+
         loadCompletedSimulations();
         setIsProcessing(false);
       }

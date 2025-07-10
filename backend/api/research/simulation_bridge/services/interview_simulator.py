@@ -205,22 +205,34 @@ Create a realistic interview that feels like a genuine conversation with this pe
 
         all_interviews = []
 
-        # Create stakeholder lookup
+        # Create stakeholder lookup using stakeholder names
         stakeholder_lookup = {}
         for category, stakeholder_list in stakeholders.items():
             for stakeholder in stakeholder_list:
-                stakeholder_lookup[stakeholder.id] = stakeholder
+                stakeholder_lookup[stakeholder.name] = stakeholder
+                logger.info(
+                    f"🔍 Added stakeholder to lookup: '{stakeholder.name}' (category: {category})"
+                )
 
         for persona in personas:
+            logger.info(
+                f"🎭 Processing persona '{persona.name}' with stakeholder_type '{persona.stakeholder_type}'"
+            )
             if persona.stakeholder_type in stakeholder_lookup:
                 stakeholder = stakeholder_lookup[persona.stakeholder_type]
+                logger.info(
+                    f"✅ Found matching stakeholder '{stakeholder.name}' for persona '{persona.name}'"
+                )
                 interview = await self.simulate_interview(
                     persona, stakeholder, business_context, config
                 )
                 all_interviews.append(interview)
             else:
                 logger.warning(
-                    f"No stakeholder found for persona {persona.name} with type {persona.stakeholder_type}"
+                    f"❌ No stakeholder found for persona '{persona.name}' with type '{persona.stakeholder_type}'"
+                )
+                logger.warning(
+                    f"Available stakeholder names: {list(stakeholder_lookup.keys())}"
                 )
 
         logger.info(f"Completed {len(all_interviews)} simulated interviews")

@@ -55,7 +55,12 @@ interface SelectedInterview {
   simulationId: string;
   stakeholderType: string;
   interview: InterviewData;
-  businessContext?: string;
+  businessContext?: string | {
+    business_idea?: string;
+    target_customer?: string;
+    problem?: string;
+    industry?: string;
+  };
 }
 
 export default function SimulationHistoryPage(): JSX.Element {
@@ -197,7 +202,10 @@ export default function SimulationHistoryPage(): JSX.Element {
 
               simulationData.interviews?.forEach((interview: any) => {
                 const stakeholderType = interview.stakeholder_type || 'Unknown';
+                // Check both .people and .data.personas for persona data
                 const persona = simulationData.people?.find((p: any) =>
+                  p.id === interview.persona_id || p.id === interview.person_id
+                ) || simulationData.data?.personas?.find((p: any) =>
                   p.id === interview.persona_id || p.id === interview.person_id
                 );
 
@@ -208,7 +216,13 @@ export default function SimulationHistoryPage(): JSX.Element {
                   found_persona: !!persona,
                   persona_name: persona?.name,
                   persona_age: persona?.age,
-                  persona_demographic_details: persona?.demographic_details
+                  persona_demographic_details: persona?.demographic_details,
+                  persona_demographics: persona?.demographics,
+                  persona_data: persona,
+                  available_people: [
+                    ...(simulationData.people?.map((p: any) => ({ id: p.id, name: p.name })) || []),
+                    ...(simulationData.data?.personas?.map((p: any) => ({ id: p.id, name: p.name })) || [])
+                  ]
                 });
 
                 const interviewData: InterviewData = {
@@ -220,7 +234,7 @@ export default function SimulationHistoryPage(): JSX.Element {
                     role: persona?.role || persona?.job_title || stakeholderType,
                     experience: persona?.experience || persona?.years_experience || '',
                     age: persona?.age,
-                    demographic_details: persona?.demographic_details,
+                    demographic_details: persona?.demographic_details || persona?.demographics,
                   },
                   responses: interview.responses || [],
                 };
@@ -248,7 +262,10 @@ export default function SimulationHistoryPage(): JSX.Element {
 
                   detailData.interviews?.forEach((interview: any) => {
                     const stakeholderType = interview.stakeholder_type || 'Unknown';
+                    // Check both .people and .data.personas for persona data
                     const persona = detailData.people?.find((p: any) =>
+                      p.id === interview.persona_id || p.id === interview.person_id
+                    ) || detailData.data?.personas?.find((p: any) =>
                       p.id === interview.persona_id || p.id === interview.person_id
                     );
 
@@ -257,7 +274,12 @@ export default function SimulationHistoryPage(): JSX.Element {
                       persona_id: interview.persona_id,
                       person_id: interview.person_id,
                       found_persona: !!persona,
-                      persona_name: persona?.name
+                      persona_name: persona?.name,
+                      persona_data: persona,
+                      available_people: [
+                        ...(detailData.people?.map((p: any) => ({ id: p.id, name: p.name })) || []),
+                        ...(detailData.data?.personas?.map((p: any) => ({ id: p.id, name: p.name })) || [])
+                      ]
                     });
 
                     const interviewData: InterviewData = {
@@ -269,7 +291,7 @@ export default function SimulationHistoryPage(): JSX.Element {
                         role: persona?.role || persona?.job_title || stakeholderType,
                         experience: persona?.experience || persona?.years_experience || '',
                         age: persona?.age,
-                        demographic_details: persona?.demographic_details,
+                        demographic_details: persona?.demographic_details || persona?.demographics,
                       },
                       responses: interview.responses || [],
                     };
@@ -381,24 +403,53 @@ export default function SimulationHistoryPage(): JSX.Element {
         throw new Error('No interview data found');
       }
 
-      // Generate clean interview TXT content
+      // Generate comprehensive interview TXT content with full context
       const content = result.interviews.map((interview: any, index: number) => {
         const persona = result.people?.find((p: any) => p.id === interview.persona_id) ||
                        result.personas?.find((p: any) => p.id === interview.persona_id);
 
+        // Format demographic details
+        const formatDemographics = (demographics: any) => {
+          if (!demographics) return 'Not specified';
+          const items = [];
+          if (demographics.age_range) items.push(`Age: ${demographics.age_range}`);
+          if (demographics.education) items.push(`Education: ${demographics.education}`);
+          if (demographics.location) items.push(`Location: ${demographics.location}`);
+          if (demographics.income_level) items.push(`Income: ${demographics.income_level}`);
+          if (demographics.industry_experience) items.push(`Industry Experience: ${demographics.industry_experience}`);
+          if (demographics.company_size) items.push(`Company Size: ${demographics.company_size}`);
+          return items.length > 0 ? items.join(', ') : 'Not specified';
+        };
+
+        // Get business context from simulation
+        const simulation = simulationHistory.find(s => s.id === selectedInterview?.simulationId);
+        const businessContext = simulation?.businessContext || selectedInterview?.businessContext || 'Not available';
+
         return `INTERVIEW ${index + 1}
 ================
 
-Persona: ${persona?.name || 'Unknown'}
-Stakeholder Type: ${interview.stakeholder_type}
-Role: ${persona?.role || 'Unknown'}
+BUSINESS CONTEXT:
+-----------------
+${businessContext}
 
-RESPONSES:
-----------
+PERSONA INFORMATION:
+-------------------
+Name: ${persona?.name || 'Unknown'}
+Stakeholder Category: ${interview.stakeholder_type}
+Role/Position: ${persona?.role || 'Unknown'}
+Age: ${persona?.age || 'Not specified'}
+Background: ${persona?.background || 'Not specified'}
 
-${interview.responses.map((response: any, i: number) => `Q${i + 1}: ${response.question}
+DEMOGRAPHIC DETAILS:
+-------------------
+${formatDemographics(persona?.demographic_details || persona?.demographics)}
 
-A${i + 1}: ${response.response}
+INTERVIEW DIALOGUE:
+------------------
+
+${interview.responses.map((response: any) => `Researcher: ${response.question}
+
+${persona?.name || 'Interviewee'}: ${response.response}
 `).join('\n---\n')}
 
 ================
@@ -453,7 +504,12 @@ A${i + 1}: ${response.response}
             timestamp: item.timestamp,
             hasResults: !!item.results,
             hasInterviews: !!item.results?.interviews,
-            interviewCount: item.results?.interviews?.length || 0
+            interviewCount: item.results?.interviews?.length || 0,
+            hasPeople: !!item.results?.people,
+            peopleCount: item.results?.people?.length || 0,
+            hasPersonas: !!item.results?.personas,
+            personasCount: item.results?.personas?.length || 0,
+            businessContext: item.results?.business_context
           });
         });
       } catch (e) {
@@ -575,8 +631,17 @@ A${i + 1}: ${response.response}
                               >
                                 <div className="flex items-center gap-2">
                                   <User className="h-3 w-3 flex-shrink-0" />
-                                  <span className="truncate font-medium">{interview.personaName}</span>
-                                  <MessageSquare className="h-3 w-3 flex-shrink-0 ml-auto" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="truncate font-medium">
+                                      {interview.personaName}
+                                    </div>
+                                    {interview.personaDetails.role && interview.personaDetails.role !== stakeholder.type && (
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {interview.personaDetails.role}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <MessageSquare className="h-3 w-3 flex-shrink-0" />
                                 </div>
                                 {demographicSummary && (
                                   <div className="text-xs text-muted-foreground ml-5 truncate mt-1">
@@ -648,11 +713,59 @@ A${i + 1}: ${response.response}
               {/* Business Context */}
               {selectedInterview.businessContext && (
                 <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <span className="font-medium text-blue-900 dark:text-blue-100 text-sm">Business Context</span>
                   </div>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">{selectedInterview.businessContext}</p>
+                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+                    {/* Try to parse structured business context if it's JSON-like */}
+                    {(() => {
+                      try {
+                        // Check if it's a structured object or just a string
+                        if (typeof selectedInterview.businessContext === 'object') {
+                          const context = selectedInterview.businessContext;
+                          return (
+                            <div className="space-y-2">
+                              {context.business_idea && (
+                                <div><span className="font-medium">Business Idea:</span> {context.business_idea}</div>
+                              )}
+                              {context.target_customer && (
+                                <div><span className="font-medium">Target Customer:</span> {context.target_customer}</div>
+                              )}
+                              {context.problem && (
+                                <div><span className="font-medium">Problem:</span> {context.problem}</div>
+                              )}
+                              {context.industry && (
+                                <div><span className="font-medium">Industry:</span> {context.industry}</div>
+                              )}
+                            </div>
+                          );
+                        } else {
+                          // Try to parse as JSON string
+                          const parsed = JSON.parse(selectedInterview.businessContext);
+                          return (
+                            <div className="space-y-2">
+                              {parsed.business_idea && (
+                                <div><span className="font-medium">Business Idea:</span> {parsed.business_idea}</div>
+                              )}
+                              {parsed.target_customer && (
+                                <div><span className="font-medium">Target Customer:</span> {parsed.target_customer}</div>
+                              )}
+                              {parsed.problem && (
+                                <div><span className="font-medium">Problem:</span> {parsed.problem}</div>
+                              )}
+                              {parsed.industry && (
+                                <div><span className="font-medium">Industry:</span> {parsed.industry}</div>
+                              )}
+                            </div>
+                          );
+                        }
+                      } catch {
+                        // Fallback to displaying as plain text
+                        return <p>{String(selectedInterview.businessContext)}</p>;
+                      }
+                    })()}
+                  </div>
                 </div>
               )}
 
@@ -708,13 +821,16 @@ A${i + 1}: ${response.response}
                   <div key={index} className="space-y-4">
                     {/* Question */}
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="h-4 w-4" />
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                        <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <div className="bg-muted p-4 rounded-lg">
-                          <p className="text-sm font-medium mb-1">Researcher</p>
-                          <p>{response.question}</p>
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Researcher</span>
+                            <span className="text-xs text-blue-600 dark:text-blue-400">Q{index + 1}</span>
+                          </div>
+                          <p className="text-blue-800 dark:text-blue-200">{response.question}</p>
                         </div>
                       </div>
                     </div>
@@ -726,9 +842,15 @@ A${i + 1}: ${response.response}
                       </div>
                       <div className="flex-1">
                         <div className="bg-background border p-4 rounded-lg">
-                          <p className="text-sm font-medium mb-1 text-primary">
-                            {selectedInterview.interview.personaDetails.name}
-                          </p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-primary">
+                              {selectedInterview.interview.personaDetails.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {selectedInterview.stakeholderType}
+                            </span>
+                            <span className="text-xs text-muted-foreground">A{index + 1}</span>
+                          </div>
                           <p>{response.response}</p>
                         </div>
                       </div>

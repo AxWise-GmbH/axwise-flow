@@ -116,7 +116,11 @@ Keep responses concise and realistic."""
 
             for person in people:
                 person.id = str(uuid.uuid4())
-                person.stakeholder_type = stakeholder.id
+                # Set stakeholder type to the stakeholder name for better readability
+                person.stakeholder_type = stakeholder.name
+                logger.info(
+                    f"🏷️ Assigned stakeholder_type '{stakeholder.name}' to persona '{person.name}'"
+                )
 
                 # Track names for uniqueness
                 if global_name_uniqueness:

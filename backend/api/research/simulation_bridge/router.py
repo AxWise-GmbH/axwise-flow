@@ -105,8 +105,10 @@ async def create_simulation(
                 status_code=400, detail="Business idea is required for simulation"
             )
 
-        # Run simulation
-        response = await orchestrator.run_simulation(request)
+        # Run simulation with database persistence
+        response = await orchestrator.simulate_with_persistence(
+            request, user_id="anonymous"
+        )
 
         if not response.success:
             raise HTTPException(status_code=500, detail=response.message)
@@ -275,11 +277,50 @@ async def cancel_simulation(simulation_id: str) -> Dict[str, Any]:
 @router.get("/completed")
 async def list_completed_simulations() -> Dict[str, Any]:
     """
-    List all completed simulations.
+    List all completed simulations from both memory and database.
     """
     try:
-        completed = orchestrator.list_completed_simulations()
-        return {"success": True, "simulations": completed, "count": len(completed)}
+        # Get from memory first (for recent simulations)
+        memory_completed = orchestrator.list_completed_simulations()
+
+        # Also get from database (for persistent storage)
+        from backend.infrastructure.persistence.unit_of_work import UnitOfWork
+        from backend.infrastructure.persistence.simulation_repository import (
+            SimulationRepository,
+        )
+        from backend.database import SessionLocal
+
+        db_completed = {}
+        try:
+            async with UnitOfWork(SessionLocal) as uow:
+                simulation_repo = SimulationRepository(uow.session)
+                db_simulations = await simulation_repo.get_completed_simulations()
+
+                for sim in db_simulations:
+                    db_completed[sim.simulation_id] = {
+                        "simulation_id": sim.simulation_id,
+                        "success": sim.status == "completed",
+                        "message": "Simulation completed successfully",
+                        "created_at": (
+                            sim.completed_at.isoformat()
+                            if sim.completed_at
+                            else sim.created_at.isoformat()
+                        ),
+                        "total_personas": sim.total_personas or 0,
+                        "total_interviews": sim.total_interviews or 0,
+                        "business_context": sim.business_context,
+                    }
+        except Exception as db_error:
+            logger.warning(f"Failed to fetch from database: {db_error}")
+
+        # Combine both sources (memory takes priority)
+        all_completed = {**db_completed, **memory_completed}
+
+        return {
+            "success": True,
+            "simulations": all_completed,
+            "count": len(all_completed),
+        }
     except Exception as e:
         logger.error(f"Failed to list completed simulations: {str(e)}")
         raise HTTPException(
@@ -290,18 +331,57 @@ async def list_completed_simulations() -> Dict[str, Any]:
 @router.get("/completed/{simulation_id}")
 async def get_completed_simulation(simulation_id: str) -> SimulationResponse:
     """
-    Get a completed simulation result by ID.
+    Get a completed simulation result by ID from memory or database.
     """
     try:
+        # First try to get from memory (for recent simulations)
         result = orchestrator.get_completed_simulation(simulation_id)
 
-        if not result:
-            raise HTTPException(
-                status_code=404, detail="Completed simulation not found"
+        if result:
+            logger.info(f"Retrieved completed simulation from memory: {simulation_id}")
+            return result
+
+        # If not in memory, try database
+        from backend.infrastructure.persistence.unit_of_work import UnitOfWork
+        from backend.infrastructure.persistence.simulation_repository import (
+            SimulationRepository,
+        )
+        from backend.database import SessionLocal
+
+        async with UnitOfWork(SessionLocal) as uow:
+            simulation_repo = SimulationRepository(uow.session)
+            db_simulation = await simulation_repo.get_by_simulation_id(simulation_id)
+
+            if not db_simulation or db_simulation.status != "completed":
+                raise HTTPException(
+                    status_code=404, detail="Completed simulation not found"
+                )
+
+            # Convert database record to SimulationResponse
+            response = SimulationResponse(
+                success=True,
+                message="Simulation completed successfully",
+                simulation_id=db_simulation.simulation_id,
+                data=db_simulation.formatted_data or {},
+                metadata={
+                    "total_personas": db_simulation.total_personas or 0,
+                    "total_interviews": db_simulation.total_interviews or 0,
+                    "created_at": (
+                        db_simulation.completed_at.isoformat()
+                        if db_simulation.completed_at
+                        else db_simulation.created_at.isoformat()
+                    ),
+                },
+                people=db_simulation.personas or [],
+                interviews=db_simulation.interviews or [],
+                simulation_insights=db_simulation.insights,
+                recommendations=[],
             )
 
-        logger.info(f"Retrieved completed simulation: {simulation_id}")
-        return result
+            logger.info(
+                f"Retrieved completed simulation from database: {simulation_id}"
+            )
+            return response
 
     except HTTPException:
         raise
