@@ -115,7 +115,7 @@ export const HeroSection = () => {
               <span className="text-xs font-medium text-foreground">
                 <span className="text-green-600 dark:text-green-400 font-semibold">AxWise is open source</span>
                 {" • "}
-                <span className="text-muted-foreground">Open source release coming soon in June 2025</span>
+                <span className="text-muted-foreground">Open source version coming when ready</span>
               </span>
               <Heart className="w-3 h-3 text-red-500" />
             </div>

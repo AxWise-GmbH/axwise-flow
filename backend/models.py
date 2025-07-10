@@ -175,11 +175,16 @@ class CachedPRD(Base):
     """
     Model for storing cached PRD data.
     """
+
     __tablename__ = "cached_prds"
 
     id = Column(Integer, primary_key=True, index=True)
-    result_id = Column(Integer, ForeignKey("analysis_results.result_id"), nullable=False)
-    prd_type = Column(String(20), nullable=False)  # 'operational', 'technical', or 'both'
+    result_id = Column(
+        Integer, ForeignKey("analysis_results.result_id"), nullable=False
+    )
+    prd_type = Column(
+        String(20), nullable=False
+    )  # 'operational', 'technical', or 'both'
     prd_data = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -189,4 +194,44 @@ class CachedPRD(Base):
 
     class Config:
         """Pydantic config"""
+
         orm_mode = True
+
+
+class SimulationData(Base):
+    """
+    Model for storing simulation results with proper persistence.
+    """
+
+    __tablename__ = "simulation_data"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    simulation_id = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.user_id"))
+    status = Column(String, default="pending")  # pending, completed, failed
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Configuration and context
+    business_context = Column(JSON)
+    questions_data = Column(JSON)
+    simulation_config = Column(JSON)
+
+    # Results
+    personas = Column(JSON)  # List of generated personas
+    interviews = Column(JSON)  # List of completed interviews
+    insights = Column(JSON)  # Generated insights
+    formatted_data = Column(JSON)  # Analysis-ready data
+
+    # Metadata
+    total_personas = Column(Integer, default=0)
+    total_interviews = Column(Integer, default=0)
+    error_message = Column(Text, nullable=True)
+
+    user = relationship("User")
+
+    @property
+    def duration_minutes(self):
+        if self.completed_at and self.created_at:
+            return int((self.completed_at - self.created_at).total_seconds() / 60)
+        return None

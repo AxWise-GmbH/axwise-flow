@@ -103,9 +103,10 @@ Return a complete SimulatedInterview object with all responses and metadata."""
                 f"Interview type: {type(interview)}, responses: {len(interview.responses) if hasattr(interview, 'responses') else 'No responses attr'}"
             )
 
-            # Ensure persona_id and stakeholder_type are set
-            interview.persona_id = persona.id
-            interview.stakeholder_type = persona.stakeholder_type
+            # Ensure person_id and stakeholder_type are set
+            interview.person_id = persona.id
+            # Use stakeholder name instead of generic ID for better readability
+            interview.stakeholder_type = stakeholder.name
 
             # Calculate realistic interview duration
             interview.interview_duration_minutes = self._calculate_duration(

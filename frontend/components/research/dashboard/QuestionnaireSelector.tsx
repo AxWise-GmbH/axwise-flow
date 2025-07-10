@@ -54,30 +54,85 @@ export function QuestionnaireSelector({
       // Try to parse as JSON first
       try {
         parsedData = JSON.parse(fileContent);
-      } catch {
-        // If JSON parsing fails, treat as text and create a simple structure
-        const lines = fileContent.split('\n').filter(line => line.trim());
-        parsedData = {
-          success: true,
-          message: 'Questions loaded from text file',
-          questions: {
-            primaryStakeholders: [{
-              name: 'Primary Stakeholder',
-              description: 'Stakeholder from uploaded file',
-              questions: {
-                problemDiscovery: lines.slice(0, Math.ceil(lines.length / 2)),
-                solutionValidation: lines.slice(Math.ceil(lines.length / 2)),
-                followUp: []
+
+        // Validate JSON structure
+        if (!parsedData.questions || !parsedData.questions.primaryStakeholders) {
+          throw new Error('Invalid JSON questionnaire format');
+        }
+      } catch (jsonError) {
+        // If JSON parsing fails, use backend's PydanticAI parser for structured text
+        console.log('JSON parsing failed, using backend parser for structured questionnaire');
+
+        try {
+          const response = await fetch('/api/research/simulation-bridge/parse-questionnaire', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: fileContent,
+              config: {
+                depth: "detailed",
+                people_per_stakeholder: 5,
+                response_style: "realistic",
+                include_insights: true,
+                temperature: 0.7
               }
-            }],
-            secondaryStakeholders: []
-          },
-          metadata: {
-            total_questions: lines.length,
-            generation_method: 'file_upload',
-            conversation_routine: false
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Backend parsing failed: ${response.statusText}`);
           }
-        };
+
+          const backendResult = await response.json();
+
+          // Transform backend result to frontend format
+          parsedData = {
+            success: true,
+            message: 'Questionnaire parsed successfully',
+            questions: {
+              primaryStakeholders: backendResult.questions_data.stakeholders.primary || [],
+              secondaryStakeholders: backendResult.questions_data.stakeholders.secondary || []
+            },
+            metadata: {
+              total_questions: backendResult.questions_data.stakeholders.primary?.reduce(
+                (total: number, stakeholder: any) => total + (stakeholder.questions?.length || 0), 0
+              ) || 0,
+              generation_method: 'file_upload_parsed',
+              conversation_routine: false,
+              business_context: backendResult.business_context
+            }
+          };
+        } catch (backendError) {
+          console.error('Backend parsing also failed:', backendError);
+
+          // Final fallback: basic text parsing
+          console.log('Using fallback basic text parsing');
+          const lines = fileContent.split('\n').filter(line => line.trim());
+          parsedData = {
+            success: true,
+            message: 'Questions loaded from text file (basic parsing)',
+            questions: {
+              primaryStakeholders: [{
+                id: 'primary_stakeholder',
+                name: 'Primary Stakeholder',
+                description: 'Stakeholder from uploaded file',
+                questions: {
+                  problemDiscovery: lines.slice(0, Math.ceil(lines.length / 2)),
+                  solutionValidation: lines.slice(Math.ceil(lines.length / 2)),
+                  followUp: []
+                }
+              }],
+              secondaryStakeholders: []
+            },
+            metadata: {
+              total_questions: lines.length,
+              generation_method: 'file_upload_fallback',
+              conversation_routine: false
+            }
+          };
+        }
       }
 
       // Validate the structure
@@ -110,7 +165,7 @@ export function QuestionnaireSelector({
     if (!questions) return null;
 
     const totalQuestions = questions.primaryStakeholders?.reduce((total: number, stakeholder: any) => {
-      return total + 
+      return total +
         (stakeholder.questions?.problemDiscovery?.length || 0) +
         (stakeholder.questions?.solutionValidation?.length || 0) +
         (stakeholder.questions?.followUp?.length || 0);
@@ -125,7 +180,7 @@ export function QuestionnaireSelector({
             {totalQuestions} Questions
           </Badge>
         </div>
-        
+
         <ScrollArea className="h-32">
           <div className="space-y-2 pr-4">
             {questions.primaryStakeholders?.map((stakeholder: any, index: number) => (
@@ -136,8 +191,8 @@ export function QuestionnaireSelector({
                   <Badge variant="outline" className="text-xs">Primary</Badge>
                 </div>
                 <div className="text-muted-foreground">
-                  {(stakeholder.questions?.problemDiscovery?.length || 0) + 
-                   (stakeholder.questions?.solutionValidation?.length || 0) + 
+                  {(stakeholder.questions?.problemDiscovery?.length || 0) +
+                   (stakeholder.questions?.solutionValidation?.length || 0) +
                    (stakeholder.questions?.followUp?.length || 0)} questions
                 </div>
               </div>
@@ -150,8 +205,8 @@ export function QuestionnaireSelector({
                   <Badge variant="outline" className="text-xs">Secondary</Badge>
                 </div>
                 <div className="text-muted-foreground">
-                  {(stakeholder.questions?.problemDiscovery?.length || 0) + 
-                   (stakeholder.questions?.solutionValidation?.length || 0) + 
+                  {(stakeholder.questions?.problemDiscovery?.length || 0) +
+                   (stakeholder.questions?.solutionValidation?.length || 0) +
                    (stakeholder.questions?.followUp?.length || 0)} questions
                 </div>
               </div>
@@ -206,7 +261,7 @@ export function QuestionnaireSelector({
         {/* File Upload Section */}
         <div className="space-y-3 pt-4 border-t">
           <Label className="text-sm font-medium">Upload Questionnaire</Label>
-          
+
           <div className="space-y-2">
             <Input
               ref={fileInputRef}
@@ -215,7 +270,7 @@ export function QuestionnaireSelector({
               onChange={handleFileSelect}
               className="hidden"
             />
-            
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -226,7 +281,7 @@ export function QuestionnaireSelector({
                 <Upload className="mr-2 h-4 w-4" />
                 {uploadedFile ? 'Change File' : 'Select File'}
               </Button>
-              
+
               {uploadedFile && (
                 <Button
                   variant="ghost"
@@ -276,7 +331,7 @@ export function QuestionnaireSelector({
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Supports JSON and TXT files. JSON files should contain structured questionnaire data.
+            Supports JSON and TXT files. TXT files will be parsed using AI to extract structured questionnaire data.
           </div>
         </div>
       </CardContent>

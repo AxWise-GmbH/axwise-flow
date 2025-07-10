@@ -4,9 +4,11 @@ FastAPI router for the Simulation Bridge system.
 
 import logging
 import os
+import json
+import asyncio
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from .models import (
     SimulationRequest,
@@ -31,8 +33,8 @@ router = APIRouter(
     tags=["Simulation Bridge"],
 )
 
-# Global orchestrator instance
-orchestrator = SimulationOrchestrator()
+# Global orchestrator instance with enhanced capabilities
+orchestrator = SimulationOrchestrator(use_parallel=True, max_concurrent=5)
 
 
 @router.get("/health")
@@ -117,6 +119,98 @@ async def create_simulation(
     except Exception as e:
         logger.error(f"Simulation request failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+
+@router.post("/simulate-enhanced")
+async def simulate_interviews_enhanced(
+    request: SimulationRequest,
+    user_id: str = "anonymous",  # In production, extract from auth token
+) -> SimulationResponse:
+    """
+    Enhanced simulation endpoint with database persistence and parallel processing.
+
+    This endpoint provides:
+    1. Database persistence for simulation results
+    2. Parallel interview processing for better performance
+    3. Enhanced error handling and recovery
+    4. Progress tracking with detailed metrics
+    """
+    try:
+        logger.info("Starting enhanced simulation request")
+
+        # Handle raw questionnaire content with PydanticAI parsing
+        if request.raw_questionnaire_content:
+            logger.info("Processing raw questionnaire content with PydanticAI")
+            parsed_request = await orchestrator.parse_raw_questionnaire(
+                request.raw_questionnaire_content, request.config
+            )
+            request.questions_data = parsed_request.questions_data
+            request.business_context = parsed_request.business_context
+
+        # Validate required data
+        if not request.questions_data or not request.business_context:
+            raise HTTPException(
+                status_code=400,
+                detail="Both questions_data and business_context are required",
+            )
+
+        # Use enhanced simulation with persistence and parallel processing
+        result = await orchestrator.simulate_with_persistence(request, user_id)
+
+        logger.info(f"Enhanced simulation completed: {result.simulation_id}")
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Enhanced simulation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Enhanced simulation failed: {str(e)}"
+        )
+
+
+@router.post("/parse-questionnaire")
+async def parse_questionnaire_endpoint(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parse raw questionnaire content using PydanticAI.
+
+    This endpoint takes raw questionnaire text and extracts structured data
+    including business context and stakeholder questions.
+    """
+    try:
+        content = request.get("content", "")
+        config_data = request.get("config", {})
+
+        if not content:
+            raise HTTPException(status_code=400, detail="Content is required")
+
+        # Create simulation config
+        from .models import SimulationConfig, SimulationDepth, ResponseStyle
+
+        config = SimulationConfig(
+            depth=SimulationDepth(config_data.get("depth", "detailed")),
+            people_per_stakeholder=config_data.get("people_per_stakeholder", 5),
+            response_style=ResponseStyle(
+                config_data.get("response_style", "realistic")
+            ),
+            include_insights=config_data.get("include_insights", True),
+            temperature=config_data.get("temperature", 0.7),
+        )
+
+        # Parse using orchestrator
+        parsed_request = await orchestrator.parse_raw_questionnaire(content, config)
+
+        return {
+            "success": True,
+            "message": "Questionnaire parsed successfully",
+            "questions_data": parsed_request.questions_data.dict(),
+            "business_context": parsed_request.business_context.dict(),
+            "config": parsed_request.config.dict(),
+        }
+
+    except Exception as e:
+        logger.error(f"Questionnaire parsing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Parsing failed: {str(e)}")
 
 
 @router.get("/simulate/{simulation_id}/progress")
@@ -399,3 +493,88 @@ async def get_default_config() -> Dict[str, Any]:
             "temperature": {"min": 0.0, "max": 1.0, "default": 0.7},
         },
     }
+
+
+@router.post("/stream-persona-response")
+async def stream_persona_response(request: Dict[str, Any]) -> StreamingResponse:
+    """
+    Stream a persona response with typing effect.
+    """
+    try:
+        # Parse request data
+        persona_data = request.get("persona", {})
+        question = request.get("question", "")
+        stakeholder_data = request.get("stakeholder", {})
+        business_context_data = request.get("business_context", {})
+        config_data = request.get("config", {})
+
+        # Convert to proper models
+        persona = AIPersona(**persona_data)
+        stakeholder = Stakeholder(**stakeholder_data)
+        business_context = BusinessContext(**business_context_data)
+        config = SimulationConfig(**config_data)
+
+        async def generate_streaming_response():
+            """Generate streaming response with typing effect."""
+            try:
+                # Send start event
+                yield f"data: {json.dumps({'type': 'start'})}\n\n"
+                await asyncio.sleep(0.1)
+
+                # Create a temporary stakeholder with just this question for the API call
+                single_question_stakeholder = Stakeholder(
+                    id=stakeholder.id,
+                    name=stakeholder.name,
+                    description=stakeholder.description,
+                    questions=[question],
+                )
+
+                # Generate the response using the interview simulator
+                result = await orchestrator.interview_simulator.simulate_interview(
+                    persona, single_question_stakeholder, business_context, config
+                )
+
+                if result.responses and len(result.responses) > 0:
+                    response_text = result.responses[0].response
+
+                    # Stream the response word by word for typing effect
+                    words = response_text.split()
+                    for i, word in enumerate(words):
+                        word_with_space = word + (" " if i < len(words) - 1 else "")
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': word_with_space})}\n\n"
+                        # Vary the delay slightly for more natural typing
+                        await asyncio.sleep(0.05 + (0.02 * (len(word) / 10)))
+                else:
+                    # Fallback response
+                    fallback = "I'm not sure how to answer that question."
+                    for word in fallback.split():
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': word + ' '})}\n\n"
+                        await asyncio.sleep(0.08)
+
+                # Send end event
+                yield f"data: {json.dumps({'type': 'end'})}\n\n"
+
+            except Exception as e:
+                logger.error(f"Error in streaming response: {str(e)}")
+                error_msg = "I apologize, but I'm having trouble responding right now."
+                for word in error_msg.split():
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': word + ' '})}\n\n"
+                    await asyncio.sleep(0.08)
+                yield f"data: {json.dumps({'type': 'end'})}\n\n"
+
+        return StreamingResponse(
+            generate_streaming_response(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Error setting up streaming response: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to stream response: {str(e)}"
+        )

@@ -97,7 +97,44 @@ export default function SimulationChatPage() {
                 ]
               }))
             },
-            timeEstimate: comprehensiveQuestions.timeEstimate
+            timeEstimate: (() => {
+              const timeEst = comprehensiveQuestions.timeEstimate;
+
+              // If timeEstimate is a string, convert it to the expected object format
+              if (typeof timeEst === 'string') {
+                // Extract numbers from string like "68-102 minutes"
+                const match = timeEst.match(/(\d+)-(\d+)/);
+                const totalQuestions = (comprehensiveQuestions.primaryStakeholders || []).reduce((acc: number, s: any) =>
+                  acc + (s.questions?.problemDiscovery?.length || 0) +
+                        (s.questions?.solutionValidation?.length || 0) +
+                        (s.questions?.followUp?.length || 0), 0) +
+                  (comprehensiveQuestions.secondaryStakeholders || []).reduce((acc: number, s: any) =>
+                    acc + (s.questions?.problemDiscovery?.length || 0) +
+                          (s.questions?.solutionValidation?.length || 0) +
+                          (s.questions?.followUp?.length || 0), 0);
+
+                return {
+                  totalQuestions,
+                  estimatedMinutes: timeEst,
+                  breakdown: {
+                    baseTime: match ? parseInt(match[1]) : 0,
+                    withBuffer: match ? parseInt(match[2]) : 0,
+                    perQuestion: 3
+                  }
+                };
+              }
+
+              // If it's already an object, return as is
+              return timeEst || {
+                totalQuestions: 0,
+                estimatedMinutes: "0-0",
+                breakdown: {
+                  baseTime: 0,
+                  withBuffer: 0,
+                  perQuestion: 3
+                }
+              };
+            })()
           };
 
           const businessContext: BusinessContext = {
@@ -246,7 +283,7 @@ export default function SimulationChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="h-[calc(100vh-6rem)] flex flex-col">
       <SimulationChatInterface
         questionsData={questionsData}
         businessContext={businessContext}

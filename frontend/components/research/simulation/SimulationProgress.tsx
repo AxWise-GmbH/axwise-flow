@@ -14,22 +14,22 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
-  MessageSquare, 
-  Brain, 
-  BarChart3, 
-  CheckCircle2, 
+import {
+  Users,
+  MessageSquare,
+  Brain,
+  BarChart3,
+  CheckCircle2,
   XCircle,
   Clock,
   Zap
 } from 'lucide-react';
 
-import { 
-  SimulationProgress as SimulationProgressType, 
+import {
+  SimulationProgress as SimulationProgressType,
   SimulationConfig,
   getSimulationProgress,
-  cancelSimulation 
+  cancelSimulation
 } from '@/lib/api/simulation';
 
 interface SimulationProgressProps {
@@ -225,7 +225,7 @@ export function SimulationProgress({
                     <div className="text-xs text-muted-foreground space-y-1">
                       <div>Depth: {simulationConfig.depth}</div>
                       <div>Style: {simulationConfig.response_style}</div>
-                      <div>Personas per stakeholder: {simulationConfig.personas_per_stakeholder}</div>
+                      <div>People per stakeholder: {simulationConfig.people_per_stakeholder}</div>
                     </div>
                   </CardContent>
                 </Card>
@@ -240,8 +240,8 @@ export function SimulationProgress({
 
           {/* Cancel Button */}
           <div className="flex justify-center">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleCancel}
               disabled={cancelling || progress?.stage === 'completed'}
             >

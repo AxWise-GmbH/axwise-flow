@@ -14,7 +14,7 @@ from .research_session import (
     ResearchSessionCreate,
     ResearchSessionUpdate,
     ResearchSessionResponse,
-    ResearchSessionSummary
+    ResearchSessionSummary,
 )
 
 # Re-export SQLAlchemy models from the original location for backward compatibility
@@ -39,26 +39,27 @@ InterviewData = backend_models.InterviewData
 AnalysisResult = backend_models.AnalysisResult
 Persona = backend_models.Persona
 CachedPRD = backend_models.CachedPRD
+SimulationData = backend_models.SimulationData
 
 __all__ = [
     # Pydantic models
-    'TranscriptSegment',
-    'TranscriptMetadata',
-    'StructuredTranscript',
-    'Pattern',
-    'PatternResponse',
-    'PatternEvidence',
-    'ResearchSession',
-    'ResearchExport',
-    'ResearchSessionCreate',
-    'ResearchSessionUpdate',
-    'ResearchSessionResponse',
-    'ResearchSessionSummary',
-
+    "TranscriptSegment",
+    "TranscriptMetadata",
+    "StructuredTranscript",
+    "Pattern",
+    "PatternResponse",
+    "PatternEvidence",
+    "ResearchSession",
+    "ResearchExport",
+    "ResearchSessionCreate",
+    "ResearchSessionUpdate",
+    "ResearchSessionResponse",
+    "ResearchSessionSummary",
     # SQLAlchemy models
-    'User',
-    'InterviewData',
-    'AnalysisResult',
-    'Persona',
-    'CachedPRD',
+    "User",
+    "InterviewData",
+    "AnalysisResult",
+    "Persona",
+    "CachedPRD",
+    "SimulationData",
 ]

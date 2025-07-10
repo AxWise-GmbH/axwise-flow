@@ -6,10 +6,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface SimulationConfig {
   depth: "quick" | "detailed" | "comprehensive";
-  personas_per_stakeholder: number;
+  people_per_stakeholder: number;  // Changed from personas_per_stakeholder
   response_style: "realistic" | "optimistic" | "critical" | "mixed";
   include_insights: boolean;
   temperature: number;
+
+  // Keep old field for backward compatibility during transition
+  personas_per_stakeholder?: number;
 }
 
 export interface BusinessContext {
@@ -33,10 +36,18 @@ export interface QuestionsData {
   };
   timeEstimate?: {
     totalQuestions: number;
+    estimatedMinutes?: string;
+    breakdown?: {
+      baseTime?: number;
+      withBuffer?: number;
+      perQuestion: number;
+      primary?: number;
+      secondary?: number;
+    };
   };
 }
 
-export interface AIPersona {
+export interface SimulatedPerson {
   id: string;
   name: string;
   age: number;
@@ -48,6 +59,28 @@ export interface AIPersona {
   demographic_details: Record<string, any>;
 }
 
+export interface PersonaTrait {
+  name: string;
+  description: string;
+  evidence: string[];  // Quotes or examples from interviews
+  confidence: number;  // 0.0 to 1.0
+}
+
+export interface PersonaPattern {
+  id: string;
+  name: string;  // e.g., "Cost-Conscious Manager"
+  description: string;
+  stakeholder_type: string;
+  traits: PersonaTrait[];
+  key_quotes: string[];
+  people_ids: string[];  // IDs of people who exhibit this pattern
+  confidence: number;    // 0.0 to 1.0
+  frequency: number;     // 0.0 to 1.0 - how common this pattern is
+}
+
+// Keep AIPersona as alias for backward compatibility during transition
+export type AIPersona = SimulatedPerson;
+
 export interface InterviewResponse {
   question: string;
   response: string;
@@ -57,12 +90,15 @@ export interface InterviewResponse {
 }
 
 export interface SimulatedInterview {
-  persona_id: string;
+  person_id: string;  // Changed from persona_id
   stakeholder_type: string;
   responses: InterviewResponse[];
   interview_duration_minutes: number;
   overall_sentiment: string;
   key_themes: string[];
+
+  // Keep old field for backward compatibility during transition
+  persona_id?: string;
 }
 
 export interface SimulationInsights {
@@ -74,28 +110,47 @@ export interface SimulationInsights {
   recommendations: string[];
 }
 
+export interface PersonaAnalysisResult {
+  persona_patterns: PersonaPattern[];
+  analysis_summary: string;
+  confidence_score: number;  // 0.0 to 1.0
+  people_analyzed: number;
+  patterns_discovered: number;
+}
+
 export interface SimulationResponse {
   success: boolean;
   message: string;
   simulation_id?: string;
   data?: Record<string, any>;
   metadata?: Record<string, any>;
-  personas?: AIPersona[];
+  people?: SimulatedPerson[];  // Changed from personas
   interviews?: SimulatedInterview[];
+  persona_patterns?: PersonaPattern[];  // New field for actual personas
+  persona_analysis?: PersonaAnalysisResult;  // Analysis results
   simulation_insights?: SimulationInsights;
   recommendations?: string[];
+
+  // Keep old field for backward compatibility during transition
+  personas?: SimulatedPerson[];
 }
 
 export interface SimulationProgress {
   simulation_id: string;
-  stage: string;
+  stage: string;  // "generating_people", "conducting_interviews", "analyzing_patterns"
   progress_percentage: number;
   current_task: string;
   estimated_time_remaining?: number;
-  completed_personas: number;
-  total_personas: number;
+  completed_people: number;  // Changed from completed_personas
+  total_people: number;      // Changed from total_personas
   completed_interviews: number;
   total_interviews: number;
+  completed_patterns: number;  // New field for persona pattern analysis
+  total_patterns: number;      // New field for persona pattern analysis
+
+  // Keep old fields for backward compatibility during transition
+  completed_personas?: number;
+  total_personas?: number;
 }
 
 export async function createSimulation(
@@ -299,4 +354,80 @@ export async function generatePersonasForChat(
   }
 
   return response.json();
+}
+
+/**
+ * Stream a persona response with typing effect
+ */
+export async function streamPersonaResponse(
+  persona: AIPersona,
+  question: string,
+  stakeholder: Stakeholder,
+  businessContext: BusinessContext,
+  config: { temperature?: number; response_style?: string } = {},
+  onChunk: (chunk: string) => void,
+  onComplete: () => void,
+  onError: (error: string) => void
+): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/stream-persona-response`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token') || 'test-token'}`,
+      },
+      body: JSON.stringify({
+        persona,
+        question,
+        stakeholder,
+        business_context: businessContext,
+        config: {
+          temperature: config.temperature || 0.7,
+          response_style: config.response_style || "realistic"
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          try {
+            const data = JSON.parse(line.substring(5));
+            if (data.type === 'chunk') {
+              onChunk(data.content);
+            } else if (data.type === 'end') {
+              onComplete();
+              return;
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse SSE data:', parseError);
+          }
+        }
+      }
+    }
+
+    onComplete();
+  } catch (error) {
+    console.error('Error streaming persona response:', error);
+    onError(error instanceof Error ? error.message : 'Unknown error');
+  }
 }

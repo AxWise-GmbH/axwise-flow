@@ -43,7 +43,7 @@ export function SimulationConfigModal({
 }: SimulationConfigModalProps) {
   const [config, setConfig] = useState<SimulationConfig>({
     depth: 'detailed',
-    personas_per_stakeholder: 2,
+    people_per_stakeholder: 5,  // Changed from personas_per_stakeholder
     response_style: 'realistic',
     include_insights: true,
     temperature: 0.7
@@ -72,17 +72,18 @@ export function SimulationConfigModal({
   useEffect(() => {
     const calculateTime = () => {
       const totalStakeholders = Object.values(questionsData.stakeholders).flat().length;
-      const totalPersonas = totalStakeholders * config.personas_per_stakeholder;
-      
+      const totalPeople = totalStakeholders * config.people_per_stakeholder;  // Changed from personas
+
       // Base time estimates (in minutes)
-      const baseTimePerPersona = config.depth === 'quick' ? 1 : config.depth === 'detailed' ? 2 : 3;
+      const baseTimePerPerson = config.depth === 'quick' ? 1 : config.depth === 'detailed' ? 2 : 3;
       const baseTimePerInterview = config.depth === 'quick' ? 2 : config.depth === 'detailed' ? 4 : 6;
-      
-      const personaTime = totalPersonas * baseTimePerPersona;
-      const interviewTime = totalPersonas * baseTimePerInterview;
+
+      const personTime = totalPeople * baseTimePerPerson;
+      const interviewTime = totalPeople * baseTimePerInterview;
+      const analysisTime = 3; // Time to analyze interviews and generate persona patterns
       const processingTime = 2; // Fixed processing overhead
-      
-      return personaTime + interviewTime + processingTime;
+
+      return personTime + interviewTime + analysisTime + processingTime;
     };
 
     setEstimatedTime(calculateTime());
@@ -101,7 +102,7 @@ export function SimulationConfigModal({
   };
 
   const totalStakeholders = Object.values(questionsData.stakeholders).flat().length;
-  const totalPersonas = totalStakeholders * config.personas_per_stakeholder;
+  const totalPeople = totalStakeholders * config.people_per_stakeholder;  // Changed from personas
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -129,8 +130,8 @@ export function SimulationConfigModal({
                   <div className="text-xs text-muted-foreground">Stakeholder Types</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-green-600">{totalPersonas}</div>
-                  <div className="text-xs text-muted-foreground">AI Personas</div>
+                  <div className="text-2xl font-bold text-green-600">{totalPeople}</div>
+                  <div className="text-xs text-muted-foreground">People to Interview</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-purple-600">{estimatedTime}m</div>
@@ -179,21 +180,21 @@ export function SimulationConfigModal({
             </Select>
           </div>
 
-          {/* Personas per Stakeholder */}
+          {/* People per Stakeholder */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Personas per Stakeholder: {config.personas_per_stakeholder}
+              People per Stakeholder: {config.people_per_stakeholder}
             </Label>
             <Slider
-              value={[config.personas_per_stakeholder]}
-              onValueChange={([value]) => setConfig({...config, personas_per_stakeholder: value})}
+              value={[config.people_per_stakeholder]}
+              onValueChange={([value]) => setConfig({...config, people_per_stakeholder: value})}
               min={1}
-              max={5}
+              max={10}
               step={1}
               className="w-full"
             />
             <div className="text-xs text-muted-foreground">
-              More personas provide diverse perspectives but take longer to generate.
+              More people provide diverse perspectives but take longer to interview. Persona patterns will be generated from all interviews.
             </div>
           </div>
 

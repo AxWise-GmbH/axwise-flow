@@ -164,7 +164,7 @@ export default function InterviewSimulationPage() {
           raw_questionnaire_content: fileContent,
           config: {
             depth: "detailed",
-            personas_per_stakeholder: 1,
+            people_per_stakeholder: 1,  // Changed from personas_per_stakeholder
             response_style: "realistic",
             include_insights: false,
             temperature: 0.7
@@ -330,7 +330,7 @@ export default function InterviewSimulationPage() {
 
       const config = {
         depth: "detailed" as const,
-        personas_per_stakeholder: 5, // 5 interviews per stakeholder
+        people_per_stakeholder: 5, // 5 people per stakeholder
         response_style: "realistic" as const,
         include_insights: false,
         temperature: 0.7

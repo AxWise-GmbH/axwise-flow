@@ -26,7 +26,12 @@ from ..models import (
 )
 from .persona_generator import PersonaGenerator
 from .interview_simulator import InterviewSimulator
+from .parallel_interview_simulator import ParallelInterviewSimulator
 from .data_formatter import DataFormatter
+from backend.infrastructure.persistence.simulation_repository import (
+    SimulationRepository,
+)
+from backend.infrastructure.persistence.unit_of_work import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +39,7 @@ logger = logging.getLogger(__name__)
 class SimulationOrchestrator:
     """Orchestrates the complete simulation process."""
 
-    def __init__(self):
+    def __init__(self, use_parallel: bool = True, max_concurrent: int = 2):
         # Initialize Gemini model for PydanticAI
         # PydanticAI GeminiModel uses GEMINI_API_KEY environment variable automatically
         api_key = os.getenv("GEMINI_API_KEY")
@@ -46,9 +51,17 @@ class SimulationOrchestrator:
         self.model = GeminiModel("gemini-2.5-flash")
         self.persona_generator = PersonaGenerator(self.model)
         self.interview_simulator = InterviewSimulator(self.model)
+        self.parallel_interview_simulator = (
+            ParallelInterviewSimulator(self.model, max_concurrent)
+            if use_parallel
+            else None
+        )
         self.data_formatter = DataFormatter()
         self.active_simulations: Dict[str, SimulationProgress] = {}
-        self.completed_simulations: Dict[str, SimulationResponse] = {}
+        self.completed_simulations: Dict[str, SimulationResponse] = (
+            {}
+        )  # Keep for backward compatibility
+        self.use_parallel = use_parallel
 
     async def parse_raw_questionnaire(self, content: str, config) -> SimulationRequest:
         """Parse raw questionnaire content using PydanticAI."""
@@ -56,28 +69,56 @@ class SimulationOrchestrator:
         from pydantic import BaseModel
         from typing import List
 
+        class StakeholderQuestions(BaseModel):
+            name: str
+            description: str
+            questions: List[str]
+
         class ParsedQuestionnaire(BaseModel):
             business_idea: str
             target_customer: str
             problem: str
-            questions: List[str]
+            primary_stakeholders: List[StakeholderQuestions]
+            secondary_stakeholders: List[StakeholderQuestions]
 
         # Create PydanticAI agent for parsing
         parser_agent = Agent(
             model=self.model,
             result_type=ParsedQuestionnaire,
             system_prompt="""You are an expert at parsing customer research questionnaires.
-            Extract the business context and all interview questions from the provided content.
-            Clean up questions by removing numbering and formatting.
-            Ensure business_idea is never empty - infer from context if needed.""",
+
+            Extract the business context and organize questions by stakeholder type.
+
+            Key requirements:
+            1. Identify PRIMARY and SECONDARY stakeholders separately
+            2. Group questions under their respective stakeholders
+            3. Clean up questions by removing numbering and formatting
+            4. Extract stakeholder names and descriptions accurately
+            5. Ensure business_idea is never empty - infer from context if needed
+
+            The questionnaire typically has sections like:
+            - PRIMARY STAKEHOLDERS (3 stakeholders)
+            - SECONDARY STAKEHOLDERS (2 stakeholders)
+
+            Each stakeholder has:
+            - Problem Discovery Questions
+            - Solution Validation Questions
+            - Follow-up Questions""",
         )
 
         prompt = f"""
         Parse this questionnaire file and extract:
+
         1. Business idea (main business concept)
         2. Target customer (who the business serves)
         3. Problem (what problem the business solves)
-        4. All interview questions (clean, no numbering)
+        4. Primary stakeholders with their questions
+        5. Secondary stakeholders with their questions
+
+        For each stakeholder, extract:
+        - Name (e.g., "Account Manager", "IT Systems Administrator")
+        - Description (brief description of their role)
+        - Questions (all questions for that stakeholder, cleaned up)
 
         Content:
         {content}
@@ -87,21 +128,50 @@ class SimulationOrchestrator:
         result = await parser_agent.run(prompt)
         parsed = result.data
 
-        logger.info(
-            f"✅ Parsed: {parsed.business_idea} | {len(parsed.questions)} questions"
+        # Count total questions
+        total_questions = sum(
+            len(s.questions)
+            for s in parsed.primary_stakeholders + parsed.secondary_stakeholders
         )
 
-        # Create structured data
-        stakeholder = Stakeholder(
-            id="primary_stakeholder",
-            name=parsed.target_customer,
-            description=f"Primary stakeholder for {parsed.business_idea}",
-            questions=parsed.questions,
+        logger.info(
+            f"✅ Parsed: {parsed.business_idea} | {len(parsed.primary_stakeholders)} primary + {len(parsed.secondary_stakeholders)} secondary stakeholders | {total_questions} total questions"
         )
+
+        # Create primary stakeholders
+        primary_stakeholders = []
+        for i, stakeholder_data in enumerate(parsed.primary_stakeholders):
+            stakeholder = Stakeholder(
+                id=f"primary_{i}",
+                name=stakeholder_data.name,
+                description=stakeholder_data.description,
+                questions=stakeholder_data.questions,
+            )
+            primary_stakeholders.append(stakeholder)
+            logger.info(
+                f"Primary stakeholder: {stakeholder_data.name} ({len(stakeholder_data.questions)} questions)"
+            )
+
+        # Create secondary stakeholders
+        secondary_stakeholders = []
+        for i, stakeholder_data in enumerate(parsed.secondary_stakeholders):
+            stakeholder = Stakeholder(
+                id=f"secondary_{i}",
+                name=stakeholder_data.name,
+                description=stakeholder_data.description,
+                questions=stakeholder_data.questions,
+            )
+            secondary_stakeholders.append(stakeholder)
+            logger.info(
+                f"Secondary stakeholder: {stakeholder_data.name} ({len(stakeholder_data.questions)} questions)"
+            )
 
         questions_data = QuestionsData(
-            stakeholders={"primary": [stakeholder], "secondary": []},
-            timeEstimate={"totalQuestions": len(parsed.questions)},
+            stakeholders={
+                "primary": primary_stakeholders,
+                "secondary": secondary_stakeholders,
+            },
+            timeEstimate={"totalQuestions": total_questions},
         )
 
         business_context = BusinessContext(
@@ -224,6 +294,195 @@ class SimulationOrchestrator:
             return SimulationResponse(
                 success=False,
                 message=f"Simulation failed: {str(e)}",
+                simulation_id=simulation_id,
+            )
+
+    async def simulate_with_persistence(
+        self, request: SimulationRequest, user_id: str = "anonymous"
+    ) -> SimulationResponse:
+        """
+        Enhanced simulation with database persistence and parallel processing.
+        """
+        simulation_id = str(uuid.uuid4())
+
+        try:
+            logger.info(f"Starting enhanced simulation: {simulation_id}")
+
+            # Initialize database connection
+            async with UnitOfWork() as uow:
+                simulation_repo = SimulationRepository(uow.session)
+
+                # Create simulation record
+                await simulation_repo.create_simulation(
+                    simulation_id=simulation_id,
+                    user_id=user_id,
+                    business_context=(
+                        request.business_context.dict()
+                        if request.business_context
+                        else {}
+                    ),
+                    questions_data=(
+                        request.questions_data.dict() if request.questions_data else {}
+                    ),
+                    simulation_config=request.config.dict(),
+                )
+
+                await uow.commit()
+                logger.info(f"Created simulation record in database: {simulation_id}")
+
+            # Step 1: Generate personas
+            await self._update_progress(
+                simulation_id, "generating_personas", 10, "Generating AI personas"
+            )
+            personas = await self.persona_generator.generate_all_personas(
+                request.questions_data.stakeholders,
+                request.business_context,
+                request.config,
+            )
+            logger.info(
+                f"Generated {len(personas)} personas for simulation {simulation_id}"
+            )
+
+            # Step 2: Simulate interviews (parallel or sequential)
+            await self._update_progress(
+                simulation_id,
+                "simulating_interviews",
+                30,
+                "Conducting simulated interviews",
+            )
+
+            if self.use_parallel and self.parallel_interview_simulator:
+                # Use parallel processing
+                def progress_callback(
+                    message: str, completed: int, total: int, failed: int
+                ):
+                    progress = 30 + int((completed / total) * 40)  # 30-70% range
+                    asyncio.create_task(
+                        self._update_progress(
+                            simulation_id, "simulating_interviews", progress, message
+                        )
+                    )
+
+                interviews = await self.parallel_interview_simulator.simulate_all_interviews_parallel(
+                    personas,
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                    progress_callback,
+                )
+            else:
+                # Use sequential processing (fallback)
+                interviews = await self.interview_simulator.simulate_all_interviews(
+                    personas,
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                )
+
+            logger.info(
+                f"Generated {len(interviews)} interviews for simulation {simulation_id}"
+            )
+
+            # Step 3: Generate insights
+            await self._update_progress(
+                simulation_id, "generating_insights", 70, "Analyzing simulation results"
+            )
+            insights = await self._generate_insights(
+                interviews, request.business_context
+            )
+
+            # Step 4: Format data for analysis
+            await self._update_progress(
+                simulation_id, "formatting_data", 85, "Preparing data for analysis"
+            )
+            formatted_data = self.data_formatter.format_for_analysis(
+                personas, interviews, request.business_context, simulation_id
+            )
+
+            # Step 4.5: Create separate stakeholder files
+            await self._update_progress(
+                simulation_id,
+                "creating_files",
+                90,
+                "Creating stakeholder interview files",
+            )
+            stakeholder_files = self.data_formatter.create_stakeholder_files(
+                personas, interviews, request.business_context, simulation_id
+            )
+            logger.info(f"Created {len(stakeholder_files)} stakeholder files")
+
+            # Step 5: Save results to database
+            await self._update_progress(
+                simulation_id, "saving_results", 95, "Saving results to database"
+            )
+
+            async with UnitOfWork() as uow:
+                simulation_repo = SimulationRepository(uow.session)
+                await simulation_repo.update_simulation_results(
+                    simulation_id=simulation_id,
+                    personas=[p.dict() for p in personas],
+                    interviews=[i.dict() for i in interviews],
+                    insights=insights.dict() if insights else None,
+                    formatted_data=formatted_data,
+                )
+                await uow.commit()
+                logger.info(f"Saved simulation results to database: {simulation_id}")
+
+            # Step 6: Complete
+            await self._update_progress(
+                simulation_id, "completed", 100, "Simulation completed"
+            )
+
+            # Create response
+            response = SimulationResponse(
+                success=True,
+                message="Enhanced simulation completed successfully",
+                simulation_id=simulation_id,
+                data=formatted_data,
+                metadata={
+                    "total_personas": len(personas),
+                    "total_interviews": len(interviews),
+                    "simulation_config": request.config.dict(),
+                    "created_at": datetime.utcnow().isoformat(),
+                    "processing_mode": (
+                        "parallel" if self.use_parallel else "sequential"
+                    ),
+                    "stakeholder_files": stakeholder_files,
+                    "stakeholders_processed": list(stakeholder_files.keys()),
+                },
+                personas=personas,
+                interviews=interviews,
+                simulation_insights=insights,
+                recommendations=insights.recommendations if insights else [],
+            )
+
+            # Keep in memory for backward compatibility
+            self.completed_simulations[simulation_id] = response
+
+            logger.info(f"Enhanced simulation completed successfully: {simulation_id}")
+            return response
+
+        except Exception as e:
+            logger.error(f"Enhanced simulation failed: {simulation_id} - {str(e)}")
+
+            # Mark as failed in database
+            try:
+                async with UnitOfWork() as uow:
+                    simulation_repo = SimulationRepository(uow.session)
+                    await simulation_repo.mark_simulation_failed(simulation_id, str(e))
+                    await uow.commit()
+            except Exception as db_error:
+                logger.error(
+                    f"Failed to mark simulation as failed in database: {db_error}"
+                )
+
+            await self._update_progress(
+                simulation_id, "failed", 0, f"Simulation failed: {str(e)}"
+            )
+
+            return SimulationResponse(
+                success=False,
+                message=f"Enhanced simulation failed: {str(e)}",
                 simulation_id=simulation_id,
             )
         finally:

@@ -8,7 +8,13 @@ from typing import List, Dict, Any
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
-from ..models import AIPersona, BusinessContext, Stakeholder, SimulationConfig
+from ..models import (
+    AIPersona,
+    SimulatedPerson,
+    BusinessContext,
+    Stakeholder,
+    SimulationConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,24 +49,24 @@ Each persona should be detailed enough to conduct realistic interviews but conci
 
 Return a list of AIPersona objects with all required fields populated."""
 
-    async def generate_personas(
+    async def generate_people(
         self,
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
         global_name_uniqueness: bool = False,
-    ) -> List[AIPersona]:
-        """Generate AI personas for a specific stakeholder type."""
+    ) -> List[SimulatedPerson]:
+        """Generate individual simulated people for a specific stakeholder type."""
 
         try:
             logger.info(
-                f"Generating {config.personas_per_stakeholder} personas for stakeholder: {stakeholder.name}"
+                f"Generating {config.people_per_stakeholder} people for stakeholder: {stakeholder.name}"
             )
 
-            prompt = self._build_persona_prompt(
+            prompt = self._build_person_prompt(
                 stakeholder, business_context, config, global_name_uniqueness
             )
-            logger.info(f"Persona generation prompt: {prompt[:200]}...")
+            logger.info(f"Person generation prompt: {prompt[:200]}...")
 
             # Try with retry logic for Gemini API issues
             max_retries = 2
@@ -77,7 +83,7 @@ Return a list of AIPersona objects with all required fields populated."""
                             f"Gemini API error on attempt {attempt + 1}, retrying with simpler prompt..."
                         )
                         # Simplify the prompt for retry
-                        simple_prompt = f"""Generate {config.personas_per_stakeholder} realistic persona(s) for:
+                        simple_prompt = f"""Generate {config.people_per_stakeholder} realistic individual people for:
 Stakeholder: {stakeholder.name}
 Business: {business_context.business_idea}
 Target Customer: {business_context.target_customer}
@@ -91,16 +97,16 @@ Keep responses concise and realistic."""
 
             logger.info(f"PydanticAI result: {result}")
             # Use result.output (non-deprecated) - both are identical per our test
-            personas = result.output
-            logger.info(f"Extracted personas data: {personas}")
+            people = result.output  # Changed from personas to people
+            logger.info(f"Extracted people data: {people}")
             logger.info(
-                f"Personas type: {type(personas)}, length: {len(personas) if personas else 'None'}"
+                f"People type: {type(people)}, length: {len(people) if people else 'None'}"
             )
 
-            # Ensure we have the right number of personas
-            if len(personas) != config.personas_per_stakeholder:
+            # Ensure we have the right number of people
+            if len(people) != config.people_per_stakeholder:
                 logger.warning(
-                    f"Expected {config.personas_per_stakeholder} personas, got {len(personas)}"
+                    f"Expected {config.people_per_stakeholder} people, got {len(people)}"
                 )
 
             # Add IDs and stakeholder type, track names for uniqueness
@@ -108,38 +114,38 @@ Keep responses concise and realistic."""
             if stakeholder_key not in self.used_names_by_category:
                 self.used_names_by_category[stakeholder_key] = set()
 
-            for persona in personas:
-                persona.id = str(uuid.uuid4())
-                persona.stakeholder_type = stakeholder.id
+            for person in people:
+                person.id = str(uuid.uuid4())
+                person.stakeholder_type = stakeholder.id
 
                 # Track names for uniqueness
                 if global_name_uniqueness:
                     # Track globally for chat simulations
-                    self.used_names_global.add(persona.name)
+                    self.used_names_global.add(person.name)
                 else:
                     # Track within stakeholder category for regular simulations
-                    self.used_names_by_category[stakeholder_key].add(persona.name)
+                    self.used_names_by_category[stakeholder_key].add(person.name)
 
             logger.info(
-                f"Successfully generated {len(personas)} personas for {stakeholder.name}"
+                f"Successfully generated {len(people)} people for {stakeholder.name}"
             )
             logger.info(
                 f"Used names for {stakeholder.name}: {sorted(self.used_names_by_category[stakeholder_key])}"
             )
-            return personas
+            return people
 
         except Exception as e:
             logger.error(f"Failed to generate personas: {str(e)}", exc_info=True)
             raise
 
-    def _build_persona_prompt(
+    def _build_person_prompt(
         self,
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
         global_name_uniqueness: bool = False,
     ) -> str:
-        """Build the prompt for persona generation."""
+        """Build the prompt for individual person generation."""
 
         # Include used names to avoid duplicates
         used_names_text = ""
@@ -157,7 +163,7 @@ Keep responses concise and realistic."""
             ):
                 used_names_text = f"\n\nIMPORTANT: Do NOT use these names (already used for {stakeholder.name}): {', '.join(sorted(self.used_names_by_category[stakeholder_key]))}"
 
-        return f"""Generate {config.personas_per_stakeholder} realistic personas for the following context:
+        return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
 BUSINESS CONTEXT:
 - Business Idea: {business_context.business_idea}
@@ -172,7 +178,7 @@ STAKEHOLDER TYPE:
 
 SIMULATION STYLE: {config.response_style.value}
 
-Create diverse personas that would realistically be in this stakeholder category. Each persona should:
+Create diverse individual people that would realistically be in this stakeholder category. Each person should:
 
 1. Have a realistic name, age, and background
 2. Include specific motivations related to this business context
@@ -180,13 +186,15 @@ Create diverse personas that would realistically be in this stakeholder category
 4. Display a distinct communication style
 5. Include relevant demographic details (job, location, experience, etc.)
 
-Make sure the personas are diverse in:
+Make sure the people are diverse in:
 - Age ranges (but appropriate for the stakeholder type)
 - Professional backgrounds
 - Geographic locations
 - Experience levels
 - Personality types
 - Communication preferences
+
+IMPORTANT: Generate individual people, not behavioral patterns. Each person should be a unique individual with their own characteristics, not a representative of a pattern or archetype.
 
 CRITICAL REQUIREMENTS:
 - Each persona must have a UNIQUE name within this stakeholder category only
@@ -198,19 +206,19 @@ CRITICAL REQUIREMENTS:
 
 The personas should feel like real people who would genuinely interact with this business idea.{used_names_text}"""
 
-    async def generate_all_personas(
+    async def generate_all_people(
         self,
         stakeholders: Dict[str, List[Stakeholder]],
         business_context: BusinessContext,
         config: SimulationConfig,
         global_name_uniqueness: bool = True,  # Default to True for chat simulations
-    ) -> List[AIPersona]:
-        """Generate personas for all stakeholder types."""
+    ) -> List[SimulatedPerson]:
+        """Generate individual people for all stakeholder types."""
 
         # Reset used names for each new simulation
         self.used_names_by_category.clear()
         self.used_names_global.clear()
-        all_personas = []
+        all_people = []
 
         for stakeholder_category, stakeholder_list in stakeholders.items():
             logger.info(
@@ -219,23 +227,32 @@ The personas should feel like real people who would genuinely interact with this
 
             for stakeholder in stakeholder_list:
                 logger.info(
-                    f"Generating personas for stakeholder: {stakeholder.name} (ID: {stakeholder.id})"
+                    f"Generating people for stakeholder: {stakeholder.name} (ID: {stakeholder.id})"
                 )
                 try:
-                    personas = await self.generate_personas(
+                    people = await self.generate_people(
                         stakeholder, business_context, config, global_name_uniqueness
                     )
                     logger.info(
-                        f"Generated {len(personas)} personas for {stakeholder.name}"
+                        f"Generated {len(people)} people for {stakeholder.name}"
                     )
-                    all_personas.extend(personas)
+                    all_people.extend(people)
                 except Exception as e:
                     logger.error(
-                        f"Failed to generate personas for {stakeholder.name}: {str(e)}",
+                        f"Failed to generate people for {stakeholder.name}: {str(e)}",
                         exc_info=True,
                     )
 
         logger.info(
-            f"Generated {len(all_personas)} total personas across all stakeholder types"
+            f"Generated {len(all_people)} total people across all stakeholder types"
         )
-        return all_personas
+        return all_people
+
+    # Backward compatibility methods
+    async def generate_personas(self, *args, **kwargs) -> List[AIPersona]:
+        """Backward compatibility wrapper for generate_people."""
+        return await self.generate_people(*args, **kwargs)
+
+    async def generate_all_personas(self, *args, **kwargs) -> List[AIPersona]:
+        """Backward compatibility wrapper for generate_all_people."""
+        return await self.generate_all_people(*args, **kwargs)
