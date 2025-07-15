@@ -272,7 +272,17 @@ const processGeneratedQuestions = async (
     })),
     timeEstimate: {
       totalQuestions: processedQuestionsData.timeEstimate?.totalQuestions || 0,
-      estimatedMinutes: processedQuestionsData.timeEstimate?.estimatedMinutes || "0-0",
+      estimatedMinutes: (() => {
+        const minutes = processedQuestionsData.timeEstimate?.estimatedMinutes;
+        // Handle both number (new format) and string (legacy format)
+        if (typeof minutes === 'number') {
+          // Convert number to string range format for chat components
+          const minTime = Math.max(20, minutes - 5);
+          const maxTime = minutes + 5;
+          return `${minTime}-${maxTime}`;
+        }
+        return minutes || "0-0";
+      })(),
       breakdown: processedQuestionsData.timeEstimate?.breakdown || {
         primary: 0,
         secondary: 0,

@@ -300,7 +300,7 @@ Return in this exact JSON format:
 
     def calculate_stakeholder_time_estimates(
         self, stakeholders: Dict[str, List[Dict]]
-    ) -> str:
+    ) -> Dict[str, int]:
         """Calculate time estimates based on stakeholder questions"""
         try:
             total_questions = 0
@@ -317,12 +317,14 @@ Return in this exact JSON format:
                 total_questions += len(questions.get("solutionValidation", []))
                 total_questions += len(questions.get("followUp", []))
 
-            # Estimate 2-3 minutes per question
-            min_time = max(20, total_questions * 2)
-            max_time = max(30, total_questions * 3)
+            # Estimate 2-3 minutes per question (use average of 2.5 minutes)
+            estimated_minutes = max(20, int(total_questions * 2.5))
 
-            return f"{min_time}-{max_time} minutes"
+            return {
+                "totalQuestions": total_questions,
+                "estimatedMinutes": estimated_minutes,
+            }
 
         except Exception as e:
             logger.error(f"Time estimation failed: {e}")
-            return "25-40 minutes"
+            return {"totalQuestions": 0, "estimatedMinutes": 30}

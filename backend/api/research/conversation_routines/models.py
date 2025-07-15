@@ -211,6 +211,14 @@ Return only valid JSON, no other text:"""
                 context.target_customer = extracted_data.get("target_customer")
                 context.problem = extracted_data.get("problem")
 
+                # Debug logging
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.info(
+                    f"🔍 Context extraction result: business_idea='{context.business_idea}', target_customer='{context.target_customer}', problem='{context.problem}'"
+                )
+
         except Exception as e:
             # Fallback: just count exchanges
             pass

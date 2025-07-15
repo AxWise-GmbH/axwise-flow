@@ -144,6 +144,14 @@ export const extractSuggestions = (
 ): string[] => {
   let suggestions: string[] = [];
 
+  // Debug logging to see what we're receiving
+  console.log('🔧 API Response data structure:', {
+    suggestions: data.suggestions,
+    metadata: data.metadata,
+    hasDirectSuggestions: data.suggestions && Array.isArray(data.suggestions),
+    suggestionsLength: data.suggestions?.length || 0
+  });
+
   // V3 Rebuilt: Try to extract suggestions from the direct suggestions field first
   if (data.suggestions && Array.isArray(data.suggestions)) {
     suggestions = data.suggestions;
@@ -179,9 +187,9 @@ export const extractSuggestions = (
       ];
     } else {
       suggestions = [
-        'Can you be more specific?',
-        'What industry is this for?',
-        'Who are your target customers?'
+        "Mobile app",
+        "Service business",
+        "Physical product"
       ];
     }
     console.log('🔧 Generated fallback suggestions:', suggestions);

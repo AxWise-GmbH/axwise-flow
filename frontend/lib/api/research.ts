@@ -70,6 +70,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   content: string;
+  suggestions?: string[]; // Direct suggestions field for conversation routines
   metadata?: {
     questionCategory?: string;
     researchStage?: string;
@@ -268,6 +269,15 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
 
       const result = await response.json();
 
+      // Debug logging for suggestions
+      console.log('🔧 Raw API response suggestions:', result.suggestions);
+      console.log('🔧 Raw API response structure:', {
+        content: result.content?.substring(0, 50) + '...',
+        suggestions: result.suggestions,
+        metadata: result.metadata,
+        context: result.context
+      });
+
       // Store the conversation both locally and on backend
       if (typeof window !== 'undefined') {
         const currentSession = LocalResearchStorage.getCurrentSession();
@@ -360,9 +370,10 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
       // Convert Conversation Routines response to expected format
       const convertedResult: ChatResponse = {
         content: result.content,
+        suggestions: result.suggestions, // Put suggestions at top level for extractSuggestions function
         metadata: {
           ...result.metadata,
-          suggestions: result.suggestions,
+          suggestions: result.suggestions, // Also keep in metadata for backward compatibility
           conversation_routine: true,
           context_completeness: result.context?.get_completeness_score ? result.context.get_completeness_score() :
             (result.context?.business_idea && result.context?.target_customer && result.context?.problem ? 1.0 :
@@ -385,6 +396,10 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
         performance_metrics: result.metadata?.performance_metrics || {},
         api_version: "conversation-routines"
       };
+
+      // Debug logging for converted result
+      console.log('🔧 Converted result suggestions:', convertedResult.suggestions);
+      console.log('🔧 Converted result metadata suggestions:', convertedResult.metadata?.suggestions);
 
       return convertedResult;
     });

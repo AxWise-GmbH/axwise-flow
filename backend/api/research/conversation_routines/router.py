@@ -49,6 +49,13 @@ async def conversation_routine_chat(
         # Process through conversation routine service
         response = await conversation_service.process_conversation(request)
 
+        # Debug logging for response
+        logger.info(f"🎯 API Response suggestions: {response.suggestions}")
+        logger.info(f"🎯 API Response content length: {len(response.content)}")
+        logger.info(
+            f"🎯 API Response should_generate_questions: {response.should_generate_questions}"
+        )
+
         # Save conversation session synchronously for now (to debug background task issues)
         logger.info(f"🔄 Attempting to save conversation session: {request.session_id}")
         try:

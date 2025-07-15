@@ -297,6 +297,30 @@ class ConversationRoutineService:
                 [f"{msg['role']}: {msg['content']}" for msg in conversation_history]
             )
 
+            # Check for user expansion signals early (needed for prompt)
+            user_input_lower = request.input.lower().strip()
+            expansion_signals = [
+                "i need to add more details",
+                "let me add more details",
+                "i want to add more details",
+                "let me add more context",
+                "i want to provide more information",
+                "actually, let me clarify",
+                "there's more to it",
+                "let me explain further",
+                "i need to add more",
+                "let me add more",
+                "more details",
+                "more context",
+                "more information",
+                "let me clarify",
+                "actually",
+            ]
+
+            user_wants_to_expand = any(
+                signal in user_input_lower for signal in expansion_signals
+            )
+
             full_prompt = f"""
 {get_conversation_routine_prompt()}
 
@@ -311,6 +335,10 @@ CONTEXT ANALYSIS:
 - Context completeness: {context.get_completeness_score():.1f}
 - Should transition: {context.should_transition_to_questions()}
 - Fatigue signals: {context.user_fatigue_signals}
+- User wants to expand: {user_wants_to_expand}
+
+IMPORTANT: If user wants to expand (indicated by phrases like "I need to add more details", "let me clarify", etc.),
+DO NOT proceed with validation or question generation. Instead, encourage them to provide more information.
 
 Based on the conversation routine framework and current context, provide your response.
 If you determine that questions should be generated, include "GENERATE_QUESTIONS" in your response.
@@ -319,7 +347,9 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
             # Use PydanticAI agent instead of direct LLM call
             try:
                 agent_response = await self.agent.run(full_prompt)
-                response_content = str(agent_response.data)
+                response_content = str(
+                    agent_response.output
+                )  # Using .output instead of deprecated .data
                 logger.info(f"🤖 Agent response: {response_content[:200]}...")
 
                 # Debug: Log the full agent response structure
@@ -358,7 +388,9 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                     for result in agent_response.tool_results:
                         logger.info(f"🔍 Tool result: {result.tool_name}")
                         if result.tool_name == "generate_stakeholder_questions":
-                            generated_questions = result.data
+                            generated_questions = (
+                                result.output
+                            )  # Using .output instead of deprecated .data
                             questions_generated = True
                             logger.info(
                                 f"✅ Questions generated via tool: {type(generated_questions)}"
@@ -386,8 +418,7 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
 
             # Questions variables are now initialized in the try block above
 
-            # Check for validation confirmation signals
-            user_input_lower = request.input.lower().strip()
+            # Check for validation confirmation signals (user_input_lower and user_wants_to_expand already defined above)
             validation_confirmations = [
                 "yes",
                 "that's right",
@@ -402,10 +433,13 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 "yes that's correct",
             ]
 
-            is_validation_confirmation = any(
-                confirmation in user_input_lower
-                for confirmation in validation_confirmations
-            )
+            is_validation_confirmation = (
+                any(
+                    confirmation in user_input_lower
+                    for confirmation in validation_confirmations
+                )
+                and not user_wants_to_expand
+            )  # Don't confirm if user wants to expand
 
             # Check if we should force question generation based on context completeness
             should_force_generation = (
@@ -422,11 +456,8 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 )
             )
 
-            # Disable the old manual question generation logic
-            # The PydanticAI agent should handle this automatically via tools
-            # TODO: Remove this entire section once PydanticAI integration is complete
-
-            # For now, check if the user is explicitly asking for questions
+            # Check if we should generate questions - ONLY with explicit user confirmation
+            # 1. User explicitly asks for questions
             user_wants_questions = any(
                 phrase in request.input.lower()
                 for phrase in [
@@ -436,8 +467,15 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 ]
             )
 
+            # 2. User confirms validation and context is ready (explicit confirmation required)
+            should_auto_generate = (
+                is_validation_confirmation
+                and context.should_transition_to_questions()
+                and not user_wants_to_expand
+            )
+
             logger.info(
-                f"🔍 Question generation check: user_wants_questions={user_wants_questions}, questions_generated={questions_generated}, input='{request.input.lower()}'"
+                f"🔍 Question generation check: user_wants_questions={user_wants_questions}, should_auto_generate={should_auto_generate}, is_validation_confirmation={is_validation_confirmation}, questions_generated={questions_generated}"
             )
 
             # Also check if the response content indicates questions were generated
@@ -445,9 +483,9 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 "Here are comprehensive research questions" in response_content
             )
 
-            # Check if we should generate questions (either explicit request or agent already generated them)
+            # Check if we should generate questions - ONLY with explicit user signals
             if (
-                user_wants_questions or response_has_questions
+                user_wants_questions or should_auto_generate or response_has_questions
             ) and not questions_generated:
                 logger.info("🎯 User explicitly requested questions - generating...")
                 # Only generate if the agent didn't already handle it
@@ -480,21 +518,28 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                         f"❌ Missing required context - business_idea: {bool(extracted_context.get('business_idea'))}, target_customer: {bool(extracted_context.get('target_customer'))}, problem: {bool(extracted_context.get('problem'))}"
                     )
 
-                # If this was a validation confirmation, replace with generation message
-                if is_validation_confirmation and not generated_questions:
-                    response_content = "Perfect! I'm generating your comprehensive research questions now..."
-                elif is_validation_confirmation and generated_questions:
+                # Update response message based on generation trigger - ONLY for explicit user confirmation
+                if is_validation_confirmation and generated_questions:
                     response_content = "Perfect! I've generated your custom research questions based on our conversation."
+                elif is_validation_confirmation and not generated_questions:
+                    response_content = "Perfect! I'm generating your comprehensive research questions now..."
+                elif user_wants_questions and generated_questions:
+                    response_content = "Here are your custom research questions based on our conversation."
+                elif user_wants_questions and not generated_questions:
+                    response_content = "I'm generating your research questions now..."
                 elif should_force_generation and generated_questions:
-                    response_content = "I have enough context about your Legacy API Service for VW account managers. Let me generate targeted research questions to help validate this solution."
+                    response_content = "I have enough context about your business idea. Let me generate targeted research questions to help validate this solution."
                 elif should_force_generation and not generated_questions:
-                    response_content = "Based on our conversation, I'll generate research questions for your Legacy API Service solution."
+                    response_content = "Based on our conversation, I'll generate research questions for your solution."
 
             # Update context
             context.exchange_count += 1
 
             # Generate suggestions based on context
-            suggestions = await self._generate_suggestions(context, response_content)
+            suggestions = await self._generate_suggestions(
+                context, response_content, conversation_history, user_wants_to_expand
+            )
+            logger.info(f"🎯 Generated suggestions: {suggestions}")
 
             response = ConversationRoutineResponse(
                 content=response_content,
@@ -534,7 +579,11 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
             )
 
     async def _generate_suggestions(
-        self, context: ConversationContext, response_content: str
+        self,
+        context: ConversationContext,
+        response_content: str,
+        conversation_history: List[Dict[str, str]],
+        user_wants_to_expand: bool = False,
     ) -> List[str]:
         """Generate contextual quick reply suggestions"""
 
@@ -545,7 +594,14 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
         ):
             return ["Export questions", "Start research", "Modify questions"]
 
-        # If ready for questions, show transition suggestions
+        # If user wants to expand, generate expansion-focused suggestions
+        if user_wants_to_expand:
+            logger.info("🎯 User wants to expand - generating expansion suggestions")
+            return await self._generate_expansion_suggestions(
+                context, conversation_history
+            )
+
+        # If ready for questions and user is NOT expanding, show validation suggestions
         if context.should_transition_to_questions():
             return [
                 "Yes, that's correct",
@@ -555,39 +611,173 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
 
         # Generate contextual suggestions using LLM
         suggestions = await self._generate_contextual_suggestions(
-            context, response_content
+            context, conversation_history
         )
         return suggestions[:3]  # Limit to 3 suggestions
 
-    async def _generate_contextual_suggestions(
-        self, context: ConversationContext, response_content: str
+    async def _generate_expansion_suggestions(
+        self, context: ConversationContext, conversation_history: List[Dict[str, str]]
     ) -> List[str]:
-        """Generate contextual quick reply suggestions based on conversation state"""
+        """Generate contextual user response suggestions to help expand their answer"""
+        logger.info("🔍 Generating expansion suggestions based on current context")
+
         try:
-            # Determine what information is missing and generate appropriate suggestions
-            if not context.business_idea:
-                # Generic business type suggestions
-                return [
-                    "It's a mobile app",
-                    "It's a service business",
-                    "It's a physical product",
-                ]
+            # Get recent conversation context for better suggestions
+            recent_messages = conversation_history[-4:] if conversation_history else []
+            conversation_context = " ".join(
+                [msg.get("content", "") for msg in recent_messages]
+            )
 
-            elif not context.target_customer:
-                # Generate contextual customer suggestions based on business idea
+            # Determine what aspect needs expansion based on current context
+            if context.business_idea and context.target_customer and context.problem:
+                # All core info provided, help expand on business details
                 prompt = f"""
-Generate 3 short, specific target customer suggestions for this business: "{context.business_idea}"
-
-Return only a JSON array of 3 strings, each 2-4 words max. Examples:
-["Busy professionals", "Small startups", "Enterprise clients"]
+Generate 3 specific user responses that would help expand on this business context:
 
 Business: {context.business_idea}
+Customer: {context.target_customer}
+Problem: {context.problem}
+Recent conversation: {conversation_context}
+
+Generate responses the USER could say to add more valuable details. Focus on business model, location, pricing, competition, or operational details.
+
+Examples for a laundromat business:
+- "It will be a subscription-based model"
+- "We'll focus on premium locations near apartments"
+- "Current competitors charge too much"
+
+Return only a JSON array of 3 strings, each 4-8 words max. Make them specific user responses, not questions.
+
+JSON array:"""
+
+            elif (
+                context.business_idea
+                and context.target_customer
+                and not context.problem
+            ):
+                # User has business + customer, help expand on the problem
+                prompt = f"""
+Generate 3 specific user responses that would help expand on the problem for this business and customer:
+
+Business: {context.business_idea}
+Customer: {context.target_customer}
+Recent conversation: {conversation_context}
+
+Generate responses the USER could say to describe specific problems their customers face. Focus on pain points, frustrations, or unmet needs.
+
+Examples for laundromat + grannies:
+- "The 20-minute drive is inconvenient"
+- "Physical difficulty doing laundry"
+- "Lack of in-home washing machines"
+
+Return only a JSON array of 3 strings, each 4-8 words max. Make them specific user responses about problems.
+
+JSON array:"""
+
+            elif context.business_idea and not context.target_customer:
+                # User has business idea, help expand on target customer
+                prompt = f"""
+Generate 3 specific user responses that would help expand on the target customer for this business:
+
+Business: {context.business_idea}
+Recent conversation: {conversation_context}
+
+Generate responses the USER could say to describe their target customers more specifically. Focus on demographics, location, behavior, or specific segments.
+
+Examples for a laundromat business:
+- "Busy professionals without time"
+- "Students in university dormitories"
+- "Elderly people with mobility issues"
+
+Return only a JSON array of 3 strings, each 4-8 words max. Make them specific user responses about customers.
+
+JSON array:"""
+
+            else:
+                # General expansion based on conversation context
+                prompt = f"""
+Generate 3 specific user responses that would help expand on this business idea:
+
+Business: {context.business_idea or "Not specified"}
+Recent conversation: {conversation_context}
+
+Generate responses the USER could say to provide more valuable business details. Focus on what's missing or could be elaborated.
+
+Examples:
+- "It targets small business owners"
+- "The main problem is high costs"
+- "We'll use a mobile app approach"
+
+Return only a JSON array of 3 strings, each 4-8 words max. Make them specific user responses.
+
+JSON array:"""
+
+            response_data = await self.llm_service.analyze(
+                text=prompt,
+                task="text_generation",
+                data={"temperature": 0.3, "max_tokens": 150},
+            )
+
+            import json
+            import re
+
+            response_text = response_data.get("text", "")
+            json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
+            if json_match:
+                suggestions = json.loads(json_match.group())
+                logger.info(f"✅ Generated expansion suggestions: {suggestions}")
+                return suggestions[:3]
+
+        except Exception as e:
+            logger.warning(f"Failed to generate expansion suggestions: {e}")
+
+        # Fallback expansion suggestions - still user responses, not questions
+        return [
+            "The business model is subscription-based",
+            "We target local neighborhoods",
+            "The main challenge is competition",
+        ]
+
+    async def _generate_contextual_suggestions(
+        self, context: ConversationContext, conversation_history: List[Dict[str, str]]
+    ) -> List[str]:
+        """Generate contextual quick reply suggestions based on conversation state"""
+        logger.info(
+            f"🔍 Generating contextual suggestions - business_idea: '{context.business_idea}', target_customer: '{context.target_customer}', problem: '{context.problem}'"
+        )
+        try:
+            # Always generate LLM-based contextual suggestions
+            if not context.business_idea:
+                logger.info(
+                    "🎯 No business_idea detected, generating business type suggestions"
+                )
+                # Generate business type suggestions based on conversation history
+                recent_messages = (
+                    conversation_history[-3:] if conversation_history else []
+                )
+                conversation_context = " ".join(
+                    [msg.get("content", "") for msg in recent_messages]
+                )
+
+                prompt = f"""
+Generate 3 specific business type suggestions based on this conversation context: "{conversation_context}"
+
+Focus on specific business solutions, not generic categories. Be descriptive about what the business actually does.
+
+Examples of GOOD specific suggestions:
+- Instead of "Mobile app": ["Food delivery app", "Fitness tracking app", "Language learning app"]
+- Instead of "Service business": ["Home cleaning service", "Pet grooming service", "Tutoring service"]
+- Instead of "Physical product": ["Smart home device", "Eco-friendly packaging", "Fitness equipment"]
+
+Return only a JSON array of 3 strings, each 3-6 words max. Be specific about the business solution.
+
+Context: {conversation_context}
 JSON array:"""
 
                 response_data = await self.llm_service.analyze(
                     text=prompt,
                     task="text_generation",
-                    data={"temperature": 0.3, "max_tokens": 100},
+                    data={"temperature": 0, "max_tokens": 150},
                 )
 
                 import json
@@ -597,25 +787,73 @@ JSON array:"""
                 json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
                 if json_match:
                     suggestions = json.loads(json_match.group())
+                    logger.info(
+                        f"✅ Generated business type suggestions: {suggestions}"
+                    )
+                    return suggestions[:3]
+
+            elif not context.target_customer:
+                logger.info(
+                    "🎯 Business idea exists, no target customer, generating customer suggestions"
+                )
+                # Generate contextual customer suggestions based on business idea
+                prompt = f"""
+Generate 3 highly specific target customer suggestions for this business: "{context.business_idea}"
+
+Focus on WHO specifically would need this solution. Be very specific about the customer segment, not generic categories.
+
+Examples of GOOD specific suggestions:
+- For laundry service: ["People without in-home laundry", "Small businesses needing commercial laundry", "Students in dorms"]
+- For food delivery: ["Busy office workers during lunch", "Parents with young children", "Elderly people with mobility issues"]
+- For fitness app: ["Beginners starting their fitness journey", "Busy professionals with limited time", "People recovering from injuries"]
+
+Return only a JSON array of 3 strings, each 4-8 words max. Be specific about the customer's situation or need.
+
+Business: {context.business_idea}
+JSON array:"""
+
+                response_data = await self.llm_service.analyze(
+                    text=prompt,
+                    task="text_generation",
+                    data={"temperature": 0.3, "max_tokens": 150},
+                )
+
+                import json
+                import re
+
+                response_text = response_data.get("text", "")
+                json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
+                if json_match:
+                    suggestions = json.loads(json_match.group())
+                    logger.info(f"✅ Generated customer suggestions: {suggestions}")
                     return suggestions[:3]
 
             elif not context.problem:
+                logger.info(
+                    "🎯 Business idea and customer exist, no problem, generating problem suggestions"
+                )
                 # Generate contextual problem suggestions based on business + customer
                 prompt = f"""
-Generate 3 short, specific problem statements for this business and customer:
+Generate 3 specific problem statements for this business and customer:
 
 Business: {context.business_idea}
 Target Customer: {context.target_customer}
 
-Return only a JSON array of 3 strings, each describing a pain point. Examples:
-["Slow data access", "Manual processes", "High costs"]
+Focus on specific pain points that this customer segment experiences. Be descriptive about the actual problem.
+
+Examples of GOOD specific problems:
+- For laundry service + busy professionals: ["No time for laundry", "Expensive dry cleaning costs", "Limited laundromat access"]
+- For food delivery + college students: ["Limited healthy food options", "Expensive campus dining", "No time to cook meals"]
+- For fitness app + beginners: ["Don't know where to start", "Intimidated by gym environment", "Lack of personalized guidance"]
+
+Return only a JSON array of 3 strings, each 3-6 words max. Be specific about the actual problem.
 
 JSON array:"""
 
                 response_data = await self.llm_service.analyze(
                     text=prompt,
                     task="text_generation",
-                    data={"temperature": 0.3, "max_tokens": 100},
+                    data={"temperature": 0.3, "max_tokens": 150},
                 )
 
                 import json
@@ -625,10 +863,12 @@ JSON array:"""
                 json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
                 if json_match:
                     suggestions = json.loads(json_match.group())
+                    logger.info(f"✅ Generated problem suggestions: {suggestions}")
                     return suggestions[:3]
 
             else:
                 # All context gathered - validation stage suggestions
+                logger.info("🎯 All context gathered, returning validation suggestions")
                 return [
                     "Yes, that's correct",
                     "Let me add more context",
@@ -638,9 +878,63 @@ JSON array:"""
         except Exception as e:
             logger.warning(f"Failed to generate contextual suggestions: {e}")
 
-        # Fallback to generic suggestions
+        # Fallback to LLM-generated generic suggestions
+        logger.info("🔄 Using fallback LLM suggestions")
+        try:
+            if not context.business_idea:
+                fallback_prompt = """
+Generate 3 short, generic business type suggestions for someone starting a business.
+
+Return only a JSON array of 3 strings, each 2-4 words max. Examples:
+["Mobile app", "Service business", "Physical product"]
+
+JSON array:"""
+            elif not context.target_customer:
+                fallback_prompt = f"""
+Generate 3 short, generic target customer suggestions for this business: "{context.business_idea}"
+
+Return only a JSON array of 3 strings, each 2-4 words max. Examples:
+["Businesses", "Consumers", "Professionals"]
+
+JSON array:"""
+            elif not context.problem:
+                fallback_prompt = f"""
+Generate 3 short, generic problem suggestions for this business and customer:
+Business: {context.business_idea}
+Customer: {context.target_customer}
+
+Return only a JSON array of 3 strings, each 2-4 words max. Examples:
+["Time consuming", "Too expensive", "Too complex"]
+
+JSON array:"""
+            else:
+                return [
+                    "Yes, that's correct",
+                    "Let me add more",
+                    "Actually, let me clarify",
+                ]
+
+            response_data = await self.llm_service.analyze(
+                text=fallback_prompt,
+                task="text_generation",
+                data={"temperature": 0.3, "max_tokens": 100},
+            )
+
+            import json
+            import re
+
+            response_text = response_data.get("text", "")
+            json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
+            if json_match:
+                suggestions = json.loads(json_match.group())
+                return suggestions[:3]
+
+        except Exception as e:
+            logger.warning(f"Failed to generate fallback suggestions: {e}")
+
+        # Final hardcoded fallback if LLM fails
         if not context.business_idea:
-            return ["Tell me more", "What industry?", "Who are customers?"]
+            return ["Mobile app", "Service business", "Physical product"]
         elif not context.target_customer:
             return ["Businesses", "Consumers", "Professionals"]
         elif not context.problem:
