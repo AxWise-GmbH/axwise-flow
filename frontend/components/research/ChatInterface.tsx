@@ -150,7 +150,7 @@ Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString
 **Primary Stakeholders:** ${primaryStakeholders.length}
 **Secondary Stakeholders:** ${secondaryStakeholders.length}
 **Total Questions:** ${timeEstimate.totalQuestions || 0}
-**Estimated Time:** ${timeEstimate.estimatedMinutes || '0-0'} minutes per conversation
+**Estimated Time:** ${timeEstimate.estimatedMinutesDisplay || timeEstimate.estimatedMinutes || '0-0'} minutes per conversation
 
 ---
 
@@ -413,7 +413,8 @@ Ready for simulation bridge and interview analysis`;
     // Handle legacy format: {estimatedMinutes: "15-20", totalQuestions: 13, breakdown: {...}}
     return {
       totalQuestions: timeEstimate.totalQuestions || 0,
-      estimatedMinutes: timeEstimate.estimatedMinutes || "0-0",
+      estimatedMinutes: timeEstimate.estimatedMinutes || 0, // Keep as number
+      estimatedMinutesDisplay: timeEstimate.estimatedMinutesDisplay || timeEstimate.estimatedMinutes || "0-0", // String for display
       breakdown: {
         baseTime: timeEstimate.breakdown?.baseTime || 0,
         withBuffer: timeEstimate.breakdown?.withBuffer || 0,

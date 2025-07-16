@@ -16,7 +16,8 @@ interface StakeholderQuestions {
 
 interface TimeEstimate {
   totalQuestions: number;
-  estimatedMinutes: string;
+  estimatedMinutes: number; // Keep as number for questionnaire page
+  estimatedMinutesDisplay?: string; // String format for chat display
   breakdown: {
     baseTime: number;
     withBuffer: number;
@@ -106,7 +107,8 @@ export function ComprehensiveQuestionsComponent({
       const maxTime = totalQuestions * 4; // 4 minutes per question maximum
       return {
         totalQuestions,
-        estimatedMinutes: `${minTime}-${maxTime}`,
+        estimatedMinutes: Math.round((minTime + maxTime) / 2), // Average as number
+        estimatedMinutesDisplay: `${minTime}-${maxTime}`, // Range as string
         breakdown: {
           baseTime: minTime,
           withBuffer: maxTime,
@@ -124,7 +126,8 @@ export function ComprehensiveQuestionsComponent({
     if (timeEstimate.total && timeEstimate.total.questions > 0) {
       return {
         totalQuestions: timeEstimate.total.questions,
-        estimatedMinutes: `${timeEstimate.total.min}-${timeEstimate.total.max}`,
+        estimatedMinutes: Math.round((timeEstimate.total.min + timeEstimate.total.max) / 2), // Average as number
+        estimatedMinutesDisplay: `${timeEstimate.total.min}-${timeEstimate.total.max}`, // Range as string
         breakdown: {
           baseTime: timeEstimate.total.min,
           withBuffer: timeEstimate.total.max,
@@ -211,6 +214,7 @@ ${formatStakeholderQuestions(safeSecondaryStakeholders, 'Secondary')}
 - **With buffer:** ${actualTimeEstimate.breakdown.withBuffer} minutes
 - **Per question:** ${actualTimeEstimate.breakdown.perQuestion} minutes average
 - **Total questions:** ${actualTimeEstimate.totalQuestions}
+- **Estimated duration:** ${actualTimeEstimate.estimatedMinutesDisplay || actualTimeEstimate.estimatedMinutes} minutes
 
 ## 📋 Research Strategy
 1. **Start with Primary Stakeholders:** Focus on ${safePrimaryStakeholders.length} primary stakeholder${safePrimaryStakeholders.length !== 1 ? 's' : ''} first

@@ -272,7 +272,8 @@ const processGeneratedQuestions = async (
     })),
     timeEstimate: {
       totalQuestions: processedQuestionsData.timeEstimate?.totalQuestions || 0,
-      estimatedMinutes: (() => {
+      estimatedMinutes: processedQuestionsData.timeEstimate?.estimatedMinutes || 0, // Keep as number for questionnaire page
+      estimatedMinutesDisplay: (() => {
         const minutes = processedQuestionsData.timeEstimate?.estimatedMinutes;
         // Handle both number (new format) and string (legacy format)
         if (typeof minutes === 'number') {

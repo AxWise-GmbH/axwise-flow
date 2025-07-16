@@ -12,7 +12,7 @@ export const generateComprehensiveQuestionnaireText = (questionnaire: any, title
   if (questionnaire.timeEstimate) {
     content += `## Time Estimate\n`;
     content += `Total Questions: ${questionnaire.timeEstimate.totalQuestions || 'N/A'}\n`;
-    content += `Estimated Duration: ${questionnaire.timeEstimate.estimatedMinutes || 'N/A'} minutes\n\n`;
+    content += `Estimated Duration: ${questionnaire.timeEstimate.estimatedMinutesDisplay || questionnaire.timeEstimate.estimatedMinutes || 'N/A'} minutes\n\n`;
   }
 
   // Primary Stakeholders

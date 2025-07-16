@@ -114,6 +114,19 @@ export default function QuestionnaireDetailPage() {
     loadQuestionnaire();
   }, [loadQuestionnaire]);
 
+  // Helper function to extract numeric minutes from various formats
+  const getEstimatedMinutes = (estimatedMinutes: any): number => {
+    if (typeof estimatedMinutes === 'number') {
+      return estimatedMinutes;
+    }
+    if (typeof estimatedMinutes === 'string') {
+      // Handle formats like "60-70" or "65"
+      const match = estimatedMinutes.match(/(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    }
+    return 0;
+  };
+
   // Generate comprehensive questionnaire text for download
   const generateComprehensiveQuestionnaireText = (questionnaire: QuestionnaireData, title: string): string => {
     let content = `# Research Questionnaire: ${title}\n\n`;
@@ -370,7 +383,7 @@ export default function QuestionnaireDetailPage() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {questionnaire.timeEstimate.estimatedMinutes || 0}
+                  {getEstimatedMinutes(questionnaire.timeEstimate.estimatedMinutes)}
                 </div>
                 <div className="text-sm text-muted-foreground">Estimated Minutes</div>
               </div>

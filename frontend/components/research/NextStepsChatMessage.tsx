@@ -18,7 +18,8 @@ interface NextStepsChatMessageProps {
   onStartResearch?: () => void;
   timeEstimate?: {
     totalQuestions: number;
-    estimatedMinutes: string;
+    estimatedMinutes: number; // Keep as number for questionnaire page
+    estimatedMinutesDisplay?: string; // String format for chat display
     breakdown: {
       baseTime: number;
       withBuffer: number;
