@@ -473,71 +473,185 @@ export default function SimulationHistoryPage(): JSX.Element {
         throw new Error('No interview data found');
       }
 
-      // Generate comprehensive interview TXT content with full context
-      const content = result.interviews.map((interview: any, index: number) => {
-        const persona = result.people?.find((p: any) => p.id === interview.persona_id) ||
-                       result.personas?.find((p: any) => p.id === interview.persona_id);
+      // Generate enhanced header
+      let content = `SYNTHETIC INTERVIEW SIMULATION RESULTS\n`;
+      content += `${'='.repeat(50)}\n\n`;
 
-        // Format demographic details
-        const formatDemographics = (demographics: any) => {
-          if (!demographics) return 'Not specified';
-          const items = [];
-          if (demographics.age_range) items.push(`Age: ${demographics.age_range}`);
-          if (demographics.education) items.push(`Education: ${demographics.education}`);
-          if (demographics.location) items.push(`Location: ${demographics.location}`);
-          if (demographics.income_level) items.push(`Income: ${demographics.income_level}`);
-          if (demographics.industry_experience) items.push(`Industry Experience: ${demographics.industry_experience}`);
-          if (demographics.company_size) items.push(`Company Size: ${demographics.company_size}`);
-          return items.length > 0 ? items.join(', ') : 'Not specified';
-        };
+      // Simulation metadata
+      content += `SIMULATION METADATA\n`;
+      content += `${'-'.repeat(20)}\n`;
+      content += `Simulation ID: ${simulationId}\n`;
+      content += `Generated: ${new Date().toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Berlin'
+      })}\n`;
+      content += `Total Interviews: ${result.interviews.length}\n`;
+      content += `Total Stakeholder Types: ${[...new Set(result.interviews.map((i: any) => i.stakeholder_type))].length}\n\n`;
 
-        // Get business context from simulation
-        const simulation = simulationHistory.find(s => s.id === selectedInterview?.simulationId);
-        const businessContext = simulation?.businessContext || selectedInterview?.businessContext || 'Not available';
+      // Business context
+      const businessContext = result.business_context || result.metadata?.business_context;
+      if (businessContext) {
+        content += `BUSINESS CONTEXT\n`;
+        content += `${'-'.repeat(16)}\n`;
+        content += `Business Idea: ${businessContext.business_idea || businessContext}\n`;
+        if (businessContext.target_customer) {
+          content += `Target Customer: ${businessContext.target_customer}\n`;
+        }
+        if (businessContext.problem) {
+          content += `Problem Statement: ${businessContext.problem}\n`;
+        }
+        content += `\n`;
+      }
 
-        return `INTERVIEW ${index + 1}
-================
+      // Stakeholder summary
+      const stakeholderGroups = result.interviews.reduce((acc: any, interview: any) => {
+        const type = interview.stakeholder_type;
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(interview);
+        return acc;
+      }, {});
 
-BUSINESS CONTEXT:
------------------
-${businessContext}
+      content += `STAKEHOLDER BREAKDOWN\n`;
+      content += `${'-'.repeat(21)}\n`;
+      Object.entries(stakeholderGroups).forEach(([type, interviewList]: [string, any]) => {
+        content += `• ${type}: ${interviewList.length} interview${interviewList.length > 1 ? 's' : ''}\n`;
+      });
+      content += `\n${'='.repeat(50)}\n\n`;
 
-PERSONA INFORMATION:
--------------------
-Name: ${persona?.name || 'Unknown'}
-Stakeholder Category: ${interview.stakeholder_type}
-Role/Position: ${persona?.role || 'Unknown'}
-Age: ${persona?.age || 'Not specified'}
-Background: ${persona?.background || 'Not specified'}
+      // Generate detailed interviews
+      result.interviews.forEach((interview: any, index: number) => {
+        const person = result.people?.find((p: any) => p.id === (interview.person_id || interview.persona_id)) ||
+                      result.personas?.find((p: any) => p.id === (interview.person_id || interview.persona_id));
+        const baseTimestamp = new Date();
+        const interviewStartTime = new Date(baseTimestamp.getTime() + (index * 30 * 60 * 1000)); // 30 minutes between interviews
 
-DEMOGRAPHIC DETAILS:
--------------------
-${formatDemographics(persona?.demographic_details || persona?.demographics)}
+        content += `INTERVIEW ${index + 1} OF ${result.interviews.length}\n`;
+        content += `${'='.repeat(30)}\n\n`;
 
-INTERVIEW DIALOGUE:
-------------------
+        // Interview metadata
+        content += `INTERVIEW METADATA\n`;
+        content += `${'-'.repeat(18)}\n`;
+        content += `Interview ID: ${interview.person_id || interview.persona_id || `INT-${index + 1}`}\n`;
+        content += `Conducted: ${interviewStartTime.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Europe/Berlin'
+        })}\n`;
+        content += `Duration: ${interview.interview_duration_minutes || 'N/A'} minutes\n`;
+        content += `Stakeholder Category: ${interview.stakeholder_type}\n`;
+        if (interview.overall_sentiment) {
+          content += `Overall Sentiment: ${interview.overall_sentiment}\n`;
+        }
+        content += `\n`;
 
-${interview.responses.map((response: any) => `Researcher: ${response.question}
+        // Persona details
+        if (person) {
+          content += `INTERVIEWEE PROFILE\n`;
+          content += `${'-'.repeat(19)}\n`;
+          content += `Name: ${person.name}\n`;
+          content += `Age: ${person.age || 'Not specified'}\n`;
+          content += `Role/Position: ${person.name.split(',')[1]?.trim() || 'Not specified'}\n`;
+          content += `Background: ${person.background || 'Not specified'}\n\n`;
 
-${persona?.name || 'Interviewee'}: ${response.response}
-`).join('\n---\n')}
+          if (person.demographics) {
+            content += `DEMOGRAPHIC DETAILS\n`;
+            content += `${'-'.repeat(19)}\n`;
+            Object.entries(person.demographics).forEach(([key, value]) => {
+              const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              content += `${formattedKey}: ${value}\n`;
+            });
+            content += `\n`;
+          }
 
-================
-`;
-      }).join('\n\n');
+          if (person.profile?.motivations || person.profile?.pain_points) {
+            content += `PROFILE INSIGHTS\n`;
+            content += `${'-'.repeat(16)}\n`;
+            if (person.profile.motivations) {
+              content += `Key Motivations:\n`;
+              person.profile.motivations.forEach((motivation: string, i: number) => {
+                content += `  ${i + 1}. ${motivation}\n`;
+              });
+              content += `\n`;
+            }
+            if (person.profile.pain_points) {
+              content += `Main Pain Points:\n`;
+              person.profile.pain_points.forEach((pain: string, i: number) => {
+                content += `  ${i + 1}. ${pain}\n`;
+              });
+              content += `\n`;
+            }
+          }
+        }
 
-      // Download immediately
+        // Interview themes
+        if (interview.key_themes && interview.key_themes.length > 0) {
+          content += `KEY THEMES IDENTIFIED\n`;
+          content += `${'-'.repeat(21)}\n`;
+          interview.key_themes.forEach((theme: string, i: number) => {
+            content += `• ${theme}\n`;
+          });
+          content += `\n`;
+        }
+
+        // Interview dialogue
+        content += `INTERVIEW DIALOGUE\n`;
+        content += `${'-'.repeat(18)}\n\n`;
+
+        if (interview.responses && interview.responses.length > 0) {
+          interview.responses.forEach((response: any, i: number) => {
+            const questionTime = new Date(interviewStartTime.getTime() + (i * 3 * 60 * 1000)); // 3 minutes per Q&A
+            const responseTime = new Date(questionTime.getTime() + (1 * 60 * 1000)); // 1 minute later
+
+            content += `[${questionTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}] Researcher: ${response.question}\n\n`;
+            content += `[${responseTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}] ${person?.name?.split(',')[0] || 'Interviewee'}: ${response.response}\n\n`;
+
+            if (response.key_insights && response.key_insights.length > 0) {
+              content += `    💡 Key Insights: ${response.key_insights.join(', ')}\n\n`;
+            }
+
+            if (i < interview.responses.length - 1) {
+              content += `${'-'.repeat(40)}\n\n`;
+            }
+          });
+        }
+
+        content += `\n${'='.repeat(50)}\n\n`;
+      });
+
+      // Footer
+      content += `SIMULATION SUMMARY\n`;
+      content += `${'-'.repeat(18)}\n`;
+      content += `Total Questions Asked: ${result.interviews.reduce((sum: number, interview: any) => sum + (interview.responses?.length || 0), 0)}\n`;
+      content += `Average Interview Duration: ${Math.round(result.interviews.reduce((sum: number, interview: any) => sum + (interview.interview_duration_minutes || 0), 0) / result.interviews.length)} minutes\n`;
+      content += `Generated by: AxWise AI Interview Simulation\n`;
+      content += `Export Date: ${new Date().toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Berlin'
+      })}\n`;
+
+      // Download the enhanced file
       const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `simulation_interviews_${simulationId.slice(0, 8)}.txt`;
+      a.download = `enhanced_interviews_${simulationId.slice(0, 8)}_${new Date().toISOString().split('T')[0]}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showToast('Interviews downloaded successfully', { variant: 'success' });
+      showToast('Enhanced interviews downloaded successfully', { variant: 'success' });
     } catch (error) {
       console.error('Download failed:', error);
       showToast('Failed to download interviews', { variant: 'error' });

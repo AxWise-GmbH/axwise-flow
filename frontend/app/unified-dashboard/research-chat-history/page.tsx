@@ -16,6 +16,18 @@ function ClientTimestamp({ timestamp, format = 'localeString' }: { timestamp: st
   }
 
   const date = new Date(timestamp);
+
+  // Debug: Check for invalid dates only
+  const isInvalid = isNaN(date.getTime());
+
+  if (isInvalid) {
+    console.warn('Invalid timestamp detected:', timestamp);
+    return <span className="text-red-500">Invalid date</span>;
+  }
+
+  // Log the actual date for debugging
+  console.log('Displaying timestamp:', timestamp, '→', date.toLocaleDateString('en-GB'));
+
   if (format === 'localeTimeString') {
     return <span>{date.toLocaleTimeString('en-GB')}</span>;
   } else if (format === 'localeDateString') {
@@ -53,11 +65,87 @@ export default function ResearchChatHistory() {
   const router = useRouter();
   const { showToast } = useToast();
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
+  const [allSessions, setAllSessions] = useState<ResearchSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ResearchSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'sessions');
+  const [showOnlyWithQuestionnaires, setShowOnlyWithQuestionnaires] = useState(true);
+
+  // Function to fix only truly corrupted (invalid) timestamps in localStorage
+  const fixCorruptedTimestamps = () => {
+    try {
+      const stored = localStorage.getItem('axwise_research_sessions');
+      if (!stored) return;
+
+      const sessions = JSON.parse(stored);
+      let hasChanges = false;
+      const now = new Date().toISOString();
+
+      const fixedSessions = sessions.map((session: any) => {
+        const createdDate = new Date(session.created_at);
+        const updatedDate = new Date(session.updated_at);
+
+        // Only fix truly invalid dates (NaN), not past or future dates
+        if (isNaN(createdDate.getTime())) {
+          console.warn(`Fixing invalid created_at for session ${session.session_id}:`, session.created_at);
+          session.created_at = now;
+          hasChanges = true;
+        }
+
+        if (isNaN(updatedDate.getTime())) {
+          console.warn(`Fixing invalid updated_at for session ${session.session_id}:`, session.updated_at);
+          session.updated_at = now;
+          hasChanges = true;
+        }
+
+        return session;
+      });
+
+      if (hasChanges) {
+        localStorage.setItem('axwise_research_sessions', JSON.stringify(fixedSessions));
+        console.log('✅ Fixed corrupted timestamps in localStorage');
+        showToast('Fixed corrupted session timestamps', { variant: 'success' });
+      } else {
+        console.log('ℹ️ No corrupted timestamps found');
+      }
+    } catch (error) {
+      console.error('Error fixing corrupted timestamps:', error);
+    }
+  };
+
+  // Function to toggle between showing all sessions vs only those with questionnaires
+  const toggleSessionFilter = () => {
+    const newValue = !showOnlyWithQuestionnaires;
+    setShowOnlyWithQuestionnaires(newValue);
+
+    if (newValue) {
+      // Show only sessions with questionnaires
+      const sessionsWithQuestionnaires = allSessions.filter(session => {
+        if (session.questions_generated) return true;
+
+        if (session.messages && session.messages.length > 0) {
+          const hasQuestionnaireMessage = session.messages.some(msg =>
+            msg.metadata?.comprehensiveQuestions ||
+            msg.metadata?.questionnaire ||
+            (msg.role === 'assistant' && msg.content && msg.content.includes('questionnaire'))
+          );
+          if (hasQuestionnaireMessage) return true;
+        }
+
+        const hasBusinessIdea = session.business_idea && session.business_idea.trim().length > 0;
+        const hasMessages = session.messages && session.messages.length > 1;
+        return hasBusinessIdea && hasMessages;
+      });
+      setSessions(sessionsWithQuestionnaires);
+    } else {
+      // Show all sessions
+      setSessions(allSessions);
+    }
+  };
 
   useEffect(() => {
+    // Fix any corrupted timestamps before loading sessions
+    fixCorruptedTimestamps();
     loadSessions();
   }, []);
 
@@ -102,7 +190,38 @@ export default function ResearchChatHistory() {
     try {
       setLoading(true);
       const data = await getResearchSessions(50);
-      setSessions(data);
+
+      // Filter sessions to only show those with generated questionnaires
+      const sessionsWithQuestionnaires = data.filter(session => {
+        // Check if session has questions_generated flag set to true
+        if (session.questions_generated) {
+          return true;
+        }
+
+        // Also check if session has questionnaire messages
+        if (session.messages && session.messages.length > 0) {
+          const hasQuestionnaireMessage = session.messages.some(msg =>
+            msg.metadata?.comprehensiveQuestions ||
+            msg.metadata?.questionnaire ||
+            (msg.role === 'assistant' && msg.content && msg.content.includes('questionnaire'))
+          );
+          if (hasQuestionnaireMessage) {
+            return true;
+          }
+        }
+
+        // Exclude empty sessions without business ideas or meaningful content
+        const hasBusinessIdea = session.business_idea && session.business_idea.trim().length > 0;
+        const hasMessages = session.messages && session.messages.length > 1; // More than just initial message
+
+        return hasBusinessIdea && hasMessages;
+      });
+
+      console.log(`📊 Filtered sessions: ${data.length} total → ${sessionsWithQuestionnaires.length} with questionnaires`);
+
+      // Store both filtered and unfiltered data
+      setAllSessions(data);
+      setSessions(showOnlyWithQuestionnaires ? sessionsWithQuestionnaires : data);
     } catch (error) {
       console.error('Failed to load sessions:', error);
     } finally {
@@ -389,7 +508,32 @@ export default function ResearchChatHistory() {
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Research History</h1>
-        <p className="text-muted-foreground mt-2">View and manage your research chat conversations and generated questionnaires</p>
+        <p className="text-muted-foreground mt-2">
+          {showOnlyWithQuestionnaires
+            ? 'Showing research sessions that have generated questionnaires'
+            : 'View and manage all your research chat conversations and generated questionnaires'
+          }
+        </p>
+
+        {/* Filter Toggle */}
+        <div className="flex items-center gap-4 mt-4 p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="questionnaire-filter"
+              checked={showOnlyWithQuestionnaires}
+              onChange={toggleSessionFilter}
+              className="rounded border-gray-300"
+            />
+            <label htmlFor="questionnaire-filter" className="text-sm font-medium">
+              Show only sessions with questionnaires
+            </label>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Showing {sessions.length} of {allSessions.length} sessions
+          </div>
+        </div>
+
         <div className="flex gap-3 mt-4">
           <Button
             onClick={() => {
@@ -406,6 +550,17 @@ export default function ResearchChatHistory() {
           >
             <ArrowRight className="mr-2 h-4 w-4" />
             Go to Interview Simulation
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              fixCorruptedTimestamps();
+              loadSessions();
+            }}
+            className="text-amber-600 hover:text-amber-700"
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            Fix Timestamps
           </Button>
         </div>
       </div>

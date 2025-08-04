@@ -617,33 +617,132 @@ Results have been saved automatically. You can now download the interview transc
   };
 
   const downloadResults = () => {
-    const content = completedInterviews.map((interview, index) => {
+    // Generate enhanced header
+    let content = `SYNTHETIC INTERVIEW SIMULATION RESULTS\n`;
+    content += `${'='.repeat(50)}\n\n`;
+
+    // Simulation metadata
+    content += `SIMULATION METADATA\n`;
+    content += `${'-'.repeat(20)}\n`;
+    content += `Simulation ID: ${Date.now().toString()}\n`;
+    content += `Generated: ${new Date().toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
+    })}\n`;
+    content += `Total Interviews: ${completedInterviews.length}\n`;
+    content += `Total Stakeholder Types: ${[...new Set(completedInterviews.map(i => i.stakeholder_type))].length}\n\n`;
+
+    // Business context
+    if (businessContext) {
+      content += `BUSINESS CONTEXT\n`;
+      content += `${'-'.repeat(16)}\n`;
+      content += `Business Idea: ${businessContext.business_idea}\n`;
+      if (businessContext.target_customer) {
+        content += `Target Customer: ${businessContext.target_customer}\n`;
+      }
+      if (businessContext.problem) {
+        content += `Problem Statement: ${businessContext.problem}\n`;
+      }
+      content += `\n`;
+    }
+
+    // Generate detailed interviews with timestamps and full persona details
+    completedInterviews.forEach((interview, index) => {
       const person = allPeople.find(p => p.id === interview.person_id || p.id === interview.persona_id);
+      const baseTimestamp = new Date();
+      const interviewStartTime = new Date(baseTimestamp.getTime() + (index * 30 * 60 * 1000)); // 30 minutes between interviews
 
-      return `INTERVIEW ${index + 1}
-================
+      content += `INTERVIEW ${index + 1} OF ${completedInterviews.length}\n`;
+      content += `${'='.repeat(30)}\n\n`;
 
-Person: ${person?.name || interview.person_id || interview.persona_id}
-Stakeholder Type: ${interview.stakeholder_type}
-Duration: ${interview.interview_duration_minutes} minutes
+      // Interview metadata
+      content += `INTERVIEW METADATA\n`;
+      content += `${'-'.repeat(18)}\n`;
+      content += `Interview ID: ${interview.person_id || `INT-${index + 1}`}\n`;
+      content += `Conducted: ${interviewStartTime.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Europe/Berlin'
+      })}\n`;
+      content += `Duration: ${interview.interview_duration_minutes || 'N/A'} minutes\n`;
+      content += `Stakeholder Category: ${interview.stakeholder_type}\n`;
+      if (interview.overall_sentiment) {
+        content += `Overall Sentiment: ${interview.overall_sentiment}\n`;
+      }
+      content += `\n`;
 
-RESPONSES:
-----------
+      // Persona details
+      if (person) {
+        content += `INTERVIEWEE PROFILE\n`;
+        content += `${'-'.repeat(19)}\n`;
+        content += `Name: ${person.name}\n`;
+        content += `Age: ${person.age || 'Not specified'}\n`;
+        content += `Role/Position: ${person.name.split(',')[1]?.trim() || 'Not specified'}\n`;
+        content += `Background: ${person.background || 'Not specified'}\n\n`;
 
-${interview.responses.map((response, i) => `Q${i + 1}: ${response.question}
+        if (person.demographics) {
+          content += `DEMOGRAPHIC DETAILS\n`;
+          content += `${'-'.repeat(19)}\n`;
+          Object.entries(person.demographics).forEach(([key, value]) => {
+            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            content += `${formattedKey}: ${value}\n`;
+          });
+          content += `\n`;
+        }
+      }
 
-A${i + 1}: ${response.response}
-`).join('\n---\n')}
+      // Interview dialogue with timestamps
+      content += `INTERVIEW DIALOGUE\n`;
+      content += `${'-'.repeat(18)}\n\n`;
 
-================
-`;
-    }).join('\n\n');
+      if (interview.responses && interview.responses.length > 0) {
+        interview.responses.forEach((response: any, i: number) => {
+          const questionTime = new Date(interviewStartTime.getTime() + (i * 3 * 60 * 1000)); // 3 minutes per Q&A
+          const responseTime = new Date(questionTime.getTime() + (1 * 60 * 1000)); // 1 minute later
+
+          content += `[${questionTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}] Researcher: ${response.question}\n\n`;
+          content += `[${responseTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}] ${person?.name?.split(',')[0] || 'Interviewee'}: ${response.response}\n\n`;
+
+          if (response.key_insights && response.key_insights.length > 0) {
+            content += `    💡 Key Insights: ${response.key_insights.join(', ')}\n\n`;
+          }
+
+          if (i < interview.responses.length - 1) {
+            content += `${'-'.repeat(40)}\n\n`;
+          }
+        });
+      }
+
+      content += `\n${'='.repeat(50)}\n\n`;
+    });
+
+    // Footer
+    content += `SIMULATION SUMMARY\n`;
+    content += `${'-'.repeat(18)}\n`;
+    content += `Total Questions Asked: ${completedInterviews.reduce((sum: number, interview: any) => sum + (interview.responses?.length || 0), 0)}\n`;
+    content += `Average Interview Duration: ${Math.round(completedInterviews.reduce((sum: number, interview: any) => sum + (interview.interview_duration_minutes || 0), 0) / completedInterviews.length)} minutes\n`;
+    content += `Generated by: AxWise AI Interview Simulation\n`;
+    content += `Export Date: ${new Date().toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Berlin'
+    })}\n`;
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `interview-simulation-${Date.now()}.txt`;
+    a.download = `enhanced_interviews_${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
