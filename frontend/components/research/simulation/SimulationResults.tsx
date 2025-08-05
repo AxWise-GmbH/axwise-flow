@@ -260,17 +260,17 @@ Background: ${persona.background}
               <div className="grid grid-cols-3 gap-3">
                 <Button onClick={onAnalyzeResults} className="w-full">
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  Analyze Results
+                  Analyze
                 </Button>
                 <Button onClick={onViewDetails} variant="outline" className="w-full">
                   <Eye className="h-4 w-4 mr-2" />
-                  View Details
+                  View
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full">
                       <Download className="h-4 w-4 mr-2" />
-                      Download Files
+                      Download
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -298,7 +298,7 @@ Background: ${persona.background}
                 <h3 className="text-lg font-semibold">Generated Personas</h3>
                 <Button onClick={downloadPersonasAsText} variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
-                  Download Personas
+                  Download
                 </Button>
               </div>
               {personas?.map((persona, index) => (
@@ -344,7 +344,7 @@ Background: ${persona.background}
                 <h3 className="text-lg font-semibold">Simulated Interviews</h3>
                 <Button onClick={downloadInterviewsAsText} variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
-                  Download Interviews
+                  Download
                 </Button>
               </div>
               {interviews?.map((interview, index) => (

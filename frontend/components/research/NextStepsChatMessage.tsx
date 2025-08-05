@@ -8,7 +8,7 @@ import {
   Users,
   TrendingUp,
   Download,
-  ArrowRight,
+  Play,
   BarChart3,
   ExternalLink
 } from 'lucide-react';
@@ -164,13 +164,13 @@ export function NextStepsChatMessage({
             {onExportQuestions && (
               <Button variant="outline" onClick={onExportQuestions} className="flex-1">
                 <Download className="h-4 w-4 mr-2" />
-                Export Questions
+                Download
               </Button>
             )}
             {onStartResearch && (
               <Button onClick={onStartResearch} className="flex-1">
-                Start Research
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <Play className="h-4 w-4 mr-2" />
+                Start AI Simulation
               </Button>
             )}
           </div>

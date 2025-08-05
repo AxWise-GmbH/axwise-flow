@@ -704,7 +704,8 @@ export default function InterviewSimulationPage() {
   };
 
   const handleViewQuestionnaire = (sessionId: string) => {
-    router.push(`/unified-dashboard/research-chat-history?tab=questionnaires&session=${sessionId}`);
+    // Navigate to research chat history and trigger questionnaire modal
+    router.push(`/unified-dashboard/research-chat-history?session=${sessionId}&action=view-questionnaire`);
   };
 
   const downloadSingleInterview = (interview: any, interviewNumber: number) => {
@@ -926,7 +927,7 @@ A${i + 1}: ${response.response}
                       size="sm"
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download Interviews
+                      Download
                     </Button>
                   )}
                   <Button
@@ -935,7 +936,7 @@ A${i + 1}: ${response.response}
                     size="sm"
                   >
                     <Eye className="h-4 w-4 mr-2" />
-                    View Results
+                    View
                   </Button>
                 </div>
               </div>
@@ -1010,7 +1011,7 @@ A${i + 1}: ${response.response}
                           ) : (
                             <>
                               <Play className="h-4 w-4 mr-2" />
-                              Start Simulation
+                              Start AI Simulation
                             </>
                           )}
                         </Button>

@@ -47,7 +47,8 @@ import {
   Clock,
   MessageSquare,
   Calendar,
-
+  Target,
+  Users,
   Eye,
   ArrowRight,
   Plus,
@@ -59,16 +60,23 @@ import {
 import { useToast } from '@/components/providers/toast-provider';
 import { getResearchSessions, type ResearchSession } from '@/lib/api/research';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 export default function ResearchChatHistory() {
   const router = useRouter();
   const { showToast } = useToast();
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
   const [allSessions, setAllSessions] = useState<ResearchSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<ResearchSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnlyWithQuestionnaires, setShowOnlyWithQuestionnaires] = useState(true);
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [selectedQuestionnaireSession, setSelectedQuestionnaireSession] = useState<ResearchSession | null>(null);
+  const [questionnaireData, setQuestionnaireData] = useState<any>(null);
+  const [loadingQuestionnaire, setLoadingQuestionnaire] = useState(false);
 
   // Function to fix only truly corrupted (invalid) timestamps in localStorage
   const fixCorruptedTimestamps = () => {
@@ -147,6 +155,24 @@ export default function ResearchChatHistory() {
     fixCorruptedTimestamps();
     loadSessions();
   }, []);
+
+  // Handle URL parameters for auto-opening questionnaire modal
+  useEffect(() => {
+    const sessionParam = searchParams.get('session');
+    const actionParam = searchParams.get('action');
+
+    if (sessionParam && actionParam === 'view-questionnaire' && allSessions.length > 0) {
+      const session = allSessions.find(s => s.session_id === sessionParam);
+      if (session) {
+        handleViewQuestionnaire(session);
+        // Clean up URL parameters
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('session');
+        newUrl.searchParams.delete('action');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [allSessions, searchParams]);
 
   // Calculate questionnaire stats when sessions change
   useEffect(() => {
@@ -393,6 +419,56 @@ export default function ResearchChatHistory() {
     return questionnaireStats[sessionId] || { questions: 0, stakeholders: 0 };
   };
 
+  // Handle viewing questionnaire in modal
+  const handleViewQuestionnaire = async (session: ResearchSession) => {
+    setSelectedQuestionnaireSession(session);
+    setLoadingQuestionnaire(true);
+    setShowQuestionnaireModal(true);
+
+    try {
+      let questionnaire = null;
+
+      if (session.session_id.startsWith('local_')) {
+        // Handle local session
+        if (typeof window !== 'undefined') {
+          const { LocalResearchStorage } = await import('@/lib/api/research');
+          const localSession = LocalResearchStorage.getSession(session.session_id);
+
+          if (localSession?.messages) {
+            // Use the same detection logic as other components
+            const questionnaireMessage = localSession.messages.find((msg: any) =>
+              msg.metadata?.comprehensiveQuestions ||
+              (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
+            );
+
+            if (questionnaireMessage?.metadata?.comprehensiveQuestions) {
+              questionnaire = questionnaireMessage.metadata.comprehensiveQuestions;
+              console.log('📋 Modal: Found questionnaire data:', questionnaire);
+              console.log('📋 Modal: Primary stakeholders:', questionnaire.primaryStakeholders?.length || 0);
+              console.log('📋 Modal: Secondary stakeholders:', questionnaire.secondaryStakeholders?.length || 0);
+            } else {
+              console.warn('📋 Modal: No questionnaire message found for session:', session.session_id);
+            }
+          }
+        }
+      } else {
+        // Handle backend session
+        const response = await fetch(`/api/research/sessions/${session.session_id}/questionnaire`);
+        if (response.ok) {
+          const data = await response.json();
+          questionnaire = data.questionnaire;
+        }
+      }
+
+      setQuestionnaireData(questionnaire);
+    } catch (error) {
+      console.error('Error loading questionnaire:', error);
+      showToast('Failed to load questionnaire', { variant: 'error' });
+    } finally {
+      setLoadingQuestionnaire(false);
+    }
+  };
+
   // Handle downloading questionnaire
   const handleDownloadQuestionnaire = async (sessionId: string, title: string) => {
     try {
@@ -629,9 +705,9 @@ export default function ResearchChatHistory() {
       </div>
 
       {/* Single Unified Session List */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 mt-6">
+      <div className="max-w-6xl mx-auto mt-6">
         {/* Sessions List */}
-        <div className="xl:col-span-2">
+        <div>
           <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -647,13 +723,11 @@ export default function ResearchChatHistory() {
                 {sessions.map((session) => {
                   const stage = getSessionStage(session);
                   const stats = getQuestionnaireStats(session.session_id);
-                  const isSelected = selectedSession?.session_id === session.session_id;
 
                   return (
                     <Card
                       key={session.session_id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${isSelected ? 'ring-2 ring-primary' : ''}`}
-                      onClick={() => setSelectedSession(session)}
+                      className="transition-all hover:shadow-md"
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
@@ -707,6 +781,19 @@ export default function ResearchChatHistory() {
                               <MessageSquare className="h-4 w-4" />
                             </Button>
 
+                            {/* Action buttons */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/unified-dashboard/research-chat?session=${session.session_id}`);
+                              }}
+                              title="Continue conversation"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+
                             {/* Show questionnaire actions if available */}
                             {stage.questionnaire && (
                               <>
@@ -715,11 +802,23 @@ export default function ResearchChatHistory() {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    router.push(`/unified-dashboard/questionnaire/${session.session_id}`);
+                                    handleViewQuestionnaire(session);
                                   }}
                                   title="View questionnaire"
                                 >
                                   <Eye className="h-4 w-4" />
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadQuestionnaire(session.session_id, session.business_idea || 'questionnaire');
+                                  }}
+                                  title="Download questionnaire"
+                                >
+                                  <Download className="h-4 w-4" />
                                 </Button>
 
                                 {!stage.simulation && (
@@ -730,7 +829,7 @@ export default function ResearchChatHistory() {
                                       e.stopPropagation();
                                       router.push(`/unified-dashboard/research?session=${session.session_id}`);
                                     }}
-                                    title="Start simulation"
+                                    title="Start AI simulation"
                                   >
                                     <Play className="h-4 w-4" />
                                   </Button>
@@ -775,91 +874,232 @@ export default function ResearchChatHistory() {
             </CardContent>
           </Card>
         </div>
+      </div>
 
-        {/* Enhanced Session Details */}
-        <div>
-          {selectedSession ? (
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <WorkflowStageIndicator stage={getSessionStage(selectedSession)} />
-                  Session Details
-                </CardTitle>
-                <CardDescription>{getSessionStage(selectedSession).description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Session Info */}
-                  <div>
-                    <h4 className="font-medium mb-2">Business Idea</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedSession.business_idea || 'No business idea specified'}
-                    </p>
-                  </div>
+      {/* Questionnaire Modal */}
+      <Dialog open={showQuestionnaireModal} onOpenChange={setShowQuestionnaireModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedQuestionnaireSession?.business_idea || 'Research Questionnaire'}
+            </DialogTitle>
+            <DialogDescription>
+              Generated questionnaire for customer research and validation
+            </DialogDescription>
+          </DialogHeader>
 
-                  {/* Next Actions */}
-                  <div>
-                    <h4 className="font-medium mb-3">Available Actions</h4>
-                    <div className="space-y-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/unified-dashboard/research-chat?session=${selectedSession.session_id}`)}
-                        className="w-full justify-start"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Continue Conversation
-                      </Button>
-
-                      {getSessionStage(selectedSession).questionnaire && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => router.push(`/unified-dashboard/questionnaire/${selectedSession.session_id}`)}
-                            className="w-full justify-start"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Questionnaire
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownloadQuestionnaire(selectedSession.session_id, selectedSession.business_idea || 'questionnaire')}
-                            className="w-full justify-start"
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download Questions
-                          </Button>
-
-                          {!getSessionStage(selectedSession).simulation && (
-                            <Button
-                              size="sm"
-                              onClick={() => router.push(`/unified-dashboard/research?session=${selectedSession.session_id}`)}
-                              className="w-full justify-start"
-                            >
-                              <Play className="h-4 w-4 mr-2" />
-                              Start Simulation
-                            </Button>
-                          )}
-                        </>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            {loadingQuestionnaire ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-2">Loading questionnaire...</span>
+              </div>
+            ) : questionnaireData ? (
+              <div className="space-y-6">
+                {/* Business Context */}
+                {selectedQuestionnaireSession && (
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <h3 className="font-semibold mb-2">Business Context</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Business Idea:</strong> {selectedQuestionnaireSession.business_idea}</p>
+                      {selectedQuestionnaireSession.target_customer && (
+                        <p><strong>Target Customer:</strong> {selectedQuestionnaireSession.target_customer}</p>
+                      )}
+                      {selectedQuestionnaireSession.problem && (
+                        <p><strong>Problem:</strong> {selectedQuestionnaireSession.problem}</p>
                       )}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="sticky top-4">
-              <CardContent className="p-8 text-center text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Select a session to view details</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                )}
+
+                {/* Primary Stakeholders */}
+                {questionnaireData.primaryStakeholders && questionnaireData.primaryStakeholders.length > 0 && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      Primary Stakeholders
+                    </h3>
+                    <div className="space-y-4">
+                      {questionnaireData.primaryStakeholders.map((stakeholder: any, index: number) => (
+                        <div key={index} className="border-l-4 border-primary pl-4">
+                          <h4 className="font-semibold mb-1">{stakeholder.name}</h4>
+                          <p className="text-sm text-muted-foreground mb-3">{stakeholder.description}</p>
+
+                          {/* Problem Discovery Questions */}
+                          {stakeholder.questions?.problemDiscovery && stakeholder.questions.problemDiscovery.length > 0 && (
+                            <div className="mb-3">
+                              <h5 className="font-medium text-sm mb-2 text-blue-600">Problem Discovery</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.problemDiscovery.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Solution Validation Questions */}
+                          {stakeholder.questions?.solutionValidation && stakeholder.questions.solutionValidation.length > 0 && (
+                            <div className="mb-3">
+                              <h5 className="font-medium text-sm mb-2 text-green-600">Solution Validation</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.solutionValidation.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Follow-up Questions */}
+                          {stakeholder.questions?.followUp && stakeholder.questions.followUp.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-sm mb-2 text-purple-600">Follow-up</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.followUp.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Secondary Stakeholders */}
+                {questionnaireData.secondaryStakeholders && questionnaireData.secondaryStakeholders.length > 0 && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-600" />
+                      Secondary Stakeholders
+                    </h3>
+                    <div className="space-y-4">
+                      {questionnaireData.secondaryStakeholders.map((stakeholder: any, index: number) => (
+                        <div key={index} className="border-l-4 border-purple-200 pl-4">
+                          <h4 className="font-semibold mb-1">{stakeholder.name}</h4>
+                          <p className="text-sm text-muted-foreground mb-3">{stakeholder.description}</p>
+
+                          {/* Problem Discovery Questions */}
+                          {stakeholder.questions?.problemDiscovery && stakeholder.questions.problemDiscovery.length > 0 && (
+                            <div className="mb-3">
+                              <h5 className="font-medium text-sm mb-2 text-blue-600">Problem Discovery</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.problemDiscovery.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Solution Validation Questions */}
+                          {stakeholder.questions?.solutionValidation && stakeholder.questions.solutionValidation.length > 0 && (
+                            <div className="mb-3">
+                              <h5 className="font-medium text-sm mb-2 text-green-600">Solution Validation</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.solutionValidation.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Follow-up Questions */}
+                          {stakeholder.questions?.followUp && stakeholder.questions.followUp.length > 0 && (
+                            <div>
+                              <h5 className="font-medium text-sm mb-2 text-purple-600">Follow-up</h5>
+                              <div className="space-y-1">
+                                {stakeholder.questions.followUp.map((question: string, qIndex: number) => (
+                                  <div key={qIndex} className="flex items-start gap-2">
+                                    <span className="text-muted-foreground text-xs mt-1">{qIndex + 1}.</span>
+                                    <p className="text-sm">{question}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground">No questionnaire data found</p>
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Modal Actions */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {questionnaireData && selectedQuestionnaireSession && (
+                <>
+                  {(() => {
+                    const primaryCount = questionnaireData.primaryStakeholders?.length || 0;
+                    const secondaryCount = questionnaireData.secondaryStakeholders?.length || 0;
+                    const totalStakeholders = primaryCount + secondaryCount;
+
+                    const allStakeholders = [
+                      ...(questionnaireData.primaryStakeholders || []),
+                      ...(questionnaireData.secondaryStakeholders || [])
+                    ];
+
+                    const totalQuestions = allStakeholders.reduce((total: number, stakeholder: any) => {
+                      const questions = stakeholder.questions || {};
+                      return total +
+                        (questions.problemDiscovery?.length || 0) +
+                        (questions.solutionValidation?.length || 0) +
+                        (questions.followUp?.length || 0);
+                    }, 0);
+
+                    return `${totalStakeholders} stakeholder groups • ${totalQuestions} questions`;
+                  })()}
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => selectedQuestionnaireSession && handleDownloadQuestionnaire(
+                  selectedQuestionnaireSession.session_id,
+                  selectedQuestionnaireSession.business_idea || 'questionnaire'
+                )}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowQuestionnaireModal(false);
+                  if (selectedQuestionnaireSession) {
+                    router.push(`/unified-dashboard/research?session=${selectedQuestionnaireSession.session_id}`);
+                  }
+                }}
+              >
+                <Play className="mr-2 h-4 w-4" />
+                Start AI Simulation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -247,12 +247,12 @@ export function SimulationSettingsPanel({
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Starting Simulation...
+                Starting AI Simulation...
               </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Start Simulation
+                Start AI Simulation
               </>
             )}
           </Button>

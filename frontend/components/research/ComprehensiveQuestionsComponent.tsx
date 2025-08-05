@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Copy, Users, Target, MessageCircle, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
+import { Download, Copy, Users, Play, Target, MessageCircle, Clock, CheckCircle2, BarChart3 } from 'lucide-react';
 
 interface StakeholderQuestions {
   name: string;
@@ -402,13 +402,13 @@ ${(questions.followUp || []).map((q, i) => `${i + 1}. ${q}`).join('\n')}`;
         {onExport && (
           <Button variant="outline" onClick={onExport} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
-            Export
+            Download
           </Button>
         )}
         {onContinue && (
           <Button variant="outline" onClick={onContinue} className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            Start Research
+            <Play className="h-4 w-4" />
+            Start AI Simulation
           </Button>
         )}
       </div>
