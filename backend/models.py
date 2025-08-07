@@ -9,7 +9,8 @@ from sqlalchemy import (
     Text,
     Float,
 )
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship, sessionmaker, foreign
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
@@ -19,6 +20,7 @@ from backend.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = {"extend_existing": True}
 
     user_id = Column(String, primary_key=True)  # From Clerk
     email = Column(String)
@@ -29,21 +31,19 @@ class User(Base):
     subscription_id = Column(String, nullable=True)  # Phase 5
     usage_data = Column(JSON, nullable=True)
 
-    interviews = relationship("InterviewData", back_populates="user")
+    interviews = relationship("InterviewData", viewonly=True)
 
 
 class InterviewData(Base):
     __tablename__ = "interview_data"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    # Add data_id as an alias for id for backward compatibility
     @property
     def data_id(self):
         return self.id
-
-    @data_id.setter
-    def data_id(self, value):
-        self.id = value
 
     user_id = Column(String, ForeignKey("users.user_id"))
     upload_date = Column(DateTime, default=datetime.utcnow)
@@ -59,22 +59,23 @@ class InterviewData(Base):
     def transformed_data(self, value):
         pass  # Ignore for now
 
-    user = relationship("User", back_populates="interviews")
-    analysis_results = relationship("AnalysisResult", back_populates="interview_data")
+    user = relationship("User", viewonly=True)
+    analysis_results = relationship(
+        "AnalysisResult",
+        viewonly=True,
+    )
 
 
 class AnalysisResult(Base):
     __tablename__ = "analysis_results"
+    __table_args__ = {"extend_existing": True}
 
     result_id = Column(Integer, primary_key=True, autoincrement=True)
 
+    # Add id as an alias for result_id for backward compatibility
     @property
     def id(self):
         return self.result_id
-
-    @id.setter
-    def id(self, value):
-        self.result_id = value
 
     data_id = Column(Integer, ForeignKey("interview_data.id"))
 
@@ -124,13 +125,20 @@ class AnalysisResult(Base):
     )  # possible values: processing, completed, failed
     error_message = Column(Text, nullable=True)  # For compatibility
 
-    interview_data = relationship("InterviewData", back_populates="analysis_results")
-    personas = relationship("Persona", back_populates="analysis_result")
-    cached_prds = relationship("CachedPRD", back_populates="analysis_result")
+    # NEW: Multi-stakeholder intelligence support
+    stakeholder_intelligence = Column(JSONB, nullable=True)
+
+    interview_data = relationship(
+        "InterviewData",
+        viewonly=True,
+    )
+    personas = relationship("Persona", viewonly=True)
+    cached_prds = relationship("CachedPRD", viewonly=True)
 
 
 class Persona(Base):
     __tablename__ = "personas"
+    __table_args__ = {"extend_existing": True}
 
     persona_id = Column(Integer, primary_key=True, autoincrement=True)
     result_id = Column(Integer, ForeignKey("analysis_results.result_id"))
@@ -168,7 +176,7 @@ class Persona(Base):
     overall_confidence = Column(Float, nullable=True)  # New field
     supporting_evidence_summary = Column(JSON, nullable=True)  # New field
 
-    analysis_result = relationship("AnalysisResult", back_populates="personas")
+    analysis_result = relationship("AnalysisResult", viewonly=True)
 
 
 class CachedPRD(Base):
@@ -177,6 +185,7 @@ class CachedPRD(Base):
     """
 
     __tablename__ = "cached_prds"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True)
     result_id = Column(
@@ -190,7 +199,7 @@ class CachedPRD(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationship to AnalysisResult
-    analysis_result = relationship("AnalysisResult", back_populates="cached_prds")
+    analysis_result = relationship("AnalysisResult", viewonly=True)
 
     class Config:
         """Pydantic config"""
@@ -204,6 +213,7 @@ class SimulationData(Base):
     """
 
     __tablename__ = "simulation_data"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     simulation_id = Column(String, unique=True, nullable=False, index=True)
@@ -228,7 +238,7 @@ class SimulationData(Base):
     total_interviews = Column(Integer, default=0)
     error_message = Column(Text, nullable=True)
 
-    user = relationship("User")
+    user = relationship("User", viewonly=True)
 
     @property
     def duration_minutes(self):

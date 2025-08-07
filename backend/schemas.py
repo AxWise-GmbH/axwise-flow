@@ -583,6 +583,124 @@ class EnhancedThemeResponse(BaseModel):
     }
 
 
+# Multi-Stakeholder Analysis Models
+
+
+class DetectedStakeholder(BaseModel):
+    """Individual stakeholder detected in the analysis"""
+
+    stakeholder_id: str = Field(
+        ..., description="Unique identifier for the stakeholder"
+    )
+    stakeholder_type: Literal[
+        "primary_customer", "secondary_user", "decision_maker", "influencer"
+    ] = Field(..., description="Classification of stakeholder type")
+    confidence_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Confidence in stakeholder detection"
+    )
+    demographic_profile: Optional[Dict[str, Any]] = Field(
+        None, description="Demographic information"
+    )
+    individual_insights: Dict[str, Any] = Field(
+        default_factory=dict, description="Stakeholder-specific insights"
+    )
+    influence_metrics: Optional[Dict[str, float]] = Field(
+        None, description="Influence and decision power metrics"
+    )
+
+
+class ConsensusArea(BaseModel):
+    """Area where stakeholders show agreement"""
+
+    topic: str = Field(..., description="Topic of consensus")
+    agreement_level: float = Field(
+        ..., ge=0.0, le=1.0, description="Level of agreement (0-1)"
+    )
+    participating_stakeholders: List[str] = Field(
+        ..., description="Stakeholders in agreement"
+    )
+    shared_insights: List[str] = Field(
+        default_factory=list, description="Common insights"
+    )
+    business_impact: str = Field(..., description="Business impact assessment")
+
+
+class ConflictZone(BaseModel):
+    """Area where stakeholders disagree"""
+
+    topic: str = Field(..., description="Topic of conflict")
+    conflicting_stakeholders: List[str] = Field(
+        ..., description="Stakeholders in conflict"
+    )
+    conflict_severity: Literal["low", "medium", "high", "critical"] = Field(
+        ..., description="Severity level"
+    )
+    potential_resolutions: List[str] = Field(
+        default_factory=list, description="Potential resolution strategies"
+    )
+    business_risk: str = Field(..., description="Business risk assessment")
+
+
+class InfluenceNetwork(BaseModel):
+    """Influence relationship between stakeholders"""
+
+    influencer: str = Field(..., description="Influencing stakeholder")
+    influenced: List[str] = Field(..., description="Influenced stakeholders")
+    influence_type: Literal["decision", "opinion", "adoption", "resistance"] = Field(
+        ..., description="Type of influence"
+    )
+    strength: float = Field(..., ge=0.0, le=1.0, description="Strength of influence")
+    pathway: str = Field(..., description="How influence flows")
+
+
+class CrossStakeholderPatterns(BaseModel):
+    """Cross-stakeholder analysis patterns"""
+
+    consensus_areas: List[ConsensusArea] = Field(default_factory=list)
+    conflict_zones: List[ConflictZone] = Field(default_factory=list)
+    influence_networks: List[InfluenceNetwork] = Field(default_factory=list)
+    stakeholder_priority_matrix: Optional[Dict[str, Any]] = Field(
+        None, description="Priority matrix data"
+    )
+
+
+class MultiStakeholderSummary(BaseModel):
+    """High-level multi-stakeholder summary"""
+
+    total_stakeholders: int = Field(
+        ..., ge=0, description="Total number of stakeholders detected"
+    )
+    consensus_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Overall consensus level"
+    )
+    conflict_score: float = Field(
+        ..., ge=0.0, le=1.0, description="Overall conflict level"
+    )
+    key_insights: List[str] = Field(
+        default_factory=list, description="Key multi-stakeholder insights"
+    )
+    implementation_recommendations: List[str] = Field(
+        default_factory=list, description="Implementation recommendations"
+    )
+
+
+class StakeholderIntelligence(BaseModel):
+    """Complete stakeholder intelligence data"""
+
+    detected_stakeholders: List[DetectedStakeholder] = Field(
+        ..., description="All detected stakeholders"
+    )
+    cross_stakeholder_patterns: Optional[CrossStakeholderPatterns] = Field(
+        None, description="Cross-stakeholder patterns"
+    )
+    multi_stakeholder_summary: Optional[MultiStakeholderSummary] = Field(
+        None, description="High-level summary"
+    )
+    processing_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Processing metadata"
+    )
+
+
 class DetailedAnalysisResult(BaseModel):
     """
     Comprehensive model for all analysis results.
@@ -598,11 +716,25 @@ class DetailedAnalysisResult(BaseModel):
         None  # Enhanced themes from the enhanced analysis process
     )
     patterns: List[Pattern]
+    enhanced_patterns: Optional[List[Pattern]] = (
+        None  # Enhanced patterns from stakeholder analysis
+    )
     sentimentOverview: SentimentOverview
     sentiment: Optional[List[Dict[str, Any]]] = None
     personas: Optional[List[Persona]] = None
+    enhanced_personas: Optional[List[Persona]] = (
+        None  # Enhanced personas from stakeholder analysis
+    )
     insights: Optional[List[Insight]] = None
+    enhanced_insights: Optional[List[Insight]] = (
+        None  # Enhanced insights from stakeholder analysis
+    )
     error: Optional[str] = None
+
+    # NEW: Optional multi-stakeholder intelligence
+    stakeholder_intelligence: Optional[StakeholderIntelligence] = Field(
+        None, description="Multi-stakeholder analysis intelligence"
+    )
 
 
 class ResultResponse(BaseModel):

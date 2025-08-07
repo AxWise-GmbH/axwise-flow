@@ -17,10 +17,14 @@ from google.genai.types import GenerateContentConfig, Content
 from backend.utils.json.json_repair import repair_json
 from backend.services.llm.config.genai_config import GenAIConfigFactory, TaskType
 from backend.services.llm.exceptions import (
-    LLMAPIError, LLMResponseParseError, LLMProcessingError, LLMServiceError
+    LLMAPIError,
+    LLMResponseParseError,
+    LLMProcessingError,
+    LLMServiceError,
 )
 
 logger = logging.getLogger(__name__)
+
 
 class AsyncGenAIClient:
     """
@@ -46,7 +50,9 @@ class AsyncGenAIClient:
             self.client = genai.Client(api_key=self.api_key)
             logger.info(f"Successfully initialized genai with Client() constructor")
         except Exception as e:
-            logger.error(f"An unexpected error occurred during genai client initialization: {e}")
+            logger.error(
+                f"An unexpected error occurred during genai client initialization: {e}"
+            )
             raise ValueError(f"Failed to initialize Gemini client: {e}") from e
 
     async def generate_content(
@@ -57,7 +63,7 @@ class AsyncGenAIClient:
         system_instruction: Optional[str] = None,
         max_retries: int = 3,
         initial_delay: float = 1.0,
-        backoff_factor: float = 2.0
+        backoff_factor: float = 2.0,
     ) -> Dict[str, Any]:
         """
         Generate content using the GenAI API with standardized async implementation.
@@ -88,7 +94,7 @@ class AsyncGenAIClient:
                 config=config,
                 max_retries=max_retries,
                 initial_delay=initial_delay,
-                backoff_factor=backoff_factor
+                backoff_factor=backoff_factor,
             )
 
             # Parse the response
@@ -103,7 +109,10 @@ class AsyncGenAIClient:
             raise
         except Exception as e:
             # Wrap unknown exceptions
-            logger.error(f"Unexpected error generating content for task {task}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error generating content for task {task}: {str(e)}",
+                exc_info=True,
+            )
             raise LLMServiceError(f"Unexpected error: {str(e)}") from e
 
     async def generate_content_stream(
@@ -114,7 +123,7 @@ class AsyncGenAIClient:
         system_instruction: Optional[str] = None,
         max_retries: int = 3,
         initial_delay: float = 1.0,
-        backoff_factor: float = 2.0
+        backoff_factor: float = 2.0,
     ) -> AsyncGenerator[str, None]:
         """
         Generate content using the GenAI API with streaming.
@@ -145,7 +154,7 @@ class AsyncGenAIClient:
                 config=config,
                 max_retries=max_retries,
                 initial_delay=initial_delay,
-                backoff_factor=backoff_factor
+                backoff_factor=backoff_factor,
             )
 
             # Yield content chunks
@@ -162,13 +171,16 @@ class AsyncGenAIClient:
             raise
         except Exception as e:
             # Wrap unknown exceptions
-            logger.error(f"Unexpected error generating content stream for task {task}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error generating content stream for task {task}: {str(e)}",
+                exc_info=True,
+            )
             raise LLMServiceError(f"Unexpected error: {str(e)}") from e
 
     def _prepare_prompt(
         self,
         prompt: Union[str, List[Union[str, Content]]],
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
     ) -> List[Union[str, Content]]:
         """
         Prepare the prompt with system instruction if provided.
@@ -185,14 +197,22 @@ class AsyncGenAIClient:
             if isinstance(prompt, str):
                 # Convert string content to a list of Content objects
                 user_content = Content(parts=[{"text": prompt}], role="user")
-                system_content = Content(parts=[{"text": "System instruction: " + system_instruction}], role="user")
+                system_content = Content(
+                    parts=[{"text": "System instruction: " + system_instruction}],
+                    role="user",
+                )
                 return [system_content, user_content]
             elif isinstance(prompt, list):
                 # Add system instruction as the first item
-                system_content = Content(parts=[{"text": "System instruction: " + system_instruction}], role="user")
+                system_content = Content(
+                    parts=[{"text": "System instruction: " + system_instruction}],
+                    role="user",
+                )
                 if all(isinstance(item, str) for item in prompt):
                     # Convert all string items to Content objects
-                    content_list = [Content(parts=[{"text": item}], role="user") for item in prompt]
+                    content_list = [
+                        Content(parts=[{"text": item}], role="user") for item in prompt
+                    ]
                     return [system_content] + content_list
                 else:
                     # Mixed list of strings and Content objects
@@ -211,7 +231,7 @@ class AsyncGenAIClient:
         config: GenerateContentConfig,
         max_retries: int = 3,
         initial_delay: float = 1.0,
-        backoff_factor: float = 2.0
+        backoff_factor: float = 2.0,
     ) -> Any:
         """
         Generate content with retry logic.
@@ -235,11 +255,9 @@ class AsyncGenAIClient:
                 # Make the API call with explicit timeout
                 response = await asyncio.wait_for(
                     self.client.aio.models.generate_content(
-                        model=model,
-                        contents=prompt,
-                        config=config
+                        model=model, contents=prompt, config=config
                     ),
-                    timeout=180.0  # 3 minutes timeout for individual API calls
+                    timeout=120.0,  # Reduced from 180s to 120s (2 minutes) for faster failure detection
                 )
                 return response
             except asyncio.TimeoutError as e:
@@ -254,8 +272,12 @@ class AsyncGenAIClient:
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
-                    logger.error(f"API call timed out after {max_retries} attempts: {str(e)}")
-                    raise LLMAPIError(f"API call timed out after {max_retries} attempts: {str(e)}") from e
+                    logger.error(
+                        f"API call timed out after {max_retries} attempts: {str(e)}"
+                    )
+                    raise LLMAPIError(
+                        f"API call timed out after {max_retries} attempts: {str(e)}"
+                    ) from e
             except Exception as e:
                 last_exception = e
                 if attempt < max_retries - 1:
@@ -268,8 +290,12 @@ class AsyncGenAIClient:
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
-                    logger.error(f"API call failed after {max_retries} attempts: {str(e)}")
-                    raise LLMAPIError(f"API call failed after {max_retries} attempts: {str(e)}") from e
+                    logger.error(
+                        f"API call failed after {max_retries} attempts: {str(e)}"
+                    )
+                    raise LLMAPIError(
+                        f"API call failed after {max_retries} attempts: {str(e)}"
+                    ) from e
 
         # This should never happen, but just in case
         raise LLMAPIError(f"API call failed: {str(last_exception)}")
@@ -281,7 +307,7 @@ class AsyncGenAIClient:
         config: GenerateContentConfig,
         max_retries: int = 3,
         initial_delay: float = 1.0,
-        backoff_factor: float = 2.0
+        backoff_factor: float = 2.0,
     ) -> AsyncGenerator:
         """
         Generate content stream with retry logic.
@@ -305,11 +331,9 @@ class AsyncGenAIClient:
                 # Make the API call with explicit timeout
                 stream = await asyncio.wait_for(
                     self.client.aio.models.generate_content_stream(
-                        model=model,
-                        contents=prompt,
-                        config=config
+                        model=model, contents=prompt, config=config
                     ),
-                    timeout=180.0  # 3 minutes timeout for individual API calls
+                    timeout=120.0,  # Reduced from 180s to 120s (2 minutes) for faster failure detection
                 )
                 return stream
             except asyncio.TimeoutError as e:
@@ -324,8 +348,12 @@ class AsyncGenAIClient:
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
-                    logger.error(f"API stream call timed out after {max_retries} attempts: {str(e)}")
-                    raise LLMAPIError(f"API stream call timed out after {max_retries} attempts: {str(e)}") from e
+                    logger.error(
+                        f"API stream call timed out after {max_retries} attempts: {str(e)}"
+                    )
+                    raise LLMAPIError(
+                        f"API stream call timed out after {max_retries} attempts: {str(e)}"
+                    ) from e
             except Exception as e:
                 last_exception = e
                 if attempt < max_retries - 1:
@@ -338,13 +366,19 @@ class AsyncGenAIClient:
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
-                    logger.error(f"API stream call failed after {max_retries} attempts: {str(e)}")
-                    raise LLMAPIError(f"API stream call failed after {max_retries} attempts: {str(e)}") from e
+                    logger.error(
+                        f"API stream call failed after {max_retries} attempts: {str(e)}"
+                    )
+                    raise LLMAPIError(
+                        f"API stream call failed after {max_retries} attempts: {str(e)}"
+                    ) from e
 
         # This should never happen, but just in case
         raise LLMAPIError(f"API stream call failed: {str(last_exception)}")
 
-    async def _parse_response(self, response: Any, task: Union[str, TaskType]) -> Dict[str, Any]:
+    async def _parse_response(
+        self, response: Any, task: Union[str, TaskType]
+    ) -> Dict[str, Any]:
         """
         Parse the response from the API.
 
@@ -357,12 +391,12 @@ class AsyncGenAIClient:
         """
         try:
             # Check if response has parsed property (from schema validation)
-            if hasattr(response, 'parsed') and response.parsed is not None:
+            if hasattr(response, "parsed") and response.parsed is not None:
                 logger.info(f"Using schema-validated parsed response for task {task}")
                 # Convert to dict if it's a Pydantic model
-                if hasattr(response.parsed, 'dict'):
+                if hasattr(response.parsed, "dict"):
                     return response.parsed.dict()
-                elif hasattr(response.parsed, 'model_dump'):
+                elif hasattr(response.parsed, "model_dump"):
                     return response.parsed.model_dump()
                 else:
                     # If it's already a dict or other serializable type
@@ -374,81 +408,122 @@ class AsyncGenAIClient:
             logger.info(f"Response has candidates: {hasattr(response, 'candidates')}")
 
             # Check for safety filters or other blocking
-            if hasattr(response, 'candidates') and response.candidates:
+            if hasattr(response, "candidates") and response.candidates:
                 for i, candidate in enumerate(response.candidates):
-                    logger.info(f"Candidate {i}: finish_reason={getattr(candidate, 'finish_reason', 'unknown')}")
-                    if hasattr(candidate, 'safety_ratings'):
-                        logger.info(f"Candidate {i} safety ratings: {candidate.safety_ratings}")
+                    logger.info(
+                        f"Candidate {i}: finish_reason={getattr(candidate, 'finish_reason', 'unknown')}"
+                    )
+                    if hasattr(candidate, "safety_ratings"):
+                        logger.info(
+                            f"Candidate {i} safety ratings: {candidate.safety_ratings}"
+                        )
 
             # Check if response was blocked
-            if hasattr(response, 'prompt_feedback'):
+            if hasattr(response, "prompt_feedback"):
                 logger.info(f"Prompt feedback: {response.prompt_feedback}")
 
             # Extract text from response
             text_response = None
             try:
                 text_response = response.text
-                logger.info(f"Successfully extracted text using response.text: '{text_response}' (length: {len(text_response) if text_response else 0})")
+                logger.info(
+                    f"Successfully extracted text using response.text: '{text_response}' (length: {len(text_response) if text_response else 0})"
+                )
             except Exception as e:
                 logger.warning(f"Could not get response.text: {e}")
-                logger.warning(f"Exception type: {type(e)}, Exception details: {str(e)}")
+                logger.warning(
+                    f"Exception type: {type(e)}, Exception details: {str(e)}"
+                )
 
             # If text_response is None or empty, try alternative methods
             if not text_response:
-                logger.warning(f"response.text returned None or empty, trying alternative extraction methods...")
+                logger.warning(
+                    f"response.text returned None or empty, trying alternative extraction methods..."
+                )
                 try:
                     # Method 1: Try candidates
-                    if hasattr(response, 'candidates') and response.candidates:
+                    if hasattr(response, "candidates") and response.candidates:
                         logger.info(f"Found {len(response.candidates)} candidates")
                         candidate = response.candidates[0]
                         logger.info(f"Candidate type: {type(candidate)}")
                         logger.info(f"Candidate attributes: {dir(candidate)}")
 
-                        if hasattr(candidate, 'content') and candidate.content:
-                            logger.info(f"Candidate content type: {type(candidate.content)}")
-                            logger.info(f"Candidate content attributes: {dir(candidate.content)}")
+                        if hasattr(candidate, "content") and candidate.content:
+                            logger.info(
+                                f"Candidate content type: {type(candidate.content)}"
+                            )
+                            logger.info(
+                                f"Candidate content attributes: {dir(candidate.content)}"
+                            )
 
-                            if hasattr(candidate.content, 'parts') and candidate.content.parts:
-                                logger.info(f"Found {len(candidate.content.parts)} parts")
+                            if (
+                                hasattr(candidate.content, "parts")
+                                and candidate.content.parts
+                            ):
+                                logger.info(
+                                    f"Found {len(candidate.content.parts)} parts"
+                                )
                                 part = candidate.content.parts[0]
                                 logger.info(f"Part type: {type(part)}")
                                 logger.info(f"Part attributes: {dir(part)}")
 
-                                if hasattr(part, 'text'):
+                                if hasattr(part, "text"):
                                     text_response = part.text
-                                    logger.info(f"Successfully extracted text from parts[0].text: '{text_response}' (length: {len(text_response) if text_response else 0})")
+                                    logger.info(
+                                        f"Successfully extracted text from parts[0].text: '{text_response}' (length: {len(text_response) if text_response else 0})"
+                                    )
                                 else:
                                     logger.error(f"Part has no text attribute")
                             else:
                                 logger.error(f"Content has no parts or parts is empty")
                         else:
-                            logger.error(f"Candidate has no content or content is empty")
+                            logger.error(
+                                f"Candidate has no content or content is empty"
+                            )
                     else:
-                        logger.error(f"Response has no candidates or candidates is empty")
+                        logger.error(
+                            f"Response has no candidates or candidates is empty"
+                        )
 
                     # Method 2: Try to convert response to string
                     if not text_response:
                         logger.warning(f"Trying to convert response to string...")
                         text_response = str(response)
-                        logger.info(f"Response as string: '{text_response}' (length: {len(text_response)})")
+                        logger.info(
+                            f"Response as string: '{text_response}' (length: {len(text_response)})"
+                        )
 
                 except Exception as nested_e:
-                    logger.error(f"Failed to extract text using alternative methods: {str(nested_e)}")
+                    logger.error(
+                        f"Failed to extract text using alternative methods: {str(nested_e)}"
+                    )
 
             # Final check
             if not text_response:
-                logger.error(f"All text extraction methods failed. Response: {response}")
+                logger.error(
+                    f"All text extraction methods failed. Response: {response}"
+                )
                 raise LLMResponseParseError(f"Failed to extract any text from response")
 
             # Check if response is empty or very short
             # Special case for industry detection which can return just the industry name
-            if (isinstance(task, str) and task == "industry_detection") or (isinstance(task, TaskType) and task == TaskType.INDUSTRY_DETECTION):
+            if (isinstance(task, str) and task == "industry_detection") or (
+                isinstance(task, TaskType) and task == TaskType.INDUSTRY_DETECTION
+            ):
                 if not text_response:
                     logger.error(f"Empty response received for task '{task}'")
-                    raise LLMResponseParseError(f"Empty response received for task '{task}'")
-            elif not text_response or len(text_response.strip()) < 2:  # More lenient for text generation
-                logger.error(f"Empty or very short response received for task '{task}'. Response: '{text_response}'")
-                raise LLMResponseParseError(f"Empty or very short response received for task '{task}'")
+                    raise LLMResponseParseError(
+                        f"Empty response received for task '{task}'"
+                    )
+            elif (
+                not text_response or len(text_response.strip()) < 2
+            ):  # More lenient for text generation
+                logger.error(
+                    f"Empty or very short response received for task '{task}'. Response: '{text_response}'"
+                )
+                raise LLMResponseParseError(
+                    f"Empty or very short response received for task '{task}'"
+                )
 
             # Check if task is a JSON task
             if isinstance(task, str):
@@ -464,22 +539,30 @@ class AsyncGenAIClient:
             # Parse JSON if needed
             if is_json_task:
                 # Check if JSON is truncated
-                if not text_response.strip().endswith("}") and not text_response.strip().endswith("]"):
-                    logger.warning(f"JSON response might be truncated. Attempting repair.")
+                if not text_response.strip().endswith(
+                    "}"
+                ) and not text_response.strip().endswith("]"):
+                    logger.warning(
+                        f"JSON response might be truncated. Attempting repair."
+                    )
                     try:
                         text_response = repair_json(text_response)
                         logger.info(f"Successfully repaired JSON response.")
                     except Exception as repair_e:
-                        logger.error(f"Failed to repair JSON: {repair_e}. Original text: {text_response[:500]}")
+                        logger.error(
+                            f"Failed to repair JSON: {repair_e}. Original text: {text_response[:500]}"
+                        )
 
                 # Check if the response is wrapped in markdown code blocks
-                markdown_json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
+                markdown_json_pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
                 markdown_match = re.search(markdown_json_pattern, text_response)
 
                 if markdown_match:
                     # Extract the JSON content from the markdown code block
                     json_content = markdown_match.group(1).strip()
-                    logger.info(f"Detected JSON wrapped in markdown code blocks, extracting content")
+                    logger.info(
+                        f"Detected JSON wrapped in markdown code blocks, extracting content"
+                    )
                     text_response = json_content
                     # Log the task type for debugging
                     logger.info(f"Task type for markdown-wrapped JSON: {task}")
@@ -487,10 +570,14 @@ class AsyncGenAIClient:
                 # Parse JSON
                 try:
                     parsed_response = json.loads(text_response)
-                    logger.info(f"Successfully parsed JSON response. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}")
+                    logger.info(
+                        f"Successfully parsed JSON response. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}"
+                    )
                     return parsed_response
                 except json.JSONDecodeError as e:
-                    logger.error(f"Failed to decode JSON response: {e}. Response: {text_response[:500]}")
+                    logger.error(
+                        f"Failed to decode JSON response: {e}. Response: {text_response[:500]}"
+                    )
 
                     # Try repair again
                     try:
@@ -500,7 +587,9 @@ class AsyncGenAIClient:
                         return result
                     except Exception as e2:
                         logger.error(f"Failed to parse JSON even after repair: {e2}")
-                        raise LLMResponseParseError(f"Failed to parse JSON response: {str(e)} -> {str(e2)}")
+                        raise LLMResponseParseError(
+                            f"Failed to parse JSON response: {str(e)} -> {str(e2)}"
+                        )
             else:
                 # For non-JSON tasks, just return the text
                 return {"text": text_response}
@@ -512,7 +601,9 @@ class AsyncGenAIClient:
             logger.error(f"Unexpected error parsing response: {str(e)}", exc_info=True)
             raise LLMResponseParseError(f"Unexpected error parsing response: {str(e)}")
 
-    async def _post_process_response(self, result: Dict[str, Any], task: Union[str, TaskType]) -> Dict[str, Any]:
+    async def _post_process_response(
+        self, result: Dict[str, Any], task: Union[str, TaskType]
+    ) -> Dict[str, Any]:
         """
         Post-process the parsed response based on task.
 
@@ -528,19 +619,25 @@ class AsyncGenAIClient:
             try:
                 task = TaskType(task)
             except ValueError:
-                logger.warning(f"Unknown task type: {task}, skipping task-specific post-processing")
+                logger.warning(
+                    f"Unknown task type: {task}, skipping task-specific post-processing"
+                )
                 return result
 
         # Task-specific post-processing
         if task == TaskType.PATTERN_RECOGNITION:
             return await self._post_process_pattern_recognition(result)
-        elif task == TaskType.THEME_ANALYSIS or task == TaskType.THEME_ANALYSIS_ENHANCED:
+        elif (
+            task == TaskType.THEME_ANALYSIS or task == TaskType.THEME_ANALYSIS_ENHANCED
+        ):
             return await self._post_process_theme_analysis(result)
         else:
             # No specific post-processing for other tasks
             return result
 
-    async def _post_process_pattern_recognition(self, result: Dict[str, Any]) -> Dict[str, Any]:
+    async def _post_process_pattern_recognition(
+        self, result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Post-process pattern recognition results.
 
@@ -556,7 +653,9 @@ class AsyncGenAIClient:
 
         # Ensure patterns key exists
         if "patterns" not in result:
-            logger.warning(f"Pattern recognition response missing 'patterns' key, adding empty array")
+            logger.warning(
+                f"Pattern recognition response missing 'patterns' key, adding empty array"
+            )
             result["patterns"] = []
 
         # Ensure each pattern has required fields
@@ -581,15 +680,21 @@ class AsyncGenAIClient:
 
         # Log the patterns for debugging
         if result["patterns"]:
-            logger.info(f"Pattern recognition returned {len(result['patterns'])} patterns")
+            logger.info(
+                f"Pattern recognition returned {len(result['patterns'])} patterns"
+            )
             if len(result["patterns"]) > 0:
-                logger.info(f"First pattern: {result['patterns'][0].get('name', 'Unnamed')}")
+                logger.info(
+                    f"First pattern: {result['patterns'][0].get('name', 'Unnamed')}"
+                )
         else:
             logger.warning(f"Pattern recognition returned empty patterns array")
 
         return result
 
-    async def _post_process_theme_analysis(self, result: Dict[str, Any]) -> Dict[str, Any]:
+    async def _post_process_theme_analysis(
+        self, result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Post-process theme analysis results.
 

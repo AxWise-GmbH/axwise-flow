@@ -116,9 +116,29 @@ class GeminiService:
             "theme_analysis",
             "theme_analysis_enhanced",
         ]:
-            config_params["max_output_tokens"] = (
-                131072  # Doubled from 65536 to ensure complete responses
-            )
+            # DYNAMIC TOKEN ALLOCATION: Adjust based on input size
+            # Get content for token estimation from data parameter
+            content_for_estimation = data.get("text", data.get("content", ""))
+            input_tokens = (
+                len(str(content_for_estimation).split()) * 1.3
+            )  # Rough token estimation
+            if input_tokens > 50000:  # Large files (>50K tokens)
+                config_params["max_output_tokens"] = 65536  # 64K for large files
+                logger.info(
+                    f"Large input detected ({input_tokens:.0f} tokens), using 64K output limit"
+                )
+            elif input_tokens > 20000:  # Medium files (20-50K tokens)
+                config_params["max_output_tokens"] = 49152  # 48K for medium files
+                logger.info(
+                    f"Medium input detected ({input_tokens:.0f} tokens), using 48K output limit"
+                )
+            else:  # Small files (<20K tokens)
+                config_params["max_output_tokens"] = (
+                    32768  # 32K for small files (fastest)
+                )
+                logger.info(
+                    f"Small input detected ({input_tokens:.0f} tokens), using 32K output limit"
+                )
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
@@ -126,9 +146,29 @@ class GeminiService:
             )
         elif task in ["persona_formation", "pattern_recognition"]:
             # For persona_formation and pattern_recognition, use the maximum configuration to prevent truncation
-            config_params["max_output_tokens"] = (
-                131072  # Increased from 65536 to prevent truncation
-            )
+            # DYNAMIC TOKEN ALLOCATION: Adjust based on input size
+            # Get content for token estimation from data parameter
+            content_for_estimation = data.get("text", data.get("content", ""))
+            input_tokens = (
+                len(str(content_for_estimation).split()) * 1.3
+            )  # Rough token estimation
+            if input_tokens > 50000:  # Large files (>50K tokens)
+                config_params["max_output_tokens"] = 65536  # 64K for large files
+                logger.info(
+                    f"Large input detected ({input_tokens:.0f} tokens), using 64K output limit"
+                )
+            elif input_tokens > 20000:  # Medium files (20-50K tokens)
+                config_params["max_output_tokens"] = 49152  # 48K for medium files
+                logger.info(
+                    f"Medium input detected ({input_tokens:.0f} tokens), using 48K output limit"
+                )
+            else:  # Small files (<20K tokens)
+                config_params["max_output_tokens"] = (
+                    32768  # 32K for small files (fastest)
+                )
+                logger.info(
+                    f"Small input detected ({input_tokens:.0f} tokens), using 32K output limit"
+                )
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
@@ -257,9 +297,27 @@ class GeminiService:
             # Create a new config object that includes all necessary parameters
             from google.genai import types
 
+            # DYNAMIC TOKEN ALLOCATION: Adjust based on input size
+            input_tokens = len(str(contents).split()) * 1.3  # Rough token estimation
+            if input_tokens > 50000:  # Large files (>50K tokens)
+                max_output_tokens = 65536  # 64K for large files
+                logger.info(
+                    f"Large input detected ({input_tokens:.0f} tokens), using 64K output limit"
+                )
+            elif input_tokens > 20000:  # Medium files (20-50K tokens)
+                max_output_tokens = 49152  # 48K for medium files
+                logger.info(
+                    f"Medium input detected ({input_tokens:.0f} tokens), using 48K output limit"
+                )
+            else:  # Small files (<20K tokens)
+                max_output_tokens = 32768  # 32K for small files (fastest)
+                logger.info(
+                    f"Small input detected ({input_tokens:.0f} tokens), using 32K output limit"
+                )
+
             config = types.GenerateContentConfig(
                 temperature=0.0,
-                max_output_tokens=131072,  # Increased to prevent truncation
+                max_output_tokens=max_output_tokens,
                 top_k=1,
                 top_p=0.95,
                 safety_settings=safety_settings,
@@ -753,8 +811,10 @@ class GeminiService:
                 )
                 system_message_content += "\n\nNOTE: This is a complex transcript. Pay special attention to maintaining the correct sequence and context throughout your analysis."
 
-        # Get base generation config
-        current_generation_config = self._get_generation_config(task, data)
+        # Get base generation config - add text content for token estimation
+        data_with_text = data.copy()
+        data_with_text["text"] = text
+        current_generation_config = self._get_generation_config(task, data_with_text)
 
         # Extract config parameters for modification
         config_params = {}

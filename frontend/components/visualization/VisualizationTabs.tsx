@@ -26,13 +26,16 @@ import type { PriorityInsightsResponse } from '@/types/api';
 import { PRDDisplay } from './PRDDisplay';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CustomErrorBoundary from './ErrorBoundary';
+import { Network } from 'lucide-react';
 
 import { LoadingSpinner } from '@/components/loading-spinner'; // Import LoadingSpinner
 import { ExportButton } from './ExportButton';
 import type { DetailedAnalysisResult } from '@/types/api'; // Remove PrioritizedInsight import
 import { useUser } from '@clerk/nextjs';
+import { StakeholderDynamicsDisplay } from './StakeholderDynamicsDisplay';
 // import { useAnalysisStore } from '@/store/useAnalysisStore'; // Remove store import if only used for priority insights
 
 interface VisualizationTabsProps {
@@ -43,7 +46,7 @@ interface VisualizationTabsProps {
 }
 
 // Define a type for the tab values
-export type TabValue = 'themes' | 'patterns' | 'personas' | 'insights' | 'priority' | 'prd';
+export type TabValue = 'themes' | 'patterns' | 'personas' | 'insights' | 'priority' | 'prd' | 'stakeholder-dynamics';
 
 // No helper functions needed
 
@@ -145,6 +148,12 @@ export default function VisualizationTabsRefactored({
   // Sync active tab with URL parameter whenever it changes
   useEffect(() => {
     if (activeTabFromUrl && activeTabFromUrl !== activeTab) {
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('URL tab change detected:', activeTabFromUrl);
+        console.log('Current tab:', activeTab);
+        console.log('Is valid tab value:', ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(activeTabFromUrl));
+      }
       setActiveTab(activeTabFromUrl);
     }
   }, [activeTabFromUrl, activeTab]); // Update when URL parameter changes
@@ -156,23 +165,77 @@ export default function VisualizationTabsRefactored({
 
   // Prepare data for rendering
   const analyzedThemes = useMemo(() => {
+    // Debug logging for theme data
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Processing themes...');
+      console.log('Regular themes:', analysis?.themes?.length || 0);
+      console.log('Enhanced themes:', analysis?.enhanced_themes?.length || 0);
+      console.log('Stakeholder intelligence themes:', analysis?.stakeholder_intelligence ? 'Available' : 'Not available');
+    }
+
+    // Use enhanced themes if available, otherwise fall back to regular themes
+    const themesToUse = analysis?.enhanced_themes || analysis?.themes || [];
+
+    // Debug logging for enhanced themes
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Enhanced themes available:', !!analysis?.enhanced_themes);
+      console.log('Enhanced themes count:', analysis?.enhanced_themes?.length || 0);
+      if (analysis?.enhanced_themes?.length > 0) {
+        console.log('First enhanced theme sample:', analysis.enhanced_themes[0]);
+        console.log('First enhanced theme has stakeholder_context:', !!analysis.enhanced_themes[0]?.stakeholder_context);
+        if (analysis.enhanced_themes[0]?.stakeholder_context) {
+          console.log('Stakeholder context:', analysis.enhanced_themes[0].stakeholder_context);
+        }
+      }
+    }
+
     // Process themes
-    return (analysis?.themes || []).map((theme: any) => ({
-      id: theme.id?.toString() || '',
-      name: theme.name || '',
-      frequency: theme.frequency || 0,
-      keywords: theme.keywords || [],
-      statements: theme.statements || [],
-      // examples field removed
-      definition: theme.definition || '',
-      reliability: theme.reliability,
-      codes: theme.codes || []
-    }));
-  }, [analysis?.themes]);
+    const processedThemes = themesToUse.map((theme: any) => {
+      const processed = {
+        id: theme.id?.toString() || '',
+        name: theme.name || '',
+        frequency: theme.frequency || 0,
+        keywords: theme.keywords || [],
+        statements: theme.statements || [],
+        // examples field removed
+        definition: theme.definition || '',
+        reliability: theme.reliability,
+        codes: theme.codes || [],
+        // Add stakeholder context if available
+        stakeholder_context: theme.stakeholder_context || null,
+        // Add enhanced metadata for multi-stakeholder display
+        is_enhanced: !!theme.stakeholder_context,
+        source_stakeholders: theme.stakeholder_context?.source_stakeholders || [],
+        stakeholder_distribution: theme.stakeholder_context?.stakeholder_distribution || {},
+        consensus_level: theme.stakeholder_context?.consensus_level || null
+      };
+
+      // Debug logging for first theme
+      if (process.env.NODE_ENV === 'development' && theme.name) {
+        console.log(`Theme "${theme.name}" processing:`, {
+          has_stakeholder_context: !!theme.stakeholder_context,
+          is_enhanced: processed.is_enhanced,
+          source_stakeholders_count: processed.source_stakeholders.length
+        });
+      }
+
+      return processed;
+    });
+
+    return processedThemes;
+  }, [analysis?.themes, analysis?.enhanced_themes, analysis?.stakeholder_intelligence]);
 
   // Handle tab change
   const handleTabChange = (newTab: string) => {
     const newTabValue = newTab as TabValue;
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Tab change requested:', newTab);
+      console.log('Current active tab:', activeTab);
+      console.log('Is multi-stakeholder:', isMultiStakeholder);
+    }
+
     setActiveTabSafe(newTabValue);
 
     // Update URL to reflect the new tab
@@ -181,8 +244,26 @@ export default function VisualizationTabsRefactored({
 
     // Preserve analysisId and other parameters
     const newUrl = `/unified-dashboard?${currentParams.toString()}`;
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Navigating to URL:', newUrl);
+    }
+
     router.push(newUrl);
   };
+
+  // Check if this is multi-stakeholder analysis
+  const isMultiStakeholder = !!(analysis?.stakeholder_intelligence?.detected_stakeholders?.length);
+  const stakeholderCount = analysis?.stakeholder_intelligence?.detected_stakeholders?.length || 0;
+
+  // Debug logging for stakeholder intelligence
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Analysis data keys:', analysis ? Object.keys(analysis) : 'No analysis');
+    console.log('Has stakeholder_intelligence:', !!analysis?.stakeholder_intelligence);
+    console.log('Stakeholder intelligence data:', analysis?.stakeholder_intelligence);
+    console.log('Is multi-stakeholder:', isMultiStakeholder);
+  }
 
   return (
     <Card className="w-full">
@@ -191,7 +272,17 @@ export default function VisualizationTabsRefactored({
           <CardTitle>Analysis Results: {analysis?.fileName}</CardTitle>
           <CardDescription>
             Created {analysis?.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Date unavailable'} • {analysis?.llmProvider || 'AI'} Analysis
+            {/* NEW: Multi-stakeholder indicator - moved outside CardDescription to avoid div in p */}
+            {isMultiStakeholder && (
+              <> • {stakeholderCount} Stakeholders</>
+            )}
           </CardDescription>
+          {/* Multi-stakeholder badge moved outside CardDescription */}
+          {isMultiStakeholder && (
+            <Badge variant="outline" className="ml-2 text-xs mt-1">
+              Multi-Stakeholder Analysis
+            </Badge>
+          )}
         </div>
         {effectiveAnalysisId && !loading && !fetchError && (
           <ExportButton analysisId={effectiveAnalysisId} />
@@ -216,13 +307,26 @@ export default function VisualizationTabsRefactored({
 
         {!loading && !fetchError && analysis && ( // Ensure analysis data exists
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full grid grid-cols-6">
-              <TabsTrigger value="themes">Themes</TabsTrigger>
+            {/* Enhanced TabsList - conditionally show 7th tab */}
+            <TabsList className={`w-full ${isMultiStakeholder ? 'grid-cols-7' : 'grid-cols-6'} grid`}>
+              <TabsTrigger value="themes">
+                Themes
+                {isMultiStakeholder && <Badge variant="outline" className="ml-1 text-xs">Multi</Badge>}
+              </TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
               <TabsTrigger value="personas">Personas</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
               <TabsTrigger value="priority">Priority</TabsTrigger>
               <TabsTrigger value="prd">PRD</TabsTrigger>
+              {/* NEW: Stakeholder Dynamics tab - only show for multi-stakeholder data */}
+              {isMultiStakeholder && (
+                <TabsTrigger value="stakeholder-dynamics">
+                  <div className="flex items-center gap-1">
+                    <Network className="h-3 w-3" />
+                    Stakeholder Dynamics
+                  </div>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <CustomErrorBoundary
@@ -347,7 +451,54 @@ export default function VisualizationTabsRefactored({
               </TabsContent>
             </CustomErrorBoundary>
 
+            {/* NEW: Stakeholder Dynamics Tab */}
+            {isMultiStakeholder && (
+              <CustomErrorBoundary
+                fallback={
+                  <div className="p-4 border border-red-300 bg-red-50 rounded-md mt-6">
+                    <h3 className="text-lg font-semibold text-red-700">Error in Stakeholder Dynamics Visualization</h3>
+                    <p className="text-red-600">There was an error rendering the stakeholder dynamics visualization.</p>
+                  </div>
+                }
+              >
+                <TabsContent value="stakeholder-dynamics" className="mt-6">
+                  {analysis?.stakeholder_intelligence ? (
+                    <StakeholderDynamicsDisplay
+                      stakeholderIntelligence={analysis.stakeholder_intelligence}
+                      analysisData={analysis}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No stakeholder intelligence data available.
+                    </div>
+                  )}
+                </TabsContent>
+              </CustomErrorBoundary>
+            )}
+
           </Tabs>
+        )}
+
+        {/* Debug panel - visible in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 border border-blue-200 rounded-md bg-blue-50">
+            <h3 className="font-medium mb-2">Stakeholder Intelligence Debug</h3>
+            <div className="space-y-2">
+              <p><strong>Analysis Keys:</strong> {analysis ? Object.keys(analysis).join(', ') : 'No analysis'}</p>
+              <p><strong>Has stakeholder_intelligence:</strong> {!!analysis?.stakeholder_intelligence ? 'Yes' : 'No'}</p>
+              <p><strong>Is Multi-Stakeholder:</strong> {isMultiStakeholder ? 'Yes' : 'No'}</p>
+              <p><strong>Stakeholder Count:</strong> {stakeholderCount}</p>
+
+              {analysis?.stakeholder_intelligence && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm font-medium">Stakeholder Intelligence Data</summary>
+                  <pre className="text-xs p-2 bg-white rounded mt-2 overflow-auto max-h-64">
+                    {JSON.stringify(analysis.stakeholder_intelligence, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Admin debug panel - only visible to admin users */}

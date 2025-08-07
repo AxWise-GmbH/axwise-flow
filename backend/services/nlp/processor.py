@@ -731,9 +731,9 @@ class NLPProcessor:
                 )
             except Exception as e:
                 logger.error(f"Error processing sentiment results: {str(e)}")
-                # Use empty sentiment data instead of failing completely
-                processed_sentiment = {"positive": [], "neutral": [], "negative": []}
-                logger.warning("Using empty sentiment data due to processing error")
+                # SCHEMA FIX: Use empty list instead of dictionary for schema compliance
+                processed_sentiment = []
+                logger.warning("Using empty sentiment list due to processing error")
 
             # Be more resilient to partial failures - continue if at least some core results are present
             # This allows the pipeline to continue even if one analysis step fails
@@ -1043,11 +1043,22 @@ class NLPProcessor:
                 logger.warning("Insights field is not a list, converting to empty list")
                 results["insights"] = []
 
-            if "sentiment" in results and not isinstance(results["sentiment"], dict):
-                logger.warning(
-                    "Sentiment field is not a dictionary, initializing empty sentiment"
-                )
-                results["sentiment"] = {"positive": [], "neutral": [], "negative": []}
+            # SCHEMA FIX: Ensure sentiment field matches DetailedAnalysisResult schema (List[Dict[str, Any]])
+            if "sentiment" in results:
+                if isinstance(results["sentiment"], dict):
+                    # Convert dictionary format to list format for schema compliance
+                    logger.info(
+                        "Converting sentiment dictionary to list format for schema compliance"
+                    )
+                    results["sentiment"] = [results["sentiment"]]
+                elif not isinstance(results["sentiment"], list):
+                    logger.warning(
+                        "Sentiment field is not a list, initializing empty sentiment list"
+                    )
+                    results["sentiment"] = []
+            else:
+                # Initialize as empty list to match schema
+                results["sentiment"] = []
 
             if "personas" in results and not isinstance(results["personas"], list):
                 logger.warning("Personas field is not a list, converting to empty list")

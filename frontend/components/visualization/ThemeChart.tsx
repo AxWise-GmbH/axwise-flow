@@ -123,6 +123,58 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
                         {theme.name}
                       </span>
                       <div className="flex items-center gap-2">
+                        {/* Multi-stakeholder indicator */}
+                        {(theme as any).is_enhanced && (theme as any).source_stakeholders?.length > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 cursor-help">
+                                  {(theme as any).source_stakeholders.length} Stakeholder{(theme as any).source_stakeholders.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <h4 className="font-semibold text-sm">Multi-Stakeholder Theme</h4>
+                                  <p className="text-xs text-muted-foreground">This theme was identified across multiple stakeholder perspectives.</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Stakeholders: {(theme as any).source_stakeholders.join(', ')}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {/* Consensus level indicator */}
+                        {(theme as any).consensus_level !== null && (theme as any).consensus_level !== undefined && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge variant="outline" className={`text-xs cursor-help ${
+                                  (theme as any).consensus_level >= 0.7
+                                    ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                                    : (theme as any).consensus_level >= 0.4
+                                    ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'
+                                    : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+                                }`}>
+                                  Consensus: {Math.round((theme as any).consensus_level * 100)}%
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <h4 className="font-semibold text-sm">Stakeholder Consensus</h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {(theme as any).consensus_level >= 0.7
+                                      ? 'High agreement among stakeholders'
+                                      : (theme as any).consensus_level >= 0.4
+                                      ? 'Moderate agreement among stakeholders'
+                                      : 'Low agreement among stakeholders'
+                                    }
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
                         {theme.reliability !== undefined && (
                           <TooltipProvider>
                             <Tooltip>
@@ -178,6 +230,31 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
                               <Badge key={`code-${index}`} variant="secondary" className="text-xs">
                                 {code}
                               </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stakeholder Distribution */}
+                      {(theme as any).is_enhanced && (theme as any).stakeholder_distribution && Object.keys((theme as any).stakeholder_distribution).length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Stakeholder Distribution:</h4>
+                          <div className="space-y-2">
+                            {Object.entries((theme as any).stakeholder_distribution).map(([stakeholder, weight]) => (
+                              <div key={stakeholder} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                                <span className="text-sm font-medium">{stakeholder}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500 transition-all duration-300"
+                                      style={{ width: `${(weight as number) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-muted-foreground min-w-[3rem]">
+                                    {Math.round((weight as number) * 100)}%
+                                  </span>
+                                </div>
+                              </div>
                             ))}
                           </div>
                         </div>

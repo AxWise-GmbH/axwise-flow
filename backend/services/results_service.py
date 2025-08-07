@@ -52,7 +52,7 @@ class ResultsService:
             # Query for results with user authorization check
             analysis_result = (
                 self.db.query(AnalysisResult)
-                .join(InterviewData)
+                .join(InterviewData, AnalysisResult.data_id == InterviewData.id)
                 .filter(
                     AnalysisResult.result_id == result_id,
                     InterviewData.user_id == self.user.user_id,
@@ -186,11 +186,7 @@ class ResultsService:
                     ),  # Add id field for frontend compatibility
                     "analysis_date": analysis_result.analysis_date,
                     "createdAt": analysis_result.analysis_date.isoformat(),  # Add createdAt field for frontend compatibility
-                    "fileName": (
-                        analysis_result.interview_data.filename
-                        if analysis_result.interview_data
-                        else "Unknown"
-                    ),
+                    "fileName": self._get_filename_for_result(analysis_result),
                     "fileSize": None,  # We don't store this currently
                     "llmProvider": analysis_result.llm_provider,
                     "llmModel": analysis_result.llm_model,
@@ -210,6 +206,8 @@ class ResultsService:
                     ),
                     "insights": results_dict.get("insights", []),
                     "personas": persona_list,  # Use personas from the results JSON
+                    # Add stakeholder intelligence from database
+                    "stakeholder_intelligence": analysis_result.stakeholder_intelligence,
                 }
 
                 # Log whether sentimentStatements were found
@@ -324,7 +322,7 @@ class ResultsService:
             formatted_results = []
             for result in analysis_results:
                 # Skip results with no data
-                if not result or not result.interview_data:
+                if not result:
                     continue
 
                 # Format data to match frontend schema
@@ -370,6 +368,26 @@ class ResultsService:
         )
         results_dict["personas"] = []
 
+    def _get_filename_for_result(self, analysis_result: AnalysisResult) -> str:
+        """
+        Get filename for analysis result through direct query instead of relationship.
+
+        Args:
+            analysis_result: AnalysisResult database record
+
+        Returns:
+            Filename or "Unknown" if not found
+        """
+        if analysis_result.data_id:
+            interview_data = (
+                self.db.query(InterviewData)
+                .filter(InterviewData.id == analysis_result.data_id)
+                .first()
+            )
+            if interview_data:
+                return interview_data.filename or "Unknown"
+        return "Unknown"
+
     def _format_analysis_list_item(self, result: AnalysisResult) -> Dict[str, Any]:
         """
         Format a single analysis result for the list view.
@@ -385,9 +403,7 @@ class ResultsService:
             "id": str(result.result_id),
             "status": result.status,
             "createdAt": result.analysis_date.isoformat(),
-            "fileName": (
-                result.interview_data.filename if result.interview_data else "Unknown"
-            ),
+            "fileName": self._get_filename_for_result(result),
             "fileSize": None,  # We don't store this currently
             "themes": [],
             "enhanced_themes": [],  # Initialize empty enhanced themes list

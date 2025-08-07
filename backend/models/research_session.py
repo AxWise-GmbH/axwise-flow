@@ -25,6 +25,7 @@ class ResearchSession(Base):
     """Database model for research sessions."""
 
     __tablename__ = "research_sessions"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, index=True)  # From Clerk auth when implemented
@@ -55,26 +56,22 @@ class ResearchSession(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-    # Relationships
-    exports = relationship("ResearchExport", back_populates="session")
+    # Note: exports are now handled via Pydantic models, not SQLAlchemy relationships
 
 
-class ResearchExport(Base):
-    """Database model for research exports."""
+# Pydantic model for research exports
+class ResearchExport(BaseModel):
+    """Pydantic model for research exports."""
 
-    __tablename__ = "research_exports"
+    id: Optional[int] = None
+    session_id: str
+    export_type: str  # pdf, csv, email, txt
+    export_format: str  # detailed, summary, questions_only
+    file_path: Optional[str] = None
+    created_at: Optional[datetime] = None
 
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, ForeignKey("research_sessions.session_id"))
-
-    export_type = Column(String)  # pdf, csv, email
-    export_format = Column(String)  # detailed, summary, questions_only
-    file_path = Column(String, nullable=True)  # For file exports
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    session = relationship("ResearchSession", back_populates="exports")
+    class Config:
+        from_attributes = True
 
 
 # Pydantic models for API

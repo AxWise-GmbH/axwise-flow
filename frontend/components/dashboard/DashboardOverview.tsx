@@ -38,7 +38,7 @@ export default function DashboardOverview() {
   // Check if we should show visualization tabs (only when explicitly requested)
   const visualizationTab = searchParams.get('visualizationTab');
   const analysisId = searchParams.get('analysisId');
-  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd'].includes(visualizationTab);
+  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
 
   // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {

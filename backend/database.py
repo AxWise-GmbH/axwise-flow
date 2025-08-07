@@ -197,9 +197,23 @@ def create_tables():
         logger.warning("Falling back to direct table creation")
 
         # Import models here to avoid circular imports
-        # Use absolute imports to avoid issues with relative imports
-        import backend.models  # This will ensure models.py is loaded correctly
-        import backend.models.research_session  # Ensure research session models are loaded
+        # Import models directly from the main models.py file to avoid circular imports
+        import importlib.util
+        import os
+
+        # Get the path to the main models.py file
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        models_file = os.path.join(backend_dir, "models.py")
+
+        if os.path.exists(models_file):
+            spec = importlib.util.spec_from_file_location(
+                "main_models_for_db", models_file
+            )
+            main_models = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(main_models)
+
+        # Import research session models directly to avoid conflicts
+        from backend.models.research_session import ResearchSession, ResearchExport
 
         # Create tables
         Base.metadata.create_all(bind=engine)

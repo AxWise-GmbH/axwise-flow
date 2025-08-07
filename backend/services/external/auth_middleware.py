@@ -11,6 +11,7 @@ import logging
 import os
 
 from backend.database import get_db
+
 from backend.models import User
 from backend.services.external.clerk_service import ClerkService
 
@@ -35,7 +36,9 @@ ENABLE_CLERK_...=***REMOVED***
 # Check if we're in production environment
 IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
 
-logger.info(f"Auth middleware initialized - Clerk validation: {ENABLE_CLERK_VALIDATION}, Production: {IS_PRODUCTION}")
+logger.info(
+    f"Auth middleware initialized - Clerk validation: {ENABLE_CLERK_VALIDATION}, Production: {IS_PRODUCTION}"
+)
 
 # Development token prefix for easier identification - only used in development
 DEV_TOKEN_PREFIX = "dev_test_token_"
@@ -90,7 +93,9 @@ async def get_current_user(
         is_valid, payload = clerk_service.validate_token(token)
 
         if not is_valid or not payload:
-            logger.warning("Authentication failed: Invalid token in production environment")
+            logger.warning(
+                "Authentication failed: Invalid token in production environment"
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
@@ -124,7 +129,9 @@ async def get_current_user(
         # This allows webhook to work properly with actual email addresses
         dev_email = "vitalijs@axwise.de"  # Default development email
         user_id = dev_email.replace("@", "_").replace(".", "_")
-        logger.info(f"Development mode: Using email-based user_id: {user_id} for email: {dev_email}")
+        logger.info(
+            f"Development mode: Using email-based user_id: {user_id} for email: {dev_email}"
+        )
     else:
         # Validate JWT token with Clerk
         is_valid, payload = clerk_service.validate_token(token)
@@ -148,7 +155,9 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-    logger.info(f"🔍 Authentication successful for user_id: {user_id}, ENABLE_CLERK_...=***REMOVED*** IS_PRODUCTION: {IS_PRODUCTION}")
+    logger.info(
+        f"🔍 Authentication successful for user_id: {user_id}, ENABLE_CLERK_...=***REMOVED*** IS_PRODUCTION: {IS_PRODUCTION}"
+    )
 
     # Get or create user
     try:
@@ -167,13 +176,22 @@ async def get_current_user(
                 # Check if there's an existing user with the same email (for subscription transfer)
                 existing_user_with_subscription = None
                 if user_email:
-                    existing_users = db.query(User).filter(User.email == user_email).all()
+                    existing_users = (
+                        db.query(User).filter(User.email == user_email).all()
+                    )
                     # Look for users with subscriptions
                     for existing_user in existing_users:
-                        if (existing_user.stripe_customer_id or
-                            existing_user.subscription_status or
-                            (existing_user.usage_data and
-                             existing_user.usage_data.get("subscription", {}).get("tier") != "free")):
+                        if (
+                            existing_user.stripe_customer_id
+                            or existing_user.subscription_status
+                            or (
+                                existing_user.usage_data
+                                and existing_user.usage_data.get(
+                                    "subscription", {}
+                                ).get("tier")
+                                != "free"
+                            )
+                        ):
                             existing_user_with_subscription = existing_user
                             break
 
@@ -184,22 +202,29 @@ async def get_current_user(
                     first_name=user_info.get("first_name") if user_info else None,
                     last_name=user_info.get("last_name") if user_info else None,
                     usage_data={
-                        "subscription": {
-                            "tier": "free",
-                            "status": "active"
-                        },
-                        "usage": {}
-                    }
+                        "subscription": {"tier": "free", "status": "active"},
+                        "usage": {},
+                    },
                 )
 
                 # Transfer subscription from existing user if found
                 if existing_user_with_subscription:
-                    logger.info(f"Transferring subscription from {existing_user_with_subscription.user_id} to {user_id}")
-                    new_user.stripe_customer_id = existing_user_with_subscription.stripe_customer_id
-                    new_user.subscription_status = existing_user_with_subscription.subscription_status
-                    new_user.subscription_id = existing_user_with_subscription.subscription_id
+                    logger.info(
+                        f"Transferring subscription from {existing_user_with_subscription.user_id} to {user_id}"
+                    )
+                    new_user.stripe_customer_id = (
+                        existing_user_with_subscription.stripe_customer_id
+                    )
+                    new_user.subscription_status = (
+                        existing_user_with_subscription.subscription_status
+                    )
+                    new_user.subscription_id = (
+                        existing_user_with_subscription.subscription_id
+                    )
                     if existing_user_with_subscription.usage_data:
-                        new_user.usage_data = existing_user_with_subscription.usage_data.copy()
+                        new_user.usage_data = (
+                            existing_user_with_subscription.usage_data.copy()
+                        )
 
                     # Clear subscription from old user
                     existing_user_with_subscription.stripe_customer_id = None
@@ -223,12 +248,9 @@ async def get_current_user(
                     first_name=first_name,
                     last_name="Dev",
                     usage_data={
-                        "subscription": {
-                            "tier": "free",
-                            "status": "active"
-                        },
-                        "usage": {}
-                    }
+                        "subscription": {"tier": "free", "status": "active"},
+                        "usage": {},
+                    },
                 )
 
             db.add(new_user)
@@ -246,12 +268,9 @@ async def get_current_user(
             first_name="Temporary",
             last_name="User",
             usage_data={
-                "subscription": {
-                    "tier": "free",
-                    "status": "active"
-                },
-                "usage": {}
-            }
+                "subscription": {"tier": "free", "status": "active"},
+                "usage": {},
+            },
         )
         logger.info(f"Created temporary user object: {user_id}")
 

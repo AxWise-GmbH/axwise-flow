@@ -57,6 +57,21 @@ export interface AnalyzedTheme {
     description: string;
   }>;
 
+  // Multi-stakeholder analysis fields
+  stakeholder_context?: {
+    source_stakeholders: string[];
+    stakeholder_distribution: Record<string, number>;
+    influence_scores: Record<string, number>;
+    consensus_level: number;
+    conflict_indicators: string[];
+  };
+
+  // Enhanced metadata for multi-stakeholder display
+  is_enhanced?: boolean;
+  source_stakeholders?: string[];
+  stakeholder_distribution?: Record<string, number>;
+  consensus_level?: number;
+
   // Legacy field - will be removed in future versions
   prevalence?: number;  // Deprecated: Use frequency instead
 }
@@ -281,6 +296,9 @@ export interface DetailedAnalysisResult {
   llmProvider?: string;
   llmModel?: string;
   error?: string;
+
+  // NEW: Optional multi-stakeholder intelligence
+  stakeholder_intelligence?: StakeholderIntelligence;
 }
 
 /**
@@ -306,6 +324,9 @@ export interface DashboardData {
   industry?: string; // Industry context for sentiment analysis
   personas?: Persona[];
   insights?: Insight[];
+
+  // Multi-stakeholder Data
+  stakeholder_intelligence?: StakeholderIntelligence;
 
   // Error Information
   error?: string;
@@ -347,4 +368,94 @@ export interface PriorityInsightsResponse {
     medium_urgency_count: number;
     low_urgency_count: number;
   };
+}
+
+// Multi-Stakeholder Analysis Types
+
+/**
+ * Individual stakeholder detected in the analysis
+ */
+export interface DetectedStakeholder {
+  stakeholder_id: string;
+  stakeholder_type:
+    | "primary_customer"
+    | "secondary_user"
+    | "decision_maker"
+    | "influencer";
+  confidence_score: number;
+  demographic_profile?: Record<string, any>;
+  individual_insights: Record<string, any>;
+  influence_metrics?: Record<string, number>;
+}
+
+/**
+ * Area where stakeholders show agreement
+ */
+export interface ConsensusArea {
+  topic: string;
+  agreement_level: number;
+  participating_stakeholders: string[];
+  shared_insights: string[];
+  business_impact: string;
+}
+
+/**
+ * Area where stakeholders disagree
+ */
+export interface ConflictZone {
+  topic: string;
+  conflicting_stakeholders: string[];
+  conflict_severity: "low" | "medium" | "high" | "critical";
+  potential_resolutions: string[];
+  business_risk: string;
+}
+
+/**
+ * Influence relationship between stakeholders
+ */
+export interface InfluenceNetwork {
+  influencer: string;
+  influenced: string[];
+  influence_type: "decision" | "opinion" | "adoption" | "resistance";
+  strength: number;
+  pathway: string;
+}
+
+/**
+ * Cross-stakeholder analysis patterns
+ */
+export interface CrossStakeholderPatterns {
+  consensus_areas: ConsensusArea[];
+  conflict_zones: ConflictZone[];
+  influence_networks: InfluenceNetwork[];
+  stakeholder_priority_matrix?: Record<string, any>;
+}
+
+/**
+ * High-level multi-stakeholder summary
+ */
+export interface MultiStakeholderSummary {
+  total_stakeholders: number;
+  consensus_score: number;
+  conflict_score: number;
+  key_insights: string[];
+  implementation_recommendations: string[];
+}
+
+/**
+ * Complete stakeholder intelligence data
+ */
+export interface StakeholderIntelligence {
+  detected_stakeholders: DetectedStakeholder[];
+  cross_stakeholder_patterns?: CrossStakeholderPatterns;
+  multi_stakeholder_summary?: MultiStakeholderSummary;
+  processing_metadata?: Record<string, any>;
+}
+
+/**
+ * PRD Response interface (for compatibility)
+ */
+export interface PRDResponse {
+  prd: string;
+  metadata?: Record<string, any>;
 }
