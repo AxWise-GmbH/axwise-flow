@@ -372,10 +372,13 @@ export default function ResearchChatHistory() {
 
     try {
       // Use the same detection logic as other components
-      const questionnaireMessages = session.messages.filter((msg: any) =>
-        msg.metadata?.comprehensiveQuestions ||
-        (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
-      );
+      const questionnaireMessages = session.messages.filter((msg: any) => {
+        const meta = msg?.metadata || {};
+        const hasModern = !!meta.comprehensiveQuestions;
+        const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+        const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+        return hasModern || hasLegacy || hasComponent;
+      });
 
       if (questionnaireMessages.length === 0) {
         return { questions: 0, stakeholders: 0 };

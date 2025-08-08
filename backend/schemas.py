@@ -607,6 +607,9 @@ class DetectedStakeholder(BaseModel):
     influence_metrics: Optional[Dict[str, float]] = Field(
         None, description="Influence and decision power metrics"
     )
+    authentic_evidence: Optional[Dict[str, List[str]]] = Field(
+        None, description="Authentic supporting evidence and quotes from interview data"
+    )
 
 
 class ConsensusArea(BaseModel):

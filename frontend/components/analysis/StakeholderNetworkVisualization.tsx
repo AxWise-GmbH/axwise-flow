@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Network, Users, Zap, Target } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Network, Users, Zap, Target, User, TrendingUp, AlertCircle, Lightbulb } from 'lucide-react';
 
 interface NetworkNode {
   id: string;
@@ -20,16 +21,93 @@ interface NetworkEdge {
   strength: number;
 }
 
+interface Persona {
+  name: string;
+  description: string;
+  archetype?: string;
+  demographics?: {
+    value: string;
+    evidence: string[];
+  };
+  goals_and_motivations?: {
+    value: string;
+    evidence: string[];
+  };
+  pain_points?: {
+    value: string;
+    evidence: string[];
+  };
+  key_quotes?: {
+    value: string;
+    evidence: string[];
+  };
+  patterns?: {
+    value: string;
+    evidence: string[];
+  };
+  confidence_score?: number;
+  stakeholder_type?: string;
+}
+
 interface StakeholderNetworkVisualizationProps {
   stakeholderIntelligence: any;
+  personas?: Persona[];
 }
 
 const StakeholderNetworkVisualization: React.FC<StakeholderNetworkVisualizationProps> = ({
-  stakeholderIntelligence
+  stakeholderIntelligence,
+  personas = []
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<NetworkNode | null>(null);
+  const [selectedPersona, setSelectedPersona] = useState<number>(0);
+
+  // Create all personas (original + detected stakeholders)
+  const createAllPersonas = () => {
+    const allPersonas: Persona[] = [...personas];
+
+    // Add detected stakeholders as personas
+    if (stakeholderIntelligence?.detected_stakeholders) {
+      const detectedPersonas = stakeholderIntelligence.detected_stakeholders.map((stakeholder: any) => {
+        const demo = stakeholder.demographic_profile || {};
+        const insights = stakeholder.individual_insights || {};
+
+        return {
+          name: stakeholder.stakeholder_id || 'Unknown Stakeholder',
+          description: `${demo.role || stakeholder.stakeholder_type || 'Stakeholder'} - ${insights.primary_concern || 'Key stakeholder in the analysis'}`,
+          stakeholder_type: stakeholder.stakeholder_type,
+          confidence_score: stakeholder.confidence_score,
+
+          demographics: demo.role ? {
+            value: `Role: ${demo.role}${demo.department ? `\nDepartment: ${demo.department}` : ''}${demo.experience ? `\nExperience: ${demo.experience}` : ''}`,
+            evidence: stakeholder.authentic_evidence?.demographics_evidence || ['Derived from stakeholder analysis']
+          } : undefined,
+
+          goals_and_motivations: insights.key_motivation ? {
+            value: insights.key_motivation,
+            evidence: stakeholder.authentic_evidence?.goals_evidence || ['Based on stakeholder behavioral patterns']
+          } : undefined,
+
+          pain_points: insights.primary_concern ? {
+            value: insights.primary_concern,
+            evidence: stakeholder.authentic_evidence?.pain_points_evidence || ['Identified through stakeholder analysis']
+          } : undefined,
+
+          key_quotes: {
+            value: insights.representative_quotes || `"As a ${demo.role || stakeholder.stakeholder_type}, ${insights.key_motivation || 'I focus on delivering value to the organization'}"`,
+            evidence: stakeholder.authentic_evidence?.quotes_evidence || ['Representative quote from stakeholder analysis']
+          }
+        };
+      });
+
+      allPersonas.push(...detectedPersonas);
+    }
+
+    return allPersonas;
+  };
+
+  const allPersonas = createAllPersonas();
 
   // Prepare network data
   const prepareNetworkData = () => {
@@ -257,8 +335,274 @@ const StakeholderNetworkVisualization: React.FC<StakeholderNetworkVisualizationP
 
   const selectedDetails = getSelectedStakeholderDetails();
 
+  // Helper functions for persona rendering
+  const getStakeholderTypeColor = (type: string) => {
+    const colors = {
+      'decision_maker': 'bg-red-500 text-white',
+      'primary_customer': 'bg-green-500 text-white',
+      'secondary_user': 'bg-yellow-500 text-white',
+      'influencer': 'bg-blue-500 text-white',
+      'technical_lead': 'bg-purple-500 text-white',
+      'internal_stakeholder': 'bg-indigo-500 text-white',
+      'external_partner': 'bg-orange-500 text-white',
+      'end_user': 'bg-cyan-500 text-white'
+    };
+    return colors[type as keyof typeof colors] || 'bg-gray-500 text-white';
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.8) return 'text-green-600';
+    if (confidence >= 0.6) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  // Helper function to render trait values consistently
+  const renderTraitValue = (value: any): React.ReactNode => {
+    if (typeof value === 'string') {
+      // Handle newline-separated bullet points first
+      if (value.includes('\n') && value.includes('•')) {
+        return value.split('\n').filter(s => s.trim().length > 0).map((line, i) => (
+          <li key={i}>{line.replace(/^•\s*/, '').trim()}</li>
+        ));
+      }
+      // Handle inline bullet points (like "• Item 1 • Item 2")
+      else if (value.includes('•') && !value.includes('\n')) {
+        return value.split('•').filter(s => s.trim().length > 0).map((item, i) => (
+          <li key={i}>{item.trim()}</li>
+        ));
+      }
+      // Split string into sentences for list items if it contains periods
+      else if (value.includes('. ')) {
+        return value.split('. ').filter(s => s.trim().length > 0).map((sentence, i) => (
+          <li key={i}>{sentence.trim()}{value?.endsWith(sentence.trim()) ? '' : '.'}</li>
+        ));
+      } else {
+        // Render as single list item if no periods
+        return <li>{value}</li>;
+      }
+    } else if (Array.isArray(value)) {
+      // Render array items as list items
+      return value.filter(item => typeof item === 'string' || typeof item === 'number').map((item, i) => (
+        <li key={i}>{String(item)}</li>
+      ));
+    } else if (typeof value === 'object' && value !== null) {
+      // Try to render simple key-value pairs from a dict
+      try {
+        const entries = Object.entries(value);
+        const displayLimit = 5;
+        return entries.slice(0, displayLimit).map(([key, val]) => (
+          <li key={key}><strong>{key}:</strong> {String(val)}</li>
+        )).concat(entries.length > displayLimit ? [<li key="more" className="text-muted-foreground italic">...and more</li>] : []);
+      } catch (e) {
+        return <li className="text-muted-foreground italic">[Complex Object]</li>;
+      }
+    } else if (value !== null && value !== undefined) {
+      // Render other primitive types as a single list item
+      return <li>{String(value)}</li>;
+    }
+    // Fallback for null, undefined, or empty values
+    return <li className="text-muted-foreground italic">N/A</li>;
+  };
+
+  // Render detailed persona view
+  const renderDetailedPersona = (persona: Persona) => {
+    if (!persona) return null;
+
+    return (
+      <div className="space-y-6">
+        {/* Persona Header */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>{persona.name}</span>
+                </CardTitle>
+                <div className="flex items-center space-x-2 mt-2">
+                  {persona.stakeholder_type && (
+                    <Badge className={getStakeholderTypeColor(persona.stakeholder_type)}>
+                      {persona.stakeholder_type.replace('_', ' ')}
+                    </Badge>
+                  )}
+                  {persona.confidence_score && (
+                    <span className={`text-lg font-medium ${getConfidenceColor(persona.confidence_score)}`}>
+                      {Math.round(persona.confidence_score * 100)}% confidence
+                    </span>
+                  )}
+                </div>
+              </div>
+              {persona.archetype && (
+                <Badge variant="outline" className="w-fit">{persona.archetype}</Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700">{persona.description}</p>
+          </CardContent>
+        </Card>
+
+        {/* Rich Grid Layout - All Information Visible */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Demographics */}
+          {persona.demographics && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Target className="h-5 w-5" />
+                  <span>Demographics & Profile</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Profile</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {renderTraitValue(persona.demographics.value)}
+                    </ul>
+                  </div>
+                  {persona.demographics.evidence && persona.demographics.evidence.length > 0 && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-sm text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {persona.demographics.evidence.map((evidence: string, idx: number) => (
+                              <li key={idx}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Goals & Motivations */}
+          {persona.goals_and_motivations && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="h-5 w-5" />
+                  <span>Goals & Motivations</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Primary Goals</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {renderTraitValue(persona.goals_and_motivations.value)}
+                    </ul>
+                  </div>
+                  {persona.goals_and_motivations.evidence && persona.goals_and_motivations.evidence.length > 0 && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-sm text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {persona.goals_and_motivations.evidence.map((evidence: string, idx: number) => (
+                              <li key={idx}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pain Points */}
+          {persona.pain_points && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5" />
+                  <span>Pain Points & Challenges</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Key Challenges</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {renderTraitValue(persona.pain_points.value)}
+                    </ul>
+                  </div>
+                  {persona.pain_points.evidence && persona.pain_points.evidence.length > 0 && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-sm text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {persona.pain_points.evidence.map((evidence: string, idx: number) => (
+                              <li key={idx}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Key Quotes */}
+          {persona.key_quotes && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Lightbulb className="h-5 w-5" />
+                  <span>Key Quotes</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Representative Quotes</h4>
+                    <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700">
+                      {persona.key_quotes.value}
+                    </blockquote>
+                  </div>
+                  {persona.key_quotes.evidence && persona.key_quotes.evidence.length > 0 && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-sm text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {persona.key_quotes.evidence.map((evidence: string, idx: number) => (
+                              <li key={idx}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {/* Network Visualization Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -408,6 +752,53 @@ const StakeholderNetworkVisualization: React.FC<StakeholderNetworkVisualizationP
           </div>
         </CardContent>
       </Card>
+
+      {/* Persona Details Section */}
+      {allPersonas.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <Users className="h-5 w-5" />
+                  <span>Stakeholder Personas</span>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {allPersonas.length} personas identified from the analysis
+                  {stakeholderIntelligence?.detected_stakeholders?.length > 0 && (
+                    <span className="ml-2 text-blue-600">
+                      (including {stakeholderIntelligence.detected_stakeholders.length} detected stakeholders)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Persona selector tabs */}
+              <div className="flex space-x-2 overflow-x-auto pb-2">
+                {allPersonas.map((persona, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedPersona(index)}
+                    className={`px-4 py-2 rounded-md text-sm whitespace-nowrap ${
+                      selectedPersona === index
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {persona.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Detailed persona view */}
+              {renderDetailedPersona(allPersonas[selectedPersona])}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -123,20 +123,47 @@ export class LocalResearchStorage {
 
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.sessions);
-      const sessions = stored ? JSON.parse(stored) : [];
+      let sessions = [];
 
-      // Process sessions to set questions_generated flag based on message content
+      if (stored) {
+        const parsedData = JSON.parse(stored);
+
+        // Handle both object and array formats
+        if (Array.isArray(parsedData)) {
+          sessions = parsedData;
+        } else if (typeof parsedData === 'object' && parsedData !== null) {
+          // Convert object to array (keys are session IDs, values are session objects)
+          sessions = Object.values(parsedData);
+          console.log('🔧 LocalResearchStorage: Converted object format to array format');
+        } else {
+          console.error('❌ LocalResearchStorage: Unexpected data format:', typeof parsedData);
+          sessions = [];
+        }
+      }
+
+      // Process sessions to set questions_generated flag based on ACTUAL message content
       return sessions.map((session: any) => {
-        // Check if session has questionnaire data in messages - use same logic as questionnaire page
-        // Also check for COMPREHENSIVE_QUESTIONS_COMPONENT content type
-        const hasQuestionnaire = session.messages?.some((msg: any) =>
-          msg.metadata?.comprehensiveQuestions ||
-          (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
-        );
+        // Check if session has questionnaire data in messages - support both new and legacy formats
+        const hasQuestionnaire = Array.isArray(session.messages) && session.messages.some((msg: any) => {
+          const meta = msg?.metadata || {};
+          const hasModern = !!meta.comprehensiveQuestions;
+          const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+          const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+          return hasModern || hasLegacy || hasComponent;
+        });
+
+        // Debug logging for data inconsistency detection
+        if (session.questions_generated && !hasQuestionnaire) {
+          console.log(`🚨 DATA MISMATCH: Session ${session.session_id} flagged questions_generated=true but no questionnaire message detected`);
+          console.log(`   Business idea: ${session.business_idea}`);
+          console.log(`   Messages count: ${session.messages?.length || 0}`);
+          console.log(`   Stored questions_generated: ${session.questions_generated}`);
+        }
 
         return {
           ...session,
-          questions_generated: hasQuestionnaire || session.questions_generated || false,
+          // Maintain compatibility with legacy data: honor stored flag OR detected questionnaire messages
+          questions_generated: !!session.questions_generated || hasQuestionnaire,
           isLocal: true
         };
       });
@@ -633,10 +660,13 @@ export async function getResearchSessions(limit: number = 20, userId?: string): 
 
         if (session.questions_generated && questionnaireData) {
           // Check if questionnaire message already exists - use consistent detection logic
-          const hasQuestionnaireMessage = messages.some((msg: any) =>
-            msg.metadata?.comprehensiveQuestions ||
-            (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
-          );
+          const hasQuestionnaireMessage = messages.some((msg: any) => {
+            const meta = msg?.metadata || {};
+            const hasModern = !!meta.comprehensiveQuestions;
+            const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+            const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+            return hasModern || hasLegacy || hasComponent;
+          });
 
           if (!hasQuestionnaireMessage) {
             // Add questionnaire message for compatibility with frontend logic

@@ -239,7 +239,7 @@ Base your analysis on the actual theme content and stakeholder profiles provided
 
                     llm_detected_stakeholders = (
                         await StakeholderDetector.detect_real_stakeholders_with_llm(
-                            content, self.llm_client
+                            content, self.llm_client, base_analysis
                         )
                     )
                     logger.info(
@@ -394,10 +394,10 @@ Base your analysis on the actual theme content and stakeholder profiles provided
             try:
                 from models.stakeholder_models import StakeholderDetector
 
-                # Use real LLM-based stakeholder detection
+                # Use real LLM-based stakeholder detection with base analysis for authentic evidence
                 llm_detected_stakeholders = (
                     await StakeholderDetector.detect_real_stakeholders_with_llm(
-                        content, self.llm_client
+                        content, self.llm_client, base_analysis
                     )
                 )
 

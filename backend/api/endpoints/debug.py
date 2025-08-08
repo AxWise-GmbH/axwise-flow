@@ -26,9 +26,15 @@ router = APIRouter(
 
 # Import dependencies
 from backend.database import get_db
-from backend.models import User, AnalysisResult, InterviewData
 from backend.services.external.auth_middleware import get_current_user
 from backend.models.stakeholder_models import StakeholderDetector
+
+# Import SQLAlchemy models directly from the main models.py file to avoid circular imports
+# Import SQLAlchemy models using centralized import mechanism to avoid registry conflicts
+# IMPORTANT: Avoid dynamic imports here; this module is loaded at app startup.
+# Dynamic import of models.py would re-register SQLAlchemy mappers causing
+# "Multiple classes found for path 'InterviewData'" errors.
+from backend.models import User, InterviewData, AnalysisResult
 
 
 @router.get(
@@ -135,11 +141,11 @@ async def test_auth(user: User = Depends(get_current_user)):
             "status": "authenticated",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "user": {
-                "id": user.id,
-                "clerk_user_id": user.clerk_user_id,
-                "email": user.email,
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+                "user_id": getattr(user, "user_id", None),
+                "email": getattr(user, "email", None),
+                "first_name": getattr(user, "first_name", None),
+                "last_name": getattr(user, "last_name", None),
+                "subscription_status": getattr(user, "subscription_status", None),
             },
         }
     except Exception as e:

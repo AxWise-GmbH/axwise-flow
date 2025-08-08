@@ -54,7 +54,10 @@ export function StakeholderDynamicsDisplay({
         </TabsContent>
 
         <TabsContent value="network" className="space-y-6">
-          <StakeholderNetworkVisualization stakeholderIntelligence={stakeholderIntelligence} />
+          <StakeholderNetworkVisualization
+            stakeholderIntelligence={stakeholderIntelligence}
+            personas={analysisData.personas || []}
+          />
         </TabsContent>
 
         <TabsContent value="consensus" className="space-y-6">

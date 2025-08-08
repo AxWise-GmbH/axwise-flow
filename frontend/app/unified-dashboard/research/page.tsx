@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -15,6 +15,10 @@ interface QuestionnaireSession {
   stakeholder_count?: number;
   questionnaire_generated_at?: string;
   questionnaire_exported?: boolean;
+  business_idea?: string;
+  target_customer?: string;
+  problem?: string;
+  industry?: string;
 }
 
 interface SimulationResult {
@@ -24,6 +28,7 @@ interface SimulationResult {
 
 export default function InterviewSimulationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [questionnaireSessions, setQuestionnaireSessions] = useState<QuestionnaireSession[]>([]);
   const [completedSimulations, setCompletedSimulations] = useState<SimulationResult[]>([]);
   const [isLoadingQuestionnaires, setIsLoadingQuestionnaires] = useState(true);
@@ -36,6 +41,8 @@ export default function InterviewSimulationPage() {
   const [simulationProgress, setSimulationProgress] = useState<any>(null);
   const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
+  const [autoProcessingSession, setAutoProcessingSession] = useState<string | null>(null);
+  const autoProcessingTriggered = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     console.log('🚀 InterviewSimulationPage component mounted, loading data...');
@@ -43,104 +50,170 @@ export default function InterviewSimulationPage() {
     loadCompletedSimulations();
   }, []);
 
+  // Handle URL parameters for auto-triggering simulation
+  useEffect(() => {
+    const sessionParam = searchParams.get('session');
+    if (sessionParam && questionnaireSessions.length > 0 && !autoProcessingTriggered.current.has(sessionParam)) {
+      console.log('🎯 URL session parameter detected:', sessionParam);
+
+      // Find the session in the loaded questionnaires
+      const targetSession = questionnaireSessions.find(s => s.session_id === sessionParam);
+      if (targetSession) {
+        console.log('✅ Found target session, auto-triggering simulation:', targetSession);
+        autoProcessingTriggered.current.add(sessionParam);
+        setAutoProcessingSession(sessionParam);
+        // Auto-trigger simulation for this session
+        handleStartSimulationFromSession(sessionParam);
+
+        // Clean up URL parameter
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('session');
+        window.history.replaceState({}, '', newUrl.toString());
+      } else {
+        console.warn('⚠️ Session not found in questionnaires:', sessionParam);
+        setError(`Session "${sessionParam}" not found or doesn't have a questionnaire generated.`);
+      }
+    }
+  }, [questionnaireSessions, searchParams]);
+
   const loadQuestionnaires = async () => {
     try {
-      console.log('🔍 Loading questionnaires from backend and localStorage...');
+      console.log('🔍 Loading questionnaires using getResearchSessions...');
       setIsLoadingQuestionnaires(true);
 
-      let allSessions: any[] = [];
-      let finalSessions: any[] = [];
+      // Import the research API functions
+      const { getResearchSessions } = await import('@/lib/api/research');
 
-      // Try to load from backend first
-      try {
-        const response = await fetch('/api/research/sessions');
-        console.log('📊 Backend response status:', response.status);
+      // Use the same approach as research-chat-history page
+      const allSessions = await getResearchSessions(50);
+      console.log('📊 Total sessions loaded:', allSessions.length);
 
-        if (response.ok) {
-          const backendSessions = await response.json();
-          console.log('💾 Backend sessions:', backendSessions.length);
-
-          const backendQuestionnaires = backendSessions.filter((session: any) =>
-            session.questionnaire_generated_at && session.questionnaire_data
-          );
-          console.log('🚨 Backend questionnaires found:', backendQuestionnaires.length);
-          allSessions.push(...backendQuestionnaires);
-          console.log('🚨 allSessions after backend push:', allSessions.length);
+      // Filter sessions that have questionnaires (support new and legacy formats)
+      const questionnaireSessions = allSessions.filter((session: any) => {
+        // Prefer explicit flag if present
+        if (session.questions_generated) return true;
+        // Fallback: detect questionnaire message in messages array
+        if (Array.isArray(session.messages)) {
+          const detected = session.messages.some((msg: any) => {
+            const meta = msg?.metadata || {};
+            const hasModern = !!meta.comprehensiveQuestions;
+            const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+            const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+            return hasModern || hasLegacy || hasComponent;
+          });
+          console.log(`🔍 Session ${session.session_id}: detectedQuestionnaire=${detected}, business_idea=${session.business_idea}`);
+          return detected;
         }
-      } catch (error) {
-        console.warn('⚠️ Failed to load from backend:', error);
-      }
+        return false;
+      });
 
-      // Load using the EXACT same method as Research Chat History page
-      try {
-        const { getResearchSessions } = await import('@/lib/api/research');
-        const allSessions = await getResearchSessions(100);
-        console.log('🔍 All sessions from getResearchSessions:', allSessions.length);
+      console.log('🎯 QUESTIONNAIRE FILTERING RESULTS:');
+      console.log(`   Total sessions: ${allSessions.length}`);
+      console.log(`   Sessions with questionnaire data: ${questionnaireSessions.length}`);
+      console.log(`   Filtered questionnaire sessions:`, questionnaireSessions.map(s => ({ id: s.session_id, idea: s.business_idea, messages: s.messages?.length })));
 
-        const localQuestionnaires = allSessions.filter((session: any) => {
-          // getResearchSessions() already processes sessions correctly
-          const hasQuestionnaire = session.questions_generated;
+      // Transform sessions to match the expected UI format with questionnaire stats
+      const transformedSessions = questionnaireSessions.map((session: any) => {
+        try {
+          // Calculate stakeholder and question counts from questionnaire data
+          let questionCount = 0;
+          let stakeholderCount = 0;
 
+          console.log(`🔍 Processing session: ${session.session_id} - ${session.business_idea}`);
+          console.log(`  Messages count: ${session.messages?.length || 0}`);
+          console.log(`  Questions generated flag: ${session.questions_generated}`);
 
+          // Use the same stats calculation as research-chat-history page
+          if (session.messages) {
+            console.log(`  📝 Session has ${session.messages.length} messages`);
 
-          return hasQuestionnaire;
-        });
+            const questionnaireMessages = session.messages.filter((msg: any) => {
+              const meta = msg?.metadata || {};
+              const hasModern = !!meta.comprehensiveQuestions;
+              const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+              const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+              return hasModern || hasLegacy || hasComponent;
+            });
 
+            console.log(`  📋 Found ${questionnaireMessages.length} questionnaire messages`);
 
-
-        const processedQuestionnaires = localQuestionnaires.map((session: any) => {
-          try {
-            // Calculate stakeholder and question counts from questionnaire data
-            let questionCount = 0;
-            let stakeholderCount = 0;
-
-
-
-          // Find questionnaire messages and get the most recent one - exactly like research chat history
-          const questionnaireMessages = session.messages?.filter((msg: any) =>
-            msg.metadata?.comprehensiveQuestions ||
-            (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
-          ) || [];
-
-          const questionnaireMessage = questionnaireMessages.length > 0
-            ? questionnaireMessages.sort((a: any, b: any) =>
+            if (questionnaireMessages.length > 0) {
+              const questionnaireMessage = questionnaireMessages.sort((a: any, b: any) =>
                 new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-              )[0]
-            : null;
+              )[0];
 
-          if (questionnaireMessage?.metadata?.comprehensiveQuestions) {
-            const questionnaire = questionnaireMessage.metadata.comprehensiveQuestions;
-            const primaryStakeholders = questionnaire.primaryStakeholders || [];
-            const secondaryStakeholders = questionnaire.secondaryStakeholders || [];
+              console.log(`  📋 Selected questionnaire message:`, {
+                hasMetadata: !!questionnaireMessage.metadata,
+                hasComprehensiveQuestions: !!questionnaireMessage.metadata?.comprehensiveQuestions,
+                metadataKeys: Object.keys(questionnaireMessage.metadata || {})
+              });
 
-            stakeholderCount = primaryStakeholders.length + secondaryStakeholders.length;
-            questionCount = [...primaryStakeholders, ...secondaryStakeholders].reduce((total: number, stakeholder: any) => {
-              const questions = stakeholder.questions || {};
-              return total +
-                (questions.problemDiscovery?.length || 0) +
-                (questions.solutionValidation?.length || 0) +
-                (questions.followUp?.length || 0);
-            }, 0);
+              const questionnaire = questionnaireMessage?.metadata?.comprehensiveQuestions || questionnaireMessage?.metadata?.questionnaire || questionnaireMessage?.metadata?.comprehensive_questions;
+              if (questionnaire) {
+                console.log(`  📊 Questionnaire structure:`, {
+                  hasPrimary: !!questionnaire.primaryStakeholders,
+                  hasSecondary: !!questionnaire.secondaryStakeholders,
+                  primaryLength: questionnaire.primaryStakeholders?.length || 0,
+                  secondaryLength: questionnaire.secondaryStakeholders?.length || 0,
+                  questionnaireKeys: Object.keys(questionnaire)
+                });
 
-            // Debug Bremen session specifically
-            if (session.session_id === 'local_1753886540920_4dr61ujw9') {
-              console.log('🚨 BREMEN SESSION QUESTIONNAIRE PROCESSING:');
-              console.log('  questionnaireMessage found:', !!questionnaireMessage);
-              console.log('  questionnaire data:', questionnaire);
-              console.log('  primaryStakeholders:', primaryStakeholders.length);
-              console.log('  secondaryStakeholders:', secondaryStakeholders.length);
-              console.log('  calculated questionCount:', questionCount);
-              console.log('  calculated stakeholderCount:', stakeholderCount);
+                // Support both modern (primaryStakeholders) and legacy (stakeholders.primary) shapes
+                const primaryStakeholders = questionnaire.primaryStakeholders || questionnaire.stakeholders?.primary || [];
+                const secondaryStakeholders = questionnaire.secondaryStakeholders || questionnaire.stakeholders?.secondary || [];
+                const allStakeholders = [...primaryStakeholders, ...secondaryStakeholders];
+
+                console.log(`  👥 Stakeholders:`, {
+                  primary: primaryStakeholders.length,
+                  secondary: secondaryStakeholders.length,
+                  total: allStakeholders.length
+                });
+
+                stakeholderCount = allStakeholders.length;
+
+                // Normalize stakeholder questions and count
+                const getStakeholderQuestionCount = (s: any) => {
+                  // Legacy may store questions as arrays under different keys
+                  const q = s.questions || s.questionSets || {};
+                  const discovery = q.problemDiscovery || q.discovery || [];
+                  const validation = q.solutionValidation || q.validation || [];
+                  const followUp = q.followUp || q.follow_up || [];
+
+                  // Some legacy sessions may have a flat array of questions
+                  const flat = Array.isArray(s.questions) ? s.questions : [];
+
+                  const count =
+                    (Array.isArray(discovery) ? discovery.length : 0) +
+                    (Array.isArray(validation) ? validation.length : 0) +
+                    (Array.isArray(followUp) ? followUp.length : 0) +
+                    (Array.isArray(flat) ? flat.length : 0);
+
+                  return count;
+                };
+
+                // Debug each stakeholder's question structure
+                allStakeholders.forEach((stakeholder, idx) => {
+                  const c = getStakeholderQuestionCount(stakeholder);
+                  console.log(`  👤 Stakeholder ${idx + 1} (${stakeholder.name || stakeholder.title || 'Unknown'}):`, c);
+                });
+
+                questionCount = allStakeholders.reduce((total: number, s: any) => total + getStakeholderQuestionCount(s), 0);
+
+                // Fallback to timeEstimate if available and computed count is zero
+                if (questionCount === 0 && questionnaire.timeEstimate?.totalQuestions) {
+                  questionCount = questionnaire.timeEstimate.totalQuestions;
+                  console.log('  ℹ️ Using timeEstimate.totalQuestions as fallback:', questionCount);
+                }
+
+                console.log(`  ✅ Final counts - Questions: ${questionCount}, Stakeholders: ${stakeholderCount}`);
+              } else {
+                console.log(`  ❌ No comprehensiveQuestions found in metadata`);
+              }
+            } else {
+              console.log(`  ❌ No questionnaire messages found`);
             }
           } else {
-            // Debug Bremen session if no questionnaire found
-            if (session.session_id === 'local_1753886540920_4dr61ujw9') {
-              console.log('🚨 BREMEN SESSION - NO QUESTIONNAIRE FOUND:');
-              console.log('  session.messages length:', session.messages?.length || 0);
-              console.log('  questionnaireMessages found:', questionnaireMessages.length);
-              console.log('  questionnaireMessage:', questionnaireMessage);
-              console.log('  session.questions_generated:', session.questions_generated);
-            }
+            console.log(`  ❌ Session has no messages array`);
           }
 
           const result = {
@@ -152,81 +225,21 @@ export default function InterviewSimulationPage() {
             questionnaire_generated_at: session.updated_at || session.created_at || new Date().toISOString(),
           };
 
-          // Debug Bremen session final result
-          if (session.session_id === 'local_1753886540920_4dr61ujw9') {
-            console.log('🚨 BREMEN SESSION FINAL UI DATA:');
-            console.log('  result.question_count:', result.question_count);
-            console.log('  result.stakeholder_count:', result.stakeholder_count);
-            console.log('  result.title:', result.title);
-          }
-
-
+          console.log(`  📊 Final UI data for ${session.session_id}:`);
+          console.log(`    Title: ${result.title}`);
+          console.log(`    Question count: ${result.question_count}`);
+          console.log(`    Stakeholder count: ${result.stakeholder_count}`);
+          console.log(`    Generated at: ${result.questionnaire_generated_at}`);
 
           return result;
-          } catch (error) {
-            console.error('❌ Error processing session:', session.session_id, error);
-            return null; // Return null for failed sessions
-          }
-        }).filter(Boolean); // Remove null entries
+        } catch (error) {
+          console.error('❌ Error processing session:', session.session_id, error);
+          return null; // Return null for failed sessions
+        }
+      }).filter(Boolean); // Remove null entries
 
-        console.log('✅ Local questionnaire sessions:', processedQuestionnaires.length);
-        allSessions.push(...processedQuestionnaires);
-
-        // Make a deep copy to prevent external modifications
-        finalSessions = JSON.parse(JSON.stringify(allSessions));
-
-        // Deduplicate sessions by session_id (prioritize sessions with questionnaire data)
-        const sessionMap = new Map();
-        finalSessions.forEach(session => {
-          const existingSession = sessionMap.get(session.session_id);
-          if (!existingSession) {
-            sessionMap.set(session.session_id, session);
-          } else {
-            // Prioritize session with questionnaire data (question_count > 0)
-            const currentHasData = (session.question_count || 0) > 0;
-            const existingHasData = (existingSession.question_count || 0) > 0;
-
-            if (currentHasData && !existingHasData) {
-              // Current session has data, existing doesn't - use current
-              sessionMap.set(session.session_id, session);
-            } else if (!currentHasData && existingHasData) {
-              // Existing has data, current doesn't - keep existing
-              // Do nothing
-            } else {
-              // Both have data or both don't have data - use most recent
-              if (new Date(session.updated_at || session.created_at) > new Date(existingSession.updated_at || existingSession.created_at)) {
-                sessionMap.set(session.session_id, session);
-              }
-            }
-          }
-        });
-        finalSessions = Array.from(sessionMap.values());
-      } catch (error) {
-        console.warn('⚠️ Failed to load from localStorage:', error);
-      }
-
-      // Use finalSessions if it has data (from localStorage success), otherwise use allSessions
-      const sessionsToSet = finalSessions.length > 0 ? finalSessions : allSessions;
-      console.log('✅ Total questionnaire sessions found:', sessionsToSet.length);
-
-      // Debug what's being set in state
-      console.log('🚨 SETTING QUESTIONNAIRE SESSIONS STATE:');
-      console.log('  finalSessions.length:', finalSessions.length);
-      console.log('  allSessions.length:', allSessions.length);
-      console.log('  sessionsToSet.length:', sessionsToSet.length);
-
-      // Check Bremen session in final state
-      const bremenInFinal = sessionsToSet.find(s => s.session_id === 'local_1753886540920_4dr61ujw9');
-      if (bremenInFinal) {
-        console.log('🚨 BREMEN SESSION IN FINAL STATE:');
-        console.log('  question_count:', bremenInFinal.question_count);
-        console.log('  stakeholder_count:', bremenInFinal.stakeholder_count);
-        console.log('  title:', bremenInFinal.title);
-      } else {
-        console.log('🚨 BREMEN SESSION NOT FOUND IN FINAL STATE');
-      }
-
-      setQuestionnaireSessions(sessionsToSet);
+      console.log('✅ Final questionnaire sessions:', transformedSessions.length);
+      setQuestionnaireSessions(transformedSessions);
 
     } catch (error) {
       console.error('❌ Error loading questionnaires:', error);
@@ -361,6 +374,7 @@ export default function InterviewSimulationPage() {
           }
           setCurrentSimulationId(null);
           setIsProcessing(false);
+          setAutoProcessingSession(null);
           return false; // Stop polling
         }
         return true; // Continue polling
@@ -392,11 +406,6 @@ export default function InterviewSimulationPage() {
             window.dispatchEvent(new CustomEvent('localStorageUpdated', {
               detail: { key: 'simulation_results', action: 'add', simulationId: result.simulation_id || simulationId }
             }));
-
-            // Dispatch custom event to notify other components
-            window.dispatchEvent(new CustomEvent('localStorageUpdated', {
-              detail: { key: 'simulation_results', action: 'add', simulationId: result.simulation_id || simulationId }
-            }));
           } else {
             console.warn('Could not fetch completed simulation results');
           }
@@ -407,6 +416,7 @@ export default function InterviewSimulationPage() {
         setSuccess('Simulation completed successfully! Redirecting to results page...');
         setIsProcessing(false);
         setCurrentSimulationId(null);
+        setAutoProcessingSession(null);
 
         // Redirect to simulation history to view results
         setTimeout(() => {
@@ -436,50 +446,73 @@ export default function InterviewSimulationPage() {
       let businessContext = null;
 
       if (sessionId.startsWith('local_')) {
-        // Handle local session - get data from localStorage
+        // Handle local session - get data from localStorage using proper API
         console.log('🔍 Loading local session data for:', sessionId);
-        const localSessions = JSON.parse(localStorage.getItem('axwise_research_sessions') || '{}');
-        console.log('🔍 All localStorage sessions:', Object.keys(localSessions));
-        console.log('🔍 Looking for session:', sessionId);
 
-        // Log all session IDs and business ideas for debugging
-        Object.values(localSessions).forEach((s: any) => {
-          console.log(`🔍 Session ${s.session_id}: "${s.business_idea}"`);
-        });
-
-        // Find session by session_id since localStorage uses numeric keys
-        const session = Object.values(localSessions).find((s: any) => s.session_id === sessionId) as any;
+        // Import LocalResearchStorage to use proper session retrieval
+        const { LocalResearchStorage } = await import('@/lib/api/research');
+        const session = LocalResearchStorage.getSession(sessionId);
 
         if (!session) {
-          const availableSessionIds = Object.values(localSessions).map((s: any) => s.session_id);
+          // Get all sessions for debugging
+          const allSessions = LocalResearchStorage.getSessions();
+          const availableSessionIds = allSessions.map(s => s.session_id);
           console.error('❌ Session not found. Available session IDs:', availableSessionIds);
           throw new Error(`Local session ${sessionId} not found. Available: ${availableSessionIds.join(', ')}`);
         }
 
-        console.log('✅ Found session:', session);
+        // Verify session has message data (should always be true now with fixed data processing)
+        if (!session.messages || session.messages.length === 0) {
+          console.error('❌ Session has no message data');
+          throw new Error(`This session has no message data. Please regenerate the questionnaire for "${session.business_idea}" and try again.`);
+        }
+
+        console.log('✅ Found session using LocalResearchStorage.getSession():', session);
         console.log('🎯 SELECTED SESSION DETAILS:');
         console.log('   Session ID:', session.session_id);
         console.log('   Business Idea:', session.business_idea);
         console.log('   Target Customer:', session.target_customer);
         console.log('   Problem:', session.problem);
         console.log('   Messages Count:', session.messages?.length || 0);
+        console.log('   Questions Generated Flag:', session.questions_generated);
+        console.log('   Is Local:', session.isLocal);
 
         // Find questionnaire message with comprehensive questions
         // Use the same detection logic as LocalResearchStorage.getSessions()
-        const questionnaireMessage = session.messages?.find((msg: any) =>
-          msg.metadata?.comprehensiveQuestions ||
-          (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions)
-        );
+        console.log('🔍 Looking for questionnaire message in session messages...');
+        console.log('  Total messages:', session.messages?.length || 0);
 
-        if (!questionnaireMessage?.metadata?.comprehensiveQuestions) {
+        const questionnaireMessages = session.messages?.filter((msg: any) => {
+          const meta = msg?.metadata || {};
+          const hasModern = !!meta.comprehensiveQuestions;
+          const hasLegacy = !!meta.questionnaire || !!meta.comprehensive_questions;
+          const hasComponent = msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && (hasModern || hasLegacy);
+          return hasModern || hasLegacy || hasComponent;
+        }) || [];
+
+        console.log('  Questionnaire messages found:', questionnaireMessages.length);
+
+        const questionnaireMessage = questionnaireMessages.length > 0
+          ? questionnaireMessages.sort((a: any, b: any) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )[0]
+          : null;
+
+        const qLegacy = questionnaireMessage?.metadata?.comprehensiveQuestions || questionnaireMessage?.metadata?.questionnaire || questionnaireMessage?.metadata?.comprehensive_questions;
+        if (!qLegacy) {
+          console.error('❌ No questionnaire data found');
+          console.log('  Available message types:', session.messages?.map((msg: any) => ({
+            content: msg.content?.substring(0, 50) + '...',
+            hasMetadata: !!msg.metadata,
+            metadataKeys: Object.keys(msg.metadata || {})
+          })));
+
           // Check if this is an old format session
           const hasOldFormat = session.messages?.some((msg: any) =>
             msg.content?.includes('COMPREHENSIVE_QUESTIONS_COMPONENT') ||
             msg.metadata?.questions ||
             msg.metadata?.stakeholders
           );
-
-
 
           if (hasOldFormat) {
             throw new Error(`This questionnaire session uses an outdated format and is no longer compatible. Please generate a new questionnaire to run batch simulations.`);
@@ -488,7 +521,9 @@ export default function InterviewSimulationPage() {
           }
         }
 
-        const rawQuestionnaireData = questionnaireMessage.metadata.comprehensiveQuestions;
+        console.log('✅ Found questionnaire message with comprehensive questions');
+
+        const rawQuestionnaireData = (questionnaireMessage?.metadata?.comprehensiveQuestions || questionnaireMessage?.metadata?.questionnaire || questionnaireMessage?.metadata?.comprehensive_questions);
         console.log('🔍 Raw questionnaire data:', rawQuestionnaireData);
         console.log('🔍 Primary stakeholders:', rawQuestionnaireData.primaryStakeholders);
         console.log('🔍 Secondary stakeholders:', rawQuestionnaireData.secondaryStakeholders);
@@ -662,6 +697,7 @@ export default function InterviewSimulationPage() {
 
         loadCompletedSimulations();
         setIsProcessing(false);
+        setAutoProcessingSession(null);
 
         // Redirect to simulation history page to view results
         setSuccess('Simulation completed successfully! Redirecting to results page...');
@@ -700,6 +736,7 @@ export default function InterviewSimulationPage() {
     } finally {
       setIsProcessing(false);
       setProcessingSessionId(null);
+      setAutoProcessingSession(null);
     }
   };
 
@@ -707,6 +744,8 @@ export default function InterviewSimulationPage() {
     // Navigate to research chat history and trigger questionnaire modal
     router.push(`/unified-dashboard/research-chat-history?session=${sessionId}&action=view-questionnaire`);
   };
+
+
 
   const downloadSingleInterview = (interview: any, interviewNumber: number) => {
     // Find the corresponding persona data
@@ -860,6 +899,18 @@ A${i + 1}: ${response.response}
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Auto-processing indicator */}
+            {autoProcessingSession && isProcessing && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <p className="text-sm text-blue-600">
+                    Auto-processing session: <span className="font-mono">{autoProcessingSession}</span>
+                  </p>
+                </div>
               </div>
             )}
 

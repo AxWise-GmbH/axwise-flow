@@ -71,13 +71,13 @@ class StakeholderDetector:
 
     @classmethod
     async def detect_real_stakeholders_with_llm(
-        cls, content: str, llm_service
+        cls, content: str, llm_service, base_analysis=None
     ) -> List[Dict[str, Any]]:
         """
-        PHASE 1: Real LLM-based stakeholder detection
+        PHASE 2: Enhanced LLM-based stakeholder detection with authentic evidence extraction
 
         Use LLM to analyze content and identify actual stakeholders mentioned
-        or implied in the interview/survey data.
+        or implied in the interview/survey data, including authentic quotes and evidence.
         """
         if not llm_service or len(content) < 100:
             logger.warning(
@@ -88,8 +88,20 @@ class StakeholderDetector:
         # Limit content size for LLM processing
         content_sample = content[:4000] if len(content) > 4000 else content
 
+        # Extract authentic quotes from base analysis if available
+        authentic_quotes = (
+            cls._extract_authentic_quotes_from_analysis(base_analysis)
+            if base_analysis
+            else []
+        )
+
+        logger.info(
+            f"[STAKEHOLDER_PHASE2] Extracted {len(authentic_quotes)} authentic quotes from base analysis"
+        )
+
         prompt = f"""
         Analyze the following interview/survey content and identify distinct stakeholders mentioned or implied.
+        Include authentic supporting evidence and quotes for each stakeholder.
 
         Content:
         {content_sample}
@@ -101,12 +113,16 @@ class StakeholderDetector:
         4. individual_insights: Key concerns, motivations, pain points, or perspectives mentioned
         5. influence_metrics: Estimated scores (0.0-1.0) for decision_power, technical_influence, budget_influence
         6. confidence: Your confidence in this stakeholder identification (0.0-1.0)
+        7. authentic_evidence: Supporting evidence and quotes from the interview content
 
         IMPORTANT: Use ONLY these stakeholder_type values:
         - primary_customer: Main users/customers who directly use the product/service
         - secondary_user: Users who interact with the product but are not primary customers
         - decision_maker: People who make purchasing/implementation decisions
         - influencer: People who influence decisions but don't make final choices
+
+        IMPORTANT: For authentic_evidence, extract actual quotes and statements from the content that support each stakeholder's profile.
+        Include quotes that relate to their demographics, goals, pain points, and behavioral patterns.
 
         Return ONLY a JSON array of stakeholder objects. Do not include any other text.
 
@@ -118,7 +134,13 @@ class StakeholderDetector:
             "demographic_info": {{"age": 34, "role": "Fleet Manager", "department": "Operations"}},
             "individual_insights": {{"primary_concern": "Real-time vehicle tracking", "key_motivation": "Operational efficiency"}},
             "influence_metrics": {{"decision_power": 0.8, "technical_influence": 0.4, "budget_influence": 0.6}},
-            "confidence": 0.9
+            "confidence": 0.9,
+            "authentic_evidence": {{
+              "demographics_evidence": ["Quote about role/department", "Quote about experience level"],
+              "goals_evidence": ["Quote about motivations", "Quote about objectives"],
+              "pain_points_evidence": ["Quote about challenges", "Quote about frustrations"],
+              "quotes_evidence": ["Representative quote 1", "Representative quote 2"]
+            }}
           }},
           {{
             "stakeholder_id": "Driver_Tom",
@@ -126,7 +148,13 @@ class StakeholderDetector:
             "demographic_info": {{"age": 28, "role": "Driver"}},
             "individual_insights": {{"primary_concern": "Easy mobile interface", "key_motivation": "Job efficiency"}},
             "influence_metrics": {{"decision_power": 0.2, "technical_influence": 0.1, "budget_influence": 0.1}},
-            "confidence": 0.9
+            "confidence": 0.9,
+            "authentic_evidence": {{
+              "demographics_evidence": ["Quote about being a driver", "Quote about work context"],
+              "goals_evidence": ["Quote about efficiency goals", "Quote about job priorities"],
+              "pain_points_evidence": ["Quote about interface challenges", "Quote about mobile issues"],
+              "quotes_evidence": ["Direct quote from driver", "Another relevant statement"]
+            }}
           }}
         ]
         """
@@ -186,7 +214,7 @@ class StakeholderDetector:
                     logger.warning("Failed to parse LLM string response as JSON")
                     return []
 
-            # Validate stakeholder objects
+            # Validate stakeholder objects and enhance with authentic evidence
             validated_stakeholders = []
             for stakeholder in stakeholders:
                 if isinstance(stakeholder, dict) and "stakeholder_id" in stakeholder:
@@ -196,6 +224,19 @@ class StakeholderDetector:
                     stakeholder.setdefault("individual_insights", {})
                     stakeholder.setdefault("influence_metrics", {"decision_power": 0.5})
                     stakeholder.setdefault("confidence", 0.5)
+                    stakeholder.setdefault("authentic_evidence", {})
+
+                    # If LLM didn't provide authentic evidence, map from base analysis
+                    if not stakeholder.get("authentic_evidence") and authentic_quotes:
+                        stakeholder["authentic_evidence"] = (
+                            cls._map_authentic_evidence_to_stakeholder(
+                                stakeholder, authentic_quotes
+                            )
+                        )
+                        logger.info(
+                            f"[STAKEHOLDER_PHASE2] Mapped authentic evidence for {stakeholder['stakeholder_id']}"
+                        )
+
                     validated_stakeholders.append(stakeholder)
 
             logger.info(
@@ -732,3 +773,268 @@ class StakeholderDetector:
                 ],
             },
         )
+
+    @classmethod
+    def _extract_authentic_quotes_from_analysis(
+        cls, base_analysis
+    ) -> List[Dict[str, Any]]:
+        """
+        Extract authentic quotes from base analysis results for stakeholder evidence mapping
+        """
+        authentic_quotes = []
+
+        try:
+            # Extract from themes
+            if hasattr(base_analysis, "themes") and base_analysis.themes:
+                for theme in base_analysis.themes:
+                    if hasattr(theme, "statements") and theme.statements:
+                        for statement in theme.statements:
+                            authentic_quotes.append(
+                                {
+                                    "text": statement,
+                                    "source": "theme",
+                                    "category": (
+                                        theme.name
+                                        if hasattr(theme, "name")
+                                        else "general"
+                                    ),
+                                    "type": "statement",
+                                }
+                            )
+
+            # Extract from personas evidence
+            if hasattr(base_analysis, "personas") and base_analysis.personas:
+                for persona in base_analysis.personas:
+                    if hasattr(persona, "demographics") and persona.demographics:
+                        if (
+                            hasattr(persona.demographics, "evidence")
+                            and persona.demographics.evidence
+                        ):
+                            for evidence in persona.demographics.evidence:
+                                authentic_quotes.append(
+                                    {
+                                        "text": evidence,
+                                        "source": "persona_demographics",
+                                        "category": "demographics",
+                                        "type": "evidence",
+                                    }
+                                )
+
+                    if (
+                        hasattr(persona, "goals_and_motivations")
+                        and persona.goals_and_motivations
+                    ):
+                        if (
+                            hasattr(persona.goals_and_motivations, "evidence")
+                            and persona.goals_and_motivations.evidence
+                        ):
+                            for evidence in persona.goals_and_motivations.evidence:
+                                authentic_quotes.append(
+                                    {
+                                        "text": evidence,
+                                        "source": "persona_goals",
+                                        "category": "goals",
+                                        "type": "evidence",
+                                    }
+                                )
+
+                    if hasattr(persona, "pain_points") and persona.pain_points:
+                        if (
+                            hasattr(persona.pain_points, "evidence")
+                            and persona.pain_points.evidence
+                        ):
+                            for evidence in persona.pain_points.evidence:
+                                authentic_quotes.append(
+                                    {
+                                        "text": evidence,
+                                        "source": "persona_pain_points",
+                                        "category": "pain_points",
+                                        "type": "evidence",
+                                    }
+                                )
+
+                    if hasattr(persona, "key_quotes") and persona.key_quotes:
+                        if (
+                            hasattr(persona.key_quotes, "evidence")
+                            and persona.key_quotes.evidence
+                        ):
+                            for evidence in persona.key_quotes.evidence:
+                                authentic_quotes.append(
+                                    {
+                                        "text": evidence,
+                                        "source": "persona_quotes",
+                                        "category": "quotes",
+                                        "type": "quote",
+                                    }
+                                )
+
+            # Extract from patterns
+            if hasattr(base_analysis, "patterns") and base_analysis.patterns:
+                for pattern in base_analysis.patterns:
+                    if hasattr(pattern, "evidence") and pattern.evidence:
+                        for evidence in pattern.evidence:
+                            authentic_quotes.append(
+                                {
+                                    "text": evidence,
+                                    "source": "pattern",
+                                    "category": "behavioral_patterns",
+                                    "type": "evidence",
+                                }
+                            )
+
+            logger.info(
+                f"[STAKEHOLDER_PHASE2] Extracted {len(authentic_quotes)} authentic quotes from base analysis"
+            )
+            return authentic_quotes
+
+        except Exception as e:
+            logger.error(f"[STAKEHOLDER_PHASE2] Error extracting authentic quotes: {e}")
+            return []
+
+    @classmethod
+    def _map_authentic_evidence_to_stakeholder(
+        cls, stakeholder: Dict[str, Any], authentic_quotes: List[Dict[str, Any]]
+    ) -> Dict[str, List[str]]:
+        """
+        Map authentic quotes to stakeholder based on role, type, and insights
+        """
+        stakeholder_id = stakeholder.get("stakeholder_id", "")
+        role = stakeholder.get("demographic_info", {}).get("role", "")
+        stakeholder_type = stakeholder.get("stakeholder_type", "")
+        insights = stakeholder.get("individual_insights", {})
+
+        mapped_evidence = {
+            "demographics_evidence": [],
+            "goals_evidence": [],
+            "pain_points_evidence": [],
+            "quotes_evidence": [],
+        }
+
+        try:
+            # Map demographics evidence
+            for quote in authentic_quotes:
+                if quote["category"] == "demographics":
+                    if (
+                        stakeholder_id.lower().find("it") != -1
+                        or role.lower().find("it") != -1
+                    ) and (
+                        quote["text"].lower().find("system") != -1
+                        or quote["text"].lower().find("technology") != -1
+                        or quote["text"].lower().find("technical") != -1
+                    ):
+                        mapped_evidence["demographics_evidence"].append(quote["text"])
+                    elif (
+                        stakeholder_id.lower().find("legal") != -1
+                        or role.lower().find("legal") != -1
+                    ) and (
+                        quote["text"].lower().find("legal") != -1
+                        or quote["text"].lower().find("compliance") != -1
+                        or quote["text"].lower().find("document") != -1
+                    ):
+                        mapped_evidence["demographics_evidence"].append(quote["text"])
+                    elif (
+                        stakeholder_id.lower().find("operations") != -1
+                        or stakeholder_id.lower().find("department") != -1
+                        or role.lower().find("head") != -1
+                    ) and (
+                        quote["text"].lower().find("department") != -1
+                        or quote["text"].lower().find("team") != -1
+                        or quote["text"].lower().find("manage") != -1
+                    ):
+                        mapped_evidence["demographics_evidence"].append(quote["text"])
+                    elif (
+                        stakeholder_id.lower().find("managing") != -1
+                        or stakeholder_id.lower().find("principal") != -1
+                        or stakeholder_type == "decision_maker"
+                    ) and (
+                        quote["text"].lower().find("business") != -1
+                        or quote["text"].lower().find("strategic") != -1
+                        or quote["text"].lower().find("firm") != -1
+                    ):
+                        mapped_evidence["demographics_evidence"].append(quote["text"])
+
+            # Map goals evidence
+            for quote in authentic_quotes:
+                if quote["category"] == "goals":
+                    key_motivation = insights.get("key_motivation", "").lower()
+                    if "efficiency" in key_motivation and (
+                        "efficiency" in quote["text"].lower()
+                        or "productive" in quote["text"].lower()
+                    ):
+                        mapped_evidence["goals_evidence"].append(quote["text"])
+                    elif "strategic" in key_motivation and (
+                        "strategic" in quote["text"].lower()
+                        or "business" in quote["text"].lower()
+                    ):
+                        mapped_evidence["goals_evidence"].append(quote["text"])
+                    elif "balance" in key_motivation and (
+                        "balance" in quote["text"].lower()
+                        or "stress" in quote["text"].lower()
+                    ):
+                        mapped_evidence["goals_evidence"].append(quote["text"])
+
+            # Map pain points evidence
+            for quote in authentic_quotes:
+                if quote["category"] == "pain_points":
+                    primary_concern = insights.get("primary_concern", "").lower()
+                    if "manual" in primary_concern and (
+                        "manual" in quote["text"].lower()
+                        or "repetitive" in quote["text"].lower()
+                    ):
+                        mapped_evidence["pain_points_evidence"].append(quote["text"])
+                    elif "security" in primary_concern and (
+                        "security" in quote["text"].lower()
+                        or "compliance" in quote["text"].lower()
+                    ):
+                        mapped_evidence["pain_points_evidence"].append(quote["text"])
+                    elif "cost" in primary_concern and (
+                        "cost" in quote["text"].lower()
+                        or "resource" in quote["text"].lower()
+                    ):
+                        mapped_evidence["pain_points_evidence"].append(quote["text"])
+
+            # Map quotes evidence
+            for quote in authentic_quotes:
+                if (
+                    quote["type"] == "quote"
+                    or '"' in quote["text"]
+                    or "'" in quote["text"]
+                ):
+                    if stakeholder_id.lower().find("it") != -1 and (
+                        "system" in quote["text"].lower()
+                        or "technology" in quote["text"].lower()
+                    ):
+                        mapped_evidence["quotes_evidence"].append(quote["text"])
+                    elif stakeholder_id.lower().find("legal") != -1 and (
+                        "legal" in quote["text"].lower()
+                        or "compliance" in quote["text"].lower()
+                    ):
+                        mapped_evidence["quotes_evidence"].append(quote["text"])
+                    elif stakeholder_id.lower().find("operations") != -1 and (
+                        "team" in quote["text"].lower()
+                        or "department" in quote["text"].lower()
+                    ):
+                        mapped_evidence["quotes_evidence"].append(quote["text"])
+                    elif stakeholder_id.lower().find("managing") != -1 and (
+                        "business" in quote["text"].lower()
+                        or "strategic" in quote["text"].lower()
+                    ):
+                        mapped_evidence["quotes_evidence"].append(quote["text"])
+
+            # Fallback: use general quotes if no specific matches found
+            for category in mapped_evidence:
+                if len(mapped_evidence[category]) == 0:
+                    fallback_quotes = [
+                        q["text"]
+                        for q in authentic_quotes[:3]
+                        if q["category"] == category.replace("_evidence", "")
+                    ]
+                    if not fallback_quotes:
+                        fallback_quotes = [q["text"] for q in authentic_quotes[:3]]
+                    mapped_evidence[category] = fallback_quotes[:3]
+
+            return mapped_evidence
+
+        except Exception as e:
+            logger.error(f"[STAKEHOLDER_PHASE2] Error mapping authentic evidence: {e}")
+            return mapped_evidence

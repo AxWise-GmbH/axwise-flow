@@ -5,6 +5,7 @@ import { extname } from 'path';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 /**
  * Helper function to process CSS imports and inline them
@@ -20,7 +21,7 @@ async function processCSSImports(cssContent: string, cssFilePath: string, baseDi
       // Resolve the import path relative to the current CSS file
       const resolvedPath = join(baseDir, importPath);
       const importedContent = await readFile(resolvedPath, 'utf-8');
-      
+
       // Replace the @import statement with the actual content
       processedContent = processedContent.replace(match[0], importedContent);
     } catch (error) {
@@ -56,14 +57,14 @@ export async function GET(
 
     // Construct the full path to the file in the public/blog directory
     const fullPath = join(process.cwd(), 'public', 'blog', filePath);
-    
+
     // Read the file
     const fileContent = await readFile(fullPath);
-    
+
     // Determine content type based on file extension
     const ext = extname(filePath).toLowerCase();
     let contentType = 'text/plain';
-    
+
     const mimeTypes: { [key: string]: string } = {
       '.html': 'text/html',
       '.css': 'text/css',
@@ -80,15 +81,15 @@ export async function GET(
       '.ttf': 'font/ttf',
       '.pdf': 'application/pdf',
     };
-    
+
     contentType = mimeTypes[ext] || 'text/plain';
 
     // For HTML files, process relative URLs to point to the API route
     if (ext === '.html') {
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://axwise.de' 
+      const baseUrl = process.env.NODE_ENV === 'production'
+        ? 'https://axwise.de'
         : `http://localhost:${process.env.PORT || 3000}`;
-      
+
       let htmlContent = fileContent.toString('utf-8')
         // Update relative links to other blog articles
         .replace(/href="([^"]*\.html)"/g, `href="/blog/$1"`)
@@ -144,12 +145,12 @@ export async function GET(
 
   } catch (error) {
     console.error('Error serving blog file:', error);
-    
+
     // Check if it's a file not found error
     if ((error as any).code === 'ENOENT') {
       return new NextResponse('File not found', { status: 404 });
     }
-    
+
     return new NextResponse('Internal server error', { status: 500 });
   }
 }

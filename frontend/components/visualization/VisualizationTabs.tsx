@@ -19,6 +19,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { ThemeChart } from './ThemeChart'; // The canonical ThemeChart component
 import { PatternList } from './PatternList';
 import { PersonaList } from './PersonaList';
+import MultiStakeholderPersonasView from '../analysis/MultiStakeholderPersonasView';
 import { InsightList } from './InsightList';
 import { PriorityInsightsDisplay } from './PriorityInsightsDisplay';
 import { apiClient } from '@/lib/apiClient';
@@ -384,8 +385,16 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="personas" className="mt-6">
-                {analysis?.personas?.length ? (
-                  <PersonaList personas={analysis.personas} />
+                {analysis?.personas?.length || (isMultiStakeholder && analysis?.stakeholder_intelligence?.detected_stakeholders?.length) ? (
+                  // Use enhanced MultiStakeholderPersonasView if stakeholder intelligence is available
+                  isMultiStakeholder ? (
+                    <MultiStakeholderPersonasView
+                      personas={analysis.personas || []}
+                      stakeholderIntelligence={analysis?.stakeholder_intelligence}
+                    />
+                  ) : (
+                    <PersonaList personas={analysis.personas} />
+                  )
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No personas detected in this interview.

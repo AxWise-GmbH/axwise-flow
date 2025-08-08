@@ -196,21 +196,35 @@ def create_tables():
         # If migrations fail, fall back to creating tables directly
         logger.warning("Falling back to direct table creation")
 
-        # Import models here to avoid circular imports
-        # Import models directly from the main models.py file to avoid circular imports
-        import importlib.util
-        import os
-
-        # Get the path to the main models.py file
-        backend_dir = os.path.dirname(os.path.abspath(__file__))
-        models_file = os.path.join(backend_dir, "models.py")
-
-        if os.path.exists(models_file):
-            spec = importlib.util.spec_from_file_location(
-                "main_models_for_db", models_file
+        # Import models using centralized import mechanism to avoid registry conflicts
+        try:
+            from backend.models import (
+                User,
+                InterviewData,
+                AnalysisResult,
+                SimulationData,
             )
-            main_models = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(main_models)
+        except ImportError:
+            # Fallback: use dynamic import with the same unique module name
+            try:
+                # Avoid executing models.py directly via spec_from_file_location
+                # to prevent duplicate SQLAlchemy mapper registrations.
+                # Instead, import the centralized package which re-exports the models.
+                import importlib
+
+                backend_models = importlib.import_module("backend.models")
+                User = backend_models.User
+                InterviewData = backend_models.InterviewData
+                AnalysisResult = backend_models.AnalysisResult
+                SimulationData = backend_models.SimulationData
+            except Exception as e:
+                logger.warning(
+                    f"Could not import SQLAlchemy models for table creation via package: {e}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Could not import SQLAlchemy models for table creation: {e}"
+                )
 
         # Import research session models directly to avoid conflicts
         from backend.models.research_session import ResearchSession, ResearchExport
@@ -343,6 +357,68 @@ def create_tables():
         return True
     except Exception as e:
         logger.error(f"Error creating database tables: {str(e)}")
+        return False
+
+
+def verify_model_registry() -> bool:
+    """Lightweight check to detect duplicate SQLAlchemy model registrations.
+
+    Returns True if no issues detected; logs warnings and returns False otherwise.
+    """
+    try:
+        # Import expected models from the centralized package
+        from backend.models import User, InterviewData, AnalysisResult, SimulationData
+
+        issues = []
+
+        # 1) Verify models resolve to the expected module path
+        for cls in (User, InterviewData, AnalysisResult, SimulationData):
+            if cls is None:
+                issues.append(
+                    "One or more models could not be imported from backend.models"
+                )
+                continue
+            mod = getattr(cls, "__module__", "")
+            if mod != "backend.models":
+                issues.append(
+                    f"{cls.__name__}.__module__={mod} (expected 'backend.models')"
+                )
+
+        # 2) Check registry for duplicate mapped classes by (module, name)
+        try:
+            registry = getattr(Base, "registry", None)
+            class_registry = (
+                getattr(registry, "_class_registry", {}) if registry else {}
+            )
+            seen = {}
+            dups = []
+            for name, cls in class_registry.items():
+                # Filter out non-class placeholders
+                if not hasattr(cls, "__name__") or not hasattr(cls, "__module__"):
+                    continue
+                key = (cls.__module__, cls.__name__)
+                if key in seen and seen[key] is not cls:
+                    dups.append(key)
+                else:
+                    seen[key] = cls
+            if dups:
+                issues.append(f"Duplicate mapped classes detected: {dups}")
+        except Exception as e:
+            logger.debug(f"Could not introspect SQLAlchemy class registry: {e}")
+
+        if issues:
+            logger.warning(
+                "Model registry integrity check found potential issues:\n - "
+                + "\n - ".join(issues)
+            )
+            return False
+
+        logger.info(
+            "Model registry integrity check passed: no duplicate mappers detected"
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"Model registry integrity check failed to run: {e}")
         return False
 
 

@@ -18,54 +18,86 @@ from .research_session import (
 )
 
 # Re-export SQLAlchemy models from the original location for backward compatibility
-# Use the same direct import approach that works in the test
+# Use a centralized import mechanism to avoid SQLAlchemy registry conflicts
 
-try:
-    import importlib.util
-    import os
+# Global cache to ensure we only import models once
+_models_cache = None
 
-    # Get the path to the main models.py file (same approach as the working test)
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    models_file = os.path.join(backend_dir, "models.py")
 
-    if os.path.exists(models_file):
-        spec = importlib.util.spec_from_file_location(
-            "backend_models_init", models_file
-        )
-        backend_models = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(backend_models)
+def _get_sqlalchemy_models():
+    """Get SQLAlchemy models using a centralized import mechanism."""
+    global _models_cache
 
-        # Extract the models using the same approach that works
-        User = backend_models.User
-        InterviewData = backend_models.InterviewData
-        AnalysisResult = backend_models.AnalysisResult
-        Persona = backend_models.Persona
-        CachedPRD = backend_models.CachedPRD
-        SimulationData = backend_models.SimulationData
+    if _models_cache is not None:
+        return _models_cache
 
-    else:
-        # Fallback if models.py doesn't exist
-        User = None
-        InterviewData = None
-        AnalysisResult = None
-        Persona = None
-        CachedPRD = None
-        SimulationData = None
+    try:
+        import importlib.util
+        import os
 
-except Exception as e:
-    # Fallback for any import errors
-    import logging
+        # Get the path to the main models.py file
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        models_file = os.path.join(backend_dir, "models.py")
 
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Could not import SQLAlchemy models: {e}")
+        if os.path.exists(models_file):
+            # Use a stable module name to avoid multiple executions and registry conflicts
+            spec = importlib.util.spec_from_file_location(
+                "backend_sqlalchemy_models_centralized", models_file
+            )
+            backend_models = importlib.util.module_from_spec(spec)
+            # Only execute if not already loaded to prevent duplicate mappers
+            import sys as _sys
 
-    # Set to None to avoid import errors
-    User = None
-    InterviewData = None
-    AnalysisResult = None
-    Persona = None
-    CachedPRD = None
-    SimulationData = None
+            if "backend_sqlalchemy_models_centralized" not in _sys.modules:
+                spec.loader.exec_module(backend_models)
+                _sys.modules["backend_sqlalchemy_models_centralized"] = backend_models
+            else:
+                backend_models = _sys.modules["backend_sqlalchemy_models_centralized"]
+
+            _models_cache = {
+                "User": backend_models.User,
+                "InterviewData": backend_models.InterviewData,
+                "AnalysisResult": backend_models.AnalysisResult,
+                "Persona": getattr(backend_models, "Persona", None),
+                "CachedPRD": getattr(backend_models, "CachedPRD", None),
+                "SimulationData": getattr(backend_models, "SimulationData", None),
+            }
+        else:
+            _models_cache = {
+                "User": None,
+                "InterviewData": None,
+                "AnalysisResult": None,
+                "Persona": None,
+                "CachedPRD": None,
+                "SimulationData": None,
+            }
+
+    except Exception as e:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Could not import SQLAlchemy models: {e}")
+
+        _models_cache = {
+            "User": None,
+            "InterviewData": None,
+            "AnalysisResult": None,
+            "Persona": None,
+            "CachedPRD": None,
+            "SimulationData": None,
+        }
+
+    return _models_cache
+
+
+# Get the models
+_models = _get_sqlalchemy_models()
+User = _models["User"]
+InterviewData = _models["InterviewData"]
+AnalysisResult = _models["AnalysisResult"]
+Persona = _models["Persona"]
+CachedPRD = _models["CachedPRD"]
+SimulationData = _models["SimulationData"]
 
 
 __all__ = [

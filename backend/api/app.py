@@ -51,11 +51,13 @@ from backend.core.processing_pipeline import process_data
 from backend.services.llm import LLMServiceFactory
 from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
-from backend.models import User, InterviewData, AnalysisResult
 from infrastructure.config.settings import settings
 from backend.services.processing.persona_formation_service import (
     PersonaFormationService,
 )
+
+# Import SQLAlchemy models using centralized package to avoid registry conflicts
+from backend.models import User, InterviewData, AnalysisResult
 
 # Configure logging
 logging.basicConfig(
@@ -305,7 +307,12 @@ app.include_router(research_sessions_router)
 # Initialize database tables (optional for conversation routines)
 try:
     create_tables()
-    logger.info("✅ Database tables initialized successfully")
+    from backend.database import verify_model_registry
+
+    verify_model_registry()
+    logger.info(
+        "✅ Database tables initialized successfully and model registry verified"
+    )
 except Exception as e:
     logger.warning(f"⚠️ Database initialization failed: {e}")
     logger.info(

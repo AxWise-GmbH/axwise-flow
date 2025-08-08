@@ -21,6 +21,7 @@ from backend.database import Base
 class User(Base):
     __tablename__ = "users"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     user_id = Column(String, primary_key=True)  # From Clerk
     email = Column(String)
@@ -37,6 +38,7 @@ class User(Base):
 class InterviewData(Base):
     __tablename__ = "interview_data"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
@@ -69,6 +71,7 @@ class InterviewData(Base):
 class AnalysisResult(Base):
     __tablename__ = "analysis_results"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     result_id = Column(Integer, primary_key=True, autoincrement=True)
 
@@ -139,6 +142,7 @@ class AnalysisResult(Base):
 class Persona(Base):
     __tablename__ = "personas"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     persona_id = Column(Integer, primary_key=True, autoincrement=True)
     result_id = Column(Integer, ForeignKey("analysis_results.result_id"))
@@ -186,6 +190,7 @@ class CachedPRD(Base):
 
     __tablename__ = "cached_prds"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     id = Column(Integer, primary_key=True, index=True)
     result_id = Column(
@@ -214,6 +219,7 @@ class SimulationData(Base):
 
     __tablename__ = "simulation_data"
     __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     simulation_id = Column(String, unique=True, nullable=False, index=True)
