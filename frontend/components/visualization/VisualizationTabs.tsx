@@ -338,9 +338,10 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="themes" className="mt-6">
-                {analyzedThemes.length ? (
+                {analyzedThemes.length || analysis?.stakeholder_intelligence?.cross_stakeholder_patterns?.consensus_areas?.length ? (
                   <ThemeChart
                     themes={analyzedThemes}
+                    stakeholderIntelligence={analysis?.stakeholder_intelligence}
                   />
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -359,8 +360,11 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="patterns" className="mt-6">
-                {analysis?.patterns?.length ? (
-                  <PatternList patterns={analysis.patterns} />
+                {analysis?.patterns?.length || analysis?.stakeholder_intelligence?.cross_stakeholder_patterns?.conflict_zones?.length || analysis?.stakeholder_intelligence?.cross_stakeholder_patterns?.influence_networks?.length ? (
+                  <PatternList
+                    patterns={analysis.patterns || []}
+                    stakeholderIntelligence={analysis?.stakeholder_intelligence}
+                  />
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No patterns detected in this interview.

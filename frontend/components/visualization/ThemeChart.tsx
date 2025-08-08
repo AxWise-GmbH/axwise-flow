@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * ThemeChart Component
- *
- * ARCHITECTURAL NOTE: This is the canonical ThemeChart component used throughout the application.
- * It displays themes from both basic and enhanced analysis processes without distinguishing
- * between them. The backend always runs enhanced theme analysis, and this component
- * displays all themes regardless of their process type.
- *
- * This component focuses on displaying themes, their definitions, supporting statements,
- * and related metadata like reliability scores and codes when available.
- */
-
 import React, { useState } from 'react';
 import { AnalyzedTheme } from '@/types/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,19 +9,60 @@ import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-
 interface ThemeChartProps {
   themes: AnalyzedTheme[];
+  stakeholderIntelligence?: any;
 }
 
-export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
+export function ThemeChart({ themes, stakeholderIntelligence }: ThemeChartProps) {
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Extract consensus areas as theme-like items
+  const getConsensusThemes = (): AnalyzedTheme[] => {
+    if (!stakeholderIntelligence?.cross_stakeholder_patterns?.consensus_areas) {
+      return [];
+    }
+
+    return stakeholderIntelligence.cross_stakeholder_patterns.consensus_areas.map((area: any, index: number) => {
+      const consensusTheme: AnalyzedTheme = {
+        id: `consensus-${index}`,
+        name: area.topic,
+        frequency: area.agreement_level || 0.8,
+        sentiment: 0.5,
+        statements: area.shared_insights || [],
+        definition: `Multi-stakeholder consensus area: ${area.business_impact || 'Stakeholder agreement on this topic'}`,
+        keywords: area.shared_insights || [],
+        codes: ['Multi-Stakeholder', 'Consensus'],
+        reliability: 0.9,
+        process: 'enhanced' as const
+      };
+
+      // Add multi-stakeholder specific fields
+      (consensusTheme as any).is_enhanced = true;
+      (consensusTheme as any).source_stakeholders = area.participating_stakeholders || [];
+      (consensusTheme as any).stakeholder_distribution = area.participating_stakeholders?.reduce((acc: any, stakeholder: string) => {
+        acc[stakeholder] = 1.0;
+        return acc;
+      }, {}) || {};
+      (consensusTheme as any).multi_stakeholder_type = 'consensus';
+      (consensusTheme as any).agreement_level = area.agreement_level;
+      (consensusTheme as any).business_impact = area.business_impact;
+
+      return consensusTheme;
+    });
+  };
+
+  // Combine regular themes with consensus themes
+  const getAllThemes = (): AnalyzedTheme[] => {
+    const consensusThemes = getConsensusThemes();
+    return [...themes, ...consensusThemes];
+  };
 
   // Filter themes based on search term
   const getFilteredThemes = (): AnalyzedTheme[] => {
-    // Filter by search term if provided
+    const allThemes = getAllThemes();
     if (searchTerm.trim()) {
-      return themes.filter(theme => {
+      return allThemes.filter(theme => {
         const searchLower = searchTerm.toLowerCase();
         return (
           theme.name.toLowerCase().includes(searchLower) ||
@@ -43,45 +72,15 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
         );
       });
     }
-    return themes;
+    return allThemes;
   };
 
   // Sort themes by frequency for list view
   const sortedThemes = [...getFilteredThemes()].sort((a, b) => (b.frequency || 0) - (a.frequency || 0));
 
-  // Helper function to format frequency as percentage
-  const formatFrequency = (frequency: number): string => {
-    return `${Math.round(frequency * 100)}%`;
-  };
-
-  // Helper function to format reliability score as percentage
-  const formatReliability = (reliability: number | undefined): string => {
-    if (reliability === undefined || reliability === null) return 'N/A';
-    return `${Math.round(reliability * 100)}%`;
-  };
-
-  // Helper function to get reliability description
-  const getReliabilityDescription = (reliability: number | undefined): string => {
-    if (reliability === undefined || reliability === null) return 'Not available';
-    if (reliability >= 0.8) return 'High agreement between raters';
-    if (reliability >= 0.6) return 'Good agreement between raters';
-    if (reliability >= 0.4) return 'Moderate agreement between raters';
-    return 'Low agreement between raters';
-  };
-
-  // Helper function for rendering theme values with better handling of missing data
-  const renderThemeValue = (value: string | string[] | undefined | null, fallback: string = "Not available"): React.ReactNode => {
-    if (value === undefined || value === null) {
-      return <span className="text-muted-foreground text-sm italic">{fallback}</span>;
-    }
-    return <span className="text-sm">{value}</span>;
-  };
-
-
-
   return (
     <div className="space-y-6">
-      {/* Search and Filter Controls */}
+      {/* Search Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="relative w-full sm:w-auto">
           <Input
@@ -104,7 +103,7 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
         </div>
       </div>
 
-      {/* List View of Themes */}
+      {/* Theme List */}
       <Card>
         <CardHeader>
           <CardTitle>Identified Themes</CardTitle>
@@ -114,196 +113,123 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
         </CardHeader>
         <CardContent>
           {sortedThemes.length > 0 ? (
-            <Accordion type="multiple" className="w-full">
-              {sortedThemes.map((theme) => (
-                <AccordionItem key={`theme-${theme.id || theme.name}`} value={`theme-${theme.id || theme.name}`}>
-                  <AccordionTrigger className="hover:no-underline">
+            <Accordion type="single" collapsible className="w-full">
+              {sortedThemes.map((theme, index) => (
+                <AccordionItem key={theme.id || index} value={`theme-${index}`}>
+                  <AccordionTrigger className="text-left">
                     <div className="flex items-center justify-between w-full pr-4">
                       <span className="font-medium text-left flex items-center">
                         {theme.name}
                       </span>
                       <div className="flex items-center gap-2">
-                        {/* Multi-stakeholder indicator */}
-                        {(theme as any).is_enhanced && (theme as any).source_stakeholders?.length > 0 && (
+                        {/* Multi-stakeholder indicator - show for all themes with stakeholder context */}
+                        {(((theme as any).is_enhanced && (theme as any).source_stakeholders?.length > 0) ||
+                         (theme as any).stakeholder_context?.source_stakeholders?.length > 0) && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 cursor-help">
-                                  {(theme as any).source_stakeholders.length} Stakeholder{(theme as any).source_stakeholders.length !== 1 ? 's' : ''}
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs cursor-help ${
+                                    (theme as any).multi_stakeholder_type === 'consensus'
+                                      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300'
+                                      : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                                  }`}
+                                >
+                                  {(theme as any).multi_stakeholder_type === 'consensus' ? '🤝 ' : '👥 '}
+                                  {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length} Stakeholder{((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length !== 1 ? 's' : ''}
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="max-w-xs">
-                                  <h4 className="font-semibold text-sm">Multi-Stakeholder Theme</h4>
-                                  <p className="text-xs text-muted-foreground">This theme was identified across multiple stakeholder perspectives.</p>
-                                  <p className="text-xs text-muted-foreground mt-1">Stakeholders: {(theme as any).source_stakeholders.join(', ')}</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-
-                        {/* Consensus level indicator */}
-                        {(theme as any).consensus_level !== null && (theme as any).consensus_level !== undefined && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="outline" className={`text-xs cursor-help ${
-                                  (theme as any).consensus_level >= 0.7
-                                    ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
-                                    : (theme as any).consensus_level >= 0.4
-                                    ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'
-                                    : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
-                                }`}>
-                                  Consensus: {Math.round((theme as any).consensus_level * 100)}%
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs">
-                                  <h4 className="font-semibold text-sm">Stakeholder Consensus</h4>
+                                  <h4 className="font-semibold text-sm">
+                                    {(theme as any).multi_stakeholder_type === 'consensus' ? 'Consensus Area' : 'Multi-Stakeholder Theme'}
+                                  </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    {(theme as any).consensus_level >= 0.7
-                                      ? 'High agreement among stakeholders'
-                                      : (theme as any).consensus_level >= 0.4
-                                      ? 'Moderate agreement among stakeholders'
-                                      : 'Low agreement among stakeholders'
+                                    {(theme as any).multi_stakeholder_type === 'consensus'
+                                      ? 'Area of stakeholder agreement and shared understanding.'
+                                      : 'This theme was identified across multiple stakeholder perspectives.'
                                     }
                                   </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Stakeholders: {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).join(', ')}
+                                  </p>
+                                  {((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level) && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Consensus Level: {Math.round(((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level || 0) * 100)}%
+                                    </p>
+                                  )}
+                                  {((theme as any).business_impact || (theme as any).stakeholder_context?.business_impact) && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Impact: {(theme as any).business_impact || (theme as any).stakeholder_context?.business_impact}
+                                    </p>
+                                  )}
+                                  {(theme as any).stakeholder_context?.dominant_stakeholder && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Primary Champion: {(theme as any).stakeholder_context.dominant_stakeholder.replace(/_/g, ' ')}
+                                    </p>
+                                  )}
                                 </div>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         )}
-
-                        {theme.reliability !== undefined && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 cursor-help">
-                                  Reliability: {formatReliability(theme.reliability)}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs">
-                                  <h4 className="font-semibold text-sm">Reliability Score</h4>
-                                  <p className="text-xs text-muted-foreground">{getReliabilityDescription(theme.reliability)}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">This score represents the level of agreement between multiple AI raters when identifying this theme.</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 cursor-help">
-                                Frequency: {formatFrequency(theme.frequency || 0)}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-xs">
-                                <h4 className="font-semibold text-sm">Theme Frequency</h4>
-                                <p className="text-xs text-muted-foreground">This percentage represents how often this theme appears in the analyzed text relative to other themes.</p>
-                                <p className="text-xs text-muted-foreground mt-1">Higher percentages indicate themes that are more prominent in the discussion.</p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <Badge variant="secondary" className="text-xs">
+                          {Math.round((theme.frequency || 0) * 100)}%
+                        </Badge>
                       </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-medium">Definition:</h4>
-                        <div className="p-2 bg-muted dark:bg-muted/30 rounded-md">
-                          {renderThemeValue(theme.definition, "No definition available")}
-                        </div>
-                      </div>
-
-                      {/* Theme Codes */}
-                      {theme.codes && theme.codes.length > 0 && (
-                        <div className="mt-2">
-                          <h5 className="text-xs font-medium">Theme Codes:</h5>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {theme.codes.map((code, index) => (
-                              <Badge key={`code-${index}`} variant="secondary" className="text-xs">
-                                {code}
-                              </Badge>
-                            ))}
-                          </div>
+                    <div className="space-y-4 pt-2">
+                      {/* Theme Definition */}
+                      {theme.definition && (
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Definition</h4>
+                          <p className="text-sm text-muted-foreground">{theme.definition}</p>
                         </div>
                       )}
 
-                      {/* Stakeholder Distribution */}
-                      {(theme as any).is_enhanced && (theme as any).stakeholder_distribution && Object.keys((theme as any).stakeholder_distribution).length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Stakeholder Distribution:</h4>
+                      {/* Supporting Statements */}
+                      {theme.statements && theme.statements.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Supporting Statements</h4>
                           <div className="space-y-2">
-                            {Object.entries((theme as any).stakeholder_distribution).map(([stakeholder, weight]) => (
-                              <div key={stakeholder} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                                <span className="text-sm font-medium">{stakeholder}</span>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-blue-500 transition-all duration-300"
-                                      style={{ width: `${(weight as number) * 100}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs text-muted-foreground min-w-[3rem]">
-                                    {Math.round((weight as number) * 100)}%
-                                  </span>
-                                </div>
-                              </div>
+                            {theme.statements.slice(0, 3).map((statement, i) => (
+                              <blockquote key={i} className="border-l-4 border-primary pl-4 py-2 bg-muted/30 rounded-r-lg">
+                                <p className="text-sm italic">"{statement}"</p>
+                              </blockquote>
                             ))}
+                            {theme.statements.length > 3 && (
+                              <p className="text-xs text-muted-foreground">
+                                +{theme.statements.length - 3} more statements
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
 
                       {/* Keywords */}
                       {theme.keywords && theme.keywords.length > 0 && (
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-medium">Keywords:</h4>
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Keywords</h4>
                           <div className="flex flex-wrap gap-1">
-                            {theme.keywords.map((keyword, index) => (
-                              <Badge key={`keyword-${index}`} variant="secondary" className="text-xs">
+                            {theme.keywords.map((keyword, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
                                 {keyword}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
-
-                      {/* Supporting Statements */}
-                      <div>
-                        <span className="text-xs font-semibold uppercase text-muted-foreground bg-muted dark:bg-muted/30 px-2 py-1 rounded-sm inline-block mb-2">
-                          Supporting Statements
-                        </span>
-                        <div className="rounded-md border dark:border-slate-700 p-4">
-                          {theme.statements && theme.statements.length > 0 ? (
-                            <ul className="space-y-2 text-sm">
-                              {theme.statements.map((statement, i) => (
-                                <li key={`${theme.id || theme.name}-statement-${i}`} className="relative bg-muted/30 dark:bg-slate-800/50 p-3 rounded-md">
-                                  <div className="absolute top-0 left-0 h-full w-1 bg-primary/30 dark:bg-primary/40 rounded-l-md"></div>
-                                  <p className="italic text-muted-foreground text-sm">&quot;{statement}&quot;</p>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <div className="p-2 bg-muted/50 dark:bg-slate-800/50 rounded-md">
-                              {renderThemeValue(null, "No supporting statements available")}
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
           ) : (
-            <div className="text-center p-6">
-              <p className="text-muted-foreground">No themes found matching your search criteria.</p>
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? 'No themes match your search criteria.' : 'No themes identified in this analysis.'}
               {searchTerm && (
                 <Button variant="outline" className="mt-2" onClick={() => setSearchTerm('')}>
                   Clear Search
@@ -313,8 +239,6 @@ export function ThemeChart({ themes }: ThemeChartProps): JSX.Element {
           )}
         </CardContent>
       </Card>
-
-
     </div>
   );
 }

@@ -12,6 +12,7 @@ export interface PatternListProps {
   patterns: Pattern[];
   className?: string;
   onPatternClick?: (pattern: Pattern) => void;
+  stakeholderIntelligence?: any; // Add stakeholder intelligence data
 }
 
 // Pattern category descriptions
@@ -21,17 +22,75 @@ const PATTERN_CATEGORIES = {
   'Decision Process': 'How users make choices',
   'Workaround': 'Alternative approaches when standard methods fail',
   'Habit': 'Repeated behaviors users exhibit',
+  'Stakeholder Conflict': 'Areas of disagreement between different stakeholders',
+  'Influence Network': 'Patterns of influence and decision-making between stakeholders',
   'Uncategorized': 'Other behavioral patterns'
 };
 
-export function PatternList({ patterns, className }: PatternListProps) {
+export function PatternList({ patterns, className, stakeholderIntelligence }: PatternListProps) {
  // Removed unused onPatternClick
   const [searchTerm, setSearchTerm] = useState('');
   // const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
  // Unused state
 
+  // Extract conflict zones as pattern-like items
+  const getConflictPatterns = (): Pattern[] => {
+    if (!stakeholderIntelligence?.cross_stakeholder_patterns?.conflict_zones) {
+      return [];
+    }
+
+    return stakeholderIntelligence.cross_stakeholder_patterns.conflict_zones.map((conflict: any, index: number) => ({
+      id: `conflict-${index}`,
+      name: conflict.topic,
+      description: `Stakeholder Conflict: ${conflict.business_risk || 'Area of disagreement between stakeholders'}`,
+      frequency: conflict.conflict_severity === 'critical' ? 0.9 :
+                 conflict.conflict_severity === 'high' ? 0.7 :
+                 conflict.conflict_severity === 'medium' ? 0.5 : 0.3,
+      category: 'Stakeholder Conflict',
+      evidence: conflict.potential_resolutions || [],
+      sentiment: -0.3, // Negative sentiment for conflicts
+      // Multi-stakeholder specific fields
+      multi_stakeholder_type: 'conflict',
+      conflicting_stakeholders: conflict.conflicting_stakeholders || [],
+      conflict_severity: conflict.conflict_severity,
+      business_risk: conflict.business_risk,
+      potential_resolutions: conflict.potential_resolutions || []
+    }));
+  };
+
+  // Extract influence networks as pattern-like items
+  const getInfluencePatterns = (): Pattern[] => {
+    if (!stakeholderIntelligence?.cross_stakeholder_patterns?.influence_networks) {
+      return [];
+    }
+
+    return stakeholderIntelligence.cross_stakeholder_patterns.influence_networks.map((network: any, index: number) => ({
+      id: `influence-${index}`,
+      name: `${network.influencer} → ${network.influenced?.join(', ') || 'Others'}`,
+      description: `Influence Relationship: ${network.pathway || 'Stakeholder influence pattern'}`,
+      frequency: network.strength || 0.5,
+      category: 'Influence Network',
+      evidence: network.pathway ? [network.pathway] : [],
+      sentiment: 0.1, // Slightly positive for influence
+      // Multi-stakeholder specific fields
+      multi_stakeholder_type: 'influence',
+      influencer: network.influencer,
+      influenced: network.influenced || [],
+      influence_type: network.influence_type,
+      strength: network.strength,
+      pathway: network.pathway
+    }));
+  };
+
+  // Combine regular patterns with multi-stakeholder patterns
+  const getAllPatterns = (): Pattern[] => {
+    const conflictPatterns = getConflictPatterns();
+    const influencePatterns = getInfluencePatterns();
+    return [...patterns, ...conflictPatterns, ...influencePatterns];
+  };
+
   // Filter patterns based on search term
-  const filteredPatterns = patterns.filter(pattern =>
+  const filteredPatterns = getAllPatterns().filter(pattern =>
     (pattern.name && pattern.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (pattern.description && pattern.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -169,6 +228,42 @@ export function PatternList({ patterns, className }: PatternListProps) {
                                     {pattern.description}
                                   </p>
                                 </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Multi-stakeholder information */}
+                          {(pattern as any).multi_stakeholder_type && (
+                            <div className="mt-3 mb-3">
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {(pattern as any).multi_stakeholder_type === 'conflict' && (
+                                  <>
+                                    <Badge variant="destructive" className="text-xs">
+                                      ⚔️ Stakeholder Conflict
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {(pattern as any).conflict_severity} severity
+                                    </Badge>
+                                    {(pattern as any).conflicting_stakeholders?.map((stakeholder: string, idx: number) => (
+                                      <Badge key={idx} variant="outline" className="text-xs bg-red-50 text-red-700">
+                                        {stakeholder.replace(/_/g, ' ')}
+                                      </Badge>
+                                    ))}
+                                  </>
+                                )}
+                                {(pattern as any).multi_stakeholder_type === 'influence' && (
+                                  <>
+                                    <Badge variant="secondary" className="text-xs">
+                                      🔗 Influence Network
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {Math.round(((pattern as any).strength || 0) * 100)}% strength
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                      {(pattern as any).influence_type}
+                                    </Badge>
+                                  </>
+                                )}
                               </div>
                             </div>
                           )}
