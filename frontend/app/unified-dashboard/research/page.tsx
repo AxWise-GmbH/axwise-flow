@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 
 import { Upload, FileText, Users, Clock, Eye, Play, Loader2, Download } from 'lucide-react';
 import { createSimulation } from '@/lib/api/simulation';
+import { SimulationProgress } from '@/components/research/simulation/SimulationProgress';
 
 interface QuestionnaireSession {
   session_id: string;
@@ -42,6 +43,8 @@ export default function InterviewSimulationPage() {
   const [completedInterviews, setCompletedInterviews] = useState<any[]>([]);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
   const [autoProcessingSession, setAutoProcessingSession] = useState<string | null>(null);
+  const [showEnhancedProgress, setShowEnhancedProgress] = useState(false);
+  const [simulationConfig, setSimulationConfig] = useState<any>(null);
   const autoProcessingTriggered = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -332,7 +335,7 @@ export default function InterviewSimulationPage() {
   // Progress polling function
   const pollSimulationProgress = async (simulationId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/research/simulation-bridge/simulate/${simulationId}/progress`);
+      const response = await fetch(`/api/research/simulation-bridge/simulate/${simulationId}/progress`);
       if (response.ok) {
         const progress = await response.json();
         setSimulationProgress(progress);
@@ -340,7 +343,7 @@ export default function InterviewSimulationPage() {
         // Check if simulation is complete
         if (progress.progress_percentage >= 100) {
           // Get final results
-          const resultResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/research/simulation-bridge/completed/${simulationId}`);
+          const resultResponse = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
           if (resultResponse.ok) {
             const result = await resultResponse.json();
             setLastSimulationResult(result);
@@ -375,6 +378,7 @@ export default function InterviewSimulationPage() {
           setCurrentSimulationId(null);
           setIsProcessing(false);
           setAutoProcessingSession(null);
+          setShowEnhancedProgress(false);
           return false; // Stop polling
         }
         return true; // Continue polling
@@ -384,7 +388,7 @@ export default function InterviewSimulationPage() {
 
         // Try to fetch the completed simulation results
         try {
-          const resultResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/research/simulation-bridge/completed/${simulationId}`);
+          const resultResponse = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
           if (resultResponse.ok) {
             const result = await resultResponse.json();
             setLastSimulationResult(result);
@@ -417,6 +421,7 @@ export default function InterviewSimulationPage() {
         setIsProcessing(false);
         setCurrentSimulationId(null);
         setAutoProcessingSession(null);
+        setShowEnhancedProgress(false);
 
         // Redirect to simulation history to view results
         setTimeout(() => {
@@ -633,6 +638,9 @@ export default function InterviewSimulationPage() {
         temperature: 0.7
       };
 
+      // Store config for progress component
+      setSimulationConfig(config);
+
       const result = await createSimulation(questionnaireData, businessContext, config);
       console.log('✅ Simulation result:', result);
       console.log('✅ Simulation result type:', typeof result);
@@ -644,6 +652,7 @@ export default function InterviewSimulationPage() {
       // Check if we got a simulation_id for progress tracking
       if (result.simulation_id) {
         setCurrentSimulationId(result.simulation_id);
+        setShowEnhancedProgress(true); // Show enhanced progress component
         console.log('🔄 Starting progress polling for simulation:', result.simulation_id);
 
         // Start polling for progress
@@ -660,6 +669,7 @@ export default function InterviewSimulationPage() {
           if (currentSimulationId) {
             setError('Simulation timeout - please check simulation history');
             setIsProcessing(false);
+            setShowEnhancedProgress(false);
           }
         }, 600000);
       } else {
@@ -698,6 +708,7 @@ export default function InterviewSimulationPage() {
         loadCompletedSimulations();
         setIsProcessing(false);
         setAutoProcessingSession(null);
+        setShowEnhancedProgress(false);
 
         // Redirect to simulation history page to view results
         setSuccess('Simulation completed successfully! Redirecting to results page...');
@@ -743,6 +754,29 @@ export default function InterviewSimulationPage() {
   const handleViewQuestionnaire = (sessionId: string) => {
     // Navigate to research chat history and trigger questionnaire modal
     router.push(`/unified-dashboard/research-chat-history?session=${sessionId}&action=view-questionnaire`);
+  };
+
+  const handleCancelSimulation = () => {
+    setShowEnhancedProgress(false);
+    setCurrentSimulationId(null);
+    setIsProcessing(false);
+    setProcessingSessionId(null);
+    setAutoProcessingSession(null);
+    setSimulationProgress(null);
+  };
+
+  const handleSimulationComplete = (simulationId: string) => {
+    setShowEnhancedProgress(false);
+    setCurrentSimulationId(null);
+    setIsProcessing(false);
+    setProcessingSessionId(null);
+    setAutoProcessingSession(null);
+
+    // Redirect to simulation history page to view results
+    setSuccess('Simulation completed successfully! Redirecting to results page...');
+    setTimeout(() => {
+      router.push('/unified-dashboard/simulation-history');
+    }, 2000);
   };
 
 
@@ -844,6 +878,41 @@ A${i + 1}: ${response.response}
         <p className="text-muted-foreground">
           Upload your questionnaire file or select from generated questionnaires
         </p>
+
+        {/* Debug Controls */}
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800 mb-2">Debug Controls:</p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowEnhancedProgress(true);
+                setCurrentSimulationId('test-simulation-id');
+                setSimulationConfig({
+                  depth: "detailed",
+                  people_per_stakeholder: 5,
+                  response_style: "realistic",
+                  include_insights: false,
+                  temperature: 0.7
+                });
+              }}
+            >
+              Test Enhanced Progress Modal
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setShowEnhancedProgress(false);
+                setCurrentSimulationId(null);
+                setSimulationConfig(null);
+              }}
+            >
+              Hide Progress Modal
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto space-y-6">
@@ -914,8 +983,8 @@ A${i + 1}: ${response.response}
               </div>
             )}
 
-            {/* Progress Display */}
-            {simulationProgress && (
+            {/* Basic Progress Display (fallback when enhanced modal is not shown) */}
+            {simulationProgress && !showEnhancedProgress && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-blue-900">Simulation in Progress</h4>
@@ -1125,6 +1194,15 @@ A${i + 1}: ${response.response}
           </Card>
         )}
       </div>
+
+      {/* Enhanced Progress Modal */}
+      <SimulationProgress
+        isVisible={showEnhancedProgress}
+        simulationId={currentSimulationId || undefined}
+        onCancel={handleCancelSimulation}
+        onComplete={handleSimulationComplete}
+        simulationConfig={simulationConfig}
+      />
     </div>
   );
 }

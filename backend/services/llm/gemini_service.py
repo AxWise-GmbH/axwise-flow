@@ -346,12 +346,30 @@ class GeminiService:
                 # Create a new config with the response_mime_type included
                 config = types.GenerateContentConfig(**config_kwargs)
 
-            # Make the API call with the correct config parameter
+            # Make the API call with the correct config parameter and timeout protection
             logger.info(f"Making API call with config={config}")
-            response = await self.client.aio.models.generate_content(
-                model=model_name, contents=final_contents, config=config
+
+            # Add timeout protection for large requests
+            timeout_seconds = 600  # 10 minutes timeout for very large requests
+            if input_tokens > 50000:
+                logger.info(
+                    f"Large request detected ({input_tokens:.0f} tokens), using {timeout_seconds}s timeout"
+                )
+
+            response = await asyncio.wait_for(
+                self.client.aio.models.generate_content(
+                    model=model_name, contents=final_contents, config=config
+                ),
+                timeout=timeout_seconds,
             )
             return response
+        except asyncio.TimeoutError:
+            logger.error(
+                f"Gemini API call timed out after {timeout_seconds} seconds for model '{model_name}'"
+            )
+            raise LLMAPIError(
+                f"Gemini API call timed out after {timeout_seconds} seconds for model '{model_name}'"
+            )
         except Exception as e:
             logger.error(
                 f"Error calling client.aio.models.generate_content for model '{model_name}': {e}",

@@ -2,7 +2,8 @@
  * API client for the Simulation Bridge system.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use relative URLs to go through frontend API proxy routes (which handle authentication)
+const API_BASE_URL = "";
 
 export interface SimulationConfig {
   depth: "quick" | "detailed" | "comprehensive";
@@ -188,7 +189,7 @@ export async function createSimulation(
   console.log('🔄 Sending to backend:', requestData);
 
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/simulate`,
+    `/api/research/simulation-bridge/simulate`,
     {
       method: "POST",
       headers: {
@@ -235,7 +236,7 @@ export async function getSimulationProgress(
   simulationId: string
 ): Promise<SimulationProgress> {
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/simulate/${simulationId}/progress`,
+    `/api/research/simulation-bridge/simulate/${simulationId}/progress`,
     {
       method: "GET",
       headers: {
@@ -254,7 +255,7 @@ export async function getSimulationProgress(
 
 export async function cancelSimulation(simulationId: string): Promise<void> {
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/simulate/${simulationId}`,
+    `/api/research/simulation-bridge/simulate/${simulationId}`,
     {
       method: "DELETE",
       headers: {
@@ -274,7 +275,7 @@ export async function getDefaultConfig(): Promise<{
   available_options: Record<string, any>;
 }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/config/defaults`,
+    `/api/research/simulation-bridge/config/defaults`,
     {
       method: "GET",
       headers: {
@@ -296,7 +297,7 @@ export async function testPersonaGeneration(
   config?: Partial<SimulationConfig>
 ): Promise<{ success: boolean; personas: AIPersona[]; count: number }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/test-personas`,
+    `/api/research/simulation-bridge/test-personas`,
     {
       method: "POST",
       headers: {
@@ -325,7 +326,7 @@ export async function testInterviewSimulation(
   config?: Partial<SimulationConfig>
 ): Promise<{ success: boolean; interview: SimulatedInterview; response_count: number }> {
   const response = await fetch(
-    `${API_BASE_URL}/api/research/simulation-bridge/test-interview`,
+    `/api/research/simulation-bridge/test-interview`,
     {
       method: "POST",
       headers: {

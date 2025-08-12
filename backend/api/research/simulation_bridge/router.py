@@ -5,7 +5,7 @@ FastAPI router for the Simulation Bridge system.
 import logging
 import os
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
 
 from .models import (
@@ -21,7 +21,17 @@ from .models import (
 from .services.orchestrator import SimulationOrchestrator
 from .services.persona_generator import PersonaGenerator
 from .services.interview_simulator import InterviewSimulator
+from .services.conversational_analysis_agent import ConversationalAnalysisAgent
+from .services.file_processor import (
+    SimulationFileProcessor,
+    FileProcessingRequest,
+    FileProcessingResult,
+)
 from pydantic_ai.models.gemini import GeminiModel
+
+# Import authentication dependencies
+from backend.services.external.auth_middleware import get_current_user
+from backend.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +77,9 @@ async def debug_request(request: Request):
 
 @router.post("/simulate", response_model=SimulationResponse)
 async def create_simulation(
-    request: SimulationRequest, background_tasks: BackgroundTasks
+    request: SimulationRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
 ) -> SimulationResponse:
     """
     Create and run a complete interview simulation.
@@ -105,7 +117,7 @@ async def create_simulation(
 
         # Run simulation with database persistence
         response = await orchestrator.simulate_with_persistence(
-            request, user_id="anonymous"
+            request, user_id=user.user_id
         )
 
         if not response.success:
@@ -124,7 +136,7 @@ async def create_simulation(
 @router.post("/simulate-enhanced")
 async def simulate_interviews_enhanced(
     request: SimulationRequest,
-    user_id: str = "anonymous",  # In production, extract from auth token
+    user: User = Depends(get_current_user),
 ) -> SimulationResponse:
     """
     Enhanced simulation endpoint with database persistence and parallel processing.
@@ -155,7 +167,7 @@ async def simulate_interviews_enhanced(
             )
 
         # Use enhanced simulation with persistence and parallel processing
-        result = await orchestrator.simulate_with_persistence(request, user_id)
+        result = await orchestrator.simulate_with_persistence(request, user.user_id)
 
         logger.info(f"Enhanced simulation completed: {result.simulation_id}")
         return result
@@ -214,17 +226,62 @@ async def parse_questionnaire_endpoint(request: Dict[str, Any]) -> Dict[str, Any
 
 
 @router.get("/simulate/{simulation_id}/progress")
-async def get_simulation_progress(simulation_id: str) -> Dict[str, Any]:
+async def get_simulation_progress(
+    simulation_id: str, user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
     """
     Get the progress of a running simulation.
     """
     try:
+        # First verify the user owns this simulation
+        from backend.infrastructure.persistence.unit_of_work import UnitOfWork
+        from backend.infrastructure.persistence.simulation_repository import (
+            SimulationRepository,
+        )
+        from backend.database import SessionLocal
+
+        async with UnitOfWork(SessionLocal) as uow:
+            simulation_repo = SimulationRepository(uow.session)
+            db_simulation = await simulation_repo.get_by_simulation_id(simulation_id)
+
+            if not db_simulation:
+                raise HTTPException(status_code=404, detail="Simulation not found")
+
+            # Ensure user can only access their own simulations (bypass in development)
+            from backend.services.external.auth_middleware import (
+                ENABLE_CLERK_VALIDATION,
+            )
+
+            if ENABLE_CLERK_VALIDATION and db_simulation.user_id != user.user_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: You can only access your own simulations",
+                )
+            elif not ENABLE_CLERK_VALIDATION:
+                logger.info(
+                    f"Development mode: Bypassing ownership check for simulation {simulation_id}"
+                )
+
+        # Get simulation progress with debug logging
+        logger.info(f"🔍 Checking progress for simulation: {simulation_id}")
+        logger.info(
+            f"📊 Active simulations count: {len(orchestrator.active_simulations)}"
+        )
+        logger.info(
+            f"🔑 Active simulation IDs: {list(orchestrator.active_simulations.keys())}"
+        )
+
         progress = orchestrator.get_simulation_progress(simulation_id)
 
         if not progress:
+            logger.warning(f"❌ Progress not found for simulation: {simulation_id}")
             raise HTTPException(
                 status_code=404, detail="Simulation not found or completed"
             )
+
+        logger.info(
+            f"✅ Found progress for simulation: {simulation_id} - {progress.progress_percentage}%"
+        )
 
         return {
             "simulation_id": progress.simulation_id,
@@ -327,7 +384,9 @@ async def list_completed_simulations() -> Dict[str, Any]:
 
 
 @router.get("/completed/{simulation_id}")
-async def get_completed_simulation(simulation_id: str) -> SimulationResponse:
+async def get_completed_simulation(
+    simulation_id: str, user: User = Depends(get_current_user)
+) -> SimulationResponse:
     """
     Get a completed simulation result by ID from memory or database.
     """
@@ -353,6 +412,21 @@ async def get_completed_simulation(simulation_id: str) -> SimulationResponse:
             if not db_simulation or db_simulation.status != "completed":
                 raise HTTPException(
                     status_code=404, detail="Completed simulation not found"
+                )
+
+            # Ensure user can only access their own simulations (bypass in development)
+            from backend.services.external.auth_middleware import (
+                ENABLE_CLERK_VALIDATION,
+            )
+
+            if ENABLE_CLERK_VALIDATION and db_simulation.user_id != user.user_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied: You can only access your own simulations",
+                )
+            elif not ENABLE_CLERK_VALIDATION:
+                logger.info(
+                    f"Development mode: Bypassing ownership check for completed simulation {simulation_id}"
                 )
 
             # Convert database record to SimulationResponse
@@ -650,3 +724,248 @@ async def get_default_config() -> Dict[str, Any]:
             "temperature": {"min": 0.0, "max": 1.0, "default": 0.7},
         },
     }
+
+
+# Initialize conversational analysis components
+def get_gemini_model():
+    """Get configured Gemini model for conversational analysis"""
+    return GeminiModel(
+        model="gemini-2.0-flash-exp", api_key=os.getenv("GEMINI_API_KEY")
+    )
+
+
+def get_file_processor():
+    """Get configured file processor instance"""
+    return SimulationFileProcessor(get_gemini_model())
+
+
+@router.post("/analyze-conversational/{simulation_id}")
+async def analyze_simulation_conversational(
+    simulation_id: str,
+    analysis_options: Optional[Dict[str, Any]] = None,
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Analyze simulation results using conversational routine approach.
+    This is the new conversational analysis endpoint that replaces complex orchestration
+    with conversational workflows for improved performance and maintainability.
+    """
+    try:
+        logger.info(f"Starting conversational analysis for simulation {simulation_id}")
+
+        # Get simulation results first
+        simulation_response = await get_completed_simulation(simulation_id)
+        if not simulation_response:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Simulation {simulation_id} not found or not completed",
+            )
+
+        # Extract simulation text data
+        simulation_text = ""
+        if (
+            hasattr(simulation_response, "interview_results")
+            and simulation_response.interview_results
+        ):
+            # Combine all interview results into single text
+            for interview in simulation_response.interview_results:
+                simulation_text += f"\n\n--- Interview with {interview.get('persona_name', 'Unknown')} ---\n"
+                simulation_text += interview.get("dialogue", "")
+
+        if not simulation_text.strip():
+            raise HTTPException(
+                status_code=400, detail="No interview data found in simulation results"
+            )
+
+        # Process through conversational analysis
+        file_processor = get_file_processor()
+
+        processing_result = await file_processor.process_simulation_text_direct(
+            simulation_text=simulation_text,
+            simulation_id=simulation_id,
+            user_id=user.user_id,
+            file_name=f"simulation_{simulation_id}_analysis.txt",
+            save_to_database=True,
+        )
+
+        if not processing_result.success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Conversational analysis failed: {processing_result.error_message}",
+            )
+
+        logger.info(
+            f"Conversational analysis completed for simulation {simulation_id} in {processing_result.processing_time_seconds:.2f} seconds"
+        )
+
+        return {
+            "success": True,
+            "message": "Conversational analysis completed successfully",
+            "analysis_id": processing_result.analysis_id,
+            "simulation_id": simulation_id,
+            "processing_time_seconds": processing_result.processing_time_seconds,
+            "file_size_bytes": processing_result.file_size_bytes,
+            "database_saved": processing_result.database_saved,
+            "analysis_result": (
+                processing_result.analysis_result.dict()
+                if processing_result.analysis_result
+                else None
+            ),
+            "performance_metrics": {
+                "target_time_met": processing_result.processing_time_seconds
+                <= 420,  # 7 minutes
+                "processing_approach": "conversational_routine",
+                "efficiency_score": (
+                    min(420 / processing_result.processing_time_seconds, 1.0)
+                    if processing_result.processing_time_seconds > 0
+                    else 1.0
+                ),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Conversational analysis failed for simulation {simulation_id}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Conversational analysis failed: {str(e)}"
+        )
+
+
+@router.post("/analyze-file-conversational")
+async def analyze_file_conversational(
+    file_path: str,
+    simulation_id: Optional[str] = None,
+    analysis_options: Optional[Dict[str, Any]] = None,
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Analyze a simulation text file using conversational routine approach.
+    Processes large text files (up to 1MB) through streaming analysis.
+    """
+    try:
+        logger.info(f"Starting conversational file analysis for {file_path}")
+
+        # Create processing request
+        request = FileProcessingRequest(
+            file_path=file_path,
+            simulation_id=simulation_id,
+            user_id=user.user_id,
+            analysis_options=analysis_options or {},
+            save_to_database=True,
+        )
+
+        # Process file through conversational analysis
+        file_processor = get_file_processor()
+        processing_result = await file_processor.process_simulation_file(request)
+
+        if not processing_result.success:
+            raise HTTPException(
+                status_code=500,
+                detail=f"File analysis failed: {processing_result.error_message}",
+            )
+
+        logger.info(
+            f"File analysis completed for {file_path} in {processing_result.processing_time_seconds:.2f} seconds"
+        )
+
+        return {
+            "success": True,
+            "message": "File analysis completed successfully",
+            "analysis_id": processing_result.analysis_id,
+            "simulation_id": (
+                processing_result.analysis_result.id
+                if processing_result.analysis_result
+                else None
+            ),
+            "processing_time_seconds": processing_result.processing_time_seconds,
+            "file_size_bytes": processing_result.file_size_bytes,
+            "database_saved": processing_result.database_saved,
+            "analysis_result": (
+                processing_result.analysis_result.dict()
+                if processing_result.analysis_result
+                else None
+            ),
+            "performance_metrics": {
+                "target_time_met": processing_result.processing_time_seconds
+                <= 420,  # 7 minutes
+                "processing_approach": "conversational_routine_file",
+                "efficiency_score": (
+                    min(420 / processing_result.processing_time_seconds, 1.0)
+                    if processing_result.processing_time_seconds > 0
+                    else 1.0
+                ),
+                "file_size_mb": processing_result.file_size_bytes / (1024 * 1024),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"File analysis failed for {file_path}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File analysis failed: {str(e)}")
+
+
+@router.get("/analysis-history/{user_id}")
+async def get_analysis_history(
+    user_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Get analysis history for a user with pagination.
+    """
+    try:
+        # Verify user can access this data
+        if user.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: Can only view your own analysis history",
+            )
+
+        file_processor = get_file_processor()
+        analyses = await file_processor.list_user_analyses(user_id, limit, offset)
+
+        return {
+            "success": True,
+            "analyses": analyses,
+            "pagination": {"limit": limit, "offset": offset, "count": len(analyses)},
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get analysis history for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get analysis history: {str(e)}"
+        )
+
+
+@router.get("/analysis/{analysis_id}")
+async def get_analysis_result(
+    analysis_id: str, user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Get specific analysis result by ID.
+    """
+    try:
+        file_processor = get_file_processor()
+        analysis_result = await file_processor.get_analysis_from_database(
+            analysis_id, user.user_id
+        )
+
+        if not analysis_result:
+            raise HTTPException(
+                status_code=404, detail=f"Analysis {analysis_id} not found"
+            )
+
+        return {"success": True, "analysis_result": analysis_result.dict()}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get analysis {analysis_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get analysis: {str(e)}")

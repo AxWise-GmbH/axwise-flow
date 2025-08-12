@@ -11,6 +11,7 @@ from sqlalchemy import text
 import logging
 import os
 import sys
+import json
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 import traceback
@@ -334,7 +335,145 @@ async def test_stakeholder_detection(
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
-@router.post("/rerun-stakeholder-analysis/{result_id}")
+@router.post("/debug/regenerate-personas/{result_id}")
+async def regenerate_personas(
+    result_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Regenerate personas for existing analysis result."""
+    try:
+        # Get the analysis result
+        analysis_result = (
+            db.query(AnalysisResult)
+            .filter(
+                AnalysisResult.result_id == result_id,
+                AnalysisResult.data_id.in_(
+                    db.query(InterviewData.id).filter(
+                        InterviewData.user_id == current_user.user_id
+                    )
+                ),
+            )
+            .first()
+        )
+
+        if not analysis_result:
+            raise HTTPException(status_code=404, detail="Analysis result not found")
+
+        # Get the original interview data
+        interview_data = (
+            db.query(InterviewData)
+            .filter(InterviewData.id == analysis_result.data_id)
+            .first()
+        )
+
+        if not interview_data:
+            raise HTTPException(status_code=404, detail="Interview data not found")
+
+        # Get the raw text for persona regeneration
+        raw_text = interview_data.original_data
+
+        # Initialize persona formation service
+        from backend.services.llm import LLMServiceFactory
+        from backend.services.processing.persona_formation_service import (
+            PersonaFormationService,
+        )
+        from backend.config import MinimalConfig
+
+        llm_service = LLMServiceFactory.create("enhanced_gemini")
+        config = MinimalConfig()
+        persona_service = PersonaFormationService(config, llm_service)
+
+        # Regenerate personas
+        logger.info(f"Regenerating personas for analysis {result_id}")
+        personas_list = await persona_service.generate_persona_from_text(
+            text=raw_text, context={"industry": "general"}
+        )
+
+        # Update the analysis results with new personas
+        if analysis_result.results:
+            results = (
+                analysis_result.results
+                if isinstance(analysis_result.results, dict)
+                else json.loads(analysis_result.results)
+            )
+        else:
+            results = {}
+
+        results["personas"] = personas_list
+        analysis_result.results = results
+
+        # Delete old personas from database
+        db.query(Persona).filter(Persona.result_id == result_id).delete()
+
+        # Save new personas to database
+        for persona_data in personas_list:
+            persona = Persona(
+                result_id=result_id,
+                name=persona_data.get("name", "Unknown"),
+                description=persona_data.get("description", ""),
+                archetype=(
+                    persona_data.get("archetype", {}).get("value", "")
+                    if isinstance(persona_data.get("archetype"), dict)
+                    else str(persona_data.get("archetype", ""))
+                ),
+                role_context=(
+                    persona_data.get("role_context", {}).get("value", "")
+                    if isinstance(persona_data.get("role_context"), dict)
+                    else str(persona_data.get("role_context", ""))
+                ),
+                pain_points=json.dumps(persona_data.get("pain_points", {})),
+                goals_and_motivations=json.dumps(
+                    persona_data.get("goals_and_motivations", {})
+                ),
+                key_quotes=json.dumps(persona_data.get("key_quotes", {})),
+                demographics=json.dumps(persona_data.get("demographics", {})),
+                skills_and_expertise=json.dumps(
+                    persona_data.get("skills_and_expertise", {})
+                ),
+                workflow_and_environment=json.dumps(
+                    persona_data.get("workflow_and_environment", {})
+                ),
+                challenges_and_frustrations=json.dumps(
+                    persona_data.get("challenges_and_frustrations", {})
+                ),
+                needs_and_desires=json.dumps(persona_data.get("needs_and_desires", {})),
+                technology_and_tools=json.dumps(
+                    persona_data.get("technology_and_tools", {})
+                ),
+                attitude_towards_research=json.dumps(
+                    persona_data.get("attitude_towards_research", {})
+                ),
+                attitude_towards_ai=json.dumps(
+                    persona_data.get("attitude_towards_ai", {})
+                ),
+                metadata=json.dumps(persona_data.get("metadata", {})),
+                overall_confidence=persona_data.get("overall_confidence", 0.8),
+                supporting_evidence_summary=persona_data.get(
+                    "supporting_evidence_summary", ""
+                ),
+            )
+            db.add(persona)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Personas regenerated successfully",
+            "analysis_id": result_id,
+            "personas_count": len(personas_list),
+            "personas": [p.get("name", "Unknown") for p in personas_list],
+        }
+
+    except Exception as e:
+        logger.error(f"Error regenerating personas: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error regenerating personas: {str(e)}"
+        )
+
+
+@router.post("/debug/rerun-stakeholder-analysis/{result_id}")
 async def rerun_stakeholder_analysis(
     result_id: int,
     db: Session = Depends(get_db),
@@ -376,11 +515,77 @@ async def rerun_stakeholder_analysis(
         from backend.schemas import DetailedAnalysisResult
         from datetime import datetime, timezone
 
-        # Create stakeholder analysis service
-        stakeholder_service = StakeholderAnalysisService()
+        # Create stakeholder analysis service with proper LLM service
+        from backend.services.llm import LLMServiceFactory
+
+        try:
+            # Create LLM service for stakeholder analysis
+            llm_service = LLMServiceFactory.create("gemini")
+            stakeholder_service = StakeholderAnalysisService(llm_service)
+            logger.info(
+                "[DEBUG] Successfully created StakeholderAnalysisService with LLM service"
+            )
+        except Exception as e:
+            logger.error(f"[DEBUG] Failed to create LLM service: {e}")
+            # Fallback to service without LLM (will skip persona generation)
+            stakeholder_service = StakeholderAnalysisService()
+            logger.warning(
+                "[DEBUG] Using StakeholderAnalysisService without LLM service - persona generation will be skipped"
+            )
 
         # Create base analysis from existing results
+        # Parse JSON string to dictionary if needed
         existing_results = analysis_result.results or {}
+        logger.info(f"[DEBUG] existing_results type: {type(existing_results)}")
+        logger.info(f"[DEBUG] existing_results value: {existing_results}")
+
+        if isinstance(existing_results, str):
+            try:
+                existing_results = json.loads(existing_results)
+                logger.info(
+                    f"[DEBUG] Successfully parsed JSON, new type: {type(existing_results)}"
+                )
+            except json.JSONDecodeError:
+                logger.warning(
+                    f"Failed to parse existing results as JSON: {existing_results}"
+                )
+                existing_results = {}
+
+        # Use database personas instead of JSON personas for stakeholder analysis
+        # Convert database personas to dictionaries for the DetailedAnalysisResult schema
+        from backend.services.processing.persona_builder import persona_to_dict
+
+        database_personas = analysis_result.personas if analysis_result.personas else []
+        converted_personas = []
+
+        if database_personas:
+            logger.info(
+                f"[DEBUG] Converting {len(database_personas)} database personas to dictionaries"
+            )
+            for i, persona in enumerate(database_personas):
+                try:
+                    persona_dict = persona_to_dict(persona)
+                    converted_personas.append(persona_dict)
+                    logger.info(
+                        f"[DEBUG] Successfully converted persona {i+1}: {persona_dict.get('name', 'Unknown')}"
+                    )
+                except Exception as conversion_error:
+                    logger.error(
+                        f"[DEBUG] Error converting persona {i+1}: {conversion_error}"
+                    )
+                    # Use a fallback persona dict
+                    converted_personas.append(
+                        {
+                            "name": getattr(persona, "name", f"Persona_{i+1}"),
+                            "description": getattr(persona, "description", ""),
+                            "confidence": getattr(persona, "confidence", 0.7),
+                            "evidence": getattr(persona, "evidence", []),
+                        }
+                    )
+
+        logger.info(
+            f"[DEBUG] Final converted personas count: {len(converted_personas)}"
+        )
 
         base_analysis = DetailedAnalysisResult(
             id=str(result_id),
@@ -394,9 +599,16 @@ async def rerun_stakeholder_analysis(
                 {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
             ),
             sentiment=existing_results.get("sentiment", []),
-            personas=existing_results.get("personas", []),
+            personas=converted_personas,  # Use converted database personas
             insights=existing_results.get("insights", []),
         )
+
+        # Parse the original data (it's stored as JSON string)
+        try:
+            parsed_data = json.loads(interview_data.original_data)
+        except json.JSONDecodeError:
+            # If it's not valid JSON, treat it as raw text
+            parsed_data = {"free_text": interview_data.original_data}
 
         # Create mock file for analysis
         class MockFile:
@@ -404,12 +616,22 @@ async def rerun_stakeholder_analysis(
                 self.content = content
 
             def read(self):
+                # The stakeholder analysis expects string content, not dict
+                if isinstance(self.content, dict):
+                    # Extract the text content from the dictionary
+                    if "free_text" in self.content:
+                        return self.content["free_text"]
+                    elif "content" in self.content:
+                        return str(self.content["content"])
+                    else:
+                        # Convert the entire dict to string as fallback
+                        return json.dumps(self.content, indent=2)
                 return str(self.content)
 
         # Run stakeholder enhancement
         enhanced_analysis = (
             await stakeholder_service.enhance_analysis_with_stakeholder_intelligence(
-                [MockFile(interview_data.original_data)], base_analysis
+                [MockFile(parsed_data)], base_analysis
             )
         )
 
@@ -488,5 +710,60 @@ async def rerun_stakeholder_analysis(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+
         logger.error(f"Error testing stakeholder detection: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.get("/debug/analysis-results/{result_id}")
+async def get_analysis_results(
+    result_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get analysis results for debugging purposes."""
+    try:
+        # Get the analysis result
+        analysis_result = (
+            db.query(AnalysisResult)
+            .filter(
+                AnalysisResult.result_id == result_id,
+                AnalysisResult.data_id.in_(
+                    db.query(InterviewData.id).filter(
+                        InterviewData.user_id == current_user.user_id
+                    )
+                ),
+            )
+            .first()
+        )
+
+        if not analysis_result:
+            raise HTTPException(status_code=404, detail="Analysis result not found")
+
+        # Parse results if it's a JSON string
+        results = analysis_result.results or {}
+        if isinstance(results, str):
+            try:
+                results = json.loads(results)
+            except json.JSONDecodeError:
+                results = {"error": "Invalid JSON in results"}
+
+        return {
+            "status": "success",
+            "result_id": result_id,
+            "analysis_date": (
+                analysis_result.analysis_date.isoformat()
+                if analysis_result.analysis_date
+                else None
+            ),
+            "status_field": analysis_result.status,
+            "results": results,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving analysis results: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

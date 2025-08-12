@@ -223,6 +223,14 @@ class SimulationProgress(BaseModel):
     def completed_personas(self) -> int:
         return self.completed_people
 
+    @completed_personas.setter
+    def completed_personas(self, value: int):
+        self.completed_people = value
+
     @property
     def total_personas(self) -> int:
         return self.total_people
+
+    @total_personas.setter
+    def total_personas(self, value: int):
+        self.total_people = value

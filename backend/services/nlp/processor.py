@@ -100,7 +100,7 @@ class NLPProcessor:
         # If no explicit Q/A format, try to identify question-answer patterns
         # Common patterns: questions end with ? and often start with interrogative words
         question_pattern = re.compile(
-            r"(?:^|\n)(?:(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)(.*?)(?=(?:^|\n)(?:(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)|$)",
+            r"(?:^|\n)((What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)(.*?)(?=(?:^|\n)(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?|$)",
             re.DOTALL | re.IGNORECASE,
         )
         qa_matches = question_pattern.findall(text)
@@ -109,12 +109,23 @@ class NLPProcessor:
             logger.info(
                 f"Extracted {len(qa_matches)} implicit Q/A pairs using question patterns"
             )
+            logger.debug(f"🔍 qa_matches sample: {qa_matches[:2]}")  # Debug logging
             qa_pairs = []
-            for i, match in enumerate(qa_matches):
-                if i > 0:  # First match is the answer to the previous question
-                    question = qa_matches[i - 1][0].strip()
-                    answer = match.strip()
+
+            # Fix: The regex pattern captures (full_question, question_start, answer_content)
+            # qa_matches contains tuples of (full_question, question_start, answer_content)
+            for full_question, question_start, answer_content in qa_matches:
+                question = full_question.strip()
+                answer = answer_content.strip()
+                if question and answer:
                     qa_pairs.append({"question": question, "answer": answer})
+                    logger.debug(
+                        f"✅ Extracted Q&A: {question[:50]}... -> {answer[:50]}..."
+                    )
+
+            logger.info(
+                f"🎯 Successfully created {len(qa_pairs)} Q/A pairs from implicit patterns"
+            )
             return qa_pairs
 
         # If still no patterns found, split by paragraphs and use alternating Q/A assignment
@@ -145,6 +156,39 @@ class NLPProcessor:
             if qa_pairs:
                 logger.info(
                     f"Created {len(qa_pairs)} Q/A pairs using paragraph alternation"
+                )
+                return qa_pairs
+
+        # Check for enhanced simulation format with interview dialogue
+        if (
+            "INTERVIEW DIALOGUE" in text
+            and "Researcher:" in text
+            and "Interviewee:" in text
+        ):
+            logger.info("Detected enhanced simulation interview format")
+            qa_pairs = []
+
+            # Extract interview dialogue sections
+            dialogue_pattern = re.compile(
+                r"\[[\d:]+\]\s*Researcher:\s*(.*?)\n\n\[[\d:]+\]\s*Interviewee:\s*(.*?)(?=\n\n\[[\d:]+\]\s*Researcher:|\n\n=|$)",
+                re.DOTALL,
+            )
+            dialogue_matches = dialogue_pattern.findall(text)
+
+            for question, answer in dialogue_matches:
+                question = question.strip()
+                answer = answer.strip()
+                # Remove any "💡 Key Insights:" sections from answers
+                answer = re.sub(
+                    r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL
+                )
+
+                if question and answer:
+                    qa_pairs.append({"question": question, "answer": answer})
+
+            if qa_pairs:
+                logger.info(
+                    f"🎯 Extracted {len(qa_pairs)} Q/A pairs from enhanced simulation format"
                 )
                 return qa_pairs
 
@@ -203,11 +247,25 @@ class NLPProcessor:
                     )
 
             # Detect and handle free-text format
-            if isinstance(data, str) or (
-                isinstance(data, dict) and "free_text" in data
+            free_text_processed = False
+            if (
+                isinstance(data, str)
+                or (isinstance(data, dict) and "free_text" in data)
+                or (
+                    isinstance(data, list)
+                    and len(data) == 1
+                    and isinstance(data[0], dict)
+                    and "free_text" in data[0]
+                )
             ):
                 logger.info("Detected free-text format input")
-                raw_text = data if isinstance(data, str) else data.get("free_text", "")
+                if isinstance(data, str):
+                    raw_text = data
+                elif isinstance(data, dict):
+                    raw_text = data.get("free_text", "")
+                else:  # List with single dict containing free_text
+                    raw_text = data[0].get("free_text", "")
+                    logger.info("Extracted free_text from list format")
 
                 if not raw_text or not isinstance(raw_text, str):
                     logger.error(f"Invalid or empty free text input: {raw_text}")
@@ -227,8 +285,10 @@ class NLPProcessor:
                         # Store answer-only version for theme analysis
                         answer_texts.append(answer)
 
+                free_text_processed = True
+
             # Handle existing JSON data formats
-            elif isinstance(data, list):
+            elif isinstance(data, list) and not free_text_processed:
                 # Handle Excel format (list of objects with persona and respondents)
                 logger.info("Processing list format data")
                 for item in data:
@@ -275,8 +335,33 @@ class NLPProcessor:
                             )
                             answer_texts.append(item["text"])
             elif isinstance(data, dict):
+                # Handle enhanced simulation format (new format from simulation bridge)
+                if "interviews" in data and "metadata" in data:
+                    logger.info("✅ Processing enhanced simulation format data")
+                    interview_count = 0
+                    response_count = 0
+                    for interview in data["interviews"]:
+                        interview_count += 1
+                        if "responses" in interview:
+                            for response in interview["responses"]:
+                                response_count += 1
+                                question = response.get("question", "")
+                                # Handle both "answer" and "response" fields
+                                answer = response.get("answer", "") or response.get(
+                                    "response", ""
+                                )
+                                if question and answer:
+                                    combined_text = f"Q: {question}\nA: {answer}"
+                                    texts.append(combined_text)
+                                    answer_texts.append(answer)
+                                    logger.debug(
+                                        f"Enhanced format Q&A: {question[:50]}... -> {answer[:50]}..."
+                                    )
+                    logger.info(
+                        f"🎯 Enhanced format: Processed {interview_count} interviews, {response_count} responses, extracted {len(texts)} text segments"
+                    )
                 # Handle Excel format with persona and respondents
-                if (
+                elif (
                     "persona" in data
                     and "respondents" in data
                     and isinstance(data["respondents"], list)
@@ -303,13 +388,19 @@ class NLPProcessor:
                             for response in interview["responses"]:
                                 # Combine question and answer for better context
                                 question = response.get("question", "")
-                                answer = response.get("answer", "")
+                                # Handle both "answer" and "response" fields (enhanced simulation uses "response")
+                                answer = response.get("answer", "") or response.get(
+                                    "response", ""
+                                )
                                 # Only use answer field, completely ignore text field
                                 if question and answer:
                                     combined_text = f"Q: {question}\nA: {answer}"
                                     texts.append(combined_text)
                                     # Store answer-only version for theme analysis
                                     answer_texts.append(answer)
+                                    logger.debug(
+                                        f"Extracted Q&A: {question[:50]}... -> {answer[:50]}..."
+                                    )
                         # Use text only if no responses
                         elif "text" in interview:
                             texts.append(interview["text"])
@@ -338,7 +429,35 @@ class NLPProcessor:
                     answer_texts.append(data["text"])
 
             if not texts:
-                logger.error(f"No text content found in data. Data structure: {data}")
+                # Enhanced error logging to help debug data structure issues
+                logger.error("❌ No text content found in data")
+                logger.error(f"📊 Data type: {type(data)}")
+                if isinstance(data, dict):
+                    logger.error(f"🔑 Dict keys: {list(data.keys())}")
+                    if "interviews" in data:
+                        logger.error(f"📝 Interviews count: {len(data['interviews'])}")
+                        if data["interviews"]:
+                            first_interview = data["interviews"][0]
+                            logger.error(
+                                f"🔍 First interview keys: {list(first_interview.keys())}"
+                            )
+                            if "responses" in first_interview:
+                                logger.error(
+                                    f"💬 Responses count: {len(first_interview['responses'])}"
+                                )
+                                if first_interview["responses"]:
+                                    first_response = first_interview["responses"][0]
+                                    logger.error(
+                                        f"🗣️ First response keys: {list(first_response.keys())}"
+                                    )
+                elif isinstance(data, list):
+                    logger.error(f"📋 List length: {len(data)}")
+                    if data:
+                        logger.error(f"🔍 First item type: {type(data[0])}")
+                        if isinstance(data[0], dict):
+                            logger.error(f"🔑 First item keys: {list(data[0].keys())}")
+
+                logger.error(f"📄 Data sample: {str(data)[:500]}...")
                 raise ValueError("No text content found in data")
 
             # Process with LLM
@@ -700,7 +819,25 @@ class NLPProcessor:
                 )
 
             # Pass themes to sentiment analysis to leverage their statements if needed
-            sentiment_task = llm_service.analyze(sentiment_payload)
+            # Add timeout protection for large sentiment analysis requests
+            try:
+                sentiment_task = asyncio.wait_for(
+                    llm_service.analyze(sentiment_payload),
+                    timeout=300,  # 5 minutes timeout
+                )
+            except asyncio.TimeoutError:
+                logger.error(
+                    "Sentiment analysis timed out after 5 minutes, using fallback"
+                )
+                # Create a fallback sentiment result
+                sentiment_task = asyncio.create_task(
+                    self._create_fallback_sentiment_result(combined_text)
+                )
+            except Exception as e:
+                logger.error(f"Sentiment analysis failed: {str(e)}, using fallback")
+                sentiment_task = asyncio.create_task(
+                    self._create_fallback_sentiment_result(combined_text)
+                )
 
             # Wait for remaining tasks to complete
             patterns_result, sentiment_result = await asyncio.gather(
@@ -1190,13 +1327,13 @@ class NLPProcessor:
             logger.info("Generating personas from interview text")
 
             try:
-                # Generate personas using PydanticAI/Instructor (same as pattern generation)
-                logger.info("Generating personas using PydanticAI/Instructor")
+                # Generate personas using PydanticAI (migrated from Instructor)
+                logger.info("Generating personas using PydanticAI")
 
                 # Get the raw text from the original source if available
                 raw_text = results.get("original_text", combined_text)
 
-                # Call PydanticAI/Instructor to generate personas (same approach as patterns)
+                # Call PydanticAI for persona formation (migrated from Instructor)
                 logger.info(
                     f"Calling PydanticAI for persona formation with {len(raw_text[:100])}... chars"
                 )
@@ -1218,114 +1355,80 @@ class NLPProcessor:
                 config = MinimalConfig()
                 persona_service = PersonaFormationService(config, llm_service)
 
-                # Use the PydanticAI approach for persona formation
+                # Use the PydanticAI approach for persona formation (migrated from Instructor)
                 personas_list = await persona_service.generate_persona_from_text(
                     text=raw_text,
                     context={"industry": results.get("industry", "general")},
                 )
 
-                # Extract the first persona from the list
-                persona_result = personas_list[0] if personas_list else None
-
-                # Extract personas from the PydanticAI result
-                if persona_result:
-                    # PersonaFormationService.generate_persona_from_text returns a list of dicts
-                    if isinstance(persona_result, dict):
-                        personas = [persona_result]  # Single persona in list format
-                        logger.info(
-                            f"Successfully generated persona using PydanticAI: {persona_result.get('name', 'Unnamed')}"
-                        )
-                    else:
-                        logger.warning(
-                            f"Unexpected persona result type: {type(persona_result)}"
-                        )
-                        personas = []
-
-                    # Validate personas
-                    if personas and isinstance(personas, list) and len(personas) > 0:
-                        # Log success and add personas to results
-                        logger.info(f"Successfully generated {len(personas)} personas")
-
-                        # Check structure of first persona
-                        first_persona = personas[0]
-                        if isinstance(first_persona, dict):
-                            logger.info(
-                                f"First persona keys: {list(first_persona.keys())}"
-                            )
-
-                            # Make sure it has the required fields
-                            required_fields = [
-                                "name",
-                                "description",
-                                "role_context",
-                                "key_responsibilities",
-                                "tools_used",
-                                "collaboration_style",
-                                "analysis_approach",
-                                "pain_points",
-                            ]
-                            missing_fields = [
-                                field
-                                for field in required_fields
-                                if field not in first_persona
-                            ]
-                            if missing_fields:
-                                logger.warning(
-                                    f"Persona missing required fields: {missing_fields}"
-                                )
-                                # Fill in missing fields
-                                for field in missing_fields:
-                                    first_persona[field] = {
-                                        "value": f"Unknown {field.replace('_', ' ')}",
-                                        "confidence": 0.5,
-                                        "evidence": [
-                                            "Generated as fallback due to missing field"
-                                        ],
-                                    }
-                        else:
-                            logger.warning(
-                                f"First persona is not a dictionary: {type(first_persona)}"
-                            )
-                    else:
-                        logger.warning("Generated personas list is empty or invalid")
-                        personas = []
-
-                    # Add personas to results
-                    results["personas"] = personas
-                    logger.info(f"Added {len(personas)} personas to analysis results")
-
-                    # Update progress after persona processing
-                    await update_progress(
-                        "PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas"
+                # FIX 4: Use ALL personas from the list, not just the first one
+                # PersonaFormationService.generate_persona_from_text returns a list of persona dicts
+                if personas_list and isinstance(personas_list, list):
+                    personas = personas_list  # Use the entire list of personas
+                    logger.info(
+                        f"Successfully generated {len(personas)} personas using PydanticAI: {[p.get('name', 'Unnamed') for p in personas]}"
                     )
                 else:
-                    logger.warning("Persona formation returned invalid result")
-
-                    # Try contextual fallback as per implementation guide
-                    logger.info("Attempting contextual fallback for persona generation")
-                    fallback_personas = self._generate_contextual_persona_fallback(
-                        raw_text, results.get("industry", "general")
+                    logger.warning(
+                        f"Unexpected personas_list result: {type(personas_list)} with value {personas_list}"
                     )
-                    results["personas"] = fallback_personas
+                    personas = []
 
-                    if fallback_personas:
-                        logger.info(
-                            f"Generated {len(fallback_personas)} personas using contextual fallback"
-                        )
-                        await update_progress(
-                            "PERSONA_FORMATION",
-                            0.95,
-                            f"Generated {len(fallback_personas)} personas using fallback",
-                        )
+                # Validate personas
+                if personas and isinstance(personas, list) and len(personas) > 0:
+                    # Log success and add personas to results
+                    logger.info(f"Successfully generated {len(personas)} personas")
+
+                    # Check structure of first persona
+                    first_persona = personas[0]
+                    if isinstance(first_persona, dict):
+                        logger.info(f"First persona keys: {list(first_persona.keys())}")
+
+                        # Make sure it has the required fields
+                        required_fields = [
+                            "name",
+                            "description",
+                            "role_context",
+                            "key_responsibilities",
+                            "tools_used",
+                            "collaboration_style",
+                            "analysis_approach",
+                            "pain_points",
+                        ]
+                        missing_fields = [
+                            field
+                            for field in required_fields
+                            if field not in first_persona
+                        ]
+                        if missing_fields:
+                            logger.warning(
+                                f"Persona missing required fields: {missing_fields}"
+                            )
+                            # Fill in missing fields
+                            for field in missing_fields:
+                                first_persona[field] = {
+                                    "value": f"Unknown {field.replace('_', ' ')}",
+                                    "confidence": 0.5,
+                                    "evidence": [
+                                        "Generated as fallback due to missing field"
+                                    ],
+                                }
                     else:
                         logger.warning(
-                            "Contextual fallback also failed, continuing with empty personas"
+                            f"First persona is not a dictionary: {type(first_persona)}"
                         )
-                        await update_progress(
-                            "PERSONA_FORMATION",
-                            0.95,
-                            "Persona formation failed, continuing with empty personas",
-                        )
+                else:
+                    logger.warning("Generated personas list is empty or invalid")
+                    personas = []
+
+                # Add personas to results
+                results["personas"] = personas
+                logger.info(f"Added {len(personas)} personas to analysis results")
+
+                # Update progress after persona processing
+                await update_progress(
+                    "PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas"
+                )
             except Exception as persona_err:
                 # Log the error but continue processing
                 logger.error(f"Error generating personas: {str(persona_err)}")
@@ -2291,3 +2394,105 @@ class NLPProcessor:
                 )
 
         return sentiment_distribution
+
+    async def _create_fallback_sentiment_result(self, text: str) -> Dict[str, Any]:
+        """
+        Create a fallback sentiment result when the main sentiment analysis fails or times out.
+
+        Args:
+            text: The text to analyze
+
+        Returns:
+            Dictionary containing basic sentiment analysis results
+        """
+        logger.info("Creating fallback sentiment result")
+
+        # Simple keyword-based sentiment analysis as fallback
+        positive_keywords = [
+            "good",
+            "great",
+            "excellent",
+            "love",
+            "like",
+            "happy",
+            "satisfied",
+            "pleased",
+            "excited",
+            "amazing",
+            "wonderful",
+            "fantastic",
+            "perfect",
+            "efficient",
+            "helpful",
+            "useful",
+            "valuable",
+            "benefit",
+            "advantage",
+        ]
+
+        negative_keywords = [
+            "bad",
+            "terrible",
+            "awful",
+            "hate",
+            "dislike",
+            "frustrated",
+            "annoying",
+            "difficult",
+            "problem",
+            "issue",
+            "concern",
+            "worry",
+            "pain",
+            "struggle",
+            "slow",
+            "inefficient",
+            "useless",
+            "waste",
+            "expensive",
+            "costly",
+        ]
+
+        # Count keyword occurrences
+        text_lower = text.lower()
+        positive_count = sum(1 for word in positive_keywords if word in text_lower)
+        negative_count = sum(1 for word in negative_keywords if word in text_lower)
+
+        # Calculate basic sentiment distribution
+        total_sentiment = positive_count + negative_count
+        if total_sentiment == 0:
+            # Default neutral sentiment
+            sentiment_overview = {"positive": 0.3, "neutral": 0.5, "negative": 0.2}
+        else:
+            positive_ratio = positive_count / total_sentiment
+            negative_ratio = negative_count / total_sentiment
+            neutral_ratio = max(
+                0.1, 1.0 - positive_ratio - negative_ratio
+            )  # At least 10% neutral
+
+            # Normalize to sum to 1.0
+            total = positive_ratio + negative_ratio + neutral_ratio
+            sentiment_overview = {
+                "positive": round(positive_ratio / total, 2),
+                "neutral": round(neutral_ratio / total, 2),
+                "negative": round(negative_ratio / total, 2),
+            }
+
+        # Create basic sentiment details
+        sentiment_details = [
+            {
+                "category": "Overall Sentiment",
+                "score": sentiment_overview["positive"]
+                - sentiment_overview["negative"],
+                "statements": [
+                    "Fallback sentiment analysis - detailed analysis unavailable"
+                ],
+            }
+        ]
+
+        return {
+            "sentiment_overview": sentiment_overview,
+            "sentiment_details": sentiment_details,
+            "fallback_used": True,
+            "analysis_method": "keyword_based_fallback",
+        }

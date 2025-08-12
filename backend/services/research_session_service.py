@@ -3,6 +3,7 @@ Research Session Service for managing customer research sessions
 """
 
 import uuid
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
@@ -18,6 +19,8 @@ from backend.models.research_session import (
 )
 from backend.database import get_db
 
+logger = logging.getLogger(__name__)
+
 
 class ResearchSessionService:
     """Service for managing research sessions."""
@@ -28,27 +31,69 @@ class ResearchSessionService:
     def create_session(
         self, session_data: ResearchSessionCreate, session_id: str = None
     ) -> ResearchSession:
-        """Create a new research session."""
+        """Create a new research session with collision handling."""
+        import uuid
+        from sqlalchemy.exc import IntegrityError
 
-        session = ResearchSession(
-            session_id=session_id or str(uuid.uuid4()),
-            user_id=session_data.user_id,
-            business_idea=session_data.business_idea,
-            target_customer=session_data.target_customer,
-            problem=session_data.problem,
-            messages=session_data.messages or [],
-            conversation_context=session_data.conversation_context or "",
-            industry=session_data.industry or "general",
-            stage=session_data.stage or "initial",
-            status=session_data.status or "active",
-            questions_generated=session_data.questions_generated or False,
-        )
+        # Generate session_id if not provided
+        target_session_id = session_id or str(uuid.uuid4())
 
-        self.db.add(session)
-        self.db.commit()
-        self.db.refresh(session)
+        # First, check if session already exists
+        existing_session = self.get_session(target_session_id)
+        if existing_session:
+            # If session exists and belongs to the same user, return it
+            if existing_session.user_id == session_data.user_id:
+                logger.info(
+                    f"🔄 Returning existing session for user {session_data.user_id}: {target_session_id}"
+                )
+                return existing_session
+            else:
+                # Session exists but belongs to different user - generate new ID
+                target_session_id = str(uuid.uuid4())
+                logger.info(
+                    f"🔀 Session ID collision detected, generating new ID: {target_session_id}"
+                )
 
-        return session
+        # Attempt to create new session with retry logic for collisions
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                session = ResearchSession(
+                    session_id=target_session_id,
+                    user_id=session_data.user_id,
+                    business_idea=session_data.business_idea,
+                    target_customer=session_data.target_customer,
+                    problem=session_data.problem,
+                    messages=session_data.messages or [],
+                    conversation_context=session_data.conversation_context or "",
+                    industry=session_data.industry or "general",
+                    stage=session_data.stage or "initial",
+                    status=session_data.status or "active",
+                    questions_generated=session_data.questions_generated or False,
+                )
+
+                self.db.add(session)
+                self.db.commit()
+                self.db.refresh(session)
+
+                logger.info(f"✅ Created new research session: {target_session_id}")
+                return session
+
+            except IntegrityError as e:
+                self.db.rollback()
+                if "duplicate key value violates unique constraint" in str(e):
+                    # Generate new UUID and retry
+                    target_session_id = str(uuid.uuid4())
+                    logger.warning(
+                        f"🔄 Session ID collision on attempt {attempt + 1}, retrying with new ID: {target_session_id}"
+                    )
+                    if attempt == max_retries - 1:
+                        raise Exception(
+                            f"Failed to create session after {max_retries} attempts due to ID collisions"
+                        )
+                else:
+                    # Different integrity error, re-raise
+                    raise e
 
     def get_session(self, session_id: str) -> Optional[ResearchSession]:
         """Get a research session by ID."""

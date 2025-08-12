@@ -589,22 +589,25 @@ class AnalysisService:
                     progress_callback=update_progress,
                 )
 
-            # NEW: Enhance with stakeholder intelligence if applicable
+            # TEMPORARILY DISABLED: Enhance with stakeholder intelligence if applicable
+            # This is causing duplicate analysis and "'Persona' object is not subscriptable" errors
             logger.info(
-                f"[STAKEHOLDER_DEBUG] About to start stakeholder analysis block for result_id: {result_id}"
+                f"[STAKEHOLDER_DEBUG] SKIPPING stakeholder analysis block for result_id: {result_id} (temporarily disabled)"
             )
 
-            # Write to debug file immediately to confirm we reach this point
-            try:
-                with open("/tmp/stakeholder_debug.log", "a") as f:
-                    f.write(
-                        f"[{datetime.now()}] REACHED stakeholder analysis block for result_id: {result_id}\n"
-                    )
-            except:
-                pass
-            logger.info(
-                f"[STAKEHOLDER_DEBUG] Stakeholder analysis available: {STAKEHOLDER_ANALYSIS_AVAILABLE}"
-            )
+            # STAKEHOLDER ANALYSIS BLOCK DISABLED - START
+            """
+                # Write to debug file immediately to confirm we reach this point
+                try:
+                    with open("/tmp/stakeholder_debug.log", "a") as f:
+                        f.write(
+                            f"[{datetime.now()}] REACHED stakeholder analysis block for result_id: {result_id}\n"
+                        )
+                except:
+                    pass
+                logger.info(
+                    f"[STAKEHOLDER_DEBUG] Stakeholder analysis available: {STAKEHOLDER_ANALYSIS_AVAILABLE}"
+                )
 
             # Also write to a debug file to ensure we can see the logs
             try:
@@ -1003,6 +1006,8 @@ class AnalysisService:
                         )
 
                     # Continue with regular analysis even if stakeholder analysis fails
+            """
+            # STAKEHOLDER ANALYSIS BLOCK DISABLED - END
 
             # Update database record with results (but not status yet)
             logger.info(

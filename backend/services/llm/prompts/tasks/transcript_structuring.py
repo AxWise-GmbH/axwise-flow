@@ -7,6 +7,7 @@ a structured JSON format with speaker identification and role inference.
 
 from typing import Dict, Any
 
+
 class TranscriptStructuringPrompts:
     """Prompts for transcript structuring tasks."""
 
@@ -21,16 +22,31 @@ class TranscriptStructuringPrompts:
         return """
 CRITICAL INSTRUCTION: Your ENTIRE response MUST be a single, valid JSON array. Start with '[' and end with ']'. DO NOT include ANY text, comments, or markdown formatting (like ```json) before or after the JSON array.
 
-You are an expert transcript analysis AI. Your task is to process a raw interview transcript and convert it into a structured JSON format.
+You are an expert transcript analysis AI with advanced clustering capabilities. Your task is to process a raw interview transcript and convert it into a structured JSON format with intelligent persona clustering.
+
+INTELLIGENT CLUSTERING APPROACH:
+If the transcript contains multiple interviews, you must analyze all interviews holistically to identify natural clusters and patterns rather than using generic speaker labels.
 
 Follow these steps meticulously:
 
 1.  **Read the entire raw transcript provided by the user.**
-2.  **Identify Distinct Speakers:**
-    *   Determine all unique individuals speaking in the transcript.
-    *   If names are explicitly mentioned (e.g., "John:", "Interviewer:", "Sarah Miller:"), use those as `speaker_id`.
-    *   If names are not clear, use generic identifiers like "Speaker 1", "Speaker 2", ensuring consistency for the same individual.
-    *   Pay attention to context to differentiate speakers even if names are ambiguous.
+2.  **Intelligent Speaker Clustering:**
+    *   **For Single Interviews:** Use explicit names or generic identifiers like "Speaker 1", "Speaker 2".
+    *   **For Multiple Interviews:** Analyze all interviews to identify natural clusters based on:
+        - Demographics (age, profession, family status, experience level)
+        - Behavioral patterns (spending habits, food preferences, lifestyle)
+        - Pain points and challenges (language barriers, dietary needs, time constraints)
+        - Context and situation (newly arrived vs established, students vs professionals, families vs singles)
+        - Goals and motivations (cultural exploration vs comfort, budget vs premium)
+    *   **Create Meaningful Cluster IDs:** Instead of generic "Interviewee", create descriptive cluster-based speaker IDs like:
+        - "Young_Professional_Newcomers" (for recent graduates in tech/finance)
+        - "Family_Expats_With_Children" (for families with specific needs)
+        - "Budget_Conscious_Students" (for students with financial constraints)
+        - "Senior_Corporate_Relocations" (for experienced professionals)
+        - "Food_Culture_Explorers" (for those focused on culinary experiences)
+        - "Health_Conscious_Professionals" (for those with dietary restrictions)
+    *   **Group Similar Interviews:** Assign the same cluster-based speaker_id to all interviewees who share similar characteristics and patterns.
+    *   **Aim for 3-7 Clusters:** Create a meaningful number of distinct persona clusters that capture the diversity without over-segmentation.
 3.  **Segment Dialogue into Turns:**
     *   A "turn" is a continuous block of speech by a single speaker before another speaker begins.
     *   Break down the transcript into these individual speaking turns.
@@ -78,24 +94,40 @@ EXAMPLE OUTPUT STRUCTURE:
   }
 ]
 
-ALTERNATIVE VALID OUTPUT STRUCTURE (if you prefer):
+INTELLIGENT CLUSTERING EXAMPLE (for multiple interviews):
 [
   {
-    "speaker_id": "Speaker 1",
+    "speaker_id": "Researcher",
     "role": "Interviewer",
-    "dialogue": "Can you tell me about your experience with the product?"
+    "dialogue": "What challenges do you face with food delivery as a new expat?"
   },
   {
-    "speaker_id": "Speaker 2",
+    "speaker_id": "Young_Professional_Newcomers",
     "role": "Interviewee",
-    "dialogue": "I've been using it for about 6 months now. It's generally good but has some issues with the user interface."
+    "dialogue": "The biggest issue is the language barrier. I work long hours and just want something quick and reliable."
   },
   {
-    "speaker_id": "Speaker 1",
+    "speaker_id": "Researcher",
     "role": "Interviewer",
-    "dialogue": "What specific UI issues have you encountered?"
+    "dialogue": "How important is finding familiar food from your home country?"
+  },
+  {
+    "speaker_id": "Family_Expats_With_Children",
+    "role": "Interviewee",
+    "dialogue": "Very important! With kids, I need to know exactly what's in the food and if it's safe. Allergen information is crucial."
+  },
+  {
+    "speaker_id": "Budget_Conscious_Students",
+    "role": "Interviewee",
+    "dialogue": "Price is everything for me. I'm on a tight budget and need affordable options with cash payment."
   }
 ]
+
+CRITICAL CLUSTERING REMINDER:
+- For multiple interviews: DO NOT use generic speaker_id values like "Interviewee" or "Participant"
+- ALWAYS analyze patterns and create meaningful cluster-based speaker_id values
+- Each cluster should represent a distinct persona archetype with shared characteristics
+- This enables proper persona formation with diverse, meaningful personas instead of generic merged ones
 
 IMPORTANT VALIDATION RULES:
 1. Each object MUST have exactly the three keys: "speaker_id", "role", and "dialogue".

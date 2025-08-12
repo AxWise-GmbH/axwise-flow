@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Progress Tracking</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debug Enhanced Progress Tracking</h1>
+        
+        <div class="section">
+            <h2>Test Progress API Endpoints</h2>
+            <button class="button" onclick="testProgressEndpoint()">Test Progress Endpoint</button>
+            <button class="button" onclick="testCompletedEndpoint()">Test Completed Endpoint</button>
+            <button class="button" onclick="startNewSimulation()">Start New Simulation</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="section">
+            <h2>Debug Log</h2>
+            <div id="log" class="log"></div>
+        </div>
+
+        <div class="section">
+            <h2>Current Status</h2>
+            <div id="status">Ready to test...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentSimulationId = null;
+        let pollingInterval = null;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+
+        async function testProgressEndpoint() {
+            const testId = 'ee631164-1bf9-4944-a737-e23c95adb48f';
+            log(`Testing progress endpoint with simulation ID: ${testId}`);
+            
+            try {
+                const response = await fetch(`/api/research/simulation-bridge/simulate/${testId}/progress`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Progress endpoint response: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    log(`❌ Progress endpoint error: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Progress endpoint exception: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCompletedEndpoint() {
+            log('Testing completed simulations endpoint');
+            
+            try {
+                const response = await fetch('/api/research/simulation-bridge/completed');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Completed endpoint response: Found ${Object.keys(data.simulations || {}).length} simulations`, 'success');
+                    const firstSim = Object.values(data.simulations || {})[0];
+                    if (firstSim) {
+                        log(`First simulation: ${JSON.stringify(firstSim, null, 2)}`, 'info');
+                    }
+                } else {
+                    log(`❌ Completed endpoint error: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Completed endpoint exception: ${error.message}`, 'error');
+            }
+        }
+
+        async function startNewSimulation() {
+            log('Starting new simulation for testing...');
+            updateStatus('Starting simulation...');
+
+            const testData = {
+                questions_data: {
+                    stakeholders: {
+                        primary: [
+                            {
+                                name: "New homeowners",
+                                questions: [
+                                    "What challenges do you face when designing your new garden?",
+                                    "How much time do you typically spend on garden planning?"
+                                ]
+                            }
+                        ],
+                        secondary: [
+                            {
+                                name: "Busy professionals",
+                                questions: [
+                                    "What prevents you from maintaining your garden?",
+                                    "What garden services would be most valuable to you?"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                business_context: {
+                    business_idea: "Gardening and greening service in Bremen Nord, similar to landscape design.",
+                    target_customer: "New homeowners and busy professionals.",
+                    problem: "New homeowners needing complete garden design and busy professionals lacking time for garden care.",
+                    industry: "general"
+                },
+                config: {
+                    depth: "detailed",
+                    people_per_stakeholder: 3,
+                    response_style: "realistic",
+                    include_insights: false,
+                    temperature: 0.7
+                }
+            };
+
+            try {
+                const response = await fetch('/api/research/simulation-bridge/simulate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Simulation started successfully!`, 'success');
+                    log(`Simulation response: ${JSON.stringify(result, null, 2)}`, 'info');
+                    
+                    if (result.simulation_id) {
+                        currentSimulationId = result.simulation_id;
+                        log(`🔄 Starting progress polling for: ${currentSimulationId}`, 'info');
+                        startProgressPolling();
+                    } else {
+                        log(`⚠️ No simulation_id in response - immediate completion`, 'info');
+                        updateStatus('Simulation completed immediately');
+                    }
+                } else {
+                    log(`❌ Simulation start error: ${result.error || 'Unknown error'}`, 'error');
+                    updateStatus('Simulation failed to start');
+                }
+            } catch (error) {
+                log(`❌ Simulation start exception: ${error.message}`, 'error');
+                updateStatus('Simulation failed to start');
+            }
+        }
+
+        function startProgressPolling() {
+            if (!currentSimulationId) return;
+            
+            updateStatus(`Polling progress for ${currentSimulationId}...`);
+            
+            pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/research/simulation-bridge/simulate/${currentSimulationId}/progress`);
+                    const progress = await response.json();
+                    
+                    if (response.ok) {
+                        log(`📊 Progress: ${progress.progress_percentage}% - ${progress.current_task}`, 'info');
+                        
+                        if (progress.total_personas) {
+                            log(`👥 Personas: ${progress.completed_personas || 0}/${progress.total_personas}`, 'info');
+                        }
+                        
+                        if (progress.total_interviews) {
+                            log(`💬 Interviews: ${progress.completed_interviews || 0}/${progress.total_interviews}`, 'info');
+                        }
+                        
+                        if (progress.estimated_time_remaining) {
+                            log(`⏱️ Est. time remaining: ${progress.estimated_time_remaining} seconds`, 'info');
+                        }
+                        
+                        updateStatus(`${progress.progress_percentage}% - ${progress.current_task}`);
+                        
+                        if (progress.progress_percentage >= 100 || progress.stage === 'completed') {
+                            log(`✅ Simulation completed!`, 'success');
+                            clearInterval(pollingInterval);
+                            updateStatus('Simulation completed');
+                            currentSimulationId = null;
+                        }
+                    } else {
+                        log(`❌ Progress polling error: ${progress.error || 'Unknown error'}`, 'error');
+                        if (response.status === 404) {
+                            log(`ℹ️ Simulation may have completed - checking completed endpoint`, 'info');
+                            clearInterval(pollingInterval);
+                            updateStatus('Checking completion status...');
+                            // Could check completed endpoint here
+                        }
+                    }
+                } catch (error) {
+                    log(`❌ Progress polling exception: ${error.message}`, 'error');
+                }
+            }, 2000);
+        }
+
+        // Initial log
+        log('Debug page loaded. Ready to test enhanced progress tracking.');
+    </script>
+</body>
+</html>

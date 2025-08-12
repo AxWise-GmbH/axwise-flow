@@ -225,9 +225,11 @@ async def create_research_session(
     session_data: ResearchSessionCreate,
     db: Session = Depends(get_db),
 ) -> ResearchSessionResponse:
-    """Create a new research session."""
+    """Create a new research session with collision handling."""
     try:
-        logger.info(f"📝 Creating new research session")
+        logger.info(
+            f"📝 Creating new research session with ID: {session_data.session_id}"
+        )
 
         service = ResearchSessionService(db)
         session = service.create_session(session_data, session_data.session_id)
@@ -257,8 +259,17 @@ async def create_research_session(
 
     except Exception as e:
         logger.error(f"❌ Error creating research session: {str(e)}")
+
+        # Provide more specific error messages for common issues
+        error_message = str(e)
+        if "duplicate key value violates unique constraint" in error_message:
+            error_message = "Session ID collision occurred. Please try again."
+        elif "Failed to create session after" in error_message:
+            error_message = "Unable to generate unique session ID. Please try again."
+
         raise HTTPException(
-            status_code=500, detail=f"Failed to create research session: {str(e)}"
+            status_code=500,
+            detail=f"Failed to create research session: {error_message}",
         )
 
 

@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PersonaTrait:
     """A trait of a persona with evidence and confidence"""
+
     value: Union[str, dict, list]
     confidence: float
     evidence: List[str] = field(default_factory=list)
@@ -43,6 +44,7 @@ class PersonaTrait:
 @dataclass
 class Persona:
     """A user persona derived from interview data"""
+
     name: str
     description: str
     role_context: PersonaTrait
@@ -50,33 +52,42 @@ class Persona:
     tools_used: PersonaTrait
     collaboration_style: PersonaTrait
     analysis_approach: PersonaTrait
-    pain_points: PersonaTrait
     patterns: List[str] = field(default_factory=list)
     confidence: float = 0.7  # Default confidence
     evidence: List[str] = field(default_factory=list)
     persona_metadata: Optional[Dict[str, Any]] = None  # Changed from metadata
-    role_in_interview: str = "Participant"  # Default role in the interview (Interviewee, Interviewer, etc.)
+    role_in_interview: str = (
+        "Participant"  # Default role in the interview (Interviewee, Interviewer, etc.)
+    )
 
-    # New fields
+    # Core PydanticAI fields
     archetype: str = "Unknown"
     demographics: Optional[PersonaTrait] = None
     goals_and_motivations: Optional[PersonaTrait] = None
+    challenges_and_frustrations: Optional[PersonaTrait] = None
+    needs_and_expectations: Optional[PersonaTrait] = None
+    decision_making_process: Optional[PersonaTrait] = None
+    communication_style: Optional[PersonaTrait] = None
+    technology_usage: Optional[PersonaTrait] = None
+    pain_points: Optional[PersonaTrait] = None
+    key_quotes: Optional[PersonaTrait] = None
+
+    # Legacy fields for backward compatibility
     skills_and_expertise: Optional[PersonaTrait] = None
     workflow_and_environment: Optional[PersonaTrait] = None
-    challenges_and_frustrations: Optional[PersonaTrait] = None
     needs_and_desires: Optional[PersonaTrait] = None
     technology_and_tools: Optional[PersonaTrait] = None
     attitude_towards_research: Optional[PersonaTrait] = None
     attitude_towards_ai: Optional[PersonaTrait] = None
-    key_quotes: Optional[PersonaTrait] = None
 
 
-def persona_to_dict(persona: Persona) -> Dict[str, Any]:
+def persona_to_dict(persona: Any) -> Dict[str, Any]:
     """
     Convert a Persona object to a dictionary.
+    Handles both dataclass Persona objects and database model objects.
 
     Args:
-        persona: Persona object
+        persona: Persona object (dataclass or database model)
 
     Returns:
         Dictionary representation of the persona
@@ -90,21 +101,88 @@ def persona_to_dict(persona: Persona) -> Dict[str, Any]:
             "description": "No persona data available",
             "confidence": 0.0,
             "evidence": ["No data available"],
-            "metadata": {"error": "No persona data available"}
+            "metadata": {"error": "No persona data available"},
         }
 
-    # Convert to dictionary using dataclasses.asdict
-    persona_dict = asdict(persona)
+    # If it's already a dictionary, return it as-is
+    if isinstance(persona, dict):
+        return persona
 
-    # Rename metadata field for backward compatibility
-    if "persona_metadata" in persona_dict:
-        persona_dict["metadata"] = persona_dict.pop("persona_metadata")
+    # Try to convert using dataclasses.asdict for dataclass objects
+    try:
+        persona_dict = asdict(persona)
 
-    # Add aliases for backward compatibility
-    persona_dict["overall_confidence"] = persona_dict["confidence"]
-    persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
+        # Rename metadata field for backward compatibility
+        if "persona_metadata" in persona_dict:
+            persona_dict["metadata"] = persona_dict.pop("persona_metadata")
 
-    return persona_dict
+        # Add aliases for backward compatibility
+        persona_dict["overall_confidence"] = persona_dict["confidence"]
+        persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
+
+        return persona_dict
+    except (TypeError, AttributeError):
+        # Handle database model objects or other object types
+        logger = logging.getLogger(__name__)
+        logger.info(f"Converting non-dataclass persona object to dict: {type(persona)}")
+
+        # Extract attributes manually for database objects
+        persona_dict = {}
+
+        # Core fields
+        persona_dict["name"] = getattr(persona, "name", "Unknown")
+        persona_dict["description"] = getattr(persona, "description", "")
+        persona_dict["confidence"] = getattr(persona, "confidence", 0.7)
+        persona_dict["evidence"] = getattr(persona, "evidence", [])
+
+        # PersonaTrait fields - handle JSON fields from database
+        trait_fields = [
+            "demographics",
+            "goals_and_motivations",
+            "skills_and_expertise",
+            "workflow_and_environment",
+            "challenges_and_frustrations",
+            "needs_and_desires",
+            "technology_and_tools",
+            "attitude_towards_research",
+            "attitude_towards_ai",
+            "key_quotes",
+            "role_context",
+            "key_responsibilities",
+            "tools_used",
+            "collaboration_style",
+            "analysis_approach",
+            "pain_points",
+        ]
+
+        for field in trait_fields:
+            field_value = getattr(persona, field, None)
+            if field_value:
+                # Handle JSON string fields from database
+                if isinstance(field_value, str):
+                    try:
+                        persona_dict[field] = json.loads(field_value)
+                    except (json.JSONDecodeError, TypeError):
+                        persona_dict[field] = {
+                            "value": field_value,
+                            "confidence": 0.7,
+                            "evidence": [],
+                        }
+                else:
+                    persona_dict[field] = field_value
+            else:
+                persona_dict[field] = {"value": "", "confidence": 0.7, "evidence": []}
+
+        # Additional fields
+        persona_dict["archetype"] = getattr(persona, "archetype", "")
+        persona_dict["patterns"] = getattr(persona, "patterns", [])
+        persona_dict["metadata"] = getattr(persona, "metadata", {})
+
+        # Add aliases for backward compatibility
+        persona_dict["overall_confidence"] = persona_dict["confidence"]
+        persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
+
+        return persona_dict
 
 
 class PersonaBuilder:
@@ -119,7 +197,10 @@ class PersonaBuilder:
         self.pattern_categorizer = PatternCategorizer()
 
     def build_persona_from_attributes(
-        self, attributes: Dict[str, Any], name_override: str = "", role: str = "Participant"
+        self,
+        attributes: Dict[str, Any],
+        name_override: str = "",
+        role: str = "Participant",
     ) -> Persona:
         """
         Build a persona object from attributes.
@@ -144,7 +225,9 @@ class PersonaBuilder:
                     name = attr_name
                 else:
                     # If name is not a string, use role as fallback
-                    logger.warning(f"Name is not a string: {attr_name}, using role as fallback")
+                    logger.warning(
+                        f"Name is not a string: {attr_name}, using role as fallback"
+                    )
                     name = role
 
             # Log the attributes for debugging
@@ -153,9 +236,13 @@ class PersonaBuilder:
 
             # Get overall confidence score if available (for simplified format)
             overall_confidence = 0.7  # Default confidence
-            if "overall_confidence_score" in attributes and isinstance(attributes["overall_confidence_score"], (int, float)):
+            if "overall_confidence_score" in attributes and isinstance(
+                attributes["overall_confidence_score"], (int, float)
+            ):
                 overall_confidence = float(attributes["overall_confidence_score"])
-            elif "overall_confidence" in attributes and isinstance(attributes["overall_confidence"], (int, float)):
+            elif "overall_confidence" in attributes and isinstance(
+                attributes["overall_confidence"], (int, float)
+            ):
                 overall_confidence = float(attributes["overall_confidence"])
 
             # Handle key_quotes specially - it can be a string, list, or dict
@@ -170,21 +257,25 @@ class PersonaBuilder:
                 key_quotes_data = {
                     "value": key_quotes_value,
                     "confidence": overall_confidence,  # Use overall confidence
-                    "evidence": key_quotes_data  # Use the quotes as evidence
+                    "evidence": key_quotes_data,  # Use the quotes as evidence
                 }
-                logger.info(f"Converted key_quotes list to trait: {len(key_quotes_list)} quotes")
+                logger.info(
+                    f"Converted key_quotes list to trait: {len(key_quotes_list)} quotes"
+                )
             elif isinstance(key_quotes_data, str):
                 # Convert string to a trait
                 key_quotes_list = [key_quotes_data]
                 key_quotes_data = {
                     "value": key_quotes_data,
                     "confidence": overall_confidence,  # Use overall confidence
-                    "evidence": [key_quotes_data]
+                    "evidence": [key_quotes_data],
                 }
                 logger.info(f"Converted key_quotes string to trait")
             elif isinstance(key_quotes_data, dict) and "value" in key_quotes_data:
                 # Already in trait format
-                if "evidence" in key_quotes_data and isinstance(key_quotes_data["evidence"], list):
+                if "evidence" in key_quotes_data and isinstance(
+                    key_quotes_data["evidence"], list
+                ):
                     key_quotes_list = key_quotes_data["evidence"]
                 # Ensure confidence uses overall_confidence if not specified
                 if "confidence" not in key_quotes_data:
@@ -194,27 +285,43 @@ class PersonaBuilder:
                 key_quotes_data = {
                     "value": "",
                     "confidence": overall_confidence,
-                    "evidence": []
+                    "evidence": [],
                 }
                 logger.info(f"Created default key_quotes trait")
 
             # Process trait fields with robust error handling
+            # Core fields from PydanticAI PersonaModel
             trait_fields = {
+                # Core PydanticAI fields
+                "demographics": attributes.get("demographics", {}),
+                "goals_and_motivations": attributes.get("goals_and_motivations", {}),
+                "challenges_and_frustrations": attributes.get(
+                    "challenges_and_frustrations", {}
+                ),
+                "needs_and_expectations": attributes.get("needs_and_expectations", {}),
+                "decision_making_process": attributes.get(
+                    "decision_making_process", {}
+                ),
+                "communication_style": attributes.get("communication_style", {}),
+                "technology_usage": attributes.get("technology_usage", {}),
+                "pain_points": attributes.get("pain_points", {}),
+                "key_quotes": attributes.get("key_quotes", {}),
+                # Legacy fields for backward compatibility
                 "role_context": attributes.get("role_context", {}),
                 "key_responsibilities": attributes.get("key_responsibilities", {}),
                 "tools_used": attributes.get("tools_used", {}),
                 "collaboration_style": attributes.get("collaboration_style", {}),
                 "analysis_approach": attributes.get("analysis_approach", {}),
-                "pain_points": attributes.get("pain_points", {}),
-                "demographics": attributes.get("demographics", {}),
-                "goals_and_motivations": attributes.get("goals_and_motivations", {}),
                 "skills_and_expertise": attributes.get("skills_and_expertise", {}),
-                "workflow_and_environment": attributes.get("workflow_and_environment", {}),
-                "challenges_and_frustrations": attributes.get("challenges_and_frustrations", {}),
+                "workflow_and_environment": attributes.get(
+                    "workflow_and_environment", {}
+                ),
                 "needs_and_desires": attributes.get("needs_and_desires", {}),
                 "technology_and_tools": attributes.get("technology_and_tools", {}),
-                "attitude_towards_research": attributes.get("attitude_towards_research", {}),
-                "attitude_towards_ai": attributes.get("attitude_towards_ai", {})
+                "attitude_towards_research": attributes.get(
+                    "attitude_towards_research", {}
+                ),
+                "attitude_towards_ai": attributes.get("attitude_towards_ai", {}),
             }
 
             # Process each trait field to ensure proper format
@@ -227,19 +334,30 @@ class PersonaBuilder:
                     if "confidence" not in processed_trait:
                         processed_trait["confidence"] = overall_confidence
                     # Ensure evidence is a list
-                    if "evidence" not in processed_trait or not isinstance(processed_trait["evidence"], list):
-                        processed_trait["evidence"] = key_quotes_list[:2] if key_quotes_list else []
+                    if "evidence" not in processed_trait or not isinstance(
+                        processed_trait["evidence"], list
+                    ):
+                        processed_trait["evidence"] = (
+                            key_quotes_list[:2] if key_quotes_list else []
+                        )
 
                     # Special processing for demographics field
                     if field_name == "demographics":
                         # Get all evidence from other fields for context
                         all_evidence = []
                         for other_field, other_data in processed_traits.items():
-                            if isinstance(other_data, dict) and "evidence" in other_data:
+                            if (
+                                isinstance(other_data, dict)
+                                and "evidence" in other_data
+                            ):
                                 all_evidence.extend(other_data.get("evidence", []))
 
                         # Use the demographic extractor to enhance the demographics field
-                        processed_trait = self.demographic_extractor.extract_demographics(processed_trait, all_evidence)
+                        processed_trait = (
+                            self.demographic_extractor.extract_demographics(
+                                processed_trait, all_evidence
+                            )
+                        )
 
                     processed_traits[field_name] = processed_trait
                     logger.debug(f"Field {field_name} already in trait format")
@@ -248,15 +366,21 @@ class PersonaBuilder:
                     processed_traits[field_name] = {
                         "value": field_data,
                         "confidence": overall_confidence,
-                        "evidence": key_quotes_list[:2] if key_quotes_list else []  # Use key quotes as evidence
+                        "evidence": (
+                            key_quotes_list[:2] if key_quotes_list else []
+                        ),  # Use key quotes as evidence
                     }
                     logger.debug(f"Converted string field {field_name} to trait")
                 elif isinstance(field_data, list) and field_data:
                     # List format - convert to dict
                     processed_traits[field_name] = {
-                        "value": ", ".join(str(item) for item in field_data[:3]),  # Take first 3 items
+                        "value": ", ".join(
+                            str(item) for item in field_data[:3]
+                        ),  # Take first 3 items
                         "confidence": overall_confidence,
-                        "evidence": key_quotes_list[:2] if key_quotes_list else []  # Use key quotes as evidence
+                        "evidence": (
+                            key_quotes_list[:2] if key_quotes_list else []
+                        ),  # Use key quotes as evidence
                     }
                     logger.debug(f"Converted list field {field_name} to trait")
                 else:
@@ -264,7 +388,7 @@ class PersonaBuilder:
                     processed_traits[field_name] = {
                         "value": "",
                         "confidence": overall_confidence,  # Use overall confidence
-                        "evidence": []
+                        "evidence": [],
                     }
                     logger.debug(f"Created default trait for field {field_name}")
 
@@ -278,7 +402,11 @@ class PersonaBuilder:
 
                 # Collect evidence from all other fields
                 for field_name, field_data in processed_traits.items():
-                    if field_name != "key_quotes" and isinstance(field_data, dict) and "evidence" in field_data:
+                    if (
+                        field_name != "key_quotes"
+                        and isinstance(field_data, dict)
+                        and "evidence" in field_data
+                    ):
                         if isinstance(field_data["evidence"], list):
                             all_quotes.extend(field_data["evidence"])
 
@@ -291,20 +419,24 @@ class PersonaBuilder:
                             break
 
                 if unique_quotes:
-                    logger.info(f"Collected {len(unique_quotes)} quotes from other fields")
+                    logger.info(
+                        f"Collected {len(unique_quotes)} quotes from other fields"
+                    )
                     # Format the value field to be a descriptive summary
                     value_summary = "Key representative quotes that capture the persona's authentic voice and perspective"
                     processed_traits["key_quotes"] = {
                         "value": value_summary,
                         "confidence": overall_confidence,
-                        "evidence": unique_quotes[:7]  # Limit to 7 quotes
+                        "evidence": unique_quotes[:7],  # Limit to 7 quotes
                     }
 
             # Extract patterns and evidence
             patterns = attributes.get("patterns", [])
             if isinstance(patterns, str):
                 # Split string by commas or newlines
-                patterns = [p.strip() for p in re.split(r'[,\n]', patterns) if p.strip()]
+                patterns = [
+                    p.strip() for p in re.split(r"[,\n]", patterns) if p.strip()
+                ]
             elif not isinstance(patterns, list):
                 patterns = []
 
@@ -314,14 +446,25 @@ class PersonaBuilder:
                 # Try to extract patterns from other fields if patterns list is too short
                 if len(patterns) < 3:
                     # Look for patterns in other fields' evidence
-                    pattern_keywords = ["always", "often", "tends to", "prefers", "values", "struggles with", "focuses on"]
+                    pattern_keywords = [
+                        "always",
+                        "often",
+                        "tends to",
+                        "prefers",
+                        "values",
+                        "struggles with",
+                        "focuses on",
+                    ]
                     for field_name, field_data in processed_traits.items():
                         if isinstance(field_data, dict) and "evidence" in field_data:
                             for evidence in field_data.get("evidence", []):
                                 for keyword in pattern_keywords:
                                     if keyword in evidence.lower():
                                         potential_pattern = evidence.strip()
-                                        if potential_pattern and potential_pattern not in patterns:
+                                        if (
+                                            potential_pattern
+                                            and potential_pattern not in patterns
+                                        ):
                                             patterns.append(potential_pattern)
                                             break
 
@@ -347,21 +490,31 @@ class PersonaBuilder:
                 logger.info(f"Categorizing {len(patterns)} patterns")
 
                 # First categorize the patterns
-                categorized_patterns = self.pattern_categorizer.categorize_patterns(patterns)
+                categorized_patterns = self.pattern_categorizer.categorize_patterns(
+                    patterns
+                )
 
                 # Store the original patterns for reference
                 original_patterns = patterns.copy()
 
                 # Format patterns as JSON for structured data
-                json_patterns = self.pattern_categorizer.format_patterns_as_json(categorized_patterns)
+                json_patterns = self.pattern_categorizer.format_patterns_as_json(
+                    categorized_patterns
+                )
 
                 # Then format them for display
-                formatted_patterns = self.pattern_categorizer.format_patterns_for_display(categorized_patterns)
+                formatted_patterns = (
+                    self.pattern_categorizer.format_patterns_for_display(
+                        categorized_patterns
+                    )
+                )
 
                 # Use the formatted patterns
                 patterns = formatted_patterns
 
-                logger.info(f"Categorized {len(patterns)} patterns into {len(set([p.split(':')[0].split('(')[0].strip() for p in patterns]))} categories")
+                logger.info(
+                    f"Categorized {len(patterns)} patterns into {len(set([p.split(':')[0].split('(')[0].strip() for p in patterns]))} categories"
+                )
 
                 # Store the JSON patterns in the attributes for later use
                 attributes["patterns_json"] = json_patterns
@@ -369,7 +522,9 @@ class PersonaBuilder:
             evidence = attributes.get("evidence", [])
             if isinstance(evidence, str):
                 # Split string by commas or newlines
-                evidence = [e.strip() for e in re.split(r'[,\n]', evidence) if e.strip()]
+                evidence = [
+                    e.strip() for e in re.split(r"[,\n]", evidence) if e.strip()
+                ]
             elif not isinstance(evidence, list):
                 evidence = []
 
@@ -387,105 +542,130 @@ class PersonaBuilder:
             # Create Persona object
             persona = Persona(
                 name=name,
-                description=self._get_string_value(attributes.get("description"), "No description provided."),
-                archetype=self._get_string_value(attributes.get("archetype"), "Unknown"),
-
-                # Create PersonaTrait instances from processed data
-                role_context=PersonaTrait(
-                    value=processed_traits["role_context"].get("value", ""),
-                    confidence=float(processed_traits["role_context"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["role_context"].get("evidence", [])),
+                description=self._get_string_value(
+                    attributes.get("description"), "No description provided."
                 ),
-                key_responsibilities=PersonaTrait(
-                    value=processed_traits["key_responsibilities"].get("value", ""),
-                    confidence=float(processed_traits["key_responsibilities"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["key_responsibilities"].get("evidence", [])),
+                archetype=self._get_string_value(
+                    attributes.get("archetype"), "Unknown"
                 ),
-                tools_used=PersonaTrait(
-                    value=processed_traits["tools_used"].get("value", ""),
-                    confidence=float(processed_traits["tools_used"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["tools_used"].get("evidence", [])),
+                # Create PersonaTrait instances from processed data with validation
+                role_context=self._validate_and_create_persona_trait(
+                    processed_traits["role_context"],
+                    "role_context",
+                    "Professional role context",
                 ),
-                collaboration_style=PersonaTrait(
-                    value=processed_traits["collaboration_style"].get("value", ""),
-                    confidence=float(processed_traits["collaboration_style"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["collaboration_style"].get("evidence", [])),
+                key_responsibilities=self._validate_and_create_persona_trait(
+                    processed_traits["key_responsibilities"],
+                    "key_responsibilities",
+                    "Key professional responsibilities",
                 ),
-                analysis_approach=PersonaTrait(
-                    value=processed_traits["analysis_approach"].get("value", ""),
-                    confidence=float(processed_traits["analysis_approach"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["analysis_approach"].get("evidence", [])),
+                tools_used=self._validate_and_create_persona_trait(
+                    processed_traits["tools_used"],
+                    "tools_used",
+                    "Professional tools and software",
                 ),
-                pain_points=PersonaTrait(
-                    value=processed_traits["pain_points"].get("value", ""),
-                    confidence=float(processed_traits["pain_points"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["pain_points"].get("evidence", [])),
+                collaboration_style=self._validate_and_create_persona_trait(
+                    processed_traits["collaboration_style"],
+                    "collaboration_style",
+                    "Collaborative work approach",
                 ),
-
-                # Create PersonaTrait instances for new fields
-                demographics=PersonaTrait(
-                    value=processed_traits["demographics"].get("value", ""),
-                    confidence=float(processed_traits["demographics"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["demographics"].get("evidence", [])),
+                analysis_approach=self._validate_and_create_persona_trait(
+                    processed_traits["analysis_approach"],
+                    "analysis_approach",
+                    "Analytical methodology",
                 ),
-                goals_and_motivations=PersonaTrait(
-                    value=processed_traits["goals_and_motivations"].get("value", ""),
-                    confidence=float(processed_traits["goals_and_motivations"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["goals_and_motivations"].get("evidence", [])),
+                # Core PydanticAI fields
+                demographics=self._validate_and_create_persona_trait(
+                    processed_traits["demographics"],
+                    "demographics",
+                    "Professional demographics",
                 ),
-                skills_and_expertise=PersonaTrait(
-                    value=processed_traits["skills_and_expertise"].get("value", ""),
-                    confidence=float(processed_traits["skills_and_expertise"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["skills_and_expertise"].get("evidence", [])),
+                goals_and_motivations=self._validate_and_create_persona_trait(
+                    processed_traits["goals_and_motivations"],
+                    "goals_and_motivations",
+                    "Professional goals and motivations",
                 ),
-                workflow_and_environment=PersonaTrait(
-                    value=processed_traits["workflow_and_environment"].get("value", ""),
-                    confidence=float(processed_traits["workflow_and_environment"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["workflow_and_environment"].get("evidence", [])),
+                needs_and_expectations=self._validate_and_create_persona_trait(
+                    processed_traits["needs_and_expectations"],
+                    "needs_and_expectations",
+                    "Professional needs and expectations",
                 ),
-                challenges_and_frustrations=PersonaTrait(
-                    value=processed_traits["challenges_and_frustrations"].get("value", ""),
-                    confidence=float(processed_traits["challenges_and_frustrations"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["challenges_and_frustrations"].get("evidence", [])),
+                decision_making_process=self._validate_and_create_persona_trait(
+                    processed_traits["decision_making_process"],
+                    "decision_making_process",
+                    "Decision making process",
                 ),
-                needs_and_desires=PersonaTrait(
-                    value=processed_traits["needs_and_desires"].get("value", ""),
-                    confidence=float(processed_traits["needs_and_desires"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["needs_and_desires"].get("evidence", [])),
+                communication_style=self._validate_and_create_persona_trait(
+                    processed_traits["communication_style"],
+                    "communication_style",
+                    "Communication style",
                 ),
-                technology_and_tools=PersonaTrait(
-                    value=processed_traits["technology_and_tools"].get("value", ""),
-                    confidence=float(processed_traits["technology_and_tools"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["technology_and_tools"].get("evidence", [])),
+                technology_usage=self._validate_and_create_persona_trait(
+                    processed_traits["technology_usage"],
+                    "technology_usage",
+                    "Technology usage patterns",
                 ),
-                attitude_towards_research=PersonaTrait(
-                    value=processed_traits["attitude_towards_research"].get("value", ""),
-                    confidence=float(processed_traits["attitude_towards_research"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["attitude_towards_research"].get("evidence", [])),
+                pain_points=self._validate_and_create_persona_trait(
+                    processed_traits["pain_points"],
+                    "pain_points",
+                    "Professional challenges",
                 ),
-                attitude_towards_ai=PersonaTrait(
-                    value=processed_traits["attitude_towards_ai"].get("value", ""),
-                    confidence=float(processed_traits["attitude_towards_ai"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["attitude_towards_ai"].get("evidence", [])),
+                skills_and_expertise=self._validate_and_create_persona_trait(
+                    processed_traits["skills_and_expertise"],
+                    "skills_and_expertise",
+                    "Professional skills and expertise",
                 ),
-                key_quotes=PersonaTrait(
-                    value=processed_traits["key_quotes"].get("value", ""),
-                    confidence=float(processed_traits["key_quotes"].get("confidence", 0.7)),
-                    evidence=self._clean_evidence_list(processed_traits["key_quotes"].get("evidence", [])),
+                workflow_and_environment=self._validate_and_create_persona_trait(
+                    processed_traits["workflow_and_environment"],
+                    "workflow_and_environment",
+                    "Work environment and workflow",
                 ),
-
+                challenges_and_frustrations=self._validate_and_create_persona_trait(
+                    processed_traits["challenges_and_frustrations"],
+                    "challenges_and_frustrations",
+                    "Professional challenges and frustrations",
+                ),
+                needs_and_desires=self._validate_and_create_persona_trait(
+                    processed_traits["needs_and_desires"],
+                    "needs_and_desires",
+                    "Professional needs and desires",
+                ),
+                technology_and_tools=self._validate_and_create_persona_trait(
+                    processed_traits["technology_and_tools"],
+                    "technology_and_tools",
+                    "Technology tools and preferences",
+                ),
+                attitude_towards_research=self._validate_and_create_persona_trait(
+                    processed_traits["attitude_towards_research"],
+                    "attitude_towards_research",
+                    "Research methodology preferences",
+                ),
+                attitude_towards_ai=self._validate_and_create_persona_trait(
+                    processed_traits["attitude_towards_ai"],
+                    "attitude_towards_ai",
+                    "AI technology perspectives",
+                ),
+                key_quotes=self._validate_and_create_persona_trait(
+                    processed_traits["key_quotes"],
+                    "key_quotes",
+                    "Representative quotes",
+                ),
                 # Set other fields
                 patterns=patterns,
                 confidence=confidence,
                 evidence=evidence,
                 persona_metadata=self._create_metadata(attributes, role),
-                role_in_interview=role
+                role_in_interview=role,
             )
 
             # For simplified format, use the overall_confidence_score directly if available
-            if "overall_confidence_score" in attributes and isinstance(attributes["overall_confidence_score"], (int, float)):
+            if "overall_confidence_score" in attributes and isinstance(
+                attributes["overall_confidence_score"], (int, float)
+            ):
                 persona.confidence = float(attributes["overall_confidence_score"])
-                logger.info(f"Using overall_confidence_score directly: {persona.confidence}")
+                logger.info(
+                    f"Using overall_confidence_score directly: {persona.confidence}"
+                )
             else:
                 # Calculate overall confidence based on trait confidences
                 trait_confidences = [
@@ -504,14 +684,16 @@ class PersonaBuilder:
                     persona.technology_and_tools.confidence,
                     persona.attitude_towards_research.confidence,
                     persona.attitude_towards_ai.confidence,
-                    persona.key_quotes.confidence
+                    persona.key_quotes.confidence,
                 ]
 
                 # Filter out zero confidences
                 valid_confidences = [c for c in trait_confidences if c > 0]
                 if valid_confidences:
                     persona.confidence = sum(valid_confidences) / len(valid_confidences)
-                    logger.info(f"Calculated average confidence from traits: {persona.confidence}")
+                    logger.info(
+                        f"Calculated average confidence from traits: {persona.confidence}"
+                    )
 
             # Fix key_quotes field if it's improperly formatted
             if hasattr(persona, "key_quotes") and persona.key_quotes:
@@ -530,13 +712,17 @@ class PersonaBuilder:
                     key_quotes_evidence = persona.key_quotes.evidence
 
                 # Fix key_quotes data
-                key_quotes_data = self._fix_key_quotes({
-                    "value": key_quotes_value,
-                    "confidence": key_quotes_confidence,
-                    "evidence": key_quotes_evidence
-                })
+                key_quotes_data = self._fix_key_quotes(
+                    {
+                        "value": key_quotes_value,
+                        "confidence": key_quotes_confidence,
+                        "evidence": key_quotes_evidence,
+                    }
+                )
 
-                logger.info(f"Fixed key_quotes: value={key_quotes_data['value'][:50]}..., evidence count={len(key_quotes_data['evidence'])}")
+                logger.info(
+                    f"Fixed key_quotes: value={key_quotes_data['value'][:50]}..., evidence count={len(key_quotes_data['evidence'])}"
+                )
 
                 # Update the key_quotes field
                 if hasattr(persona, "key_quotes"):
@@ -547,7 +733,9 @@ class PersonaBuilder:
                     if hasattr(persona.key_quotes, "evidence"):
                         persona.key_quotes.evidence = key_quotes_data["evidence"]
 
-                    logger.info(f"Updated key_quotes field in persona: evidence count={len(persona.key_quotes.evidence) if hasattr(persona.key_quotes, 'evidence') else 0}")
+                    logger.info(
+                        f"Updated key_quotes field in persona: evidence count={len(persona.key_quotes.evidence) if hasattr(persona.key_quotes, 'evidence') else 0}"
+                    )
 
             # Enhance demographics with role context information
             if hasattr(persona, "demographics") and hasattr(persona, "role_context"):
@@ -555,35 +743,73 @@ class PersonaBuilder:
 
                 # Extract current demographics and role_context data
                 demographics_data = {
-                    "value": persona.demographics.value if hasattr(persona.demographics, "value") else "",
-                    "confidence": persona.demographics.confidence if hasattr(persona.demographics, "confidence") else 0.7,
-                    "evidence": persona.demographics.evidence if hasattr(persona.demographics, "evidence") else []
+                    "value": (
+                        persona.demographics.value
+                        if hasattr(persona.demographics, "value")
+                        else ""
+                    ),
+                    "confidence": (
+                        persona.demographics.confidence
+                        if hasattr(persona.demographics, "confidence")
+                        else 0.7
+                    ),
+                    "evidence": (
+                        persona.demographics.evidence
+                        if hasattr(persona.demographics, "evidence")
+                        else []
+                    ),
                 }
 
                 role_context_data = {
-                    "value": persona.role_context.value if hasattr(persona.role_context, "value") else "",
-                    "confidence": persona.role_context.confidence if hasattr(persona.role_context, "confidence") else 0.7,
-                    "evidence": persona.role_context.evidence if hasattr(persona.role_context, "evidence") else []
+                    "value": (
+                        persona.role_context.value
+                        if hasattr(persona.role_context, "value")
+                        else ""
+                    ),
+                    "confidence": (
+                        persona.role_context.confidence
+                        if hasattr(persona.role_context, "confidence")
+                        else 0.7
+                    ),
+                    "evidence": (
+                        persona.role_context.evidence
+                        if hasattr(persona.role_context, "evidence")
+                        else []
+                    ),
                 }
 
                 # Enhance demographics with role context
-                enhanced_demographics = self._enhance_demographics_with_role_context(demographics_data, role_context_data)
+                enhanced_demographics = self._enhance_demographics_with_role_context(
+                    demographics_data, role_context_data
+                )
 
-                logger.info(f"Enhanced demographics: value={enhanced_demographics['value'][:50]}..., evidence count={len(enhanced_demographics['evidence'])}")
+                logger.info(
+                    f"Enhanced demographics: value={enhanced_demographics['value'][:50]}..., evidence count={len(enhanced_demographics['evidence'])}"
+                )
 
                 # Update the demographics field
                 if hasattr(persona, "demographics"):
                     if hasattr(persona.demographics, "value"):
                         persona.demographics.value = enhanced_demographics["value"]
                     if hasattr(persona.demographics, "confidence"):
-                        persona.demographics.confidence = enhanced_demographics["confidence"]
+                        persona.demographics.confidence = enhanced_demographics[
+                            "confidence"
+                        ]
                     if hasattr(persona.demographics, "evidence"):
-                        persona.demographics.evidence = enhanced_demographics["evidence"]
+                        persona.demographics.evidence = enhanced_demographics[
+                            "evidence"
+                        ]
 
-                    logger.info(f"Updated demographics field in persona: evidence count={len(persona.demographics.evidence) if hasattr(persona.demographics, 'evidence') else 0}")
+                    logger.info(
+                        f"Updated demographics field in persona: evidence count={len(persona.demographics.evidence) if hasattr(persona.demographics, 'evidence') else 0}"
+                    )
 
             # Ensure we have at least some evidence
-            if not persona.evidence or len(persona.evidence) < 3 or all(e.startswith("Fallback") for e in persona.evidence):
+            if (
+                not persona.evidence
+                or len(persona.evidence) < 3
+                or all(e.startswith("Fallback") for e in persona.evidence)
+            ):
                 logger.info("Enhancing evidence field in persona")
 
                 # Collect evidence from traits
@@ -600,7 +826,7 @@ class PersonaBuilder:
                     "workflow_and_environment",
                     "tools_used",
                     "collaboration_style",
-                    "analysis_approach"
+                    "analysis_approach",
                 ]
 
                 # First collect from priority fields
@@ -609,12 +835,18 @@ class PersonaBuilder:
                         trait = getattr(persona, field_name)
                         if trait and trait.evidence:
                             # Get the most representative evidence from this trait
-                            best_evidence = sorted(trait.evidence, key=len, reverse=True)[:2]  # Take up to 2 longest pieces of evidence
+                            best_evidence = sorted(
+                                trait.evidence, key=len, reverse=True
+                            )[
+                                :2
+                            ]  # Take up to 2 longest pieces of evidence
                             for evidence in best_evidence:
                                 all_evidence.append(evidence)
                                 evidence_sources[evidence] = field_name
 
-                            logger.info(f"Collected {len(best_evidence)} evidence items from {field_name}")
+                            logger.info(
+                                f"Collected {len(best_evidence)} evidence items from {field_name}"
+                            )
 
                 # Then collect from other fields if needed
                 if len(all_evidence) < 5:
@@ -623,12 +855,16 @@ class PersonaBuilder:
                             trait = getattr(persona, field_name)
                             if trait and trait.evidence:
                                 # Get one piece of evidence from each non-priority field
-                                best_evidence = sorted(trait.evidence, key=len, reverse=True)[:1]
+                                best_evidence = sorted(
+                                    trait.evidence, key=len, reverse=True
+                                )[:1]
                                 for evidence in best_evidence:
                                     all_evidence.append(evidence)
                                     evidence_sources[evidence] = field_name
 
-                                logger.info(f"Collected {len(best_evidence)} evidence items from {field_name}")
+                                logger.info(
+                                    f"Collected {len(best_evidence)} evidence items from {field_name}"
+                                )
 
                                 # Stop if we have enough evidence
                                 if len(all_evidence) >= 10:
@@ -637,7 +873,9 @@ class PersonaBuilder:
                 # Remove duplicates while preserving order
                 unique_evidence = []
                 for e in all_evidence:
-                    if e and e not in unique_evidence and len(e) > 20:  # Only include substantial evidence
+                    if (
+                        e and e not in unique_evidence and len(e) > 20
+                    ):  # Only include substantial evidence
                         unique_evidence.append(e)
 
                 logger.info(f"Collected {len(unique_evidence)} unique evidence items")
@@ -667,26 +905,32 @@ class PersonaBuilder:
                         "needs_and_desires": "Need/Desire",
                         "technology_and_tools": "Technology/Tool",
                         "attitude_towards_research": "Research Attitude",
-                        "attitude_towards_ai": "AI Attitude"
+                        "attitude_towards_ai": "AI Attitude",
                     }
 
                     # Add labels to evidence
                     for evidence in selected_evidence:
                         field_name = evidence_sources.get(evidence, "general")
-                        label = field_labels.get(field_name, field_name.replace("_", " ").title())
+                        label = field_labels.get(
+                            field_name, field_name.replace("_", " ").title()
+                        )
 
                         # Add a more specific label based on content if possible
-                        specific_label = self._get_specific_evidence_label(evidence, label)
+                        specific_label = self._get_specific_evidence_label(
+                            evidence, label
+                        )
 
                         labeled_evidence.append(f"{specific_label}: {evidence}")
 
-                    logger.info(f"Created {len(labeled_evidence)} labeled evidence items")
+                    logger.info(
+                        f"Created {len(labeled_evidence)} labeled evidence items"
+                    )
 
                     persona.evidence = labeled_evidence
 
             # Validate persona with Pydantic if available
             try:
-                if 'PersonaSchema' in globals():
+                if "PersonaSchema" in globals():
                     persona_dict = persona_to_dict(persona)
                     validated_persona = PersonaSchema(**persona_dict)
                     logger.info(f"Successfully validated persona: {persona.name}")
@@ -697,27 +941,39 @@ class PersonaBuilder:
             evidence_counts = {}
             for field_name in processed_traits:
                 trait = getattr(persona, field_name)
-                if trait and hasattr(trait, 'evidence') and trait.evidence:
+                if trait and hasattr(trait, "evidence") and trait.evidence:
                     evidence_counts[field_name] = len(trait.evidence)
 
-            logger.info(f"Evidence counts for persona {persona.name}: {evidence_counts}")
+            logger.info(
+                f"Evidence counts for persona {persona.name}: {evidence_counts}"
+            )
             logger.info(f"Successfully built persona: {persona.name}")
 
             # Ensure evidence is preserved in the persona_to_dict conversion
             test_dict = persona_to_dict(persona)
             for field_name, count in evidence_counts.items():
-                if field_name in test_dict and isinstance(test_dict[field_name], dict) and 'evidence' in test_dict[field_name]:
-                    actual_count = len(test_dict[field_name]['evidence'])
+                if (
+                    field_name in test_dict
+                    and isinstance(test_dict[field_name], dict)
+                    and "evidence" in test_dict[field_name]
+                ):
+                    actual_count = len(test_dict[field_name]["evidence"])
                     if actual_count != count:
-                        logger.warning(f"Evidence count mismatch for {field_name}: {count} in persona object, {actual_count} in dict")
+                        logger.warning(
+                            f"Evidence count mismatch for {field_name}: {count} in persona object, {actual_count} in dict"
+                        )
 
             return persona
 
         except Exception as e:
-            logger.error(f"Error building persona from attributes: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error building persona from attributes: {str(e)}", exc_info=True
+            )
             return self.create_fallback_persona(role, name_override)
 
-    def create_fallback_persona(self, role: str = "Participant", name: str = "") -> Persona:
+    def create_fallback_persona(
+        self, role: str = "Participant", name: str = ""
+    ) -> Persona:
         """
         Create a fallback persona when building fails.
 
@@ -734,7 +990,7 @@ class PersonaBuilder:
         minimal_trait = PersonaTrait(
             value="Unknown",
             confidence=0.3,
-            evidence=["Fallback due to processing error"]
+            evidence=["Fallback due to processing error"],
         )
 
         # Use provided name or generate default name
@@ -765,7 +1021,7 @@ class PersonaBuilder:
             key_quotes=PersonaTrait(
                 value="No quotes available",
                 confidence=0.3,
-                evidence=["Fallback due to processing error"]
+                evidence=["Fallback due to processing error"],
             ),
             # Other fields
             patterns=[],
@@ -776,9 +1032,9 @@ class PersonaBuilder:
                 "timestamp": datetime.now().isoformat(),
                 "role": role,
                 "is_fallback": True,
-                "overall_confidence_score": 0.3
+                "overall_confidence_score": 0.3,
             },
-            role_in_interview=role
+            role_in_interview=role,
         )
 
     def _clean_evidence_list(self, evidence: Any) -> List[str]:
@@ -796,10 +1052,11 @@ class PersonaBuilder:
 
         if isinstance(evidence, str):
             # Check if the string looks like a JSON array
-            if evidence.startswith('[') and evidence.endswith(']'):
+            if evidence.startswith("[") and evidence.endswith("]"):
                 try:
                     # Try to parse it as JSON
                     import json
+
                     parsed_evidence = json.loads(evidence.replace("'", '"'))
                     if isinstance(parsed_evidence, list):
                         return [str(e) for e in parsed_evidence if e]
@@ -811,6 +1068,54 @@ class PersonaBuilder:
             return [str(e) for e in evidence if e]
 
         return []
+
+    def _validate_and_create_persona_trait(
+        self,
+        trait_data: Dict[str, Any],
+        field_name: str,
+        default_value: str = "Not specified",
+    ) -> PersonaTrait:
+        """
+        Validate and create a PersonaTrait with complete structure.
+
+        Args:
+            trait_data: Dictionary containing trait information
+            field_name: Name of the field for logging
+            default_value: Default value if trait value is empty
+
+        Returns:
+            PersonaTrait with validated structure
+        """
+        # Extract values with validation
+        value = trait_data.get("value", "").strip()
+        confidence = float(trait_data.get("confidence", 0.7))
+        evidence = self._clean_evidence_list(trait_data.get("evidence", []))
+
+        # Validate value is not empty
+        if not value:
+            logger.warning(
+                f"Empty value for {field_name}, using default: '{default_value}'"
+            )
+            value = default_value
+            confidence = max(
+                0.3, confidence * 0.5
+            )  # Reduce confidence for default values
+
+        # Validate confidence is in valid range
+        confidence = max(0.0, min(1.0, confidence))
+
+        # Ensure minimum confidence threshold
+        if confidence < 0.3:
+            logger.warning(
+                f"Low confidence ({confidence}) for {field_name}, setting to minimum 0.3"
+            )
+            confidence = 0.3
+
+        # Ensure evidence exists
+        if not evidence:
+            evidence = [f"Inferred from interview data for {field_name}"]
+
+        return PersonaTrait(value=value, confidence=confidence, evidence=evidence)
 
     def _fix_key_quotes(self, key_quotes_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -830,27 +1135,36 @@ class PersonaBuilder:
         evidence = key_quotes_data.get("evidence", [])
         confidence = key_quotes_data.get("confidence", 0.7)
 
-        logger.info(f"Fixing key_quotes: value type={type(value)}, value={value[:100]}...")
+        logger.info(
+            f"Fixing key_quotes: value type={type(value)}, value={value[:100]}..."
+        )
 
         # Handle JSON string in value field
         if isinstance(value, str):
             # Check if it looks like a JSON array
-            if (value.startswith('[') and value.endswith(']')) or (value.startswith('{') and value.endswith('}')):
+            if (value.startswith("[") and value.endswith("]")) or (
+                value.startswith("{") and value.endswith("}")
+            ):
                 try:
                     # Try to parse it as JSON
                     import json
+
                     # Replace single quotes with double quotes for JSON parsing
                     # Also handle escaped quotes
                     json_value = value.replace("'", '"').replace('\\"', '"')
                     parsed_value = json.loads(json_value)
 
-                    logger.info(f"Successfully parsed key_quotes JSON: {type(parsed_value)}")
+                    logger.info(
+                        f"Successfully parsed key_quotes JSON: {type(parsed_value)}"
+                    )
 
                     if isinstance(parsed_value, list) and parsed_value:
                         # If evidence is empty but we have quotes in value, move them to evidence
                         if not evidence or len(evidence) == 0:
                             evidence = parsed_value
-                            logger.info(f"Moved {len(evidence)} quotes from value to evidence")
+                            logger.info(
+                                f"Moved {len(evidence)} quotes from value to evidence"
+                            )
                         # Set value to a descriptive summary
                         value = "Key representative quotes that capture the persona's authentic voice and perspective"
                     elif isinstance(parsed_value, dict) and "value" in parsed_value:
@@ -860,10 +1174,14 @@ class PersonaBuilder:
 
                         if isinstance(nested_value, list) and nested_value:
                             evidence = nested_value
-                            logger.info(f"Extracted {len(evidence)} quotes from nested value")
+                            logger.info(
+                                f"Extracted {len(evidence)} quotes from nested value"
+                            )
                         elif isinstance(nested_evidence, list) and nested_evidence:
                             evidence = nested_evidence
-                            logger.info(f"Extracted {len(evidence)} quotes from nested evidence")
+                            logger.info(
+                                f"Extracted {len(evidence)} quotes from nested evidence"
+                            )
 
                         value = "Key representative quotes that capture the persona's authentic voice and perspective"
                 except Exception as e:
@@ -872,6 +1190,7 @@ class PersonaBuilder:
                     # Fallback: try to extract quotes using regex
                     if not evidence or len(evidence) == 0:
                         import re
+
                         # Look for quoted strings
                         quotes = re.findall(r'"([^"]*)"', value)
                         if quotes:
@@ -896,18 +1215,21 @@ class PersonaBuilder:
             logger.info(f"Cleaned up evidence, now have {len(evidence)} quotes")
 
         # If we still don't have evidence but have a value, use the value as a single quote
-        if (not evidence or len(evidence) == 0) and value and value != "Key representative quotes that capture the persona's authentic voice and perspective":
+        if (
+            (not evidence or len(evidence) == 0)
+            and value
+            and value
+            != "Key representative quotes that capture the persona's authentic voice and perspective"
+        ):
             evidence = [value]
             value = "Key representative quotes that capture the persona's authentic voice and perspective"
             logger.info("Used value as a single quote in evidence")
 
-        return {
-            "value": value,
-            "confidence": confidence,
-            "evidence": evidence
-        }
+        return {"value": value, "confidence": confidence, "evidence": evidence}
 
-    def _enhance_demographics_with_role_context(self, demographics: Dict[str, Any], role_context: Dict[str, Any]) -> Dict[str, Any]:
+    def _enhance_demographics_with_role_context(
+        self, demographics: Dict[str, Any], role_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Enhance demographics with information from role context.
 
@@ -923,7 +1245,9 @@ class PersonaBuilder:
         role_value = role_context.get("value", "")
 
         # Combine evidence
-        combined_evidence = demographics.get("evidence", []) + role_context.get("evidence", [])
+        combined_evidence = demographics.get("evidence", []) + role_context.get(
+            "evidence", []
+        )
         combined_evidence = list(set(combined_evidence))  # Remove duplicates
 
         # Extract company and organizational information from role context
@@ -931,7 +1255,18 @@ class PersonaBuilder:
         role_info = []
 
         # Look for company mentions in role context
-        for company_pattern in ["company", "organization", "startup", "firm", "employer", "Volkswagen", "Google", "Microsoft", "Amazon", "Apple"]:
+        for company_pattern in [
+            "company",
+            "organization",
+            "startup",
+            "firm",
+            "employer",
+            "Volkswagen",
+            "Google",
+            "Microsoft",
+            "Amazon",
+            "Apple",
+        ]:
             if company_pattern in role_value:
                 # Extract the sentence containing the company
                 sentences = role_value.split(". ")
@@ -941,7 +1276,18 @@ class PersonaBuilder:
                         break
 
         # Look for role mentions in role context
-        for role_pattern in ["role", "position", "job", "title", "responsibility", "designer", "developer", "manager", "director", "lead"]:
+        for role_pattern in [
+            "role",
+            "position",
+            "job",
+            "title",
+            "responsibility",
+            "designer",
+            "developer",
+            "manager",
+            "director",
+            "lead",
+        ]:
             if role_pattern in role_value.lower():
                 # Extract the sentence containing the role
                 sentences = role_value.split(". ")
@@ -959,12 +1305,16 @@ class PersonaBuilder:
 
         # Add company information if not already in demographics
         for info in company_info:
-            if info and not any(info.lower() in part.lower() for part in enhanced_parts):
+            if info and not any(
+                info.lower() in part.lower() for part in enhanced_parts
+            ):
                 enhanced_parts.append(info)
 
         # Add role information if not already in demographics
         for info in role_info:
-            if info and not any(info.lower() in part.lower() for part in enhanced_parts):
+            if info and not any(
+                info.lower() in part.lower() for part in enhanced_parts
+            ):
                 enhanced_parts.append(info)
 
         # Join all parts
@@ -972,8 +1322,10 @@ class PersonaBuilder:
 
         return {
             "value": enhanced_value,
-            "confidence": max(demographics.get("confidence", 0.7), role_context.get("confidence", 0.7)),
-            "evidence": combined_evidence
+            "confidence": max(
+                demographics.get("confidence", 0.7), role_context.get("confidence", 0.7)
+            ),
+            "evidence": combined_evidence,
         }
 
     def _get_specific_evidence_label(self, evidence: str, default_label: str) -> str:
@@ -991,23 +1343,137 @@ class PersonaBuilder:
 
         # Define patterns for specific labels
         label_patterns = {
-            "Career Background": ["background", "education", "degree", "graduated", "university", "college", "school"],
-            "Experience": ["experience", "years", "worked", "working", "job", "position", "role"],
-            "Skill": ["skill", "know how to", "able to", "capable of", "proficient", "expertise"],
-            "Tool Preference": ["prefer", "like", "use", "tool", "software", "platform", "application"],
-            "Challenge": ["challenge", "difficult", "hard", "struggle", "problem", "issue", "obstacle"],
-            "Frustration": ["frustrat", "annoy", "irritat", "bother", "upset", "disappoint"],
-            "Goal": ["goal", "aim", "objective", "target", "want to", "trying to", "hope to"],
-            "Motivation": ["motivat", "drive", "inspire", "passion", "interest", "excite"],
-            "Need": ["need", "require", "must have", "essential", "necessary", "important"],
+            "Career Background": [
+                "background",
+                "education",
+                "degree",
+                "graduated",
+                "university",
+                "college",
+                "school",
+            ],
+            "Experience": [
+                "experience",
+                "years",
+                "worked",
+                "working",
+                "job",
+                "position",
+                "role",
+            ],
+            "Skill": [
+                "skill",
+                "know how to",
+                "able to",
+                "capable of",
+                "proficient",
+                "expertise",
+            ],
+            "Tool Preference": [
+                "prefer",
+                "like",
+                "use",
+                "tool",
+                "software",
+                "platform",
+                "application",
+            ],
+            "Challenge": [
+                "challenge",
+                "difficult",
+                "hard",
+                "struggle",
+                "problem",
+                "issue",
+                "obstacle",
+            ],
+            "Frustration": [
+                "frustrat",
+                "annoy",
+                "irritat",
+                "bother",
+                "upset",
+                "disappoint",
+            ],
+            "Goal": [
+                "goal",
+                "aim",
+                "objective",
+                "target",
+                "want to",
+                "trying to",
+                "hope to",
+            ],
+            "Motivation": [
+                "motivat",
+                "drive",
+                "inspire",
+                "passion",
+                "interest",
+                "excite",
+            ],
+            "Need": [
+                "need",
+                "require",
+                "must have",
+                "essential",
+                "necessary",
+                "important",
+            ],
             "Desire": ["desire", "wish", "want", "would like", "prefer", "hope for"],
-            "Workflow": ["workflow", "process", "procedure", "approach", "method", "routine"],
-            "Collaboration": ["collaborat", "team", "work with", "together", "colleague", "partner"],
-            "Research Approach": ["research", "study", "investigate", "analyze", "examine", "explore"],
-            "Pain Point": ["pain", "frustrat", "annoy", "difficult", "challenge", "problem", "hate"],
-            "Quote": ["\"", "'", "said", "mentioned", "stated", "expressed"],
-            "Company": ["company", "organization", "startup", "firm", "employer", "corporation", "business"],
-            "Role": ["designer", "developer", "manager", "director", "lead", "specialist", "analyst", "consultant"]
+            "Workflow": [
+                "workflow",
+                "process",
+                "procedure",
+                "approach",
+                "method",
+                "routine",
+            ],
+            "Collaboration": [
+                "collaborat",
+                "team",
+                "work with",
+                "together",
+                "colleague",
+                "partner",
+            ],
+            "Research Approach": [
+                "research",
+                "study",
+                "investigate",
+                "analyze",
+                "examine",
+                "explore",
+            ],
+            "Pain Point": [
+                "pain",
+                "frustrat",
+                "annoy",
+                "difficult",
+                "challenge",
+                "problem",
+                "hate",
+            ],
+            "Quote": ['"', "'", "said", "mentioned", "stated", "expressed"],
+            "Company": [
+                "company",
+                "organization",
+                "startup",
+                "firm",
+                "employer",
+                "corporation",
+                "business",
+            ],
+            "Role": [
+                "designer",
+                "developer",
+                "manager",
+                "director",
+                "lead",
+                "specialist",
+                "analyst",
+                "consultant",
+            ],
         }
 
         # Check for matches
@@ -1056,7 +1522,7 @@ class PersonaBuilder:
         metadata = {
             "timestamp": datetime.now().isoformat(),
             "source": "attribute_extraction",
-            "role": role
+            "role": role,
         }
 
         # Include existing metadata if available
@@ -1064,7 +1530,9 @@ class PersonaBuilder:
             metadata.update(attributes["metadata"])
 
         # Include persona_metadata if available (for backward compatibility)
-        if "persona_metadata" in attributes and isinstance(attributes["persona_metadata"], dict):
+        if "persona_metadata" in attributes and isinstance(
+            attributes["persona_metadata"], dict
+        ):
             metadata.update(attributes["persona_metadata"])
 
         return metadata

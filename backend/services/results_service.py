@@ -784,18 +784,25 @@ class ResultsService:
         description = p_data.get("description", "")
         archetype = p_data.get("archetype")  # Simple string field
 
-        # Check if this persona already exists to avoid duplicates
+        # Check if this exact persona already exists to avoid true duplicates
+        # Use name + description + archetype for more specific duplicate detection
+        # This allows multiple personas with same name but different characteristics
         try:
             existing = (
                 self.db.query(Persona)
-                .filter(Persona.result_id == result_id, Persona.name == name)
+                .filter(
+                    Persona.result_id == result_id,
+                    Persona.name == name,
+                    Persona.description == description,
+                    Persona.archetype == archetype,
+                )
                 .first()
             )
             if existing:
                 logger.debug(
-                    f"Persona '{name}' already in DB for result_id {result_id}. Skipping save."
+                    f"Exact persona '{name}' with same description and archetype already in DB for result_id {result_id}. Skipping save."
                 )
-                return  # Skip saving if already exists
+                return  # Skip saving only if exact match exists
         except Exception as query_err:
             logger.error(
                 f"Error checking for existing persona '{name}': {str(query_err)}",

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Session Collision Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .button:hover { background: #0056b3; }
+        .button.danger { background: #dc3545; }
+        .button.danger:hover { background: #c82333; }
+        .log { background: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 10px 0; }
+        .stat { background: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Session Collision Fix</h1>
+        <p>This page tests the backend fixes for session ID collision handling.</p>
+        
+        <div class="section">
+            <h2>Test Controls</h2>
+            <button class="button" onclick="testSingleSession()">Test Single Session Creation</button>
+            <button class="button" onclick="testDuplicateSession()">Test Duplicate Session ID</button>
+            <button class="button" onclick="testConcurrentSessions()">Test Concurrent Sessions (5x)</button>
+            <button class="button" onclick="testRapidFire()">Test Rapid Fire (10x)</button>
+            <button class="button danger" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="section">
+            <h2>Test Statistics</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div><strong>Total Requests</strong></div>
+                    <div id="totalRequests">0</div>
+                </div>
+                <div class="stat">
+                    <div><strong>Successful</strong></div>
+                    <div id="successCount">0</div>
+                </div>
+                <div class="stat">
+                    <div><strong>Failed</strong></div>
+                    <div id="failCount">0</div>
+                </div>
+                <div class="stat">
+                    <div><strong>Collisions Handled</strong></div>
+                    <div id="collisionCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Test Log</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let stats = {
+            totalRequests: 0,
+            successCount: 0,
+            failCount: 0,
+            collisionCount: 0
+        };
+
+        function updateStats() {
+            document.getElementById('totalRequests').textContent = stats.totalRequests;
+            document.getElementById('successCount').textContent = stats.successCount;
+            document.getElementById('failCount').textContent = stats.failCount;
+            document.getElementById('collisionCount').textContent = stats.collisionCount;
+        }
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            stats = { totalRequests: 0, successCount: 0, failCount: 0, collisionCount: 0 };
+            updateStats();
+        }
+
+        async function createSession(sessionId, testName = 'Test') {
+            stats.totalRequests++;
+            updateStats();
+
+            const sessionData = {
+                session_id: sessionId,
+                user_id: 'test-user-collision',
+                business_idea: `${testName} business idea`,
+                target_customer: 'Test customers',
+                problem: 'Test problem',
+                industry: 'general',
+                stage: 'initial',
+                status: 'active',
+                messages: [],
+                conversation_context: '',
+                questions_generated: false
+            };
+
+            try {
+                const response = await fetch('/api/research/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(sessionData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    stats.successCount++;
+                    log(`✅ ${testName}: Session created successfully - ${sessionId}`, 'success');
+                    return { success: true, sessionId: result.session_id, isNew: true };
+                } else {
+                    if (result.detail && result.detail.includes('collision')) {
+                        stats.collisionCount++;
+                        log(`🔄 ${testName}: Collision handled - ${result.detail}`, 'warning');
+                        return { success: true, sessionId: sessionId, isNew: false, collision: true };
+                    } else {
+                        stats.failCount++;
+                        log(`❌ ${testName}: Failed - ${result.detail || response.statusText}`, 'error');
+                        return { success: false, error: result.detail };
+                    }
+                }
+            } catch (error) {
+                stats.failCount++;
+                log(`❌ ${testName}: Exception - ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            } finally {
+                updateStats();
+            }
+        }
+
+        async function testSingleSession() {
+            log('🧪 Testing single session creation...', 'info');
+            const sessionId = `test_single_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            await createSession(sessionId, 'Single');
+        }
+
+        async function testDuplicateSession() {
+            log('🧪 Testing duplicate session ID handling...', 'info');
+            const sessionId = `test_duplicate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            log(`📝 Creating first session with ID: ${sessionId}`, 'info');
+            const result1 = await createSession(sessionId, 'Duplicate-1');
+            
+            log(`📝 Creating second session with same ID: ${sessionId}`, 'info');
+            const result2 = await createSession(sessionId, 'Duplicate-2');
+            
+            if (result1.success && result2.success) {
+                if (result2.collision) {
+                    log(`✅ Duplicate test passed: Collision was handled gracefully`, 'success');
+                } else {
+                    log(`⚠️ Duplicate test: Both sessions created (unexpected)`, 'warning');
+                }
+            }
+        }
+
+        async function testConcurrentSessions() {
+            log('🧪 Testing concurrent session creation (5 simultaneous requests)...', 'info');
+            const baseSessionId = `test_concurrent_${Date.now()}`;
+            
+            const promises = [];
+            for (let i = 0; i < 5; i++) {
+                const sessionId = `${baseSessionId}_${i}_${Math.random().toString(36).substr(2, 5)}`;
+                promises.push(createSession(sessionId, `Concurrent-${i+1}`));
+            }
+            
+            const results = await Promise.all(promises);
+            const successful = results.filter(r => r.success).length;
+            const collisions = results.filter(r => r.collision).length;
+            
+            log(`📊 Concurrent test results: ${successful}/${results.length} successful, ${collisions} collisions handled`, 'info');
+        }
+
+        async function testRapidFire() {
+            log('🧪 Testing rapid fire session creation (10 requests with same timestamp)...', 'info');
+            const timestamp = Date.now();
+            
+            const promises = [];
+            for (let i = 0; i < 10; i++) {
+                // Use same timestamp but different random suffix to simulate rapid requests
+                const sessionId = `test_rapid_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+                promises.push(createSession(sessionId, `RapidFire-${i+1}`));
+            }
+            
+            const results = await Promise.all(promises);
+            const successful = results.filter(r => r.success).length;
+            const collisions = results.filter(r => r.collision).length;
+            const failed = results.filter(r => !r.success).length;
+            
+            log(`📊 Rapid fire test results: ${successful}/${results.length} successful, ${collisions} collisions, ${failed} failures`, 'info');
+            
+            if (failed === 0) {
+                log(`✅ Rapid fire test passed: All requests handled gracefully`, 'success');
+            } else {
+                log(`⚠️ Rapid fire test: ${failed} requests failed`, 'warning');
+            }
+        }
+
+        // Initialize
+        log('🚀 Session collision test page loaded. Ready to test backend fixes.', 'info');
+        updateStats();
+    </script>
+</body>
+</html>

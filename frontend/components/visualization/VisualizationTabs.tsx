@@ -121,6 +121,11 @@ export default function VisualizationTabsRefactored({
         const result = await apiClient.getAnalysisById(effectiveAnalysisId);
 
         if (isMounted) {
+          console.log('VisualizationTabs: Received analysis result:', result);
+          console.log('VisualizationTabs: Personas in result:', result.personas?.length || 0);
+          if (result.personas?.length > 0) {
+            console.log('VisualizationTabs: Persona names:', result.personas.map((p: any) => p.name));
+          }
           setLocalAnalysis(result);
           lastFetchedId.current = effectiveAnalysisId;
         }
@@ -385,6 +390,10 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="personas" className="mt-6">
+                {/* Debug logging for personas */}
+                {console.log('VisualizationTabs: Rendering personas tab with analysis:', analysis)}
+                {console.log('VisualizationTabs: analysis.personas:', analysis?.personas)}
+                {console.log('VisualizationTabs: analysis.personas.length:', analysis?.personas?.length)}
                 {analysis?.personas?.length || (isMultiStakeholder && analysis?.stakeholder_intelligence?.detected_stakeholders?.length) ? (
                   // Use enhanced MultiStakeholderPersonasView if stakeholder intelligence is available
                   isMultiStakeholder ? (

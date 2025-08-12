@@ -224,11 +224,50 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     );
   };
 
+  // Helper function to validate and extract trait data with fallbacks
+  const validateTrait = (trait: any) => {
+    if (!trait || typeof trait !== 'object') {
+      return null;
+    }
+
+    // Extract values with fallbacks
+    const value = trait.value || trait.Value || '';
+    const confidence = typeof trait.confidence === 'number' ? trait.confidence :
+                      typeof trait.Confidence === 'number' ? trait.Confidence : 0.3;
+    const evidence = Array.isArray(trait.evidence) ? trait.evidence :
+                    Array.isArray(trait.Evidence) ? trait.Evidence : [];
+
+    // Return null if value is empty or invalid
+    if (!value || (typeof value === 'string' && value.trim() === '')) {
+      return null;
+    }
+
+    return { value, confidence, evidence };
+  };
+
   // Render a trait card with confidence badge and evidence
   const renderTraitCard = (label: string, trait: any) => {
-    if (!trait) return null;
+    const validatedTrait = validateTrait(trait);
+    if (!validatedTrait) {
+      // Return a placeholder card for missing data
+      return (
+        <div className="mb-4 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
+            <Badge variant="outline" className="text-xs">
+              No Data
+            </Badge>
+          </div>
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground italic">
+              Information not available from the analysis
+            </p>
+          </div>
+        </div>
+      );
+    }
 
-    const { value, confidence, evidence } = trait;
+    const { value, confidence, evidence } = validatedTrait;
 
     return (
       <div className="mb-4 border rounded-lg p-4">
@@ -258,7 +297,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
           <Accordion type="single" collapsible className="mt-2">
             <AccordionItem value="evidence">
               <AccordionTrigger className="text-xs text-muted-foreground">
-                Supporting Evidence
+                Supporting Evidence ({evidence.length} items)
               </AccordionTrigger>
               <AccordionContent>
                 <ul className="list-disc pl-5 text-sm text-muted-foreground">
@@ -381,14 +420,17 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                 {/* Detailed Profile Tab */}
                 <TabsContent value="detailed" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {persona.demographics && renderTraitCard('Demographics', persona.demographics)}
-                    {persona.goals_and_motivations && renderTraitCard('Goals & Motivations', persona.goals_and_motivations)}
-                    {persona.skills_and_expertise && renderTraitCard('Skills & Expertise', persona.skills_and_expertise)}
-                    {persona.workflow_and_environment && renderTraitCard('Workflow & Environment', persona.workflow_and_environment)}
-                    {persona.challenges_and_frustrations && renderTraitCard('Challenges & Frustrations', persona.challenges_and_frustrations)}
-                    {persona.pain_points && renderTraitCard('Pain Points', persona.pain_points)}
-                    {persona.technology_and_tools && renderTraitCard('Technology & Tools', persona.technology_and_tools)}
-                    {persona.collaboration_style && renderTraitCard('Collaboration Style', persona.collaboration_style)}
+                    {renderTraitCard('Demographics', persona.demographics)}
+                    {renderTraitCard('Goals & Motivations', persona.goals_and_motivations)}
+                    {renderTraitCard('Skills & Expertise', persona.skills_and_expertise)}
+                    {renderTraitCard('Workflow & Environment', persona.workflow_and_environment)}
+                    {renderTraitCard('Challenges & Frustrations', persona.challenges_and_frustrations)}
+                    {renderTraitCard('Pain Points', persona.pain_points)}
+                    {renderTraitCard('Technology & Tools', persona.technology_and_tools)}
+                    {renderTraitCard('Collaboration Style', persona.collaboration_style)}
+                    {renderTraitCard('Needs & Desires', persona.needs_and_desires)}
+                    {renderTraitCard('Research Attitude', persona.attitude_towards_research)}
+                    {renderTraitCard('AI Attitude', persona.attitude_towards_ai)}
                   </div>
                 </TabsContent>
 

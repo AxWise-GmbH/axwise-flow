@@ -48,9 +48,25 @@ export async function GET(
       authToken = token;
       console.log('Results API: Using Clerk JWT token for authenticated user:', userId);
     } else {
-      // Development mode with Clerk validation disabled: use development token
-      authToken = 'dev_test_token_DEV_TOKEN_REDACTED';
-      console.log('Results API: Using development token (development mode only)');
+      // Development mode: Use Clerk JWT token to match upload/analysis authentication
+      const { userId, getToken } = await auth();
+
+      if (userId && getToken) {
+        // User is authenticated with Clerk, use their JWT token
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Results API: Using Clerk JWT token in development for user:', userId);
+        } else {
+          // Fallback to development token if JWT not available
+          authToken = 'DEV_TOKEN_REDACTED';
+          console.log('Results API: Using fallback development token (no JWT available)');
+        }
+      } else {
+        // No Clerk authentication, use user-specific development token
+        authToken = 'dev_DEV_TOKEN_REDACTED';
+        console.log('Results API: Using user-specific development token (no Clerk auth)');
+      }
     }
 
     // Get the backend URL from environment

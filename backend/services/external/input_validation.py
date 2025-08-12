@@ -20,7 +20,9 @@ PATTERNS = {
     "email": re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"),
     "alphanumeric": re.compile(r"^[a-zA-Z0-9_-]+$"),
     "numeric": re.compile(r"^[0-9]+$"),
-    "uuid": re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),
+    "uuid": re.compile(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    ),
 }
 
 # SQL Injection patterns to detect
@@ -41,6 +43,7 @@ XSS_PATTERNS = [
     r"(document\.cookie)",
 ]
 
+
 def sanitize_string(value: str) -> str:
     """
     Sanitize a string value to prevent XSS attacks.
@@ -56,6 +59,7 @@ def sanitize_string(value: str) -> str:
 
     # HTML escape the string
     return html.escape(value)
+
 
 def sanitize_json_data(data: Any) -> Any:
     """
@@ -75,6 +79,7 @@ def sanitize_json_data(data: Any) -> Any:
         return sanitize_string(data)
     else:
         return data
+
 
 def detect_sql_injection(value: str) -> bool:
     """
@@ -96,6 +101,7 @@ def detect_sql_injection(value: str) -> bool:
 
     return False
 
+
 def detect_xss(value: str) -> bool:
     """
     Detect potential XSS attack patterns in a string.
@@ -115,6 +121,7 @@ def detect_xss(value: str) -> bool:
             return True
 
     return False
+
 
 def validate_request_data(request_data: Dict[str, Any]) -> List[str]:
     """
@@ -149,6 +156,7 @@ def validate_request_data(request_data: Dict[str, Any]) -> List[str]:
 
     check_values(request_data)
     return errors
+
 
 async def parse_request_body(request: Request) -> Optional[Dict[str, Any]]:
     """
@@ -187,6 +195,7 @@ async def parse_request_body(request: Request) -> Optional[Dict[str, Any]]:
         logger.error(f"Error parsing request body: {str(e)}")
         return None
 
+
 def configure_input_validation(app):
     """
     Configure input validation middleware for the FastAPI application.
@@ -194,14 +203,18 @@ def configure_input_validation(app):
     Args:
         app: The FastAPI application instance
     """
+
     @app.middleware("http")
     async def input_validation_middleware(request: Request, call_next: Callable):
         """Validate and sanitize input data"""
         # Skip validation for certain paths
         path = request.url.path
-        if (path.startswith(("/docs", "/redoc", "/openapi.json", "/static")) or
-            path == "/api/data" or
-            path.startswith("/api/research")):  # Skip validation for research endpoints
+        if (
+            path.startswith(("/docs", "/redoc", "/openapi.json", "/static"))
+            or path == "/api/data"
+            or path.startswith("/api/research")
+            or path.startswith("/api/debug")
+        ):  # Skip validation for research and debug endpoints
             logger.info(f"Skipping input validation for path: {path}")
             return await call_next(request)
 

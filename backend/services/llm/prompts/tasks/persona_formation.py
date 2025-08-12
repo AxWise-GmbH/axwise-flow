@@ -36,17 +36,24 @@ class PersonaFormationPrompts:
         # Get the full original text first
         original_text_input = data.get("text", "")
 
-        # Define the sample limit - Increased to provide more context
+        # Dynamic sample limit based on content size - Increased to provide more context
         # Original limit was 3500, which is too short for detailed persona extraction.
-        # Gemini 2.5 Pro has a large context window.
-        TEXT_SAMPLE_LIMIT = 32000
+        # Gemini 2.5 Pro has a large context window, so we can be more generous.
+        if len(original_text_input) > 200000:  # Very large datasets (200K+ chars)
+            TEXT_SAMPLE_LIMIT = 100000  # Use first 100K chars
+        elif len(original_text_input) > 100000:  # Large datasets (100K+ chars)
+            TEXT_SAMPLE_LIMIT = 80000  # Use first 80K chars
+        elif len(original_text_input) > 50000:  # Medium datasets (50K+ chars)
+            TEXT_SAMPLE_LIMIT = 50000  # Use first 50K chars
+        else:  # Small datasets
+            TEXT_SAMPLE_LIMIT = len(original_text_input)  # Use full content
 
         # Apply the limit to create the text_sample
         text_sample = original_text_input[:TEXT_SAMPLE_LIMIT]
 
         if len(original_text_input) > TEXT_SAMPLE_LIMIT:
             logger.info(
-                f"PersonaFormationPrompts: Using truncated text sample of {TEXT_SAMPLE_LIMIT} chars (original: {len(original_text_input)} chars)"
+                f"PersonaFormationPrompts: Using dynamic text sample of {TEXT_SAMPLE_LIMIT} chars (original: {len(original_text_input)} chars)"
             )
         else:
             logger.info(

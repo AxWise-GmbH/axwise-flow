@@ -93,6 +93,14 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
 
     const results = data.results;
 
+    // Debug: Check personas in the results
+    console.log('getAnalysisById: Raw API response structure:', Object.keys(data));
+    console.log('getAnalysisById: Results structure:', Object.keys(results));
+    console.log('getAnalysisById: Personas in results:', results.personas?.length || 0);
+    if (results.personas?.length > 0) {
+      console.log('getAnalysisById: Persona names in results:', results.personas.map((p: any) => p.name));
+    }
+
     // Add specific logging for sentimentStatements
     console.log('SentimentStatements from API (direct):',
                results.sentimentStatements ?
@@ -374,6 +382,10 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
     };
 
     console.log('Processed analysis data:', finalResult);
+    console.log('Personas in final result:', finalResult.personas?.length || 0);
+    if (finalResult.personas?.length > 0) {
+      console.log('Persona names:', finalResult.personas.map((p: any) => p.name));
+    }
     return finalResult;
 
   } catch (error: any) {

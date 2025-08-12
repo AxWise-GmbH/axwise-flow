@@ -12,14 +12,21 @@ from typing import Dict, Any, List, Optional, Union
 
 from pydantic import ValidationError
 
-from backend.utils.json.json_repair import repair_json, parse_json_safely, parse_json_array_safely
+from backend.utils.json.json_repair import (
+    repair_json,
+    parse_json_safely,
+    parse_json_array_safely,
+)
 from backend.models.transcript import TranscriptSegment, StructuredTranscript
 
 from domain.interfaces.llm_unified import ILLMService
-from backend.services.llm.prompts.tasks.transcript_structuring import TranscriptStructuringPrompts
+from backend.services.llm.prompts.tasks.transcript_structuring import (
+    TranscriptStructuringPrompts,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
 
 class TranscriptStructuringService:
     """
@@ -52,24 +59,36 @@ class TranscriptStructuringService:
             "has_timestamps": False,
             "has_speaker_labels": False,
             "estimated_speakers": 0,
-            "content_complexity": "medium"
+            "content_complexity": "medium",
+            "is_multi_interview": False,
+            "interview_count": 1,
         }
 
         # Check if this is a problem-focused interview
         problem_indicators = [
-            "problem", "issue", "challenge", "difficulty", "pain point",
-            "frustration", "struggle", "obstacle", "barrier", "limitation"
+            "problem",
+            "issue",
+            "challenge",
+            "difficulty",
+            "pain point",
+            "frustration",
+            "struggle",
+            "obstacle",
+            "barrier",
+            "limitation",
         ]
 
-        problem_count = sum(1 for indicator in problem_indicators if indicator in raw_text.lower())
+        problem_count = sum(
+            1 for indicator in problem_indicators if indicator in raw_text.lower()
+        )
         content_info["is_problem_focused"] = problem_count >= 2
 
         # Check if the content has timestamps
         timestamp_patterns = [
-            r'\[\d{2}:\d{2}:\d{2}\]',  # [00:00:00]
-            r'\[\d{2}:\d{2}\]',        # [00:00]
-            r'\d{2}:\d{2}:\d{2}',      # 00:00:00
-            r'\d{2}:\d{2} [AP]M'       # 00:00 AM/PM
+            r"\[\d{2}:\d{2}:\d{2}\]",  # [00:00:00]
+            r"\[\d{2}:\d{2}\]",  # [00:00]
+            r"\d{2}:\d{2}:\d{2}",  # 00:00:00
+            r"\d{2}:\d{2} [AP]M",  # 00:00 AM/PM
         ]
 
         for pattern in timestamp_patterns:
@@ -79,9 +98,9 @@ class TranscriptStructuringService:
 
         # Check if the content has speaker labels
         speaker_patterns = [
-            r'([A-Z][a-z]+):\s',       # Name:
-            r'([A-Z][a-z]+ [A-Z][a-z]+):\s',  # First Last:
-            r'(Interviewer|Interviewee|Participant):\s'  # Role:
+            r"([A-Z][a-z]+):\s",  # Name:
+            r"([A-Z][a-z]+ [A-Z][a-z]+):\s",  # First Last:
+            r"(Interviewer|Interviewee|Participant):\s",  # Role:
         ]
 
         speakers = set()
@@ -92,11 +111,30 @@ class TranscriptStructuringService:
         content_info["has_speaker_labels"] = len(speakers) > 0
         content_info["estimated_speakers"] = len(speakers)
 
+        # Check for multi-interview files
+        multi_interview_patterns = [
+            r"INTERVIEW\s+\d+\s+OF\s+\d+",  # "INTERVIEW 1 OF 25"
+            r"Interview\s+\d+:",  # "Interview 1:"
+            r"INTERVIEW\s+#?\d+",  # "INTERVIEW #1" or "INTERVIEW 1"
+            r"===.*INTERVIEW.*===",  # "=== INTERVIEW 1 ==="
+        ]
+
+        interview_markers = []
+        for pattern in multi_interview_patterns:
+            matches = re.findall(pattern, raw_text, re.IGNORECASE)
+            interview_markers.extend(matches)
+
+        if interview_markers:
+            content_info["is_multi_interview"] = True
+            content_info["interview_count"] = len(interview_markers)
+            logger.info(
+                f"Detected multi-interview file with {len(interview_markers)} interviews: {interview_markers[:3]}..."
+            )
+
         # Check if the content is already structured (e.g., JSON format)
         content_info["is_structured"] = (
-            (raw_text.strip().startswith('{') and raw_text.strip().endswith('}')) or
-            (raw_text.strip().startswith('[') and raw_text.strip().endswith(']'))
-        )
+            raw_text.strip().startswith("{") and raw_text.strip().endswith("}")
+        ) or (raw_text.strip().startswith("[") and raw_text.strip().endswith("]"))
 
         # Estimate content complexity
         word_count = len(raw_text.split())
@@ -108,7 +146,9 @@ class TranscriptStructuringService:
         logger.info(f"Content type detection results: {content_info}")
         return content_info
 
-    async def structure_transcript(self, raw_text: str, filename: str = None) -> List[Dict[str, str]]:
+    async def structure_transcript(
+        self, raw_text: str, filename: str = None
+    ) -> List[Dict[str, str]]:
         """
         Structure a raw interview transcript using LLM.
 
@@ -135,44 +175,78 @@ class TranscriptStructuringService:
 
             # Add special instructions based on content type
             if content_info["is_problem_focused"]:
-                logger.info("Detected problem-focused interview content. Using special handling.")
-                prompt = prompt + "\n\nIMPORTANT: This appears to be a problem-focused interview. Focus on accurately structuring the dialogue without interpreting the content. Ensure the output is a valid JSON array with proper speaker_id, role, and dialogue fields."
+                logger.info(
+                    "Detected problem-focused interview content. Using special handling."
+                )
+                prompt = (
+                    prompt
+                    + "\n\nIMPORTANT: This appears to be a problem-focused interview. Focus on accurately structuring the dialogue without interpreting the content. Ensure the output is a valid JSON array with proper speaker_id, role, and dialogue fields."
+                )
 
             if content_info["has_timestamps"]:
-                logger.info("Detected timestamps in content. Adding special handling instructions.")
-                prompt = prompt + "\n\nNOTE: This transcript contains timestamps. Remember to exclude timestamps from the speaker_id and dialogue fields."
+                logger.info(
+                    "Detected timestamps in content. Adding special handling instructions."
+                )
+                prompt = (
+                    prompt
+                    + "\n\nNOTE: This transcript contains timestamps. Remember to exclude timestamps from the speaker_id and dialogue fields."
+                )
 
             if content_info["content_complexity"] == "high":
-                logger.info("Detected high complexity content. Adding special handling instructions.")
-                prompt = prompt + "\n\nNOTE: This is a complex transcript. Pay special attention to maintaining the correct sequence of dialogue and ensuring all speakers are consistently identified."
+                logger.info(
+                    "Detected high complexity content. Adding special handling instructions."
+                )
+                prompt = (
+                    prompt
+                    + "\n\nNOTE: This is a complex transcript. Pay special attention to maintaining the correct sequence of dialogue and ensuring all speakers are consistently identified."
+                )
+
+            if content_info["is_multi_interview"]:
+                logger.info(
+                    f"Detected multi-interview file with {content_info['interview_count']} interviews. Adding special handling instructions."
+                )
+                prompt = (
+                    prompt
+                    + f"\n\nCRITICAL: This file contains {content_info['interview_count']} SEPARATE INTERVIEWS. Each interview has its own unique participants. "
+                    + "You MUST create unique speaker_id values for each interview to avoid merging different people. "
+                    + "For example, use 'Interviewee_1', 'Interviewee_2', 'Researcher_1', 'Researcher_2', etc. "
+                    + "DO NOT use generic names like 'Interviewee' or 'Researcher' that would merge different people together. "
+                    + "Each interview represents a different person with unique characteristics and responses."
+                )
 
             # Create a response schema using the TranscriptSegment model
             # This helps Gemini understand the expected output structure
             response_schema = {
                 "type": "array",
-                "items": TranscriptSegment.model_json_schema()
+                "items": TranscriptSegment.model_json_schema(),
             }
 
-            logger.info(f"Using response schema for transcript structuring: {response_schema}")
+            logger.info(
+                f"Using response schema for transcript structuring: {response_schema}"
+            )
 
             # Call LLM to structure the transcript with enhanced JSON configuration
-            llm_response = await self.llm_service.analyze({
-                "task": "transcript_structuring",
-                "text": raw_text,
-                "prompt": prompt,
-                "enforce_json": True,  # Crucial for Gemini to output JSON
-                "temperature": 0.0,  # For deterministic structuring
-                "response_mime_type": "application/json",  # Explicitly enforce JSON output
-                "response_schema": response_schema,  # Provide the schema for structured output
-                "content_info": content_info  # Pass content info instead of relying on filename
-            })
+            llm_response = await self.llm_service.analyze(
+                {
+                    "task": "transcript_structuring",
+                    "text": raw_text,
+                    "prompt": prompt,
+                    "enforce_json": True,  # Crucial for Gemini to output JSON
+                    "temperature": 0.0,  # For deterministic structuring
+                    "response_mime_type": "application/json",  # Explicitly enforce JSON output
+                    "response_schema": response_schema,  # Provide the schema for structured output
+                    "content_info": content_info,  # Pass content info instead of relying on filename
+                }
+            )
 
             # Parse the LLM response
             structured_transcript = self._parse_llm_response(llm_response)
 
             # If problem-focused content and still no valid structure, try fallback method
             if content_info["is_problem_focused"] and not structured_transcript:
-                logger.warning("Problem-focused content failed to structure. Trying fallback method.")
+                logger.warning(
+                    "Problem-focused content failed to structure. Trying fallback method."
+                )
                 structured_transcript = self._extract_transcript_manually(raw_text)
 
             # Validate the structured transcript using Pydantic
@@ -185,19 +259,27 @@ class TranscriptStructuringService:
                 except ValidationError as e:
                     logger.warning(f"Validation error for segment: {e}")
                     # Try to fix common issues
-                    if "role" in segment and segment["role"] not in ["Interviewer", "Interviewee", "Participant"]:
+                    if "role" in segment and segment["role"] not in [
+                        "Interviewer",
+                        "Interviewee",
+                        "Participant",
+                    ]:
                         segment["role"] = "Participant"
                         try:
                             validated_segment = TranscriptSegment(**segment)
                             validated_segments.append(validated_segment.model_dump())
                             logger.info(f"Fixed invalid role in segment")
                         except ValidationError:
-                            logger.warning(f"Could not fix segment even after role correction")
+                            logger.warning(
+                                f"Could not fix segment even after role correction"
+                            )
 
             structured_transcript = validated_segments
 
             if structured_transcript:
-                logger.info(f"Successfully structured transcript with {len(structured_transcript)} segments")
+                logger.info(
+                    f"Successfully structured transcript with {len(structured_transcript)} segments"
+                )
                 # Log a sample of the structured transcript
                 if structured_transcript:
                     logger.info(f"Sample segment: {structured_transcript[0]}")
@@ -210,7 +292,9 @@ class TranscriptStructuringService:
             logger.error(f"Error structuring transcript: {str(e)}", exc_info=True)
             return []
 
-    def _parse_llm_response(self, llm_response: Union[str, Dict[str, Any], List[Dict[str, Any]]]) -> List[Dict[str, str]]:
+    def _parse_llm_response(
+        self, llm_response: Union[str, Dict[str, Any], List[Dict[str, Any]]]
+    ) -> List[Dict[str, str]]:
         """
         Parse the LLM response into a structured transcript.
 
@@ -220,7 +304,9 @@ class TranscriptStructuringService:
         Returns:
             List of structured transcript segments
         """
-        logger.info(f"TranscriptStructuringService._parse_llm_response received type: {type(llm_response)}, content (first 500 chars): {str(llm_response)[:500]}")
+        logger.info(
+            f"TranscriptStructuringService._parse_llm_response received type: {type(llm_response)}, content (first 500 chars): {str(llm_response)[:500]}"
+        )
 
         structured_transcript = []
 
@@ -240,11 +326,18 @@ class TranscriptStructuringService:
                 try:
                     # Validate against the StructuredTranscript model
                     validated_transcript = StructuredTranscript(**parsed_data)
-                    logger.info(f"Successfully validated response as StructuredTranscript with {len(validated_transcript.segments)} segments")
+                    logger.info(
+                        f"Successfully validated response as StructuredTranscript with {len(validated_transcript.segments)} segments"
+                    )
                     # Convert to list of dicts for consistency with the rest of the code
-                    return [segment.model_dump() for segment in validated_transcript.segments]
+                    return [
+                        segment.model_dump()
+                        for segment in validated_transcript.segments
+                    ]
                 except ValidationError as e:
-                    logger.warning(f"Response matched StructuredTranscript schema but validation failed: {e}")
+                    logger.warning(
+                        f"Response matched StructuredTranscript schema but validation failed: {e}"
+                    )
                     # Continue with regular parsing
 
             if isinstance(parsed_data, list):
@@ -256,34 +349,62 @@ class TranscriptStructuringService:
                             validated_segment = TranscriptSegment(**item)
                             structured_transcript.append(validated_segment.model_dump())
                         else:
-                            logger.warning(f"Skipping non-dict item in structured transcript: {item}")
+                            logger.warning(
+                                f"Skipping non-dict item in structured transcript: {item}"
+                            )
                     except ValidationError as e:
                         logger.warning(f"Validation error for segment: {e}")
                         # Try to fix common issues before skipping
                         if isinstance(item, dict):
-                            if all(k in item for k in ["speaker_id", "role", "dialogue"]):
+                            if all(
+                                k in item for k in ["speaker_id", "role", "dialogue"]
+                            ):
                                 # Fix role if it's invalid
-                                if item["role"] not in ["Interviewer", "Interviewee", "Participant"]:
+                                if item["role"] not in [
+                                    "Interviewer",
+                                    "Interviewee",
+                                    "Participant",
+                                ]:
                                     item["role"] = "Participant"
                                     try:
                                         validated_segment = TranscriptSegment(**item)
-                                        structured_transcript.append(validated_segment.model_dump())
+                                        structured_transcript.append(
+                                            validated_segment.model_dump()
+                                        )
                                         logger.info(f"Fixed invalid role in segment")
                                     except ValidationError:
-                                        logger.warning(f"Could not fix segment even after role correction")
+                                        logger.warning(
+                                            f"Could not fix segment even after role correction"
+                                        )
                             else:
-                                logger.warning(f"Skipping malformed item in structured transcript: {item}")
+                                logger.warning(
+                                    f"Skipping malformed item in structured transcript: {item}"
+                                )
 
-                if not structured_transcript and parsed_data:  # If all items were malformed but list wasn't empty
-                    logger.error("LLM returned a list, but no items matched the expected structure")
+                if (
+                    not structured_transcript and parsed_data
+                ):  # If all items were malformed but list wasn't empty
+                    logger.error(
+                        "LLM returned a list, but no items matched the expected structure"
+                    )
                     # Try to repair the data if possible
                     structured_transcript = self._repair_transcript_data(parsed_data)
             else:
-                logger.error(f"LLM response for structuring was not a JSON list as expected. Type: {type(parsed_data)}")
+                logger.error(
+                    f"LLM response for structuring was not a JSON list as expected. Type: {type(parsed_data)}"
+                )
                 # Handle cases where it might be a dict with a key containing the list
                 if isinstance(parsed_data, dict):
                     # Check common wrapper keys
-                    for key in ["transcript", "transcript_segments", "segments", "turns", "dialogue", "result", "data"]:
+                    for key in [
+                        "transcript",
+                        "transcript_segments",
+                        "segments",
+                        "turns",
+                        "dialogue",
+                        "result",
+                        "data",
+                    ]:
                         if key in parsed_data and isinstance(parsed_data[key], list):
                             logger.info(f"Found transcript segments under '{key}' key")
                             # Try to validate each item as a TranscriptSegment
@@ -292,22 +413,43 @@ class TranscriptStructuringService:
                                     if isinstance(item, dict):
                                         # Validate against the TranscriptSegment model
                                         validated_segment = TranscriptSegment(**item)
-                                        structured_transcript.append(validated_segment.model_dump())
+                                        structured_transcript.append(
+                                            validated_segment.model_dump()
+                                        )
                                     else:
-                                        logger.warning(f"Skipping non-dict item in structured transcript: {item}")
+                                        logger.warning(
+                                            f"Skipping non-dict item in structured transcript: {item}"
+                                        )
                                 except ValidationError as e:
-                                    logger.warning(f"Validation error for segment under '{key}': {e}")
+                                    logger.warning(
+                                        f"Validation error for segment under '{key}': {e}"
+                                    )
                                     # Try to fix common issues before skipping
-                                    if isinstance(item, dict) and all(k in item for k in ["speaker_id", "role", "dialogue"]):
+                                    if isinstance(item, dict) and all(
+                                        k in item
+                                        for k in ["speaker_id", "role", "dialogue"]
+                                    ):
                                         # Fix role if it's invalid
-                                        if item["role"] not in ["Interviewer", "Interviewee", "Participant"]:
+                                        if item["role"] not in [
+                                            "Interviewer",
+                                            "Interviewee",
+                                            "Participant",
+                                        ]:
                                             item["role"] = "Participant"
                                             try:
-                                                validated_segment = TranscriptSegment(**item)
-                                                structured_transcript.append(validated_segment.model_dump())
-                                                logger.info(f"Fixed invalid role in segment under '{key}'")
+                                                validated_segment = TranscriptSegment(
+                                                    **item
+                                                )
+                                                structured_transcript.append(
+                                                    validated_segment.model_dump()
+                                                )
+                                                logger.info(
+                                                    f"Fixed invalid role in segment under '{key}'"
+                                                )
                                             except ValidationError:
-                                                logger.warning(f"Could not fix segment under '{key}' even after role correction")
+                                                logger.warning(
+                                                    f"Could not fix segment under '{key}' even after role correction"
+                                                )
                             break
 
                     # If still empty, try to repair
@@ -317,10 +459,14 @@ class TranscriptStructuringService:
                             f"Dict keys: {list(parsed_data.keys()) if isinstance(parsed_data, dict) else 'N/A'}. "
                             f"Dict content (first 500 chars): {str(parsed_data)[:500]}"
                         )
-                        structured_transcript = self._repair_transcript_data(parsed_data)
+                        structured_transcript = self._repair_transcript_data(
+                            parsed_data
+                        )
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON from LLM for transcript structuring: {e}")
+            logger.error(
+                f"Failed to decode JSON from LLM for transcript structuring: {e}"
+            )
             logger.debug(f"LLM Raw Response for structuring: {llm_response[:500]}...")
             # Try to extract JSON from markdown code blocks or other formats
             structured_transcript = self._extract_json_from_text(llm_response)
@@ -366,26 +512,38 @@ class TranscriptStructuringService:
                                 break
 
                         if speaker_id and dialogue:  # Role can default if missing
-                            if not role or role not in ["Interviewer", "Interviewee", "Participant"]:
+                            if not role or role not in [
+                                "Interviewer",
+                                "Interviewee",
+                                "Participant",
+                            ]:
                                 role = "Participant"
 
                             # Create a repaired segment
                             repaired_segment = {
                                 "speaker_id": speaker_id,
                                 "role": role,
-                                "dialogue": dialogue
+                                "dialogue": dialogue,
                             }
 
                             # Validate the repaired segment
                             try:
-                                validated_segment = TranscriptSegment(**repaired_segment)
+                                validated_segment = TranscriptSegment(
+                                    **repaired_segment
+                                )
                                 repaired_data.append(validated_segment.model_dump())
-                                logger.info(f"Successfully repaired and validated segment for speaker: {speaker_id}")
+                                logger.info(
+                                    f"Successfully repaired and validated segment for speaker: {speaker_id}"
+                                )
                             except ValidationError as e:
-                                logger.warning(f"Repaired segment failed validation: {e}")
+                                logger.warning(
+                                    f"Repaired segment failed validation: {e}"
+                                )
                                 # Add it anyway as a best effort
                                 repaired_data.append(repaired_segment)
-                                logger.info(f"Added non-validated repaired segment as best effort")
+                                logger.info(
+                                    f"Added non-validated repaired segment as best effort"
+                                )
             elif isinstance(data, dict):
                 # Check if this might be a StructuredTranscript with a different key
                 for segments_key in ["segments", "transcript", "turns", "dialogue"]:
@@ -394,17 +552,30 @@ class TranscriptStructuringService:
                         try:
                             # Create a proper structure
                             structured_data = {"segments": data[segments_key]}
-                            if "metadata" in data and isinstance(data["metadata"], dict):
+                            if "metadata" in data and isinstance(
+                                data["metadata"], dict
+                            ):
                                 structured_data["metadata"] = data["metadata"]
 
                             # Validate
-                            validated_transcript = StructuredTranscript(**structured_data)
-                            logger.info(f"Successfully repaired and validated as StructuredTranscript with {len(validated_transcript.segments)} segments")
-                            return [segment.model_dump() for segment in validated_transcript.segments]
+                            validated_transcript = StructuredTranscript(
+                                **structured_data
+                            )
+                            logger.info(
+                                f"Successfully repaired and validated as StructuredTranscript with {len(validated_transcript.segments)} segments"
+                            )
+                            return [
+                                segment.model_dump()
+                                for segment in validated_transcript.segments
+                            ]
                         except ValidationError:
                             # Try to repair the segments individually
-                            logger.info(f"Found segments under '{segments_key}' but validation failed. Trying to repair segments individually.")
-                            list_repair_result = self._repair_transcript_data(data[segments_key])
+                            logger.info(
+                                f"Found segments under '{segments_key}' but validation failed. Trying to repair segments individually."
+                            )
+                            list_repair_result = self._repair_transcript_data(
+                                data[segments_key]
+                            )
                             if list_repair_result:
                                 return list_repair_result
 
@@ -434,48 +605,72 @@ class TranscriptStructuringService:
         import re
 
         # Try to extract JSON from markdown code blocks
-        json_matches = re.findall(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
-        logger.debug(f"_extract_json_from_text: Found {len(json_matches)} markdown JSON blocks.")
+        json_matches = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
+        logger.debug(
+            f"_extract_json_from_text: Found {len(json_matches)} markdown JSON blocks."
+        )
 
         for i, json_str in enumerate(json_matches):
-            logger.debug(f"_extract_json_from_text: Processing markdown block {i+1}/{len(json_matches)}.")
+            logger.debug(
+                f"_extract_json_from_text: Processing markdown block {i+1}/{len(json_matches)}."
+            )
             try:
                 data = json.loads(json_str)
-                logger.debug(f"_extract_json_from_text: MD block {i+1} initial parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}")
+                logger.debug(
+                    f"_extract_json_from_text: MD block {i+1} initial parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}"
+                )
                 if isinstance(data, list) and len(data) > 0:
                     # Pass the already parsed Python object
                     result = self._parse_llm_response(data)
-                    logger.debug(f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (initial) returned {len(result)} segments.")
+                    logger.debug(
+                        f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (initial) returned {len(result)} segments."
+                    )
                     if result:
-                        logger.info("Successfully extracted JSON from markdown code block")
+                        logger.info(
+                            "Successfully extracted JSON from markdown code block"
+                        )
                         return result
             except json.JSONDecodeError as e_initial:
-                logger.debug(f"_extract_json_from_text: MD block {i+1} initial parse failed: {e_initial}. Attempting repair.")
+                logger.debug(
+                    f"_extract_json_from_text: MD block {i+1} initial parse failed: {e_initial}. Attempting repair."
+                )
                 try:
                     # Fix trailing commas in arrays and objects
-                    fixed_json = re.sub(r',\s*([}\]])', r'\1', json_str)
+                    fixed_json = re.sub(r",\s*([}\]])", r"\1", json_str)
                     # Fix missing quotes around property names
-                    fixed_json = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', fixed_json)
+                    fixed_json = re.sub(
+                        r"([{,]\s*)(\w+)(\s*:)", r'\1"\2"\3', fixed_json
+                    )
                     # Fix single quotes used instead of double quotes
                     fixed_json = fixed_json.replace("'", '"')
                     # Add more specific logging for repair if needed, e.g. logger.debug(f"Repaired JSON string: {fixed_json[:300]}")
 
                     data = json.loads(fixed_json)
-                    logger.debug(f"_extract_json_from_text: MD block {i+1} repaired parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}")
+                    logger.debug(
+                        f"_extract_json_from_text: MD block {i+1} repaired parse success. Type: {type(data)}, Len: {len(data) if isinstance(data, (list,dict)) else 'N/A'}"
+                    )
                     if isinstance(data, list) and len(data) > 0:
                         # Pass the already parsed Python object
                         result = self._parse_llm_response(data)
-                        logger.debug(f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (repaired) returned {len(result)} segments.")
+                        logger.debug(
+                            f"_extract_json_from_text: Recursive _parse_llm_response for MD block {i+1} (repaired) returned {len(result)} segments."
+                        )
                         if result:
-                            logger.info("Successfully extracted JSON from markdown code block after repair")
+                            logger.info(
+                                "Successfully extracted JSON from markdown code block after repair"
+                            )
                             return result
                 except Exception as e_repair:
-                    logger.debug(f"_extract_json_from_text: MD block {i+1} repair/parse failed: {e_repair}")
+                    logger.debug(
+                        f"_extract_json_from_text: MD block {i+1} repair/parse failed: {e_repair}"
+                    )
                     continue
 
         # Try to find JSON array directly
-        logger.debug("_extract_json_from_text: No valid JSON found in markdown blocks. Trying direct array match.")
-        array_matches = re.findall(r'\[\s*{[\s\S]*}\s*\]', text)
+        logger.debug(
+            "_extract_json_from_text: No valid JSON found in markdown blocks. Trying direct array match."
+        )
+        array_matches = re.findall(r"\[\s*{[\s\S]*}\s*\]", text)
         for json_str in array_matches:
             try:
                 data = json.loads(json_str)
@@ -483,15 +678,19 @@ class TranscriptStructuringService:
                     # Validate and process
                     result = self._parse_llm_response(data)
                     if result:
-                        logger.info("Successfully extracted JSON array directly from text")
+                        logger.info(
+                            "Successfully extracted JSON array directly from text"
+                        )
                         return result
             except json.JSONDecodeError:
                 # Try to repair common JSON syntax errors
                 try:
                     # Fix trailing commas in arrays and objects
-                    fixed_json = re.sub(r',\s*([}\]])', r'\1', json_str)
+                    fixed_json = re.sub(r",\s*([}\]])", r"\1", json_str)
                     # Fix missing quotes around property names
-                    fixed_json = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', fixed_json)
+                    fixed_json = re.sub(
+                        r"([{,]\s*)(\w+)(\s*:)", r'\1"\2"\3', fixed_json
+                    )
                     # Fix single quotes used instead of double quotes
                     fixed_json = fixed_json.replace("'", '"')
 
@@ -499,7 +698,9 @@ class TranscriptStructuringService:
                     if isinstance(data, list) and len(data) > 0:
                         result = self._parse_llm_response(data)
                         if result:
-                            logger.info("Successfully extracted JSON array directly from text after repair")
+                            logger.info(
+                                "Successfully extracted JSON array directly from text after repair"
+                            )
                             return result
                 except Exception:
                     continue
@@ -508,9 +709,13 @@ class TranscriptStructuringService:
         try:
             # Use simpler regex patterns to identify speaker turns
             # First try to find "speaker_id": "Name", "role": "Role", "dialogue": "Text" patterns
-            speaker_pattern = re.compile(r'"(?:speaker_id|speaker|name)"\s*:\s*"([^"]+)"', re.IGNORECASE)
+            speaker_pattern = re.compile(
+                r'"(?:speaker_id|speaker|name)"\s*:\s*"([^"]+)"', re.IGNORECASE
+            )
             role_pattern = re.compile(r'"(?:role|type)"\s*:\s*"([^"]+)"', re.IGNORECASE)
-            dialogue_pattern = re.compile(r'"(?:dialogue|text|content)"\s*:\s*"([^"]+)"', re.IGNORECASE)
+            dialogue_pattern = re.compile(
+                r'"(?:dialogue|text|content)"\s*:\s*"([^"]+)"', re.IGNORECASE
+            )
 
             # Find all matches
             speakers = speaker_pattern.findall(text)
@@ -519,7 +724,9 @@ class TranscriptStructuringService:
 
             # If we have at least speakers and dialogues, try to create structured data
             if speakers and dialogues and len(speakers) == len(dialogues):
-                logger.info(f"Found {len(speakers)} potential speaker turns using simple regex patterns")
+                logger.info(
+                    f"Found {len(speakers)} potential speaker turns using simple regex patterns"
+                )
                 structured_data = []
 
                 # If roles list is shorter, pad it with "Participant"
@@ -532,24 +739,34 @@ class TranscriptStructuringService:
                     role = roles[i] if i < len(roles) else "Participant"
 
                     # Validate role
-                    role = role if role in ["Interviewer", "Interviewee", "Participant"] else "Participant"
+                    role = (
+                        role
+                        if role in ["Interviewer", "Interviewee", "Participant"]
+                        else "Participant"
+                    )
 
-                    structured_data.append({
-                        "speaker_id": speaker.strip(),
-                        "role": role.strip(),
-                        "dialogue": dialogue.strip()
-                    })
+                    structured_data.append(
+                        {
+                            "speaker_id": speaker.strip(),
+                            "role": role.strip(),
+                            "dialogue": dialogue.strip(),
+                        }
+                    )
 
                 if structured_data:
-                    logger.info(f"Created {len(structured_data)} structured transcript entries from regex extraction")
+                    logger.info(
+                        f"Created {len(structured_data)} structured transcript entries from regex extraction"
+                    )
                     return structured_data
 
             # If the above approach fails, try a simpler pattern for "Speaker: Text" format
-            simple_pattern = re.compile(r'([^:]+):\s*(.+?)(?=\n[^:]+:|$)', re.DOTALL)
+            simple_pattern = re.compile(r"([^:]+):\s*(.+?)(?=\n[^:]+:|$)", re.DOTALL)
             simple_matches = simple_pattern.findall(text)
 
             if simple_matches:
-                logger.info(f"Found {len(simple_matches)} potential speaker turns using simple Speaker: Text pattern")
+                logger.info(
+                    f"Found {len(simple_matches)} potential speaker turns using simple Speaker: Text pattern"
+                )
                 structured_data = []
 
                 for speaker, dialogue in simple_matches:
@@ -558,14 +775,18 @@ class TranscriptStructuringService:
                     if "interview" in speaker.lower():
                         role = "Interviewer"
 
-                    structured_data.append({
-                        "speaker_id": speaker.strip(),
-                        "role": role,
-                        "dialogue": dialogue.strip()
-                    })
+                    structured_data.append(
+                        {
+                            "speaker_id": speaker.strip(),
+                            "role": role,
+                            "dialogue": dialogue.strip(),
+                        }
+                    )
 
                 if structured_data:
-                    logger.info(f"Created {len(structured_data)} structured transcript entries from simple pattern")
+                    logger.info(
+                        f"Created {len(structured_data)} structured transcript entries from simple pattern"
+                    )
                     return structured_data
 
         except Exception as e:
@@ -574,11 +795,14 @@ class TranscriptStructuringService:
         # As a last resort, try to use a more lenient JSON parser
         try:
             import json5
+
             data = json5.loads(text)
             if isinstance(data, list) and len(data) > 0:
                 result = self._parse_llm_response(data)
                 if result:
-                    logger.info("Successfully parsed text using json5 (lenient JSON parser)")
+                    logger.info(
+                        "Successfully parsed text using json5 (lenient JSON parser)"
+                    )
                     return result
         except ImportError:
             logger.warning("json5 package not available for lenient JSON parsing")
@@ -603,12 +827,18 @@ class TranscriptStructuringService:
 
         try:
             # Detect if this is a transcript with a header section
-            lines = raw_text.split('\n')
+            lines = raw_text.split("\n")
             content_lines = []
 
             # Check for common header patterns
             has_header = False
-            header_keywords = ["transcript", "interview", "conversation", "date:", "attendees:"]
+            header_keywords = [
+                "transcript",
+                "interview",
+                "conversation",
+                "date:",
+                "attendees:",
+            ]
             header_line_count = 0
 
             # Count potential header lines
@@ -619,7 +849,9 @@ class TranscriptStructuringService:
 
             # Skip header lines if detected
             if has_header:
-                logger.info(f"Detected header section with {header_line_count} lines, skipping for content extraction")
+                logger.info(
+                    f"Detected header section with {header_line_count} lines, skipping for content extraction"
+                )
                 content_lines = lines[header_line_count:]
             else:
                 content_lines = lines
@@ -636,17 +868,20 @@ class TranscriptStructuringService:
 
             # Use filtered lines if transcript marker was found, otherwise use content_lines
             if transcript_started:
-                content_text = '\n'.join(filtered_lines)
+                content_text = "\n".join(filtered_lines)
             else:
-                content_text = '\n'.join(content_lines)
+                content_text = "\n".join(content_lines)
 
             # Try different regex patterns for speaker extraction
             # First try the standard "Name: Text" format
-            pattern1 = re.compile(r'([^:]+):\s*(.+?)(?=\n[^:]+:|$)', re.DOTALL)
+            pattern1 = re.compile(r"([^:]+):\s*(.+?)(?=\n[^:]+:|$)", re.DOTALL)
             matches1 = pattern1.findall(content_text)
 
             # Also try timestamp pattern "[00:00:00] Name: Text"
-            pattern2 = re.compile(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([^:]+):\s*(.+?)(?=\n\[?\d{1,2}:\d{2}|$)', re.DOTALL)
+            pattern2 = re.compile(
+                r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([^:]+):\s*(.+?)(?=\n\[?\d{1,2}:\d{2}|$)",
+                re.DOTALL,
+            )
             matches2 = pattern2.findall(content_text)
 
             # Use the pattern that found more matches
@@ -654,7 +889,10 @@ class TranscriptStructuringService:
 
             if not matches:
                 # Try a more lenient pattern for dialogue without clear speaker markers
-                pattern3 = re.compile(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s*[-:])?\s*(.+?)(?=\n[A-Z][a-z]+(?:\s[A-Z][a-z]+)?(?:\s*[-:])?|$)', re.DOTALL)
+                pattern3 = re.compile(
+                    r"([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s*[-:])?\s*(.+?)(?=\n[A-Z][a-z]+(?:\s[A-Z][a-z]+)?(?:\s*[-:])?|$)",
+                    re.DOTALL,
+                )
                 matches = pattern3.findall(content_text)
 
             if matches:
@@ -665,18 +903,20 @@ class TranscriptStructuringService:
                 for speaker, dialogue in matches:
                     speaker_clean = speaker.strip()
                     # Remove timestamps if present
-                    speaker_clean = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', speaker_clean)
+                    speaker_clean = re.sub(
+                        r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_clean
+                    )
 
                     if speaker_clean not in speakers:
                         speakers[speaker_clean] = {
                             "count": 0,
                             "avg_length": 0,
-                            "question_marks": 0
+                            "question_marks": 0,
                         }
 
                     speakers[speaker_clean]["count"] += 1
                     speakers[speaker_clean]["avg_length"] += len(dialogue)
-                    speakers[speaker_clean]["question_marks"] += dialogue.count('?')
+                    speakers[speaker_clean]["question_marks"] += dialogue.count("?")
 
                 # Calculate averages
                 for speaker in speakers:
@@ -689,14 +929,17 @@ class TranscriptStructuringService:
 
                 for speaker in speakers:
                     if speakers[speaker]["count"] > 0:
-                        question_ratio = speakers[speaker]["question_marks"] / speakers[speaker]["count"]
+                        question_ratio = (
+                            speakers[speaker]["question_marks"]
+                            / speakers[speaker]["count"]
+                        )
                         if question_ratio > max_question_ratio:
                             max_question_ratio = question_ratio
                             interviewer = speaker
 
                 # If no clear interviewer found, use the speaker with shortest average responses
                 if not interviewer:
-                    min_length = float('inf')
+                    min_length = float("inf")
                     for speaker in speakers:
                         if speakers[speaker]["avg_length"] < min_length:
                             min_length = speakers[speaker]["avg_length"]
@@ -708,7 +951,9 @@ class TranscriptStructuringService:
                     # Clean up speaker name and dialogue
                     speaker_id = speaker.strip()
                     # Remove timestamps if present
-                    speaker_id = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', speaker_id)
+                    speaker_id = re.sub(
+                        r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_id
+                    )
                     dialogue_text = dialogue.strip()
 
                     # Infer role based on speaker analysis
@@ -721,29 +966,43 @@ class TranscriptStructuringService:
                     segment_data = {
                         "speaker_id": speaker_id,
                         "role": role,
-                        "dialogue": dialogue_text
+                        "dialogue": dialogue_text,
                     }
 
                     # Validate the segment
                     try:
                         validated_segment = TranscriptSegment(**segment_data)
                         structured_data.append(validated_segment.model_dump())
-                        logger.debug(f"Successfully validated manually extracted segment for speaker: {speaker_id}")
+                        logger.debug(
+                            f"Successfully validated manually extracted segment for speaker: {speaker_id}"
+                        )
                     except ValidationError as e:
-                        logger.warning(f"Manually extracted segment failed validation: {e}")
+                        logger.warning(
+                            f"Manually extracted segment failed validation: {e}"
+                        )
                         # Add it anyway as a best effort
                         structured_data.append(segment_data)
-                        logger.info(f"Added non-validated manually extracted segment as best effort")
+                        logger.info(
+                            f"Added non-validated manually extracted segment as best effort"
+                        )
 
-                logger.info(f"Successfully created {len(structured_data)} structured transcript entries manually")
+                logger.info(
+                    f"Successfully created {len(structured_data)} structured transcript entries manually"
+                )
 
                 # Try to create a StructuredTranscript for validation
                 try:
-                    validated_transcript = StructuredTranscript(segments=structured_data)
-                    logger.info(f"Successfully validated manually extracted transcript with {len(validated_transcript.segments)} segments")
+                    validated_transcript = StructuredTranscript(
+                        segments=structured_data
+                    )
+                    logger.info(
+                        f"Successfully validated manually extracted transcript with {len(validated_transcript.segments)} segments"
+                    )
                     # We don't need to return this since we already have the structured_data list
                 except ValidationError as e:
-                    logger.warning(f"Manually extracted transcript failed validation as a whole: {e}")
+                    logger.warning(
+                        f"Manually extracted transcript failed validation as a whole: {e}"
+                    )
             else:
                 logger.warning("Manual extraction failed to find any speaker turns")
         except Exception as e:

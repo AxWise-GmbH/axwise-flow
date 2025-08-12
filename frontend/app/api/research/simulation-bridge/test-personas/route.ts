@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -7,10 +8,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Proxying test personas request to backend');
 
+    // Get authentication token
+    let authToken: string;
+
+    try {
+      const { userId, getToken } = await auth();
+
+      if (userId) {
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Test Personas API: Using Clerk JWT token for authenticated user:', userId);
+        } else {
+          throw new Error('No token available');
+        }
+      } else {
+        throw new Error('No user ID available');
+      }
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+      return NextResponse.json(
+        { error: 'Authentication required for test personas' },
+        { status: 401 }
+      );
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/test-personas`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify(body),
     });

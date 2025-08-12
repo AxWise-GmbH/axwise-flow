@@ -219,6 +219,12 @@ class Theme(BaseModel):
         default=None, description="Relationships to other themes"
     )
 
+    # Stakeholder attribution fields
+    stakeholder_context: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Stakeholder attribution and distribution for this theme",
+    )
+
     # Legacy fields
     count: Optional[int] = Field(
         default=None, description="Legacy field. Use frequency instead."
@@ -274,6 +280,12 @@ class Pattern(BaseModel):
     suggested_actions: Optional[List[str]] = Field(
         None,
         description="Potential next steps or recommendations based on this pattern",
+    )
+
+    # Stakeholder attribution fields (matching Theme model)
+    stakeholder_context: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Stakeholder attribution and distribution for this pattern",
     )
 
     class Config:
@@ -439,6 +451,12 @@ class Persona(BaseModel):
         alias="metadata",  # For backward compatibility
     )
 
+    # Stakeholder attribution fields (matching Theme and Pattern models)
+    stakeholder_mapping: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Stakeholder attribution and mapping for this persona",
+    )
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -525,6 +543,12 @@ class Insight(BaseModel):
     )
     priority: Optional[Literal["High", "Medium", "Low"]] = Field(
         None, description="Indicates urgency/importance of the insight"
+    )
+
+    # Stakeholder attribution fields (matching Theme, Pattern, and Persona models)
+    stakeholder_perspectives: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Stakeholder perspectives and attribution for this insight",
     )
 
     model_config = {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -11,6 +12,41 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Proxying simulation request to backend');
 
+    // Get authentication token
+    let authToken: string;
+
+    try {
+      const { userId, getToken } = await auth();
+
+      if (userId) {
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Simulation API: Using Clerk JWT token for authenticated user:', userId);
+        } else {
+          throw new Error('No token available');
+        }
+      } else {
+        throw new Error('No user ID available');
+      }
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+
+      // In development, use a development token when Clerk auth fails
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const clerkValidationDisabled = process.env.NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED*** 'false';
+
+      if (isDevelopment && clerkValidationDisabled) {
+        authToken = 'DEV_TOKEN_REDACTED';
+        console.log('Simulation API: Using development token due to disabled Clerk validation');
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required for simulation' },
+          { status: 401 }
+        );
+      }
+    }
+
     // Create AbortController for timeout handling
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes timeout
@@ -19,6 +55,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify(body),
       signal: controller.signal,

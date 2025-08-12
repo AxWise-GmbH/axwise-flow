@@ -210,13 +210,17 @@ class SimulationOrchestrator:
             logger.info(f"Config: {request.config}")
 
             # Initialize progress tracking
+            total_personas = self._calculate_total_personas(request)
             progress = SimulationProgress(
                 simulation_id=simulation_id,
                 stage="initializing",
                 progress_percentage=0,
                 current_task="Setting up simulation",
-                total_personas=self._calculate_total_personas(request),
-                total_interviews=self._calculate_total_personas(request),
+                total_people=total_personas,  # Use actual field name
+                total_interviews=total_personas,
+                completed_people=0,  # Use actual field name
+                completed_interviews=0,
+                estimated_time_remaining=self._estimate_simulation_time(request),
             )
             self.active_simulations[simulation_id] = progress
 
@@ -319,6 +323,25 @@ class SimulationOrchestrator:
         try:
             logger.info(f"Starting enhanced simulation: {simulation_id}")
 
+            # Initialize progress tracking
+            total_personas = self._calculate_total_personas(request)
+            progress = SimulationProgress(
+                simulation_id=simulation_id,
+                stage="initializing",
+                progress_percentage=0,
+                current_task="Initializing simulation",
+                total_people=total_personas,  # Use actual field name
+                total_interviews=total_personas,
+                completed_people=0,  # Use actual field name
+                completed_interviews=0,
+                estimated_time_remaining=self._estimate_simulation_time(request),
+            )
+            self.active_simulations[simulation_id] = progress
+            logger.info(
+                f"✅ Initialized progress tracking for simulation: {simulation_id} (Total personas: {total_personas})"
+            )
+            logger.info(f"📊 Active simulations count: {len(self.active_simulations)}")
+
             # Initialize database connection
             async with UnitOfWork(SessionLocal) as uow:
                 simulation_repo = SimulationRepository(uow.session)
@@ -352,6 +375,16 @@ class SimulationOrchestrator:
                 request.business_context,
                 request.config,
             )
+
+            # Update progress with completed personas
+            await self._update_progress_with_counts(
+                simulation_id,
+                "generating_personas",
+                25,
+                f"Generated {len(personas)} AI personas",
+                completed_personas=len(personas),
+            )
+
             logger.info(
                 f"Generated {len(personas)} personas for simulation {simulation_id}"
             )
@@ -371,8 +404,13 @@ class SimulationOrchestrator:
                 ):
                     progress = 30 + int((completed / total) * 40)  # 30-70% range
                     asyncio.create_task(
-                        self._update_progress(
-                            simulation_id, "simulating_interviews", progress, message
+                        self._update_progress_with_counts(
+                            simulation_id,
+                            "simulating_interviews",
+                            progress,
+                            message,
+                            completed_interviews=completed,
+                            failed_interviews=failed,
                         )
                     )
 
@@ -640,8 +678,79 @@ class SimulationOrchestrator:
             progress.stage = stage
             progress.progress_percentage = percentage
             progress.current_task = task
+            progress.estimated_time_remaining = self._calculate_remaining_time(progress)
 
             logger.info(f"Simulation {simulation_id}: {percentage}% - {task}")
+
+    async def _update_progress_with_counts(
+        self,
+        simulation_id: str,
+        stage: str,
+        percentage: int,
+        task: str,
+        completed_personas: int = None,
+        completed_interviews: int = None,
+        failed_interviews: int = 0,
+    ):
+        """Update simulation progress with detailed counts."""
+        if simulation_id in self.active_simulations:
+            progress = self.active_simulations[simulation_id]
+            progress.stage = stage
+            progress.progress_percentage = percentage
+            progress.current_task = task
+
+            if completed_personas is not None:
+                progress.completed_personas = completed_personas
+            if completed_interviews is not None:
+                progress.completed_interviews = completed_interviews
+
+            progress.estimated_time_remaining = self._calculate_remaining_time(progress)
+
+            logger.info(
+                f"Simulation {simulation_id}: {percentage}% - {task} (Personas: {progress.completed_personas}/{progress.total_personas}, Interviews: {progress.completed_interviews}/{progress.total_interviews})"
+            )
+
+    def _estimate_simulation_time(self, request: SimulationRequest) -> int:
+        """Estimate total simulation time in minutes."""
+        total_personas = self._calculate_total_personas(request)
+
+        # Base time estimates (in minutes)
+        persona_generation_time = max(
+            1, total_personas * 0.3
+        )  # ~18 seconds per persona
+        interview_time = max(2, total_personas * 0.8)  # ~48 seconds per interview
+        analysis_time = max(1, total_personas * 0.2)  # ~12 seconds per persona
+        overhead_time = 2  # Setup, formatting, saving
+
+        total_time = (
+            persona_generation_time + interview_time + analysis_time + overhead_time
+        )
+        return int(total_time)
+
+    def _calculate_remaining_time(self, progress: SimulationProgress) -> int:
+        """Calculate estimated remaining time based on current progress."""
+        if progress.progress_percentage >= 100:
+            return 0
+
+        # Estimate based on stage and progress
+        stage_weights = {
+            "initializing": 0.05,
+            "generating_personas": 0.20,
+            "simulating_interviews": 0.60,
+            "generating_insights": 0.10,
+            "formatting_data": 0.03,
+            "creating_files": 0.01,
+            "saving_results": 0.01,
+        }
+
+        current_weight = stage_weights.get(progress.stage, 0.1)
+        remaining_percentage = (100 - progress.progress_percentage) / 100
+
+        # Base estimate: 2-5 minutes for typical simulation
+        base_time = max(2, progress.total_personas * 0.15)
+        remaining_time = int(base_time * remaining_percentage)
+
+        return max(1, remaining_time)
 
     def get_simulation_progress(
         self, simulation_id: str
