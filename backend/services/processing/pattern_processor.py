@@ -56,7 +56,8 @@ class PatternProcessor(IProcessor):
             # Set API key in environment for PydanticAI
             import os
 
-            os.environ["GEMINI_API_KEY"] = api_key
+            if api_key:
+                os.environ["GEMINI_API_KEY"] = api_key
             self.model = GeminiModel("gemini-2.5-flash")
             self.pattern_agent = Agent(
                 model=self.model,

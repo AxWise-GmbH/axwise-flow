@@ -34,6 +34,11 @@ from .persona_builder import PersonaBuilder, persona_to_dict, Persona
 from .prompts import PromptGenerator
 from .evidence_linking_service import EvidenceLinkingService
 from .trait_formatting_service import TraitFormattingService
+from backend.utils.content_deduplication import deduplicate_persona_list
+from backend.utils.pydantic_ai_retry import (
+    safe_pydantic_ai_call,
+    get_conservative_retry_config,
+)
 
 # Import LLM interface
 try:
@@ -380,7 +385,14 @@ OUTPUT FORMAT: Return a complete Persona object with ALL PersonaTrait fields pro
 
             logger.info(f"[form_personas] Returning {len(personas)} personas.")
             # Convert Persona objects to dictionaries before returning
-            return [persona_to_dict(p) for p in personas]
+            persona_dicts = [persona_to_dict(p) for p in personas]
+
+            # CONTENT DEDUPLICATION: Remove repetitive patterns from persona content
+            logger.info("[form_personas] 🧹 Deduplicating persona content...")
+            deduplicated_personas = deduplicate_persona_list(persona_dicts)
+            logger.info(f"[form_personas] ✅ Content deduplication completed")
+
+            return deduplicated_personas
 
         except Exception as e:
             logger.error(f"Error creating personas: {str(e)}", exc_info=True)
@@ -779,9 +791,16 @@ OUTPUT FORMAT: Return a complete Persona object with ALL PersonaTrait fields pro
                 f"[PERSONA_FORMATION_DEBUG] 🎯 FINAL RESULT: Returning {len(personas)} personas from transcript with {len(sorted_speakers)} speakers"
             )
 
+            # CONTENT DEDUPLICATION: Remove repetitive patterns from persona content
+            logger.info("[PERSONA_FORMATION_DEBUG] 🧹 Deduplicating persona content...")
+            deduplicated_personas = deduplicate_persona_list(personas)
+            logger.info(f"[PERSONA_FORMATION_DEBUG] ✅ Content deduplication completed")
+
             # Log summary of generated personas
-            if personas:
-                persona_names = [p.get("name", "Unknown") for p in personas]
+            if deduplicated_personas:
+                persona_names = [
+                    p.get("name", "Unknown") for p in deduplicated_personas
+                ]
                 logger.info(
                     f"[PERSONA_FORMATION_DEBUG] Generated persona names: {persona_names}"
                 )
@@ -790,7 +809,7 @@ OUTPUT FORMAT: Return a complete Persona object with ALL PersonaTrait fields pro
                     f"[PERSONA_FORMATION_DEBUG] ⚠️ No personas were generated despite having {len(sorted_speakers)} speakers"
                 )
 
-            return personas
+            return deduplicated_personas
 
         except Exception as e:
             logger.error(
@@ -904,9 +923,19 @@ Please analyze this speaker's content and generate a comprehensive persona based
                     f"[PYDANTIC_AI] Calling PydanticAI persona agent for {speaker} ({content_size:,} chars)"
                 )
 
-                # Use temperature 0 for consistent structured output
-                persona_result = await self.persona_agent.run(
-                    analysis_prompt, model_settings={"temperature": 0.0}
+                # Use temperature 0 for consistent structured output with retry logic
+                retry_config = get_conservative_retry_config()
+
+                async def make_persona_call():
+                    return await self.persona_agent.run(
+                        analysis_prompt, model_settings={"temperature": 0.0}
+                    )
+
+                persona_result = await safe_pydantic_ai_call(
+                    agent=self.persona_agent,
+                    prompt=analysis_prompt,
+                    context=f"Persona generation for {speaker} (#{persona_number})",
+                    retry_config=retry_config,
                 )
 
                 logger.info(
@@ -914,7 +943,8 @@ Please analyze this speaker's content and generate a comprehensive persona based
                 )
 
                 # Extract the Pydantic model from the result (using new API)
-                persona_model = persona_result.output
+                # PydanticAI returns the model directly, not wrapped in .output
+                persona_model = persona_result
                 logger.info(
                     f"[PYDANTIC_AI] Extracted persona model for {speaker}: {persona_model.name}"
                 )
@@ -1198,9 +1228,13 @@ DETAILED PROMPT:
 
 Please analyze these patterns and generate a comprehensive persona based on the evidence provided. Focus on authentic characteristics, genuine behavioral patterns, and realistic traits derived from the pattern analysis."""
 
-                    # Use PydanticAI agent for pattern-based persona formation
-                    persona_result = await self.persona_agent.run(
-                        analysis_prompt, model_settings={"temperature": 0.0}
+                    # Use PydanticAI agent for pattern-based persona formation with retry logic
+                    retry_config = get_conservative_retry_config()
+                    persona_result = await safe_pydantic_ai_call(
+                        agent=self.persona_agent,
+                        prompt=analysis_prompt,
+                        context=f"Pattern-based persona generation for {pattern.get('name', 'Unknown')}",
+                        retry_config=retry_config,
                     )
 
                     logger.info(

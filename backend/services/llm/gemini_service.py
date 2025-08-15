@@ -25,9 +25,9 @@ from backend.utils.json.json_repair import (
     parse_json_safely,
     parse_json_array_safely,
 )
-from backend.utils.json.instructor_parser import (
-    parse_json_with_instructor,
-    parse_llm_json_response_with_instructor,
+from backend.utils.json.pydantic_parser import (
+    parse_json_with_pydantic,
+    parse_llm_json_response_with_pydantic,
 )
 from domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
@@ -1426,18 +1426,18 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                             else:
                                 parsed_response = {}
                     else:
-                        # For other tasks, use the Instructor-based parser
+                        # For other tasks, use the PydanticAI-based parser
                         logger.info(
-                            f"[{task}] Attempting to parse JSON with Instructor"
+                            f"[{task}] Attempting to parse JSON with PydanticAI"
                         )
-                        parsed_response = parse_json_with_instructor(
+                        parsed_response = parse_json_with_pydantic(
                             text_response,
                             context=f"GeminiService.analyze for task '{task}'",
                         )
 
                     # Log the parsed response structure
                     logger.info(
-                        f"Successfully parsed JSON response for task '{task}' with Instructor. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}"
+                        f"Successfully parsed JSON response for task '{task}' with PydanticAI. Keys: {list(parsed_response.keys()) if isinstance(parsed_response, dict) else 'array with ' + str(len(parsed_response)) + ' items'}"
                     )
 
                     # Check if the parsed JSON is an error object from the LLM
@@ -1465,10 +1465,10 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                     result = parsed_response
                 except Exception as e:
                     logger.error(
-                        f"Failed to parse JSON response with Instructor for task '{task}': {e}. Response: {text_response[:500]}"
+                        f"Failed to parse JSON response with PydanticAI for task '{task}': {e}. Response: {text_response[:500]}"
                     )
                     logger.warning(
-                        f"[{task}] Instructor-based JSON parsing failed. Falling back to legacy parsers..."
+                        f"[{task}] PydanticAI-based JSON parsing failed. Falling back to legacy parsers..."
                     )
                     try:
                         # Try direct JSON parsing first
@@ -1611,16 +1611,16 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                         f"[{task}] Attempting JSON parse for an expected JSON task in non-JSON response path."
                     )
                     try:
-                        # First try using the Instructor-based parser
+                        # First try using the PydanticAI-based parser
                         logger.info(
-                            f"[{task}] Attempting to parse JSON with Instructor in non-JSON path"
+                            f"[{task}] Attempting to parse JSON with PydanticAI in non-JSON path"
                         )
-                        result = parse_json_with_instructor(
+                        result = parse_json_with_pydantic(
                             text_response,
                             context=f"GeminiService.analyze non-JSON path for task '{task}'",
                         )
                         logger.info(
-                            f"[{task}] Successfully parsed JSON in non-JSON path with Instructor."
+                            f"[{task}] Successfully parsed JSON in non-JSON path with PydanticAI."
                         )
 
                         # Check if the parsed JSON is an error object from the LLM
@@ -1648,10 +1648,10 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                         return result
                     except Exception as e:
                         logger.error(
-                            f"Failed to parse JSON with Instructor in non-JSON path for task '{task}': {e}. Response: {text_response[:500]}"
+                            f"Failed to parse JSON with PydanticAI in non-JSON path for task '{task}': {e}. Response: {text_response[:500]}"
                         )
                         logger.warning(
-                            f"[{task}] Instructor-based JSON parsing failed in non-JSON path. Falling back to legacy parsers..."
+                            f"[{task}] PydanticAI-based JSON parsing failed in non-JSON path. Falling back to legacy parsers..."
                         )
                         try:
                             # Try direct JSON parsing

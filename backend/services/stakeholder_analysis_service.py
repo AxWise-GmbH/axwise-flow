@@ -64,6 +64,11 @@ from backend.utils.persona_utils import (
     normalize_persona_list,
     normalize_persona_to_dict,
 )
+from backend.utils.pydantic_ai_retry import (
+    safe_pydantic_ai_call,
+    PydanticAIFallbackHandler,
+    get_conservative_retry_config,
+)
 
 # PHASE 2: PydanticAI Integration for Real Cross-Stakeholder Analysis
 from pydantic_ai import Agent
@@ -1730,11 +1735,17 @@ Base your analysis on the actual theme content and stakeholder profiles provided
             # Set stakeholder context (works for both objects and dicts)
             if hasattr(enhanced_theme, "__setattr__"):
                 enhanced_theme.stakeholder_context = stakeholder_context
+                enhanced_theme.stakeholder_attribution = (
+                    stakeholder_attribution  # Direct attribution access
+                )
                 logger.info(
                     f"Added stakeholder_context to theme object: {getattr(enhanced_theme, 'name', 'Unknown')}"
                 )
             else:
                 enhanced_theme["stakeholder_context"] = stakeholder_context
+                enhanced_theme["stakeholder_attribution"] = (
+                    stakeholder_attribution  # Direct attribution access
+                )
                 logger.info(
                     f"Added stakeholder_context to theme dict: {enhanced_theme.get('name', 'Unknown')}"
                 )
@@ -1838,8 +1849,14 @@ Base your analysis on the actual theme content and stakeholder profiles provided
             # Set stakeholder context (works for both objects and dicts)
             if hasattr(enhanced_theme, "__setattr__"):
                 enhanced_theme.stakeholder_context = stakeholder_context
+                enhanced_theme.stakeholder_attribution = (
+                    stakeholder_attribution  # Direct attribution access
+                )
             else:
                 enhanced_theme["stakeholder_context"] = stakeholder_context
+                enhanced_theme["stakeholder_attribution"] = (
+                    stakeholder_attribution  # Direct attribution access
+                )
 
             enhanced_themes.append(enhanced_theme)
 
@@ -1892,14 +1909,14 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 f"[PERFORMANCE] Running LLM attribution analysis for theme {theme_number}..."
             )
 
-            # Use PydanticAI agent to analyze theme attribution
-            attribution_result = await self.theme_agent.run(theme_context)
-
-            # Extract the attribution from the result
-            if hasattr(attribution_result, "output"):
-                theme_attribution = attribution_result.output
-            else:
-                theme_attribution = attribution_result
+            # Use PydanticAI agent with retry logic for MALFORMED_FUNCTION_CALL errors
+            retry_config = get_conservative_retry_config()
+            theme_attribution = await safe_pydantic_ai_call(
+                agent=self.theme_agent,
+                prompt=theme_context,
+                context=f"Theme {theme_number} attribution",
+                retry_config=retry_config,
+            )
 
             logger.info(
                 f"[PERFORMANCE] ✅ Theme {theme_number} attribution analysis completed successfully!"
@@ -1926,8 +1943,17 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 f"[PERFORMANCE] Full error traceback for theme {theme_number}:",
                 exc_info=True,
             )
-            # Fallback to basic attribution
-            return self._create_basic_theme_attribution(theme, stakeholder_map)
+            # Use enhanced fallback handler for MALFORMED_FUNCTION_CALL errors
+            if "MALFORMED_FUNCTION_CALL" in str(e):
+                logger.warning(
+                    f"[PERFORMANCE] Using enhanced fallback for MALFORMED_FUNCTION_CALL error"
+                )
+                return PydanticAIFallbackHandler.create_fallback_theme_attribution(
+                    theme, stakeholder_map
+                )
+            else:
+                # Fallback to basic attribution for other errors
+                return self._create_basic_theme_attribution(theme, stakeholder_map)
 
     def _prepare_theme_attribution_context_parallel(
         self,
@@ -2023,7 +2049,11 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 pattern, stakeholder_map, files
             )
 
+            # Set both stakeholder_context and stakeholder_attribution for patterns
             enhanced_pattern.stakeholder_context = stakeholder_context
+            enhanced_pattern.stakeholder_attribution = (
+                stakeholder_context  # Direct attribution access
+            )
             enhanced_patterns.append(enhanced_pattern)
 
         return enhanced_patterns
