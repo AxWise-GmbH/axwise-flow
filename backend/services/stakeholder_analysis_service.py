@@ -59,6 +59,11 @@ from backend.schemas import (
 from backend.models.stakeholder_models import StakeholderDetector
 from backend.services.llm.unified_llm_client import UnifiedLLMClient
 from backend.services.processing.persona_builder import persona_to_dict
+from backend.utils.persona_utils import (
+    safe_persona_access,
+    normalize_persona_list,
+    normalize_persona_to_dict,
+)
 
 # PHASE 2: PydanticAI Integration for Real Cross-Stakeholder Analysis
 from pydantic_ai import Agent
@@ -279,12 +284,9 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                         logger.info(
                             f"[STAKEHOLDER_SERVICE_DEBUG] Processing persona {i+1}, type: {type(persona)}"
                         )
-                        if isinstance(persona, dict):
-                            persona_name = persona.get("name", f"Unnamed_Persona_{i+1}")
-                        else:
-                            persona_name = getattr(
-                                persona, "name", f"Unnamed_Persona_{i+1}"
-                            )
+                        persona_name = safe_persona_access(
+                            persona, "name", f"Unnamed_Persona_{i+1}"
+                        )
                         logger.info(
                             f"[STAKEHOLDER_SERVICE_DEBUG] - Persona {i+1}: {persona_name}"
                         )
@@ -313,65 +315,28 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 # Convert personas to stakeholders for cross-stakeholder analysis
                 persona_stakeholders = []
                 for i, persona in enumerate(existing_personas):
-                    # Handle both dict and object persona formats
-                    if isinstance(persona, dict):
-                        persona_name = persona.get("name", f"Persona_{i+1}")
-                        persona_role = (
-                            persona.get("role_context", {}).get("value", "")
-                            if isinstance(persona.get("role_context"), dict)
-                            else str(persona.get("role_context", ""))
-                        )
-                        persona_archetype = (
-                            persona.get("archetype", {}).get("value", "")
-                            if isinstance(persona.get("archetype"), dict)
-                            else str(persona.get("archetype", ""))
-                        )
-                        persona_description = persona.get("description", "")
+                    # Use universal persona accessor for type compatibility
+                    persona_name = safe_persona_access(
+                        persona, "name", f"Persona_{i+1}"
+                    )
+
+                    # Handle role_context field (can be dict with 'value' key or direct string)
+                    role_context = safe_persona_access(persona, "role_context", "")
+                    if isinstance(role_context, dict):
+                        persona_role = role_context.get("value", "")
                     else:
-                        # Handle object format (Pydantic model or database object)
-                        persona_name = getattr(persona, "name", f"Persona_{i+1}")
-                        persona_role_obj = getattr(persona, "role_context", "")
-                        if isinstance(persona_role_obj, dict):
-                            persona_role = persona_role_obj.get("value", "")
-                        elif isinstance(persona_role_obj, str) and persona_role_obj:
-                            try:
-                                parsed_role = json.loads(persona_role_obj)
-                                persona_role = (
-                                    parsed_role.get("value", "")
-                                    if isinstance(parsed_role, dict)
-                                    else str(persona_role_obj)
-                                )
-                            except (json.JSONDecodeError, TypeError):
-                                persona_role = str(persona_role_obj)
-                        else:
-                            persona_role = (
-                                str(persona_role_obj) if persona_role_obj else ""
-                            )
+                        persona_role = str(role_context) if role_context else ""
 
-                        persona_archetype_obj = getattr(persona, "archetype", "")
-                        if isinstance(persona_archetype_obj, dict):
-                            persona_archetype = persona_archetype_obj.get("value", "")
-                        elif (
-                            isinstance(persona_archetype_obj, str)
-                            and persona_archetype_obj
-                        ):
-                            try:
-                                parsed_archetype = json.loads(persona_archetype_obj)
-                                persona_archetype = (
-                                    parsed_archetype.get("value", "")
-                                    if isinstance(parsed_archetype, dict)
-                                    else str(persona_archetype_obj)
-                                )
-                            except (json.JSONDecodeError, TypeError):
-                                persona_archetype = str(persona_archetype_obj)
-                        else:
-                            persona_archetype = (
-                                str(persona_archetype_obj)
-                                if persona_archetype_obj
-                                else ""
-                            )
+                    # Handle archetype field (can be dict with 'value' key or direct string)
+                    archetype = safe_persona_access(persona, "archetype", "")
+                    if isinstance(archetype, dict):
+                        persona_archetype = archetype.get("value", "")
+                    else:
+                        persona_archetype = str(archetype) if archetype else ""
 
-                        persona_description = getattr(persona, "description", "")
+                    persona_description = safe_persona_access(
+                        persona, "description", ""
+                    )
 
                     stakeholder_id = persona_name.replace(" ", "_")
 
@@ -469,10 +434,8 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                     persona_stakeholder = {
                         "stakeholder_id": stakeholder_id,
                         "stakeholder_type": stakeholder_type,
-                        "confidence_score": (
-                            persona.get("overall_confidence", 0.8)
-                            if isinstance(persona, dict)
-                            else getattr(persona, "overall_confidence", 0.8)
+                        "confidence_score": safe_persona_access(
+                            persona, "overall_confidence", 0.8
                         ),
                         "demographic_profile": {
                             "description": persona_description,
@@ -528,7 +491,10 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                         "persona_based": True,
                         "stakeholder_count": len(persona_stakeholders),
                         "source": "existing_personas_from_persona_formation",
-                        "persona_names": [p["name"] for p in existing_personas],
+                        "persona_names": [
+                            safe_persona_access(p, "name", "Unknown")
+                            for p in existing_personas
+                        ],
                         "stakeholder_type_mapping": {
                             p["stakeholder_id"]: p["stakeholder_type"]
                             for p in persona_stakeholders
@@ -2335,11 +2301,7 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 }
 
                 # Safe access to persona name for logging
-                persona_name = (
-                    detailed_persona.get("name", "Unknown")
-                    if isinstance(detailed_persona, dict)
-                    else getattr(detailed_persona, "name", "Unknown")
-                )
+                persona_name = safe_persona_access(detailed_persona, "name", "Unknown")
                 logger.info(
                     f"[PERSONA_DEBUG] Successfully created detailed persona for {stakeholder.stakeholder_id}: name='{persona_name}'"
                 )
@@ -2410,11 +2372,10 @@ Base your analysis on the actual theme content and stakeholder profiles provided
                 persona, stakeholder_map
             )
 
-            # Handle both dict and object formats for setting stakeholder mapping
-            if isinstance(enhanced_persona, dict):
-                enhanced_persona["stakeholder_mapping"] = stakeholder_mapping
-            else:
-                enhanced_persona.stakeholder_mapping = stakeholder_mapping
+            # Ensure enhanced_persona is a dictionary for consistent handling
+            if not isinstance(enhanced_persona, dict):
+                enhanced_persona = normalize_persona_to_dict(enhanced_persona)
+            enhanced_persona["stakeholder_mapping"] = stakeholder_mapping
 
             enhanced_personas.append(enhanced_persona)
 
@@ -2641,26 +2602,13 @@ Base your analysis on the actual theme content and stakeholder profiles provided
         # Create enhanced persona from stakeholder data
         enhanced_persona = self._create_enhanced_persona_from_stakeholder(stakeholder)
 
-        # Add performance metadata - handle both dict and object formats
-        if isinstance(enhanced_persona, dict):
-            enhanced_persona["processing_method"] = "parallel"
-            enhanced_persona["persona_number"] = persona_number
-            enhanced_persona["content_length"] = len(content)
-        else:
-            # For object format, convert to dict first
-            enhanced_persona = persona_to_dict(enhanced_persona)
-            # Ensure conversion was successful
-            if not isinstance(enhanced_persona, dict):
-                logger.error(
-                    f"Failed to convert enhanced persona to dict: {type(enhanced_persona)}"
-                )
-                enhanced_persona = {
-                    "name": "Unknown",
-                    "description": "Conversion failed",
-                }
-            enhanced_persona["processing_method"] = "parallel"
-            enhanced_persona["persona_number"] = persona_number
-            enhanced_persona["content_length"] = len(content)
+        # Ensure enhanced_persona is a dictionary and add performance metadata
+        if not isinstance(enhanced_persona, dict):
+            enhanced_persona = normalize_persona_to_dict(enhanced_persona)
+
+        enhanced_persona["processing_method"] = "parallel"
+        enhanced_persona["persona_number"] = persona_number
+        enhanced_persona["content_length"] = len(content)
 
         logger.info(
             f"[PERFORMANCE] Enhanced persona generated for {stakeholder.stakeholder_id}"

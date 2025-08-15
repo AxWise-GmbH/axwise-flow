@@ -2,18 +2,26 @@
 Pattern processor module for generating and processing patterns.
 
 This module provides a processor for generating patterns from text data
-using the Instructor library with Pydantic models for structured outputs.
+using PydanticAI with Pydantic models for structured outputs.
 """
 
 import logging
+import asyncio
+import os
 from typing import Dict, Any, List, Optional, Union
 
 from backend.models.pattern import Pattern, PatternResponse
-from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
 from backend.services.llm.prompts.tasks.pattern_recognition import (
     PatternRecognitionPrompts,
 )
 from domain.pipeline.processor import IProcessor
+
+# PydanticAI imports
+from pydantic_ai import Agent
+from pydantic_ai.models.gemini import GeminiModel
+
+# Import constants for API key
+from infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +30,50 @@ class PatternProcessor(IProcessor):
     """
     Processor for generating patterns from text data.
 
-    This processor uses the Instructor library with Pydantic models to generate
+    This processor uses PydanticAI with Pydantic models to generate
     structured pattern data from text.
     """
 
-    def __init__(self, instructor_client: Optional[InstructorGeminiClient] = None):
+    def __init__(self, llm_service=None):
         """
         Initialize the pattern processor.
 
         Args:
-            instructor_client: Optional InstructorGeminiClient instance
+            llm_service: Optional LLM service instance (for compatibility)
         """
-        self._instructor_client = instructor_client or InstructorGeminiClient()
-        logger.info("Initialized PatternProcessor")
+        # Initialize PydanticAI agent for pattern recognition
+        try:
+            # Get API key from environment
+            api_key = os.getenv(ENV_GEMINI_API_KEY)
+            if not api_key:
+                logger.warning(
+                    f"No API key found in environment variable {ENV_GEMINI_API_KEY}"
+                )
+                self.pydantic_ai_available = False
+                self.pattern_agent = None
+                return
+
+            # Set API key in environment for PydanticAI
+            import os
+
+            os.environ["GEMINI_API_KEY"] = api_key
+            self.model = GeminiModel("gemini-2.5-flash")
+            self.pattern_agent = Agent(
+                model=self.model,
+                result_type=PatternResponse,
+                system_prompt=(
+                    "You are an expert behavioral analyst specializing in identifying patterns "
+                    "in user research data. Focus on extracting clear, specific patterns of behavior "
+                    "that appear multiple times in the text. "
+                    "Generate 3-7 distinct patterns with detailed evidence and actionable insights."
+                ),
+            )
+            self.pydantic_ai_available = True
+            logger.info("Initialized PatternProcessor with PydanticAI")
+        except Exception as e:
+            logger.error(f"Failed to initialize PydanticAI for PatternProcessor: {e}")
+            self.pydantic_ai_available = False
+            self.pattern_agent = None
 
     @property
     def name(self) -> str:
@@ -44,12 +83,12 @@ class PatternProcessor(IProcessor):
     @property
     def description(self) -> str:
         """Get the description of the processor."""
-        return "Generates patterns from text data using Instructor"
+        return "Generates patterns from text data using PydanticAI"
 
     @property
     def version(self) -> str:
         """Get the version of the processor."""
-        return "1.0.0"
+        return "2.0.0"
 
     def supports_input_type(self, input_type: Any) -> bool:
         """Check if the processor supports the given input type."""
@@ -84,27 +123,34 @@ class PatternProcessor(IProcessor):
         # Extract industry from context or data
         industry = context.get("industry") or self._extract_industry(data)
 
-        # Generate patterns using Instructor
-        try:
-            patterns = await self._generate_patterns_with_instructor(text, industry)
-            logger.info(f"Generated {len(patterns.patterns)} patterns using Instructor")
-            return patterns
-        except Exception as e:
-            logger.error(f"Error generating patterns with Instructor: {str(e)}")
-
-            # Fallback to generating patterns from themes if available
-            if "themes" in context:
-                logger.info("Falling back to generating patterns from themes")
-                patterns = await self._generate_patterns_from_themes(
-                    context["themes"], text
+        # Generate patterns using PydanticAI
+        if self.pydantic_ai_available:
+            try:
+                patterns = await self._generate_patterns_with_pydantic_ai(
+                    text, industry, context.get("themes")
                 )
-                return PatternResponse(patterns=patterns)
+                logger.info(
+                    f"Generated {len(patterns.patterns)} patterns using PydanticAI"
+                )
+                return patterns
+            except Exception as e:
+                logger.error(f"Error generating patterns with PydanticAI: {str(e)}")
+        else:
+            logger.warning("PydanticAI not available for pattern generation")
 
-            # Return empty patterns if all else fails
-            logger.warning(
-                "All pattern generation methods failed, returning empty patterns"
+        # Fallback to generating patterns from themes if available
+        if "themes" in context:
+            logger.info("Falling back to generating patterns from themes")
+            patterns = await self._generate_patterns_from_themes(
+                context["themes"], text
             )
-            return PatternResponse(patterns=[])
+            return PatternResponse(patterns=patterns)
+
+        # Return empty patterns if all else fails
+        logger.warning(
+            "All pattern generation methods failed, returning empty patterns"
+        )
+        return PatternResponse(patterns=[])
 
     def _extract_text(self, data: Any) -> str:
         """
@@ -152,15 +198,19 @@ class PatternProcessor(IProcessor):
 
         return None
 
-    async def _generate_patterns_with_instructor(
-        self, text: str, industry: Optional[str] = None
+    async def _generate_patterns_with_pydantic_ai(
+        self,
+        text: str,
+        industry: Optional[str] = None,
+        themes: Optional[List[Dict[str, Any]]] = None,
     ) -> PatternResponse:
         """
-        Generate patterns using the Instructor library.
+        Generate patterns using PydanticAI.
 
         Args:
             text: The text to analyze
             industry: Optional industry context
+            themes: Optional themes to inform pattern generation
 
         Returns:
             PatternResponse object containing the generated patterns
@@ -173,42 +223,54 @@ class PatternProcessor(IProcessor):
         # Get the appropriate prompt
         prompt = PatternRecognitionPrompts.get_prompt(prompt_data)
 
-        # Create system instruction
-        system_instruction = (
-            "You are an expert behavioral analyst specializing in identifying patterns "
-            "in user research data. Focus on extracting clear, specific patterns of behavior "
-            "that appear multiple times in the text."
-        )
+        # Add themes context if available
+        if themes:
+            themes_context = "\n\nExisting themes to consider:\n"
+            for theme in themes[:5]:  # Limit to top 5 themes
+                theme_name = theme.get("name", "Unknown")
+                theme_def = theme.get("definition", "No definition")
+                themes_context += f"- {theme_name}: {theme_def}\n"
+            prompt += themes_context
 
-        # Generate patterns with Instructor
+        # Generate patterns with PydanticAI
         try:
-            response = await self._instructor_client.generate_with_model_async(
-                prompt=prompt,
-                model_class=PatternResponse,
-                temperature=0.0,  # Use deterministic output for structured data
-                system_instruction=system_instruction,
-                max_output_tokens=65536,  # Use large token limit for detailed patterns
-            )
+            logger.info("Generating patterns with PydanticAI agent")
+            response = await self.pattern_agent.run(prompt)
 
-            return response
-        except Exception as e:
-            logger.error(f"Error in primary pattern generation: {str(e)}")
-
-            # Try again with more strict settings
-            try:
-                logger.info("Retrying pattern generation with more strict settings")
-                response = await self._instructor_client.generate_with_model_async(
-                    prompt=prompt,
-                    model_class=PatternResponse,
-                    temperature=0.0,
-                    system_instruction=system_instruction
-                    + "\nYou MUST output valid JSON that conforms to the schema.",
-                    max_output_tokens=65536,
-                    top_p=1.0,
-                    top_k=1,
+            # PydanticAI returns the result directly
+            if isinstance(response.data, PatternResponse):
+                return response.data
+            else:
+                # If for some reason we get a different format, try to convert
+                logger.warning(
+                    f"Unexpected response type from PydanticAI: {type(response.data)}"
                 )
+                if hasattr(response.data, "patterns"):
+                    return PatternResponse(patterns=response.data.patterns)
+                else:
+                    return PatternResponse(patterns=[])
 
-                return response
+        except Exception as e:
+            logger.error(f"Error in PydanticAI pattern generation: {str(e)}")
+
+            # Try with a simpler prompt as fallback
+            try:
+                logger.info("Retrying pattern generation with simplified prompt")
+                simple_prompt = f"""
+                Analyze the following text and identify 3-5 behavioral patterns:
+
+                {text[:2000]}...
+
+                Focus on recurring behaviors, workflows, or approaches that appear multiple times.
+                """
+
+                response = await self.pattern_agent.run(simple_prompt)
+
+                if isinstance(response.data, PatternResponse):
+                    return response.data
+                else:
+                    return PatternResponse(patterns=[])
+
             except Exception as e2:
                 logger.error(f"Error in retry pattern generation: {str(e2)}")
                 raise

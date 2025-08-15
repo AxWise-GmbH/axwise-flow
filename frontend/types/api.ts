@@ -241,10 +241,7 @@ export type Persona = {
   skills_and_expertise?: PersonaTrait;
   workflow_and_environment?: PersonaTrait;
   challenges_and_frustrations?: PersonaTrait;
-  needs_and_desires?: PersonaTrait;
   technology_and_tools?: PersonaTrait;
-  attitude_towards_research?: PersonaTrait;
-  attitude_towards_ai?: PersonaTrait;
   key_quotes?: PersonaTrait;
 
   // Legacy fields

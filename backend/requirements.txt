@@ -33,6 +33,7 @@ anthropic>=0.25.0  # Required by instructor library (even for Gemini usage)
 instructor>=1.9.0  # For structured outputs from LLMs (requires from_genai method for google-genai)
 jsonref>=1.1.0  # Required by instructor for JSON schema processing
 langgraph>=0.0.55  # State machine workflow for LLM applications
+langextract>=1.0.6  # For reliable structured extraction with Gemini (replaces PydanticAI for persona generation)
 
 # Data processing
 python-dotenv==1.0.1

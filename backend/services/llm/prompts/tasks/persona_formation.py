@@ -114,11 +114,8 @@ class PersonaFormationPrompts:
         12. analysis_approach: Methods used for problem-solving, decision-making, and evaluating information
         13. challenges_and_frustrations: Pain points, obstacles, and sources of frustration common in the {industry.upper()} industry
         14. pain_points: Specific issues that cause difficulties or inefficiencies in their daily work
-        15. needs_and_desires: Specific needs, wants, and desires related to their role in the {industry.upper()} industry
-        16. technology_and_tools: Software, hardware, and other tools used regularly in the {industry.upper()} industry
-        17. attitude_towards_research: Views on research, data, and evidence-based approaches in the {industry.upper()} context
-        18. attitude_towards_ai: Perspective on AI, automation, and technological change in the {industry.upper()} industry
-        19. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
+        15. technology_and_tools: Software, hardware, and other tools used regularly in the {industry.upper()} industry
+        16. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
 
         OVERALL PERSONA INFORMATION:
         14. patterns: List of behavioral patterns associated with this persona in the {industry.upper()} industry
@@ -185,24 +182,9 @@ class PersonaFormationPrompts:
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
-          "needs_and_desires": {{
-            "value": "Specific needs and wants",
-            "confidence": 0.6,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
           "technology_and_tools": {{
             "value": "Software and hardware used",
             "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "attitude_towards_research": {{
-            "value": "Views on research and data",
-            "confidence": 0.7,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "attitude_towards_ai": {{
-            "value": "Perspective on AI and automation",
-            "confidence": 0.6,
             "evidence": ["Quote 1", "Quote 2"]
           }},
           "key_quotes": {{
@@ -254,10 +236,7 @@ class PersonaFormationPrompts:
         12. analysis_approach: Methods used for problem-solving, decision-making, and evaluating information
         13. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
         14. pain_points: Specific issues that cause difficulties or inefficiencies in their daily work
-        15. needs_and_desires: Specific needs, wants, and desires related to the problem domain
-        16. technology_and_tools: Software, hardware, and other tools used regularly
-        17. attitude_towards_research: Views on research, data, and evidence-based approaches
-        18. attitude_towards_ai: Perspective on AI, automation, and technological change
+        15. technology_and_tools: Software, hardware, and other tools used regularly
         19. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
 
         OVERALL PERSONA INFORMATION:
@@ -325,24 +304,9 @@ class PersonaFormationPrompts:
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
-          "needs_and_desires": {{
-            "value": "Specific needs and wants",
-            "confidence": 0.6,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
           "technology_and_tools": {{
             "value": "Software and hardware used",
             "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "attitude_towards_research": {{
-            "value": "Views on research and data",
-            "confidence": 0.7,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "attitude_towards_ai": {{
-            "value": "Perspective on AI and automation",
-            "confidence": 0.6,
             "evidence": ["Quote 1", "Quote 2"]
           }},
           "key_quotes": {{

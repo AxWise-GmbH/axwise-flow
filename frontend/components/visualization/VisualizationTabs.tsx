@@ -19,6 +19,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { ThemeChart } from './ThemeChart'; // The canonical ThemeChart component
 import { PatternList } from './PatternList';
 import { PersonaList } from './PersonaList';
+import PersonasTabContent from './PersonasTabContent';
 import MultiStakeholderPersonasView from '../analysis/MultiStakeholderPersonasView';
 import { InsightList } from './InsightList';
 import { PriorityInsightsDisplay } from './PriorityInsightsDisplay';
@@ -390,20 +391,12 @@ export default function VisualizationTabsRefactored({
               }
             >
               <TabsContent value="personas" className="mt-6">
-                {/* Debug logging for personas */}
-                {console.log('VisualizationTabs: Rendering personas tab with analysis:', analysis)}
-                {console.log('VisualizationTabs: analysis.personas:', analysis?.personas)}
-                {console.log('VisualizationTabs: analysis.personas.length:', analysis?.personas?.length)}
                 {analysis?.personas?.length || (isMultiStakeholder && analysis?.stakeholder_intelligence?.detected_stakeholders?.length) ? (
-                  // Use enhanced MultiStakeholderPersonasView if stakeholder intelligence is available
-                  isMultiStakeholder ? (
-                    <MultiStakeholderPersonasView
-                      personas={analysis.personas || []}
-                      stakeholderIntelligence={analysis?.stakeholder_intelligence}
-                    />
-                  ) : (
-                    <PersonaList personas={analysis.personas} />
-                  )
+                  <PersonasTabContent
+                    personas={analysis.personas || []}
+                    stakeholderIntelligence={analysis?.stakeholder_intelligence}
+                    isMultiStakeholder={isMultiStakeholder}
+                  />
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No personas detected in this interview.

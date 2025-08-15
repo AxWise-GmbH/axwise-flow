@@ -428,9 +428,6 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                     {renderTraitCard('Pain Points', persona.pain_points)}
                     {renderTraitCard('Technology & Tools', persona.technology_and_tools)}
                     {renderTraitCard('Collaboration Style', persona.collaboration_style)}
-                    {renderTraitCard('Needs & Desires', persona.needs_and_desires)}
-                    {renderTraitCard('Research Attitude', persona.attitude_towards_research)}
-                    {renderTraitCard('AI Attitude', persona.attitude_towards_ai)}
                   </div>
                 </TabsContent>
 

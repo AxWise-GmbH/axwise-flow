@@ -1,6 +1,7 @@
 """
 Usage Tracking Service for monitoring and enforcing subscription limits.
 """
+
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
@@ -13,20 +14,31 @@ logger = logging.getLogger(__name__)
 try:
     from backend.models import User
 except ImportError:
-    logger.warning("Could not import User model. This is expected during initial setup.")
+    logger.warning(
+        "Could not import User model. This is expected during initial setup."
+    )
+
     # Create a placeholder for development/testing
     class User:
         pass
+
 
 # Import Clerk service
 try:
     from backend.services.external.clerk_service import ClerkService
 except ImportError:
-    logger.warning("Could not import ClerkService. This is expected during initial setup.")
+    logger.warning(
+        "Could not import ClerkService. This is expected during initial setup."
+    )
+
     # Create a placeholder for development/testing
     class ClerkService:
-        async def update_user_metadata(self, user_id: str, metadata: Dict[str, Any]) -> bool:
-            logger.warning(f"Mock ClerkService.update_user_metadata called with {user_id}, {metadata}")
+        async def update_user_metadata(
+            self, user_id: str, metadata: Dict[str, Any]
+        ) -> bool:
+            logger.warning(
+                f"Mock ClerkService.update_user_metadata called with {user_id}, {metadata}"
+            )
             return True
 
 
@@ -63,18 +75,18 @@ class UsageTrackingService:
         try:
             # Debug logging for specific user
             if self.user.user_id == "user_2xaXl1ECHV80vYTdmiu6x3X66Wf":
-                logger.info(f"DEBUG: User {self.user.user_id} - subscription_status: {self.user.subscription_status}, subscription_id: {self.user.subscription_id}, usage_data: {self.user.usage_data}")
+                logger.info(
+                    f"DEBUG: User {self.user.user_id} - subscription_status: {self.user.subscription_status}, subscription_id: {self.user.subscription_id}, usage_data: {self.user.usage_data}"
+                )
             # Initialize usage_data if not exists or invalid
             if not self.user.usage_data or not isinstance(self.user.usage_data, dict):
                 self.user.usage_data = {
-                    "subscription": {
-                        "tier": "free",
-                        "status": "active"
-                    },
-                    "usage": {}
+                    "subscription": {"tier": "free", "status": "active"},
+                    "usage": {},
                 }
                 # CRITICAL: Mark the JSON field as modified so SQLAlchemy detects the change
                 from sqlalchemy.orm.attributes import flag_modified
+
                 flag_modified(self.user, "usage_data")
                 self.db.commit()
                 logger.info(f"Initialized usage_data for user {self.user.user_id}")
@@ -82,31 +94,44 @@ class UsageTrackingService:
             # Ensure subscription section exists (but don't overwrite existing data)
             elif "subscription" not in self.user.usage_data:
                 # Only add default subscription if user has no subscription_status
-                if not self.user.subscription_status or self.user.subscription_status == "inactive":
+                if (
+                    not self.user.subscription_status
+                    or self.user.subscription_status == "inactive"
+                ):
                     self.user.usage_data["subscription"] = {
                         "tier": "free",
-                        "status": "active"
+                        "status": "active",
                     }
                     # CRITICAL: Mark the JSON field as modified so SQLAlchemy detects the change
                     from sqlalchemy.orm.attributes import flag_modified
+
                     flag_modified(self.user, "usage_data")
                     self.db.commit()
-                    logger.info(f"Added default subscription section to usage_data for user {self.user.user_id}")
+                    logger.info(
+                        f"Added default subscription section to usage_data for user {self.user.user_id}"
+                    )
                 else:
                     # User has subscription_status but no usage_data - this shouldn't happen
-                    logger.warning(f"User {self.user.user_id} has subscription_status {self.user.subscription_status} but no usage_data subscription section")
+                    logger.warning(
+                        f"User {self.user.user_id} has subscription_status {self.user.subscription_status} but no usage_data subscription section"
+                    )
 
             # Ensure usage section exists
             elif "usage" not in self.user.usage_data:
                 self.user.usage_data["usage"] = {}
                 # CRITICAL: Mark the JSON field as modified so SQLAlchemy detects the change
                 from sqlalchemy.orm.attributes import flag_modified
+
                 flag_modified(self.user, "usage_data")
                 self.db.commit()
-                logger.info(f"Added usage section to usage_data for user {self.user.user_id}")
+                logger.info(
+                    f"Added usage section to usage_data for user {self.user.user_id}"
+                )
 
         except Exception as e:
-            logger.error(f"Error initializing usage_data for user {self.user.user_id}: {str(e)}")
+            logger.error(
+                f"Error initializing usage_data for user {self.user.user_id}: {str(e)}"
+            )
             # Don't fail the entire service if this fails
             pass
 
@@ -125,7 +150,9 @@ class UsageTrackingService:
 
         # Ensure usage_data is a dictionary
         if not isinstance(self.user.usage_data, dict):
-            logger.warning(f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Returning zero usage.")
+            logger.warning(
+                f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Returning zero usage."
+            )
             return {"analyses_count": 0, "prd_generations_count": 0}
 
         # Check if usage key exists
@@ -139,8 +166,12 @@ class UsageTrackingService:
         # Get usage counts with safe defaults
         try:
             return {
-                "analyses_count": self.user.usage_data["usage"][current_month].get("analyses_count", 0),
-                "prd_generations_count": self.user.usage_data["usage"][current_month].get("prd_generations_count", 0)
+                "analyses_count": self.user.usage_data["usage"][current_month].get(
+                    "analyses_count", 0
+                ),
+                "prd_generations_count": self.user.usage_data["usage"][
+                    current_month
+                ].get("prd_generations_count", 0),
             }
         except Exception as e:
             logger.error(f"Error getting usage data: {str(e)}")
@@ -153,7 +184,22 @@ class UsageTrackingService:
         Returns:
             Dict with analyses_per_month and prd_generations_per_month limits
         """
-        # Default to free tier limits
+        # Check if we're in development environment - provide unlimited access for local development
+        import os
+
+        IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
+
+        if not IS_PRODUCTION:
+            # In development, provide unlimited access for all users
+            logger.info(
+                f"Development environment detected - providing unlimited access for user {self.user.user_id}"
+            )
+            return {
+                "analyses_per_month": 999999,  # Unlimited analyses in development
+                "prd_generations_per_month": 0,  # 0 means unlimited PRDs
+            }
+
+        # Default to free tier limits for production
         limits = {
             "analyses_per_month": 3,  # Free users get 3 analyses
             "prd_generations_per_month": 0,  # 0 means unlimited PRDs
@@ -162,13 +208,17 @@ class UsageTrackingService:
         try:
             # Check if usage_data exists and is a dictionary
             if not self.user.usage_data or not isinstance(self.user.usage_data, dict):
-                logger.warning(f"User {self.user.user_id} has invalid or missing usage_data. Using default limits.")
+                logger.warning(
+                    f"User {self.user.user_id} has invalid or missing usage_data. Using default limits."
+                )
                 return limits
 
             # Get subscription info
             subscription_info = self.user.usage_data.get("subscription", {})
             if not isinstance(subscription_info, dict):
-                logger.warning(f"User {self.user.user_id} has invalid subscription_info type: {type(subscription_info)}. Using default limits.")
+                logger.warning(
+                    f"User {self.user.user_id} has invalid subscription_info type: {type(subscription_info)}. Using default limits."
+                )
                 return limits
 
             tier = subscription_info.get("tier", "free")
@@ -180,10 +230,14 @@ class UsageTrackingService:
                 # If user has trialing status, assume Pro tier
                 if status == "trialing":
                     tier = "pro"
-                logger.info(f"Using fallback subscription data for user {self.user.user_id}: tier={tier}, status={status}")
+                logger.info(
+                    f"Using fallback subscription data for user {self.user.user_id}: tier={tier}, status={status}"
+                )
 
             # Debug logging
-            logger.info(f"Usage limits calculation - tier: {tier}, status: {status}, subscription_info: {subscription_info}")
+            logger.info(
+                f"Usage limits calculation - tier: {tier}, status: {status}, subscription_info: {subscription_info}"
+            )
 
             # Set limits based on tier or trial status
             if tier == "starter":
@@ -195,8 +249,12 @@ class UsageTrackingService:
                 limits["prd_generations_per_month"] = 0  # 0 means unlimited
             elif tier == "enterprise":
                 # Enterprise limits are customized, get from subscription info
-                limits["analyses_per_month"] = subscription_info.get("analyses_limit", 1000)
-                limits["prd_generations_per_month"] = subscription_info.get("prd_limit", 1000)
+                limits["analyses_per_month"] = subscription_info.get(
+                    "analyses_limit", 1000
+                )
+                limits["prd_generations_per_month"] = subscription_info.get(
+                    "prd_limit", 1000
+                )
 
             return limits
         except Exception as e:
@@ -237,7 +295,9 @@ class UsageTrackingService:
             return True
 
         # Check if quota exceeded
-        return current_usage["prd_generations_count"] < limits["prd_generations_per_month"]
+        return (
+            current_usage["prd_generations_count"] < limits["prd_generations_per_month"]
+        )
 
     async def track_analysis(self, analysis_id: int) -> int:
         """
@@ -256,7 +316,9 @@ class UsageTrackingService:
 
             # Ensure usage_data is a dictionary
             if not isinstance(self.user.usage_data, dict):
-                logger.warning(f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Resetting to empty dict.")
+                logger.warning(
+                    f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Resetting to empty dict."
+                )
                 self.user.usage_data = {}
 
             # Get current month and year for tracking
@@ -271,18 +333,21 @@ class UsageTrackingService:
                     "analyses_count": 0,
                     "prd_generations_count": 0,
                     "analyses": [],
-                    "prd_generations": []
+                    "prd_generations": [],
                 }
 
             # Increment analysis count and add to list
             self.user.usage_data["usage"][current_month]["analyses_count"] += 1
-            self.user.usage_data["usage"][current_month]["analyses"].append({
-                "analysis_id": analysis_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.user.usage_data["usage"][current_month]["analyses"].append(
+                {
+                    "analysis_id": analysis_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
             # CRITICAL: Mark the JSON field as modified so SQLAlchemy detects the change
             from sqlalchemy.orm.attributes import flag_modified
+
             flag_modified(self.user, "usage_data")
 
             # Update user in database
@@ -292,20 +357,24 @@ class UsageTrackingService:
             try:
                 # Check if CLERK_SECRET_KEY is configured
                 if not self.clerk_service.clerk_secret:
-                    logger.warning("Skipping Clerk metadata update: CLERK_SECRET_KEY not configured")
+                    logger.warning(
+                        "Skipping Clerk metadata update: CLERK_SECRET_KEY not configured"
+                    )
                 else:
                     # Create a simplified usage object for Clerk
                     usage_data = {
-                        "analyses_count": self.user.usage_data["usage"][current_month]["analyses_count"],
-                        "prd_generations_count": self.user.usage_data["usage"][current_month]["prd_generations_count"]
+                        "analyses_count": self.user.usage_data["usage"][current_month][
+                            "analyses_count"
+                        ],
+                        "prd_generations_count": self.user.usage_data["usage"][
+                            current_month
+                        ]["prd_generations_count"],
                     }
 
                     # Update Clerk metadata
-                    await self.clerk_service.update_user_metadata(self.user.user_id, {
-                        "publicMetadata": {
-                            "usage": usage_data
-                        }
-                    })
+                    await self.clerk_service.update_user_metadata(
+                        self.user.user_id, {"publicMetadata": {"usage": usage_data}}
+                    )
             except Exception as clerk_error:
                 logger.warning(f"Error updating Clerk metadata: {str(clerk_error)}")
                 # Continue even if Clerk update fails
@@ -343,7 +412,9 @@ class UsageTrackingService:
 
             # Ensure usage_data is a dictionary
             if not isinstance(self.user.usage_data, dict):
-                logger.warning(f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Resetting to empty dict.")
+                logger.warning(
+                    f"User {self.user.user_id} has invalid usage_data type: {type(self.user.usage_data)}. Resetting to empty dict."
+                )
                 self.user.usage_data = {}
 
             # Get current month and year for tracking
@@ -358,18 +429,21 @@ class UsageTrackingService:
                     "analyses_count": 0,
                     "prd_generations_count": 0,
                     "analyses": [],
-                    "prd_generations": []
+                    "prd_generations": [],
                 }
 
             # Increment PRD generation count and add to list
             self.user.usage_data["usage"][current_month]["prd_generations_count"] += 1
-            self.user.usage_data["usage"][current_month]["prd_generations"].append({
-                "result_id": result_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            self.user.usage_data["usage"][current_month]["prd_generations"].append(
+                {
+                    "result_id": result_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
 
             # CRITICAL: Mark the JSON field as modified so SQLAlchemy detects the change
             from sqlalchemy.orm.attributes import flag_modified
+
             flag_modified(self.user, "usage_data")
 
             # Update user in database
@@ -379,25 +453,31 @@ class UsageTrackingService:
             try:
                 # Check if CLERK_SECRET_KEY is configured
                 if not self.clerk_service.clerk_secret:
-                    logger.warning("Skipping Clerk metadata update: CLERK_SECRET_KEY not configured")
+                    logger.warning(
+                        "Skipping Clerk metadata update: CLERK_SECRET_KEY not configured"
+                    )
                 else:
                     # Create a simplified usage object for Clerk
                     usage_data = {
-                        "analyses_count": self.user.usage_data["usage"][current_month]["analyses_count"],
-                        "prd_generations_count": self.user.usage_data["usage"][current_month]["prd_generations_count"]
+                        "analyses_count": self.user.usage_data["usage"][current_month][
+                            "analyses_count"
+                        ],
+                        "prd_generations_count": self.user.usage_data["usage"][
+                            current_month
+                        ]["prd_generations_count"],
                     }
 
                     # Update Clerk metadata
-                    await self.clerk_service.update_user_metadata(self.user.user_id, {
-                        "publicMetadata": {
-                            "usage": usage_data
-                        }
-                    })
+                    await self.clerk_service.update_user_metadata(
+                        self.user.user_id, {"publicMetadata": {"usage": usage_data}}
+                    )
             except Exception as clerk_error:
                 logger.warning(f"Error updating Clerk metadata: {str(clerk_error)}")
                 # Continue even if Clerk update fails
 
-            logger.info(f"Tracked PRD generation {result_id} for user {self.user.user_id}")
+            logger.info(
+                f"Tracked PRD generation {result_id} for user {self.user.user_id}"
+            )
             return self.user.usage_data["usage"][current_month]["prd_generations_count"]
 
         except Exception as e:
@@ -409,6 +489,8 @@ class UsageTrackingService:
 
             # Return current count or 0 if we can't determine it
             try:
-                return self.user.usage_data["usage"][current_month]["prd_generations_count"]
+                return self.user.usage_data["usage"][current_month][
+                    "prd_generations_count"
+                ]
             except:
                 return 0

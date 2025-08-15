@@ -156,10 +156,7 @@ class Persona(Base):
     skills_and_expertise = Column(JSON, nullable=True)
     workflow_and_environment = Column(JSON, nullable=True)
     challenges_and_frustrations = Column(JSON, nullable=True)
-    needs_and_desires = Column(JSON, nullable=True)
     technology_and_tools = Column(JSON, nullable=True)
-    attitude_towards_research = Column(JSON, nullable=True)
-    attitude_towards_ai = Column(JSON, nullable=True)
     key_quotes = Column(JSON, nullable=True)
 
     # Legacy fields to store PersonaTrait JSON objects

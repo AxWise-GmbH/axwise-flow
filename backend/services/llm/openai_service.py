@@ -31,7 +31,10 @@ class OpenAIService:
         """Initialize the OpenAI service with configuration."""
         # Import constants for LLM configuration
         from infrastructure.constants.llm_constants import (
-            OPENAI_MODEL_NAME, OPENAI_TEMPERATURE, OPENAI_MAX_TOKENS, ENV_OPENAI_API_KEY
+            OPENAI_MODEL_NAME,
+            OPENAI_TEMPERATURE,
+            OPENAI_MAX_TOKENS,
+            ENV_OPENAI_API_KEY,
         )
 
         self.api_key = config.get("api_key")
@@ -39,7 +42,9 @@ class OpenAIService:
             # Try to load directly from environment
             env_key = os.getenv(ENV_OPENAI_API_KEY)
             if env_key:
-                logger.info(f"Loading OpenAI API key directly from environment variable {ENV_OPENAI_API_KEY}")
+                logger.info(
+                    f"Loading OpenAI API key directly from environment variable {ENV_OPENAI_API_KEY}"
+                )
                 self.api_key = env_key
                 # Update the config for consistency
                 config["api_key"] = env_key
@@ -660,11 +665,8 @@ class OpenAIService:
             6. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
             7. workflow_and_environment: Work processes, physical/digital environment, and context
             8. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
-            9. needs_and_desires: Specific needs, wants, and desires related to the problem domain
-            10. technology_and_tools: Software, hardware, and other tools used regularly
-            11. attitude_towards_research: Views on research, data, and evidence-based approaches
-            12. attitude_towards_ai: Perspective on AI, automation, and technological change
-            13. key_quotes: Representative quotes that capture the persona's voice and perspective
+            9. technology_and_tools: Software, hardware, and other tools used regularly
+            10. key_quotes: Representative quotes that capture the persona's voice and perspective
 
             LEGACY ATTRIBUTES (for backward compatibility, each with value, confidence score 0.0-1.0, and supporting evidence):
             14. role_context: Primary job function and work environment
@@ -998,33 +1000,55 @@ class OpenAIService:
             }
             """
 
-    def _post_process_theme_analysis(self, result: Union[Dict, List], task: str) -> Dict[str, Any]:
+    def _post_process_theme_analysis(
+        self, result: Union[Dict, List], task: str
+    ) -> Dict[str, Any]:
         """Post-processes the result for theme_analysis task, including validation."""
         if not isinstance(result, (dict, list)):
-            logger.warning(f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}")
-            return {"themes": [], "error": f"Invalid data type for theme analysis: {type(result)}"}
+            logger.warning(
+                f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}"
+            )
+            return {
+                "themes": [],
+                "error": f"Invalid data type for theme analysis: {type(result)}",
+            }
 
         if isinstance(result, list):
             themes_to_process = result
             result_dict = {"themes": themes_to_process}
-        elif isinstance(result, dict) and "themes" in result and isinstance(result["themes"], list):
+        elif (
+            isinstance(result, dict)
+            and "themes" in result
+            and isinstance(result["themes"], list)
+        ):
             themes_to_process = result["themes"]
             result_dict = result
         elif isinstance(result, dict) and "themes" not in result:
-            logger.warning(f"Task '{task}' response dictionary is missing 'themes' key. Assuming no themes. Content: {str(result)[:200]}")
+            logger.warning(
+                f"Task '{task}' response dictionary is missing 'themes' key. Assuming no themes. Content: {str(result)[:200]}"
+            )
             themes_to_process = []
-            result_dict = {"themes": themes_to_process} # Initialize result_dict with themes key
+            result_dict = {
+                "themes": themes_to_process
+            }  # Initialize result_dict with themes key
         else:
-            logger.error(f"Task '{task}' response is not a list of themes nor a dict containing a 'themes' list. Content: {str(result)[:200]}")
-            return {"themes": [], "error": "Malformed theme analysis response structure."}
+            logger.error(
+                f"Task '{task}' response is not a list of themes nor a dict containing a 'themes' list. Content: {str(result)[:200]}"
+            )
+            return {
+                "themes": [],
+                "error": "Malformed theme analysis response structure.",
+            }
 
         processed_themes_for_validation = []
         for theme_data in themes_to_process:
             if not isinstance(theme_data, dict):
-                logger.warning(f"Skipping non-dictionary item in themes list for task '{task}': {str(theme_data)[:100]}")
+                logger.warning(
+                    f"Skipping non-dictionary item in themes list for task '{task}': {str(theme_data)[:100]}"
+                )
                 continue
-            
-            current_theme = theme_data.copy() # Work on a copy
+
+            current_theme = theme_data.copy()  # Work on a copy
             current_theme.setdefault("sentiment", 0.0)  # neutral
             current_theme.setdefault("frequency", 0.5)  # medium
 
@@ -1033,7 +1057,10 @@ class OpenAIService:
             current_theme.setdefault("examples", current_theme["statements"])
 
             current_theme.setdefault("keywords", [])
-            current_theme.setdefault("definition", f"Theme related to {current_theme.get('name', 'Unnamed Theme')}")
+            current_theme.setdefault(
+                "definition",
+                f"Theme related to {current_theme.get('name', 'Unnamed Theme')}",
+            )
 
             if "codes" not in current_theme or not current_theme["codes"]:
                 current_theme["codes"] = []
@@ -1043,7 +1070,7 @@ class OpenAIService:
                         code = str(keyword).upper().replace(" ", "_")
                         if code not in current_theme["codes"]:
                             current_theme["codes"].append(code)
-                
+
                 if len(current_theme["codes"]) < 2:
                     sentiment_for_code = current_theme.get("sentiment", 0.0)
                     if sentiment_for_code >= 0.3:
@@ -1052,14 +1079,14 @@ class OpenAIService:
                         current_theme["codes"].append("PAIN_POINT")
                     else:
                         current_theme["codes"].append("NEUTRAL_OBSERVATION")
-            
+
             current_theme.setdefault("reliability", 0.5)
             if "statements" in current_theme and len(current_theme["statements"]) > 0:
                 if len(current_theme["statements"]) >= 4:
                     current_theme["reliability"] = 0.85
                 elif len(current_theme["statements"]) >= 2:
                     current_theme["reliability"] = 0.7
-            
+
             processed_themes_for_validation.append(current_theme)
 
         validated_themes_list = []
@@ -1067,40 +1094,69 @@ class OpenAIService:
             try:
                 validated_theme_obj = Theme(**theme_to_validate)
                 validated_themes_list.append(validated_theme_obj.model_dump())
-                logger.debug(f"Successfully validated theme: {theme_to_validate.get('name', 'Unnamed')}")
+                logger.debug(
+                    f"Successfully validated theme: {theme_to_validate.get('name', 'Unnamed')}"
+                )
             except ValidationError as e:
-                logger.warning(f"Theme validation failed for theme '{theme_to_validate.get('name', 'Unnamed')}': {e}. Skipping this theme.")
+                logger.warning(
+                    f"Theme validation failed for theme '{theme_to_validate.get('name', 'Unnamed')}': {e}. Skipping this theme."
+                )
             except Exception as general_e:
-                logger.error(f"Unexpected error during theme validation for '{theme_to_validate.get('name', 'Unnamed')}': {general_e}", exc_info=True)
-        
+                logger.error(
+                    f"Unexpected error during theme validation for '{theme_to_validate.get('name', 'Unnamed')}': {general_e}",
+                    exc_info=True,
+                )
+
         result_dict["themes"] = validated_themes_list
-        logger.info(f"Validated {len(validated_themes_list)} themes successfully for task: {task}")
+        logger.info(
+            f"Validated {len(validated_themes_list)} themes successfully for task: {task}"
+        )
         return result_dict
 
-    def _post_process_pattern_recognition(self, result: Union[Dict, List], task: str) -> Dict[str, Any]:
+    def _post_process_pattern_recognition(
+        self, result: Union[Dict, List], task: str
+    ) -> Dict[str, Any]:
         """Post-processes the result for pattern_recognition task, including validation."""
         if not isinstance(result, (dict, list)):
-            logger.warning(f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}")
-            return {"patterns": [], "error": f"Invalid data type for pattern recognition: {type(result)}"}
+            logger.warning(
+                f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}"
+            )
+            return {
+                "patterns": [],
+                "error": f"Invalid data type for pattern recognition: {type(result)}",
+            }
 
         if isinstance(result, list):
             patterns_to_process = result
             result_dict = {"patterns": patterns_to_process}
-        elif isinstance(result, dict) and "patterns" in result and isinstance(result["patterns"], list):
+        elif (
+            isinstance(result, dict)
+            and "patterns" in result
+            and isinstance(result["patterns"], list)
+        ):
             patterns_to_process = result["patterns"]
-            result_dict = result # Keep other potential keys in result
+            result_dict = result  # Keep other potential keys in result
         elif isinstance(result, dict) and "patterns" not in result:
-            logger.warning(f"Task '{task}' response dictionary is missing 'patterns' key. Assuming no patterns. Content: {str(result)[:200]}")
+            logger.warning(
+                f"Task '{task}' response dictionary is missing 'patterns' key. Assuming no patterns. Content: {str(result)[:200]}"
+            )
             patterns_to_process = []
             result_dict = {"patterns": patterns_to_process}
         else:
-            logger.error(f"Task '{task}' response is not a list of patterns nor a dict containing a 'patterns' list. Content: {str(result)[:200]}")
-            return {"patterns": [], "error": "Malformed pattern recognition response structure."}
+            logger.error(
+                f"Task '{task}' response is not a list of patterns nor a dict containing a 'patterns' list. Content: {str(result)[:200]}"
+            )
+            return {
+                "patterns": [],
+                "error": "Malformed pattern recognition response structure.",
+            }
 
         processed_patterns_for_validation = []
         for pattern_data in patterns_to_process:
             if not isinstance(pattern_data, dict):
-                logger.warning(f"Skipping non-dictionary item in patterns list for task '{task}': {str(pattern_data)[:100]}")
+                logger.warning(
+                    f"Skipping non-dictionary item in patterns list for task '{task}': {str(pattern_data)[:100]}"
+                )
                 continue
 
             current_pattern = pattern_data.copy()
@@ -1109,27 +1165,39 @@ class OpenAIService:
                 current_pattern["name"] = current_pattern["category"]
             elif "name" not in current_pattern and "description" in current_pattern:
                 desc_words = str(current_pattern["description"]).split()
-                current_pattern["name"] = (" ".join(desc_words[:3]) + "..." if len(desc_words) > 3 else current_pattern["description"])
+                current_pattern["name"] = (
+                    " ".join(desc_words[:3]) + "..."
+                    if len(desc_words) > 3
+                    else current_pattern["description"]
+                )
             current_pattern.setdefault("name", "Unnamed Pattern")
 
             current_sentiment = current_pattern.get("sentiment")
-            if current_sentiment is not None and isinstance(current_sentiment, (int, float)) and 0 <= current_sentiment <= 1:
+            if (
+                current_sentiment is not None
+                and isinstance(current_sentiment, (int, float))
+                and 0 <= current_sentiment <= 1
+            ):
                 current_pattern["sentiment"] = (current_sentiment - 0.5) * 2
             elif "sentiment" not in current_pattern:
                 current_pattern["sentiment"] = 0.0
 
             current_pattern.setdefault("frequency", 0.5)
             current_pattern.setdefault("evidence", [])
-            
+
             if "impact" not in current_pattern:
                 sentiment_val = current_pattern.get("sentiment", 0.0)
                 if sentiment_val >= 0.3:
-                    current_pattern["impact"] = "Positive impact on user experience and workflow efficiency"
+                    current_pattern["impact"] = (
+                        "Positive impact on user experience and workflow efficiency"
+                    )
                 elif sentiment_val <= -0.3:
-                    current_pattern["impact"] = "Negative impact on productivity and user satisfaction"
+                    current_pattern["impact"] = (
+                        "Negative impact on productivity and user satisfaction"
+                    )
                 else:
                     current_pattern["impact"] = "Neutral impact on overall processes"
-            
+
             current_pattern.setdefault("suggested_actions", [])
             current_pattern.setdefault("reliability", 0.5)
             if len(current_pattern.get("evidence", [])) >= 3:
@@ -1137,8 +1205,13 @@ class OpenAIService:
             elif len(current_pattern.get("evidence", [])) >= 1:
                 current_pattern["reliability"] = 0.65
 
-            current_pattern.setdefault("definition", f"Pattern related to {current_pattern.get('name', 'Unnamed Pattern')}")
-            current_pattern.setdefault("related_themes", []) # Assuming Pattern schema might have this
+            current_pattern.setdefault(
+                "definition",
+                f"Pattern related to {current_pattern.get('name', 'Unnamed Pattern')}",
+            )
+            current_pattern.setdefault(
+                "related_themes", []
+            )  # Assuming Pattern schema might have this
 
             processed_patterns_for_validation.append(current_pattern)
 
@@ -1147,40 +1220,69 @@ class OpenAIService:
             try:
                 validated_pattern_obj = Pattern(**pattern_to_validate)
                 validated_patterns_list.append(validated_pattern_obj.model_dump())
-                logger.debug(f"Successfully validated pattern: {pattern_to_validate.get('name', 'Unnamed')}")
+                logger.debug(
+                    f"Successfully validated pattern: {pattern_to_validate.get('name', 'Unnamed')}"
+                )
             except ValidationError as e:
-                logger.warning(f"Pattern validation failed for pattern '{pattern_to_validate.get('name', 'Unnamed')}': {e}. Skipping this pattern.")
+                logger.warning(
+                    f"Pattern validation failed for pattern '{pattern_to_validate.get('name', 'Unnamed')}': {e}. Skipping this pattern."
+                )
             except Exception as general_e:
-                logger.error(f"Unexpected error during pattern validation for '{pattern_to_validate.get('name', 'Unnamed')}': {general_e}", exc_info=True)
+                logger.error(
+                    f"Unexpected error during pattern validation for '{pattern_to_validate.get('name', 'Unnamed')}': {general_e}",
+                    exc_info=True,
+                )
 
         result_dict["patterns"] = validated_patterns_list
-        logger.info(f"Validated {len(validated_patterns_list)} patterns successfully for task: {task}")
+        logger.info(
+            f"Validated {len(validated_patterns_list)} patterns successfully for task: {task}"
+        )
         return result_dict
 
-    def _post_process_insight_generation(self, result: Union[Dict, List], task: str) -> Dict[str, Any]:
+    def _post_process_insight_generation(
+        self, result: Union[Dict, List], task: str
+    ) -> Dict[str, Any]:
         """Post-processes the result for insight_generation task, including validation."""
         if not isinstance(result, (dict, list)):
-            logger.warning(f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}")
-            return {"insights": [], "error": f"Invalid data type for insight generation: {type(result)}"}
+            logger.warning(
+                f"Task '{task}' expected dict or list for post-processing, got {type(result)}. Value: {str(result)[:200]}"
+            )
+            return {
+                "insights": [],
+                "error": f"Invalid data type for insight generation: {type(result)}",
+            }
 
         if isinstance(result, list):
             insights_to_process = result
             result_dict = {"insights": insights_to_process}
-        elif isinstance(result, dict) and "insights" in result and isinstance(result["insights"], list):
+        elif (
+            isinstance(result, dict)
+            and "insights" in result
+            and isinstance(result["insights"], list)
+        ):
             insights_to_process = result["insights"]
-            result_dict = result # Keep other potential keys
+            result_dict = result  # Keep other potential keys
         elif isinstance(result, dict) and "insights" not in result:
-            logger.warning(f"Task '{task}' response dictionary is missing 'insights' key. Assuming no insights. Content: {str(result)[:200]}")
+            logger.warning(
+                f"Task '{task}' response dictionary is missing 'insights' key. Assuming no insights. Content: {str(result)[:200]}"
+            )
             insights_to_process = []
             result_dict = {"insights": insights_to_process}
         else:
-            logger.error(f"Task '{task}' response is not a list of insights nor a dict containing an 'insights' list. Content: {str(result)[:200]}")
-            return {"insights": [], "error": "Malformed insight generation response structure."}
+            logger.error(
+                f"Task '{task}' response is not a list of insights nor a dict containing an 'insights' list. Content: {str(result)[:200]}"
+            )
+            return {
+                "insights": [],
+                "error": "Malformed insight generation response structure.",
+            }
 
         processed_insights_for_validation = []
         for insight_data in insights_to_process:
             if not isinstance(insight_data, dict):
-                logger.warning(f"Skipping non-dictionary item in insights list for task '{task}': {str(insight_data)[:100]}")
+                logger.warning(
+                    f"Skipping non-dictionary item in insights list for task '{task}': {str(insight_data)[:100]}"
+                )
                 continue
 
             current_insight = insight_data.copy()
@@ -1188,8 +1290,8 @@ class OpenAIService:
             current_insight.setdefault("description", "No description provided.")
             current_insight.setdefault("evidence", [])
             current_insight.setdefault("recommendations", [])
-            current_insight.setdefault("impact", "medium") 
-            current_insight.setdefault("confidence", 0.5) 
+            current_insight.setdefault("impact", "medium")
+            current_insight.setdefault("confidence", 0.5)
             current_insight.setdefault("related_patterns", [])
             current_insight.setdefault("related_themes", [])
             current_insight.setdefault("category", "General")
@@ -1201,16 +1303,24 @@ class OpenAIService:
             try:
                 validated_insight_obj = Insight(**insight_to_validate)
                 validated_insights_list.append(validated_insight_obj.model_dump())
-                logger.debug(f"Successfully validated insight: {insight_to_validate.get('title', 'Untitled')}")
+                logger.debug(
+                    f"Successfully validated insight: {insight_to_validate.get('title', 'Untitled')}"
+                )
             except ValidationError as e:
-                logger.warning(f"Insight validation failed for insight '{insight_to_validate.get('title', 'Untitled')}': {e}. Skipping this insight.")
+                logger.warning(
+                    f"Insight validation failed for insight '{insight_to_validate.get('title', 'Untitled')}': {e}. Skipping this insight."
+                )
             except Exception as general_e:
-                logger.error(f"Unexpected error during insight validation for '{insight_to_validate.get('title', 'Untitled')}': {general_e}", exc_info=True)
-        
-        result_dict["insights"] = validated_insights_list
-        logger.info(f"Validated {len(validated_insights_list)} insights successfully for task: {task}")
-        return result_dict
+                logger.error(
+                    f"Unexpected error during insight validation for '{insight_to_validate.get('title', 'Untitled')}': {general_e}",
+                    exc_info=True,
+                )
 
+        result_dict["insights"] = validated_insights_list
+        logger.info(
+            f"Validated {len(validated_insights_list)} insights successfully for task: {task}"
+        )
+        return result_dict
 
     async def analyze_themes_enhanced(self, data):
         """

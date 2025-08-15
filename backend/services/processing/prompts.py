@@ -239,23 +239,8 @@ class PromptGenerator:
                 "confidence": 0.7,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},
-            "needs_and_desires": {{
-                "value": "Specific needs and desires",
-                "confidence": 0.7,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
             "technology_and_tools": {{
                 "value": "Software, hardware, and tools used",
-                "confidence": 0.6,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "attitude_towards_research": {{
-                "value": "Views on research and data",
-                "confidence": 0.8,
-                "evidence": ["Quote 1", "Quote 2", "Quote 3"]
-            }},
-            "attitude_towards_ai": {{
-                "value": "Perspective on AI and automation",
                 "confidence": 0.6,
                 "evidence": ["Quote 1", "Quote 2", "Quote 3"]
             }},

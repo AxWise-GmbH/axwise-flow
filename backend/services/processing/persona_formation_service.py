@@ -193,23 +193,10 @@ class PersonaFormationService:
         while maintaining the same high-quality persona generation capabilities.
         """
         try:
-            # Initialize Gemini model for PydanticAI with extended timeout for large content
-            import httpx
-
-            # Create HTTP client with extended timeout for large persona generation
-            # Default timeout is too short for 40K+ character content
-            http_client = httpx.AsyncClient(
-                timeout=httpx.Timeout(
-                    connect=30.0,  # Connection timeout
-                    read=900.0,  # Read timeout: 15 minutes for very large content
-                    write=30.0,  # Write timeout
-                    pool=30.0,  # Pool timeout
-                )
-            )
-
-            gemini_model = GeminiModel("gemini-2.5-flash", http_client=http_client)
+            # Initialize Gemini model for PydanticAI
+            gemini_model = GeminiModel("gemini-2.5-flash")
             logger.info(
-                "[PYDANTIC_AI] Initialized Gemini 2.5 Flash model with extended timeout (15min read) for large content processing"
+                "[PYDANTIC_AI] Initialized Gemini 2.5 Flash model for persona generation"
             )
 
             # Create persona generation agent with detailed system prompt
@@ -246,10 +233,7 @@ Legacy Fields (for compatibility):
 - analysis_approach: Analytical methodology and approach
 - skills_and_expertise: Professional skills and areas of expertise
 - workflow_and_environment: Work environment and workflow preferences
-- needs_and_desires: Professional needs and desires
 - technology_and_tools: Technology usage and tool preferences
-- attitude_towards_research: Attitude and approach towards research
-- attitude_towards_ai: Attitude and perspective on AI and automation
 
 CRITICAL REQUIREMENTS:
 1. NEVER use generic defaults like "Professional goals and motivations"
@@ -1046,6 +1030,54 @@ Please analyze this speaker's content and generate a comprehensive persona based
                         f"(PydanticAI model validation failed)",
                         exc_info=True,
                     )
+                elif (
+                    "malformed_function_call" in error_message
+                    or "finishreason" in error_message
+                ):
+                    logger.error(
+                        f"[PYDANTIC_AI] 🔧 MALFORMED_FUNCTION_CALL ERROR for {speaker}: {str(e)} "
+                        f"(Gemini API returned malformed function call response - retrying with fallback)",
+                        exc_info=True,
+                    )
+                    # For MALFORMED_FUNCTION_CALL errors, we should try to continue with fallback
+                    # instead of failing completely
+                    logger.info(
+                        f"[PYDANTIC_AI] Attempting fallback persona generation for {speaker}"
+                    )
+                    try:
+                        # Create a basic fallback persona instead of failing
+                        fallback_persona = {
+                            "name": speaker,
+                            "description": f"Fallback persona for {speaker} due to API error",
+                            "confidence": 0.5,
+                            "evidence": [
+                                f"Generated as fallback due to MALFORMED_FUNCTION_CALL error"
+                            ],
+                            "role_context": {"value": role if role else "Participant"},
+                            "archetype": {"value": "Unknown"},
+                            "key_responsibilities": {
+                                "value": "Not determined due to API error"
+                            },
+                            "tools_used": {"value": "Not determined"},
+                            "collaboration_style": {"value": "Not determined"},
+                            "analysis_approach": {"value": "Not determined"},
+                            "pain_points": {"value": "Not determined"},
+                            "patterns": [],
+                            "overall_confidence": 0.5,
+                            "supporting_evidence_summary": {
+                                "value": "Fallback persona due to API error"
+                            },
+                        }
+                        logger.info(
+                            f"[PYDANTIC_AI] Created fallback persona for {speaker}"
+                        )
+                        return fallback_persona
+                    except Exception as fallback_error:
+                        logger.error(
+                            f"[PYDANTIC_AI] Failed to create fallback persona: {fallback_error}"
+                        )
+                        # Re-raise original error if fallback fails
+                        raise
                 else:
                     logger.error(
                         f"[PYDANTIC_AI] ❌ GENERAL ERROR for {speaker}: {str(e)}",
@@ -1528,10 +1560,7 @@ Please analyze these patterns and generate a comprehensive persona based on the 
             "skills_and_expertise": default_trait,
             "workflow_and_environment": default_trait,
             "challenges_and_frustrations": default_trait,
-            "needs_and_desires": default_trait,
             "technology_and_tools": default_trait,
-            "attitude_towards_research": default_trait,
-            "attitude_towards_ai": default_trait,
             "key_quotes": default_trait,
             # Legacy fields
             "role_context": default_trait,

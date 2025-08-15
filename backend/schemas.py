@@ -390,18 +390,8 @@ class Persona(BaseModel):
     challenges_and_frustrations: Optional[PersonaTrait] = Field(
         None, description="Pain points, obstacles, and sources of frustration"
     )
-    needs_and_desires: Optional[PersonaTrait] = Field(
-        None,
-        description="Specific needs, wants, and desires related to the problem domain",
-    )
     technology_and_tools: Optional[PersonaTrait] = Field(
         None, description="Software, hardware, and other tools used regularly"
-    )
-    attitude_towards_research: Optional[PersonaTrait] = Field(
-        None, description="Views on research, data, and evidence-based approaches"
-    )
-    attitude_towards_ai: Optional[PersonaTrait] = Field(
-        None, description="Perspective on AI, automation, and technological change"
     )
     key_quotes: Optional[PersonaTrait] = Field(
         None,
@@ -758,9 +748,12 @@ class DetailedAnalysisResult(BaseModel):
     )
     error: Optional[str] = None
 
-    # NEW: Optional multi-stakeholder intelligence
-    stakeholder_intelligence: Optional[StakeholderIntelligence] = Field(
-        None, description="Multi-stakeholder analysis intelligence"
+    # Multi-stakeholder intelligence - always present, empty if no stakeholders detected
+    stakeholder_intelligence: StakeholderIntelligence = Field(
+        default_factory=lambda: StakeholderIntelligence(
+            detected_stakeholders=[], processing_metadata={"status": "not_analyzed"}
+        ),
+        description="Multi-stakeholder analysis intelligence - always present",
     )
 
 

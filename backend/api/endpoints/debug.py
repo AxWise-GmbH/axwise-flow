@@ -437,15 +437,8 @@ async def regenerate_personas(
                 challenges_and_frustrations=json.dumps(
                     persona_data.get("challenges_and_frustrations", {})
                 ),
-                needs_and_desires=json.dumps(persona_data.get("needs_and_desires", {})),
                 technology_and_tools=json.dumps(
                     persona_data.get("technology_and_tools", {})
-                ),
-                attitude_towards_research=json.dumps(
-                    persona_data.get("attitude_towards_research", {})
-                ),
-                attitude_towards_ai=json.dumps(
-                    persona_data.get("attitude_towards_ai", {})
                 ),
                 metadata=json.dumps(persona_data.get("metadata", {})),
                 overall_confidence=persona_data.get("overall_confidence", 0.8),

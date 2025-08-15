@@ -75,10 +75,7 @@ class Persona:
     # Legacy fields for backward compatibility
     skills_and_expertise: Optional[PersonaTrait] = None
     workflow_and_environment: Optional[PersonaTrait] = None
-    needs_and_desires: Optional[PersonaTrait] = None
     technology_and_tools: Optional[PersonaTrait] = None
-    attitude_towards_research: Optional[PersonaTrait] = None
-    attitude_towards_ai: Optional[PersonaTrait] = None
 
 
 def persona_to_dict(persona: Any) -> Dict[str, Any]:
@@ -142,10 +139,7 @@ def persona_to_dict(persona: Any) -> Dict[str, Any]:
             "skills_and_expertise",
             "workflow_and_environment",
             "challenges_and_frustrations",
-            "needs_and_desires",
             "technology_and_tools",
-            "attitude_towards_research",
-            "attitude_towards_ai",
             "key_quotes",
             "role_context",
             "key_responsibilities",
@@ -316,12 +310,7 @@ class PersonaBuilder:
                 "workflow_and_environment": attributes.get(
                     "workflow_and_environment", {}
                 ),
-                "needs_and_desires": attributes.get("needs_and_desires", {}),
                 "technology_and_tools": attributes.get("technology_and_tools", {}),
-                "attitude_towards_research": attributes.get(
-                    "attitude_towards_research", {}
-                ),
-                "attitude_towards_ai": attributes.get("attitude_towards_ai", {}),
             }
 
             # Process each trait field to ensure proper format
@@ -625,25 +614,10 @@ class PersonaBuilder:
                     "challenges_and_frustrations",
                     "Professional challenges and frustrations",
                 ),
-                needs_and_desires=self._validate_and_create_persona_trait(
-                    processed_traits["needs_and_desires"],
-                    "needs_and_desires",
-                    "Professional needs and desires",
-                ),
                 technology_and_tools=self._validate_and_create_persona_trait(
                     processed_traits["technology_and_tools"],
                     "technology_and_tools",
                     "Technology tools and preferences",
-                ),
-                attitude_towards_research=self._validate_and_create_persona_trait(
-                    processed_traits["attitude_towards_research"],
-                    "attitude_towards_research",
-                    "Research methodology preferences",
-                ),
-                attitude_towards_ai=self._validate_and_create_persona_trait(
-                    processed_traits["attitude_towards_ai"],
-                    "attitude_towards_ai",
-                    "AI technology perspectives",
                 ),
                 key_quotes=self._validate_and_create_persona_trait(
                     processed_traits["key_quotes"],
@@ -680,10 +654,7 @@ class PersonaBuilder:
                     persona.skills_and_expertise.confidence,
                     persona.workflow_and_environment.confidence,
                     persona.challenges_and_frustrations.confidence,
-                    persona.needs_and_desires.confidence,
                     persona.technology_and_tools.confidence,
-                    persona.attitude_towards_research.confidence,
-                    persona.attitude_towards_ai.confidence,
                     persona.key_quotes.confidence,
                 ]
 
@@ -902,10 +873,7 @@ class PersonaBuilder:
                         "demographics": "Background",
                         "role_context": "Role Context",
                         "key_responsibilities": "Responsibility",
-                        "needs_and_desires": "Need/Desire",
                         "technology_and_tools": "Technology/Tool",
-                        "attitude_towards_research": "Research Attitude",
-                        "attitude_towards_ai": "AI Attitude",
                     }
 
                     # Add labels to evidence
@@ -1014,10 +982,7 @@ class PersonaBuilder:
             skills_and_expertise=minimal_trait,
             workflow_and_environment=minimal_trait,
             challenges_and_frustrations=minimal_trait,
-            needs_and_desires=minimal_trait,
             technology_and_tools=minimal_trait,
-            attitude_towards_research=minimal_trait,
-            attitude_towards_ai=minimal_trait,
             key_quotes=PersonaTrait(
                 value="No quotes available",
                 confidence=0.3,

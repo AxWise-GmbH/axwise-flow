@@ -126,24 +126,9 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with the following structure:
     "confidence": 0.9,
     "evidence": ["Quote 1", "Quote 2"]
   },
-  "needs_and_desires": {
-    "value": "Specific needs and wants",
-    "confidence": 0.8,
-    "evidence": ["Quote 1", "Quote 2"]
-  },
   "technology_and_tools": {
     "value": "Software and hardware used",
     "confidence": 0.85,
-    "evidence": ["Quote 1", "Quote 2"]
-  },
-  "attitude_towards_research": {
-    "value": "Views on research and data",
-    "confidence": 0.7,
-    "evidence": ["Quote 1", "Quote 2"]
-  },
-  "attitude_towards_ai": {
-    "value": "Perspective on AI and automation",
-    "confidence": 0.75,
     "evidence": ["Quote 1", "Quote 2"]
   },
 
