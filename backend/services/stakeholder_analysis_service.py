@@ -110,6 +110,11 @@ class StakeholderAnalysisService:
             gemini_model = GeminiModel("gemini-2.5-flash")
             logger.info("[PHASE2_DEBUG] Initialized Gemini model for PydanticAI")
 
+            # Import BaseModel explicitly to ensure it's available
+            from pydantic import BaseModel
+
+            logger.info("[PHASE2_DEBUG] Imported BaseModel for PydanticAI agents")
+
             # Consensus Analysis Agent
             self.consensus_agent = Agent(
                 model=gemini_model,
@@ -124,6 +129,7 @@ For each consensus area, provide:
 
 Focus on genuine agreement patterns, not forced consensus.""",
             )
+            logger.info("[PHASE2_DEBUG] Initialized consensus agent successfully")
 
             # Conflict Detection Agent
             self.conflict_agent = Agent(
@@ -140,6 +146,7 @@ For each conflict zone, provide:
 
 Focus on real tensions and disagreements, not minor differences.""",
             )
+            logger.info("[PHASE2_DEBUG] Initialized conflict agent successfully")
 
             # Influence Network Agent
             self.influence_agent = Agent(

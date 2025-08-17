@@ -264,13 +264,15 @@ export default function VisualizationTabsRefactored({
   const isMultiStakeholder = !!(analysis?.stakeholder_intelligence?.detected_stakeholders?.length);
   const stakeholderCount = analysis?.stakeholder_intelligence?.detected_stakeholders?.length || 0;
 
-  // Debug logging for stakeholder intelligence
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Analysis data keys:', analysis ? Object.keys(analysis) : 'No analysis');
-    console.log('Has stakeholder_intelligence:', !!analysis?.stakeholder_intelligence);
-    console.log('Stakeholder intelligence data:', analysis?.stakeholder_intelligence);
-    console.log('Is multi-stakeholder:', isMultiStakeholder);
-  }
+  // Debug logging for stakeholder intelligence (temporarily enabled for production debugging)
+  console.log('Analysis data keys:', analysis ? Object.keys(analysis) : 'No analysis');
+  console.log('Has stakeholder_intelligence:', !!analysis?.stakeholder_intelligence);
+  console.log('Stakeholder intelligence data:', analysis?.stakeholder_intelligence);
+  console.log('Is multi-stakeholder:', isMultiStakeholder);
+  console.log('Environment variables:', {
+    NEXT_PUBLIC_...=***REMOVED***
+    NODE_ENV: process.env.NODE_ENV
+  });
 
   return (
     <Card className="w-full">
