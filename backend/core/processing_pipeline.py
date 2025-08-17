@@ -114,7 +114,7 @@ async def process_data(
                 results["personas"] = normalize_persona_list(results["personas"])
 
             # Convert results dictionary to DetailedAnalysisResult object for stakeholder analysis
-            from schemas import DetailedAnalysisResult
+            from backend.schemas import DetailedAnalysisResult
             from datetime import datetime, timezone
 
             # Create a proper DetailedAnalysisResult object from the results dictionary
