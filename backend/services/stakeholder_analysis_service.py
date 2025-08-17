@@ -45,6 +45,7 @@ import asyncio
 import logging
 import json
 import time
+import os
 
 from backend.schemas import (
     StakeholderIntelligence,
@@ -106,9 +107,21 @@ class StakeholderAnalysisService:
     def _initialize_pydantic_ai_agents(self):
         """Initialize PydanticAI agents for structured cross-stakeholder analysis"""
         try:
-            # Initialize Gemini model for PydanticAI
-            gemini_model = GeminiModel("gemini-2.5-flash")
-            logger.info("[PHASE2_DEBUG] Initialized Gemini model for PydanticAI")
+            # Get API key from environment (PydanticAI v0.4.3 expects GEMINI_API_KEY)
+            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set"
+                )
+
+            # Initialize Gemini model for PydanticAI with explicit API key
+            from pydantic_ai.providers.google_gla import GoogleGLAProvider
+
+            provider = GoogleGLAProvider(api_key=api_key)
+            gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
+            logger.info(
+                "[PHASE2_DEBUG] Initialized Gemini model for PydanticAI with explicit API key"
+            )
 
             # Import BaseModel explicitly to ensure it's available
             from pydantic import BaseModel

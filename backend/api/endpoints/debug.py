@@ -632,13 +632,23 @@ async def rerun_stakeholder_analysis(
         updated_results = existing_results.copy()
 
         if enhanced_analysis.stakeholder_intelligence:
-            updated_results["stakeholder_intelligence"] = (
-                enhanced_analysis.stakeholder_intelligence.dict()
-            )
+            # Use model_dump() for Pydantic v2 compatibility
+            if hasattr(enhanced_analysis.stakeholder_intelligence, "model_dump"):
+                updated_results["stakeholder_intelligence"] = (
+                    enhanced_analysis.stakeholder_intelligence.model_dump()
+                )
+            else:
+                updated_results["stakeholder_intelligence"] = (
+                    enhanced_analysis.stakeholder_intelligence.dict()
+                )
 
         if enhanced_analysis.enhanced_themes:
             updated_results["enhanced_themes"] = [
-                theme.dict() if hasattr(theme, "dict") else theme
+                (
+                    theme.model_dump()
+                    if hasattr(theme, "model_dump")
+                    else (theme.dict() if hasattr(theme, "dict") else theme)
+                )
                 for theme in enhanced_analysis.enhanced_themes
             ]
 
