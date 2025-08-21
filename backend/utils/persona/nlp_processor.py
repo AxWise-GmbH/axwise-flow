@@ -144,7 +144,7 @@ def analyze_sentiment(text: str) -> Dict[str, float]:
 
 def extract_keywords_and_statements(texts: List[str]) -> List[Dict[str, Any]]:
     """
-    Extract keywords and supporting statements from texts using LLM-based analysis.
+    Extract keywords and supporting statements from texts using PydanticAI-based analysis.
 
     Args:
         texts: List of text strings to analyze
@@ -156,46 +156,69 @@ def extract_keywords_and_statements(texts: List[str]) -> List[Dict[str, Any]]:
         return []
 
     try:
-        # Try to use Instructor for structured output
-        from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
+        # Use PydanticAI for structured keyword extraction
+        return extract_keywords_with_pydantic_ai(texts)
 
-        instructor_client = InstructorGeminiClient()
+    except Exception as e:
+        logger.warning(f"PydanticAI keyword extraction failed: {e}, using fallback")
+        return _simple_keyword_extraction(texts)
+
+
+def extract_keywords_with_pydantic_ai(texts: List[str]) -> List[Dict[str, Any]]:
+    """
+    Extract keywords using PydanticAI for structured output.
+
+    Args:
+        texts: List of text strings to analyze
+
+    Returns:
+        List of dictionaries with keywords and statements
+    """
+    if not texts:
+        return []
+
+    try:
+        from pydantic_ai import Agent
+        from pydantic_ai.models.gemini import GeminiModel
 
         # Combine texts for analysis
         combined_text = "\n\n".join(
             [f"Text {i+1}: {text}" for i, text in enumerate(texts)]
         )
 
-        system_instruction = """You are an expert text analyst specializing in keyword extraction and thematic analysis.
-Your task is to identify the most important keywords, concepts, and themes from interview or survey responses."""
+        # Create PydanticAI agent for keyword extraction
+        gemini_model = GeminiModel("gemini-2.5-flash")
+        keyword_agent = Agent(
+            model=gemini_model,
+            output_type=KeywordExtractionResult,
+            system_prompt="""You are an expert text analyst specializing in keyword extraction and thematic analysis.
+Your task is to identify the most important keywords, concepts, and themes from persona trait content and supporting evidence.
+
+Focus on extracting:
+- Key concepts and themes that define this persona trait
+- Important challenges, problems, or pain points mentioned
+- Tools, technologies, or processes referenced
+- Behavioral patterns and motivations
+- Specific terminology used by the persona
+
+For each keyword, provide:
+1. The specific keyword or concept name (single word or short phrase)
+2. How important it is for understanding this trait (1-5 scale)
+3. 2-3 supporting statements that demonstrate this keyword in context
+
+Limit to the top 5 most important keywords that would be valuable for persona analysis.""",
+        )
 
         prompt = f"""
-        Analyze the following texts and extract the most important keywords/concepts along with supporting statements.
+        Analyze the following persona trait content and extract the most important keywords/concepts:
 
         {combined_text}
 
-        Focus on extracting:
-        - Tools and technologies mentioned (e.g., Dovetail, Miro, Figma, Jira, Confluence, Looker, Qualtrics)
-        - Key challenges or problems (e.g., data synthesis, time management, insight discovery)
-        - Important processes or methods (e.g., qualitative analysis, user research, collaboration)
-        - Core concepts or themes (e.g., automation, workflow optimization, team communication)
-
-        For each keyword, provide:
-        1. The specific keyword or concept name
-        2. How frequently it appears or its importance level (1-5)
-        3. 2-3 supporting statements that demonstrate this keyword in context
-
-        Limit to the top 5 most important keywords that would be valuable for persona analysis.
+        Extract keywords that best represent the core concepts, challenges, tools, and themes present in this content.
         """
 
         # Generate structured output with temperature 0 for consistency
-        result = instructor_client.generate_with_model(
-            prompt=prompt,
-            model_class=KeywordExtractionResult,
-            system_instruction=system_instruction,
-            temperature=0.0,  # Critical: Use temperature 0 for structured consistency
-            max_output_tokens=1000,
-        )
+        result = keyword_agent.run_sync(prompt)
 
         # Convert to expected format
         return [
@@ -204,12 +227,143 @@ Your task is to identify the most important keywords, concepts, and themes from 
                 "frequency": kw.frequency,
                 "statements": kw.statements,
             }
-            for kw in result.keywords
+            for kw in result.data.keywords
         ]
 
     except Exception as e:
-        logger.warning(f"Instructor keyword extraction failed: {e}, using fallback")
-        return _simple_keyword_extraction(texts)
+        logger.warning(f"PydanticAI keyword extraction failed: {e}")
+        raise e
+
+
+def extract_trait_keywords_for_highlighting(
+    trait_content: str, trait_evidence: List[str]
+) -> List[str]:
+    """
+    Extract keywords specifically for highlighting quotes in persona traits.
+
+    Args:
+        trait_content: The main trait description/content
+        trait_evidence: List of supporting evidence quotes
+
+    Returns:
+        List of keywords to use for highlighting quotes
+    """
+    if not trait_content and not trait_evidence:
+        return []
+
+    try:
+        from pydantic_ai import Agent
+        from pydantic_ai.models.gemini import GeminiModel
+        from pydantic import BaseModel, Field
+        from typing import List as TypingList
+
+        class TraitKeywords(BaseModel):
+            """Keywords extracted from persona trait for quote highlighting."""
+
+            keywords: TypingList[str] = Field(
+                description="List of 3-5 key terms/phrases that should be highlighted in supporting quotes"
+            )
+
+        # Combine trait content and evidence for analysis
+        analysis_text = f"Trait Content: {trait_content}\n\n"
+        if trait_evidence:
+            analysis_text += "Supporting Evidence:\n" + "\n".join(trait_evidence)
+
+        # Create PydanticAI agent for trait keyword extraction
+        gemini_model = GeminiModel("gemini-2.5-flash")
+        trait_keyword_agent = Agent(
+            model=gemini_model,
+            output_type=TraitKeywords,
+            system_prompt="""You are an expert at identifying key terms that should be highlighted in persona trait evidence.
+
+Your task is to extract 3-5 specific keywords or short phrases that:
+1. Are actually present in the supporting evidence quotes
+2. Represent the most important concepts for this trait
+3. Would be meaningful to highlight for readers
+4. Are concrete terms, not abstract concepts
+
+Focus on:
+- Specific challenges, problems, or pain points mentioned
+- Tools, technologies, or processes referenced
+- Key behavioral indicators or patterns
+- Important contextual terms (roles, locations, etc.)
+- Emotional or descriptive terms that characterize the persona
+
+Return only terms that actually appear in the evidence text.""",
+        )
+
+        prompt = f"""
+        Analyze this persona trait and its supporting evidence to extract keywords for highlighting:
+
+        {analysis_text}
+
+        Extract 3-5 specific terms or short phrases that should be highlighted in the supporting quotes to emphasize the key concepts of this trait.
+        """
+
+        # Generate structured output
+        result = trait_keyword_agent.run_sync(prompt)
+
+        # Return the extracted keywords
+        return result.data.keywords
+
+    except Exception as e:
+        logger.warning(f"PydanticAI trait keyword extraction failed: {e}")
+        # Fallback to simple extraction
+        return _extract_simple_trait_keywords(trait_content, trait_evidence)
+
+
+def _extract_simple_trait_keywords(
+    trait_content: str, trait_evidence: List[str]
+) -> List[str]:
+    """Simple fallback for trait keyword extraction."""
+    import re
+
+    # Combine all text
+    all_text = trait_content + " " + " ".join(trait_evidence)
+
+    # Extract meaningful words (4+ characters)
+    words = re.findall(r"\b[a-zA-Z]{4,}\b", all_text.lower())
+
+    # Common important keywords to prioritize
+    priority_keywords = [
+        "challenge",
+        "problem",
+        "difficulty",
+        "barrier",
+        "issue",
+        "experience",
+        "process",
+        "workflow",
+        "tool",
+        "system",
+        "family",
+        "expat",
+        "language",
+        "communication",
+        "delivery",
+        "food",
+        "restaurant",
+        "menu",
+        "order",
+        "payment",
+    ]
+
+    # Find priority keywords that exist in the text
+    found_keywords = [kw for kw in priority_keywords if kw in words]
+
+    # Add other frequent words if we need more
+    if len(found_keywords) < 3:
+        word_freq = {}
+        for word in words:
+            word_freq[word] = word_freq.get(word, 0) + 1
+
+        # Get most frequent words not already included
+        frequent_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+        for word, freq in frequent_words:
+            if word not in found_keywords and len(found_keywords) < 5:
+                found_keywords.append(word)
+
+    return found_keywords[:5]
 
 
 def _simple_keyword_extraction(texts: List[str]) -> List[Dict[str, Any]]:

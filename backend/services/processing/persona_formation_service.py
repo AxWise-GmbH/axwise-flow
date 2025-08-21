@@ -2050,8 +2050,12 @@ Please analyze these patterns and generate a comprehensive persona based on the 
         # AUTHENTIC QUOTE EXTRACTION: Extract direct quotes from original interview dialogue
         def extract_authentic_quotes_from_dialogue(
             original_dialogues: List[str], trait_content: str, trait_name: str
-        ) -> List[str]:
-            """Extract authentic verbatim quotes from original interview dialogue that support the trait"""
+        ) -> tuple[List[str], List[str]]:
+            """Extract authentic verbatim quotes from original interview dialogue that support the trait
+
+            Returns:
+                tuple: (evidence_quotes, actual_keywords_used)
+            """
             logger.error(
                 f"🔥 [AUTHENTIC_QUOTES] FUNCTION CALLED! Extracting quotes for trait: {trait_name}"
             )
@@ -2073,167 +2077,29 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                 logger.warning(
                     f"[AUTHENTIC_QUOTES] Missing data - dialogues: {bool(original_dialogues)}, trait_content: {bool(trait_content)}"
                 )
-                return []
+                return [], []  # Return empty evidence and keywords
 
             import re
 
             evidence = []
+            actual_keywords_used = (
+                set()
+            )  # Track keywords that were actually used for highlighting
 
-            # Define trait-specific keywords for matching
-            trait_keywords = {
-                "demographics": [
-                    "years old",
-                    "age",
-                    "family",
-                    "married",
-                    "single",
-                    "children",
-                    "kids",
-                    "son",
-                    "daughter",
-                    "live in",
-                    "from",
-                    "born",
-                    "grew up",
-                    "expat",
-                    "moved",
-                    "relocated",
-                    "husband",
-                    "wife",
-                    "parent",
-                    "mother",
-                    "father",
-                    "background",
-                    "education",
-                    "degree",
-                    "studied",
-                ],
-                "goals_and_motivations": [
-                    "want to",
-                    "hope to",
-                    "trying to",
-                    "goal",
-                    "aim",
-                    "objective",
-                    "looking for",
-                    "need to",
-                    "would like",
-                    "dream",
-                    "aspire",
-                    "achieve",
-                    "accomplish",
-                    "succeed",
-                    "important to me",
-                    "priority",
-                    "focus on",
-                    "working towards",
-                ],
-                "challenges_and_frustrations": [
-                    "problem",
-                    "issue",
-                    "challenge",
-                    "difficult",
-                    "hard",
-                    "struggle",
-                    "frustrated",
-                    "annoying",
-                    "pain",
-                    "trouble",
-                    "obstacle",
-                    "barrier",
-                    "limitation",
-                    "constraint",
-                    "can't",
-                    "unable",
-                    "impossible",
-                    "takes too long",
-                    "waste time",
-                    "inefficient",
-                ],
-                "skills_and_expertise": [
-                    "experience",
-                    "skilled",
-                    "expert",
-                    "good at",
-                    "know how",
-                    "trained",
-                    "certified",
-                    "years of",
-                    "background in",
-                    "specialized",
-                    "proficient",
-                    "competent",
-                    "qualified",
-                ],
-                "technology_and_tools": [
-                    "use",
-                    "software",
-                    "app",
-                    "platform",
-                    "tool",
-                    "system",
-                    "technology",
-                    "digital",
-                    "online",
-                    "website",
-                    "mobile",
-                    "computer",
-                    "device",
-                    "program",
-                    "application",
-                ],
-                "pain_points": [
-                    "hate",
-                    "dislike",
-                    "annoying",
-                    "frustrating",
-                    "waste",
-                    "inefficient",
-                    "slow",
-                    "complicated",
-                    "confusing",
-                    "unreliable",
-                    "expensive",
-                    "time-consuming",
-                    "difficult",
-                ],
-                "workflow_and_environment": [
-                    "work",
-                    "office",
-                    "team",
-                    "process",
-                    "routine",
-                    "schedule",
-                    "organize",
-                    "manage",
-                    "collaborate",
-                    "meeting",
-                    "project",
-                    "task",
-                    "workflow",
-                    "environment",
-                    "setup",
-                ],
-                "needs_and_expectations": [
-                    "need",
-                    "require",
-                    "expect",
-                    "should",
-                    "must",
-                    "essential",
-                    "important",
-                    "critical",
-                    "would help",
-                    "solution",
-                    "feature",
-                    "functionality",
-                    "capability",
-                    "support",
-                ],
-            }
+            # Use LLM-based keyword extraction instead of hardcoded keywords
+            from backend.utils.persona.nlp_processor import (
+                extract_trait_keywords_for_highlighting,
+            )
 
-            # Get keywords for this trait
-            keywords = trait_keywords.get(trait_name, [])
+            # Extract keywords using PydanticAI based on trait content and existing evidence
+            existing_evidence = []  # We'll build this as we find quotes
+            keywords = extract_trait_keywords_for_highlighting(
+                trait_content, existing_evidence
+            )
+
+            logger.info(
+                f"[LLM_KEYWORDS] Extracted keywords for {trait_name}: {keywords}"
+            )
 
             # Search through original dialogues for relevant quotes
             for dialogue in original_dialogues:
@@ -2268,6 +2134,8 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                                 formatted_quote,
                                 flags=re.IGNORECASE,
                             )
+                            # Track that this keyword was actually used
+                            actual_keywords_used.add(keyword)
 
                         evidence.append(formatted_quote)
 
@@ -2326,7 +2194,29 @@ Please analyze these patterns and generate a comprehensive persona based on the 
             for i, quote in enumerate(evidence[:3]):
                 logger.error(f"🔥 [AUTHENTIC_QUOTES] Quote {i+1}: {quote[:100]}...")
 
-            return evidence[:3]  # Return maximum 3 pieces of evidence
+            # Return both evidence and the keywords that were actually used for highlighting
+            actual_keywords_list = list(actual_keywords_used)
+            logger.info(
+                f"[LLM_KEYWORDS] Actually used keywords for {trait_name}: {actual_keywords_list}"
+            )
+
+            return (
+                evidence[:3],
+                actual_keywords_list,
+            )  # Return evidence and actual keywords used
+
+        # Helper function to create trait with keywords
+        def create_trait_with_keywords(
+            content: str, confidence: float, trait_name: str
+        ):
+            evidence, keywords = extract_authentic_quotes_from_dialogue(
+                original_dialogues or [], content, trait_name
+            )
+            trait = create_trait(content, confidence, evidence)
+            # Add keywords to the trait
+            if hasattr(trait, "__dict__"):
+                trait.actual_keywords = keywords
+            return trait
 
         # Convert to full persona format with contextual evidence extraction
         persona_data = {
@@ -2334,77 +2224,45 @@ Please analyze these patterns and generate a comprehensive persona based on the 
             "description": simplified_persona.description,
             "archetype": simplified_persona.archetype,
             # Convert simple strings to PersonaTrait objects with authentic quote evidence
-            "demographics": create_trait(
+            "demographics": create_trait_with_keywords(
                 simplified_persona.demographics,
                 simplified_persona.demographics_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.demographics,
-                    "demographics",
-                ),
+                "demographics",
             ),
-            "goals_and_motivations": create_trait(
+            "goals_and_motivations": create_trait_with_keywords(
                 simplified_persona.goals_motivations,
                 simplified_persona.goals_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.goals_motivations,
-                    "goals_and_motivations",
-                ),
+                "goals_and_motivations",
             ),
-            "challenges_and_frustrations": create_trait(
+            "challenges_and_frustrations": create_trait_with_keywords(
                 simplified_persona.challenges_frustrations,
                 simplified_persona.challenges_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.challenges_frustrations,
-                    "challenges_and_frustrations",
-                ),
+                "challenges_and_frustrations",
             ),
-            "skills_and_expertise": create_trait(
+            "skills_and_expertise": create_trait_with_keywords(
                 simplified_persona.skills_expertise,
                 simplified_persona.skills_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.skills_expertise,
-                    "skills_and_expertise",
-                ),
+                "skills_and_expertise",
             ),
-            "technology_and_tools": create_trait(
+            "technology_and_tools": create_trait_with_keywords(
                 simplified_persona.technology_tools,
                 simplified_persona.technology_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.technology_tools,
-                    "technology_and_tools",
-                ),
+                "technology_and_tools",
             ),
-            "pain_points": create_trait(
+            "pain_points": create_trait_with_keywords(
                 simplified_persona.pain_points,
                 simplified_persona.pain_points_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.pain_points,
-                    "pain_points",
-                ),
+                "pain_points",
             ),
-            "workflow_and_environment": create_trait(
+            "workflow_and_environment": create_trait_with_keywords(
                 simplified_persona.workflow_environment,
                 simplified_persona.overall_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.workflow_environment,
-                    "workflow_and_environment",
-                ),
+                "workflow_and_environment",
             ),
-            "needs_and_expectations": create_trait(
+            "needs_and_expectations": create_trait_with_keywords(
                 simplified_persona.needs_expectations,
                 simplified_persona.overall_confidence,
-                extract_authentic_quotes_from_dialogue(
-                    original_dialogues or [],
-                    simplified_persona.needs_expectations,
-                    "needs_and_expectations",
-                ),
+                "needs_and_expectations",
             ),
             # FIX: Use actual quotes content instead of generic description
             "key_quotes": create_trait(

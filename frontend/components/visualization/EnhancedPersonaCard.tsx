@@ -46,6 +46,17 @@ export function EnhancedPersonaCard({
       .substring(0, 2);
   };
 
+  // Get keywords from trait (use actual_keywords from backend if available, fallback to extraction)
+  const getTraitKeywords = (trait: any, traitName: string): string[] => {
+    // First try to use actual keywords from backend
+    if (trait?.actual_keywords && Array.isArray(trait.actual_keywords) && trait.actual_keywords.length > 0) {
+      return trait.actual_keywords;
+    }
+
+    // Fallback to frontend extraction if no backend keywords
+    return extractKeywords(trait?.value || '', traitName);
+  };
+
   // Render keywords as JSX
   const renderKeywords = (keywords: string[]) => {
     const filteredKeywords = getKeywordsForRendering(keywords);
@@ -341,7 +352,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.demographics.value)}
                   />
                   {/* Keywords for demographics */}
-                  {renderKeywords(extractKeywords(persona.demographics.value, 'demographics'))}
+                  {renderKeywords(getTraitKeywords(persona.demographics, 'demographics'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.demographics.confidence * 100)}% confidence
@@ -379,7 +390,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.goals_and_motivations.value)}
                   />
                   {/* Keywords for goals and motivations */}
-                  {renderKeywords(extractKeywords(persona.goals_and_motivations.value, 'goals_and_motivations'))}
+                  {renderKeywords(getTraitKeywords(persona.goals_and_motivations, 'goals_and_motivations'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.goals_and_motivations.confidence * 100)}% confidence
@@ -417,7 +428,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.challenges_and_frustrations.value)}
                   />
                   {/* Keywords for challenges and frustrations */}
-                  {renderKeywords(extractKeywords(persona.challenges_and_frustrations.value, 'challenges_and_frustrations'))}
+                  {renderKeywords(getTraitKeywords(persona.challenges_and_frustrations, 'challenges_and_frustrations'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.challenges_and_frustrations.confidence * 100)}% confidence
@@ -455,7 +466,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.skills_and_expertise.value)}
                   />
                   {/* Keywords for skills and expertise */}
-                  {renderKeywords(extractKeywords(persona.skills_and_expertise.value, 'skills_and_expertise'))}
+                  {renderKeywords(getTraitKeywords(persona.skills_and_expertise, 'skills_and_expertise'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.skills_and_expertise.confidence * 100)}% confidence
@@ -493,7 +504,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.workflow_and_environment.value)}
                   />
                   {/* Keywords for workflow and environment */}
-                  {renderKeywords(extractKeywords(persona.workflow_and_environment.value, 'workflow_and_environment'))}
+                  {renderKeywords(getTraitKeywords(persona.workflow_and_environment, 'workflow_and_environment'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.workflow_and_environment.confidence * 100)}% confidence
@@ -531,7 +542,7 @@ export function EnhancedPersonaCard({
                     dangerouslySetInnerHTML={renderHighlightedText(persona.technology_and_tools.value)}
                   />
                   {/* Keywords for technology and tools */}
-                  {renderKeywords(extractKeywords(persona.technology_and_tools.value, 'technology_and_tools'))}
+                  {renderKeywords(getTraitKeywords(persona.technology_and_tools, 'technology_and_tools'))}
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className="text-xs">
                       {Math.round(persona.technology_and_tools.confidence * 100)}% confidence
@@ -765,7 +776,7 @@ export function EnhancedPersonaCard({
                         dangerouslySetInnerHTML={renderHighlightedText(persona.key_quotes.value)}
                       />
                       {/* Keywords for key quotes */}
-                      {renderKeywords(extractKeywords(persona.key_quotes.value, 'key_quotes'))}
+                      {renderKeywords(getTraitKeywords(persona.key_quotes, 'key_quotes'))}
                     </div>
                   )}
                 </div>
