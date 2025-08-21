@@ -551,17 +551,17 @@ class PersonaBuilder:
                 tools_used=self._validate_and_create_persona_trait(
                     processed_traits["tools_used"],
                     "tools_used",
-                    "Professional tools and software",
+                    "Tools and methods used",
                 ),
                 collaboration_style=self._validate_and_create_persona_trait(
                     processed_traits["collaboration_style"],
                     "collaboration_style",
-                    "Collaborative work approach",
+                    "Collaboration approach",
                 ),
                 analysis_approach=self._validate_and_create_persona_trait(
                     processed_traits["analysis_approach"],
                     "analysis_approach",
-                    "Analytical methodology",
+                    "Analysis approach",
                 ),
                 # Core PydanticAI fields
                 demographics=self._validate_and_create_persona_trait(
@@ -806,131 +806,75 @@ class PersonaBuilder:
                     f"needs_enhancement: {needs_evidence_enhancement}"
                 )
 
-                # Collect evidence from traits
-                all_evidence = []
-                evidence_sources = {}  # Track which field each evidence came from
+                # AUTHENTIC EVIDENCE PRESERVATION: Keep each trait's evidence separate
+                # Instead of mixing evidence between traits, preserve trait-specific authentic quotes
+                authentic_evidence_count = 0
 
-                # Prioritize certain fields for evidence collection
-                priority_fields = [
-                    "key_quotes",
-                    "pain_points",
-                    "skills_and_expertise",
-                    "goals_and_motivations",
-                    "challenges_and_frustrations",
-                    "workflow_and_environment",
-                    "tools_used",
-                    "collaboration_style",
-                    "analysis_approach",
-                ]
+                # Process each trait individually to preserve authentic evidence
+                for field_name in processed_traits:
+                    trait = getattr(persona, field_name)
+                    if trait and trait.evidence:
+                        # Filter to keep only authentic quotes for this specific trait
+                        authentic_trait_evidence = []
 
-                # First collect from priority fields
-                for field_name in priority_fields:
-                    if field_name in processed_traits:
-                        trait = getattr(persona, field_name)
-                        if trait and trait.evidence:
-                            # Get the most representative evidence from this trait
-                            best_evidence = sorted(
-                                trait.evidence, key=len, reverse=True
-                            )[
-                                :2
-                            ]  # Take up to 2 longest pieces of evidence
-                            for evidence in best_evidence:
-                                all_evidence.append(evidence)
-                                evidence_sources[evidence] = field_name
-
-                            logger.info(
-                                f"Collected {len(best_evidence)} evidence items from {field_name}"
-                            )
-
-                # Then collect from other fields if needed
-                if len(all_evidence) < 5:
-                    for field_name in processed_traits:
-                        if field_name not in priority_fields:
-                            trait = getattr(persona, field_name)
-                            if trait and trait.evidence:
-                                # Get one piece of evidence from each non-priority field
-                                best_evidence = sorted(
-                                    trait.evidence, key=len, reverse=True
-                                )[:1]
-                                for evidence in best_evidence:
-                                    all_evidence.append(evidence)
-                                    evidence_sources[evidence] = field_name
-
-                                logger.info(
-                                    f"Collected {len(best_evidence)} evidence items from {field_name}"
+                        for evidence in trait.evidence:
+                            # Check if this is an authentic quote
+                            is_authentic_quote = (
+                                evidence.strip().startswith('"')
+                                and "**" in evidence
+                                and len(evidence.strip()) > 10
+                                and not any(
+                                    generic in evidence.lower()
+                                    for generic in [
+                                        "professional",
+                                        "industry-standard",
+                                        "generic",
+                                        "placeholder",
+                                        "not specified",
+                                        "unknown",
+                                        "fallback",
+                                        "inferred from",
+                                    ]
                                 )
+                            )
 
-                                # Stop if we have enough evidence
-                                if len(all_evidence) >= 10:
-                                    break
+                            # Check for cross-contamination
+                            has_cross_contamination = any(
+                                indicator in evidence.lower()
+                                for indicator in [
+                                    "chloe",
+                                    "hr",
+                                    "human resources",
+                                    "employee experience",
+                                    "relocation",
+                                    "agency",
+                                    "paid promotions",
+                                    "organic content",
+                                ]
+                            )
 
-                # Remove duplicates while preserving order
-                unique_evidence = []
-                for e in all_evidence:
-                    if (
-                        e and e not in unique_evidence and len(e) > 20
-                    ):  # Only include substantial evidence
-                        unique_evidence.append(e)
+                            if is_authentic_quote and not has_cross_contamination:
+                                authentic_trait_evidence.append(evidence)
+                                authentic_evidence_count += 1
 
-                logger.info(f"Collected {len(unique_evidence)} unique evidence items")
+                        # Update the trait with only its authentic evidence
+                        trait.evidence = authentic_trait_evidence
 
-                # Use the collected evidence
-                if unique_evidence:
-                    # Limit to 10 pieces of evidence
-                    selected_evidence = unique_evidence[:10]
-
-                    # Add descriptive labels to evidence for better context
-                    labeled_evidence = []
-
-                    # Define descriptive labels for each field
-                    field_labels = {
-                        "key_quotes": "Key Quote",
-                        "pain_points": "Pain Point",
-                        "skills_and_expertise": "Skill/Expertise",
-                        "goals_and_motivations": "Goal/Motivation",
-                        "challenges_and_frustrations": "Challenge/Frustration",
-                        "workflow_and_environment": "Workflow/Environment",
-                        "tools_used": "Tool Usage",
-                        "collaboration_style": "Collaboration Style",
-                        "analysis_approach": "Analysis Approach",
-                        "demographics": "Background",
-                        "role_context": "Role Context",
-                        "key_responsibilities": "Responsibility",
-                        "technology_and_tools": "Technology/Tool",
-                    }
-
-                    # Add labels to evidence, but preserve authentic quotes
-                    for evidence in selected_evidence:
-                        # AUTHENTIC QUOTE PRESERVATION: Check if this is an authentic quote
-                        # Authentic quotes start with quotation marks and contain **bold** keywords
-                        is_authentic_quote = (
-                            evidence.strip().startswith('"')
-                            and evidence.strip().endswith('"')
-                            and "**" in evidence
-                        )
-
-                        if is_authentic_quote:
-                            # Preserve authentic quotes without labels
-                            labeled_evidence.append(evidence)
+                        if authentic_trait_evidence:
+                            logger.info(
+                                f"Preserved {len(authentic_trait_evidence)} authentic quotes for {field_name}"
+                            )
                         else:
-                            # Add labels to non-authentic evidence
-                            field_name = evidence_sources.get(evidence, "general")
-                            label = field_labels.get(
-                                field_name, field_name.replace("_", " ").title()
+                            logger.debug(
+                                f"No authentic evidence found for {field_name}"
                             )
 
-                            # Add a more specific label based on content if possible
-                            specific_label = self._get_specific_evidence_label(
-                                evidence, label
-                            )
+                logger.info(
+                    f"Total authentic evidence items preserved: {authentic_evidence_count}"
+                )
 
-                            labeled_evidence.append(f"{specific_label}: {evidence}")
-
-                    logger.info(
-                        f"Created {len(labeled_evidence)} labeled evidence items"
-                    )
-
-                    persona.evidence = labeled_evidence
+                # Evidence preservation complete - each trait now has only its authentic quotes
+                logger.info("Authentic evidence preservation completed for all traits")
 
             # Validate persona with Pydantic if available
             try:

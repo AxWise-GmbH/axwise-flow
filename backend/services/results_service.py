@@ -798,7 +798,7 @@ class ResultsService:
                 needs_data, "Efficiency and professional growth", 0.5
             ),
             technology_and_tools=create_trait(
-                tech_tools_data, "Industry-standard tools", 0.5
+                tech_tools_data, "Technology and tools used", 0.5
             ),
             attitude_towards_research=create_trait(
                 research_attitude_data, "Values data-driven approaches", 0.5
@@ -820,14 +820,14 @@ class ResultsService:
                 key_resp_data, "Professional responsibilities", confidence, evidence
             ),
             tools_used=create_trait(
-                tools_data, "Professional tools", confidence, evidence
+                tools_data, "Tools and methods used", confidence, evidence
             ),
             collaboration_style=create_trait(
-                collab_style_data, "Professional collaboration", confidence, evidence
+                collab_style_data, "Collaboration approach", confidence, evidence
             ),
             analysis_approach=create_trait(
                 analysis_approach_data,
-                "Professional analysis approach",
+                "Analysis approach",
                 confidence,
                 evidence,
             ),
