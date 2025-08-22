@@ -106,7 +106,7 @@ Generate a JSON object with these simple string fields (NOT nested objects):
   "description": "Brief persona overview summarizing key characteristics in {industry} context",
   "archetype": "Persona category relevant to {industry} (e.g., '{industry}-Focused Strategist')",
 
-  "demographics": "Age, background, experience level, location, {industry} industry details",
+  "demographics": "Format as structured key-value pairs: Age Range: [if mentioned], Education: [if mentioned], Location: [if mentioned], Income Level: [if mentioned], Industry Experience: [if mentioned], Company Size: [if mentioned], Role Level: [if mentioned]. Include background, experience level, location, {industry} industry details",
   "goals_motivations": "What drives this person, their primary objectives and aspirations in {industry}",
   "challenges_frustrations": "Specific challenges, obstacles, and sources of frustration in {industry}",
   "skills_expertise": "Professional skills, competencies, areas of knowledge and {industry} expertise",

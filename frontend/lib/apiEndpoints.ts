@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   // Analysis
   TRIGGER_ANALYSIS: '/api/analyze',
   GET_RESULTS: (resultId: number) => `/api/results/${resultId}`,
+  GET_SIMPLIFIED_PERSONAS: (resultId: number) => `/api/results/${resultId}/personas/simplified`,
   LIST_ANALYSES: '/api/analyses',
 
   // Export

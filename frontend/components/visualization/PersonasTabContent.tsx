@@ -17,6 +17,7 @@ import type {
 import { PersonaList } from './PersonaList';
 import { PersonaRelationshipNetwork } from './PersonaRelationshipNetwork';
 import { PersonaConflictConsensusView } from './PersonaConflictConsensusView';
+import { SimplePersonaList } from './SimplePersonaList';
 import MultiStakeholderPersonasView from '../analysis/MultiStakeholderPersonasView';
 import StakeholderNetworkVisualization from '../analysis/StakeholderNetworkVisualization';
 import ConsensusConflictVisualization from '../analysis/ConsensusConflictVisualization';
@@ -26,17 +27,19 @@ interface PersonasTabContentProps {
   personas: Persona[];
   stakeholderIntelligence?: StakeholderIntelligence;
   isMultiStakeholder: boolean;
+  resultId?: number; // For simplified persona API calls
 }
 
 export function PersonasTabContent({
   personas,
   stakeholderIntelligence,
-  isMultiStakeholder
+  isMultiStakeholder,
+  resultId
 }: PersonasTabContentProps) {
   // Check if personas have stakeholder intelligence features
   const hasStakeholderFeatures = personas?.some(persona => persona.stakeholder_intelligence);
 
-  // Single interview - use enhanced personas view if available
+  // Single interview - use simplified personas view if resultId available, otherwise enhanced view
   if (!isMultiStakeholder) {
     return (
       <div className="space-y-6">
@@ -51,9 +54,18 @@ export function PersonasTabContent({
                 Enhanced
               </Badge>
             )}
+            {resultId && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                Design Thinking
+              </Badge>
+            )}
           </div>
         </div>
-        <PersonaList personas={personas} />
+        {resultId ? (
+          <SimplePersonaList resultId={resultId} />
+        ) : (
+          <PersonaList personas={personas} />
+        )}
       </div>
     );
   }

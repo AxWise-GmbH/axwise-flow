@@ -128,12 +128,42 @@ export function getKeywordsForRendering(keywords: string[]): string[] {
 }
 
 /**
+ * Parse markdown bold formatting (**text**) to HTML <strong> tags
+ * Based on PROJECT_DEEP_DIVE_ANALYSIS.md requirements for key quotes rendering
+ */
+export function parseMarkdownBold(text: string): string {
+  if (!text) return "";
+
+  // Convert **word** to <strong>word</strong>
+  return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+}
+
+/**
  * Safely render highlighted text as HTML
  */
 export function renderHighlightedText(text: string): { __html: string } {
   const highlighted = highlightKeyPhrases(text);
   // Basic XSS protection - only allow highlight spans
   const sanitized = highlighted.replace(/<(?!\/?span[^>]*>)[^>]*>/g, '');
+  return { __html: sanitized };
+}
+
+/**
+ * Render text with markdown bold parsing and highlighting
+ * Combines markdown bold parsing with keyword highlighting
+ */
+export function renderMarkdownWithHighlighting(text: string): { __html: string } {
+  if (!text) return { __html: "" };
+
+  // First parse markdown bold formatting
+  const withBold = parseMarkdownBold(text);
+
+  // Then apply keyword highlighting (but preserve existing <strong> tags)
+  const highlighted = highlightKeyPhrases(withBold);
+
+  // Basic XSS protection - only allow highlight spans and strong tags
+  const sanitized = highlighted.replace(/<(?!\/?(?:span|strong)[^>]*>)[^>]*>/g, '');
+
   return { __html: sanitized };
 }
 

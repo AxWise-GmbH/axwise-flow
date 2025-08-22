@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Persona, InfluenceMetrics, PersonaRelationship, ConflictIndicator, ConsensusLevel } from '@/types/api';
-import { extractKeywords, renderHighlightedText, getKeywordsForRendering } from '@/utils/personaEnhancements';
+import { extractKeywords, renderHighlightedText, renderMarkdownWithHighlighting, getKeywordsForRendering } from '@/utils/personaEnhancements';
 
 interface EnhancedPersonaCardProps {
   persona: Persona;
@@ -763,7 +763,7 @@ export function EnhancedPersonaCard({
                         <blockquote key={idx} className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 rounded-r-lg">
                           <p
                             className="text-sm italic text-gray-700"
-                            dangerouslySetInnerHTML={renderHighlightedText(`"${quote.replace(/^["']|["']$/g, '').trim()}"`)}
+                            dangerouslySetInnerHTML={renderMarkdownWithHighlighting(`"${quote.replace(/^["']|["']$/g, '').trim()}"`)}
                           />
                         </blockquote>
                       ))}
@@ -773,7 +773,7 @@ export function EnhancedPersonaCard({
                     <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                       <p
                         className="text-xs text-gray-600"
-                        dangerouslySetInnerHTML={renderHighlightedText(persona.key_quotes.value)}
+                        dangerouslySetInnerHTML={renderMarkdownWithHighlighting(persona.key_quotes.value)}
                       />
                       {/* Keywords for key quotes */}
                       {renderKeywords(getTraitKeywords(persona.key_quotes, 'key_quotes'))}

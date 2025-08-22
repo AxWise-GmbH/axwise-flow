@@ -1215,3 +1215,247 @@ class ResultsService:
                     "error": str(e),
                 },
             }
+
+    def filter_design_thinking_persona(
+        self, persona_dict: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Filter persona response to only include populated, high-confidence design thinking fields.
+
+        Based on PROJECT_DEEP_DIVE_ANALYSIS.md recommendations:
+        - Only return 5 core design thinking fields
+        - Filter out empty/low-confidence fields
+        - Maintain backward compatibility
+
+        Args:
+            persona_dict: Full persona dictionary from database/JSON
+
+        Returns:
+            Filtered persona dictionary with only populated design thinking fields
+        """
+        logger.info(
+            f"🔥 FILTERING PERSONA: {persona_dict.get('name', 'Unknown')} - CODE UPDATED!"
+        )
+        # Core persona identity (always included)
+        filtered = {
+            "persona_id": persona_dict.get("persona_id"),
+            "name": persona_dict.get("name", "Unknown Persona"),
+            "description": persona_dict.get("description", ""),
+            "archetype": persona_dict.get("archetype", "Professional"),
+            "overall_confidence": persona_dict.get(
+                "overall_confidence", persona_dict.get("confidence", 0.5)
+            ),
+            "populated_traits": {},
+        }
+
+        # Design thinking core fields (only these 5 fields)
+        design_thinking_fields = [
+            "demographics",
+            "goals_and_motivations",
+            "challenges_and_frustrations",
+            "key_quotes",
+        ]
+
+        # Quality thresholds from analysis document (temporarily lowered for testing)
+        CONFIDENCE_THRESHOLD = 0.5  # Lowered from 0.7 for testing
+        MIN_CONTENT_LENGTH = 10  # Lowered from 15 for testing
+
+        # Filter and include only high-quality traits
+        for field in design_thinking_fields:
+            trait = persona_dict.get(field)
+            logger.info(
+                f"Checking field '{field}': trait type={type(trait)}, value preview={str(trait)[:100] if trait else 'None'}"
+            )
+
+            # Handle different persona field structures
+            if trait:
+                logger.info(f"Field '{field}' trait type string: {str(type(trait))}")
+                logger.info(f"Field '{field}' hasattr value: {hasattr(trait, 'value')}")
+                logger.info(
+                    f"Field '{field}' hasattr confidence: {hasattr(trait, 'confidence')}"
+                )
+                logger.info(
+                    f"Field '{field}' PersonaTrait in type: {'PersonaTrait' in str(type(trait))}"
+                )
+
+                # Case 1: PersonaTrait object (from backend.schemas.PersonaTrait)
+                if hasattr(trait, "value") and hasattr(trait, "confidence"):
+                    value = trait.value if trait.value else ""
+                    confidence = trait.confidence if trait.confidence else 0
+                    evidence = (
+                        trait.evidence
+                        if hasattr(trait, "evidence") and trait.evidence
+                        else []
+                    )
+                    logger.info(
+                        f"Field '{field}' (PersonaTrait object): value_length={len(value)}, confidence={confidence}"
+                    )
+
+                # Case 1b: Check if it's a PersonaTrait by class name (fallback)
+                elif "PersonaTrait" in str(type(trait)):
+                    logger.info(
+                        f"Field '{field}' detected as PersonaTrait by class name, attributes: {dir(trait)}"
+                    )
+                    try:
+                        value = (
+                            getattr(trait, "value", "")
+                            if hasattr(trait, "value")
+                            else ""
+                        )
+                        confidence = (
+                            getattr(trait, "confidence", 0)
+                            if hasattr(trait, "confidence")
+                            else 0
+                        )
+                        evidence = (
+                            getattr(trait, "evidence", [])
+                            if hasattr(trait, "evidence")
+                            else []
+                        )
+                        logger.info(
+                            f"Field '{field}' (PersonaTrait by class): value_length={len(value)}, confidence={confidence}"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error extracting PersonaTrait attributes for field '{field}': {e}"
+                        )
+                        continue
+
+                # Case 2: Trait is a dict with value/confidence structure
+                elif isinstance(trait, dict) and "value" in trait:
+                    value = trait.get("value", "")
+                    confidence = trait.get("confidence", 0)
+                    evidence = trait.get("evidence", [])
+                    logger.info(
+                        f"Field '{field}' (dict structure): value_length={len(value)}, confidence={confidence}"
+                    )
+
+                # Case 3: Trait is a simple string (direct value)
+                elif isinstance(trait, str):
+                    value = trait
+                    confidence = 0.8  # Default confidence for string fields
+                    evidence = []
+                    logger.info(
+                        f"Field '{field}' (string structure): value_length={len(value)}, using default confidence={confidence}"
+                    )
+
+                # Case 4: Other structures - try to extract value
+                else:
+                    logger.info(
+                        f"Field '{field}' has unexpected structure: {type(trait)}"
+                    )
+                    continue
+
+                if (
+                    value
+                    and len(value) >= MIN_CONTENT_LENGTH
+                    and confidence >= CONFIDENCE_THRESHOLD
+                ):
+
+                    filtered["populated_traits"][field] = {
+                        "value": value,
+                        "confidence": confidence,
+                        "evidence": evidence,
+                    }
+                    logger.info(f"Added field '{field}' to filtered traits")
+                else:
+                    logger.info(
+                        f"Filtered out field '{field}': value_len={len(value)}, conf={confidence}, thresholds: len>={MIN_CONTENT_LENGTH}, conf>={CONFIDENCE_THRESHOLD}"
+                    )
+            else:
+                logger.info(f"Field '{field}' is None or empty")
+
+        # Add metadata for UI
+        filtered["trait_count"] = len(filtered["populated_traits"])
+        filtered["evidence_count"] = sum(
+            len(trait.get("evidence", []))
+            for trait in filtered["populated_traits"].values()
+        )
+
+        logger.debug(
+            f"Filtered persona '{filtered['name']}': {filtered['trait_count']} traits, {filtered['evidence_count']} evidence items"
+        )
+
+        return filtered
+
+    def get_design_thinking_personas(self, result_id: int) -> List[Dict[str, Any]]:
+        """
+        Get simplified personas optimized for design thinking display.
+
+        Returns only the 5 essential design thinking fields with quality filtering:
+        - name, archetype, demographics, goals_and_motivations,
+        - challenges_and_frustrations, key_quotes
+
+        Args:
+            result_id: Analysis result ID
+
+        Returns:
+            List of filtered persona dictionaries
+        """
+        try:
+            logger.info(f"Getting design thinking personas for result_id: {result_id}")
+
+            # Get full analysis result
+            full_result = self.get_analysis_result(result_id)
+
+            if full_result.get("status") != "completed":
+                logger.warning(f"Analysis not completed for result_id: {result_id}")
+                return []
+
+            # Extract personas from results
+            personas = full_result.get("results", {}).get("personas", [])
+            logger.info(f"Found {len(personas)} personas in full result")
+            logger.info(f"Personas type: {type(personas)}")
+            if personas:
+                logger.info(f"First persona type: {type(personas[0])}")
+                logger.info(
+                    f"First persona keys: {list(personas[0].keys()) if isinstance(personas[0], dict) else 'Not a dict'}"
+                )
+
+            if not personas:
+                logger.info(f"No personas found for result_id: {result_id}")
+                return []
+
+            # Filter each persona for design thinking
+            filtered_personas = []
+            logger.info(f"About to start filtering {len(personas)} personas")
+            for i, persona in enumerate(personas):
+                logger.info(f"Processing persona {i}: {type(persona)}")
+
+                # Convert persona schema object to dict if needed
+                if hasattr(persona, "__dict__"):
+                    persona_dict = persona.__dict__
+                    logger.info(f"Converted persona {i} from object to dict")
+                elif hasattr(persona, "model_dump"):
+                    persona_dict = persona.model_dump()
+                    logger.info(f"Converted persona {i} using model_dump")
+                else:
+                    persona_dict = persona
+                    logger.info(f"Using persona {i} as-is (already dict)")
+
+                logger.info(
+                    f"Persona {i} keys: {list(persona_dict.keys()) if isinstance(persona_dict, dict) else 'Not a dict'}"
+                )
+
+                # Apply design thinking filtering
+                filtered_persona = self.filter_design_thinking_persona(persona_dict)
+                logger.info(
+                    f"Filtered persona {i}: trait_count={filtered_persona['trait_count']}"
+                )
+
+                # Only include personas with at least one populated trait
+                if filtered_persona["trait_count"] > 0:
+                    filtered_personas.append(filtered_persona)
+                    logger.info(f"Added persona {i} to filtered list")
+
+            logger.info(
+                f"Filtered {len(filtered_personas)} design thinking personas from {len(personas)} total"
+            )
+            return filtered_personas
+
+        except Exception as e:
+            logger.error(f"Error getting design thinking personas: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error retrieving design thinking personas: {str(e)}",
+            )

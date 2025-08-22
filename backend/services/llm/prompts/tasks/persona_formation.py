@@ -128,7 +128,7 @@ class PersonaFormationPrompts:
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
-            "value": "ONLY include demographic information that is explicitly mentioned in the text. Include location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
+            "value": "Format as structured key-value pairs. ONLY include demographic information that is explicitly mentioned in the text. Use this format:\nAge Range: [if mentioned]\nEducation: [if mentioned]\nLocation: [if mentioned]\nIncome Level: [if mentioned]\nIndustry Experience: [if mentioned]\nCompany Size: [if mentioned]\nRole Level: [if mentioned]\n\nInclude location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},
@@ -250,7 +250,7 @@ class PersonaFormationPrompts:
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
-            "value": "ONLY include demographic information that is explicitly mentioned in the text. Include location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
+            "value": "Format as structured key-value pairs. ONLY include demographic information that is explicitly mentioned in the text. Use this format:\nAge Range: [if mentioned]\nEducation: [if mentioned]\nLocation: [if mentioned]\nIncome Level: [if mentioned]\nIndustry Experience: [if mentioned]\nCompany Size: [if mentioned]\nRole Level: [if mentioned]\n\nInclude location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
             "confidence": 0.8,
             "evidence": ["Quote 1", "Quote 2"]
           }},

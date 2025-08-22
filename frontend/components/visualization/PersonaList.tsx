@@ -13,6 +13,7 @@ import { Grid, List, Network } from 'lucide-react';
 import { type Persona } from '@/types/api';
 import { EnhancedPersonaCard } from './EnhancedPersonaCard';
 import { PersonaRelationshipNetwork } from './PersonaRelationshipNetwork';
+import { renderMarkdownWithHighlighting } from '@/utils/personaEnhancements';
 
 type PersonaListProps = {
   personas: Persona[];
@@ -31,6 +32,49 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     );
   }
 
+  // Design thinking field filtering logic (based on PROJECT_DEEP_DIVE_ANALYSIS.md)
+  const DESIGN_THINKING_FIELDS = [
+    'demographics',
+    'goals_and_motivations',
+    'challenges_and_frustrations',
+    'key_quotes'
+  ];
+
+  const CONFIDENCE_THRESHOLD = 0.7;
+  const MIN_CONTENT_LENGTH = 15;
+
+  // Filter persona fields to only show populated, high-confidence design thinking fields
+  const getPopulatedFields = (persona: Persona) => {
+    const populatedFields: Array<{field: string, trait: any, title: string}> = [];
+
+    DESIGN_THINKING_FIELDS.forEach(field => {
+      const trait = persona[field as keyof Persona];
+      if (trait &&
+          typeof trait === 'object' &&
+          'value' in trait &&
+          trait.value &&
+          typeof trait.value === 'string' &&
+          trait.value.length >= MIN_CONTENT_LENGTH &&
+          trait.confidence >= CONFIDENCE_THRESHOLD) {
+
+        const titles: Record<string, string> = {
+          'demographics': 'Demographics',
+          'goals_and_motivations': 'Goals & Motivations',
+          'challenges_and_frustrations': 'Challenges & Frustrations',
+          'key_quotes': 'Key Quotes'
+        };
+
+        populatedFields.push({
+          field,
+          trait,
+          title: titles[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        });
+      }
+    });
+
+    return populatedFields;
+  };
+
   // Check if any personas have stakeholder intelligence features
   const hasStakeholderFeatures = personas.some(persona => persona.stakeholder_intelligence);
 
@@ -47,11 +91,18 @@ export function PersonaList({ personas, className }: PersonaListProps) {
       .substring(0, 2);
   };
 
-  // Get color based on confidence
+  // Get color based on confidence (PROJECT_DEEP_DIVE_ANALYSIS.md specifications)
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100';
-    if (confidence >= 0.6) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100';
-    return 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100';
+    if (confidence >= 0.9) return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-800 dark:text-green-100'; // High: 90%+
+    if (confidence >= 0.7) return 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-800 dark:text-yellow-100'; // Medium: 70%+
+    return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-800 dark:text-red-100'; // Low: <70%
+  };
+
+  // Get confidence level text
+  const getConfidenceLevel = (confidence: number) => {
+    if (confidence >= 0.9) return 'High';
+    if (confidence >= 0.7) return 'Medium';
+    return 'Low';
   };
 
   const getConfidenceTooltip = (confidence: number) => {
@@ -62,7 +113,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
   };
 
   // Helper function to render trait values consistently
-  const renderTraitValue = (value: any): React.ReactNode => {
+  const renderTraitValue = (value: any, fieldName?: string): React.ReactNode => {
     if (typeof value === 'string') {
       // Handle newline-separated bullet points first
       if (value.includes('\n') && value.includes('•')) {
@@ -83,6 +134,10 @@ export function PersonaList({ personas, className }: PersonaListProps) {
         ));
       } else {
         // Render as single list item if no periods
+        // Use markdown parsing for key quotes field
+        if (fieldName === 'key_quotes') {
+          return <li dangerouslySetInnerHTML={renderMarkdownWithHighlighting(value)} />;
+        }
         return <li>{value}</li>;
       }
     } else if (Array.isArray(value)) {
@@ -142,7 +197,10 @@ export function PersonaList({ personas, className }: PersonaListProps) {
       <div className="space-y-4">
         {quoteList.map((quote, index) => (
           <blockquote key={index} className="border-l-4 border-primary pl-4 py-2 bg-muted/30 rounded-r-lg">
-            <p className="text-sm italic">"{quote.replace(/^["']|["']$/g, '').trim()}"</p>
+            <p
+              className="text-sm italic"
+              dangerouslySetInnerHTML={renderMarkdownWithHighlighting(`"${quote.replace(/^["']|["']$/g, '').trim()}"`)}
+            />
           </blockquote>
         ))}
       </div>
@@ -253,7 +311,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
   };
 
   // Render a trait card with confidence badge and evidence
-  const renderTraitCard = (label: string, trait: any) => {
+  const renderTraitCard = (label: string, trait: any, fieldName?: string) => {
     const validatedTrait = validateTrait(trait);
     if (!validatedTrait) {
       // Return a placeholder card for missing data
@@ -277,26 +335,37 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     const { value, confidence, evidence } = validatedTrait;
 
     return (
-      <div className="mb-4 border rounded-lg p-4">
+      <div className={`mb-4 border rounded-lg p-4 ${
+        confidence >= 0.9 ? 'border-green-200 bg-green-50/30' :
+        confidence >= 0.7 ? 'border-yellow-200 bg-yellow-50/30' :
+        'border-red-200 bg-red-50/30'
+      }`}>
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-sm font-medium">{label}</h3>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge className={getConfidenceColor(confidence)}>
-                  {Math.round(confidence * 100)}%
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{getConfidenceTooltip(confidence)}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center space-x-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className={getConfidenceColor(confidence)}>
+                    {getConfidenceLevel(confidence)} {Math.round(confidence * 100)}%
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{getConfidenceTooltip(confidence)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {evidence && evidence.length > 0 && (
+              <Badge variant="outline" className="text-xs">
+                📝 {evidence.length}
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="mt-2">
           <ul className="list-disc pl-5 space-y-1">
-            {renderTraitValue(value)}
+            {renderTraitValue(value, fieldName)}
           </ul>
         </div>
 
@@ -418,12 +487,12 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                   <h2 className="text-xl font-bold">{persona.name}</h2>
                   <p className="text-muted-foreground">{persona.description}</p>
                 </div>
-                <div className="flex-shrink-0 self-start">
+                <div className="flex-shrink-0 self-start space-y-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Badge className={getConfidenceColor(persona.confidence)}>
-                          {Math.round(persona.confidence * 100)}% Overall Confidence
+                          {getConfidenceLevel(persona.confidence)} ({Math.round(persona.confidence * 100)}%)
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -431,6 +500,22 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+
+                  {/* Quality indicators */}
+                  <div className="text-xs text-muted-foreground text-right">
+                    {(() => {
+                      const populatedFields = getPopulatedFields(persona);
+                      const totalEvidence = populatedFields.reduce((sum, field) =>
+                        sum + (field.trait.evidence?.length || 0), 0
+                      );
+                      return (
+                        <>
+                          <div>📊 {populatedFields.length} quality traits</div>
+                          <div>📝 {totalEvidence} evidence items</div>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -488,18 +573,40 @@ export function PersonaList({ personas, className }: PersonaListProps) {
                   <TabsTrigger value="quotes">Key Quotes</TabsTrigger>
                 </TabsList>
 
-                {/* Detailed Profile Tab */}
+                {/* Detailed Profile Tab - Now with smart filtering */}
                 <TabsContent value="detailed" className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderTraitCard('Demographics', persona.demographics)}
-                    {renderTraitCard('Goals & Motivations', persona.goals_and_motivations)}
-                    {renderTraitCard('Skills & Expertise', persona.skills_and_expertise)}
-                    {renderTraitCard('Workflow & Environment', persona.workflow_and_environment)}
-                    {renderTraitCard('Challenges & Frustrations', persona.challenges_and_frustrations)}
-                    {renderTraitCard('Pain Points', persona.pain_points)}
-                    {renderTraitCard('Technology & Tools', persona.technology_and_tools)}
-                    {renderTraitCard('Collaboration Style', persona.collaboration_style)}
-                  </div>
+                  {(() => {
+                    const populatedFields = getPopulatedFields(persona);
+
+                    if (populatedFields.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            No high-confidence traits available for design thinking analysis.
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Traits need 70%+ confidence and sufficient content to be displayed.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-sm text-blue-800">
+                            🎯 <strong>Design Thinking Optimized:</strong> Showing {populatedFields.length} high-quality traits
+                            (70%+ confidence) from {DESIGN_THINKING_FIELDS.length} core design thinking fields.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {populatedFields.map(({ field, trait, title }) =>
+                            renderTraitCard(title, trait, field)
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </TabsContent>
 
                 {/* Key Quotes Tab */}

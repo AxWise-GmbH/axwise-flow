@@ -664,6 +664,55 @@ async def get_results(
 
 
 @app.get(
+    "/api/results/{result_id}/personas/simplified",
+    tags=["Analysis"],
+    summary="Get simplified design thinking personas",
+    description="Retrieve personas optimized for design thinking display with only 5 core fields and quality filtering.",
+)
+async def get_simplified_personas(
+    result_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get design thinking optimized personas (5 fields only).
+
+    Based on PROJECT_DEEP_DIVE_ANALYSIS.md recommendations:
+    - Returns only populated, high-confidence fields
+    - Filters to 5 core design thinking fields
+    - Includes confidence and evidence metadata
+    """
+    try:
+        logger.info(
+            f"Getting simplified personas for result_id: {result_id}, user: {current_user.user_id}"
+        )
+
+        # Use ResultsService to handle fetching and filtering
+        from backend.services.results_service import ResultsService
+
+        results_service = ResultsService(db, current_user)
+
+        # Get filtered design thinking personas
+        simplified_personas = results_service.get_design_thinking_personas(result_id)
+
+        return {
+            "status": "success",
+            "result_id": result_id,
+            "personas": simplified_personas,
+            "total_personas": len(simplified_personas),
+            "design_thinking_optimized": True,
+        }
+
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 404, 403)
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving simplified personas: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get(
     "/api/analysis/{result_id}/status",
     response_model=Dict[str, Any],
     tags=["Analysis"],
