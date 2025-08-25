@@ -41,6 +41,292 @@ from backend.utils.pydantic_ai_retry import (
     get_conservative_retry_config,
 )
 
+import re
+
+# Import new validation and highlighting services
+from .evidence_validator import EvidenceValidator, ValidationResult
+from .keyword_highlighter import ContextAwareKeywordHighlighter
+
+
+def apply_domain_keywords_to_persona(
+    persona: Dict[str, Any], domain_keywords: List[str], persona_name: str
+) -> Dict[str, Any]:
+    """
+    Apply domain-specific keyword highlighting to all evidence in a persona.
+
+    Args:
+        persona: Persona dictionary with traits containing evidence
+        domain_keywords: List of domain-specific keywords to highlight
+        persona_name: Name of the persona for logging
+
+    Returns:
+        Updated persona with enhanced keyword highlighting
+    """
+    logger = logging.getLogger(__name__)
+
+    if not domain_keywords:
+        return persona
+
+    # Normalize keywords for matching
+    normalized_keywords = [
+        kw.lower().strip() for kw in domain_keywords if kw and len(kw.strip()) > 2
+    ]
+
+    trait_fields = [
+        "demographics",
+        "goals_and_motivations",
+        "challenges_and_frustrations",
+        "skills_and_expertise",
+        "technology_and_tools",
+        "workflow_and_environment",
+        "needs_and_expectations",
+        "decision_making_process",
+        "communication_style",
+        "technology_usage",
+        "pain_points",
+        "key_quotes",
+    ]
+
+    updated_count = 0
+
+    for trait_name in trait_fields:
+        trait_data = persona.get(trait_name, {})
+        if isinstance(trait_data, dict) and "evidence" in trait_data:
+            evidence_list = trait_data["evidence"]
+            if evidence_list:
+                enhanced_evidence = []
+                for quote in evidence_list:
+                    enhanced_quote = apply_domain_highlighting_to_quote(
+                        quote, normalized_keywords
+                    )
+                    enhanced_evidence.append(enhanced_quote)
+                    if enhanced_quote != quote:
+                        updated_count += 1
+
+                trait_data["evidence"] = enhanced_evidence
+
+    if updated_count > 0:
+        logger.info(
+            f"[DOMAIN_HIGHLIGHTING] ✅ Enhanced {updated_count} evidence quotes for {persona_name}"
+        )
+    else:
+        logger.warning(
+            f"[DOMAIN_HIGHLIGHTING] ⚠️ No evidence enhanced for {persona_name}"
+        )
+
+    return persona
+
+
+def apply_domain_highlighting_to_quote(quote: str, domain_keywords: List[str]) -> str:
+    """
+    Apply domain-specific highlighting to a single quote.
+
+    Args:
+        quote: Evidence quote to enhance
+        domain_keywords: List of normalized domain keywords
+
+    Returns:
+        Quote with enhanced domain-specific highlighting
+    """
+    if not quote or not domain_keywords:
+        return quote
+
+    # Remove existing highlighting to start fresh
+    clean_quote = re.sub(r"\*\*(.*?)\*\*", r"\1", quote)
+
+    # Apply domain-specific highlighting
+    enhanced_quote = clean_quote
+
+    # Sort keywords by length (longest first) to avoid partial replacements
+    sorted_keywords = sorted(domain_keywords, key=len, reverse=True)
+
+    for keyword in sorted_keywords:
+        if len(keyword) > 2:  # Only highlight meaningful keywords
+            # Use word boundaries to avoid partial matches
+            pattern = r"\b" + re.escape(keyword) + r"\b"
+            replacement = f"**{keyword}**"
+            enhanced_quote = re.sub(
+                pattern, replacement, enhanced_quote, flags=re.IGNORECASE
+            )
+
+    return enhanced_quote
+
+
+def validate_and_regenerate_low_quality_traits(
+    personas: List[Dict[str, Any]], evidence_validator
+) -> List[Dict[str, Any]]:
+    """
+    Validate persona traits and regenerate those with low alignment scores.
+
+    Args:
+        personas: List of persona dictionaries
+        evidence_validator: Evidence validator instance
+
+    Returns:
+        Updated personas with improved trait quality
+    """
+    logger = logging.getLogger(__name__)
+
+    regeneration_count = 0
+
+    for i, persona in enumerate(personas):
+        persona_name = persona.get("name", f"Persona {i+1}")
+
+        # Validate evidence for this persona
+        validation_results = evidence_validator.validate_persona_evidence(persona)
+
+        traits_to_regenerate = []
+
+        for trait_name, result in validation_results.items():
+            # Check for critical quality issues
+            if (
+                result.semantic_alignment_score < 0.5
+                or result.keyword_relevance_score < 0.3
+                or not result.is_valid
+            ):
+
+                traits_to_regenerate.append(trait_name)
+                logger.warning(
+                    f"[QUALITY_GATE] ⚠️ {persona_name} - {trait_name} needs regeneration "
+                    f"(alignment: {result.semantic_alignment_score:.2f}, "
+                    f"keyword: {result.keyword_relevance_score:.2f})"
+                )
+
+        # Regenerate problematic traits
+        if traits_to_regenerate:
+            regeneration_count += len(traits_to_regenerate)
+            personas[i] = regenerate_persona_traits(
+                persona, traits_to_regenerate, persona_name
+            )
+
+    if regeneration_count > 0:
+        logger.info(
+            f"[QUALITY_GATE] ✅ Regenerated {regeneration_count} low-quality traits"
+        )
+    else:
+        logger.info("[QUALITY_GATE] ✅ All traits passed quality validation")
+
+    return personas
+
+
+def regenerate_persona_traits(
+    persona: Dict[str, Any], traits_to_regenerate: List[str], persona_name: str
+) -> Dict[str, Any]:
+    """
+    Regenerate specific persona traits with improved evidence alignment.
+
+    Args:
+        persona: Persona dictionary
+        traits_to_regenerate: List of trait names to regenerate
+        persona_name: Name of the persona for logging
+
+    Returns:
+        Updated persona with regenerated traits
+    """
+    logger = logging.getLogger(__name__)
+
+    for trait_name in traits_to_regenerate:
+        trait_data = persona.get(trait_name, {})
+
+        if isinstance(trait_data, dict):
+            # Generate more evidence-focused description
+            evidence_list = trait_data.get("evidence", [])
+
+            if evidence_list:
+                # Create evidence-based description
+                evidence_summary = " ".join(
+                    evidence_list[:3]
+                )  # Use first 3 pieces of evidence
+
+                # Generate improved description based on evidence
+                improved_description = generate_evidence_based_description(
+                    trait_name, evidence_summary, persona_name
+                )
+
+                if improved_description and improved_description != trait_data.get(
+                    "description", ""
+                ):
+                    trait_data["description"] = improved_description
+                    logger.info(
+                        f"[TRAIT_REGENERATION] ✅ Improved {trait_name} for {persona_name}"
+                    )
+                else:
+                    # Fallback: Mark as insufficient evidence
+                    trait_data["description"] = (
+                        f"Insufficient evidence available for {trait_name.replace('_', ' ')}"
+                    )
+                    logger.warning(
+                        f"[TRAIT_REGENERATION] ⚠️ Insufficient evidence for {trait_name} in {persona_name}"
+                    )
+            else:
+                # No evidence available
+                trait_data["description"] = (
+                    f"No evidence available for {trait_name.replace('_', ' ')}"
+                )
+                logger.warning(
+                    f"[TRAIT_REGENERATION] ⚠️ No evidence for {trait_name} in {persona_name}"
+                )
+
+    return persona
+
+
+def generate_evidence_based_description(
+    trait_name: str, evidence_text: str, persona_name: str
+) -> str:
+    """
+    Generate a trait description that closely aligns with available evidence.
+
+    Args:
+        trait_name: Name of the trait
+        evidence_text: Available evidence text
+        persona_name: Name of the persona
+
+    Returns:
+        Evidence-based trait description
+    """
+    if not evidence_text or len(evidence_text.strip()) < 20:
+        return ""
+
+    # Simple evidence-based description generation
+    # Extract key themes from evidence
+    evidence_lower = evidence_text.lower()
+
+    # Common patterns for different traits
+    if trait_name == "demographics":
+        if any(
+            term in evidence_lower for term in ["work", "job", "company", "business"]
+        ):
+            return "Professional working in a business environment"
+        elif any(
+            term in evidence_lower
+            for term in ["student", "school", "university", "college"]
+        ):
+            return "Student or academic professional"
+        else:
+            return "Individual with varied background and experience"
+
+    elif trait_name == "goals_and_motivations":
+        if any(
+            term in evidence_lower for term in ["want", "need", "goal", "hope", "aim"]
+        ):
+            return "Focused on achieving specific objectives and meeting personal needs"
+        else:
+            return "Motivated by practical outcomes and problem-solving"
+
+    elif trait_name == "challenges_and_frustrations":
+        if any(
+            term in evidence_lower
+            for term in ["problem", "issue", "difficult", "hard", "frustrating"]
+        ):
+            return "Faces specific challenges that impact daily activities"
+        else:
+            return "Encounters occasional obstacles in workflow"
+
+    else:
+        # Generic evidence-based description
+        return f"Demonstrates specific patterns and behaviors related to {trait_name.replace('_', ' ')}"
+
+
 # Import LLM interface
 try:
     # Try to import from backend structure
@@ -470,10 +756,71 @@ OUTPUT: Complete SimplifiedPersona object with all fields populated using actual
             if is_structured_transcript:
                 return await self.form_personas_from_transcript(text, context=context)
 
-            # If we still don't have a structured transcript, use our LLM-powered transcript structuring
+            # If we still don't have a structured transcript, check for stakeholder structure first
             if isinstance(text, str) and not is_structured_transcript:
                 logger.info(
-                    "No structured format detected, using LLM-powered transcript structuring"
+                    "No structured format detected, checking for stakeholder-aware content structure"
+                )
+
+                # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
+                try:
+                    # Import the stakeholder-aware transcript processor
+                    from backend.services.processing.pipeline.stakeholder_aware_transcript_processor import (
+                        StakeholderAwareTranscriptProcessor,
+                    )
+
+                    # Create a temporary processor instance
+                    processor = StakeholderAwareTranscriptProcessor()
+
+                    # Try to parse stakeholder sections
+                    stakeholder_segments = processor._parse_stakeholder_sections(text)
+
+                    if stakeholder_segments and len(stakeholder_segments) > 0:
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
+                        )
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
+                        )
+
+                        # Convert to the format expected by form_personas_by_stakeholder
+                        formatted_segments = {}
+                        for category, interviews in stakeholder_segments.items():
+                            # Create mock segments for each interview
+                            segments = []
+                            for i, interview_text in enumerate(interviews):
+                                segments.append(
+                                    {
+                                        "text": interview_text,
+                                        "speaker": f"Interviewee_{i+1}",
+                                        "role": "Interviewee",
+                                        "stakeholder_category": category,
+                                    }
+                                )
+
+                            formatted_segments[category] = {
+                                "segments": segments,
+                                "interview_count": len(interviews),
+                                "content_info": {"type": "stakeholder_interview"},
+                            }
+
+                        # Use stakeholder-aware persona formation
+                        personas_list = await self.form_personas_by_stakeholder(
+                            formatted_segments, context=context
+                        )
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
+                        )
+                        return personas_list
+
+                except Exception as e:
+                    logger.error(
+                        f"[STAKEHOLDER_PERSONA] Error in stakeholder-aware processing: {str(e)}"
+                    )
+                    # Continue with standard processing
+
+                logger.info(
+                    "No stakeholder structure detected, using LLM-powered transcript structuring"
                 )
 
                 # Log a sample of the text for debugging
@@ -552,6 +899,260 @@ OUTPUT: Complete SimplifiedPersona object with all fields populated using actual
         return await self._form_personas_from_transcript_parallel(
             transcript, participants, context
         )
+
+    async def form_personas_by_stakeholder(
+        self,
+        stakeholder_segments: Dict[str, Any],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate personas from stakeholder-segmented transcript data.
+
+        This method processes each stakeholder category separately to maintain
+        stakeholder boundaries and populate stakeholder_mapping fields.
+
+        Args:
+            stakeholder_segments: Dictionary of stakeholder segments from transcript processor
+            context: Optional additional context information
+
+        Returns:
+            List of persona dictionaries with stakeholder_mapping populated
+        """
+        try:
+            logger.info(
+                f"[STAKEHOLDER_PERSONA] Starting stakeholder-aware persona formation"
+            )
+            logger.info(
+                f"[STAKEHOLDER_PERSONA] Processing {len(stakeholder_segments)} stakeholder categories"
+            )
+
+            all_personas = []
+
+            for stakeholder_category, segment_data in stakeholder_segments.items():
+                logger.info(
+                    f"[STAKEHOLDER_PERSONA] Processing stakeholder: {stakeholder_category}"
+                )
+
+                # Extract segments for this stakeholder
+                segments = segment_data.get("segments", [])
+                interview_count = segment_data.get("interview_count", 0)
+
+                if not segments:
+                    logger.warning(
+                        f"[STAKEHOLDER_PERSONA] No segments found for stakeholder: {stakeholder_category}"
+                    )
+                    continue
+
+                logger.info(
+                    f"[STAKEHOLDER_PERSONA] Generating personas from {len(segments)} segments for {stakeholder_category}"
+                )
+
+                # Generate personas for this stakeholder category
+                stakeholder_personas = (
+                    await self._generate_stakeholder_specific_personas(
+                        segments, stakeholder_category, interview_count, context
+                    )
+                )
+
+                # Add stakeholder mapping to each persona
+                for persona in stakeholder_personas:
+                    if isinstance(persona, dict):
+                        persona["stakeholder_mapping"] = {
+                            "stakeholder_category": stakeholder_category,
+                            "interview_count": interview_count,
+                            "confidence": persona.get("overall_confidence", 0.7),
+                            "processing_method": "stakeholder_aware",
+                        }
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Added stakeholder mapping for persona: {persona.get('name', 'Unknown')}"
+                        )
+
+                all_personas.extend(stakeholder_personas)
+                logger.info(
+                    f"[STAKEHOLDER_PERSONA] Generated {len(stakeholder_personas)} personas for {stakeholder_category}"
+                )
+
+            logger.info(
+                f"[STAKEHOLDER_PERSONA] Total personas generated: {len(all_personas)}"
+            )
+            return all_personas
+
+        except Exception as e:
+            logger.error(
+                f"[STAKEHOLDER_PERSONA] Error in stakeholder-aware persona formation: {str(e)}",
+                exc_info=True,
+            )
+            # Fall back to standard processing
+            logger.info(
+                "[STAKEHOLDER_PERSONA] Falling back to standard persona formation"
+            )
+
+            # Flatten all segments for fallback processing
+            all_segments = []
+            for segment_data in stakeholder_segments.values():
+                all_segments.extend(segment_data.get("segments", []))
+
+            return await self.form_personas_from_transcript(
+                all_segments, context=context
+            )
+
+    async def _generate_stakeholder_specific_personas(
+        self,
+        segments: List[Dict[str, Any]],
+        stakeholder_category: str,
+        interview_count: int,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate personas specifically for a single stakeholder category.
+
+        Args:
+            segments: Transcript segments for this stakeholder
+            stakeholder_category: Name of the stakeholder category
+            interview_count: Number of interviews for this stakeholder
+            context: Optional context information
+
+        Returns:
+            List of persona dictionaries for this stakeholder
+        """
+        try:
+            logger.info(
+                f"[STAKEHOLDER_SPECIFIC] Generating personas for: {stakeholder_category}"
+            )
+            logger.info(
+                f"[STAKEHOLDER_SPECIFIC] Processing {len(segments)} segments from {interview_count} interviews"
+            )
+
+            # Combine all text for this stakeholder
+            stakeholder_text = ""
+            speakers = set()
+
+            for segment in segments:
+                if isinstance(segment, dict):
+                    text = segment.get("text", "")
+                    speaker = segment.get("speaker", "Unknown")
+                    speakers.add(speaker)
+                    stakeholder_text += f"\n{text}"
+                elif hasattr(segment, "text"):
+                    text = segment.text
+                    speaker = getattr(segment, "speaker", "Unknown")
+                    speakers.add(speaker)
+                    stakeholder_text += f"\n{text}"
+
+            stakeholder_text = stakeholder_text.strip()
+
+            if not stakeholder_text:
+                logger.warning(
+                    f"[STAKEHOLDER_SPECIFIC] No text content found for {stakeholder_category}"
+                )
+                return []
+
+            logger.info(
+                f"[STAKEHOLDER_SPECIFIC] Combined text length: {len(stakeholder_text)} chars"
+            )
+            logger.info(f"[STAKEHOLDER_SPECIFIC] Unique speakers: {len(speakers)}")
+
+            # Create enhanced context with stakeholder information
+            enhanced_context = {
+                "stakeholder_category": stakeholder_category,
+                "interview_count": interview_count,
+                "speaker_count": len(speakers),
+                **(context or {}),
+            }
+
+            # Generate personas using stakeholder-specific approach
+            # For now, generate 1 persona per stakeholder category to maintain clear boundaries
+            personas = []
+
+            # Use the existing persona generation but with stakeholder context
+            persona = await self._generate_single_stakeholder_persona(
+                stakeholder_text, stakeholder_category, enhanced_context
+            )
+
+            if persona:
+                personas.append(persona)
+                logger.info(
+                    f"[STAKEHOLDER_SPECIFIC] Generated persona for {stakeholder_category}: {persona.get('name', 'Unknown')}"
+                )
+
+            return personas
+
+        except Exception as e:
+            logger.error(
+                f"[STAKEHOLDER_SPECIFIC] Error generating personas for {stakeholder_category}: {str(e)}",
+                exc_info=True,
+            )
+            return []
+
+    async def _generate_single_stakeholder_persona(
+        self,
+        stakeholder_text: str,
+        stakeholder_category: str,
+        context: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Generate a single persona for a specific stakeholder category.
+
+        Args:
+            stakeholder_text: Combined text content for this stakeholder
+            stakeholder_category: Name of the stakeholder category
+            context: Context with stakeholder information
+
+        Returns:
+            Persona dictionary or None if generation fails
+        """
+        try:
+            logger.info(
+                f"[SINGLE_STAKEHOLDER] Generating persona for: {stakeholder_category}"
+            )
+
+            # Create stakeholder-specific prompt
+            prompt = self.prompt_generator.create_stakeholder_specific_persona_prompt(
+                stakeholder_text, stakeholder_category, context
+            )
+
+            # Generate persona using PydanticAI
+            retry_config = {
+                "max_retries": 3,
+                "base_delay": 2.0,
+                "max_delay": 10.0,
+                "exponential_base": 2.0,
+            }
+
+            persona_result = await safe_pydantic_ai_call(
+                agent=self.persona_agent,
+                prompt=prompt,
+                context=f"Stakeholder-specific persona generation for {stakeholder_category}",
+                retry_config=retry_config,
+            )
+
+            if persona_result and hasattr(persona_result, "data"):
+                persona_data = persona_result.data
+
+                # Convert to dictionary format
+                if hasattr(persona_data, "model_dump"):
+                    persona_dict = persona_data.model_dump()
+                elif hasattr(persona_data, "dict"):
+                    persona_dict = persona_data.dict()
+                else:
+                    persona_dict = dict(persona_data)
+
+                logger.info(
+                    f"[SINGLE_STAKEHOLDER] Successfully generated persona: {persona_dict.get('name', 'Unknown')}"
+                )
+                return persona_dict
+            else:
+                logger.warning(
+                    f"[SINGLE_STAKEHOLDER] No valid persona result for {stakeholder_category}"
+                )
+                return None
+
+        except Exception as e:
+            logger.error(
+                f"[SINGLE_STAKEHOLDER] Error generating persona for {stakeholder_category}: {str(e)}",
+                exc_info=True,
+            )
+            return None
 
     async def _form_personas_from_transcript_parallel(
         self,
@@ -1797,9 +2398,11 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                 response, context=context, task="persona_formation"
             )
 
-            # If we got a valid result, return it
+            # If we got a valid result, process structured demographics and return it
             if result and isinstance(result, dict) and len(result) > 0:
                 logger.info(f"Successfully parsed JSON with Instructor in {context}")
+                # Process structured demographics if present
+                result = self._process_structured_demographics(result)
                 return result
 
         except Exception as e:
@@ -1807,7 +2410,135 @@ Please analyze these patterns and generate a comprehensive persona based on the 
 
         # Fall back to the enhanced JSON parsing implementation
         logger.info(f"Falling back to enhanced JSON parsing in {context}")
-        return parse_llm_json_response_enhanced(response, context)
+        result = parse_llm_json_response_enhanced(response, context)
+        # Process structured demographics if present
+        return self._process_structured_demographics(result)
+
+    def _convert_string_to_structured_demographics(
+        self, demographics_string: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Convert string demographics to structured format.
+
+        Args:
+            demographics_string: String containing demographics information
+
+        Returns:
+            Dictionary with structured demographics fields or None if conversion fails
+        """
+        if not demographics_string or not isinstance(demographics_string, str):
+            return None
+
+        structured_demo = {}
+
+        # Parse bullet-point format demographics
+        lines = demographics_string.split("•")
+        lines = [line.strip() for line in lines if line.strip()]
+
+        for line in lines:
+            if ":" not in line:
+                continue
+
+            key, value = line.split(":", 1)
+            key = key.strip().lower()
+            value = value.strip()
+
+            if not value:
+                continue
+
+            # Map common demographic fields
+            if "experience" in key and "level" in key:
+                structured_demo["experience_level"] = value
+            elif "industry" in key:
+                structured_demo["industry"] = value
+            elif "location" in key:
+                structured_demo["location"] = value
+            elif "age" in key and "range" in key:
+                structured_demo["age_range"] = value
+            elif "role" in key or "position" in key:
+                # Handle roles as array
+                roles = [r.strip() for r in value.split(",") if r.strip()]
+                if roles:
+                    structured_demo["roles"] = roles
+
+        # Extract professional context from remaining text
+        import re
+
+        context_match = re.search(
+            r"professional context[:\s]+(.*?)(?:\.|$)",
+            demographics_string,
+            re.IGNORECASE,
+        )
+        if context_match:
+            structured_demo["professional_context"] = context_match.group(1).strip()
+
+        # Only return if we found meaningful structured data
+        if len(structured_demo) > 0:
+            logger.info(
+                f"Converted string demographics to structured format: {list(structured_demo.keys())}"
+            )
+            return structured_demo
+
+        return None
+
+    def _process_structured_demographics(
+        self, persona_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Process structured demographics in persona data, converting to DemographicsValue if needed.
+
+        Args:
+            persona_data: Parsed persona data dictionary
+
+        Returns:
+            Persona data with processed demographics
+        """
+        from backend.schemas import DemographicsValue
+
+        if "demographics" not in persona_data:
+            return persona_data
+
+        demographics = persona_data["demographics"]
+        if not isinstance(demographics, dict):
+            return persona_data
+
+        # Check if demographics has a structured value
+        demo_value = demographics.get("value")
+
+        if isinstance(demo_value, dict):
+            try:
+                # Try to create a DemographicsValue object from the structured data
+                structured_demo = DemographicsValue(**demo_value)
+                demographics["value"] = structured_demo
+                logger.info(
+                    "Successfully converted demographics dict to DemographicsValue"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to convert demographics dict to DemographicsValue: {e}"
+                )
+                # Keep the original dict format as fallback
+                pass
+        elif isinstance(demo_value, str):
+            # Try to convert string to structured format
+            structured_dict = self._convert_string_to_structured_demographics(
+                demo_value
+            )
+            if structured_dict:
+                try:
+                    structured_demo = DemographicsValue(**structured_dict)
+                    demographics["value"] = structured_demo
+                    logger.info(
+                        "Successfully converted string demographics to DemographicsValue"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to convert string demographics to DemographicsValue: {e}"
+                    )
+                    # Keep the original string format as fallback
+                    pass
+
+        return persona_data
 
     def _group_patterns(
         self, patterns: List[Dict[str, Any]]
@@ -2587,6 +3318,33 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                     }
                 )
 
+        # ENHANCED VALIDATION: Add evidence and keyword highlighting validation
+        logger.info("[DEBUG] 🔍 About to call enhanced validation system...")
+        logger.info(
+            f"[DEBUG] Personas count: {len(personas)}, Quality issues count: {len(quality_issues)}"
+        )
+
+        try:
+            logger.info("[DEBUG] 🚀 Calling _validate_evidence_and_highlighting...")
+            self._validate_evidence_and_highlighting(personas, quality_issues)
+            logger.info("[DEBUG] ✅ Enhanced validation completed successfully")
+        except ImportError as e:
+            logger.error(f"[ERROR] 🚨 Import error in enhanced validation: {e}")
+            logger.error(
+                "[ERROR] Enhanced validation services may not be properly imported"
+            )
+            import traceback
+
+            traceback.print_exc()
+        except Exception as e:
+            logger.error(f"[ERROR] 🚨 Enhanced validation failed with exception: {e}")
+            logger.error(f"[ERROR] Exception type: {type(e).__name__}")
+            import traceback
+
+            traceback.print_exc()
+
+        logger.info("[DEBUG] 🏁 Enhanced validation section completed")
+
         # Log quality summary
         if quality_issues:
             logger.warning(
@@ -2695,3 +3453,200 @@ Please analyze these patterns and generate a comprehensive persona based on the 
             total_quality += quote_quality
 
         return min(total_quality / len(evidence), 1.0)
+
+    def _validate_evidence_and_highlighting(
+        self, personas: List[Dict[str, Any]], quality_issues: List[Dict[str, Any]]
+    ) -> None:
+        """
+        Enhanced validation for evidence quality and keyword highlighting.
+
+        Args:
+            personas: List of persona dictionaries to validate
+            quality_issues: List to append quality issues to
+        """
+        logger.info("[DEBUG] 🎯 ENTERED _validate_evidence_and_highlighting method!")
+        logger.info(f"[DEBUG] Method called with {len(personas)} personas")
+
+        try:
+            logger.info("[DEBUG] 📦 Attempting to initialize validators...")
+            # Initialize validators
+            evidence_validator = EvidenceValidator()
+            logger.info("[DEBUG] ✅ EvidenceValidator initialized successfully")
+
+            keyword_highlighter = ContextAwareKeywordHighlighter()
+            logger.info(
+                "[DEBUG] ✅ ContextAwareKeywordHighlighter initialized successfully"
+            )
+
+            # DYNAMIC DOMAIN DETECTION: Analyze content to detect research domain and keywords
+            if personas and len(personas) > 0:
+                # Get sample content from first persona for domain detection
+                sample_persona = personas[0]
+                sample_content = ""
+
+                # Collect sample evidence from the first persona
+                for trait_name in [
+                    "demographics",
+                    "goals_and_motivations",
+                    "challenges_and_frustrations",
+                ]:
+                    trait_data = sample_persona.get(trait_name, {})
+                    if isinstance(trait_data, dict) and "evidence" in trait_data:
+                        evidence = trait_data["evidence"]
+                        if evidence:
+                            sample_content += " ".join(
+                                evidence[:2]
+                            )  # First 2 quotes per trait
+
+                if sample_content:
+                    logger.info(
+                        "[DYNAMIC_DOMAIN] 🔍 Detecting research domain from persona evidence..."
+                    )
+                    domain_info = (
+                        keyword_highlighter.detect_research_domain_and_keywords(
+                            sample_content
+                        )
+                    )
+
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 📊 Detected domain: {domain_info['domain']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 🏭 Industry context: {domain_info['industry']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 🔑 Core terms: {domain_info['core_terms']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] ⚙️ Technical terms: {domain_info['technical_terms']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 💭 Emotional terms: {domain_info['emotional_terms']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 📈 Total keywords: {domain_info['total_keywords']}"
+                    )
+                    logger.info(
+                        f"[DYNAMIC_DOMAIN] 🎯 Confidence: {domain_info['confidence']:.2f}"
+                    )
+
+                    # CRITICAL FIX: Apply detected domain keywords to all personas
+                    detected_keywords = domain_info.get("all_keywords", [])
+                    if detected_keywords:
+                        logger.info(
+                            f"[DYNAMIC_DOMAIN] 🔧 Applying {len(detected_keywords)} domain keywords to persona evidence..."
+                        )
+
+                        # Apply domain-specific highlighting to all personas
+                        for i, persona in enumerate(personas):
+                            persona_name = persona.get("name", f"Persona {i+1}")
+                            personas[i] = apply_domain_keywords_to_persona(
+                                persona, detected_keywords, persona_name
+                            )
+                    else:
+                        logger.warning(
+                            "[DYNAMIC_DOMAIN] ⚠️ No domain keywords detected to apply"
+                        )
+
+                    # QUALITY GATE: Check for traits that need regeneration due to low alignment
+                    personas = validate_and_regenerate_low_quality_traits(
+                        personas, evidence_validator
+                    )
+                else:
+                    logger.warning(
+                        "[DYNAMIC_DOMAIN] ⚠️ No sample content available for domain detection"
+                    )
+
+            logger.info(
+                "[ENHANCED_VALIDATION] 🔍 Starting evidence and highlighting validation..."
+            )
+
+            for i, persona in enumerate(personas):
+                persona_name = persona.get("name", f"Persona {i+1}")
+
+                # Validate evidence for this persona
+                validation_results = evidence_validator.validate_persona_evidence(
+                    persona
+                )
+
+                # Check for validation failures
+                failed_traits = []
+                highlighting_issues = []
+
+                for trait_name, result in validation_results.items():
+                    if not result.is_valid:
+                        failed_traits.append(trait_name)
+
+                        # Add specific issues
+                        for issue in result.issues:
+                            if "Generic words highlighted" in issue:
+                                highlighting_issues.append(f"{trait_name}: {issue}")
+                            elif "Low semantic alignment" in issue:
+                                quality_issues.append(
+                                    {
+                                        "persona": persona_name,
+                                        "issue": "semantic_misalignment",
+                                        "trait": trait_name,
+                                        "score": result.semantic_alignment_score,
+                                        "message": f"Evidence doesn't support {trait_name} description (score: {result.semantic_alignment_score:.2f})",
+                                    }
+                                )
+
+                # Check keyword highlighting quality across all traits
+                all_evidence_quotes = []
+                for trait_name in [
+                    "demographics",
+                    "goals_and_motivations",
+                    "challenges_and_frustrations",
+                ]:
+                    trait_data = persona.get(trait_name, {})
+                    if isinstance(trait_data, dict) and "evidence" in trait_data:
+                        all_evidence_quotes.extend(trait_data.get("evidence", []))
+
+                if all_evidence_quotes:
+                    highlighting_quality = (
+                        keyword_highlighter.validate_highlighting_quality(
+                            all_evidence_quotes
+                        )
+                    )
+
+                    if highlighting_quality["generic_ratio"] > 0.3:
+                        quality_issues.append(
+                            {
+                                "persona": persona_name,
+                                "issue": "poor_keyword_highlighting",
+                                "generic_ratio": highlighting_quality["generic_ratio"],
+                                "message": f"Too many generic words highlighted ({highlighting_quality['generic_ratio']:.1%})",
+                            }
+                        )
+
+                    if highlighting_quality["domain_ratio"] < 0.2:
+                        quality_issues.append(
+                            {
+                                "persona": persona_name,
+                                "issue": "insufficient_domain_highlighting",
+                                "domain_ratio": highlighting_quality["domain_ratio"],
+                                "message": f"Insufficient domain-specific highlighting ({highlighting_quality['domain_ratio']:.1%})",
+                            }
+                        )
+
+                # Log validation summary for this persona
+                if failed_traits:
+                    logger.warning(
+                        f"[ENHANCED_VALIDATION] ⚠️ {persona_name}: Failed validation for {len(failed_traits)} traits: {', '.join(failed_traits)}"
+                    )
+                else:
+                    logger.info(
+                        f"[ENHANCED_VALIDATION] ✅ {persona_name}: Passed evidence validation"
+                    )
+
+            logger.info(
+                "[ENHANCED_VALIDATION] 🔍 Evidence and highlighting validation completed"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"[ENHANCED_VALIDATION] Error during enhanced validation: {str(e)}",
+                exc_info=True,
+            )
+            # Don't fail the entire process due to validation errors

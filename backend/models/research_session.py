@@ -100,6 +100,7 @@ class ResearchSessionUpdate(BaseModel):
     conversation_context: Optional[str] = None
     questions_generated: Optional[bool] = None
     research_questions: Optional[Dict[str, Any]] = None
+    completed_at: Optional[datetime] = None
 
 
 class ResearchSessionResponse(BaseModel):

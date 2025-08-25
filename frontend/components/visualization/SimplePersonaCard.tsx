@@ -7,6 +7,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseDemographics } from '@/utils/demographicsParser';
+
+// Interface for structured demographics
+interface StructuredDemographics {
+  experience_level?: string;
+  roles?: string[];
+  industry?: string;
+  location?: string;
+  age_range?: string;
+  professional_context?: string;
+}
 
 // Interface for simplified persona optimized for design thinking
 interface SimplePersona {
@@ -45,7 +56,113 @@ const getInitials = (name: string) => {
     .substring(0, 2);
 };
 
+// Function to render demographics content - handles both structured and string formats
+const renderDemographicsContent = (value: any): JSX.Element[] => {
+  // Check if it's a structured demographics object
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    // Check if it has structured demographics fields
+    const structuredFields = ['experience_level', 'roles', 'industry', 'location', 'age_range', 'professional_context'];
+    const hasStructuredFields = structuredFields.some(field => value[field]);
 
+    if (hasStructuredFields) {
+      // Render structured demographics
+      const items: JSX.Element[] = [];
+
+      if (value.experience_level) {
+        items.push(
+          <div key="experience_level" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Experience Level:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.experience_level}
+            </span>
+          </div>
+        );
+      }
+
+      if (value.roles && Array.isArray(value.roles) && value.roles.length > 0) {
+        items.push(
+          <div key="roles" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Roles:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.roles.join(', ')}
+            </span>
+          </div>
+        );
+      }
+
+      if (value.industry) {
+        items.push(
+          <div key="industry" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Industry:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.industry}
+            </span>
+          </div>
+        );
+      }
+
+      if (value.location) {
+        items.push(
+          <div key="location" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Location:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.location}
+            </span>
+          </div>
+        );
+      }
+
+      if (value.age_range) {
+        items.push(
+          <div key="age_range" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Age Range:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.age_range}
+            </span>
+          </div>
+        );
+      }
+
+      if (value.professional_context) {
+        items.push(
+          <div key="professional_context" className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+            <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+              Professional Context:
+            </span>
+            <span className="text-gray-700 sm:ml-3 leading-relaxed">
+              {value.professional_context}
+            </span>
+          </div>
+        );
+      }
+
+      return items;
+    }
+  }
+
+  // Fall back to string parsing for backward compatibility
+  const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+  return parseDemographics(stringValue).map((item, index) => (
+    <div key={index} className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+      <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+        {item.key}:
+      </span>
+      <span className="text-gray-700 sm:ml-3 leading-relaxed">
+        {item.value}
+      </span>
+    </div>
+  ));
+};
 
 // Get confidence color for badges - improved contrast
 const getConfidenceColor = (confidence: number) => {
@@ -105,61 +222,7 @@ const createHighlightedContent = (text: string, keywordsToHighlight: string[] = 
   return { __html: processedText };
 };
 
-// Parse and clean demographics data
-const parseDemographics = (content: string): Array<{key: string, value: string}> => {
-  const demographics: Array<{key: string, value: string}> = [];
 
-  if (content.includes('•')) {
-    // Handle bullet-point format
-    const items = content.split('•').filter(item => item.trim());
-
-    items.forEach(item => {
-      const trimmed = item.trim();
-
-      if (trimmed.includes(':')) {
-        // Check if this might be a compound item (key: value + additional text)
-        const colonIndex = trimmed.indexOf(':');
-        const key = trimmed.substring(0, colonIndex).trim();
-        let value = trimmed.substring(colonIndex + 1).trim();
-
-        // Handle cases where additional descriptive text follows the value
-        // Look for patterns like "Singapore Professional context: ..."
-        const professionalContextMatch = value.match(/^([^.]*?)\s+(Professional context:|An Expat|managing|Leader)/i);
-        if (professionalContextMatch) {
-          // Split the value and additional context
-          const actualValue = professionalContextMatch[1].trim();
-          const contextText = value.substring(actualValue.length).trim();
-
-          if (key && actualValue) {
-            demographics.push({ key, value: actualValue });
-          }
-
-          if (contextText) {
-            demographics.push({ key: 'Professional Context', value: contextText });
-          }
-        } else if (key && value) {
-          demographics.push({ key, value });
-        }
-      } else if (trimmed.length > 0) {
-        // Handle descriptive text without explicit keys
-        if (trimmed.toLowerCase().includes('professional') ||
-            trimmed.toLowerCase().includes('context') ||
-            trimmed.toLowerCase().includes('managing') ||
-            trimmed.toLowerCase().includes('leader')) {
-          demographics.push({ key: 'Professional Context', value: trimmed });
-        } else {
-          // Try to infer the key based on content
-          demographics.push({ key: 'Additional Info', value: trimmed });
-        }
-      }
-    });
-  } else {
-    // Handle non-bullet format - treat as single item
-    demographics.push({ key: 'Demographics', value: content });
-  }
-
-  return demographics;
-};
 
 
 
@@ -254,19 +317,9 @@ const TraitCard: React.FC<{
       {/* Main content with structured formatting */}
       <div className="text-sm text-gray-800 leading-relaxed mb-2">
         {title.toLowerCase().includes('demographic') ? (
-          // Special formatting for demographics using structured parsing
-          <div className="space-y-2">
-            {parseDemographics(trait.value).map((item, index) => (
-              <div key={index} className="flex flex-col sm:flex-row sm:items-start">
-                <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0">
-                  {item.key}:
-                </span>
-                <span
-                  className="text-gray-700 sm:ml-2"
-                  dangerouslySetInnerHTML={createHighlightedContent(item.value)}
-                />
-              </div>
-            ))}
+          // Special formatting for demographics - handle both structured and string formats
+          <div className="space-y-3">
+            {renderDemographicsContent(trait.value)}
           </div>
         ) : (
           // Regular formatting for other fields with keyword highlighting

@@ -60,8 +60,8 @@ export function SimulationProgress({
         const progressData = await getSimulationProgress(simulationId);
         setProgress(progressData);
 
-        // Check if completed
-        if (progressData.stage === 'completed') {
+        // Check if completed - either by stage or by progress percentage
+        if (progressData.stage === 'completed' || progressData.progress_percentage >= 100) {
           onComplete(simulationId);
         } else if (progressData.stage === 'failed') {
           setError('Simulation failed. Please try again.');

@@ -46,37 +46,45 @@ class DataService:
             HTTPException: For invalid file formats or other errors
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
-        logger.info(f"[DataService] Processing file upload: {file.filename}, is_free_text={is_free_text}")
-        logger.info(f"[DataService] File details - Content-Type: {file.content_type}, Headers: {file.headers}")
+        logger.info(
+            f"[DataService] Processing file upload: {file.filename}, is_free_text={is_free_text}"
+        )
+        logger.info(
+            f"[DataService] File details - Content-Type: {file.content_type}, Headers: {file.headers}"
+        )
 
         try:
             # Verify file is not None and has a filename
-            if not file or not hasattr(file, 'filename') or not file.filename:
+            if not file or not hasattr(file, "filename") or not file.filename:
                 logger.error("[DataService] Invalid file object")
                 raise HTTPException(
                     status_code=400,
-                    detail="Invalid file object. Please ensure you're uploading a valid file."
+                    detail="Invalid file object. Please ensure you're uploading a valid file.",
                 )
 
             # Read file content with error handling
             try:
                 content = await file.read()
-                logger.info(f"[DataService] Successfully read file content, size: {len(content)} bytes")
+                logger.info(
+                    f"[DataService] Successfully read file content, size: {len(content)} bytes"
+                )
 
                 # Check if file is empty
                 if not content:
                     logger.error("[DataService] Empty file content")
                     raise HTTPException(
-                        status_code=400,
-                        detail="The uploaded file is empty."
+                        status_code=400, detail="The uploaded file is empty."
                     )
             except Exception as read_error:
-                logger.error(f"[DataService] Error reading file content: {str(read_error)}")
+                logger.error(
+                    f"[DataService] Error reading file content: {str(read_error)}"
+                )
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Failed to read file content: {str(read_error)}"
+                    detail=f"Failed to read file content: {str(read_error)}",
                 )
 
             # Determine input type based on file extension and is_free_text flag
@@ -86,7 +94,9 @@ class DataService:
                     file_extension = file.filename.split(".")[-1].lower()
                 logger.info(f"[DataService] File extension: {file_extension}")
             except Exception as ext_error:
-                logger.error(f"[DataService] Error extracting file extension: {str(ext_error)}")
+                logger.error(
+                    f"[DataService] Error extracting file extension: {str(ext_error)}"
+                )
                 # Continue with empty extension
 
             # Handle Excel files
@@ -96,6 +106,24 @@ class DataService:
             elif is_free_text or file_extension in ["txt", "text"]:
                 # Decode content for text files
                 content_text = content.decode("utf-8")
+
+                # Apply automatic interview cleaning if needed
+                from backend.utils.interview_cleaner import clean_interview_content
+
+                cleaned_content, cleaning_metadata = clean_interview_content(
+                    content_text, file.filename
+                )
+
+                if cleaning_metadata:
+                    logger.info(
+                        f"Applied automatic interview cleaning to {file.filename}"
+                    )
+                    logger.info(
+                        f"Processed {cleaning_metadata['interviews_processed']} interviews, "
+                        f"extracted {cleaning_metadata['dialogue_lines_extracted']} dialogue lines"
+                    )
+                    content_text = cleaned_content
+
                 logger.info(f"Processing as free-text format: {file.filename}")
                 input_type, json_content = self._process_free_text(content_text, file)
             else:
@@ -121,6 +149,26 @@ class DataService:
                             f"JSON parsing failed, treating as free-text format: {file.filename}"
                         )
                         content_text = content.decode("utf-8", errors="ignore")
+
+                        # Apply automatic interview cleaning if needed
+                        from backend.utils.interview_cleaner import (
+                            clean_interview_content,
+                        )
+
+                        cleaned_content, cleaning_metadata = clean_interview_content(
+                            content_text, file.filename
+                        )
+
+                        if cleaning_metadata:
+                            logger.info(
+                                f"Applied automatic interview cleaning to {file.filename}"
+                            )
+                            logger.info(
+                                f"Processed {cleaning_metadata['interviews_processed']} interviews, "
+                                f"extracted {cleaning_metadata['dialogue_lines_extracted']} dialogue lines"
+                            )
+                            content_text = cleaned_content
+
                         input_type, json_content = self._process_free_text(
                             content_text, file
                         )
@@ -305,12 +353,16 @@ class DataService:
                     "content_type": file.content_type,
                     "is_free_text": True,
                     # Add a flag for Problem_demo files to help with special handling
-                    "is_problem_demo": "Problem_demo" in file.filename if file.filename else False,
+                    "is_problem_demo": (
+                        "Problem_demo" in file.filename if file.filename else False
+                    ),
                 },
             }
             logger.info(f"Processed text file: {file.filename}")
             if "Problem_demo" in file.filename:
-                logger.info(f"Detected Problem_demo file: {file.filename}. Adding special handling flag.")
+                logger.info(
+                    f"Detected Problem_demo file: {file.filename}. Adding special handling flag."
+                )
 
         # Store as JSON string for consistency in storage
         json_content = json.dumps(data)

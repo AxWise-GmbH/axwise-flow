@@ -274,22 +274,34 @@ def extract_trait_keywords_for_highlighting(
         trait_keyword_agent = Agent(
             model=gemini_model,
             output_type=TraitKeywords,
-            system_prompt="""You are an expert at identifying key terms that should be highlighted in persona trait evidence.
+            system_prompt="""You are an expert at extracting meaningful keywords for highlighting in persona evidence quotes across ANY research domain.
 
-Your task is to extract 3-5 specific keywords or short phrases that:
-1. Are actually present in the supporting evidence quotes
-2. Represent the most important concepts for this trait
-3. Would be meaningful to highlight for readers
-4. Are concrete terms, not abstract concepts
+DYNAMIC KEYWORD SELECTION APPROACH:
+1. First identify the research domain from the evidence (e.g., healthcare, fintech, e-commerce, education, etc.)
+2. Prioritize domain-specific terminology over generic terms
+3. Focus on terms that would be meaningful to researchers and product teams in that specific field
 
-Focus on:
-- Specific challenges, problems, or pain points mentioned
-- Tools, technologies, or processes referenced
-- Key behavioral indicators or patterns
-- Important contextual terms (roles, locations, etc.)
-- Emotional or descriptive terms that characterize the persona
+PRIORITY CATEGORIES (in order):
+1. CORE DOMAIN TERMS: Industry-specific vocabulary, key concepts, specialized terminology
+2. TECHNICAL TERMS: Platform-specific, tools, technologies, processes relevant to the domain
+3. QUANTITATIVE DATA: Numbers, measurements, metrics, percentages, currency, time periods
+4. EMOTIONAL DESCRIPTORS: Domain-specific feelings, frustrations, satisfaction indicators
+5. BEHAVIORAL INDICATORS: Actions, processes, workflows specific to the domain
 
-Return only terms that actually appear in the evidence text.""",
+NEVER HIGHLIGHT these generic terms:
+- Pronouns: they, their, them, this, that, these, those, it, its
+- Filler words: like, with, from, about, very, really, just, only, also, even
+- Generic descriptors: good, bad, better, best, more, most, some, many, other
+- Common verbs: have, get, make, take, give, go, come, see, know, think
+- Generic nouns: thing, stuff, way, time, people, person (unless domain-specific context)
+
+SELECTION PROCESS:
+1. Identify the research domain from context
+2. Extract 3-5 terms that are most relevant to that specific domain
+3. Prioritize terms that provide actionable insights for product teams
+4. Ensure terms actually appear in the evidence text
+
+Return only terms that are meaningful within the identified research domain.""",
         )
 
         prompt = f"""
@@ -297,8 +309,24 @@ Return only terms that actually appear in the evidence text.""",
 
         {analysis_text}
 
-        Extract 3-5 specific terms or short phrases that should be highlighted in the supporting quotes to emphasize the key concepts of this trait.
-        """
+        INSTRUCTIONS:
+        1. First identify the research domain/industry from the evidence content
+        2. Extract 3-5 specific terms that should be highlighted in the supporting quotes
+        3. Prioritize terms that are most relevant to the identified domain
+
+        PRIORITIZATION FRAMEWORK:
+        - CORE DOMAIN TERMS: Industry-specific vocabulary and key concepts (highest priority)
+        - TECHNICAL TERMS: Platform-specific tools, technologies, processes
+        - QUANTITATIVE DATA: Numbers, measurements, percentages, currency, time periods
+        - EMOTIONAL DESCRIPTORS: Domain-specific feelings and user experience indicators
+        - BEHAVIORAL TERMS: Actions and workflows specific to this domain
+
+        AVOID generic terms like: they, their, like, with, that, this, experience, people, time, way
+
+        Return only terms that:
+        1. Actually appear in the evidence text
+        2. Are meaningful within the identified research domain
+        3. Would provide actionable insights for product teams in that field"""
 
         # Generate structured output
         result = trait_keyword_agent.run_sync(prompt)

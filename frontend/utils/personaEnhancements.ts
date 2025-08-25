@@ -59,13 +59,13 @@ const HIGHLIGHT_PATTERNS = [
 /**
  * Extract relevant keywords from text based on category
  */
-export function extractKeywords(text: string, category: string): string[] {
-  if (!text) return [];
+export function extractKeywords(text: any, category: string): string[] {
+  if (!text || typeof text !== 'string') return [];
 
   const normalizedCategory = category.toLowerCase().replace(/[^a-z]/g, '_');
   const categoryKeywords = KEYWORD_PATTERNS[normalizedCategory as keyof typeof KEYWORD_PATTERNS] || [];
 
-  const textLower = text.toLowerCase();
+  const textLower = String(text).toLowerCase();
   const foundKeywords = new Set<string>();
 
   // Find category-specific keywords
@@ -76,7 +76,7 @@ export function extractKeywords(text: string, category: string): string[] {
   });
 
   // Extract additional contextual keywords
-  const words = text.match(/\b[a-zA-Z]{4,}\b/g) || [];
+  const words = String(text).match(/\b[a-zA-Z]{4,}\b/g) || [];
   const contextualKeywords = words
     .filter(word => {
       const wordLower = word.toLowerCase();
@@ -101,9 +101,12 @@ export function extractKeywords(text: string, category: string): string[] {
  * Highlight key phrases in text
  */
 export function highlightKeyPhrases(text: string): string {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
 
-  let highlightedText = text;
+  let highlightedText = String(text);
+
+  // First handle bold formatting (**text**)
+  highlightedText = highlightedText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
   // Apply highlighting patterns
   HIGHLIGHT_PATTERNS.forEach(pattern => {
@@ -131,8 +134,8 @@ export function getKeywordsForRendering(keywords: string[]): string[] {
  * Parse markdown bold formatting (**text**) to HTML <strong> tags
  * Based on PROJECT_DEEP_DIVE_ANALYSIS.md requirements for key quotes rendering
  */
-export function parseMarkdownBold(text: string): string {
-  if (!text) return "";
+export function parseMarkdownBold(text: any): string {
+  if (!text || typeof text !== 'string') return String(text || '');
 
   // Convert **word** to <strong>word</strong>
   return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
@@ -141,10 +144,14 @@ export function parseMarkdownBold(text: string): string {
 /**
  * Safely render highlighted text as HTML
  */
-export function renderHighlightedText(text: string): { __html: string } {
+export function renderHighlightedText(text: any): { __html: string } {
+  if (!text || typeof text !== 'string') {
+    return { __html: String(text || '') };
+  }
+
   const highlighted = highlightKeyPhrases(text);
-  // Basic XSS protection - only allow highlight spans
-  const sanitized = highlighted.replace(/<(?!\/?span[^>]*>)[^>]*>/g, '');
+  // Basic XSS protection - only allow highlight spans and strong tags
+  const sanitized = highlighted.replace(/<(?!\/?(?:span|strong)[^>]*>)[^>]*>/g, '');
   return { __html: sanitized };
 }
 
@@ -152,8 +159,10 @@ export function renderHighlightedText(text: string): { __html: string } {
  * Render text with markdown bold parsing and highlighting
  * Combines markdown bold parsing with keyword highlighting
  */
-export function renderMarkdownWithHighlighting(text: string): { __html: string } {
-  if (!text) return { __html: "" };
+export function renderMarkdownWithHighlighting(text: any): { __html: string } {
+  if (!text || typeof text !== 'string') {
+    return { __html: String(text || '') };
+  }
 
   // First parse markdown bold formatting
   const withBold = parseMarkdownBold(text);

@@ -17,7 +17,6 @@ import type {
 import { PersonaList } from './PersonaList';
 import { PersonaRelationshipNetwork } from './PersonaRelationshipNetwork';
 import { PersonaConflictConsensusView } from './PersonaConflictConsensusView';
-import { SimplePersonaList } from './SimplePersonaList';
 import MultiStakeholderPersonasView from '../analysis/MultiStakeholderPersonasView';
 import StakeholderNetworkVisualization from '../analysis/StakeholderNetworkVisualization';
 import ConsensusConflictVisualization from '../analysis/ConsensusConflictVisualization';
@@ -39,11 +38,11 @@ export function PersonasTabContent({
   // Check if personas have stakeholder intelligence features
   const hasStakeholderFeatures = personas?.some(persona => persona.stakeholder_intelligence);
 
-  // Single interview - use simplified personas view if resultId available, otherwise enhanced view
+  // Single interview - use consistent authentication pattern like other tabs
   if (!isMultiStakeholder) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Personas</h2>
           <div className="flex items-center space-x-2">
             <Badge variant="outline">
@@ -54,18 +53,10 @@ export function PersonasTabContent({
                 Enhanced
               </Badge>
             )}
-            {resultId && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                Design Thinking
-              </Badge>
-            )}
           </div>
         </div>
-        {resultId ? (
-          <SimplePersonaList resultId={resultId} />
-        ) : (
-          <PersonaList personas={personas} />
-        )}
+        {/* Use PersonaList with data from main analysis fetch - same pattern as other tabs */}
+        <PersonaList personas={personas} />
       </div>
     );
   }

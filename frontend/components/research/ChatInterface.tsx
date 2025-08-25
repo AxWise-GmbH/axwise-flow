@@ -315,7 +315,8 @@ Ready for simulation bridge and interview analysis`;
 
   // Session loading with unified system
   React.useEffect(() => {
-    if (loadSessionId && !unifiedState.sessionLoading && !unifiedState.currentSession) {
+    if (loadSessionId && !unifiedState.sessionLoading &&
+        (!unifiedState.currentSession || unifiedState.currentSession.session_id !== loadSessionId)) {
       console.log('Loading session with unified system:', loadSessionId);
       unifiedActions.loadSession(loadSessionId);
     } else if (!loadSessionId && !unifiedState.currentSession) {

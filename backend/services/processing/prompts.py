@@ -54,6 +54,84 @@ class PromptGenerator:
         )
         return SimplifiedPersonaFormationPrompts.get_prompt(data)
 
+    def create_stakeholder_specific_persona_prompt(
+        self,
+        text: str,
+        stakeholder_category: str,
+        context: Dict[str, Any],
+        role: str = "Participant",
+    ) -> str:
+        """
+        Create a stakeholder-specific prompt for persona formation.
+
+        This method generates prompts that constrain persona formation to specific
+        stakeholder categories, ensuring personas only use evidence from their
+        designated stakeholder group.
+
+        Args:
+            text: Text content for this specific stakeholder category
+            stakeholder_category: Name of the stakeholder category
+            context: Context dictionary with stakeholder information
+            role: Role of the person (default: Participant)
+
+        Returns:
+            Stakeholder-specific prompt string
+        """
+        # Import the simplified persona formation prompts
+        from backend.services.llm.prompts.tasks.simplified_persona_formation import (
+            SimplifiedPersonaFormationPrompts,
+        )
+
+        # Extract context information
+        interview_count = context.get("interview_count", 0)
+        speaker_count = context.get("speaker_count", 0)
+
+        # Create enhanced data dictionary with stakeholder context
+        data = {
+            "text": text,
+            "role": role,
+            "stakeholder_category": stakeholder_category,
+            "interview_count": interview_count,
+            "speaker_count": speaker_count,
+            "stakeholder_constraint": True,
+        }
+
+        logger.info(
+            f"Creating stakeholder-specific prompt for: {stakeholder_category} "
+            f"({interview_count} interviews, {speaker_count} speakers)"
+        )
+
+        # Get the base simplified prompt
+        base_prompt = SimplifiedPersonaFormationPrompts.get_prompt(data)
+
+        # Enhance with stakeholder-specific constraints
+        stakeholder_prompt = f"""STAKEHOLDER CONTEXT:
+- Primary Stakeholder Category: {stakeholder_category}
+- Interview Count: {interview_count}
+- Speaker Count: {speaker_count}
+
+CRITICAL STAKEHOLDER CONSTRAINT:
+You are generating a persona SPECIFICALLY for the "{stakeholder_category}" stakeholder group.
+- ONLY use evidence, quotes, and insights from this stakeholder category
+- DO NOT blend characteristics from other stakeholder groups
+- Ensure the persona authentically represents this specific stakeholder type
+- All quotes and evidence must come from the provided text for this stakeholder
+
+STAKEHOLDER-SPECIFIC INTERVIEW CONTENT:
+{text}
+
+{base_prompt}
+
+ADDITIONAL STAKEHOLDER REQUIREMENTS:
+1. The persona name should reflect the stakeholder category (e.g., for "Local Real Estate Agents" use professional agent characteristics)
+2. Demographics should align with the stakeholder type
+3. Goals and challenges should be specific to this stakeholder group's context
+4. All supporting evidence must be traceable to this stakeholder's interviews only
+5. Populate stakeholder_mapping information accurately
+"""
+
+        return stakeholder_prompt
+
     def create_persona_prompt(self, text: str, role: str = "Participant") -> str:
         """
         Create a prompt for persona formation.

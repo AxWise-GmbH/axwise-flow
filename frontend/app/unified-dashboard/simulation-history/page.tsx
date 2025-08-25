@@ -906,164 +906,163 @@ export default function SimulationHistoryPage(): JSX.Element {
       <div className="flex-1 flex flex-col">
         {selectedInterview ? (
           <>
-            {/* Interview Header */}
-            <div className="p-6 border-b bg-background">
-              <div className="flex items-center justify-between mb-4">
+            {/* Compact Interview Header */}
+            <div className="p-4 border-b bg-background flex-shrink-0">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">{selectedInterview.interview.personaDetails.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedInterview.stakeholderType}</p>
+                    <h3 className="font-semibold text-base">{selectedInterview.interview.personaDetails.name}</h3>
+                    <p className="text-xs text-muted-foreground">{selectedInterview.stakeholderType}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownload(selectedInterview.simulationId)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownload(selectedInterview.simulationId)}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
               </div>
 
-              {/* Business Context */}
-              {selectedInterview.businessContext && (
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-blue-900 dark:text-blue-100 text-sm">Business Context</span>
-                  </div>
-                  <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-                    {/* Try to parse structured business context if it's JSON-like */}
-                    {(() => {
-                      try {
-                        // Check if it's a structured object or just a string
-                        if (typeof selectedInterview.businessContext === 'object') {
-                          const context = selectedInterview.businessContext;
-                          return (
-                            <div className="space-y-2">
-                              {context.business_idea && (
-                                <div><span className="font-medium">Business Idea:</span> {context.business_idea}</div>
-                              )}
-                              {context.target_customer && (
-                                <div><span className="font-medium">Target Customer:</span> {context.target_customer}</div>
-                              )}
-                              {context.problem && (
-                                <div><span className="font-medium">Problem:</span> {context.problem}</div>
-                              )}
-                              {context.industry && (
-                                <div><span className="font-medium">Industry:</span> {context.industry}</div>
-                              )}
-                            </div>
-                          );
-                        } else {
-                          // Try to parse as JSON string
-                          const parsed = JSON.parse(selectedInterview.businessContext);
-                          return (
-                            <div className="space-y-2">
-                              {parsed.business_idea && (
-                                <div><span className="font-medium">Business Idea:</span> {parsed.business_idea}</div>
-                              )}
-                              {parsed.target_customer && (
-                                <div><span className="font-medium">Target Customer:</span> {parsed.target_customer}</div>
-                              )}
-                              {parsed.problem && (
-                                <div><span className="font-medium">Problem:</span> {parsed.problem}</div>
-                              )}
-                              {parsed.industry && (
-                                <div><span className="font-medium">Industry:</span> {parsed.industry}</div>
-                              )}
-                            </div>
-                          );
-                        }
-                      } catch {
-                        // Fallback to displaying as plain text
-                        return <p>{String(selectedInterview.businessContext)}</p>;
-                      }
-                    })()}
-                  </div>
-                </div>
-              )}
+              {/* Collapsible Details Section */}
+              <div className="space-y-2">
+                {/* Business Context - Collapsible */}
+                {selectedInterview.businessContext && (
+                  <details className="group">
+                    <summary className="cursor-pointer flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30">
+                      <Briefcase className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-900 dark:text-blue-100 text-xs">Business Context</span>
+                      <span className="ml-auto text-xs text-blue-600 dark:text-blue-400 group-open:rotate-90 transition-transform">▶</span>
+                    </summary>
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
+                      <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                        {(() => {
+                          try {
+                            if (typeof selectedInterview.businessContext === 'object') {
+                              const context = selectedInterview.businessContext;
+                              return (
+                                <div className="space-y-1">
+                                  {context.business_idea && (
+                                    <div><span className="font-medium">Idea:</span> {context.business_idea}</div>
+                                  )}
+                                  {context.target_customer && (
+                                    <div><span className="font-medium">Customer:</span> {context.target_customer}</div>
+                                  )}
+                                  {context.problem && (
+                                    <div><span className="font-medium">Problem:</span> {context.problem}</div>
+                                  )}
+                                  {context.industry && (
+                                    <div><span className="font-medium">Industry:</span> {context.industry}</div>
+                                  )}
+                                </div>
+                              );
+                            } else {
+                              const parsed = JSON.parse(selectedInterview.businessContext);
+                              return (
+                                <div className="space-y-1">
+                                  {parsed.business_idea && (
+                                    <div><span className="font-medium">Idea:</span> {parsed.business_idea}</div>
+                                  )}
+                                  {parsed.target_customer && (
+                                    <div><span className="font-medium">Customer:</span> {parsed.target_customer}</div>
+                                  )}
+                                  {parsed.problem && (
+                                    <div><span className="font-medium">Problem:</span> {parsed.problem}</div>
+                                  )}
+                                  {parsed.industry && (
+                                    <div><span className="font-medium">Industry:</span> {parsed.industry}</div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          } catch {
+                            return <p>{String(selectedInterview.businessContext)}</p>;
+                          }
+                        })()}
+                      </div>
+                    </div>
+                  </details>
+                )}
 
-              {/* Debug Info - Remove this after testing */}
-              <div className="mb-4 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                <details>
-                  <summary className="cursor-pointer font-medium">Debug: Persona Data</summary>
-                  <pre className="mt-2 overflow-auto">
-                    {JSON.stringify({
-                      age: selectedInterview.interview.personaDetails.age,
-                      demographic_details: selectedInterview.interview.personaDetails.demographic_details
-                    }, null, 2)}
-                  </pre>
+                {/* Demographics - Collapsible */}
+                <details className="group">
+                  <summary className="cursor-pointer flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/30">
+                    <User className="h-3 w-3 text-green-600 dark:text-green-400" />
+                    <span className="font-medium text-green-900 dark:text-green-100 text-xs">Demographics & Details</span>
+                    <span className="ml-auto text-xs text-green-600 dark:text-green-400 group-open:rotate-90 transition-transform">▶</span>
+                  </summary>
+                  <div className="mt-2 p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800">
+                    <div className="space-y-2">
+                      {/* Demographics */}
+                      {renderDemographicInfo(selectedInterview.interview.personaDetails.demographic_details)}
+
+                      {/* Persona Details */}
+                      {selectedInterview.interview.personaDetails.background && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs mt-2">
+                          <div>
+                            <span className="font-medium text-muted-foreground">Role:</span>
+                            <p>{selectedInterview.interview.personaDetails.role}</p>
+                          </div>
+                          {selectedInterview.interview.personaDetails.age && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">Age:</span>
+                              <p>{selectedInterview.interview.personaDetails.age}</p>
+                            </div>
+                          )}
+                          {selectedInterview.interview.personaDetails.experience && (
+                            <div>
+                              <span className="font-medium text-muted-foreground">Experience:</span>
+                              <p>{selectedInterview.interview.personaDetails.experience}</p>
+                            </div>
+                          )}
+                          {selectedInterview.interview.personaDetails.background && (
+                            <div className="md:col-span-2">
+                              <span className="font-medium text-muted-foreground">Background:</span>
+                              <p>{selectedInterview.interview.personaDetails.background}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </details>
               </div>
-
-              {/* Demographics */}
-              {renderDemographicInfo(selectedInterview.interview.personaDetails.demographic_details)}
-
-              {/* Persona Details */}
-              {selectedInterview.interview.personaDetails.background && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-muted-foreground">Role:</span>
-                    <p>{selectedInterview.interview.personaDetails.role}</p>
-                  </div>
-                  {selectedInterview.interview.personaDetails.age && (
-                    <div>
-                      <span className="font-medium text-muted-foreground">Age:</span>
-                      <p>{selectedInterview.interview.personaDetails.age}</p>
-                    </div>
-                  )}
-                  {selectedInterview.interview.personaDetails.experience && (
-                    <div>
-                      <span className="font-medium text-muted-foreground">Experience:</span>
-                      <p>{selectedInterview.interview.personaDetails.experience}</p>
-                    </div>
-                  )}
-                  {selectedInterview.interview.personaDetails.background && (
-                    <div className="md:col-span-2">
-                      <span className="font-medium text-muted-foreground">Background:</span>
-                      <p>{selectedInterview.interview.personaDetails.background}</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* Interview Chat */}
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-6 max-w-4xl">
+            {/* Interview Chat - Now gets much more space */}
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-4 space-y-4 max-w-4xl">
                 {selectedInterview.interview.responses.map((response, index) => (
-                  <div key={index} className="space-y-4">
+                  <div key={index} className="space-y-3">
                     {/* Question */}
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
-                        <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                        <MessageSquare className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">Researcher</span>
+                            <span className="text-xs font-medium text-blue-900 dark:text-blue-100">Researcher</span>
                             <span className="text-xs text-blue-600 dark:text-blue-400">Q{index + 1}</span>
                           </div>
-                          <p className="text-blue-800 dark:text-blue-200">{response.question}</p>
+                          <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">{response.question}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Answer */}
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-primary" />
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <div className="bg-background border p-4 rounded-lg">
+                        <div className="bg-background border p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-primary">
+                            <span className="text-xs font-medium text-primary">
                               {selectedInterview.interview.personaDetails.name}
                             </span>
                             <span className="text-xs text-muted-foreground">
@@ -1071,7 +1070,7 @@ export default function SimulationHistoryPage(): JSX.Element {
                             </span>
                             <span className="text-xs text-muted-foreground">A{index + 1}</span>
                           </div>
-                          <p>{response.response}</p>
+                          <p className="text-sm leading-relaxed">{response.response}</p>
                         </div>
                       </div>
                     </div>

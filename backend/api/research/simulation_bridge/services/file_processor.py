@@ -84,6 +84,23 @@ class SimulationFileProcessor:
             # Generate simulation ID if not provided
             simulation_id = request.simulation_id or str(uuid.uuid4())
 
+            # Apply automatic interview cleaning if needed
+            from backend.utils.interview_cleaner import clean_interview_content
+
+            cleaned_text, cleaning_metadata = clean_interview_content(
+                simulation_text, os.path.basename(request.file_path)
+            )
+
+            if cleaning_metadata:
+                logger.info(
+                    f"Applied automatic interview cleaning to {request.file_path}"
+                )
+                logger.info(
+                    f"Processed {cleaning_metadata['interviews_processed']} interviews, "
+                    f"extracted {cleaning_metadata['dialogue_lines_extracted']} dialogue lines"
+                )
+                simulation_text = cleaned_text
+
             # Process through conversational analysis agent
             analysis_result = await self.analysis_agent.process_simulation_data(
                 simulation_text=simulation_text,
@@ -148,6 +165,21 @@ class SimulationFileProcessor:
 
             file_size = len(simulation_text.encode("utf-8"))
             logger.info(f"Processing text of size: {file_size} bytes")
+
+            # Apply automatic interview cleaning if needed
+            from backend.utils.interview_cleaner import clean_interview_content
+
+            cleaned_text, cleaning_metadata = clean_interview_content(
+                simulation_text, file_name
+            )
+
+            if cleaning_metadata:
+                logger.info(f"Applied automatic interview cleaning to {file_name}")
+                logger.info(
+                    f"Processed {cleaning_metadata['interviews_processed']} interviews, "
+                    f"extracted {cleaning_metadata['dialogue_lines_extracted']} dialogue lines"
+                )
+                simulation_text = cleaned_text
 
             # Process through conversational analysis agent
             analysis_result = await self.analysis_agent.process_simulation_data(

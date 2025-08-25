@@ -6,7 +6,7 @@ import json
 import re
 import copy
 import importlib.util
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from domain.interfaces.llm_unified import ILLMService
 
 from backend.schemas import DetailedAnalysisResult
@@ -1110,6 +1110,65 @@ class NLPProcessor:
             logger.error(f"Error processing interview data: {str(e)}")
             raise
 
+    def _detect_stakeholder_structure(self, raw_text: str) -> Optional[Dict[str, Any]]:
+        """
+        Detect if the raw text contains stakeholder-segmented interview structure.
+
+        Args:
+            raw_text: Raw interview text to analyze
+
+        Returns:
+            Dictionary of stakeholder segments if detected, None otherwise
+        """
+        try:
+            # Import the stakeholder-aware transcript processor
+            from backend.services.processing.pipeline.stakeholder_aware_transcript_processor import (
+                StakeholderAwareTranscriptProcessor,
+            )
+
+            # Create a temporary processor instance
+            processor = StakeholderAwareTranscriptProcessor()
+
+            # Try to parse stakeholder sections
+            stakeholder_segments = processor._parse_stakeholder_sections(raw_text)
+
+            if stakeholder_segments and len(stakeholder_segments) > 0:
+                logger.info(
+                    f"[STAKEHOLDER_DETECTION] Found {len(stakeholder_segments)} stakeholder categories"
+                )
+
+                # Convert to the format expected by persona formation service
+                formatted_segments = {}
+                for category, interviews in stakeholder_segments.items():
+                    # Create mock segments for each interview
+                    segments = []
+                    for i, interview_text in enumerate(interviews):
+                        segments.append(
+                            {
+                                "text": interview_text,
+                                "speaker": f"Interviewee_{i+1}",
+                                "role": "Interviewee",
+                                "stakeholder_category": category,
+                            }
+                        )
+
+                    formatted_segments[category] = {
+                        "segments": segments,
+                        "interview_count": len(interviews),
+                        "content_info": {"type": "stakeholder_interview"},
+                    }
+
+                return formatted_segments
+            else:
+                logger.info("[STAKEHOLDER_DETECTION] No stakeholder structure detected")
+                return None
+
+        except Exception as e:
+            logger.error(
+                f"[STAKEHOLDER_DETECTION] Error detecting stakeholder structure: {str(e)}"
+            )
+            return None
+
     async def validate_results(self, results: Dict[str, Any]) -> Tuple[bool, List[str]]:
         """
         Validate analysis results to ensure they contain required fields.
@@ -1391,19 +1450,52 @@ class NLPProcessor:
                     config = MinimalConfig()
                     persona_service = PersonaFormationService(config, llm_service)
 
-                    # ENHANCED PERSONA FORMATION: Use improved pipeline with built-in quality validation
+                    # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
                     logger.info(
-                        "[PERSONA_PIPELINE] Using enhanced persona formation with quality validation"
+                        "[PERSONA_PIPELINE] Checking for stakeholder-aware content structure"
                     )
 
-                    # Use the enhanced persona service with built-in quality validation
-                    personas_list = await persona_service.generate_persona_from_text(
-                        text=raw_text,
-                        context={
-                            "industry": results.get("industry", "general"),
-                            "original_text": raw_text,
-                        },
-                    )
+                    # Try to detect stakeholder structure in the raw text
+                    stakeholder_segments = self._detect_stakeholder_structure(raw_text)
+
+                    if stakeholder_segments:
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
+                        )
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
+                        )
+
+                        # Use stakeholder-aware persona formation
+                        personas_list = (
+                            await persona_service.form_personas_by_stakeholder(
+                                stakeholder_segments,
+                                context={
+                                    "industry": results.get("industry", "general"),
+                                    "original_text": raw_text,
+                                    "processing_method": "stakeholder_aware",
+                                },
+                            )
+                        )
+                        logger.info(
+                            f"[STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
+                        )
+                    else:
+                        # ENHANCED PERSONA FORMATION: Use improved pipeline with built-in quality validation
+                        logger.info(
+                            "[PERSONA_PIPELINE] No stakeholder structure detected, using standard persona formation"
+                        )
+
+                        # Use the enhanced persona service with built-in quality validation
+                        personas_list = (
+                            await persona_service.generate_persona_from_text(
+                                text=raw_text,
+                                context={
+                                    "industry": results.get("industry", "general"),
+                                    "original_text": raw_text,
+                                },
+                            )
+                        )
 
                     # FIX 4: Use ALL personas from the list, not just the first one
                     # PersonaFormationService.generate_persona_from_text returns a list of persona dicts

@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { User, Users, Target, Lightbulb, AlertCircle, TrendingUp } from 'lucide-react';
+import { parseDemographics } from '@/utils/demographicsParser';
 
 interface Persona {
   name: string;
@@ -418,28 +419,36 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
   };
 
   // Helper function to render trait values consistently
-  const renderTraitValue = (value: any): React.ReactNode => {
+  const renderTraitValue = (value: any, isDemographics: boolean = false): React.ReactNode => {
     if (typeof value === 'string') {
-      // Handle newline-separated bullet points first
-      if (value.includes('\n') && value.includes('•')) {
-        return value.split('\n').filter(s => s.trim().length > 0).map((line, i) => (
-          <li key={i}>{line.replace(/^•\s*/, '').trim()}</li>
-        ));
-      }
-      // Handle inline bullet points (like "• Item 1 • Item 2")
-      else if (value.includes('•') && !value.includes('\n')) {
-        return value.split('•').filter(s => s.trim().length > 0).map((item, i) => (
-          <li key={i}>{item.trim()}</li>
-        ));
-      }
-      // Split string into sentences for list items if it contains periods
-      else if (value.includes('. ')) {
-        return value.split('. ').filter(s => s.trim().length > 0).map((sentence, i) => (
-          <li key={i}>{sentence.trim()}{value?.endsWith(sentence.trim()) ? '' : '.'}</li>
-        ));
+      // Special handling for demographics using our improved parser
+      if (isDemographics) {
+        try {
+          const parsedDemographics = parseDemographics(value);
+          if (parsedDemographics.length > 1 || (parsedDemographics.length === 1 && parsedDemographics[0].key !== 'Demographics')) {
+            // Successfully parsed into structured data - render as key-value pairs
+            return parsedDemographics.map((item, i) => (
+              <li key={i} className="mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-start">
+                  <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm uppercase tracking-wide">
+                    {item.key}:
+                  </span>
+                  <span className="text-gray-700 sm:ml-2">
+                    {item.value}
+                  </span>
+                </div>
+              </li>
+            ));
+          } else {
+            // Fall back to default parsing if structured parsing didn't work well
+            return renderDefaultTraitValue(value);
+          }
+        } catch (error) {
+          console.warn('Demographics parsing failed, falling back to default:', error);
+          return renderDefaultTraitValue(value);
+        }
       } else {
-        // Render as single list item if no periods
-        return <li>{value}</li>;
+        return renderDefaultTraitValue(value);
       }
     } else if (Array.isArray(value)) {
       // Render array items as list items
@@ -463,6 +472,31 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
     }
     // Fallback for null, undefined, or empty values
     return <li className="text-muted-foreground italic">N/A</li>;
+  };
+
+  // Default trait value rendering (original logic)
+  const renderDefaultTraitValue = (value: string): React.ReactNode => {
+    // Handle newline-separated bullet points first
+    if (value.includes('\n') && value.includes('•')) {
+      return value.split('\n').filter(s => s.trim().length > 0).map((line, i) => (
+        <li key={i}>{line.replace(/^•\s*/, '').trim()}</li>
+      ));
+    }
+    // Handle inline bullet points (like "• Item 1 • Item 2")
+    else if (value.includes('•') && !value.includes('\n')) {
+      return value.split('•').filter(s => s.trim().length > 0).map((item, i) => (
+        <li key={i}>{item.trim()}</li>
+      ));
+    }
+    // Split string into sentences for list items if it contains periods
+    else if (value.includes('. ')) {
+      return value.split('. ').filter(s => s.trim().length > 0).map((sentence, i) => (
+        <li key={i}>{sentence.trim()}{value?.endsWith(sentence.trim()) ? '' : '.'}</li>
+      ));
+    } else {
+      // Render as single list item if no periods
+      return <li>{value}</li>;
+    }
   };
 
   // Helper function to render key quotes in expanded format
@@ -648,7 +682,7 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
                   <div>
                     <h4 className="font-semibold mb-2">Profile</h4>
                     <ul className="list-disc pl-5 space-y-1">
-                      {renderTraitValue(persona.demographics.value)}
+                      {renderTraitValue(persona.demographics.value, true)}
                     </ul>
                   </div>
                   {persona.demographics.evidence && persona.demographics.evidence.length > 0 && (

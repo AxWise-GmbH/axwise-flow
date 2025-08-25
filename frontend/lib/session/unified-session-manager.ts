@@ -36,6 +36,10 @@ export class UnifiedSessionManager {
       window.addEventListener('offline', () => {
         this.isOnline = false;
       });
+
+      // Clean up corrupted sessions on initialization
+      console.log('🔧 UnifiedSessionManager: Initializing cleanup...');
+      this.cleanupCorruptedSessions();
     }
   }
 
@@ -495,6 +499,40 @@ export class UnifiedSessionManager {
       }
     } catch (error) {
       console.warn('Failed to cleanup old sessions:', error);
+    }
+  }
+
+  /**
+   * Clean up corrupted sessions from localStorage with improved context extraction
+   */
+  private async cleanupCorruptedSessions(): Promise<void> {
+    try {
+      const { LocalResearchStorage } = await import('@/lib/api/research');
+
+      console.log('🔧 UnifiedSessionManager: Running cleanup with improved context extraction...');
+
+      // First, clean up the specific problematic session
+      const problematicSessionId = 'local_1756119202445_44l86ofg8';
+      const wasFixed = LocalResearchStorage.cleanupSpecificSession(problematicSessionId);
+      if (wasFixed) {
+        console.log(`🔧 UnifiedSessionManager: Fixed mixed content in problematic session ${problematicSessionId}`);
+      }
+
+      // Run the improved force cleanup that uses better context extraction
+      const processedCount = LocalResearchStorage.forceCleanupAllSessions();
+      if (processedCount > 0) {
+        console.log(`🔧 UnifiedSessionManager: Processed ${processedCount} sessions with improved context extraction`);
+      } else {
+        console.log(`🔧 UnifiedSessionManager: All sessions are already clean`);
+      }
+
+      // Also run standard cleanup for corrupted sessions
+      const removedCount = LocalResearchStorage.cleanupCorruptedSessions();
+      if (removedCount > 0) {
+        console.log(`🧹 UnifiedSessionManager: Cleaned up ${removedCount} corrupted sessions`);
+      }
+    } catch (error) {
+      console.warn('Failed to cleanup corrupted sessions:', error);
     }
   }
 }

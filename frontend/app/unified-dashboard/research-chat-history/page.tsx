@@ -46,7 +46,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Clock,
   MessageSquare,
-  Calendar,
   Target,
   Users,
   Eye,
@@ -62,7 +61,7 @@ import { getResearchSessions, type ResearchSession } from '@/lib/api/research';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+
 
 export default function ResearchChatHistory() {
   const router = useRouter();
@@ -693,17 +692,7 @@ export default function ResearchChatHistory() {
             <ArrowRight className="mr-2 h-4 w-4" />
             Go to Interview Simulation
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              fixCorruptedTimestamps();
-              loadSessions();
-            }}
-            className="text-amber-600 hover:text-amber-700"
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Fix Timestamps
-          </Button>
+
         </div>
       </div>
 
@@ -771,20 +760,7 @@ export default function ResearchChatHistory() {
 
                           {/* Quick Actions */}
                           <div className="flex items-center gap-1 ml-4">
-                            {/* Always show continue chat */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/unified-dashboard/research-chat?session=${session.session_id}`);
-                              }}
-                              title="Continue conversation"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-
-                            {/* Action buttons */}
+                            {/* Continue conversation */}
                             <Button
                               variant="ghost"
                               size="sm"

@@ -10,8 +10,8 @@ import asyncio
 import os
 from typing import Dict, Any, List, Optional, Union
 
-from backend.models.pattern import Pattern, PatternResponse
-from backend.services.llm.prompts.tasks.pattern_recognition import (
+from models.pattern import Pattern, PatternResponse
+from services.llm.prompts.tasks.pattern_recognition import (
     PatternRecognitionPrompts,
 )
 from domain.pipeline.processor import IProcessor

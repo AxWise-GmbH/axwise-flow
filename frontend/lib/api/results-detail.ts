@@ -4,6 +4,231 @@
 
 import { apiCore } from './core';
 import { DetailedAnalysisResult, SentimentOverview } from './types';
+import { getAuthToken } from '@/lib/auth/clerk-auth';
+
+// Persona quality filtering interfaces
+interface PersonaTrait {
+  value: any;
+  confidence: number;
+  evidence: string[];
+}
+
+interface Persona {
+  name: string;
+  archetype: string;
+  description: string;
+  [key: string]: any;
+}
+
+/**
+ * Check if content is generic placeholder text
+ */
+function isGenericContent(value: any): boolean {
+  if (typeof value !== 'string') return false;
+
+  const genericPatterns = [
+    /^domain-specific skills?$/i,
+    /^professional (role|responsibilities|challenges)$/i,
+    /^technology and tools used$/i,
+    /^tools and methods used$/i,
+    /^collaboration approach$/i,
+    /^analysis approach$/i,
+    /^professional work environment$/i,
+    /^quotes extracted from other fields$/i
+  ];
+
+  return genericPatterns.some(pattern => pattern.test(value.trim()));
+}
+
+/**
+ * Filter low-quality persona traits
+ */
+function filterPersonaTrait(trait: PersonaTrait): boolean {
+  // Skip traits with low confidence
+  if (trait.confidence < 0.7) {
+    return false;
+  }
+
+  // Skip traits with no evidence
+  if (!trait.evidence || trait.evidence.length === 0) {
+    return false;
+  }
+
+  // Skip traits with generic content
+  if (isGenericContent(trait.value)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Clean persona data by removing low-quality traits
+ */
+function cleanPersonaTraits(persona: Persona): Persona {
+  const cleanedPersona: Persona = {
+    name: persona.name,
+    archetype: persona.archetype,
+    description: persona.description
+  };
+
+  // Core fields that should always be included if they exist
+  const coreFields = ['demographics', 'goals_and_motivations', 'challenges_and_frustrations', 'key_quotes'];
+
+  // Filter all traits
+  Object.keys(persona).forEach(key => {
+    if (['name', 'archetype', 'description'].includes(key)) {
+      return; // Already handled
+    }
+
+    const trait = persona[key];
+
+    // Handle trait objects
+    if (trait && typeof trait === 'object' && 'confidence' in trait && 'evidence' in trait) {
+      // Always include core fields even if they have quality issues (but log them)
+      if (coreFields.includes(key)) {
+        cleanedPersona[key] = trait;
+        if (!filterPersonaTrait(trait)) {
+          console.warn(`[PERSONA_QUALITY] Core field '${key}' has quality issues but preserved:`, {
+            confidence: trait.confidence,
+            evidenceCount: trait.evidence?.length || 0,
+            isGeneric: isGenericContent(trait.value)
+          });
+        }
+      } else {
+        // For non-core fields, apply strict filtering
+        if (filterPersonaTrait(trait)) {
+          cleanedPersona[key] = trait;
+        } else {
+          console.log(`[PERSONA_QUALITY] Filtered out low-quality trait '${key}':`, {
+            confidence: trait.confidence,
+            evidenceCount: trait.evidence?.length || 0,
+            isGeneric: isGenericContent(trait.value)
+          });
+        }
+      }
+    } else {
+      // Non-trait fields (metadata, etc.)
+      cleanedPersona[key] = trait;
+    }
+  });
+
+  return cleanedPersona;
+}
+
+/**
+ * Convert string demographics to structured format
+ */
+function convertStringToStructuredDemographics(demographicsString: string): any {
+  if (!demographicsString || typeof demographicsString !== 'string') {
+    return demographicsString;
+  }
+
+  // Parse bullet-point format demographics
+  const structuredDemo: any = {};
+  const lines = demographicsString.split('•').map(line => line.trim()).filter(line => line.length > 0);
+
+  for (const line of lines) {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) continue;
+
+    const key = line.substring(0, colonIndex).trim().toLowerCase();
+    const value = line.substring(colonIndex + 1).trim();
+
+    if (!value) continue;
+
+    // Map common demographic fields
+    if (key.includes('experience') && key.includes('level')) {
+      structuredDemo.experience_level = value;
+    } else if (key.includes('industry')) {
+      structuredDemo.industry = value;
+    } else if (key.includes('location')) {
+      structuredDemo.location = value;
+    } else if (key.includes('age') && key.includes('range')) {
+      structuredDemo.age_range = value;
+    } else if (key.includes('role') || key.includes('position')) {
+      // Handle roles as array
+      structuredDemo.roles = value.split(',').map(r => r.trim()).filter(r => r.length > 0);
+    }
+  }
+
+  // Extract professional context from remaining text
+  const contextMatch = demographicsString.match(/professional context[:\s]+(.*?)(?:\.|$)/i);
+  if (contextMatch) {
+    structuredDemo.professional_context = contextMatch[1].trim();
+  }
+
+  // Only return structured format if we found meaningful data
+  if (Object.keys(structuredDemo).length > 0) {
+    console.log(`[DEMOGRAPHICS_CONVERSION] Converted string to structured format:`, structuredDemo);
+    return structuredDemo;
+  }
+
+  return demographicsString; // Return original if no structure found
+}
+
+/**
+ * Process structured demographics in persona data
+ */
+function processStructuredDemographics(persona: Persona): Persona {
+  if (!persona.demographics || typeof persona.demographics !== 'object') {
+    return persona;
+  }
+
+  const demographics = persona.demographics as PersonaTrait;
+
+  // Check if demographics value is a string that can be converted
+  if (typeof demographics.value === 'string') {
+    const structuredValue = convertStringToStructuredDemographics(demographics.value);
+
+    // If we successfully converted to structured format, update the trait
+    if (typeof structuredValue === 'object' && structuredValue !== demographics.value) {
+      return {
+        ...persona,
+        demographics: {
+          ...demographics,
+          value: structuredValue
+        }
+      };
+    }
+  }
+
+  return persona;
+}
+
+/**
+ * Filter persona array for quality
+ */
+function filterPersonaQuality(personas: Persona[]): Persona[] {
+  if (!Array.isArray(personas)) {
+    return [];
+  }
+
+  const filteredPersonas = personas.map(persona => {
+    // First process structured demographics
+    const withStructuredDemo = processStructuredDemographics(persona);
+
+    // Then apply quality filtering
+    const cleaned = cleanPersonaTraits(withStructuredDemo);
+
+    // Count quality traits
+    const traitKeys = Object.keys(cleaned).filter(key =>
+      !['name', 'archetype', 'description', 'metadata', 'confidence', 'evidence', 'patterns', 'stakeholder_mapping'].includes(key)
+    );
+
+    const qualityTraits = traitKeys.filter(key => {
+      const trait = cleaned[key];
+      return trait && typeof trait === 'object' && 'confidence' in trait && filterPersonaTrait(trait);
+    });
+
+    console.log(`[PERSONA_QUALITY] ${cleaned.name}: ${qualityTraits.length}/${traitKeys.length} quality traits`);
+
+    return cleaned;
+  });
+
+  console.log(`[PERSONA_QUALITY] Processed ${filteredPersonas.length} personas with quality filtering and structured demographics`);
+  return filteredPersonas;
+}
 
 /**
  * Calculate sentiment overview from sentiment data
@@ -378,7 +603,9 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
       // Extract sentimentStatements to top level if available
       sentimentStatements: results.sentimentStatements ||
                           (results.sentiment && results.sentiment.sentimentStatements) ||
-                          {positive: [], neutral: [], negative: []}
+                          {positive: [], neutral: [], negative: []},
+      // Apply persona quality filtering
+      personas: results.personas ? filterPersonaQuality(results.personas) : []
     };
 
     console.log('Processed analysis data:', finalResult);

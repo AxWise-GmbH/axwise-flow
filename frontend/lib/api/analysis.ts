@@ -56,9 +56,25 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
   try {
     console.log(`[checkAnalysisStatus] Checking status for analysis ID: ${resultId}`); // DEBUG LOG
 
-    // Call the status endpoint directly
-    const response = await apiCore.getClient().get<EnhancedStatusResponse>(`/api/analysis/${resultId}/status`);
-    const statusData = response.data;
+    // Use fetch with proper authentication instead of axios
+    const response = await fetch(`/api/analysis/${resultId}/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.error(`[checkAnalysisStatus] Authentication required for analysis ${resultId}`);
+        return { status: 'failed', error: 'Authentication required. Please sign in to check analysis status.' };
+      }
+      const errorText = await response.text();
+      console.error(`[checkAnalysisStatus] API error for ${resultId}:`, response.status, errorText);
+      return { status: 'failed', error: `Failed to check analysis status: ${response.status} ${errorText}` };
+    }
+
+    const statusData = await response.json();
 
     console.log(`[checkAnalysisStatus] Received status for ${resultId}:`, statusData); // DEBUG LOG
 
@@ -164,8 +180,25 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
  */
 export async function getProcessingStatus(analysisId: string): Promise<any> {
   try {
-    const response = await apiCore.getClient().get(`/api/analysis/${analysisId}/status`);
-    return response.data;
+    // Use fetch with proper authentication instead of axios
+    const response = await fetch(`/api/analysis/${analysisId}/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please sign in to check processing status.');
+      }
+      // Create an error object that matches the axios error structure for compatibility
+      const error = new Error(`HTTP ${response.status}`);
+      (error as any).response = { status: response.status };
+      throw error;
+    }
+
+    return await response.json();
   } catch (error: any) {
     console.error('Error fetching processing status:', error);
 

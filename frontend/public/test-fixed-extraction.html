@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fixed Context Extraction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .test-result {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .warning { border-color: #ffc107; background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Fixed Context Extraction</h1>
+        <p>This tests the improved extraction logic that prevents target customer and problem from being the same.</p>
+        
+        <div>
+            <button onclick="testProblematicCase()">Test Problematic Case</button>
+            <button onclick="testRealSessions()">Test Real Sessions</button>
+            <button onclick="runFixedCleanup()">Run Fixed Cleanup</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="container">
+        <h2>Console Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`${prefix} ${message}`);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('log').textContent = '';
+        }
+
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<h3>${title}</h3><div>${content}</div>`;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // Sample conversation that was causing the issue
+        const problematicMessages = [
+            {
+                id: "user_1",
+                role: "user",
+                content: "I want to create a web development agency called Vibe Coding Agency",
+                timestamp: "2024-01-01T10:00:00Z"
+            },
+            {
+                id: "assistant_1",
+                role: "assistant",
+                content: "That's an exciting venture! A web development agency can be very successful. To help you develop the best research questions, I need to understand your target market better. Who specifically would be your ideal customers for Vibe Coding Agency?",
+                timestamp: "2024-01-01T10:01:00Z"
+            },
+            {
+                id: "user_2",
+                role: "user",
+                content: "Bremen SMEs modernizing outdated digital infrastructure Design agencies needing reliable web development partners",
+                timestamp: "2024-01-01T10:02:00Z"
+            },
+            {
+                id: "assistant_2",
+                role: "assistant",
+                content: "Excellent! Bremen SMEs and design agencies are great target markets. Now, what specific problems or pain points do these potential customers face that your agency would solve?",
+                timestamp: "2024-01-01T10:03:00Z"
+            },
+            {
+                id: "user_3",
+                role: "user",
+                content: "They struggle with outdated websites that don't convert well and lack modern functionality. Many have websites built years ago that are slow, not mobile-friendly, and don't integrate with their business systems.",
+                timestamp: "2024-01-01T10:04:00Z"
+            }
+        ];
+
+        function extractContextFromCleanedMessages(messages) {
+            log(`🔍 CONTEXT EXTRACTION: Analyzing ${messages.length} messages for business context`);
+            
+            let target_customer = '';
+            let problem = '';
+
+            // Strategy 1: Look for assistant-user question-answer pairs with expanded patterns
+            for (let i = 0; i < messages.length - 1; i++) {
+                const currentMsg = messages[i];
+                const nextMsg = messages[i + 1];
+
+                if (currentMsg.role === 'assistant' && nextMsg.role === 'user') {
+                    const assistantContent = currentMsg.content.toLowerCase();
+                    const userResponse = nextMsg.content.trim();
+
+                    log(`🔍 Checking assistant question: "${assistantContent.substring(0, 100)}..."`);
+                    log(`🔍 User response: "${userResponse.substring(0, 100)}..."`);
+
+                    // Expanded patterns for target customer questions
+                    const targetCustomerPatterns = [
+                        'target customer', 'who specifically', 'who would be your', 'who are you targeting',
+                        'who is your audience', 'who would use', 'who would benefit', 'who are your customers',
+                        'what type of customers', 'which customers', 'customer segment', 'target market',
+                        'who would pay', 'who needs this', 'primary users', 'ideal customer'
+                    ];
+
+                    const isTargetCustomerQuestion = targetCustomerPatterns.some(pattern => 
+                        assistantContent.includes(pattern)
+                    );
+
+                    if (isTargetCustomerQuestion && userResponse.length > 10) {
+                        target_customer = userResponse;
+                        log(`✅ EXTRACTED target_customer from Q&A: "${target_customer}"`, 'success');
+                    }
+
+                    // Expanded patterns for problem/pain point questions
+                    const problemPatterns = [
+                        'pain point', 'problem', 'what\'s the main', 'challenge', 'difficulty',
+                        'issue', 'struggle', 'frustration', 'what bothers', 'what\'s wrong',
+                        'what needs fixing', 'what\'s broken', 'inefficiency', 'bottleneck',
+                        'what\'s missing', 'gap in the market', 'unmet need'
+                    ];
+
+                    const isProblemQuestion = problemPatterns.some(pattern => 
+                        assistantContent.includes(pattern)
+                    );
+
+                    if (isProblemQuestion && userResponse.length > 10) {
+                        problem = userResponse;
+                        log(`✅ EXTRACTED problem from Q&A: "${problem}"`, 'success');
+                    }
+                }
+            }
+
+            // Strategy 2: Look for business context keywords in all user messages
+            if (!target_customer || !problem) {
+                log(`🔍 FALLBACK EXTRACTION: Looking for business context in all user messages`);
+                
+                for (const msg of messages) {
+                    if (msg.role === 'user') {
+                        const content = msg.content.toLowerCase();
+                        const originalContent = msg.content.trim();
+
+                        // Look for target customer indicators in user messages
+                        if (!target_customer) {
+                            // Look for sentences that describe target customers
+                            const customerSentencePatterns = [
+                                /(.{0,50})(smes?|small businesses?|enterprises?|companies|agencies|startups|retailers|restaurants|clinics|hospitals|schools|universities|developers|designers|consultants|freelancers|professionals)(.{0,100})/i,
+                                /(target|serve|help|work with|focus on)(.{0,100})/i
+                            ];
+
+                            for (const pattern of customerSentencePatterns) {
+                                const match = originalContent.match(pattern);
+                                if (match && match[0].length > 20) {
+                                    target_customer = match[0].trim();
+                                    log(`✅ EXTRACTED target_customer from context: "${target_customer}"`, 'success');
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Look for problem indicators in user messages
+                        if (!problem) {
+                            const problemIndicators = [
+                                'outdated', 'manual', 'inefficient', 'slow', 'expensive', 'difficult',
+                                'time-consuming', 'error-prone', 'unreliable', 'lacking', 'missing',
+                                'broken', 'frustrating', 'complicated', 'confusing'
+                            ];
+
+                            const hasProblemContext = problemIndicators.some(indicator => 
+                                content.includes(indicator)
+                            );
+
+                            if (hasProblemContext && originalContent.length > 20) {
+                                // Extract sentences that describe problems
+                                const problemSentencePatterns = [
+                                    /(.{0,100})(outdated|manual|inefficient|slow|expensive|difficult|time-consuming|error-prone|unreliable|lacking|missing|broken|frustrating|complicated|confusing)(.{0,100})/i,
+                                    /(problem|issue|challenge|difficulty|struggle|pain|frustration)(.{0,100})/i
+                                ];
+
+                                for (const pattern of problemSentencePatterns) {
+                                    const match = originalContent.match(pattern);
+                                    if (match && match[0].length > 15) {
+                                        problem = match[0].trim();
+                                        log(`✅ EXTRACTED problem from context: "${problem}"`, 'success');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: Look for comprehensive business descriptions in longer user messages (FIXED VERSION)
+            if (!target_customer || !problem) {
+                log(`🔍 COMPREHENSIVE EXTRACTION: Looking for detailed business descriptions`);
+                
+                let extractedSentences = new Set(); // Track extracted sentences to avoid duplicates
+                
+                for (const msg of messages) {
+                    if (msg.role === 'user' && msg.content.length > 50) {
+                        const content = msg.content.trim();
+                        
+                        // If this message contains business context keywords and is substantial
+                        const businessKeywords = [
+                            'business', 'company', 'service', 'product', 'customers', 'clients',
+                            'market', 'industry', 'solution', 'platform', 'system', 'application'
+                        ];
+                        
+                        const hasBusinessContext = businessKeywords.some(keyword => 
+                            content.toLowerCase().includes(keyword)
+                        );
+                        
+                        if (hasBusinessContext) {
+                            const sentences = content.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 15);
+                            
+                            // Extract target customer first - prioritize sentences with customer-specific terms
+                            if (!target_customer && content.length > 30) {
+                                for (const sentence of sentences) {
+                                    const lowerSentence = sentence.toLowerCase();
+                                    
+                                    // Strong customer indicators (prioritize these)
+                                    const strongCustomerIndicators = ['smes', 'small businesses', 'enterprises', 'startups', 'agencies', 'companies', 'retailers', 'restaurants', 'clinics', 'hospitals', 'schools', 'universities'];
+                                    const hasStrongCustomerIndicator = strongCustomerIndicators.some(indicator => lowerSentence.includes(indicator));
+                                    
+                                    // Weak customer indicators (only use if no strong ones found)
+                                    const weakCustomerIndicators = ['customer', 'client', 'business', 'company'];
+                                    const hasWeakCustomerIndicator = weakCustomerIndicators.some(indicator => lowerSentence.includes(indicator));
+                                    
+                                    // Avoid sentences that are clearly about problems
+                                    const isProblemSentence = lowerSentence.includes('problem') || lowerSentence.includes('issue') || 
+                                                            lowerSentence.includes('struggle') || lowerSentence.includes('challenge') ||
+                                                            lowerSentence.includes('pain') || lowerSentence.includes('frustration');
+                                    
+                                    if ((hasStrongCustomerIndicator || hasWeakCustomerIndicator) && !isProblemSentence && 
+                                        sentence.length > 20 && !extractedSentences.has(sentence)) {
+                                        target_customer = sentence;
+                                        extractedSentences.add(sentence);
+                                        log(`✅ EXTRACTED target_customer from business description: "${target_customer}"`, 'success');
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Extract problem - prioritize sentences with problem-specific terms, avoid customer sentences
+                            if (!problem && content.length > 30) {
+                                for (const sentence of sentences) {
+                                    const lowerSentence = sentence.toLowerCase();
+                                    
+                                    // Skip sentences already used for target_customer
+                                    if (extractedSentences.has(sentence)) {
+                                        log(`🔍 Skipping sentence already used for target_customer: "${sentence}"`);
+                                        continue;
+                                    }
+                                    
+                                    // Strong problem indicators
+                                    const strongProblemIndicators = ['problem', 'issue', 'challenge', 'struggle', 'pain point', 'frustration', 'difficulty'];
+                                    const hasStrongProblemIndicator = strongProblemIndicators.some(indicator => lowerSentence.includes(indicator));
+                                    
+                                    // Descriptive problem indicators
+                                    const descriptiveProblemIndicators = ['outdated', 'manual', 'inefficient', 'slow', 'expensive', 'difficult', 'time-consuming', 'error-prone', 'unreliable', 'lacking', 'missing', 'broken', 'frustrating', 'complicated', 'confusing'];
+                                    const hasDescriptiveProblemIndicator = descriptiveProblemIndicators.some(indicator => lowerSentence.includes(indicator));
+                                    
+                                    // Avoid sentences that are clearly about customers/target market
+                                    const isCustomerSentence = lowerSentence.includes('smes') || lowerSentence.includes('small business') || 
+                                                             lowerSentence.includes('agencies') || lowerSentence.includes('companies') ||
+                                                             lowerSentence.includes('target') || lowerSentence.includes('market');
+                                    
+                                    if ((hasStrongProblemIndicator || hasDescriptiveProblemIndicator) && !isCustomerSentence && 
+                                        sentence.length > 15) {
+                                        problem = sentence;
+                                        extractedSentences.add(sentence);
+                                        log(`✅ EXTRACTED problem from business description: "${problem}"`, 'success');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            log(`🔍 FINAL EXTRACTION RESULTS:`);
+            log(`   target_customer: "${target_customer}"`);
+            log(`   problem: "${problem}"`);
+
+            return { target_customer, problem };
+        }
+
+        function testProblematicCase() {
+            log('🧪 Testing the problematic case that was causing duplicate extraction...');
+            
+            const result = extractContextFromCleanedMessages(problematicMessages);
+            
+            const expectedTargetCustomer = "Bremen SMEs modernizing outdated digital infrastructure Design agencies needing reliable web development partners";
+            const expectedProblem = "They struggle with outdated websites that don't convert well and lack modern functionality";
+            
+            const targetCustomerMatch = result.target_customer === expectedTargetCustomer;
+            const problemMatch = result.problem.includes("struggle") || result.problem.includes("outdated websites");
+            const areTheSame = result.target_customer === result.problem;
+            
+            let resultHtml = `
+                <p><strong>Expected Target Customer:</strong><br>${expectedTargetCustomer}</p>
+                <p><strong>Extracted Target Customer:</strong><br>${result.target_customer}</p>
+                <p><strong>Target Customer Match:</strong> ${targetCustomerMatch ? '✅ YES' : '❌ NO'}</p>
+                <hr>
+                <p><strong>Expected Problem (contains "struggle" or "outdated websites"):</strong><br>${expectedProblem}</p>
+                <p><strong>Extracted Problem:</strong><br>${result.problem}</p>
+                <p><strong>Problem Match:</strong> ${problemMatch ? '✅ YES' : '❌ NO'}</p>
+                <hr>
+                <p><strong>🎯 KEY TEST - Are they the same?</strong> ${areTheSame ? '❌ FAILED (still the same!)' : '✅ PASSED (different values)'}</p>
+            `;
+            
+            const overallSuccess = targetCustomerMatch && problemMatch && !areTheSame;
+            addResult('Problematic Case Test', resultHtml, overallSuccess ? 'success' : 'error');
+            
+            log(`Test completed: ${overallSuccess ? 'SUCCESS' : 'FAILED'}`, overallSuccess ? 'success' : 'error');
+            if (!areTheSame) {
+                log('✅ FIXED: Target customer and problem are now different!', 'success');
+            } else {
+                log('❌ STILL BROKEN: Target customer and problem are the same', 'error');
+            }
+        }
+
+        function testRealSessions() {
+            log('🧪 Testing with real localStorage sessions...');
+            
+            try {
+                const stored = localStorage.getItem('axwise_research_sessions');
+                if (!stored) {
+                    addResult('Real Sessions Test', 'No sessions found in localStorage', 'warning');
+                    log('No sessions found in localStorage', 'warning');
+                    return;
+                }
+
+                const sessions = JSON.parse(stored);
+                const sessionsArray = Array.isArray(sessions) ? sessions : Object.values(sessions);
+                
+                if (sessionsArray.length === 0) {
+                    addResult('Real Sessions Test', 'No sessions in localStorage', 'warning');
+                    log('No sessions in localStorage', 'warning');
+                    return;
+                }
+
+                log(`Found ${sessionsArray.length} sessions in localStorage`);
+                
+                let resultHtml = `<p>Found ${sessionsArray.length} sessions:</p>`;
+                let fixedCount = 0;
+                
+                sessionsArray.forEach((session, index) => {
+                    const hasMessages = session.messages && session.messages.length > 0;
+                    
+                    resultHtml += `
+                        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                            <h4>Session ${index + 1}: ${session.session_id}</h4>
+                            <p><strong>Business Idea:</strong> ${session.business_idea || 'EMPTY'}</p>
+                            <p><strong>Current Target Customer:</strong> ${session.target_customer || 'EMPTY'}</p>
+                            <p><strong>Current Problem:</strong> ${session.problem || 'EMPTY'}</p>
+                            <p><strong>Messages:</strong> ${hasMessages ? session.messages.length : 0}</p>
+                    `;
+                    
+                    if (hasMessages) {
+                        log(`Testing extraction for session ${session.session_id}`);
+                        const extracted = extractContextFromCleanedMessages(session.messages);
+                        
+                        const areTheSame = extracted.target_customer === extracted.problem;
+                        const hasImprovement = (extracted.target_customer && !session.target_customer) || 
+                                             (extracted.problem && !session.problem);
+                        
+                        resultHtml += `
+                            <p><strong>Extracted Target Customer:</strong> ${extracted.target_customer || 'NONE'}</p>
+                            <p><strong>Extracted Problem:</strong> ${extracted.problem || 'NONE'}</p>
+                            <p><strong>Are Same:</strong> ${areTheSame ? '❌ YES (problem!)' : '✅ NO (good)'}</p>
+                        `;
+                        
+                        if (hasImprovement && !areTheSame) {
+                            resultHtml += `<p style="color: green;"><strong>✅ Extraction would improve this session!</strong></p>`;
+                            fixedCount++;
+                        } else if (areTheSame) {
+                            resultHtml += `<p style="color: red;"><strong>❌ Still extracting same value for both fields</strong></p>`;
+                        }
+                    }
+                    
+                    resultHtml += `</div>`;
+                });
+                
+                resultHtml += `<p><strong>Summary:</strong> ${fixedCount} sessions would be improved by the fixed extraction logic.</p>`;
+                
+                addResult('Real Sessions Test', resultHtml, fixedCount > 0 ? 'success' : 'warning');
+                log(`Real sessions test completed: ${fixedCount} sessions would be improved`, 'success');
+                
+            } catch (error) {
+                addResult('Real Sessions Test', `Error: ${error.message}`, 'error');
+                log(`Error testing real sessions: ${error.message}`, 'error');
+            }
+        }
+
+        function runFixedCleanup() {
+            log('🔧 Running cleanup with fixed extraction logic...');
+            
+            try {
+                const stored = localStorage.getItem('axwise_research_sessions');
+                if (!stored) {
+                    log('No sessions to cleanup', 'warning');
+                    return;
+                }
+
+                const sessions = JSON.parse(stored);
+                const sessionsArray = Array.isArray(sessions) ? sessions : Object.values(sessions);
+
+                let processedCount = 0;
+                const updatedSessions = sessionsArray.map(session => {
+                    if (Array.isArray(session.messages) && session.messages.length > 0) {
+                        log(`🔧 Processing session ${session.session_id}: "${session.business_idea}"`);
+                        
+                        const extracted = extractContextFromCleanedMessages(session.messages);
+                        
+                        const updatedSession = {
+                            ...session,
+                            target_customer: extracted.target_customer || session.target_customer || '',
+                            problem: extracted.problem || session.problem || '',
+                            updated_at: new Date().toISOString()
+                        };
+                        
+                        if (extracted.target_customer || extracted.problem) {
+                            processedCount++;
+                            log(`✅ Updated session ${session.session_id}`, 'success');
+                        }
+                        
+                        return updatedSession;
+                    }
+                    return session;
+                });
+
+                if (processedCount > 0) {
+                    localStorage.setItem('axwise_research_sessions', JSON.stringify(updatedSessions));
+                    log(`🔧 Fixed cleanup complete: processed ${processedCount} sessions`, 'success');
+                    addResult('Fixed Cleanup', `Successfully processed ${processedCount} sessions with improved extraction logic.`, 'success');
+                } else {
+                    log('🔧 No sessions needed updates', 'warning');
+                    addResult('Fixed Cleanup', 'No sessions needed updates.', 'warning');
+                }
+
+            } catch (error) {
+                log(`Fixed cleanup failed: ${error.message}`, 'error');
+                addResult('Fixed Cleanup', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('Fixed context extraction test page loaded');
+    </script>
+</body>
+</html>

@@ -35,11 +35,6 @@ export default function DashboardOverview() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Check if we should show visualization tabs (only when explicitly requested)
-  const visualizationTab = searchParams.get('visualizationTab');
-  const analysisId = searchParams.get('analysisId');
-  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
-
   // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {
     setIsLoading(true);
@@ -139,6 +134,11 @@ export default function DashboardOverview() {
       </Card>
     );
   }
+
+  // Check if we should show visualization tabs (only when explicitly requested)
+  const visualizationTab = searchParams.get('visualizationTab');
+  const analysisId = searchParams.get('analysisId');
+  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
 
   return (
     <div className="space-y-6">

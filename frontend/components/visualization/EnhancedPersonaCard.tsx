@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { Persona, InfluenceMetrics, PersonaRelationship, ConflictIndicator, ConsensusLevel } from '@/types/api';
 import { extractKeywords, renderHighlightedText, renderMarkdownWithHighlighting, getKeywordsForRendering } from '@/utils/personaEnhancements';
+import { parseDemographics } from '@/utils/demographicsParser';
 
 interface EnhancedPersonaCardProps {
   persona: Persona;
@@ -45,6 +46,8 @@ export function EnhancedPersonaCard({
       .toUpperCase()
       .substring(0, 2);
   };
+
+
 
   // Get keywords from trait (use actual_keywords from backend if available, fallback to extraction)
   const getTraitKeywords = (trait: any, traitName: string): string[] => {
@@ -347,10 +350,49 @@ export function EnhancedPersonaCard({
               <AccordionTrigger className="text-sm">Demographics</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-2">
-                  <p
-                    className="text-sm text-gray-700"
-                    dangerouslySetInnerHTML={renderHighlightedText(persona.demographics.value)}
-                  />
+                  {/* Enhanced structured demographics formatting */}
+                  {(() => {
+                    try {
+                      const parsedDemographics = parseDemographics(persona.demographics.value);
+
+
+
+                      // If we successfully parsed structured data, display it formatted
+                      if (parsedDemographics.length > 1 || (parsedDemographics.length === 1 && parsedDemographics[0].key !== 'Demographics')) {
+                        return (
+                          <div className="space-y-3">
+                            {parsedDemographics.map((item, index) => (
+                              <div key={index} className="flex flex-col sm:flex-row sm:items-start border-l-2 border-gray-100 pl-3">
+                                <span className="font-semibold text-gray-900 min-w-[140px] mb-1 sm:mb-0 text-sm">
+                                  {item.key}:
+                                </span>
+                                <span className="text-gray-700 sm:ml-3 leading-relaxed text-sm">
+                                  {item.value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      } else {
+                        // Fallback to original display for unstructured content
+                        return (
+                          <p
+                            className="text-sm text-gray-700"
+                            dangerouslySetInnerHTML={renderHighlightedText(persona.demographics.value)}
+                          />
+                        );
+                      }
+                    } catch (error) {
+                      // Error fallback - display original content
+                      return (
+                        <p
+                          className="text-sm text-gray-700"
+                          dangerouslySetInnerHTML={renderHighlightedText(persona.demographics.value)}
+                        />
+                      );
+                    }
+                  })()}
+
                   {/* Keywords for demographics */}
                   {renderKeywords(getTraitKeywords(persona.demographics, 'demographics'))}
                   <div className="flex items-center justify-between">
@@ -456,293 +498,23 @@ export function EnhancedPersonaCard({
             </AccordionItem>
           )}
 
-          {persona.skills_and_expertise && (
-            <AccordionItem value="skills">
-              <AccordionTrigger className="text-sm">Skills & Expertise</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p
-                    className="text-sm text-gray-700"
-                    dangerouslySetInnerHTML={renderHighlightedText(persona.skills_and_expertise.value)}
-                  />
-                  {/* Keywords for skills and expertise */}
-                  {renderKeywords(getTraitKeywords(persona.skills_and_expertise, 'skills_and_expertise'))}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.skills_and_expertise.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.skills_and_expertise.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.skills_and_expertise.evidence && persona.skills_and_expertise.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.skills_and_expertise.evidence.map((evidence: string, idx: number) => (
-                          <li
-                            key={idx}
-                            className="text-xs text-gray-600"
-                            dangerouslySetInnerHTML={renderHighlightedText(evidence)}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.workflow_and_environment && (
-            <AccordionItem value="workflow">
-              <AccordionTrigger className="text-sm">Workflow & Environment</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p
-                    className="text-sm text-gray-700"
-                    dangerouslySetInnerHTML={renderHighlightedText(persona.workflow_and_environment.value)}
-                  />
-                  {/* Keywords for workflow and environment */}
-                  {renderKeywords(getTraitKeywords(persona.workflow_and_environment, 'workflow_and_environment'))}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.workflow_and_environment.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.workflow_and_environment.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.workflow_and_environment.evidence && persona.workflow_and_environment.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.workflow_and_environment.evidence.map((evidence: string, idx: number) => (
-                          <li
-                            key={idx}
-                            className="text-xs text-gray-600"
-                            dangerouslySetInnerHTML={renderHighlightedText(evidence)}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.technology_and_tools && (
-            <AccordionItem value="technology">
-              <AccordionTrigger className="text-sm">Technology & Tools</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p
-                    className="text-sm text-gray-700"
-                    dangerouslySetInnerHTML={renderHighlightedText(persona.technology_and_tools.value)}
-                  />
-                  {/* Keywords for technology and tools */}
-                  {renderKeywords(getTraitKeywords(persona.technology_and_tools, 'technology_and_tools'))}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.technology_and_tools.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.technology_and_tools.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.technology_and_tools.evidence && persona.technology_and_tools.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.technology_and_tools.evidence.map((evidence: string, idx: number) => (
-                          <li
-                            key={idx}
-                            className="text-xs text-gray-600"
-                            dangerouslySetInnerHTML={renderHighlightedText(evidence)}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.pain_points && (
-            <AccordionItem value="pain_points">
-              <AccordionTrigger className="text-sm">Pain Points</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.pain_points.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.pain_points.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.pain_points.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.pain_points.evidence && persona.pain_points.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.pain_points.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.role_context && (
-            <AccordionItem value="role_context">
-              <AccordionTrigger className="text-sm">Role Context</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.role_context.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.role_context.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.role_context.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.role_context.evidence && persona.role_context.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.role_context.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.key_responsibilities && (
-            <AccordionItem value="key_responsibilities">
-              <AccordionTrigger className="text-sm">Key Responsibilities</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.key_responsibilities.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.key_responsibilities.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.key_responsibilities.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.key_responsibilities.evidence && persona.key_responsibilities.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.key_responsibilities.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.tools_used && (
-            <AccordionItem value="tools_used">
-              <AccordionTrigger className="text-sm">Tools Used</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.tools_used.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.tools_used.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.tools_used.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.tools_used.evidence && persona.tools_used.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.tools_used.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.collaboration_style && (
-            <AccordionItem value="collaboration_style">
-              <AccordionTrigger className="text-sm">Collaboration Style</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.collaboration_style.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.collaboration_style.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.collaboration_style.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.collaboration_style.evidence && persona.collaboration_style.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.collaboration_style.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
 
-          {persona.analysis_approach && (
-            <AccordionItem value="analysis_approach">
-              <AccordionTrigger className="text-sm">Analysis Approach</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">{persona.analysis_approach.value}</p>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {Math.round(persona.analysis_approach.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {persona.analysis_approach.evidence.length} evidence points
-                    </span>
-                  </div>
-                  {persona.analysis_approach.evidence && persona.analysis_approach.evidence.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-xs font-medium text-gray-600 mb-2">Supporting Evidence</h5>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {persona.analysis_approach.evidence.map((evidence: string, idx: number) => (
-                          <li key={idx} className="text-xs text-gray-600">{evidence}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+
+
+
+
+
+
+
+
+
 
           {persona.key_quotes && (
             <AccordionItem value="key_quotes">

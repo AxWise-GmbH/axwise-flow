@@ -103,7 +103,7 @@ class PersonaFormationPrompts:
         3. description: A brief 1-3 sentence overview of the persona highlighting their role in the {industry.upper()} industry
 
         DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
-        4. demographics: ONLY extract demographic information that is explicitly mentioned or clearly supported by evidence. Do NOT infer or assume gender, age, or other demographics without clear evidence.
+        4. demographics: Extract demographic information as a structured object with specific fields (experience_level, roles, industry, location, age_range, professional_context). ONLY include information that is explicitly mentioned or clearly supported by evidence. Do NOT infer or assume demographics without clear evidence.
         5. role_context: Specific organizational context, team structure, and reporting relationships
         6. key_responsibilities: Primary job duties, tasks, and accountabilities in their role
         7. goals_and_motivations: Primary objectives, aspirations, and driving factors specific to their role in the {industry.upper()} industry
@@ -128,9 +128,16 @@ class PersonaFormationPrompts:
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
-            "value": "Format as structured key-value pairs. ONLY include demographic information that is explicitly mentioned in the text. Use this format:\nAge Range: [if mentioned]\nEducation: [if mentioned]\nLocation: [if mentioned]\nIncome Level: [if mentioned]\nIndustry Experience: [if mentioned]\nCompany Size: [if mentioned]\nRole Level: [if mentioned]\n\nInclude location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
+            "value": {{
+              "experience_level": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
+              "roles": ["Primary Role", "Secondary Role"] - ONLY roles explicitly stated,
+              "industry": "Industry Name - ONLY if explicitly mentioned",
+              "location": "City/Region - ONLY if explicitly stated",
+              "age_range": "Age range - ONLY if directly mentioned",
+              "professional_context": "Detailed professional background and company context based on explicit information"
+            }},
             "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
+            "evidence": ["Direct quote supporting demographics", "Another supporting quote"]
           }},
           "role_context": {{
             "value": "Detailed organizational context including specific company names, team structure, industry position, and reporting relationships",
@@ -225,7 +232,7 @@ class PersonaFormationPrompts:
         3. description: A brief 1-3 sentence overview of the persona
 
         DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
-        4. demographics: Age, gender, education, experience level, and other demographic information
+        4. demographics: Extract demographic information as a structured object with specific fields (experience_level, roles, industry, location, age_range, professional_context). ONLY include information explicitly mentioned in the interview text.
         5. role_context: Specific organizational context, team structure, and reporting relationships
         6. key_responsibilities: Primary job duties, tasks, and accountabilities in their role
         7. goals_and_motivations: Primary objectives, aspirations, and driving factors
@@ -244,15 +251,48 @@ class PersonaFormationPrompts:
         15. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
         16. supporting_evidence_summary: Key evidence supporting the overall persona characterization
 
+        CONTEXT-AWARE HIGHLIGHTING RULES:
+        When providing supporting quotes in the evidence arrays, use **bold** formatting to highlight ONLY semantically relevant terms that directly support the trait being described:
+
+        For Demographics - Highlight: **age indicators**, **job titles**, **experience levels**, **locations**, **family status**, **education**
+        For Goals - Highlight: **desired outcomes**, **motivations**, **success criteria**, **priorities**, **values**, **objectives**
+        For Challenges - Highlight: **pain points**, **obstacles**, **limitations**, **frustrations**, **barriers**, **difficulties**
+        For Skills - Highlight: **abilities**, **expertise**, **competencies**, **knowledge areas**, **proficiencies**, **certifications**
+        For Tools - Highlight: **software names**, **platforms**, **systems**, **technologies**, **equipment**, **applications**
+        For Quotes - Highlight: **emotional expressions**, **key problems**, **solutions**, **decision factors**, **priorities**
+
+        DOMAIN-SPECIFIC KEYWORDS TO PRIORITIZE:
+        - Service/Maintenance: **maintenance**, **cleaning**, **repair**, **safety**, **equipment**, **professional**, **service**
+        - Physical Aspects: **physical**, **climbing**, **ladder**, **roof**, **driveway**, **gutters**, **dangerous**, **height**
+        - Time/Resources: **time**, **busy**, **demanding**, **schedule**, **hours**, **weekend**, **availability**, **urgent**
+        - Age/Ability: **elderly**, **aging**, **limitations**, **difficult**, **can't**, **unable**, **struggle**, **health**
+        - Quality/Trust: **reliable**, **trustworthy**, **professional**, **quality**, **experienced**, **certified**, **reputation**
+
+        CRITICAL: AVOID HIGHLIGHTING GENERIC WORDS:
+        Do NOT highlight common function words: **with**, **have**, **their**, **like**, **and**, **the**, **is**, **are**, **was**, **were**, **but**, **or**, **so**, **then**, **when**, **where**, **this**, **that**, **these**, **those**
+
+        EVIDENCE QUALITY REQUIREMENTS:
+        - Each evidence quote must contain at least one highlighted term that directly relates to the trait
+        - Highlighted keywords should be semantically meaningful and support the trait description
+        - Confidence scores should reflect the strength of evidence-to-trait alignment
+        - Quotes should be authentic and directly from the interview text
+
         FORMAT YOUR RESPONSE AS JSON with the following structure:
         {{
           "name": "Role-Based Name",
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
-            "value": "Format as structured key-value pairs. ONLY include demographic information that is explicitly mentioned in the text. Use this format:\nAge Range: [if mentioned]\nEducation: [if mentioned]\nLocation: [if mentioned]\nIncome Level: [if mentioned]\nIndustry Experience: [if mentioned]\nCompany Size: [if mentioned]\nRole Level: [if mentioned]\n\nInclude location, industry background, experience level, specific companies worked for (e.g., 'Volkswagen', 'Google'), roles held, and career progression. Do NOT include gender, age, or other demographics unless explicitly stated.",
+            "value": {{
+              "experience_level": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
+              "roles": ["Primary Role", "Secondary Role"] - ONLY roles explicitly stated,
+              "industry": "Industry Name - ONLY if explicitly mentioned",
+              "location": "City/Region - ONLY if explicitly stated",
+              "age_range": "Age range - ONLY if directly mentioned",
+              "professional_context": "Detailed professional background and company context based on explicit information"
+            }},
             "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
+            "evidence": ["Direct quote supporting demographics", "Another supporting quote"]
           }},
           "role_context": {{
             "value": "Detailed organizational context including specific company names, team structure, industry position, and reporting relationships",

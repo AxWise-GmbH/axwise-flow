@@ -142,7 +142,30 @@ export class LocalResearchStorage {
       }
 
       // Process sessions to set questions_generated flag based on ACTUAL message content
-      return sessions.map((session: any) => {
+      const validSessions = sessions.filter((session: any) => {
+        // Filter out sessions with no messages but flagged as having questionnaires (corrupted data)
+        const hasMessages = Array.isArray(session.messages) && session.messages.length > 0;
+        const isCorrupted = session.questions_generated && !hasMessages;
+
+        if (isCorrupted) {
+          console.log(`🧹 CLEANING: Removing corrupted session ${session.session_id} (no messages but flagged as having questionnaires)`);
+          return false;
+        }
+
+        return true;
+      });
+
+      // If we filtered out corrupted sessions, update localStorage
+      if (validSessions.length !== sessions.length) {
+        console.log(`🧹 CLEANUP: Removed ${sessions.length - validSessions.length} corrupted sessions from localStorage`);
+        try {
+          localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(validSessions));
+        } catch (error) {
+          console.error('Failed to update localStorage after cleanup:', error);
+        }
+      }
+
+      return validSessions.map((session: any) => {
         // Check if session has questionnaire data in messages - support both new and legacy formats
         const hasQuestionnaire = Array.isArray(session.messages) && session.messages.some((msg: any) => {
           const meta = msg?.metadata || {};
@@ -152,7 +175,7 @@ export class LocalResearchStorage {
           return hasModern || hasLegacy || hasComponent;
         });
 
-        // Debug logging for data inconsistency detection
+        // Debug logging for remaining data inconsistency detection
         if (session.questions_generated && !hasQuestionnaire) {
           console.log(`🚨 DATA MISMATCH: Session ${session.session_id} flagged questions_generated=true but no questionnaire message detected`);
           console.log(`   Business idea: ${session.business_idea}`);
@@ -162,8 +185,8 @@ export class LocalResearchStorage {
 
         return {
           ...session,
-          // Maintain compatibility with legacy data: honor stored flag OR detected questionnaire messages
-          questions_generated: !!session.questions_generated || hasQuestionnaire,
+          // Fix the questions_generated flag based on actual message content
+          questions_generated: hasQuestionnaire,
           isLocal: true
         };
       });
@@ -287,6 +310,502 @@ export class LocalResearchStorage {
       localStorage.removeItem(STORAGE_KEYS.userId);
     } catch (error) {
       console.error('Error clearing localStorage:', error);
+    }
+  }
+
+  /**
+   * Clean up corrupted sessions from localStorage
+   * This removes sessions that have questions_generated=true but no actual messages
+   * Also fixes sessions with mixed content by removing duplicate/conflicting messages
+   */
+  static cleanupCorruptedSessions(): number {
+    if (typeof window === 'undefined') return 0;
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.sessions);
+      if (!stored) return 0;
+
+      const sessions = JSON.parse(stored);
+      const sessionsArray = Array.isArray(sessions) ? sessions : Object.values(sessions);
+
+      let cleanedSessions = [];
+      let removedCount = 0;
+      let fixedCount = 0;
+
+      for (const session of sessionsArray) {
+        const hasMessages = Array.isArray(session.messages) && session.messages.length > 0;
+        const isCorrupted = session.questions_generated && !hasMessages;
+
+        if (isCorrupted) {
+          console.log(`🧹 REMOVING corrupted session ${session.session_id} (no messages but flagged as having questionnaires)`);
+          removedCount++;
+          continue;
+        }
+
+        // Fix sessions with mixed content by cleaning up duplicate questionnaire messages
+        if (hasMessages) {
+          const cleanedSession = this.fixMixedContentInSession(session);
+          if (cleanedSession !== session) {
+            fixedCount++;
+            console.log(`🔧 FIXED mixed content in session ${session.session_id}`);
+          }
+          cleanedSessions.push(cleanedSession);
+        } else {
+          cleanedSessions.push(session);
+        }
+      }
+
+      if (removedCount > 0 || fixedCount > 0) {
+        localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(cleanedSessions));
+        console.log(`🧹 Cleanup complete: removed ${removedCount} corrupted sessions, fixed ${fixedCount} sessions with mixed content`);
+      } else {
+        console.log(`🧹 No cleanup needed - all sessions are clean`);
+      }
+
+      return removedCount + fixedCount;
+    } catch (error) {
+      console.error('Error cleaning up corrupted sessions:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Fix mixed content in a session by detecting and removing conversations from different business contexts
+   * and ensuring consistent business context throughout the session
+   */
+  private static fixMixedContentInSession(session: any): any {
+    if (!Array.isArray(session.messages) || session.messages.length === 0) {
+      return session;
+    }
+
+    // Detect mixed business contexts by looking for multiple business idea introductions
+    const businessIntroMessages = session.messages.filter((msg: any) =>
+      msg.role === 'user' && (
+        msg.content.toLowerCase().includes('i want to open') ||
+        msg.content.toLowerCase().includes('i want to create') ||
+        msg.content.toLowerCase().includes('i want to start')
+      )
+    );
+
+    // If there are multiple business introductions, this indicates mixed content
+    if (businessIntroMessages.length > 1) {
+      console.log(`🚨 MIXED CONTENT DETECTED: Found ${businessIntroMessages.length} different business conversations in session ${session.session_id}`);
+
+      // Find the most recent business conversation by timestamp
+      const sortedBusinessMessages = businessIntroMessages.sort((a: any, b: any) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const latestBusinessMessage = sortedBusinessMessages[0];
+      const latestBusinessTimestamp = new Date(latestBusinessMessage.timestamp);
+
+      console.log(`🔧 Keeping only the latest business conversation starting from: "${latestBusinessMessage.content}"`);
+
+      // Keep only messages from the latest business conversation onwards
+      const cleanedMessages = session.messages.filter((msg: any) => {
+        const msgTimestamp = new Date(msg.timestamp);
+        return msgTimestamp >= latestBusinessTimestamp;
+      });
+
+      // Update business context to match the latest conversation
+      const latestBusinessIdea = this.extractBusinessIdeaFromMessage(latestBusinessMessage.content);
+
+      // Extract target customer and problem from the cleaned messages
+      const extractedContext = this.extractContextFromCleanedMessages(cleanedMessages);
+
+      // Remove any questionnaire messages since they're based on mixed content
+      const messagesWithoutQuestionnaire = cleanedMessages.filter((msg: any) =>
+        msg.content !== 'COMPREHENSIVE_QUESTIONS_COMPONENT'
+      );
+
+      console.log(`🔧 Removed questionnaire from mixed content session - it needs to be regenerated for: "${latestBusinessIdea}"`);
+      console.log(`🔧 Extracted context: target_customer="${extractedContext.target_customer}", problem="${extractedContext.problem}"`);
+
+      const finalTargetCustomer = extractedContext.target_customer || session.target_customer || '';
+      const finalProblem = extractedContext.problem || session.problem || '';
+
+      console.log(`🔧 Final session context: target_customer="${finalTargetCustomer}", problem="${finalProblem}"`);
+
+      return {
+        ...session,
+        messages: messagesWithoutQuestionnaire,
+        message_count: messagesWithoutQuestionnaire.length,
+        business_idea: latestBusinessIdea,
+        target_customer: finalTargetCustomer,
+        problem: finalProblem,
+        questions_generated: false // Reset this so questionnaire can be regenerated
+      };
+    }
+
+    // Also check for duplicate questionnaire messages
+    const questionnaireMessages = session.messages.filter((msg: any) =>
+      msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions
+    );
+
+    if (questionnaireMessages.length > 1) {
+      console.log(`🔧 Found ${questionnaireMessages.length} questionnaire messages in session ${session.session_id}, keeping only the latest`);
+
+      const sortedQuestionnaires = questionnaireMessages.sort((a: any, b: any) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const latestQuestionnaire = sortedQuestionnaires[0];
+
+      const cleanedMessages = session.messages.filter((msg: any) => {
+        if (msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' && msg.metadata?.comprehensiveQuestions) {
+          return msg.id === latestQuestionnaire.id;
+        }
+        return true;
+      });
+
+      return {
+        ...session,
+        messages: cleanedMessages,
+        message_count: cleanedMessages.length
+      };
+    }
+
+    return session;
+  }
+
+  /**
+   * Extract business idea from a user message
+   */
+  private static extractBusinessIdeaFromMessage(content: string): string {
+    // Simple extraction - look for text after "I want to open/create/start"
+    const patterns = [
+      /i want to open (.+)/i,
+      /i want to create (.+)/i,
+      /i want to start (.+)/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = content.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+
+    return content;
+  }
+
+  /**
+   * Extract target customer and problem context from cleaned messages
+   * This uses multiple strategies to find business context information
+   */
+  private static extractContextFromCleanedMessages(messages: any[]): { target_customer: string; problem: string } {
+    console.log(`🔍 CONTEXT EXTRACTION: Analyzing ${messages.length} messages for business context`);
+
+    let target_customer = '';
+    let problem = '';
+
+    // Strategy 1: Look for assistant-user question-answer pairs with expanded patterns
+    for (let i = 0; i < messages.length - 1; i++) {
+      const currentMsg = messages[i];
+      const nextMsg = messages[i + 1];
+
+      if (currentMsg.role === 'assistant' && nextMsg.role === 'user') {
+        const assistantContent = currentMsg.content.toLowerCase();
+        const userResponse = nextMsg.content.trim();
+
+        console.log(`🔍 Checking assistant question: "${assistantContent.substring(0, 100)}..."`);
+        console.log(`🔍 User response: "${userResponse.substring(0, 100)}..."`);
+
+        // Expanded patterns for target customer questions
+        const targetCustomerPatterns = [
+          'target customer', 'who specifically', 'who would be your', 'who are you targeting',
+          'who is your audience', 'who would use', 'who would benefit', 'who are your customers',
+          'what type of customers', 'which customers', 'customer segment', 'target market',
+          'who would pay', 'who needs this', 'primary users', 'ideal customer'
+        ];
+
+        const isTargetCustomerQuestion = targetCustomerPatterns.some(pattern =>
+          assistantContent.includes(pattern)
+        );
+
+        if (isTargetCustomerQuestion && userResponse.length > 10) {
+          target_customer = userResponse;
+          console.log(`✅ EXTRACTED target_customer from Q&A: "${target_customer}"`);
+        }
+
+        // Expanded patterns for problem/pain point questions
+        const problemPatterns = [
+          'pain point', 'problem', 'what\'s the main', 'challenge', 'difficulty',
+          'issue', 'struggle', 'frustration', 'what bothers', 'what\'s wrong',
+          'what needs fixing', 'what\'s broken', 'inefficiency', 'bottleneck',
+          'what\'s missing', 'gap in the market', 'unmet need'
+        ];
+
+        const isProblemQuestion = problemPatterns.some(pattern =>
+          assistantContent.includes(pattern)
+        );
+
+        if (isProblemQuestion && userResponse.length > 10) {
+          problem = userResponse;
+          console.log(`✅ EXTRACTED problem from Q&A: "${problem}"`);
+        }
+      }
+    }
+
+    // Strategy 2: Look for business context keywords in all user messages
+    if (!target_customer || !problem) {
+      console.log(`🔍 FALLBACK EXTRACTION: Looking for business context in all user messages`);
+
+      for (const msg of messages) {
+        if (msg.role === 'user') {
+          const content = msg.content.toLowerCase();
+          const originalContent = msg.content.trim();
+
+          // Look for target customer indicators in user messages
+          if (!target_customer) {
+            // Look for sentences that describe target customers
+            const customerSentencePatterns = [
+              /(.{0,50})(smes?|small businesses?|enterprises?|companies|agencies|startups|retailers|restaurants|clinics|hospitals|schools|universities|developers|designers|consultants|freelancers|professionals)(.{0,100})/i,
+              /(target|serve|help|work with|focus on)(.{0,100})/i
+            ];
+
+            for (const pattern of customerSentencePatterns) {
+              const match = originalContent.match(pattern);
+              if (match && match[0].length > 20) {
+                target_customer = match[0].trim();
+                console.log(`✅ EXTRACTED target_customer from context: "${target_customer}"`);
+                break;
+              }
+            }
+          }
+
+          // Look for problem indicators in user messages
+          if (!problem) {
+            const problemIndicators = [
+              'outdated', 'manual', 'inefficient', 'slow', 'expensive', 'difficult',
+              'time-consuming', 'error-prone', 'unreliable', 'lacking', 'missing',
+              'broken', 'frustrating', 'complicated', 'confusing'
+            ];
+
+            const hasProblemContext = problemIndicators.some(indicator =>
+              content.includes(indicator)
+            );
+
+            if (hasProblemContext && originalContent.length > 20) {
+              // Extract sentences that describe problems
+              const problemSentencePatterns = [
+                /(.{0,100})(outdated|manual|inefficient|slow|expensive|difficult|time-consuming|error-prone|unreliable|lacking|missing|broken|frustrating|complicated|confusing)(.{0,100})/i,
+                /(problem|issue|challenge|difficulty|struggle|pain|frustration)(.{0,100})/i
+              ];
+
+              for (const pattern of problemSentencePatterns) {
+                const match = originalContent.match(pattern);
+                if (match && match[0].length > 15) {
+                  problem = match[0].trim();
+                  console.log(`✅ EXTRACTED problem from context: "${problem}"`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Strategy 3: Look for comprehensive business descriptions in longer user messages
+    if (!target_customer || !problem) {
+      console.log(`🔍 COMPREHENSIVE EXTRACTION: Looking for detailed business descriptions`);
+
+      let extractedSentences = new Set(); // Track extracted sentences to avoid duplicates
+
+      for (const msg of messages) {
+        if (msg.role === 'user' && msg.content.length > 50) {
+          const content = msg.content.trim();
+
+          // If this message contains business context keywords and is substantial
+          const businessKeywords = [
+            'business', 'company', 'service', 'product', 'customers', 'clients',
+            'market', 'industry', 'solution', 'platform', 'system', 'application'
+          ];
+
+          const hasBusinessContext = businessKeywords.some(keyword =>
+            content.toLowerCase().includes(keyword)
+          );
+
+          if (hasBusinessContext) {
+            const sentences = content.split(/[.!?]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 15);
+
+            // Extract target customer first - prioritize sentences with customer-specific terms
+            if (!target_customer && content.length > 30) {
+              for (const sentence of sentences) {
+                const lowerSentence = sentence.toLowerCase();
+
+                // Strong customer indicators (prioritize these)
+                const strongCustomerIndicators = ['smes', 'small businesses', 'enterprises', 'startups', 'agencies', 'companies', 'retailers', 'restaurants', 'clinics', 'hospitals', 'schools', 'universities'];
+                const hasStrongCustomerIndicator = strongCustomerIndicators.some(indicator => lowerSentence.includes(indicator));
+
+                // Weak customer indicators (only use if no strong ones found)
+                const weakCustomerIndicators = ['customer', 'client', 'business', 'company'];
+                const hasWeakCustomerIndicator = weakCustomerIndicators.some(indicator => lowerSentence.includes(indicator));
+
+                // Avoid sentences that are clearly about problems
+                const isProblemSentence = lowerSentence.includes('problem') || lowerSentence.includes('issue') ||
+                                        lowerSentence.includes('struggle') || lowerSentence.includes('challenge') ||
+                                        lowerSentence.includes('pain') || lowerSentence.includes('frustration');
+
+                if ((hasStrongCustomerIndicator || hasWeakCustomerIndicator) && !isProblemSentence &&
+                    sentence.length > 20 && !extractedSentences.has(sentence)) {
+                  target_customer = sentence;
+                  extractedSentences.add(sentence);
+                  console.log(`✅ EXTRACTED target_customer from business description: "${target_customer}"`);
+                  break;
+                }
+              }
+            }
+
+            // Extract problem - prioritize sentences with problem-specific terms, avoid customer sentences
+            if (!problem && content.length > 30) {
+              for (const sentence of sentences) {
+                const lowerSentence = sentence.toLowerCase();
+
+                // Skip sentences already used for target_customer
+                if (extractedSentences.has(sentence)) {
+                  continue;
+                }
+
+                // Strong problem indicators
+                const strongProblemIndicators = ['problem', 'issue', 'challenge', 'struggle', 'pain point', 'frustration', 'difficulty'];
+                const hasStrongProblemIndicator = strongProblemIndicators.some(indicator => lowerSentence.includes(indicator));
+
+                // Descriptive problem indicators
+                const descriptiveProblemIndicators = ['outdated', 'manual', 'inefficient', 'slow', 'expensive', 'difficult', 'time-consuming', 'error-prone', 'unreliable', 'lacking', 'missing', 'broken', 'frustrating', 'complicated', 'confusing'];
+                const hasDescriptiveProblemIndicator = descriptiveProblemIndicators.some(indicator => lowerSentence.includes(indicator));
+
+                // Avoid sentences that are clearly about customers/target market
+                const isCustomerSentence = lowerSentence.includes('smes') || lowerSentence.includes('small business') ||
+                                         lowerSentence.includes('agencies') || lowerSentence.includes('companies') ||
+                                         lowerSentence.includes('target') || lowerSentence.includes('market');
+
+                if ((hasStrongProblemIndicator || hasDescriptiveProblemIndicator) && !isCustomerSentence &&
+                    sentence.length > 15) {
+                  problem = sentence;
+                  extractedSentences.add(sentence);
+                  console.log(`✅ EXTRACTED problem from business description: "${problem}"`);
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`🔍 FINAL EXTRACTION RESULTS:`);
+    console.log(`   target_customer: "${target_customer}"`);
+    console.log(`   problem: "${problem}"`);
+
+    return { target_customer, problem };
+  }
+
+
+
+  /**
+   * Manually clean up a specific session by ID
+   * Useful for fixing problematic sessions
+   */
+  static cleanupSpecificSession(sessionId: string): boolean {
+    if (typeof window === 'undefined') return false;
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.sessions);
+      if (!stored) return false;
+
+      const sessions = JSON.parse(stored);
+      const sessionsArray = Array.isArray(sessions) ? sessions : Object.values(sessions);
+
+      const sessionIndex = sessionsArray.findIndex((s: any) => s.session_id === sessionId);
+      if (sessionIndex === -1) {
+        console.log(`Session ${sessionId} not found`);
+        return false;
+      }
+
+      const session = sessionsArray[sessionIndex];
+      console.log(`🔧 Cleaning up session ${sessionId}: "${session.business_idea}"`);
+      console.log(`🔧 Current context: target_customer="${session.target_customer}", problem="${session.problem}"`);
+
+      const cleanedSession = this.fixMixedContentInSession(session);
+
+      if (cleanedSession !== session) {
+        sessionsArray[sessionIndex] = cleanedSession;
+        localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(sessionsArray));
+        console.log(`🔧 Fixed mixed content in session ${sessionId}`);
+        return true;
+      }
+
+      console.log(`Session ${sessionId} was already clean`);
+      return false;
+    } catch (error) {
+      console.error(`Error cleaning up session ${sessionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Force cleanup of all sessions - useful for testing the improved extraction logic
+   */
+  static forceCleanupAllSessions(): number {
+    if (typeof window === 'undefined') return 0;
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.sessions);
+      if (!stored) return 0;
+
+      const sessions = JSON.parse(stored);
+      const sessionsArray = Array.isArray(sessions) ? sessions : Object.values(sessions);
+
+      console.log(`🔧 FORCE CLEANUP: Processing ${sessionsArray.length} sessions with improved extraction logic`);
+
+      let processedCount = 0;
+      const cleanedSessions = sessionsArray.map((session: any) => {
+        if (Array.isArray(session.messages) && session.messages.length > 0) {
+          console.log(`🔧 Force processing session ${session.session_id}: "${session.business_idea}"`);
+          console.log(`🔧 Current context: target_customer="${session.target_customer}", problem="${session.problem}"`);
+
+          // Always run extraction to improve context, even if session already has some context
+          const extractedContext = this.extractContextFromCleanedMessages(session.messages);
+
+          // Update session with extracted context (prefer extracted over existing if extracted is better)
+          const updatedSession = {
+            ...session,
+            target_customer: extractedContext.target_customer || session.target_customer || '',
+            problem: extractedContext.problem || session.problem || '',
+            updated_at: new Date().toISOString()
+          };
+
+          // Check if we made any improvements
+          const hasImprovement =
+            (extractedContext.target_customer && extractedContext.target_customer !== session.target_customer) ||
+            (extractedContext.problem && extractedContext.problem !== session.problem);
+
+          if (hasImprovement) {
+            processedCount++;
+            console.log(`🔧 Improved context for session ${session.session_id}:`);
+            console.log(`   target_customer: "${session.target_customer}" → "${updatedSession.target_customer}"`);
+            console.log(`   problem: "${session.problem}" → "${updatedSession.problem}"`);
+          }
+
+          // Also run the original mixed content cleanup
+          const cleanedSession = this.fixMixedContentInSession(updatedSession);
+
+          return cleanedSession;
+        }
+        return session;
+      });
+
+      if (processedCount > 0) {
+        localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(cleanedSessions));
+        console.log(`🔧 Force cleanup complete: processed ${processedCount} sessions`);
+      } else {
+        console.log(`🔧 Force cleanup complete: no changes needed`);
+      }
+
+      return processedCount;
+    } catch (error) {
+      console.error('Error in force cleanup:', error);
+      return 0;
     }
   }
 }
@@ -978,4 +1497,23 @@ export async function deleteResearchSession(sessionId: string): Promise<void> {
  */
 export async function testGeminiConnection(): Promise<any> {
   throw new Error('Test endpoint no longer available - use conversation routines health check');
+}
+
+// Global helper functions for browser console debugging
+if (typeof window !== 'undefined') {
+  (window as any).debugResearchCleanup = {
+    forceCleanupAll: () => LocalResearchStorage.forceCleanupAllSessions(),
+    cleanupCorrupted: () => LocalResearchStorage.cleanupCorruptedSessions(),
+    showSessions: () => {
+      const sessions = LocalResearchStorage.getSessions();
+      console.log(`Found ${sessions.length} sessions:`);
+      sessions.forEach((session, i) => {
+        console.log(`${i + 1}. ${session.session_id}: "${session.business_idea}" | target_customer: "${session.target_customer}" | problem: "${session.problem}"`);
+      });
+      return sessions;
+    },
+    cleanupSpecific: (sessionId: string) => LocalResearchStorage.cleanupSpecificSession(sessionId)
+  };
+
+  console.log('🔧 Research cleanup helpers available at window.debugResearchCleanup');
 }
