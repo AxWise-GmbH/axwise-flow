@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseDemographics } from '@/utils/demographicsParser';
+import StructuredDemographicsDisplay from './StructuredDemographicsDisplay';
+import type { StructuredDemographics as StructuredDemographicsType } from '@/types/api';
 
 // Interface for structured demographics
 interface StructuredDemographics {
@@ -31,6 +33,8 @@ interface SimplePersona {
     challenges_and_frustrations?: PersonaTrait;
     key_quotes?: PersonaTrait;
   };
+  // NEW: Enhanced structured demographics
+  structured_demographics?: StructuredDemographicsType;
   trait_count: number;
   evidence_count: number;
 }
@@ -383,16 +387,33 @@ export const SimplePersonaCard: React.FC<SimplePersonaCardProps> = ({
       </CardHeader>
 
       <CardContent className="pt-6 px-6">
+        {/* Enhanced Structured Demographics (if available) */}
+        {persona.structured_demographics && (
+          <div className="mb-6">
+            <StructuredDemographicsDisplay
+              demographics={persona.structured_demographics}
+              className="border-0 shadow-none p-0"
+            />
+          </div>
+        )}
+
         {/* Core Traits - Professional Vertical Layout */}
         <div className="space-y-6">
-          {traits.map(([fieldName, trait]) => (
-            <TraitCard
-              key={fieldName}
-              title={formatFieldName(fieldName)}
-              trait={trait}
-              showConfidence={true}
-            />
-          ))}
+          {traits.map(([fieldName, trait]) => {
+            // Skip demographics if we have structured_demographics to avoid duplication
+            if (fieldName === 'demographics' && persona.structured_demographics) {
+              return null;
+            }
+
+            return (
+              <TraitCard
+                key={fieldName}
+                title={formatFieldName(fieldName)}
+                trait={trait}
+                showConfidence={true}
+              />
+            );
+          })}
         </div>
 
         {/* Enhanced Summary Footer */}

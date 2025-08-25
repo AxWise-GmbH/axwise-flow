@@ -134,6 +134,13 @@ CRITICAL RULES:
 5. Focus on creating rich, detailed content for each field
 6. All fields should be simple strings or arrays, NOT nested objects
 7. Apply {industry.upper()} industry-specific context throughout
+8. For structured_demographics, extract ONLY specific values with precise evidence attribution
+9. Each evidence array in structured_demographics should contain quotes that specifically support ONLY that field
+
+STRUCTURED DEMOGRAPHICS INSTRUCTIONS:
+- Only include fields in structured_demographics if you can find explicit evidence in the text
+- Each field's evidence should be quotes that specifically mention that demographic aspect
+- Prioritize precision over completeness - better fewer fields with perfect evidence than many with weak evidence
 
 OUTPUT: Complete SimplifiedPersona JSON object with all fields populated using actual evidence from the interview content and {industry} industry context."""
 
@@ -202,7 +209,22 @@ Generate a JSON object with these simple string fields (NOT nested objects):
   "challenges_confidence": 0.88,
   "skills_confidence": 0.92,
   "technology_confidence": 0.94,
-  "pain_points_confidence": 0.87
+  "pain_points_confidence": 0.87,
+  "structured_demographics": {{
+    "experience_level": {{
+      "value": "Senior (8+ years)",
+      "evidence": ["I've been working in this field for over 8 years now"]
+    }},
+    "industry": {{
+      "value": "Technology",
+      "evidence": ["We're a tech startup focused on AI solutions"]
+    }},
+    "location": {{
+      "value": "Berlin, Germany",
+      "evidence": ["I'm based here in Berlin"]
+    }},
+    "confidence": 0.90
+  }}
 }}
 
 CRITICAL RULES:
@@ -212,5 +234,13 @@ CRITICAL RULES:
 4. Make personas feel like real, specific people with authentic details
 5. Focus on creating rich, detailed content for each field
 6. All fields should be simple strings or arrays, NOT nested objects
+7. For structured_demographics, extract ONLY specific values with precise evidence attribution
+8. Each evidence array in structured_demographics should contain quotes that specifically support ONLY that field
+9. Do not reuse the same quote across multiple structured_demographics fields unless it truly supports multiple specific claims
+
+STRUCTURED DEMOGRAPHICS INSTRUCTIONS:
+- Only include fields in structured_demographics if you can find explicit evidence in the text
+- Each field's evidence should be quotes that specifically mention that demographic aspect
+- Prioritize precision over completeness - better fewer fields with perfect evidence than many with weak evidence
 
 OUTPUT: Complete SimplifiedPersona JSON object with all fields populated using actual evidence from the interview content."""

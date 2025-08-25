@@ -213,6 +213,23 @@ export type PersonaTrait = {
   stakeholder_context?: Record<string, any>; // Additional stakeholder context for enhanced personas
 };
 
+// NEW: Enhanced attributed field structure for perfect evidence traceability
+export interface AttributedField {
+  value: string;
+  evidence: string[];
+}
+
+// NEW: Structured demographics with evidence attribution for each field
+export interface StructuredDemographics {
+  experience_level?: AttributedField;
+  industry?: AttributedField;
+  age_range?: AttributedField;
+  location?: AttributedField;
+  professional_context?: AttributedField;
+  roles?: AttributedField;
+  confidence: number;
+}
+
 // Enhanced Persona Types for Unified System
 export interface InfluenceMetrics {
   decision_power: number; // 0.0-1.0
@@ -273,6 +290,9 @@ export type Persona = {
 
   // Detailed attributes (new fields)
   demographics?: PersonaTrait;
+
+  // NEW: Enhanced structured demographics with attributed fields
+  structured_demographics?: StructuredDemographics;
   goals_and_motivations?: PersonaTrait;
   skills_and_expertise?: PersonaTrait;
   workflow_and_environment?: PersonaTrait;

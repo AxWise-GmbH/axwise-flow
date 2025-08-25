@@ -529,6 +529,44 @@ TRAIT FIELDS (as detailed strings):
 - needs_expectations: What they need from solutions and their expectations
 - key_quotes: 3-5 actual quotes from the interview that represent their voice
 
+STRUCTURED DEMOGRAPHICS (CRITICAL):
+You MUST populate the structured_demographics field with AttributedField format where each demographic component has its own specific evidence:
+
+structured_demographics: {
+  "experience_level": {
+    "value": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
+    "evidence": ["Exact quote that specifically mentions experience level, years of experience, or seniority"]
+  },
+  "industry": {
+    "value": "Industry Name - ONLY if explicitly mentioned",
+    "evidence": ["Exact quote that specifically mentions the industry, company type, or business sector"]
+  },
+  "location": {
+    "value": "City/Region - ONLY if explicitly stated",
+    "evidence": ["Exact quote that specifically mentions geographic location, city, region, or place"]
+  },
+  "age_range": {
+    "value": "Age range - ONLY if directly mentioned",
+    "evidence": ["Exact quote that specifically mentions age, age range, or life stage"]
+  },
+  "professional_context": {
+    "value": "Detailed professional background and company context based on explicit information",
+    "evidence": ["Exact quote that specifically describes their professional context, company, or role"]
+  },
+  "roles": {
+    "value": "Primary professional roles - ONLY if explicitly stated",
+    "evidence": ["Exact quote that specifically mentions their job title, role, or position"]
+  },
+  "confidence": 0.85
+}
+
+STRUCTURED DEMOGRAPHICS RULES:
+1. Each field's evidence array should contain quotes that specifically support ONLY that demographic aspect
+2. Do not reuse the same quote across multiple fields unless it truly supports multiple specific claims
+3. Only include fields if you can find explicit evidence in the text
+4. Prioritize precision over completeness - better fewer fields with perfect evidence than many with weak evidence
+5. Each evidence quote must directly and specifically support the value it's paired with
+
 CONFIDENCE SCORES:
 Set confidence scores (0.0-1.0) for each trait based on evidence strength:
 - overall_confidence: Overall confidence in the persona
@@ -540,6 +578,7 @@ CRITICAL RULES:
 3. Set confidence scores based on evidence strength
 4. Make personas feel like real, specific people with authentic details
 5. Focus on creating rich, detailed content for each trait field
+6. ALWAYS populate structured_demographics with proper AttributedField format
 
 OUTPUT: Complete SimplifiedPersona object with all fields populated using actual evidence.""",
             )

@@ -139,6 +139,33 @@ class PersonaFormationPrompts:
             "confidence": 0.8,
             "evidence": ["Direct quote supporting demographics", "Another supporting quote"]
           }},
+          "structured_demographics": {{
+            "experience_level": {{
+              "value": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
+              "evidence": ["Exact quote that specifically mentions experience level, years of experience, or seniority"]
+            }},
+            "industry": {{
+              "value": "Industry Name - ONLY if explicitly mentioned",
+              "evidence": ["Exact quote that specifically mentions the industry, company type, or business sector"]
+            }},
+            "location": {{
+              "value": "City/Region - ONLY if explicitly stated",
+              "evidence": ["Exact quote that specifically mentions geographic location, city, region, or place"]
+            }},
+            "age_range": {{
+              "value": "Age range - ONLY if directly mentioned",
+              "evidence": ["Exact quote that specifically mentions age, age range, or life stage"]
+            }},
+            "professional_context": {{
+              "value": "Detailed professional background and company context based on explicit information",
+              "evidence": ["Exact quotes that specifically describe professional background, company context, or work environment"]
+            }},
+            "roles": {{
+              "value": "Primary professional roles - ONLY roles explicitly stated",
+              "evidence": ["Exact quotes that specifically mention job titles, roles, or professional positions"]
+            }},
+            "confidence": 0.8
+          }},
           "role_context": {{
             "value": "Detailed organizational context including specific company names, team structure, industry position, and reporting relationships",
             "confidence": 0.7,
@@ -203,6 +230,20 @@ class PersonaFormationPrompts:
           "overall_confidence": 0.75,
           "supporting_evidence_summary": ["Overall evidence 1", "Overall evidence 2"]
         }}
+
+        CRITICAL INSTRUCTIONS FOR STRUCTURED DEMOGRAPHICS:
+        1. For each field in structured_demographics, extract ONLY the specific value for that field
+        2. Find exact quotes that support ONLY that specific field - do not reuse general quotes
+        3. Each evidence array should contain quotes that specifically mention that demographic aspect
+        4. Do not put the same quote in multiple evidence arrays unless it truly supports multiple specific claims
+        5. If a field cannot be determined from the text, omit it entirely from structured_demographics
+        6. Prioritize precision over completeness - better to have fewer fields with perfect evidence than many fields with weak evidence
+
+        EVIDENCE ATTRIBUTION EXAMPLES:
+        - experience_level evidence: "I've been working in this field for 8 years" (NOT general work descriptions)
+        - industry evidence: "We're a fintech company" (NOT general business talk)
+        - location evidence: "I'm based in Berlin" (NOT general geographic references)
+        - age_range evidence: "I'm 32 years old" (NOT general life stage mentions)
 
         IMPORTANT: Ensure all attributes reflect the specific context of the {industry.upper()} industry.
         """
@@ -294,6 +335,33 @@ class PersonaFormationPrompts:
             "confidence": 0.8,
             "evidence": ["Direct quote supporting demographics", "Another supporting quote"]
           }},
+          "structured_demographics": {{
+            "experience_level": {{
+              "value": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
+              "evidence": ["Exact quote that specifically mentions experience level, years of experience, or seniority"]
+            }},
+            "industry": {{
+              "value": "Industry Name - ONLY if explicitly mentioned",
+              "evidence": ["Exact quote that specifically mentions the industry, company type, or business sector"]
+            }},
+            "location": {{
+              "value": "City/Region - ONLY if explicitly stated",
+              "evidence": ["Exact quote that specifically mentions geographic location, city, region, or place"]
+            }},
+            "age_range": {{
+              "value": "Age range - ONLY if directly mentioned",
+              "evidence": ["Exact quote that specifically mentions age, age range, or life stage"]
+            }},
+            "professional_context": {{
+              "value": "Detailed professional background and company context based on explicit information",
+              "evidence": ["Exact quotes that specifically describe professional background, company context, or work environment"]
+            }},
+            "roles": {{
+              "value": "Primary professional roles - ONLY roles explicitly stated",
+              "evidence": ["Exact quotes that specifically mention job titles, roles, or professional positions"]
+            }},
+            "confidence": 0.8
+          }},
           "role_context": {{
             "value": "Detailed organizational context including specific company names, team structure, industry position, and reporting relationships",
             "confidence": 0.7,
@@ -358,4 +426,18 @@ class PersonaFormationPrompts:
           "overall_confidence": 0.75,
           "supporting_evidence_summary": ["Overall evidence 1", "Overall evidence 2"]
         }}
+
+        CRITICAL INSTRUCTIONS FOR STRUCTURED DEMOGRAPHICS:
+        1. For each field in structured_demographics, extract ONLY the specific value for that field
+        2. Find exact quotes that support ONLY that specific field - do not reuse general quotes
+        3. Each evidence array should contain quotes that specifically mention that demographic aspect
+        4. Do not put the same quote in multiple evidence arrays unless it truly supports multiple specific claims
+        5. If a field cannot be determined from the text, omit it entirely from structured_demographics
+        6. Prioritize precision over completeness - better to have fewer fields with perfect evidence than many fields with weak evidence
+
+        EVIDENCE ATTRIBUTION EXAMPLES:
+        - experience_level evidence: "I've been working in this field for 8 years" (NOT general work descriptions)
+        - industry evidence: "We're a fintech company" (NOT general business talk)
+        - location evidence: "I'm based in Berlin" (NOT general geographic references)
+        - age_range evidence: "I'm 32 years old" (NOT general life stage mentions)
         """
