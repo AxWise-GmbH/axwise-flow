@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
-from domain.models.persona_schema import Persona, PersonaTrait
+from backend.domain.models.persona_schema import Persona, PersonaTrait
 
 @pytest.fixture
 def instructor_client():

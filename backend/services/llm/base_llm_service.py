@@ -8,7 +8,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Union
 
-from domain.interfaces.llm_unified import ILLMService, LLMError, RateLimitError, TokenLimitError, APIError
+from backend.domain.interfaces.llm_unified import ILLMService, LLMError, RateLimitError, TokenLimitError, APIError
 from backend.services.llm.exceptions import LLMAPIError, LLMResponseParseError, LLMServiceError
 from backend.utils.json.json_repair import repair_json
 
@@ -30,7 +30,7 @@ class BaseLLMService(ABC):
             config: Configuration dictionary for the LLM service
         """
         # Import constants for LLM configuration
-        from infrastructure.constants.llm_constants import (
+        from backend.infrastructure.constants.llm_constants import (
             DEFAULT_TEMPERATURE, GEMINI_MAX_TOKENS
         )
 

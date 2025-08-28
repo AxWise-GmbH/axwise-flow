@@ -29,7 +29,7 @@ from backend.utils.json.pydantic_parser import (
     parse_json_with_pydantic,
     parse_llm_json_response_with_pydantic,
 )
-from domain.interfaces.llm_unified import ILLMService
+from backend.domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.instructor_gemini_client import InstructorGeminiClient
 
 from backend.schemas import Theme
@@ -40,7 +40,7 @@ from backend.services.llm.exceptions import (
     LLMProcessingError,
     LLMServiceError,
 )  # Added LLMProcessingError, LLMServiceError
-from infrastructure.constants.llm_constants import (
+from backend.infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME,
     GEMINI_TEMPERATURE,
     GEMINI_MAX_TOKENS,
@@ -716,7 +716,7 @@ class GeminiService:
                 system_instruction = self._get_system_message(task, data)
 
             # Import the Persona model
-            from domain.models.persona_schema import Persona
+            from backend.domain.models.persona_schema import Persona
 
             # Generate with Instructor
             try:

@@ -12,7 +12,7 @@ import importlib
 from typing import Dict, Any
 
 # Use centralized settings instead of importing from backend.config
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 
 logger = logging.getLogger(__name__)
 

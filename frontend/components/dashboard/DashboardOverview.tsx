@@ -7,6 +7,7 @@ import { Loader2, MessageSquare, Users, FlaskConical, TrendingUp, Calendar, Arro
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/providers/toast-provider';
 import VisualizationTabsRefactored from '@/components/visualization/VisualizationTabs';
+import { apiClient } from '@/lib/apiClient';
 
 interface DashboardStats {
   researchChats: {
@@ -26,6 +27,63 @@ interface DashboardStats {
   };
 }
 
+// Separate component for visualization mode
+function VisualizationMode({ analysisId, visualizationTab }: { analysisId: string; visualizationTab: string }) {
+  const { showToast } = useToast();
+  const [analysisData, setAnalysisData] = useState<any | null>(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState<boolean>(true);
+
+  // Fetch analysis data when component mounts
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      try {
+        setLoadingAnalysis(true);
+        console.log('VisualizationMode: Fetching analysis data for ID:', analysisId);
+        const data = await apiClient.getAnalysisById(analysisId);
+        console.log('VisualizationMode: Fetched analysis data:', data);
+        setAnalysisData(data);
+      } catch (error) {
+        console.error('VisualizationMode: Error fetching analysis data:', error);
+        showToast('Failed to load analysis data', { variant: 'error' });
+      } finally {
+        setLoadingAnalysis(false);
+      }
+    };
+
+    fetchAnalysisData();
+  }, [analysisId, showToast]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Visualize Results</h1>
+        <p className="text-muted-foreground">
+          Explore themes, patterns, personas, and insights from your analysis
+        </p>
+      </div>
+
+      {/* Visualization Tabs */}
+      <div className="mt-8">
+        {loadingAnalysis ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading analysis data...</p>
+            </div>
+          </div>
+        ) : (
+          <VisualizationTabsRefactored
+            analysisId={analysisId}
+            analysisData={analysisData}
+            initialTab={visualizationTab}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardOverview() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,7 +93,26 @@ export default function DashboardOverview() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Fetch dashboard statistics
+  // Check if we should show visualization tabs (only when explicitly requested)
+  const visualizationTab = searchParams.get('visualizationTab');
+  const analysisId = searchParams.get('analysisId');
+  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
+
+  // Debug logging
+  console.log('DashboardOverview: URL params debug:', {
+    visualizationTab,
+    analysisId,
+    shouldShowVisualization,
+    searchParamsString: searchParams.toString(),
+    url: typeof window !== 'undefined' ? window.location.href : 'server-side'
+  });
+
+  // If we're in visualization mode, handle that separately without loading dashboard stats
+  if (shouldShowVisualization) {
+    return <VisualizationMode analysisId={analysisId} visualizationTab={visualizationTab} />;
+  }
+
+  // Fetch dashboard statistics only when not in visualization mode
   const fetchDashboardStats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -104,10 +181,13 @@ export default function DashboardOverview() {
   }, [showToast]);
 
   useEffect(() => {
-    fetchDashboardStats();
-  }, [fetchDashboardStats]);
+    // Only fetch dashboard stats if not in visualization mode
+    if (!shouldShowVisualization) {
+      fetchDashboardStats();
+    }
+  }, [fetchDashboardStats, shouldShowVisualization]);
 
-  // Loading state
+  // Loading state for dashboard stats
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -135,30 +215,18 @@ export default function DashboardOverview() {
     );
   }
 
-  // Check if we should show visualization tabs (only when explicitly requested)
-  const visualizationTab = searchParams.get('visualizationTab');
-  const analysisId = searchParams.get('analysisId');
-  const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {shouldShowVisualization ? 'Visualize Results' : 'Dashboard Overview'}
-          </h1>
-          <p className="text-muted-foreground">
-            {shouldShowVisualization
-              ? 'Explore themes, patterns, personas, and insights from your analysis'
-              : 'Track your research progress across chats, simulations, and analyses'
-            }
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+        <p className="text-muted-foreground">
+          Track your research progress across chats, simulations, and analyses
+        </p>
+      </div>
 
-      {/* Stats Cards - Only show when not in visualization mode */}
-      {!shouldShowVisualization && (
-        <>
-          <div className="grid gap-6 md:grid-cols-3">
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-3">
             {/* Research Chats Card */}
             <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/unified-dashboard/research-chat')}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -212,10 +280,10 @@ export default function DashboardOverview() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+      </div>
 
-          {/* Quick Actions - Full width section */}
-          <Card className="mt-6">
+      {/* Quick Actions - Full width section */}
+      <Card className="mt-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
@@ -299,20 +367,8 @@ export default function DashboardOverview() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Visualization Tabs - Show when visualization parameters are present */}
-      {shouldShowVisualization && (
-        <div className="mt-8">
-          <VisualizationTabsRefactored
-            analysisId={analysisId || undefined}
-            initialTab={visualizationTab}
-          />
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

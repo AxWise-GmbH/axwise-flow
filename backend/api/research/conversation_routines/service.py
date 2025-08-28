@@ -869,32 +869,76 @@ Generate 3 specific problem statements for this business and customer:
 Business: {context.business_idea}
 Target Customer: {context.target_customer}
 
-Focus on specific pain points that this customer segment experiences. Be descriptive about the actual problem.
+Focus on specific pain points that this customer segment experiences. Each problem should be:
+- Clear and specific to the target customer
+- Actionable and researchable
+- 5-12 words long (not too short, not too long)
+- Focused on real pain points
 
 Examples of GOOD specific problems:
-- For laundry service + busy professionals: ["No time for laundry", "Expensive dry cleaning costs", "Limited laundromat access"]
-- For food delivery + college students: ["Limited healthy food options", "Expensive campus dining", "No time to cook meals"]
-- For fitness app + beginners: ["Don't know where to start", "Intimidated by gym environment", "Lack of personalized guidance"]
+- For laundry service + busy professionals: ["No time for weekly laundry tasks", "High costs of professional dry cleaning", "Limited access to convenient laundromats"]
+- For food delivery + college students: ["Limited healthy food options on campus", "Expensive campus dining meal plans", "No time to cook nutritious meals"]
+- For fitness app + beginners: ["Don't know where to start exercising", "Feel intimidated by gym environments", "Lack personalized fitness guidance"]
 
-Return only a JSON array of 3 strings, each 3-6 words max. Be specific about the actual problem.
+Return ONLY a valid JSON array of 3 strings. Each string should be 5-12 words describing a specific problem.
 
 JSON array:"""
 
                 response_data = await self.llm_service.analyze(
                     text=prompt,
                     task="text_generation",
-                    data={"temperature": 0.3, "max_tokens": 150},
+                    data={
+                        "temperature": 0.3,
+                        "max_tokens": 200,
+                    },  # Increased for longer problems
                 )
 
                 import json
                 import re
 
                 response_text = response_data.get("text", "")
+                logger.info(f"🔍 Problem suggestions raw response: {response_text}")
+
+                # Try multiple JSON extraction methods
+                suggestions = []
+
+                # Method 1: Direct JSON array extraction
                 json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
                 if json_match:
-                    suggestions = json.loads(json_match.group())
-                    logger.info(f"✅ Generated problem suggestions: {suggestions}")
-                    return suggestions[:3]
+                    try:
+                        suggestions = json.loads(json_match.group())
+                        logger.info(
+                            f"✅ Generated problem suggestions (method 1): {suggestions}"
+                        )
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"⚠️ JSON parsing failed (method 1): {e}")
+
+                # Method 2: Extract from markdown code blocks
+                if not suggestions:
+                    code_block_match = re.search(
+                        r"```(?:json)?\s*(\[.*?\])\s*```", response_text, re.DOTALL
+                    )
+                    if code_block_match:
+                        try:
+                            suggestions = json.loads(code_block_match.group(1))
+                            logger.info(
+                                f"✅ Generated problem suggestions (method 2): {suggestions}"
+                            )
+                        except json.JSONDecodeError as e:
+                            logger.warning(f"⚠️ JSON parsing failed (method 2): {e}")
+
+                # Method 3: Fallback to manual extraction
+                if not suggestions:
+                    logger.warning(
+                        "⚠️ JSON extraction failed, using fallback problem suggestions"
+                    )
+                    suggestions = [
+                        f"Challenges with {context.target_customer} needs",
+                        f"Pain points in {context.business_idea} area",
+                        f"Problems {context.target_customer} currently face",
+                    ]
+
+                return suggestions[:3]
 
             else:
                 # All context gathered - validation stage suggestions

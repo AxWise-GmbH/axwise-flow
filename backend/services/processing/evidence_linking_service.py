@@ -14,7 +14,7 @@ import json
 
 try:
     # Try to import from backend structure
-    from domain.interfaces.llm_unified import ILLMService
+    from backend.domain.interfaces.llm_unified import ILLMService
     from backend.services.llm.prompts.tasks.evidence_linking import (
         EvidenceLinkingPrompts,
     )

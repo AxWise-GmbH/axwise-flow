@@ -158,6 +158,9 @@ async def get_research_sessions(
                 question_count=question_count,
                 stakeholder_count=stakeholder_count,
                 last_message_at=last_message_at,
+                messages=session.messages
+                or [],  # Include messages for frontend compatibility
+                research_questions=session.research_questions,  # Include research questions for frontend compatibility
             )
             session_summaries.append(summary)
 

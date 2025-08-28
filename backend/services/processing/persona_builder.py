@@ -7,7 +7,7 @@ This module provides functionality for:
 3. Validating personas
 """
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, TYPE_CHECKING
 from dataclasses import dataclass, field, asdict
 import logging
 import re
@@ -16,6 +16,9 @@ from datetime import datetime
 from backend.services.processing.demographic_extractor import DemographicExtractor
 from backend.services.processing.pattern_categorizer import PatternCategorizer
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from backend.domain.models.persona_schema import StructuredDemographics
 
 # Import Pydantic schema for validation
 try:
@@ -172,6 +175,98 @@ def persona_to_dict(persona: Any) -> Dict[str, Any]:
         persona_dict["patterns"] = getattr(persona, "patterns", [])
         persona_dict["metadata"] = getattr(persona, "metadata", {})
 
+        # Generate structured_demographics from demographics field if available
+        demographics_field = persona_dict.get("demographics")
+        if demographics_field:
+            try:
+                # Handle different types of demographics data
+                structured_demographics = None
+
+                # Case 1: Already a StructuredDemographics object
+                if hasattr(demographics_field, "model_dump"):
+                    structured_demographics = demographics_field.model_dump()
+                    logger.info(
+                        f"Found existing StructuredDemographics object for persona: {persona_dict.get('name', 'Unknown')}"
+                    )
+
+                # Case 2: Dictionary that might contain StructuredDemographics fields
+                elif isinstance(demographics_field, dict):
+                    # Check if it has StructuredDemographics structure (nested fields with value/evidence)
+                    structured_fields = [
+                        "experience_level",
+                        "industry",
+                        "location",
+                        "professional_context",
+                        "roles",
+                        "age_range",
+                    ]
+                    if any(
+                        field in demographics_field
+                        and isinstance(demographics_field[field], dict)
+                        and "value" in demographics_field[field]
+                        for field in structured_fields
+                    ):
+                        # It's already in StructuredDemographics format
+                        structured_demographics = demographics_field
+                        logger.info(
+                            f"Found StructuredDemographics format in dict for persona: {persona_dict.get('name', 'Unknown')}"
+                        )
+                    else:
+                        # Try to convert PersonaTrait format to StructuredDemographics
+                        if demographics_field.get("value") or demographics_field.get(
+                            "evidence"
+                        ):
+                            # Create a PersonaBuilder instance to use the conversion method
+                            builder = PersonaBuilder()
+
+                            # Convert the demographics dict to PersonaTrait first
+                            from backend.domain.models.persona_schema import (
+                                PersonaTrait,
+                            )
+
+                            demographics_trait = PersonaTrait(
+                                value=demographics_field.get("value", ""),
+                                confidence=demographics_field.get("confidence", 0.7),
+                                evidence=demographics_field.get("evidence", []),
+                            )
+
+                            # Convert to StructuredDemographics
+                            structured_demo_obj = (
+                                builder._convert_demographics_to_structured(
+                                    demographics_trait
+                                )
+                            )
+                            structured_demographics = structured_demo_obj.model_dump()
+                            logger.info(
+                                f"Converted PersonaTrait to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
+                            )
+
+                # Case 3: String that might be a serialized StructuredDemographics
+                elif isinstance(demographics_field, str):
+                    try:
+                        # Try to parse as JSON first
+                        parsed_demo = json.loads(demographics_field)
+                        if isinstance(parsed_demo, dict):
+                            structured_demographics = parsed_demo
+                            logger.info(
+                                f"Parsed JSON string to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
+                            )
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            f"Failed to parse demographics string as JSON for persona: {persona_dict.get('name', 'Unknown')}"
+                        )
+
+                # Add structured_demographics if we successfully created it
+                if structured_demographics:
+                    persona_dict["structured_demographics"] = structured_demographics
+                    logger.info(
+                        f"Successfully added structured_demographics for persona: {persona_dict.get('name', 'Unknown')}"
+                    )
+
+            except Exception as e:
+                logger.warning(f"Failed to generate structured_demographics: {e}")
+                # Don't add structured_demographics if conversion fails
+
         # Add aliases for backward compatibility
         persona_dict["overall_confidence"] = persona_dict["confidence"]
         persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
@@ -322,13 +417,39 @@ class PersonaBuilder:
                     # Ensure confidence uses overall_confidence if not specified
                     if "confidence" not in processed_trait:
                         processed_trait["confidence"] = overall_confidence
-                    # Ensure evidence is a list
-                    if "evidence" not in processed_trait or not isinstance(
-                        processed_trait["evidence"], list
-                    ):
+                    # Ensure evidence is a list - but preserve existing evidence!
+                    if "evidence" not in processed_trait:
                         processed_trait["evidence"] = (
                             key_quotes_list[:2] if key_quotes_list else []
                         )
+                        logger.debug(
+                            f"Added default evidence to {field_name} (no evidence field)"
+                        )
+                    elif not isinstance(processed_trait["evidence"], list):
+                        logger.warning(
+                            f"Evidence for {field_name} is not a list: {type(processed_trait['evidence'])}, converting..."
+                        )
+                        # Try to convert to list if possible
+                        if isinstance(processed_trait["evidence"], str):
+                            processed_trait["evidence"] = (
+                                [processed_trait["evidence"]]
+                                if processed_trait["evidence"]
+                                else []
+                            )
+                        else:
+                            processed_trait["evidence"] = (
+                                key_quotes_list[:2] if key_quotes_list else []
+                            )
+                    else:
+                        # Evidence is already a list - preserve it!
+                        evidence_count = len(processed_trait["evidence"])
+                        logger.info(
+                            f"Preserving existing evidence for {field_name}: {evidence_count} items"
+                        )
+                        if evidence_count > 0:
+                            logger.debug(
+                                f"Sample evidence for {field_name}: {processed_trait['evidence'][0][:100]}..."
+                            )
 
                     # Special processing for demographics field
                     if field_name == "demographics":
@@ -564,10 +685,12 @@ class PersonaBuilder:
                     "Analysis approach",
                 ),
                 # Core PydanticAI fields
-                demographics=self._validate_and_create_persona_trait(
-                    processed_traits["demographics"],
-                    "demographics",
-                    "Professional demographics",
+                demographics=self._convert_demographics_to_structured(
+                    self._validate_and_create_persona_trait(
+                        processed_traits["demographics"],
+                        "demographics",
+                        "Professional demographics",
+                    )
                 ),
                 goals_and_motivations=self._validate_and_create_persona_trait(
                     processed_traits["goals_and_motivations"],
@@ -779,7 +902,16 @@ class PersonaBuilder:
             field_evidence_count = 0
             for field_name in processed_traits:
                 trait = getattr(persona, field_name)
-                if trait and trait.evidence and len(trait.evidence) > 0:
+                # Handle different trait types - StructuredDemographics doesn't have .evidence
+                if field_name == "demographics":
+                    # Skip demographics since it's StructuredDemographics type
+                    continue
+                elif (
+                    trait
+                    and hasattr(trait, "evidence")
+                    and trait.evidence
+                    and len(trait.evidence) > 0
+                ):
                     field_evidence_count += 1
 
             # Skip evidence enhancement if we already have good field distribution
@@ -813,29 +945,63 @@ class PersonaBuilder:
                 # Process each trait individually to preserve authentic evidence
                 for field_name in processed_traits:
                     trait = getattr(persona, field_name)
-                    if trait and trait.evidence:
+                    # Handle different trait types - StructuredDemographics doesn't have .evidence
+                    if field_name == "demographics":
+                        # Skip demographics since it's StructuredDemographics type
+                        continue
+                    elif trait and hasattr(trait, "evidence") and trait.evidence:
                         # Filter to keep only authentic quotes for this specific trait
                         authentic_trait_evidence = []
 
                         for evidence in trait.evidence:
                             # Check if this is an authentic quote
+                            # FIXED: More lenient authentic evidence detection
+                            evidence_text = evidence.strip()
+
+                            # Basic authenticity checks
+                            is_long_enough = len(evidence_text) > 10
+                            is_not_empty = bool(evidence_text)
+
+                            # Check for generic/placeholder content (more lenient)
+                            is_not_generic = not any(
+                                generic in evidence.lower()
+                                for generic in [
+                                    "generic",
+                                    "placeholder",
+                                    "not specified",
+                                    "unknown",
+                                    "fallback",
+                                    "inferred from",
+                                ]
+                            )
+
+                            # More lenient authenticity check - don't require quotes or bold formatting
                             is_authentic_quote = (
-                                evidence.strip().startswith('"')
-                                and "**" in evidence
-                                and len(evidence.strip()) > 10
-                                and not any(
-                                    generic in evidence.lower()
-                                    for generic in [
-                                        "professional",
-                                        "industry-standard",
-                                        "generic",
-                                        "placeholder",
-                                        "not specified",
-                                        "unknown",
-                                        "fallback",
-                                        "inferred from",
+                                is_not_empty and is_long_enough and is_not_generic
+                            )
+
+                            # Additional check: if it looks like a direct quote or has first person language, it's likely authentic
+                            looks_like_quote = (
+                                evidence_text.startswith('"')
+                                or "**" in evidence_text  # Has highlighting
+                                or any(
+                                    first_person in evidence.lower()
+                                    for first_person in [
+                                        "i ",
+                                        "my ",
+                                        "we ",
+                                        "our ",
+                                        "i'm ",
+                                        "i've ",
                                     ]
                                 )
+                            )
+
+                            if looks_like_quote:
+                                is_authentic_quote = True
+
+                            logger.debug(
+                                f"Evidence authenticity for '{evidence_text[:50]}...': authentic={is_authentic_quote}"
                             )
 
                             # Check for cross-contamination
@@ -889,7 +1055,13 @@ class PersonaBuilder:
             evidence_counts = {}
             for field_name in processed_traits:
                 trait = getattr(persona, field_name)
-                if trait and hasattr(trait, "evidence") and trait.evidence:
+                # Handle different trait types - StructuredDemographics doesn't have .evidence
+                if field_name == "demographics":
+                    # StructuredDemographics has evidence in nested AttributedField objects
+                    evidence_counts[field_name] = (
+                        "StructuredDemographics (nested evidence)"
+                    )
+                elif trait and hasattr(trait, "evidence") and trait.evidence:
                     evidence_counts[field_name] = len(trait.evidence)
 
             logger.info(
@@ -1011,7 +1183,7 @@ class PersonaBuilder:
             analysis_approach=goals_trait,
             pain_points=challenges_trait,
             # New fields
-            demographics=demographics_trait,
+            demographics=self._convert_demographics_to_structured(demographics_trait),
             goals_and_motivations=goals_trait,
             skills_and_expertise=needs_trait,
             workflow_and_environment=demographics_trait,
@@ -1177,6 +1349,161 @@ class PersonaBuilder:
                     ]
 
         return PersonaTrait(value=value, confidence=confidence, evidence=evidence)
+
+    def _convert_demographics_to_structured(
+        self, demographics_trait: PersonaTrait
+    ) -> "StructuredDemographics":
+        """
+        Convert a PersonaTrait demographics to StructuredDemographics format.
+
+        Args:
+            demographics_trait: PersonaTrait containing demographics data
+
+        Returns:
+            StructuredDemographics object
+        """
+        from backend.domain.models.persona_schema import (
+            StructuredDemographics,
+            AttributedField,
+        )
+
+        try:
+            # Parse the demographics value to extract structured fields
+            value = (
+                demographics_trait.value
+                if demographics_trait.value
+                else "Professional individual"
+            )
+            confidence = (
+                demographics_trait.confidence if demographics_trait.confidence else 0.7
+            )
+            evidence = (
+                demographics_trait.evidence if demographics_trait.evidence else []
+            )
+
+            # Try to extract structured information from the value
+            # This is a simple approach - ideally the LLM would generate structured data directly
+
+            # Parse common demographic patterns
+            experience_level = "Professional level"
+            industry = "Not specified"
+            location = "Not specified"
+            age_range = "Not specified"
+            professional_context = value
+            roles = "Professional role"
+
+            # Simple keyword-based extraction
+            value_lower = value.lower()
+
+            # Extract experience level
+            if "senior" in value_lower or "experienced" in value_lower:
+                experience_level = "Senior level"
+            elif "junior" in value_lower or "entry" in value_lower:
+                experience_level = "Junior level"
+            elif "mid" in value_lower or "intermediate" in value_lower:
+                experience_level = "Mid level"
+            elif "executive" in value_lower or "leader" in value_lower:
+                experience_level = "Executive level"
+
+            # Extract industry keywords
+            industry_keywords = [
+                "tech",
+                "technology",
+                "software",
+                "healthcare",
+                "finance",
+                "education",
+                "retail",
+                "manufacturing",
+            ]
+            for keyword in industry_keywords:
+                if keyword in value_lower:
+                    industry = keyword.title()
+                    break
+
+            # Extract location keywords
+            location_keywords = [
+                "berlin",
+                "munich",
+                "hamburg",
+                "cologne",
+                "frankfurt",
+                "germany",
+                "europe",
+            ]
+            for keyword in location_keywords:
+                if keyword in value_lower:
+                    location = keyword.title()
+                    break
+
+            # Extract role information
+            role_keywords = [
+                "manager",
+                "developer",
+                "analyst",
+                "designer",
+                "researcher",
+                "consultant",
+                "director",
+                "lead",
+            ]
+            for keyword in role_keywords:
+                if keyword in value_lower:
+                    roles = keyword.title()
+                    break
+
+            # Create StructuredDemographics with distributed evidence
+            return StructuredDemographics(
+                experience_level=AttributedField(
+                    value=experience_level,
+                    evidence=evidence[:2] if len(evidence) > 1 else evidence,
+                ),
+                industry=AttributedField(
+                    value=industry, evidence=evidence[2:4] if len(evidence) > 3 else []
+                ),
+                location=AttributedField(
+                    value=location, evidence=evidence[4:6] if len(evidence) > 5 else []
+                ),
+                professional_context=AttributedField(
+                    value=professional_context, evidence=evidence
+                ),
+                roles=AttributedField(
+                    value=roles,
+                    evidence=evidence[:3] if len(evidence) > 2 else evidence,
+                ),
+                age_range=AttributedField(value=age_range, evidence=[]),
+                confidence=confidence,
+            )
+
+        except Exception as e:
+            logger.error(f"Error converting demographics to structured format: {e}")
+            # Return minimal fallback
+            from backend.domain.models.persona_schema import (
+                StructuredDemographics,
+                AttributedField,
+            )
+
+            return StructuredDemographics(
+                experience_level=AttributedField(
+                    value="Not specified", evidence=["Not available"]
+                ),
+                industry=AttributedField(
+                    value="Not specified", evidence=["Not available"]
+                ),
+                location=AttributedField(
+                    value="Not specified", evidence=["Not available"]
+                ),
+                professional_context=AttributedField(
+                    value="Professional individual", evidence=["Inferred"]
+                ),
+                roles=AttributedField(
+                    value="Not specified", evidence=["Not available"]
+                ),
+                age_range=AttributedField(
+                    value="Not specified", evidence=["Not available"]
+                ),
+                confidence=0.1,
+            )
 
     def _fix_key_quotes(self, key_quotes_data: Dict[str, Any]) -> Dict[str, Any]:
         """

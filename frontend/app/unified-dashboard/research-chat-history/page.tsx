@@ -72,6 +72,8 @@ export default function ResearchChatHistory() {
   const [loading, setLoading] = useState(true);
   const [showOnlyWithQuestionnaires, setShowOnlyWithQuestionnaires] = useState(true);
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [stableSessionData, setStableSessionData] = useState<Map<string, ResearchSession>>(new Map());
+  const [loadingDebounce, setLoadingDebounce] = useState<NodeJS.Timeout | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [selectedQuestionnaireSession, setSelectedQuestionnaireSession] = useState<ResearchSession | null>(null);
   const [questionnaireData, setQuestionnaireData] = useState<any>(null);
@@ -155,6 +157,26 @@ export default function ResearchChatHistory() {
     loadSessions();
   }, []);
 
+  // Debounced loading to prevent rapid successive calls
+  const debouncedLoadSessions = () => {
+    if (loadingDebounce) {
+      clearTimeout(loadingDebounce);
+    }
+
+    const timeout = setTimeout(() => {
+      loadSessions();
+      setLoadingDebounce(null);
+    }, 300); // 300ms debounce
+
+    setLoadingDebounce(timeout);
+  };
+
+  // Add a refresh function for debugging
+  const refreshSessions = () => {
+    console.log('🔄 Manually refreshing sessions...');
+    debouncedLoadSessions();
+  };
+
   // Handle URL parameters for auto-opening questionnaire modal
   useEffect(() => {
     const sessionParam = searchParams.get('session');
@@ -229,10 +251,59 @@ export default function ResearchChatHistory() {
   const loadSessions = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Loading research sessions with stable caching...');
+
+      // Create a stable data map to prevent flickering
+      const newStableData = new Map<string, ResearchSession>();
+
       const data = await getResearchSessions(50);
+      console.log(`📊 Loaded ${data.length} sessions from backend`);
+
+      // Process sessions with deduplication and stability
+      data.forEach(session => {
+        // Use existing stable data if available and questionnaire hasn't changed
+        const existingStable = stableSessionData.get(session.session_id);
+        if (existingStable &&
+            existingStable.questions_generated === session.questions_generated &&
+            existingStable.messages?.length === session.messages?.length) {
+          // Keep stable version to prevent flickering
+          newStableData.set(session.session_id, existingStable);
+          console.log(`📋 Using stable data for session: ${session.session_id}`);
+        } else {
+          // Update with new data
+          newStableData.set(session.session_id, session);
+          if (existingStable) {
+            console.log(`🔄 Updated session data: ${session.session_id}`);
+          }
+        }
+
+        // Debug log gaming sessions
+        if (session.session_id.includes('1756401655366') || session.session_id.includes('1756400260266')) {
+          console.log(`🎮 Gaming session debug:`, {
+            session_id: session.session_id,
+            questions_generated: session.questions_generated,
+            status: session.status,
+            stage: session.stage,
+            messages_count: session.messages?.length || 0,
+            has_questionnaire_message: session.messages?.some(msg =>
+              msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
+              msg.metadata?.comprehensiveQuestions
+            ),
+            using_stable_data: existingStable &&
+              existingStable.questions_generated === session.questions_generated &&
+              existingStable.messages?.length === session.messages?.length
+          });
+        }
+      });
+
+      // Update stable data map
+      setStableSessionData(newStableData);
+
+      // Use stable data for display
+      const stableSessions = Array.from(newStableData.values());
 
       // Filter sessions to only show those with generated questionnaires
-      const sessionsWithQuestionnaires = data.filter(session => {
+      const sessionsWithQuestionnaires = stableSessions.filter(session => {
         // Check if session has questions_generated flag set to true
         if (session.questions_generated) {
           return true;
@@ -257,11 +328,11 @@ export default function ResearchChatHistory() {
         return hasBusinessIdea && hasMessages;
       });
 
-      console.log(`📊 Filtered sessions: ${data.length} total → ${sessionsWithQuestionnaires.length} with questionnaires`);
+      console.log(`📊 Filtered sessions: ${stableSessions.length} total → ${sessionsWithQuestionnaires.length} with questionnaires`);
 
-      // Store both filtered and unfiltered data
-      setAllSessions(data);
-      setSessions(showOnlyWithQuestionnaires ? sessionsWithQuestionnaires : data);
+      // Store both filtered and unfiltered stable data
+      setAllSessions(stableSessions);
+      setSessions(showOnlyWithQuestionnaires ? sessionsWithQuestionnaires : stableSessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
     } finally {

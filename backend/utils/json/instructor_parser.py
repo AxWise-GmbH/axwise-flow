@@ -47,7 +47,7 @@ class InstructorParser:
             from backend.services.llm.instructor_gemini_client import (
                 InstructorGeminiClient,
             )
-            from infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
+            from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
             import os
 
             api_key = os.getenv(ENV_GEMINI_API_KEY)

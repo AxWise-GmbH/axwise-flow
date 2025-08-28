@@ -30,7 +30,7 @@ class OpenAIService:
     def __init__(self, config: Dict[str, Any]):
         """Initialize the OpenAI service with configuration."""
         # Import constants for LLM configuration
-        from infrastructure.constants.llm_constants import (
+        from backend.infrastructure.constants.llm_constants import (
             OPENAI_MODEL_NAME,
             OPENAI_TEMPERATURE,
             OPENAI_MAX_TOKENS,
@@ -109,7 +109,7 @@ class OpenAIService:
                 messages[0]["content"] += "\n\nYou MUST respond with valid JSON only."
 
             # Import constants for LLM configuration
-            from infrastructure.constants.llm_constants import OPENAI_MAX_TOKENS
+            from backend.infrastructure.constants.llm_constants import OPENAI_MAX_TOKENS
 
             # Call OpenAI API with appropriate parameters
             response_format = {"type": "json_object"} if is_json_task else None

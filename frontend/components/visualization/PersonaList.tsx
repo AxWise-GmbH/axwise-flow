@@ -23,11 +23,24 @@ type PersonaListProps = {
 export function PersonaList({ personas, className }: PersonaListProps) {
   const [viewMode, setViewMode] = useState<'tabs' | 'cards' | 'network'>('cards');
 
-  // Ensure we have valid personas data
-  if (!personas || personas.length === 0) {
+  // Filter out fallback personas first
+  const validPersonas = personas?.filter(persona => {
+    const metadata = persona.metadata || persona.persona_metadata;
+    const isFallback = metadata?.is_fallback === true;
+
+    if (isFallback) {
+      console.log(`[PERSONA_LIST] Excluding fallback persona: ${persona.name}`);
+      return false;
+    }
+
+    return true;
+  }) || [];
+
+  // Ensure we have valid personas data after filtering
+  if (!validPersonas || validPersonas.length === 0) {
     return (
       <div className="w-full p-6 text-center">
-        <p className="text-muted-foreground">No personas found in the analysis.</p>
+        <p className="text-muted-foreground">No valid personas found in the analysis.</p>
       </div>
     );
   }
@@ -76,7 +89,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
   };
 
   // Check if any personas have stakeholder intelligence features
-  const hasStakeholderFeatures = personas.some(persona => persona.stakeholder_intelligence);
+  const hasStakeholderFeatures = validPersonas.some(persona => persona.stakeholder_intelligence);
 
   // We're using activePersonaIndex directly to access the active persona
   // No need to store it in a separate variable
@@ -397,8 +410,8 @@ export function PersonaList({ personas, className }: PersonaListProps) {
             <CardTitle>User Personas</CardTitle>
             <CardDescription>
               {hasStakeholderFeatures
-                ? `${personas.length} enhanced persona${personas.length !== 1 ? 's' : ''} with stakeholder intelligence`
-                : `${personas.length} persona${personas.length !== 1 ? 's' : ''} identified from the analysis`
+                ? `${validPersonas.length} enhanced persona${validPersonas.length !== 1 ? 's' : ''} with stakeholder intelligence`
+                : `${validPersonas.length} persona${validPersonas.length !== 1 ? 's' : ''} identified from the analysis`
               }
             </CardDescription>
           </div>
@@ -452,7 +465,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
         {/* Cards View - Show enhanced persona cards */}
         {viewMode === 'cards' && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
-            {personas.map((persona, index) => (
+            {validPersonas.map((persona, index) => (
               <EnhancedPersonaCard
                 key={`persona-card-${index}`}
                 persona={persona}
@@ -464,9 +477,9 @@ export function PersonaList({ personas, className }: PersonaListProps) {
 
         {/* Tabs View - Traditional tabbed interface */}
         {viewMode === 'tabs' && (
-          <Tabs defaultValue={personas[0]?.name} className="w-full">
+          <Tabs defaultValue={validPersonas[0]?.name} className="w-full">
             <TabsList className="mb-4 w-full flex overflow-x-auto">
-              {personas.map((persona, index) => (
+              {validPersonas.map((persona, index) => (
                 <TabsTrigger
                   key={`persona-tab-${index}`}
                   value={persona.name}
@@ -480,7 +493,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
               ))}
             </TabsList>
 
-          {personas.map((persona, index) => (
+          {validPersonas.map((persona, index) => (
             <TabsContent key={`persona-content-${index}`} value={persona.name} className="space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

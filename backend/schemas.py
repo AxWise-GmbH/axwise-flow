@@ -15,6 +15,13 @@ from pydantic import BaseModel, Field, validator, field_validator
 from typing import Dict, List, Optional, Literal, Any, Union, TypedDict
 from datetime import datetime
 
+# Import Golden Schema components
+from backend.domain.models.persona_schema import AttributedField, StructuredDemographics
+
+# Re-export PersonaTrait for backward compatibility
+# This fixes the import error where services try to import PersonaTrait from backend.schemas
+from backend.domain.models.persona_schema import PersonaTrait
+
 
 # Request Models
 
@@ -336,86 +343,15 @@ class SentimentOverview(BaseModel):
         return v
 
 
-class DemographicsValue(BaseModel):
-    """Structured container for demographic details."""
-
-    experience_level: Optional[str] = Field(
-        None,
-        description="Extract the professional experience level, e.g., 'Senior', 'Executive', 'Mid-level'.",
-    )
-    roles: Optional[List[str]] = Field(
-        None,
-        description="Extract a list of all job roles or titles mentioned, like 'Project Lead' or 'CEO'.",
-    )
-    industry: Optional[str] = Field(
-        None,
-        description="Extract the industry the person works in, e.g., 'Tech', 'Manufacturing', 'Logistics'.",
-    )
-    location: Optional[str] = Field(
-        None,
-        description="Extract the primary city or location mentioned, e.g., 'Bremen'.",
-    )
-    age_range: Optional[str] = Field(
-        None, description="Extract the age range if mentioned, e.g., '55-64'."
-    )
-    professional_context: Optional[str] = Field(
-        None,
-        description="Summarize the person's professional background, their company, and their role within it.",
-    )
+# NOTE: StructuredDemographics is now defined in backend.domain.models.persona_schema
+# to avoid schema conflicts. The Golden Schema approach ensures clean JSON generation.
 
 
-class StructuredDemographics(BaseModel):
-    """Holds the structured demographic data and the evidence for it."""
-
-    value: DemographicsValue = Field(
-        description="Contains all the structured demographic information extracted from the text."
-    )
-    confidence: float = Field(
-        description="Assign a confidence score from 0.0 to 1.0 for the overall extraction."
-    )
-    evidence: List[str] = Field(
-        description="Provide a list of direct quotes from the text that support the extracted data."
-    )
-
-
-class PersonaTrait(BaseModel):
-    """
-    Model representing a trait of a persona with evidence and confidence.
-    """
-
-    value: Union[str, dict, list, DemographicsValue] = Field(default_factory=dict)
-    confidence: float = Field(..., ge=0, le=1)
-    evidence: List[str] = Field(default_factory=list)
-
-    def is_structured_demographics(self) -> bool:
-        """Check if this trait contains structured demographics data."""
-        return isinstance(self.value, DemographicsValue)
-
-    def get_structured_demographics(self) -> Optional[DemographicsValue]:
-        """Get structured demographics if available."""
-        if self.is_structured_demographics():
-            return self.value
-        return None
-
-    def to_structured_demographics(self) -> Optional[StructuredDemographics]:
-        """Convert to StructuredDemographics format if this is demographics data."""
-        if self.is_structured_demographics():
-            return StructuredDemographics(
-                value=self.value, confidence=self.confidence, evidence=self.evidence
-            )
-        return None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "value": "Frequently uses collaboration tools",
-                "confidence": 0.85,
-                "evidence": [
-                    "Uses Slack daily",
-                    "Coordinates with team members using Trello",
-                ],
-            }
-        }
+# REMOVED: PersonaTrait class that was causing schema corruption
+# The corrupted PersonaTrait with Union[str, dict, list] was allowing
+# the LLM to create malformed structures. All persona models now use
+# the Golden Schema from domain.models.persona_schema with proper
+# AttributedField structure.
 
 
 class Persona(BaseModel):
@@ -423,8 +359,8 @@ class Persona(BaseModel):
     Model representing a user persona derived from interview analysis.
 
     This comprehensive model captures detailed information about a user persona,
-    including demographics, goals, skills, challenges, and other key attributes.
-    Each attribute is structured as a PersonaTrait with confidence scoring and supporting evidence.
+    using the Golden Schema with proper AttributedField structure to prevent
+    JSON serialization corruption.
     """
 
     # Basic information
@@ -440,49 +376,51 @@ class Persona(BaseModel):
         description="A brief 1-3 sentence overview of the persona",
     )
 
-    # Detailed attributes as PersonaTrait objects
-    demographics: Optional[PersonaTrait] = Field(
+    # GOLDEN SCHEMA: Use StructuredDemographics instead of corrupted PersonaTrait
+    demographics: Optional[StructuredDemographics] = Field(
         None,
-        description="Age, gender, education, experience level, and other demographic information",
+        description="Demographics using proper AttributedField structure",
     )
-    goals_and_motivations: Optional[PersonaTrait] = Field(
+    
+    # GOLDEN SCHEMA: All other traits use proper AttributedField
+    goals_and_motivations: Optional[AttributedField] = Field(
         None, description="Primary objectives, aspirations, and driving factors"
     )
-    skills_and_expertise: Optional[PersonaTrait] = Field(
+    skills_and_expertise: Optional[AttributedField] = Field(
         None,
         description="Technical and soft skills, knowledge areas, and expertise levels",
     )
-    workflow_and_environment: Optional[PersonaTrait] = Field(
+    workflow_and_environment: Optional[AttributedField] = Field(
         None, description="Work processes, physical/digital environment, and context"
     )
-    challenges_and_frustrations: Optional[PersonaTrait] = Field(
+    challenges_and_frustrations: Optional[AttributedField] = Field(
         None, description="Pain points, obstacles, and sources of frustration"
     )
-    technology_and_tools: Optional[PersonaTrait] = Field(
+    technology_and_tools: Optional[AttributedField] = Field(
         None, description="Software, hardware, and other tools used regularly"
     )
-    key_quotes: Optional[PersonaTrait] = Field(
+    key_quotes: Optional[AttributedField] = Field(
         None,
         description="Representative quotes that capture the persona's voice and perspective",
     )
 
-    # Legacy fields for backward compatibility
-    role_context: Optional[PersonaTrait] = Field(
+    # Legacy fields for backward compatibility - also use AttributedField
+    role_context: Optional[AttributedField] = Field(
         None, description="Primary job function and work environment (legacy field)"
     )
-    key_responsibilities: Optional[PersonaTrait] = Field(
+    key_responsibilities: Optional[AttributedField] = Field(
         None, description="Main tasks and responsibilities (legacy field)"
     )
-    tools_used: Optional[PersonaTrait] = Field(
+    tools_used: Optional[AttributedField] = Field(
         None, description="Specific tools or methods used (legacy field)"
     )
-    collaboration_style: Optional[PersonaTrait] = Field(
+    collaboration_style: Optional[AttributedField] = Field(
         None, description="How they work with others (legacy field)"
     )
-    analysis_approach: Optional[PersonaTrait] = Field(
+    analysis_approach: Optional[AttributedField] = Field(
         None, description="How they approach problems/analysis (legacy field)"
     )
-    pain_points: Optional[PersonaTrait] = Field(
+    pain_points: Optional[AttributedField] = Field(
         None, description="Specific challenges mentioned (legacy field)"
     )
 

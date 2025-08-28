@@ -51,7 +51,7 @@ from backend.models.stakeholder_models import StakeholderDetector
 # IMPORTANT: Avoid dynamic imports here; this module is loaded at app startup.
 # Dynamic import of models.py would re-register SQLAlchemy mappers causing
 # "Multiple classes found for path 'InterviewData'" errors.
-from backend.models import User, InterviewData, AnalysisResult
+from backend.models import User, InterviewData, AnalysisResult, Persona
 
 
 @router.get(
@@ -183,7 +183,7 @@ async def test_auth(user: User = Depends(get_current_user)):
 async def get_config():
     """Get current application configuration with sensitive values masked."""
     try:
-        from infrastructure.config.settings import Settings
+        from backend.infrastructure.config.settings import Settings
 
         settings = Settings()
 
@@ -399,9 +399,16 @@ async def regenerate_personas(
         from backend.services.processing.persona_formation_service import (
             PersonaFormationService,
         )
-        from backend.config import MinimalConfig
 
         llm_service = LLMServiceFactory.create("enhanced_gemini")
+
+        # Create a minimal config class
+        class MinimalConfig:
+            class Validation:
+                min_confidence = 0.4
+
+            validation = Validation()
+
         config = MinimalConfig()
         persona_service = PersonaFormationService(config, llm_service)
 

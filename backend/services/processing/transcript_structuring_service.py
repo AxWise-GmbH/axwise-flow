@@ -19,7 +19,7 @@ from backend.utils.json.json_repair import (
 )
 from backend.models.transcript import TranscriptSegment, StructuredTranscript
 
-from domain.interfaces.llm_unified import ILLMService
+from backend.domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.prompts.tasks.transcript_structuring import (
     TranscriptStructuringPrompts,
 )
@@ -242,8 +242,15 @@ class TranscriptStructuringService:
             # Parse the LLM response
             structured_transcript = self._parse_llm_response(llm_response)
 
+            # Check if the response indicates a timeout or API error
+            if self._is_timeout_or_api_error(llm_response):
+                logger.warning(
+                    "LLM API timeout or error detected. Using manual extraction fallback."
+                )
+                structured_transcript = self._extract_transcript_manually(raw_text)
+
             # If problem-focused content and still no valid structure, try fallback method
-            if content_info["is_problem_focused"] and not structured_transcript:
+            elif content_info["is_problem_focused"] and not structured_transcript:
                 logger.warning(
                     "Problem-focused content failed to structure. Trying fallback method."
                 )
@@ -291,6 +298,53 @@ class TranscriptStructuringService:
         except Exception as e:
             logger.error(f"Error structuring transcript: {str(e)}", exc_info=True)
             return []
+
+    def _is_timeout_or_api_error(
+        self, llm_response: Union[str, Dict[str, Any], List[Dict[str, Any]]]
+    ) -> bool:
+        """
+        Check if the LLM response indicates a timeout or API error.
+
+        Args:
+            llm_response: The response from the LLM service
+
+        Returns:
+            True if the response indicates a timeout or API error
+        """
+        if not llm_response:
+            return True
+
+        # Check for error indicators in dict responses
+        if isinstance(llm_response, dict):
+            error_msg = llm_response.get("error", "")
+            if error_msg and (
+                "timeout" in error_msg.lower() or "api call" in error_msg.lower()
+            ):
+                return True
+
+            # Check if segments are empty due to error
+            segments = llm_response.get("segments", [])
+            if (
+                isinstance(segments, list)
+                and len(segments) == 0
+                and "error" in llm_response
+            ):
+                return True
+
+        # Check for error indicators in string responses
+        if isinstance(llm_response, str):
+            error_indicators = [
+                "api call timed out",
+                "timeout error",
+                "connection timeout",
+                "request timeout",
+                "api error",
+            ]
+            llm_response_lower = llm_response.lower()
+            if any(indicator in llm_response_lower for indicator in error_indicators):
+                return True
+
+        return False
 
     def _parse_llm_response(
         self, llm_response: Union[str, Dict[str, Any], List[Dict[str, Any]]]

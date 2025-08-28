@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from backend.services.processing.pipeline.transcript_processor import (
     TranscriptProcessor,
 )
-from backend.domain.models.transcript import TranscriptSegment, TranscriptMetadata
+from backend.models.transcript import TranscriptSegment, TranscriptMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +30,12 @@ class StakeholderAwareTranscriptProcessor(TranscriptProcessor):
 
     def __init__(self, llm_service=None):
         """Initialize the stakeholder-aware processor."""
+        # Initialize the base TranscriptProcessor first
         super().__init__(llm_service)
-        self.name = "StakeholderAwareTranscriptProcessor"
-        self.description = (
-            "Processes transcript data with stakeholder boundary awareness"
-        )
+        # Override the name and description through the BaseProcessor properties
+        # We need to access the private attributes since properties are read-only
+        self._name = "StakeholderAwareTranscriptProcessor"
+        self._description = "Processes transcript data with stakeholder boundary awareness"
 
     async def _process_impl(self, data: Any, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -252,3 +253,84 @@ class StakeholderAwareTranscriptProcessor(TranscriptProcessor):
             List of stakeholder category names
         """
         return processed_data.get("stakeholder_categories", [])
+
+    def get_processor_info(self) -> Dict[str, Any]:
+        """
+        Get information about the processor.
+
+        Returns:
+            Dictionary containing processor information
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "version": self.version,
+            "input_types": ["str", "dict", "list"],
+            "output_type": "Dict[str, Any]",
+            "capabilities": [
+                "stakeholder_aware_processing",
+                "transcript_structuring",
+                "speaker_role_detection",
+                "stakeholder_categorization",
+                "interview_segmentation",
+            ],
+            "stakeholder_features": {
+                "stakeholder_boundary_preservation": True,
+                "category_based_grouping": True,
+                "enhanced_metadata": True,
+                "fallback_processing": True,
+            },
+        }
+
+    def validate_input(self, data: Dict[str, Any]) -> bool:
+        """
+        Validate input data for stakeholder-aware processing.
+
+        Args:
+            data: Input data to validate
+
+        Returns:
+            True if input is valid, False otherwise
+        """
+        if not data:
+            logger.warning("Empty data provided for stakeholder-aware processing")
+            return False
+
+        # Check if data contains text content
+        if isinstance(data, str):
+            return len(data.strip()) > 0
+
+        if isinstance(data, dict):
+            # Check for text content in various possible keys
+            text_keys = ["text", "content", "transcript", "interview_data", "free_text", "original_data"]
+            has_text = any(
+                key in data
+                and data[key]
+                and isinstance(data[key], str)
+                and len(data[key].strip()) > 0
+                for key in text_keys
+            )
+
+            if has_text:
+                return True
+
+            logger.warning("No valid text content found in data")
+            return False
+
+        if isinstance(data, list):
+            # Check if list contains dialogue items
+            if all(isinstance(item, dict) for item in data):
+                # Look for dialogue or text fields in list items
+                has_dialogue = any(
+                    ("dialogue" in item and isinstance(item["dialogue"], str)) or
+                    ("text" in item and isinstance(item["text"], str))
+                    for item in data
+                )
+                if has_dialogue:
+                    return True
+
+            logger.warning("No valid dialogue content found in list data")
+            return False
+
+        logger.warning(f"Unsupported data type for stakeholder-aware processing: {type(data)}")
+        return False

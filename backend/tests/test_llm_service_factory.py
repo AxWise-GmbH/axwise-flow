@@ -8,7 +8,7 @@ from typing import Dict, Any
 from unittest.mock import patch
 
 from backend.services.llm import LLMServiceFactory
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 
 # Import the service classes to verify they can be instantiated
 from backend.services.llm.openai_service import OpenAIService

@@ -400,7 +400,7 @@ export function EnhancedPersonaCard({
                       {Math.round(persona.demographics.confidence * 100)}% confidence
                     </Badge>
                     <span className="text-xs text-gray-500">
-                      {persona.demographics.evidence.length} evidence points
+                      {persona.demographics.evidence?.length || 0} evidence points
                     </span>
                   </div>
                   {persona.demographics.evidence && persona.demographics.evidence.length > 0 && (
@@ -438,7 +438,7 @@ export function EnhancedPersonaCard({
                       {Math.round(persona.goals_and_motivations.confidence * 100)}% confidence
                     </Badge>
                     <span className="text-xs text-gray-500">
-                      {persona.goals_and_motivations.evidence.length} evidence points
+                      {persona.goals_and_motivations.evidence?.length || 0} evidence points
                     </span>
                   </div>
                   {persona.goals_and_motivations.evidence && persona.goals_and_motivations.evidence.length > 0 && (
@@ -476,7 +476,7 @@ export function EnhancedPersonaCard({
                       {Math.round(persona.challenges_and_frustrations.confidence * 100)}% confidence
                     </Badge>
                     <span className="text-xs text-gray-500">
-                      {persona.challenges_and_frustrations.evidence.length} evidence points
+                      {persona.challenges_and_frustrations.evidence?.length || 0} evidence points
                     </span>
                   </div>
                   {persona.challenges_and_frustrations.evidence && persona.challenges_and_frustrations.evidence.length > 0 && (
@@ -526,7 +526,7 @@ export function EnhancedPersonaCard({
                       {Math.round(persona.key_quotes.confidence * 100)}% confidence
                     </Badge>
                     <span className="text-xs text-gray-500">
-                      {persona.key_quotes.evidence.length} quotes
+                      {persona.key_quotes.evidence?.length || 0} quotes
                     </span>
                   </div>
                   {persona.key_quotes.evidence && persona.key_quotes.evidence.length > 0 && (

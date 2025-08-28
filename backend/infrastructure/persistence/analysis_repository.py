@@ -372,3 +372,72 @@ class AnalysisRepository(BaseRepository[AnalysisResult], IAnalysisRepository):
         except SQLAlchemyError as e:
             logger.error(f"Error getting analysis results by data ID: {str(e)}")
             raise
+
+    # Implementation of IAnalysisRepository abstract methods
+    async def save_analysis(
+        self, analysis_id: str, analysis_data: Dict[str, Any]
+    ) -> bool:
+        """Save analysis data - implements IAnalysisRepository interface"""
+        try:
+            # Extract required fields from analysis_data
+            user_id = analysis_data.get("user_id", "unknown")
+            data_id = analysis_data.get("data_id", 0)
+            analysis_type = analysis_data.get("analysis_type", "general")
+            results = analysis_data.get("results", analysis_data)
+
+            # Use existing create method
+            await self.create(user_id, data_id, analysis_type, results)
+            return True
+        except Exception as e:
+            logger.error(f"Error saving analysis {analysis_id}: {str(e)}")
+            return False
+
+    async def get_analysis(self, analysis_id: str) -> Optional[Dict[str, Any]]:
+        """Get analysis data by ID - implements IAnalysisRepository interface"""
+        try:
+            # This is a simplified implementation - in production you'd want proper ID mapping
+            logger.warning(
+                f"get_analysis called with analysis_id {analysis_id} - using simplified lookup"
+            )
+            return None  # TODO: Implement proper ID-based lookup
+        except Exception as e:
+            logger.error(f"Error getting analysis {analysis_id}: {str(e)}")
+            return None
+
+    async def list_analyses(
+        self, user_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """List all analyses - implements IAnalysisRepository interface"""
+        try:
+            if user_id:
+                return await self.list_by_user(user_id)
+            else:
+                # Return empty list if no user_id provided (security measure)
+                return []
+        except Exception as e:
+            logger.error(f"Error listing analyses for user {user_id}: {str(e)}")
+            return []
+
+    async def delete_analysis(self, analysis_id: str) -> bool:
+        """Delete analysis data - implements IAnalysisRepository interface"""
+        try:
+            # This is a simplified implementation - in production you'd want proper ID mapping
+            logger.warning(
+                f"delete_analysis called with analysis_id {analysis_id} - not implemented"
+            )
+            return False  # TODO: Implement proper ID-based deletion
+        except Exception as e:
+            logger.error(f"Error deleting analysis {analysis_id}: {str(e)}")
+            return False
+
+    async def update_analysis(self, analysis_id: str, updates: Dict[str, Any]) -> bool:
+        """Update analysis data - implements IAnalysisRepository interface"""
+        try:
+            # This is a simplified implementation - in production you'd want proper ID mapping
+            logger.warning(
+                f"update_analysis called with analysis_id {analysis_id} - not implemented"
+            )
+            return False  # TODO: Implement proper ID-based updates
+        except Exception as e:
+            logger.error(f"Error updating analysis {analysis_id}: {str(e)}")
+            return False

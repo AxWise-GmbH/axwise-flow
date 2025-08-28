@@ -12,7 +12,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import List
-from domain.models.persona_schema import (
+from backend.domain.models.persona_schema import (
     PersonaTrait,
     StructuredDemographics,
     AttributedField,

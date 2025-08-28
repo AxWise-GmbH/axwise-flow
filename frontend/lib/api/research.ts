@@ -1190,18 +1190,33 @@ export async function getResearchSessions(limit: number = 20, userId?: string): 
           if (!hasQuestionnaireMessage) {
             // Add questionnaire message for compatibility with frontend logic
             console.log(`🔧 Adding questionnaire message for session ${session.session_id}`);
-            messages.push({
-              id: `questionnaire_${Date.now()}`,
+            console.log(`📋 Questionnaire data structure:`, {
+              primaryStakeholders: questionnaireData.primaryStakeholders?.length || 0,
+              secondaryStakeholders: questionnaireData.secondaryStakeholders?.length || 0,
+              timeEstimate: questionnaireData.timeEstimate
+            });
+
+            const questionnaireMessage = {
+              id: `questionnaire_${session.session_id}_${Date.now()}`,
               content: 'COMPREHENSIVE_QUESTIONS_COMPONENT',
               role: 'assistant',
               timestamp: session.completed_at || session.updated_at,
               metadata: {
                 type: 'component',
                 comprehensiveQuestions: questionnaireData,
-                businessContext: session.business_idea
+                businessContext: session.business_idea,
+                conversation_routine: true,
+                questions_generated: true
               }
-            });
+            };
+
+            messages.push(questionnaireMessage);
+            console.log(`✅ Questionnaire message added for session: ${session.session_id}`);
+          } else {
+            console.log(`✅ Questionnaire message already exists for session: ${session.session_id}`);
           }
+        } else if (session.questions_generated && !questionnaireData) {
+          console.warn(`⚠️ Session ${session.session_id} marked as questions_generated but no questionnaire data found`);
         }
 
         const convertedSession = {
@@ -1238,8 +1253,10 @@ export async function getResearchSessions(limit: number = 20, userId?: string): 
       }
 
       // Sync local sessions with questionnaires to database (background operation)
-      // Temporarily disabled to test auto-restore
-      if (!forceRestore) {
+      // Disabled during active display to prevent race conditions
+      const isDisplayingHistory = window.location.pathname.includes('research-chat-history');
+      if (!forceRestore && !isDisplayingHistory) {
+        console.log('🔄 Background sync enabled (not on history page)');
         localSessions
           .filter(session => session.questions_generated && session.session_id.startsWith('local_'))
           .forEach(session => {
@@ -1247,6 +1264,8 @@ export async function getResearchSessions(limit: number = 20, userId?: string): 
               console.warn('Background sync failed:', err)
             );
           });
+      } else if (isDisplayingHistory) {
+        console.log('⏸️ Background sync disabled (on history page to prevent flickering)');
       }
 
       // Clean up empty sessions (background operation)

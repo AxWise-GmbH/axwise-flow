@@ -272,25 +272,42 @@ class PersonaFormationPrompts:
         2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
         3. description: A brief 1-3 sentence overview of the persona
 
-        DETAILED ATTRIBUTES (each with value, confidence score 0.0-1.0, and supporting evidence):
-        4. demographics: Extract demographic information as a structured object with specific fields (experience_level, roles, industry, location, age_range, professional_context). ONLY include information explicitly mentioned in the interview text.
-        5. role_context: Specific organizational context, team structure, and reporting relationships
-        6. key_responsibilities: Primary job duties, tasks, and accountabilities in their role
-        7. goals_and_motivations: Primary objectives, aspirations, and driving factors
-        8. skills_and_expertise: Technical and soft skills, knowledge areas, and expertise levels
-        9. workflow_and_environment: Work processes, physical/digital environment, and context
-        10. tools_used: Specific software applications, hardware devices, and methodologies used regularly
-        11. collaboration_style: How they work with others, communication preferences, and team dynamics
-        12. analysis_approach: Methods used for problem-solving, decision-making, and evaluating information
-        13. challenges_and_frustrations: Pain points, obstacles, and sources of frustration
-        14. pain_points: Specific issues that cause difficulties or inefficiencies in their daily work
-        15. technology_and_tools: Software, hardware, and other tools used regularly
-        19. key_quotes: 5-7 representative direct quotes from the text that best capture the persona's authentic voice, perspective, challenges, and priorities. Select quotes that reveal their thought process, emotional responses, and unique expressions. This field is REQUIRED and must contain actual quotes from the interview text.
+        CRITICAL: JSON STRUCTURE REQUIREMENTS
+        Each field must contain both the extracted information AND the specific quotes that support it.
+        Use this exact JSON structure for all fields:
+
+        STRUCTURED DEMOGRAPHICS (REQUIRED FORMAT):
+        The demographics field must contain these sub-fields, each with value and evidence:
+        - experience_level: {{"value": "Senior (7+ years)", "evidence": ["I've been working in this field for 7 years"]}}
+        - industry: {{"value": "Technology", "evidence": ["We're a tech company"]}}
+        - location: {{"value": "Bremen, Germany", "evidence": ["I live in Bremen"]}}
+        - age_range: {{"value": "28-32", "evidence": ["I'm 30 years old"]}}
+        - professional_context: {{"value": "Software developer", "evidence": ["I work as a software developer"]}}
+        - roles: {{"value": "Team Lead", "evidence": ["I lead a team of developers"]}}
+        - confidence: 0.85 (overall confidence for demographics)
+
+        CORE DESIGN THINKING FIELDS (SAME JSON FORMAT):
+        4. demographics: Object with sub-fields as shown above
+        5. goals_and_motivations: {{"value": "description", "evidence": ["specific quotes supporting goals"]}}
+        6. challenges_and_frustrations: {{"value": "description", "evidence": ["specific quotes about challenges"]}}
+        7. key_quotes: {{"value": "representative quotes", "evidence": ["context quotes explaining why these are key"]}}
+
+        EVIDENCE ATTRIBUTION RULES:
+        1. Each evidence array should contain quotes that specifically support ONLY that field
+        2. Do not reuse the same quote across multiple fields unless it truly supports multiple specific claims
+        3. Only include demographic fields if you can find explicit evidence in the text
+        4. Prioritize precision over completeness - better fewer fields with perfect evidence than many with weak evidence
+        5. Each evidence quote must directly and specifically support the value it's paired with
 
         OVERALL PERSONA INFORMATION:
-        14. patterns: List of behavioral patterns associated with this persona
-        15. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
-        16. supporting_evidence_summary: Key evidence supporting the overall persona characterization
+        8. overall_confidence: Overall confidence score for the entire persona (0.0-1.0)
+        9. persona_metadata: Additional metadata about the persona creation process (optional)
+
+        CONFIDENCE SCORES:
+        Set confidence scores (0.0-1.0) based on evidence strength:
+        - overall_confidence: Overall confidence in the persona
+        - demographics.confidence: Confidence in demographic extraction
+        - Individual field confidence is reflected in the overall_confidence
 
         CONTEXT-AWARE HIGHLIGHTING RULES:
         When providing supporting quotes in the evidence arrays, use **bold** formatting to highlight ONLY semantically relevant terms that directly support the trait being described:
@@ -318,49 +335,37 @@ class PersonaFormationPrompts:
         - Confidence scores should reflect the strength of evidence-to-trait alignment
         - Quotes should be authentic and directly from the interview text
 
-        FORMAT YOUR RESPONSE AS JSON with the following structure:
+        FORMAT YOUR RESPONSE AS VALID JSON with this exact structure:
         {{
           "name": "Role-Based Name",
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
-            "value": {{
-              "experience_level": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
-              "roles": ["Primary Role", "Secondary Role"] - ONLY roles explicitly stated,
-              "industry": "Industry Name - ONLY if explicitly mentioned",
-              "location": "City/Region - ONLY if explicitly stated",
-              "age_range": "Age range - ONLY if directly mentioned",
-              "professional_context": "Detailed professional background and company context based on explicit information"
-            }},
-            "confidence": 0.8,
-            "evidence": ["Direct quote supporting demographics", "Another supporting quote"]
-          }},
-          "structured_demographics": {{
             "experience_level": {{
-              "value": "Senior/Mid-level/Junior/Executive/etc. - ONLY if explicitly mentioned",
-              "evidence": ["Exact quote that specifically mentions experience level, years of experience, or seniority"]
+              "value": "Senior (7+ years)",
+              "evidence": ["I've been working in software development for about 7 years now"]
             }},
             "industry": {{
-              "value": "Industry Name - ONLY if explicitly mentioned",
-              "evidence": ["Exact quote that specifically mentions the industry, company type, or business sector"]
+              "value": "Technology",
+              "evidence": ["We're a tech company focused on innovative solutions"]
             }},
             "location": {{
-              "value": "City/Region - ONLY if explicitly stated",
-              "evidence": ["Exact quote that specifically mentions geographic location, city, region, or place"]
+              "value": "Bremen, Germany",
+              "evidence": ["I live in Bremen Nord, in one of the newly developed residential areas"]
             }},
             "age_range": {{
-              "value": "Age range - ONLY if directly mentioned",
-              "evidence": ["Exact quote that specifically mentions age, age range, or life stage"]
+              "value": "28-32",
+              "evidence": ["I'm 30 years old and just bought my first house"]
             }},
             "professional_context": {{
-              "value": "Detailed professional background and company context based on explicit information",
-              "evidence": ["Exact quotes that specifically describe professional background, company context, or work environment"]
+              "value": "Software development professional",
+              "evidence": ["I've been working in software development for about 7 years now", "We're a tech company focused on innovative solutions"]
             }},
             "roles": {{
-              "value": "Primary professional roles - ONLY roles explicitly stated",
-              "evidence": ["Exact quotes that specifically mention job titles, roles, or professional positions"]
+              "value": "Senior Developer",
+              "evidence": ["I'm a senior developer on the team"]
             }},
-            "confidence": 0.8
+            "confidence": 0.95
           }},
           "role_context": {{
             "value": "Detailed organizational context including specific company names, team structure, industry position, and reporting relationships",
@@ -402,30 +407,26 @@ class PersonaFormationPrompts:
             "confidence": 0.7,
             "evidence": ["Quote 1", "Quote 2"]
           }},
+          "goals_and_motivations": {{
+            "value": "Primary objectives and aspirations with specific details",
+            "evidence": ["I want to improve our development process", "My goal is to deliver high-quality software"]
+          }},
           "challenges_and_frustrations": {{
-            "value": "Pain points and obstacles",
-            "confidence": 0.9,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "pain_points": {{
-            "value": "Specific issues causing difficulties",
-            "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
-          }},
-          "technology_and_tools": {{
-            "value": "Software and hardware used",
-            "confidence": 0.8,
-            "evidence": ["Quote 1", "Quote 2"]
+            "value": "Pain points and obstacles they face",
+            "evidence": ["The biggest challenge is tight deadlines", "I get frustrated when requirements keep changing"]
           }},
           "key_quotes": {{
-            "value": "Collection of representative quotes",
-            "confidence": 0.9,
-            "evidence": ["Quote 1", "Quote 2", "Quote 3", "Quote 4", "Quote 5"]
+            "value": "Representative quotes that capture their voice and perspective",
+            "evidence": ["This quote shows their thought process", "This quote reveals their priorities"]
           }},
-          "patterns": ["Pattern 1", "Pattern 2", "Pattern 3"],
-          "overall_confidence": 0.75,
-          "supporting_evidence_summary": ["Overall evidence 1", "Overall evidence 2"]
+          "overall_confidence": 0.85,
+          "persona_metadata": {{
+            "is_fallback": false,
+            "generation_method": "pydantic_ai_structured_evidence"
+          }}
         }}
+
+        IMPORTANT: Output ONLY valid JSON. Do not include any code, variable names, or function calls in your response. Each field must be a proper JSON object with "value" and "evidence" keys.
 
         CRITICAL INSTRUCTIONS FOR STRUCTURED DEMOGRAPHICS:
         1. For each field in structured_demographics, extract ONLY the specific value for that field

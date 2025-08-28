@@ -7,7 +7,7 @@ import re
 import copy
 import importlib.util
 from typing import Dict, Any, List, Tuple, Optional
-from domain.interfaces.llm_unified import ILLMService
+from backend.services.llm.base_llm_service import BaseLLMService as ILLMService
 
 from backend.schemas import DetailedAnalysisResult
 
@@ -217,6 +217,15 @@ class NLPProcessor:
 
         # Store analysis_id for quality tracking
         self.current_analysis_id = analysis_id
+
+        # 🔍 DEBUG: Log pipeline start
+        logger.info(
+            f"🚀 [PIPELINE_DEBUG] Starting main pipeline for analysis_id: {analysis_id}"
+        )
+        logger.info(f"🔧 [PIPELINE_DEBUG] Config: {config}")
+        logger.info(f"📊 [PIPELINE_DEBUG] Data type: {type(data)}")
+        if isinstance(data, dict):
+            logger.info(f"📊 [PIPELINE_DEBUG] Data keys: {list(data.keys())}")
 
         # Solution 1: Enable enhanced theme analysis by default
         use_enhanced_theme_analysis = config.get(
@@ -534,7 +543,11 @@ class NLPProcessor:
             )
 
             # Get enhanced themes directly
+            logger.info("🎯 [PIPELINE_DEBUG] Awaiting enhanced themes task...")
             enhanced_themes_result = await enhanced_themes_task
+            logger.info(
+                f"🎯 [PIPELINE_DEBUG] Enhanced themes task completed. Result type: {type(enhanced_themes_result)}"
+            )
 
             # Update progress: Theme analysis completed
             await update_progress(
@@ -543,6 +556,9 @@ class NLPProcessor:
 
             # Store the enhanced themes as the main themes result
             themes_result = {"themes": []}  # Initialize with empty themes
+            logger.info(
+                "🎯 [PIPELINE_DEBUG] Initialized themes_result with empty themes"
+            )
 
             # Solution 2: Improve the handling of enhanced theme results
             try:
@@ -789,6 +805,9 @@ class NLPProcessor:
                     async def get_patterns():
                         # Create a simple transcript structure from the combined text
                         simple_transcript = [{"text": combined_text}]
+                        logger.info(
+                            f"🔍 [PIPELINE_DEBUG] Starting patterns extraction with {len(themes_result.get('themes', []))} themes"
+                        )
                         return await self.extract_patterns(
                             transcript=simple_transcript,
                             themes=themes_result.get("themes", []),
@@ -821,8 +840,17 @@ class NLPProcessor:
             )
 
             # Wait for remaining tasks to complete
+            logger.info(
+                "⏳ [PIPELINE_DEBUG] Waiting for patterns and sentiment tasks..."
+            )
             patterns_result, sentiment_result = await asyncio.gather(
                 patterns_task, sentiment_task
+            )
+            logger.info(
+                f"🔍 [PIPELINE_DEBUG] Patterns result: {len(patterns_result.get('patterns', []))} patterns"
+            )
+            logger.info(
+                f"😊 [PIPELINE_DEBUG] Sentiment result keys: {list(sentiment_result.keys()) if isinstance(sentiment_result, dict) else 'not a dict'}"
             )
 
             # Update progress: Pattern detection completed
@@ -1071,7 +1099,16 @@ class NLPProcessor:
                 results["sentimentOverview"] = sentiment_overview
 
             logger.info(
-                f"Final results contain {len(results['themes'])} themes and {len(results['patterns'])} patterns"
+                f"📊 [PIPELINE_DEBUG] Final results contain {len(results['themes'])} themes and {len(results['patterns'])} patterns"
+            )
+            logger.info(
+                f"👥 [PIPELINE_DEBUG] Final results contain {len(results.get('personas', []))} personas"
+            )
+            logger.info(
+                f"🎯 [PIPELINE_DEBUG] Final results contain {len(results.get('enhanced_themes', []))} enhanced themes"
+            )
+            logger.info(
+                f"💡 [PIPELINE_DEBUG] Final results contain {len(results.get('insights', []))} insights"
             )
 
             # Add metadata about the theme processing
@@ -1452,21 +1489,27 @@ class NLPProcessor:
 
                     # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
                     logger.info(
-                        "[PERSONA_PIPELINE] Checking for stakeholder-aware content structure"
+                        "👥 [PIPELINE_DEBUG] [PERSONA_PIPELINE] Checking for stakeholder-aware content structure"
                     )
 
                     # Try to detect stakeholder structure in the raw text
                     stakeholder_segments = self._detect_stakeholder_structure(raw_text)
+                    logger.info(
+                        f"👥 [PIPELINE_DEBUG] Stakeholder detection result: {stakeholder_segments is not None}"
+                    )
 
                     if stakeholder_segments:
                         logger.info(
-                            f"[STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
+                            f"👥 [PIPELINE_DEBUG] [STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
                         )
                         logger.info(
-                            f"[STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
+                            f"👥 [PIPELINE_DEBUG] [STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
                         )
 
                         # Use stakeholder-aware persona formation
+                        logger.info(
+                            "👥 [PIPELINE_DEBUG] Starting stakeholder-aware persona formation..."
+                        )
                         personas_list = (
                             await persona_service.form_personas_by_stakeholder(
                                 stakeholder_segments,
@@ -1478,15 +1521,19 @@ class NLPProcessor:
                             )
                         )
                         logger.info(
-                            f"[STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
+                            f"👥 [PIPELINE_DEBUG] [STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
                         )
                     else:
                         # ENHANCED PERSONA FORMATION: Use improved pipeline with built-in quality validation
                         logger.info(
-                            "[PERSONA_PIPELINE] No stakeholder structure detected, using standard persona formation"
+                            "👥 [PIPELINE_DEBUG] [PERSONA_PIPELINE] No stakeholder structure detected, using standard persona formation"
                         )
 
-                        # Use the enhanced persona service with built-in quality validation
+                        # Use the full persona service with transcript structuring
+                        # Now that timeout fixes are in place, this should work reliably
+                        logger.info(
+                            "👥 [PIPELINE_DEBUG] Starting standard persona formation..."
+                        )
                         personas_list = (
                             await persona_service.generate_persona_from_text(
                                 text=raw_text,
@@ -1495,6 +1542,9 @@ class NLPProcessor:
                                     "original_text": raw_text,
                                 },
                             )
+                        )
+                        logger.info(
+                            f"👥 [PIPELINE_DEBUG] Standard persona formation completed: {len(personas_list)} personas"
                         )
 
                     # FIX 4: Use ALL personas from the list, not just the first one

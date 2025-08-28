@@ -150,7 +150,7 @@ class JSONProcessor:
             Parsed transcript data
         """
         # Import here to avoid circular imports
-        from backend.domain.models.transcript import StructuredTranscript
+        from backend.models.transcript import StructuredTranscript
 
         try:
             # Try to parse with the StructuredTranscript model

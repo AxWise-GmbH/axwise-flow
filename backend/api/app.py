@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from sqlalchemy.sql import text
 
 # Import centralized settings
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 
 from backend.schemas import (
     AnalysisRequest,
@@ -51,7 +51,7 @@ from backend.core.processing_pipeline import process_data
 from backend.services.llm import LLMServiceFactory
 from backend.services.nlp import get_nlp_processor
 from backend.database import get_db, create_tables
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 from backend.services.processing.persona_formation_service import (
     PersonaFormationService,
 )
@@ -354,7 +354,7 @@ def get_persona_service():
                     settings.llm_providers["gemini"]["api_key"] = gemini_key
 
                 # Import constants for LLM configuration
-                from infrastructure.constants.llm_constants import (
+                from backend.infrastructure.constants.llm_constants import (
                     GEMINI_MODEL_NAME,
                     GEMINI_TEMPERATURE,
                     GEMINI_MAX_TOKENS,
@@ -696,13 +696,41 @@ async def get_simplified_personas(
         # Get filtered design thinking personas
         simplified_personas = results_service.get_design_thinking_personas(result_id)
 
-        return {
-            "status": "success",
-            "result_id": result_id,
-            "personas": simplified_personas,
-            "total_personas": len(simplified_personas),
-            "design_thinking_optimized": True,
-        }
+        # Import validation functions
+        from backend.domain.models.production_persona import PersonaAPIResponse
+        
+        # Create validated API response
+        try:
+            validated_response = PersonaAPIResponse(
+                personas=simplified_personas,
+                metadata={
+                    "result_id": result_id,
+                    "design_thinking_optimized": True,
+                    "total_personas": len(simplified_personas),
+                    "filtered": True
+                }
+            )
+            
+            return {
+                "status": "success",
+                "result_id": result_id,
+                "personas": validated_response.personas,
+                "total_personas": len(simplified_personas),
+                "design_thinking_optimized": True,
+                "validation": "passed"
+            }
+        except Exception as validation_error:
+            logger.error(f"PersonaAPIResponse validation failed: {validation_error}")
+            # Return unvalidated but log the issue
+            return {
+                "status": "success",
+                "result_id": result_id,
+                "personas": simplified_personas,
+                "total_personas": len(simplified_personas),
+                "design_thinking_optimized": True,
+                "validation": "failed",
+                "validation_error": str(validation_error)
+            }
 
     except HTTPException:
         # Re-raise HTTP exceptions (like 404, 403)

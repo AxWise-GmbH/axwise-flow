@@ -9,19 +9,24 @@ error management, and configuration.
 import logging
 import os
 from typing import Dict, Any, List, Optional, Union
+from pydantic import BaseModel
 
-from domain.interfaces.llm_unified import ILLMService
+from backend.domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.base_llm_service import BaseLLMService
 from backend.services.llm.async_genai_client import AsyncGenAIClient
 from backend.services.llm.config.genai_config import TaskType
 from backend.services.llm.exceptions import (
-    LLMAPIError, LLMResponseParseError, LLMProcessingError, LLMServiceError
+    LLMAPIError,
+    LLMResponseParseError,
+    LLMProcessingError,
+    LLMServiceError,
 )
-from infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
+from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
 
-class EnhancedGeminiLLMService(BaseLLMService):
+
+class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
     """
     Enhanced implementation of GeminiLLMService using AsyncGenAIClient.
 
@@ -42,7 +47,9 @@ class EnhancedGeminiLLMService(BaseLLMService):
         # Get API key from config or environment
         api_key = config.get("api_key") or os.getenv(ENV_GEMINI_API_KEY)
         if not api_key:
-            logger.error("Gemini API key is not configured. Set GEMINI_API_KEY environment variable or provide in config.")
+            logger.error(
+                "Gemini API key is not configured. Set GEMINI_API_KEY environment variable or provide in config."
+            )
             raise ValueError("Gemini API key not found.")
 
         # Initialize the AsyncGenAIClient
@@ -63,9 +70,12 @@ class EnhancedGeminiLLMService(BaseLLMService):
             System message
         """
         from backend.services.llm.prompts.gemini_prompts import GeminiPrompts
+
         return GeminiPrompts.get_system_message(task, request)
 
-    async def _call_llm_api(self, system_message: Any, text: str, task: str, request: Dict[str, Any]) -> Any:
+    async def _call_llm_api(
+        self, system_message: Any, text: str, task: str, request: Dict[str, Any]
+    ) -> Any:
         """
         Call the LLM API using AsyncGenAIClient.
 
@@ -95,15 +105,23 @@ class EnhancedGeminiLLMService(BaseLLMService):
                 task=task,
                 prompt=text,
                 custom_config=custom_config,
-                system_instruction=system_message
+                system_instruction=system_message,
             )
-        except (LLMAPIError, LLMResponseParseError, LLMProcessingError, LLMServiceError) as e:
+        except (
+            LLMAPIError,
+            LLMResponseParseError,
+            LLMProcessingError,
+            LLMServiceError,
+        ) as e:
             # Re-raise known LLM exceptions
             logger.error(f"Error calling LLM API for task {task}: {str(e)}")
             raise
         except Exception as e:
             # Wrap unknown exceptions
-            logger.error(f"Unexpected error calling LLM API for task {task}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Unexpected error calling LLM API for task {task}: {str(e)}",
+                exc_info=True,
+            )
             raise LLMServiceError(f"Unexpected error: {str(e)}") from e
 
     def _parse_llm_response(self, response: Any, task: str) -> Dict[str, Any]:
@@ -122,7 +140,9 @@ class EnhancedGeminiLLMService(BaseLLMService):
         # AsyncGenAIClient already handles parsing, so this is a pass-through
         return response
 
-    def _post_process_results(self, result: Dict[str, Any], task: str) -> Dict[str, Any]:
+    def _post_process_results(
+        self, result: Dict[str, Any], task: str
+    ) -> Dict[str, Any]:
         """
         Post-process results.
 
@@ -168,7 +188,7 @@ class EnhancedGeminiLLMService(BaseLLMService):
                 task=TaskType.TEXT_GENERATION,
                 prompt=prompt,
                 custom_config=custom_config,
-                system_instruction=kwargs.get("system_instruction")
+                system_instruction=kwargs.get("system_instruction"),
             )
 
             # Return the text
@@ -177,7 +197,9 @@ class EnhancedGeminiLLMService(BaseLLMService):
             logger.error(f"Error generating text: {str(e)}")
             raise
 
-    async def analyze_themes(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_themes(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze themes in interview data.
 
@@ -199,19 +221,27 @@ class EnhancedGeminiLLMService(BaseLLMService):
 
         # Prepare request data
         request_data = {
-            "task": TaskType.THEME_ANALYSIS_ENHANCED if use_enhanced else TaskType.THEME_ANALYSIS,
-            "text": interview_text
+            "task": (
+                TaskType.THEME_ANALYSIS_ENHANCED
+                if use_enhanced
+                else TaskType.THEME_ANALYSIS
+            ),
+            "text": interview_text,
         }
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for theme analysis: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for theme analysis: {industry}"
+            )
 
         # Call analyze method
         return await self.analyze(request_data)
 
-    async def analyze_patterns(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_patterns(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze patterns in interview data.
 
@@ -229,20 +259,21 @@ class EnhancedGeminiLLMService(BaseLLMService):
         industry = kwargs.get("industry")
 
         # Prepare request data
-        request_data = {
-            "task": TaskType.PATTERN_RECOGNITION,
-            "text": interview_text
-        }
+        request_data = {"task": TaskType.PATTERN_RECOGNITION, "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for pattern recognition: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for pattern recognition: {industry}"
+            )
 
         # Call analyze method
         return await self.analyze(request_data)
 
-    async def analyze_sentiment(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_sentiment(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze sentiment in interview data.
 
@@ -260,20 +291,21 @@ class EnhancedGeminiLLMService(BaseLLMService):
         industry = kwargs.get("industry")
 
         # Prepare request data
-        request_data = {
-            "task": TaskType.SENTIMENT_ANALYSIS,
-            "text": interview_text
-        }
+        request_data = {"task": TaskType.SENTIMENT_ANALYSIS, "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for sentiment analysis: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for sentiment analysis: {industry}"
+            )
 
         # Call analyze method
         return await self.analyze(request_data)
 
-    async def generate_personas(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def generate_personas(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Generate personas from interview data.
 
@@ -291,20 +323,21 @@ class EnhancedGeminiLLMService(BaseLLMService):
         industry = kwargs.get("industry")
 
         # Prepare request data
-        request_data = {
-            "task": TaskType.PERSONA_FORMATION,
-            "text": interview_text
-        }
+        request_data = {"task": TaskType.PERSONA_FORMATION, "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for persona formation: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for persona formation: {industry}"
+            )
 
         # Call analyze method
         return await self.analyze(request_data)
 
-    async def analyze_persona_attributes(self, patterns: Dict[str, Any]) -> Dict[str, Any]:
+    async def analyze_persona_attributes(
+        self, patterns: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Analyze persona attributes from patterns.
 
@@ -317,7 +350,7 @@ class EnhancedGeminiLLMService(BaseLLMService):
         # Prepare request data
         request_data = {
             "task": "persona_attribute_extraction",
-            "patterns": patterns.get("patterns", [])
+            "patterns": patterns.get("patterns", []),
         }
 
         # Call analyze method
@@ -334,10 +367,96 @@ class EnhancedGeminiLLMService(BaseLLMService):
             Processed interview data
         """
         # Prepare request data
-        request_data = {
-            "task": TaskType.TRANSCRIPT_STRUCTURING,
-            "text": text
-        }
+        request_data = {"task": TaskType.TRANSCRIPT_STRUCTURING, "text": text}
 
         # Call analyze method
         return await self.analyze(request_data)
+
+    # --- Implementation of ILLMService abstract methods ---
+
+    async def generate_structured(
+        self, prompt: str, response_model: BaseModel, **kwargs
+    ) -> BaseModel:
+        """
+        Generate structured response using Pydantic model.
+
+        Args:
+            prompt: The prompt to generate structured response from
+            response_model: Pydantic model class for structured output
+            **kwargs: Additional parameters for the LLM service
+
+        Returns:
+            Instance of the response_model with structured data
+        """
+        try:
+            # Use the AsyncGenAIClient for structured generation
+            # This should leverage the enhanced capabilities
+            response = await self.client.generate_content(
+                task="structured_generation",
+                prompt=prompt,
+                custom_config={
+                    "response_model": response_model,
+                    "temperature": kwargs.get(
+                        "temperature", 0.0
+                    ),  # Lower temp for structured output
+                    **kwargs,
+                },
+            )
+
+            # If the response is already an instance of the response_model, return it
+            if isinstance(response, response_model):
+                return response
+
+            # If the response is a dict, try to create an instance of the response_model
+            if isinstance(response, dict):
+                # Check if the response has the expected structure
+                if "data" in response:
+                    return response_model(**response["data"])
+                else:
+                    return response_model(**response)
+
+            # If the response is a string, try to parse it as JSON and create the model
+            if isinstance(response, str):
+                try:
+                    import json
+
+                    parsed_data = json.loads(response)
+                    return response_model(**parsed_data)
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.error(f"Failed to parse structured response as JSON: {e}")
+                    raise LLMResponseParseError(
+                        f"Failed to parse structured response: {e}"
+                    )
+
+            # Fallback: try to create the model with the response as-is
+            return response_model(response)
+
+        except Exception as e:
+            logger.error(f"Error in structured generation: {str(e)}")
+            raise LLMResponseParseError(f"Structured generation failed: {str(e)}")
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        Get information about the model.
+
+        Returns:
+            Dictionary containing model information
+        """
+        return {
+            "provider": "gemini",
+            "model_name": getattr(self.client, "model_name", "gemini-2.5-flash"),
+            "service_class": self.__class__.__name__,
+            "underlying_service": "AsyncGenAIClient",
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "capabilities": [
+                "text_generation",
+                "theme_analysis",
+                "pattern_analysis",
+                "sentiment_analysis",
+                "persona_generation",
+                "structured_generation",
+                "enhanced_async_processing",
+            ],
+            "enhanced_features": True,
+        }

@@ -5,6 +5,8 @@ Extracted from customer_research_v3_rebuilt.py - preserves stakeholder detection
 
 import logging
 from typing import Dict, Any, List, Optional
+import asyncio
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -151,13 +153,30 @@ Make stakeholder names specific to this business context."""
         target_customer: str,
         problem: str,
     ) -> Dict[str, Any]:
-        """Generate unique questions for each stakeholder"""
+        """Generate unique questions for each stakeholder using parallel processing"""
         try:
-            enhanced_stakeholders = {"primary": [], "secondary": []}
+            # PERFORMANCE OPTIMIZATION: Use parallel processing with semaphore-controlled concurrency
+            STAKEHOLDER_CONCURRENCY = int(
+                os.getenv("PAID_TIER_STAKEHOLDER_CONCURRENCY", "10")
+            )
+            semaphore = asyncio.Semaphore(STAKEHOLDER_CONCURRENCY)
 
-            # Generate questions for primary stakeholders
-            for stakeholder in stakeholder_data.get("primary", []):
-                questions = await self._generate_stakeholder_specific_questions(
+            primary_stakeholders = stakeholder_data.get("primary", [])
+            secondary_stakeholders = stakeholder_data.get("secondary", [])
+            total_stakeholders = len(primary_stakeholders) + len(secondary_stakeholders)
+
+            logger.info(
+                f"[PERFORMANCE] Starting parallel stakeholder question generation for {total_stakeholders} stakeholders "
+                f"({len(primary_stakeholders)} primary, {len(secondary_stakeholders)} secondary) "
+                f"with max {STAKEHOLDER_CONCURRENCY} concurrent requests"
+            )
+
+            # Create tasks for parallel execution
+            all_tasks = []
+
+            # Add primary stakeholder tasks
+            for i, stakeholder in enumerate(primary_stakeholders):
+                task = self._generate_stakeholder_specific_questions_with_semaphore(
                     llm_service,
                     stakeholder["name"],
                     stakeholder["description"],
@@ -165,18 +184,14 @@ Make stakeholder names specific to this business context."""
                     target_customer,
                     problem,
                     "primary",
+                    semaphore,
+                    i + 1,
                 )
-                enhanced_stakeholders["primary"].append(
-                    {
-                        "name": stakeholder["name"],
-                        "description": stakeholder["description"],
-                        "questions": questions,
-                    }
-                )
+                all_tasks.append(("primary", i, task))
 
-            # Generate questions for secondary stakeholders
-            for stakeholder in stakeholder_data.get("secondary", []):
-                questions = await self._generate_stakeholder_specific_questions(
+            # Add secondary stakeholder tasks
+            for i, stakeholder in enumerate(secondary_stakeholders):
+                task = self._generate_stakeholder_specific_questions_with_semaphore(
                     llm_service,
                     stakeholder["name"],
                     stakeholder["description"],
@@ -184,20 +199,113 @@ Make stakeholder names specific to this business context."""
                     target_customer,
                     problem,
                     "secondary",
+                    semaphore,
+                    len(primary_stakeholders) + i + 1,
                 )
-                enhanced_stakeholders["secondary"].append(
-                    {
-                        "name": stakeholder["name"],
-                        "description": stakeholder["description"],
-                        "questions": questions,
-                    }
-                )
+                all_tasks.append(("secondary", i, task))
+
+            # Execute all tasks in parallel with robust error handling
+            logger.info(
+                f"[PERFORMANCE] Executing {len(all_tasks)} stakeholder question generation tasks in parallel..."
+            )
+
+            # Use asyncio.gather with return_exceptions=True to handle individual failures gracefully
+            task_results = await asyncio.gather(
+                *[task for _, _, task in all_tasks], return_exceptions=True
+            )
+
+            # Process results and organize by stakeholder type
+            enhanced_stakeholders = {"primary": [], "secondary": []}
+            successful_count = 0
+            failed_count = 0
+
+            for (stakeholder_type, original_index, _), result in zip(
+                all_tasks, task_results
+            ):
+                if isinstance(result, Exception):
+                    logger.error(
+                        f"[PERFORMANCE] Task failed for {stakeholder_type} stakeholder {original_index}: {result}"
+                    )
+                    failed_count += 1
+                    continue
+
+                # Remove helper fields and add to appropriate list
+                stakeholder_result = {
+                    "name": result["name"],
+                    "description": result["description"],
+                    "questions": result["questions"],
+                }
+                enhanced_stakeholders[stakeholder_type].append(stakeholder_result)
+                successful_count += 1
+
+            logger.info(
+                f"[PERFORMANCE] ✅ Parallel stakeholder question generation completed: "
+                f"{successful_count} successful, {failed_count} failed out of {total_stakeholders} total"
+            )
 
             return enhanced_stakeholders
 
         except Exception as e:
             logger.error(f"Stakeholder question generation failed: {e}")
             return stakeholder_data  # Return original data without questions
+
+    async def _generate_stakeholder_specific_questions_with_semaphore(
+        self,
+        llm_service,
+        stakeholder_name: str,
+        stakeholder_description: str,
+        business_idea: str,
+        target_customer: str,
+        problem: str,
+        stakeholder_type: str,
+        semaphore: asyncio.Semaphore,
+        stakeholder_index: int,
+    ) -> Dict[str, Any]:
+        """Generate stakeholder-specific questions with semaphore control for parallel processing"""
+        async with semaphore:
+            try:
+                logger.info(
+                    f"[PERFORMANCE] Generating questions for stakeholder {stakeholder_index}: {stakeholder_name} ({stakeholder_type})"
+                )
+
+                questions = await self._generate_stakeholder_specific_questions(
+                    llm_service,
+                    stakeholder_name,
+                    stakeholder_description,
+                    business_idea,
+                    target_customer,
+                    problem,
+                    stakeholder_type,
+                )
+
+                logger.info(
+                    f"[PERFORMANCE] ✅ Completed questions for stakeholder {stakeholder_index}: {stakeholder_name}"
+                )
+
+                return {
+                    "name": stakeholder_name,
+                    "description": stakeholder_description,
+                    "questions": questions,
+                    "type": stakeholder_type,
+                    "index": stakeholder_index,
+                }
+
+            except Exception as e:
+                logger.error(
+                    f"[PERFORMANCE] ❌ Failed to generate questions for stakeholder {stakeholder_index}: {stakeholder_name} - {e}"
+                )
+                # Return basic structure without questions on failure
+                return {
+                    "name": stakeholder_name,
+                    "description": stakeholder_description,
+                    "questions": {
+                        "problemDiscovery": [],
+                        "solutionValidation": [],
+                        "followUp": [],
+                    },
+                    "type": stakeholder_type,
+                    "index": stakeholder_index,
+                }
 
     async def _generate_stakeholder_specific_questions(
         self,

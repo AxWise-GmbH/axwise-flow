@@ -5,7 +5,8 @@ Gemini LLM service implementation.
 import logging
 import json
 from typing import Dict, Any, List, Optional
-from domain.interfaces.llm_unified import ILLMService
+from pydantic import BaseModel
+from backend.domain.interfaces.llm_unified import ILLMService
 from backend.services.llm.base_llm_service import BaseLLMService
 from backend.services.llm.gemini_service import GeminiService
 from backend.services.llm.exceptions import LLMResponseParseError
@@ -41,16 +42,22 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         # The actual prompt/system message for GeminiService is determined by the 'task'
         # and other data within the 'request' dict itself, handled by GeminiService.analyze
         # or its underlying prompt generation logic.
-        logger.debug(f"[{self.__class__.__name__}] _get_system_message called for task: {task}. Returning None.")
-        return None # Or an empty string, depending on how _call_llm_api expects it if not used.
+        logger.debug(
+            f"[{self.__class__.__name__}] _get_system_message called for task: {task}. Returning None."
+        )
+        return None  # Or an empty string, depending on how _call_llm_api expects it if not used.
 
-    async def _call_llm_api(self, system_message: Any, text: str, task: str, request: Dict[str, Any]) -> Any:
+    async def _call_llm_api(
+        self, system_message: Any, text: str, task: str, request: Dict[str, Any]
+    ) -> Any:
         """
         Call the underlying GeminiService.analyze method.
         The 'system_message' and 'text' from BaseLLMService.analyze are ignored here
         as self.service.analyze (GeminiService.analyze) expects all necessary info in the 'request' dict.
         """
-        logger.debug(f"[{self.__class__.__name__}] _call_llm_api called for task: {task}. Delegating to self.service.analyze.")
+        logger.debug(
+            f"[{self.__class__.__name__}] _call_llm_api called for task: {task}. Delegating to self.service.analyze."
+        )
         # The 'text' and 'task' are passed directly.
         # The 'request' dictionary (which is request_data_for_provider from BaseLLMService)
         # is passed as the 'data' argument to GeminiService.analyze, containing additional parameters.
@@ -61,13 +68,24 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         Parse the response from self.service.analyze (GeminiService.analyze).
         Ensures the return type is Dict[str, Any] as expected by BaseLLMService.
         """
-        logger.debug(f"[{self.__class__.__name__}] _parse_llm_response received for task {task}. Type: {type(response)}")
+        logger.debug(
+            f"[{self.__class__.__name__}] _parse_llm_response received for task {task}. Type: {type(response)}"
+        )
         if isinstance(response, str):
             # If GeminiService returned a raw string, try to parse it as JSON.
             # Use the base class's _parse_llm_json_response which includes repair logic.
-            parsed_dict = super()._parse_llm_json_response(response, context=f"{self.__class__.__name__}._parse_llm_response for task {task}")
-            if not parsed_dict and task == "transcript_structuring": # Ensure specific error structure if parsing completely fails
-                 return {"segments": [], "error": "Failed to parse LLM string response after repair.", "type": "structured_transcript"}
+            parsed_dict = super()._parse_llm_json_response(
+                response,
+                context=f"{self.__class__.__name__}._parse_llm_response for task {task}",
+            )
+            if (
+                not parsed_dict and task == "transcript_structuring"
+            ):  # Ensure specific error structure if parsing completely fails
+                return {
+                    "segments": [],
+                    "error": "Failed to parse LLM string response after repair.",
+                    "type": "structured_transcript",
+                }
             elif not parsed_dict:
                 return {"error": "Failed to parse LLM string response after repair."}
             return parsed_dict
@@ -75,24 +93,36 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             # For transcript_structuring, GeminiService.analyze is expected to return a list.
             # BaseLLMService.analyze pipeline expects a Dict, so we wrap it.
             if task == "transcript_structuring":
-                logger.debug(f"Task is {task}, wrapping list response into dict with 'segments' key.")
+                logger.debug(
+                    f"Task is {task}, wrapping list response into dict with 'segments' key."
+                )
                 return {"segments": response}
             else:
                 # For other tasks, if a list is returned unexpectedly, wrap it generically.
-                logger.warning(f"Task {task} received a list, wrapping with 'data' key.")
+                logger.warning(
+                    f"Task {task} received a list, wrapping with 'data' key."
+                )
                 return {"data": response}
         elif isinstance(response, dict):
             # If GeminiService already returned a dict (e.g., an error dict or a pre-formatted result for other tasks)
             return response
         else:
-            logger.error(f"Unexpected response type from self.service.analyze for task {task}: {type(response)}")
-            raise LLMResponseParseError(f"Unexpected response type from LLM for task {task}: {type(response)}")
+            logger.error(
+                f"Unexpected response type from self.service.analyze for task {task}: {type(response)}"
+            )
+            raise LLMResponseParseError(
+                f"Unexpected response type from LLM for task {task}: {type(response)}"
+            )
 
-    def _post_process_results(self, result: Dict[str, Any], task: str) -> Dict[str, Any]:
+    def _post_process_results(
+        self, result: Dict[str, Any], task: str
+    ) -> Dict[str, Any]:
         """
         Post-process results. For now, it's a pass-through.
         """
-        logger.debug(f"[{self.__class__.__name__}] _post_process_results for task {task}. Returning as is.")
+        logger.debug(
+            f"[{self.__class__.__name__}] _post_process_results for task {task}. Returning as is."
+        )
         # Specific post-processing can be added here if needed for GeminiLLMService
         return result
 
@@ -110,9 +140,7 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             The generated text
         """
         result = await self.service.analyze(
-            text=prompt,
-            task="text_generation",
-            data=kwargs
+            text=prompt, task="text_generation", data=kwargs
         )
 
         if isinstance(result, dict) and "text" in result:
@@ -122,7 +150,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         else:
             return str(result)
 
-    async def analyze_themes(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_themes(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze themes in interview data.
 
@@ -149,21 +179,20 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             task = "theme_analysis"
 
         # Prepare request data
-        request_data = {
-            "task": task,
-            "text": interview_text
-        }
+        request_data = {"task": task, "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for theme analysis: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for theme analysis: {industry}"
+            )
 
         # Call the Gemini service
         result = await self.service.analyze(
             text=interview_text,
             task=task,
-            data={"industry": industry} if industry else {}
+            data={"industry": industry} if industry else {},
         )
 
         # Add the industry to the result if provided
@@ -172,7 +201,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
 
         return result
 
-    async def analyze_patterns(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_patterns(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze patterns in interview data.
 
@@ -190,21 +221,20 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         interview_text = self._format_interview_text(interviews)
 
         # Prepare request data
-        request_data = {
-            "task": "pattern_recognition",
-            "text": interview_text
-        }
+        request_data = {"task": "pattern_recognition", "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for pattern recognition: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for pattern recognition: {industry}"
+            )
 
         # Call the Gemini service
         result = await self.service.analyze(
             text=interview_text,
             task="pattern_recognition",
-            data={"industry": industry} if industry else {}
+            data={"industry": industry} if industry else {},
         )
 
         # Add the industry to the result if provided
@@ -213,7 +243,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
 
         return result
 
-    async def analyze_sentiment(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def analyze_sentiment(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Analyze sentiment in interview data.
 
@@ -232,21 +264,20 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             interview_text = self._format_interview_text(interviews)
 
             # Prepare request data
-            request_data = {
-                "task": "sentiment_analysis",
-                "text": interview_text
-            }
+            request_data = {"task": "sentiment_analysis", "text": interview_text}
 
             # Add industry if provided
             if industry:
                 request_data["industry"] = industry
-                logger.info(f"Using industry-specific guidance for sentiment analysis: {industry}")
+                logger.info(
+                    f"Using industry-specific guidance for sentiment analysis: {industry}"
+                )
 
             # Call the Gemini service
             result = await self.service.analyze(
                 text=interview_text,
                 task="sentiment_analysis",
-                data={"industry": industry} if industry else {}
+                data={"industry": industry} if industry else {},
             )
 
             # Add the industry to the result if provided
@@ -258,7 +289,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             logger.error(f"Error in sentiment analysis: {str(e)}")
             return self._get_fallback_sentiment_result(industry=kwargs.get("industry"))
 
-    async def generate_personas(self, interviews: List[Dict[str, Any]], **kwargs) -> Dict[str, Any]:
+    async def generate_personas(
+        self, interviews: List[Dict[str, Any]], **kwargs
+    ) -> Dict[str, Any]:
         """
         Generate personas from interview data.
 
@@ -276,21 +309,20 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         interview_text = self._format_interview_text(interviews)
 
         # Prepare request data
-        request_data = {
-            "task": "persona_formation",
-            "text": interview_text
-        }
+        request_data = {"task": "persona_formation", "text": interview_text}
 
         # Add industry if provided
         if industry:
             request_data["industry"] = industry
-            logger.info(f"Using industry-specific guidance for persona formation: {industry}")
+            logger.info(
+                f"Using industry-specific guidance for persona formation: {industry}"
+            )
 
         # Call the Gemini service
         result = await self.service.analyze(
             text=interview_text,
             task="persona_formation",
-            data={"industry": industry} if industry else {}
+            data={"industry": industry} if industry else {},
         )
 
         # Add the industry to the result if provided
@@ -312,7 +344,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         interview_text = ""
         for i, interview in enumerate(interviews):
             question = interview.get("question", "")
-            answer = interview.get("answer", interview.get("response", interview.get("text", "")))
+            answer = interview.get(
+                "answer", interview.get("response", interview.get("text", ""))
+            )
 
             if question and answer:
                 interview_text += f"Q{i+1}: {question}\nA{i+1}: {answer}\n\n"
@@ -321,7 +355,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
 
         return interview_text
 
-    def _get_fallback_sentiment_result(self, industry: Optional[str] = None) -> Dict[str, Any]:
+    def _get_fallback_sentiment_result(
+        self, industry: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Get fallback sentiment result.
 
@@ -332,17 +368,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             Fallback sentiment result
         """
         result = {
-            "sentimentOverview": {
-                "positive": 0.33,
-                "neutral": 0.34,
-                "negative": 0.33
-            },
-            "sentimentStatements": {
-                "positive": [],
-                "neutral": [],
-                "negative": []
-            },
-            "fallback": True
+            "sentimentOverview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
+            "sentimentStatements": {"positive": [], "neutral": [], "negative": []},
+            "fallback": True,
         }
 
         # Add industry if provided
@@ -350,3 +378,82 @@ class GeminiLLMService(BaseLLMService, ILLMService):
             result["industry"] = industry
 
         return result
+
+    # --- Implementation of ILLMService abstract methods ---
+
+    async def generate_structured(
+        self, prompt: str, response_model: BaseModel, **kwargs
+    ) -> BaseModel:
+        """
+        Generate structured response using Pydantic model.
+
+        Args:
+            prompt: The prompt to generate structured response from
+            response_model: Pydantic model class for structured output
+            **kwargs: Additional parameters for the LLM service
+
+        Returns:
+            Instance of the response_model with structured data
+        """
+        try:
+            # Use the underlying GeminiService for structured generation
+            # The GeminiService should handle Pydantic model-based structured output
+            result = await self.service.analyze(
+                text=prompt,
+                task="structured_generation",
+                data={"response_model": response_model, **kwargs},
+            )
+
+            # If the result is already an instance of the response_model, return it
+            if isinstance(result, response_model):
+                return result
+
+            # If the result is a dict, try to create an instance of the response_model
+            if isinstance(result, dict):
+                return response_model(**result)
+
+            # If the result is a string, try to parse it as JSON and create the model
+            if isinstance(result, str):
+                try:
+                    parsed_data = json.loads(result)
+                    return response_model(**parsed_data)
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.error(f"Failed to parse structured response as JSON: {e}")
+                    raise LLMResponseParseError(
+                        f"Failed to parse structured response: {e}"
+                    )
+
+            # Fallback: try to create the model with the result as-is
+            return response_model(result)
+
+        except Exception as e:
+            logger.error(f"Error in structured generation: {str(e)}")
+            raise LLMResponseParseError(f"Structured generation failed: {str(e)}")
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        Get information about the model.
+
+        Returns:
+            Dictionary containing model information
+        """
+        return {
+            "provider": "gemini",
+            "model_name": (
+                self.service.get_model_name()
+                if hasattr(self.service, "get_model_name")
+                else self.model
+            ),
+            "service_class": self.__class__.__name__,
+            "underlying_service": "GeminiService",
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "capabilities": [
+                "text_generation",
+                "theme_analysis",
+                "pattern_analysis",
+                "sentiment_analysis",
+                "persona_generation",
+                "structured_generation",
+            ],
+        }

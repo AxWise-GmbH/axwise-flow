@@ -35,7 +35,7 @@ except ImportError as e:
     logging.warning(f"Enhanced features not available: {e}")
     ENHANCED_FEATURES_AVAILABLE = False
 
-from infrastructure.constants.llm_constants import (
+from backend.infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,
     GEMINI_TOP_P, GEMINI_TOP_K, ENV_GEMINI_API_KEY
 )

@@ -282,10 +282,59 @@ export class UnifiedSessionManager {
   }
 
   /**
+   * Ensure session is synced to backend before critical operations like questionnaire generation
+   */
+  async ensureSessionSynced(sessionId: string): Promise<boolean> {
+    try {
+      const session = await this.getSession(sessionId);
+      if (!session) {
+        console.warn(`Session ${sessionId} not found for sync`);
+        return false;
+      }
+
+      // If already synced, return true
+      if (session.syncStatus.isSynced) {
+        return true;
+      }
+
+      // Force sync to backend
+      if (this.isOnline) {
+        try {
+          await this.saveBackendSession(session);
+          session.syncStatus.isSynced = true;
+          session.syncStatus.lastSyncAt = new Date().toISOString();
+          session.syncStatus.syncError = undefined;
+
+          // Update cache
+          this.sessionCache.set(sessionId, session);
+          await this.saveLocalSession(session);
+
+          console.log(`✅ Session ${sessionId} successfully synced to backend`);
+          return true;
+        } catch (error) {
+          console.error(`❌ Failed to sync session ${sessionId}:`, error);
+          return false;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error(`❌ Error ensuring session sync for ${sessionId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Force sync all pending sessions to backend
    */
   async syncPendingSessions(): Promise<void> {
     if (!this.isOnline || this.syncQueue.size === 0) {
+      return;
+    }
+
+    // Prevent sync during active display to avoid flickering
+    if (typeof window !== 'undefined' && window.location.pathname.includes('research-chat-history')) {
+      console.log('⏸️ Sync paused during history page display to prevent flickering');
       return;
     }
 
@@ -338,11 +387,12 @@ export class UnifiedSessionManager {
   }
 
   private shouldSyncSession(session: any): boolean {
-    // Only sync sessions with meaningful data
+    // Sync sessions with meaningful conversation data, regardless of questionnaire status
     return !!(
       session.business_idea?.trim() &&
-      session.questions_generated &&
-      session.messages?.length >= 3 // Meaningful conversation
+      session.target_customer?.trim() &&
+      session.problem?.trim() &&
+      session.messages?.length >= 2 // At least user input + AI response
     );
   }
 

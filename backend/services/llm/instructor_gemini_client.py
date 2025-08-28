@@ -19,7 +19,7 @@ from google import genai
 import instructor
 from pydantic import BaseModel, ValidationError
 
-from infrastructure.constants.llm_constants import (
+from backend.infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME,
     GEMINI_TEMPERATURE,
     GEMINI_MAX_TOKENS,

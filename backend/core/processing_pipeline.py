@@ -24,6 +24,7 @@ def _convert_enhanced_persona_to_frontend_format(
         "demographics",
         "goals_and_motivations",
         "challenges_and_frustrations",
+        "key_quotes",  # IMPORTANT: Required by PersonaAPIResponse validation
         "skills_and_expertise",
         "workflow_and_environment",
         "pain_points",
@@ -49,6 +50,17 @@ def _convert_enhanced_persona_to_frontend_format(
                     "confidence": trait.get("confidence", 0.7),
                     "evidence": trait.get("evidence", []),
                 }
+
+    # RESTORE key_quotes from preserved metadata if it's missing
+    if "key_quotes" not in persona_dict or persona_dict["key_quotes"] is None:
+        preserved_key_quotes = persona_dict.get("persona_metadata", {}).get(
+            "preserved_key_quotes"
+        )
+        if preserved_key_quotes:
+            persona_dict["key_quotes"] = preserved_key_quotes
+            logger.info(
+                f"Restored key_quotes from metadata for persona: {persona_dict.get('name', 'Unknown')}"
+            )
 
     # Ensure stakeholder_intelligence is properly formatted
     if (
@@ -214,11 +226,20 @@ async def process_data(
                         f"{enhancement_result.conflicts_identified} conflicts identified"
                     )
 
-                # Remove separate stakeholder_intelligence field (now integrated into personas)
-                # This eliminates duplication between personas and stakeholder entities
-                logger.info(
-                    "✅ Stakeholder intelligence integrated into personas - no separate stakeholder entities"
-                )
+                # FIXED: Preserve stakeholder intelligence for database persistence
+                # Create stakeholder intelligence summary from enhanced personas
+                if enhancement_result and enhancement_result.enhanced_personas:
+                    stakeholder_summary = _create_stakeholder_intelligence_summary(
+                        enhancement_result.enhanced_personas
+                    )
+                    results["stakeholder_intelligence"] = stakeholder_summary
+                    logger.info(
+                        f"[STAKEHOLDER_DEBUG] ✅ Preserved stakeholder intelligence in results for database persistence"
+                    )
+                else:
+                    logger.info(
+                        "✅ Stakeholder intelligence integrated into personas - no separate stakeholder entities"
+                    )
 
             else:
                 logger.info("⚠️ No personas found for enhancement")
@@ -302,3 +323,59 @@ async def process_data(
     except Exception as e:
         logger.error(f"Error in processing pipeline: {str(e)}")
         raise
+
+
+def _create_stakeholder_intelligence_summary(
+    enhanced_personas: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Create stakeholder intelligence summary from enhanced personas for database persistence"""
+
+    detected_stakeholders = []
+    processing_metadata = {
+        "detection_method": "persona_enhancement",
+        "detection_confidence": 0.8,
+        "processing_timestamp": str(
+            id(enhanced_personas)
+        ),  # Simple timestamp alternative
+        "llm_analysis_available": True,
+        "persona_count": len(enhanced_personas),
+    }
+
+    # Extract stakeholder information from enhanced personas
+    for persona in enhanced_personas:
+        if isinstance(persona, dict):
+            stakeholder_info = {
+                "stakeholder_id": persona.get("name", "Unknown").replace(" ", "_"),
+                "stakeholder_type": "primary_customer",  # Default type
+                "demographic_info": {},
+                "individual_insights": {
+                    "goals": persona.get("goals_and_motivations", {}).get("value", ""),
+                    "challenges": persona.get("challenges_and_frustrations", {}).get(
+                        "value", ""
+                    ),
+                },
+                "influence_metrics": {
+                    "decision_power": 0.7,
+                    "technical_influence": 0.6,
+                    "budget_influence": 0.5,
+                },
+                "confidence": persona.get("overall_confidence", 0.7),
+                "authentic_evidence": {
+                    "quotes_evidence": persona.get("key_quotes", {}).get("evidence", [])
+                },
+            }
+
+            # Extract stakeholder type from persona if available
+            if "stakeholder_intelligence" in persona:
+                si = persona["stakeholder_intelligence"]
+                if isinstance(si, dict) and "stakeholder_type" in si:
+                    stakeholder_info["stakeholder_type"] = si["stakeholder_type"]
+
+            detected_stakeholders.append(stakeholder_info)
+
+    return {
+        "detected_stakeholders": detected_stakeholders,
+        "cross_stakeholder_patterns": None,  # Not available from personas
+        "multi_stakeholder_summary": None,  # Not available from personas
+        "processing_metadata": processing_metadata,
+    }

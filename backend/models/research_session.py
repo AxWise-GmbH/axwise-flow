@@ -147,6 +147,12 @@ class ResearchSessionSummary(BaseModel):
     question_count: int  # Count of questions in research_questions
     stakeholder_count: int  # Count of stakeholders in research_questions
     last_message_at: Optional[datetime]  # Last message timestamp
+    messages: Optional[List[Dict[str, Any]]] = (
+        []
+    )  # Include messages for frontend compatibility
+    research_questions: Optional[Dict[str, Any]] = (
+        None  # Include research questions for frontend compatibility
+    )
 
     class Config:
         from_attributes = True

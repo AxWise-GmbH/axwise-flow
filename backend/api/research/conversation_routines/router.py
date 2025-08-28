@@ -195,8 +195,17 @@ async def save_conversation_session(
         }
         all_messages.append(assistant_message)
 
-        # Try to get existing session
+        # Try to get existing session with fallback mechanism
         existing_session = service.get_session(request.session_id)
+
+        # If session not found in database but has local_ prefix, it might be a localStorage session
+        # that hasn't been synced yet. In this case, we should update the original session ID
+        # instead of creating a new one.
+        if not existing_session and request.session_id.startswith("local_"):
+            logger.info(
+                f"🔍 Session {request.session_id} not found in database - likely localStorage session"
+            )
+            # We'll create/update using the original session_id to maintain continuity
 
         if existing_session:
             # Update existing session
@@ -223,7 +232,8 @@ async def save_conversation_session(
             logger.info(f"✅ Updated existing session: {request.session_id}")
 
         else:
-            # Create new session with the specific session_id from request
+            # Create new session preserving the original session_id from request
+            # This ensures localStorage sessions maintain their ID when synced to database
             session_data = ResearchSessionCreate(
                 user_id=request.user_id,
                 business_idea=response.context.business_idea,
@@ -231,7 +241,9 @@ async def save_conversation_session(
                 problem=response.context.problem,
             )
 
-            # Create session with the specific session_id from request
+            # CRITICAL: Use the exact session_id from request to maintain continuity
+            # This prevents creating duplicate sessions for localStorage sessions
+            logger.info(f"📝 Creating session with preserved ID: {request.session_id}")
             new_session = service.create_session(session_data, request.session_id)
 
             # Update with conversation data

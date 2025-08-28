@@ -10,18 +10,18 @@ import asyncio
 import os
 from typing import Dict, Any, List, Optional, Union
 
-from models.pattern import Pattern, PatternResponse
-from services.llm.prompts.tasks.pattern_recognition import (
+from backend.models.pattern import Pattern, PatternResponse
+from backend.services.llm.prompts.tasks.pattern_recognition import (
     PatternRecognitionPrompts,
 )
-from domain.pipeline.processor import IProcessor
+from backend.infrastructure.api.processor import IProcessor
 
 # PydanticAI imports
 from pydantic_ai import Agent
 from pydantic_ai.models.gemini import GeminiModel
 
 # Import constants for API key
-from infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
+from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,74 @@ class PatternProcessor(IProcessor):
             "All pattern generation methods failed, returning empty patterns"
         )
         return PatternResponse(patterns=[])
+
+    def get_processor_info(self) -> Dict[str, Any]:
+        """
+        Get information about the processor.
+
+        Returns:
+            Dictionary containing processor information
+        """
+        return {
+            "name": self.name,
+            "description": self.description,
+            "version": self.version,
+            "input_types": ["str", "dict"],
+            "output_type": "PatternResponse",
+            "pydantic_ai_available": self.pydantic_ai_available,
+            "capabilities": [
+                "pattern_recognition",
+                "behavioral_analysis",
+                "theme_to_pattern_conversion",
+                "structured_output",
+            ],
+        }
+
+    def validate_input(self, data: Dict[str, Any]) -> bool:
+        """
+        Validate input data.
+
+        Args:
+            data: Input data to validate
+
+        Returns:
+            True if input is valid, False otherwise
+        """
+        if not data:
+            logger.warning("Empty data provided for pattern processing")
+            return False
+
+        # Check if data contains text or extractable content
+        if isinstance(data, str):
+            return len(data.strip()) > 0
+
+        if isinstance(data, dict):
+            # Check for text content in various possible keys
+            text_keys = ["text", "content", "transcript", "interview_data", "free_text"]
+            has_text = any(
+                key in data
+                and data[key]
+                and isinstance(data[key], str)
+                and len(data[key].strip()) > 0
+                for key in text_keys
+            )
+
+            if has_text:
+                return True
+
+            # Check for themes that could be converted to patterns
+            if (
+                "themes" in data
+                and isinstance(data["themes"], list)
+                and len(data["themes"]) > 0
+            ):
+                return True
+
+            logger.warning("No valid text content or themes found in data")
+            return False
+
+        logger.warning(f"Unsupported data type for pattern processing: {type(data)}")
+        return False
 
     def _extract_text(self, data: Any) -> str:
         """

@@ -48,11 +48,20 @@ class ResearchSessionService:
                 )
                 return existing_session
             else:
-                # Session exists but belongs to different user - generate new ID
-                target_session_id = str(uuid.uuid4())
-                logger.info(
-                    f"🔀 Session ID collision detected, generating new ID: {target_session_id}"
-                )
+                # Session exists but belongs to different user
+                # For local_ sessions, this is likely a localStorage sync issue, not a real collision
+                if target_session_id.startswith("local_"):
+                    logger.warning(
+                        f"🔍 Local session {target_session_id} exists with different user - this may indicate a sync issue"
+                    )
+                    # For now, proceed with the original ID to maintain continuity
+                    # In production, you might want more sophisticated user validation
+                else:
+                    # Generate new ID only for non-local sessions
+                    target_session_id = str(uuid.uuid4())
+                    logger.info(
+                        f"🔀 Session ID collision detected, generating new ID: {target_session_id}"
+                    )
 
         # Attempt to create new session with retry logic for collisions
         max_retries = 3
@@ -221,46 +230,44 @@ class ResearchSessionService:
         export_format: str,
         file_path: Optional[str] = None,
     ) -> ResearchExport:
-        """Create an export record."""
+        """Create an export record (Pydantic model, not persisted to database)."""
+        from datetime import datetime
 
+        # Create a Pydantic model instance (not persisted to database)
         export = ResearchExport(
+            id=None,  # Not persisted, so no database ID
             session_id=session_id,
             export_type=export_type,
             export_format=export_format,
             file_path=file_path,
+            created_at=datetime.utcnow(),
         )
 
-        self.db.add(export)
-        self.db.commit()
-        self.db.refresh(export)
-
+        logger.info(f"📤 Created export record for session: {session_id}")
         return export
 
     def get_session_exports(self, session_id: str) -> List[ResearchExport]:
-        """Get all exports for a session."""
-        return (
-            self.db.query(ResearchExport)
-            .filter(ResearchExport.session_id == session_id)
-            .order_by(desc(ResearchExport.created_at))
-            .all()
-        )
+        """Get all exports for a session (returns empty list as exports are not persisted)."""
+        # ResearchExport is a Pydantic model, not stored in database
+        # Return empty list as exports are handled at the API level, not persisted
+        logger.info(f"📋 Getting exports for session: {session_id} (not persisted)")
+        return []
 
     def delete_session(self, session_id: str) -> bool:
-        """Delete a research session and its exports."""
+        """Delete a research session."""
 
         session = self.get_session(session_id)
         if not session:
             return False
 
-        # Delete exports first
-        self.db.query(ResearchExport).filter(
-            ResearchExport.session_id == session_id
-        ).delete()
+        # Note: ResearchExport is a Pydantic model, not stored in database
+        # No need to delete exports as they're not persisted in the database
 
         # Delete session
         self.db.delete(session)
         self.db.commit()
 
+        logger.info(f"✅ Successfully deleted session: {session_id}")
         return True
 
     def add_message(

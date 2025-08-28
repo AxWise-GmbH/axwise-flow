@@ -8,7 +8,7 @@ from backend.services.llm import LLMServiceFactory
 from backend.services.processing.persona_formation_service import (
     PersonaFormationService,
 )
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 
 # Configuration values
 ENABLE_CLERK_...=***REMOVED***"enable_clerk_validation", False)

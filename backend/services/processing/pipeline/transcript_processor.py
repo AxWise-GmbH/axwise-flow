@@ -10,15 +10,22 @@ import re
 import json
 from typing import Any, Dict, List, Optional, Union, Type
 
-from backend.domain.models.transcript import TranscriptSegment, TranscriptMetadata, StructuredTranscript
+from backend.models.transcript import (
+    TranscriptSegment,
+    TranscriptMetadata,
+    StructuredTranscript,
+)
 from backend.services.processing.pipeline.base_processor import BaseProcessor
-from backend.services.processing.transcript_structuring_service import TranscriptStructuringPrompts
+from backend.services.processing.transcript_structuring_service import (
+    TranscriptStructuringPrompts,
+)
 from backend.services.processing.content_type_detector import ContentTypeDetector
 from backend.services.processing.request_builder import RequestBuilder
 from backend.services.processing.llm_request_cache import LLMRequestCache
 from backend.utils.json import JSONProcessor
 
 logger = logging.getLogger(__name__)
+
 
 class TranscriptProcessor(BaseProcessor):
     """
@@ -40,7 +47,7 @@ class TranscriptProcessor(BaseProcessor):
         super().__init__(
             name="TranscriptProcessor",
             description="Processes raw transcript data into a structured format",
-            version="1.0.0"
+            version="1.0.0",
         )
         self._llm_service = llm_service
 
@@ -69,16 +76,15 @@ class TranscriptProcessor(BaseProcessor):
         context["content_info"] = content_info
 
         # Structure the transcript
-        structured_segments = await self._structure_transcript(raw_text, filename, content_info)
+        structured_segments = await self._structure_transcript(
+            raw_text, filename, content_info
+        )
 
         # Create metadata
         metadata = self._create_metadata(filename, content_info, context)
 
         # Return structured transcript
-        return {
-            "segments": structured_segments,
-            "metadata": metadata
-        }
+        return {"segments": structured_segments, "metadata": metadata}
 
     def _extract_text_and_filename(self, data: Any) -> tuple:
         """
@@ -141,7 +147,9 @@ class TranscriptProcessor(BaseProcessor):
         # Use the dedicated ContentTypeDetector class
         return ContentTypeDetector.detect(raw_text)
 
-    async def _structure_transcript(self, raw_text: str, filename: str, content_info: Dict[str, Any]) -> List[Dict[str, str]]:
+    async def _structure_transcript(
+        self, raw_text: str, filename: str, content_info: Dict[str, Any]
+    ) -> List[Dict[str, str]]:
         """
         Structure a raw interview transcript.
 
@@ -167,40 +175,61 @@ class TranscriptProcessor(BaseProcessor):
 
             # Add special instructions based on content type
             if content_info["is_problem_focused"]:
-                logger.info("Detected problem-focused interview content. Using special handling.")
-                prompt = prompt + "\n\nIMPORTANT: This appears to be a problem-focused interview. Focus on accurately structuring the dialogue without interpreting the content. Ensure the output is a valid JSON array with proper speaker_id, role, and dialogue fields."
+                logger.info(
+                    "Detected problem-focused interview content. Using special handling."
+                )
+                prompt = (
+                    prompt
+                    + "\n\nIMPORTANT: This appears to be a problem-focused interview. Focus on accurately structuring the dialogue without interpreting the content. Ensure the output is a valid JSON array with proper speaker_id, role, and dialogue fields."
+                )
 
             if content_info["has_timestamps"]:
-                logger.info("Detected timestamps in interview content. Using special handling.")
-                prompt = prompt + "\n\nIMPORTANT: This transcript contains timestamps. Please preserve the timestamps in the speaker_id field or add them to a separate timestamp field for each dialogue segment."
+                logger.info(
+                    "Detected timestamps in interview content. Using special handling."
+                )
+                prompt = (
+                    prompt
+                    + "\n\nIMPORTANT: This transcript contains timestamps. Please preserve the timestamps in the speaker_id field or add them to a separate timestamp field for each dialogue segment."
+                )
 
             # Build the request using the RequestBuilder
             request_data = RequestBuilder.build_transcript_request(
                 text=raw_text,
                 prompt=prompt,
                 content_info=content_info,
-                filename=filename
+                filename=filename,
             )
 
             # Call the LLM service with caching
-            llm_response = await LLMRequestCache.get_or_compute(request_data, self._llm_service)
+            llm_response = await LLMRequestCache.get_or_compute(
+                request_data, self._llm_service
+            )
 
             # Parse the LLM response
             structured_transcript = self._parse_llm_response(llm_response)
 
             # If problem-focused content and still no valid structure, try fallback method
             if content_info["is_problem_focused"] and not structured_transcript:
-                logger.warning("Problem-focused content failed to structure. Trying fallback method.")
+                logger.warning(
+                    "Problem-focused content failed to structure. Trying fallback method."
+                )
                 structured_transcript = self._extract_transcript_manually(raw_text)
 
             # If high complexity content and still no valid structure, try fallback method
-            if content_info["content_complexity"] == "high" and not structured_transcript:
-                logger.warning("High complexity content failed to structure. Trying fallback method.")
+            if (
+                content_info["content_complexity"] == "high"
+                and not structured_transcript
+            ):
+                logger.warning(
+                    "High complexity content failed to structure. Trying fallback method."
+                )
                 structured_transcript = self._extract_transcript_manually(raw_text)
 
             # If we still don't have a valid structure, try manual extraction
             if not structured_transcript:
-                logger.warning("LLM structuring failed. Falling back to manual extraction.")
+                logger.warning(
+                    "LLM structuring failed. Falling back to manual extraction."
+                )
                 structured_transcript = self._extract_transcript_manually(raw_text)
 
             return structured_transcript
@@ -249,7 +278,9 @@ class TranscriptProcessor(BaseProcessor):
             logger.error(f"Error parsing LLM response: {str(e)}", exc_info=True)
             return []
 
-    def _validate_and_fix_segments(self, segments: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    def _validate_and_fix_segments(
+        self, segments: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
         """
         Validate and fix transcript segments.
 
@@ -279,11 +310,13 @@ class TranscriptProcessor(BaseProcessor):
             if segment["role"] not in ["Interviewer", "Interviewee", "Participant"]:
                 segment["role"] = "Participant"
 
-            valid_segments.append({
-                "speaker_id": str(segment["speaker_id"]),
-                "role": str(segment["role"]),
-                "dialogue": str(segment["dialogue"])
-            })
+            valid_segments.append(
+                {
+                    "speaker_id": str(segment["speaker_id"]),
+                    "role": str(segment["role"]),
+                    "dialogue": str(segment["dialogue"]),
+                }
+            )
 
         return valid_segments
 
@@ -348,7 +381,9 @@ class TranscriptProcessor(BaseProcessor):
             logger.error(f"Error extracting partial data: {str(e)}")
             return []
 
-    def _extract_from_unstructured_response(self, response: str) -> List[Dict[str, str]]:
+    def _extract_from_unstructured_response(
+        self, response: str
+    ) -> List[Dict[str, str]]:
         """
         Extract structured data from an unstructured response.
 
@@ -364,13 +399,15 @@ class TranscriptProcessor(BaseProcessor):
                 response = str(response)
 
             # Try to find JSON-like structures in the response
-            json_pattern = r'(\[|\{).*?(\]|\})'
+            json_pattern = r"(\[|\{).*?(\]|\})"
             matches = re.findall(json_pattern, response, re.DOTALL)
 
             for match in matches:
                 try:
                     # Try to parse the match as JSON
-                    json_str = response[response.find(match[0]):response.rfind(match[1]) + 1]
+                    json_str = response[
+                        response.find(match[0]) : response.rfind(match[1]) + 1
+                    ]
                     parsed = json.loads(json_str)
 
                     if isinstance(parsed, dict) and "segments" in parsed:
@@ -418,7 +455,9 @@ class TranscriptProcessor(BaseProcessor):
             # If no matches found, create a fallback transcript
             return self._create_fallback_transcript(text)
         except Exception as e:
-            logger.error(f"Error in manual transcript extraction: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error in manual transcript extraction: {str(e)}", exc_info=True
+            )
             # Return a minimal transcript with the entire text
             return self._create_fallback_transcript(text)
 
@@ -433,12 +472,18 @@ class TranscriptProcessor(BaseProcessor):
             Preprocessed text
         """
         # Detect if this is a transcript with a header section
-        lines = text.split('\n')
+        lines = text.split("\n")
         content_lines = []
 
         # Check for common header patterns
         has_header = False
-        header_keywords = ["transcript", "interview", "conversation", "date:", "attendees:"]
+        header_keywords = [
+            "transcript",
+            "interview",
+            "conversation",
+            "date:",
+            "attendees:",
+        ]
         header_line_count = 0
 
         # Count potential header lines
@@ -449,13 +494,15 @@ class TranscriptProcessor(BaseProcessor):
 
         # Skip header lines if detected
         if has_header:
-            logger.info(f"Detected header section with {header_line_count} lines, skipping for content extraction")
+            logger.info(
+                f"Detected header section with {header_line_count} lines, skipping for content extraction"
+            )
             content_lines = lines[header_line_count:]
         else:
             content_lines = lines
 
         # Join the content lines
-        return '\n'.join(content_lines)
+        return "\n".join(content_lines)
 
     def _extract_speaker_turns(self, text: str) -> List[tuple]:
         """
@@ -469,11 +516,14 @@ class TranscriptProcessor(BaseProcessor):
         """
         # Try different regex patterns for speaker extraction
         # First try the standard "Name: Text" format
-        pattern1 = re.compile(r'([^:]+):\s*(.+?)(?=\n[^:]+:|$)', re.DOTALL)
+        pattern1 = re.compile(r"([^:]+):\s*(.+?)(?=\n[^:]+:|$)", re.DOTALL)
         matches1 = pattern1.findall(text)
 
         # Also try timestamp pattern "[00:00:00] Name: Text"
-        pattern2 = re.compile(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([^:]+):\s*(.+?)(?=\n\[?\d{1,2}:\d{2}|$)', re.DOTALL)
+        pattern2 = re.compile(
+            r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([^:]+):\s*(.+?)(?=\n\[?\d{1,2}:\d{2}|$)",
+            re.DOTALL,
+        )
         matches2 = pattern2.findall(text)
 
         # Use the pattern that found more matches
@@ -493,18 +543,20 @@ class TranscriptProcessor(BaseProcessor):
         for speaker, dialogue in matches:
             speaker_clean = speaker.strip()
             # Remove timestamps if present
-            speaker_clean = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', speaker_clean)
+            speaker_clean = re.sub(
+                r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_clean
+            )
 
             if speaker_clean not in speakers:
                 speakers[speaker_clean] = {
                     "count": 0,
                     "avg_length": 0,
-                    "question_marks": 0
+                    "question_marks": 0,
                 }
 
             speakers[speaker_clean]["count"] += 1
             speakers[speaker_clean]["avg_length"] += len(dialogue)
-            speakers[speaker_clean]["question_marks"] += dialogue.count('?')
+            speakers[speaker_clean]["question_marks"] += dialogue.count("?")
 
         # Calculate averages
         for speaker in speakers:
@@ -513,7 +565,9 @@ class TranscriptProcessor(BaseProcessor):
 
         return speakers
 
-    def _determine_speaker_roles(self, speakers: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
+    def _determine_speaker_roles(
+        self, speakers: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, str]:
         """
         Determine roles for speakers based on their characteristics.
 
@@ -533,10 +587,16 @@ class TranscriptProcessor(BaseProcessor):
             speaker2 = speaker_list[1]
 
             # Compare question frequency
-            if speakers[speaker1]["question_marks"] > speakers[speaker2]["question_marks"]:
+            if (
+                speakers[speaker1]["question_marks"]
+                > speakers[speaker2]["question_marks"]
+            ):
                 roles[speaker1] = "Interviewer"
                 roles[speaker2] = "Interviewee"
-            elif speakers[speaker2]["question_marks"] > speakers[speaker1]["question_marks"]:
+            elif (
+                speakers[speaker2]["question_marks"]
+                > speakers[speaker1]["question_marks"]
+            ):
                 roles[speaker1] = "Interviewee"
                 roles[speaker2] = "Interviewer"
             # If question counts are equal, compare response length
@@ -550,20 +610,32 @@ class TranscriptProcessor(BaseProcessor):
             # For more than 2 speakers, use heuristics
             for speaker in speakers:
                 # Check for interviewer keywords in speaker name
-                if any(keyword in speaker.lower() for keyword in ["interviewer", "moderator", "facilitator"]):
+                if any(
+                    keyword in speaker.lower()
+                    for keyword in ["interviewer", "moderator", "facilitator"]
+                ):
                     roles[speaker] = "Interviewer"
                 # Check for interviewee keywords in speaker name
-                elif any(keyword in speaker.lower() for keyword in ["interviewee", "participant", "respondent"]):
+                elif any(
+                    keyword in speaker.lower()
+                    for keyword in ["interviewee", "participant", "respondent"]
+                ):
                     roles[speaker] = "Interviewee"
                 # Otherwise, determine based on question frequency and response length
-                elif speakers[speaker]["question_marks"] / max(speakers[speaker]["count"], 1) > 0.5:
+                elif (
+                    speakers[speaker]["question_marks"]
+                    / max(speakers[speaker]["count"], 1)
+                    > 0.5
+                ):
                     roles[speaker] = "Interviewer"
                 else:
                     roles[speaker] = "Participant"
 
         return roles
 
-    def _create_structured_transcript(self, matches: List[tuple], roles: Dict[str, str]) -> List[Dict[str, str]]:
+    def _create_structured_transcript(
+        self, matches: List[tuple], roles: Dict[str, str]
+    ) -> List[Dict[str, str]]:
         """
         Create a structured transcript from matches and roles.
 
@@ -578,16 +650,20 @@ class TranscriptProcessor(BaseProcessor):
         for speaker, dialogue in matches:
             speaker_clean = speaker.strip()
             # Remove timestamps if present
-            speaker_clean = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', speaker_clean)
+            speaker_clean = re.sub(
+                r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_clean
+            )
 
             # Get role for this speaker
             role = roles.get(speaker_clean, "Participant")
 
-            structured_transcript.append({
-                "speaker_id": speaker_clean,
-                "role": role,
-                "dialogue": dialogue.strip()
-            })
+            structured_transcript.append(
+                {
+                    "speaker_id": speaker_clean,
+                    "role": role,
+                    "dialogue": dialogue.strip(),
+                }
+            )
 
         return structured_transcript
 
@@ -602,13 +678,13 @@ class TranscriptProcessor(BaseProcessor):
             List with a single transcript segment
         """
         logger.warning("Could not extract structured transcript, creating single entry")
-        return [{
-            "speaker_id": "Unknown",
-            "role": "Participant",
-            "dialogue": text.strip()
-        }]
+        return [
+            {"speaker_id": "Unknown", "role": "Participant", "dialogue": text.strip()}
+        ]
 
-    def _create_metadata(self, filename: str, content_info: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_metadata(
+        self, filename: str, content_info: Dict[str, Any], context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Create metadata for the transcript.
 
@@ -623,7 +699,7 @@ class TranscriptProcessor(BaseProcessor):
         metadata = {
             "filename": filename,
             "content_type": content_info,
-            "source_type": "interview"  # Default source type
+            "source_type": "interview",  # Default source type
         }
 
         # Add industry if available in context

@@ -11,7 +11,7 @@ from backend.models import User, InterviewData, AnalysisResult
 from backend.services.llm import LLMServiceFactory
 from backend.services.nlp import get_nlp_processor
 from backend.core.processing_pipeline import process_data
-from infrastructure.config.settings import settings
+from backend.infrastructure.config.settings import settings
 from backend.schemas import DetailedAnalysisResult, StakeholderIntelligence
 from backend.utils.timezone_utils import utc_now
 
@@ -699,15 +699,27 @@ class AnalysisService:
 
             # CRITICAL FIX: Save stakeholder intelligence to dedicated database field
             if "stakeholder_intelligence" in current_results:
-                task_result.stakeholder_intelligence = current_results[
-                    "stakeholder_intelligence"
-                ]
+                stakeholder_data = current_results["stakeholder_intelligence"]
+                task_result.stakeholder_intelligence = stakeholder_data
                 logger.info(
                     f"[STAKEHOLDER_DEBUG] ✅ Saved stakeholder intelligence to database field for result_id: {result_id}"
                 )
+                logger.info(
+                    f"[STAKEHOLDER_DEBUG] Stakeholder data keys: {list(stakeholder_data.keys()) if isinstance(stakeholder_data, dict) else 'Not a dict'}"
+                )
+                if (
+                    isinstance(stakeholder_data, dict)
+                    and "detected_stakeholders" in stakeholder_data
+                ):
+                    logger.info(
+                        f"[STAKEHOLDER_DEBUG] Number of detected stakeholders: {len(stakeholder_data['detected_stakeholders'])}"
+                    )
             else:
                 logger.warning(
                     f"[STAKEHOLDER_DEBUG] ⚠️ No stakeholder intelligence found in results for result_id: {result_id}"
+                )
+                logger.info(
+                    f"[STAKEHOLDER_DEBUG] Available result keys: {list(current_results.keys())}"
                 )
 
             # Save the merged results

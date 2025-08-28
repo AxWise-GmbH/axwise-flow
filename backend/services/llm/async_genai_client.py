@@ -95,6 +95,7 @@ class AsyncGenAIClient:
                 max_retries=max_retries,
                 initial_delay=initial_delay,
                 backoff_factor=backoff_factor,
+                task=task,
             )
 
             # Parse the response
@@ -155,6 +156,7 @@ class AsyncGenAIClient:
                 max_retries=max_retries,
                 initial_delay=initial_delay,
                 backoff_factor=backoff_factor,
+                task=task,
             )
 
             # Yield content chunks
@@ -224,6 +226,66 @@ class AsyncGenAIClient:
             else:
                 return prompt
 
+    def _calculate_dynamic_timeout(
+        self, prompt: List[Union[str, Content]], task: Union[str, TaskType] = None
+    ) -> float:
+        """
+        Calculate dynamic timeout based on content size and task complexity.
+
+        Args:
+            prompt: The prompt content to analyze
+            task: Task type for complexity-based timeout adjustment
+
+        Returns:
+            Timeout in seconds
+        """
+        # Calculate total content length
+        total_length = 0
+        for item in prompt:
+            if isinstance(item, str):
+                total_length += len(item)
+            elif hasattr(item, "parts"):
+                for part in item.parts:
+                    if hasattr(part, "text"):
+                        total_length += len(part.text)
+
+        # Base timeout varies by task complexity
+        if task == TaskType.TRANSCRIPT_STRUCTURING or task == "transcript_structuring":
+            # Transcript structuring is much more complex - needs longer base timeout
+            base_timeout = 180.0  # 3 minutes base instead of 2
+            complexity_multiplier = 3.0  # 3x more time per character
+        elif task in [
+            TaskType.THEME_ANALYSIS_ENHANCED,
+            TaskType.PATTERN_RECOGNITION,
+            "theme_analysis_enhanced",
+            "pattern_recognition",
+        ]:
+            # Complex analysis tasks need more time
+            base_timeout = 150.0  # 2.5 minutes base
+            complexity_multiplier = 2.0  # 2x more time per character
+        else:
+            # Standard tasks
+            base_timeout = 120.0  # 2 minutes base
+            complexity_multiplier = 1.0  # Standard time per character
+
+        # Add extra time for large content with task-specific multiplier
+        if total_length > 50000:  # 50K characters
+            extra_timeout = (total_length - 50000) / 1000.0 * complexity_multiplier
+            # Cap at maximum 20 minutes for very complex tasks
+            max_timeout = (
+                1200.0
+                if task == TaskType.TRANSCRIPT_STRUCTURING
+                or task == "transcript_structuring"
+                else 900.0
+            )
+            extra_timeout = min(extra_timeout, max_timeout - base_timeout)
+            base_timeout += extra_timeout
+            logger.info(
+                f"Large content detected ({total_length} chars), task: {task}, using {base_timeout:.1f}s timeout"
+            )
+
+        return base_timeout
+
     async def _generate_with_retry(
         self,
         model: str,
@@ -232,6 +294,7 @@ class AsyncGenAIClient:
         max_retries: int = 3,
         initial_delay: float = 1.0,
         backoff_factor: float = 2.0,
+        task: Union[str, TaskType] = None,
     ) -> Any:
         """
         Generate content with retry logic.
@@ -250,14 +313,17 @@ class AsyncGenAIClient:
         delay = initial_delay
         last_exception = None
 
+        # Calculate dynamic timeout based on content size and task complexity
+        timeout_seconds = self._calculate_dynamic_timeout(prompt, task)
+
         for attempt in range(max_retries):
             try:
-                # Make the API call with explicit timeout
+                # Make the API call with dynamic timeout
                 response = await asyncio.wait_for(
                     self.client.aio.models.generate_content(
                         model=model, contents=prompt, config=config
                     ),
-                    timeout=120.0,  # Reduced from 180s to 120s (2 minutes) for faster failure detection
+                    timeout=timeout_seconds,
                 )
                 return response
             except asyncio.TimeoutError as e:
@@ -308,6 +374,7 @@ class AsyncGenAIClient:
         max_retries: int = 3,
         initial_delay: float = 1.0,
         backoff_factor: float = 2.0,
+        task: Union[str, TaskType] = None,
     ) -> AsyncGenerator:
         """
         Generate content stream with retry logic.
@@ -326,14 +393,17 @@ class AsyncGenAIClient:
         delay = initial_delay
         last_exception = None
 
+        # Calculate dynamic timeout based on content size and task complexity
+        timeout_seconds = self._calculate_dynamic_timeout(prompt, task)
+
         for attempt in range(max_retries):
             try:
-                # Make the API call with explicit timeout
+                # Make the API call with dynamic timeout
                 stream = await asyncio.wait_for(
                     self.client.aio.models.generate_content_stream(
                         model=model, contents=prompt, config=config
                     ),
-                    timeout=120.0,  # Reduced from 180s to 120s (2 minutes) for faster failure detection
+                    timeout=timeout_seconds,
                 )
                 return stream
             except asyncio.TimeoutError as e:

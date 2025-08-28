@@ -204,7 +204,23 @@ function filterPersonaQuality(personas: Persona[]): Persona[] {
     return [];
   }
 
-  const filteredPersonas = personas.map(persona => {
+  // First filter out fallback personas
+  const nonFallbackPersonas = personas.filter(persona => {
+    // Check if persona is marked as fallback in metadata
+    const metadata = persona.metadata || persona.persona_metadata;
+    const isFallback = metadata?.is_fallback === true;
+
+    if (isFallback) {
+      console.log(`[PERSONA_FILTER] Excluding fallback persona: ${persona.name}`);
+      return false;
+    }
+
+    return true;
+  });
+
+  console.log(`[PERSONA_FILTER] Filtered out ${personas.length - nonFallbackPersonas.length} fallback personas`);
+
+  const filteredPersonas = nonFallbackPersonas.map(persona => {
     // First process structured demographics
     const withStructuredDemo = processStructuredDemographics(persona);
 

@@ -25,14 +25,14 @@ class ConversationContext(BaseModel):
 
     def is_sufficient_for_questions(self) -> bool:
         """Determine if we have enough context to generate research questions"""
-        # Core information check
+        # Core information check - standardized minimum lengths
         has_core_info = bool(
             self.business_idea
             and len(self.business_idea.strip()) >= 10
             and self.target_customer
             and len(self.target_customer.strip()) >= 5
             and self.problem
-            and len(self.problem.strip()) >= 5
+            and len(self.problem.strip()) >= 8  # Increased from 5 to 8 for consistency
         )
 
         # Efficiency triggers
@@ -64,14 +64,14 @@ class ConversationContext(BaseModel):
 
     def should_transition_to_questions(self) -> bool:
         """Determine if conversation should transition to question generation"""
-        # Require ALL three core fields to be present
+        # Require ALL three core fields to be present - standardized lengths
         has_all_required = (
             self.business_idea
             and len(self.business_idea.strip()) >= 10
             and self.target_customer
             and len(self.target_customer.strip()) >= 5
             and self.problem
-            and len(self.problem.strip()) >= 10
+            and len(self.problem.strip()) >= 8  # Reduced from 10 to 8 for consistency
         )
 
         return (
@@ -157,9 +157,28 @@ def detect_user_fatigue(message: str, previous_messages: List[str]) -> List[str]
             fatigue_signals.append("repetitive")
 
     # Explicit requests to move forward
-    forward_phrases = ["generate", "create", "make", "let's go", "proceed", "next"]
+    forward_phrases = [
+        "generate",
+        "create",
+        "make",
+        "let's go",
+        "proceed",
+        "next",
+        "continue",
+        "move on",
+    ]
     if any(phrase in message_lower for phrase in forward_phrases):
         fatigue_signals.append("explicit_request")
+
+    # Problem-specific fatigue signals
+    problem_fatigue_phrases = [
+        "that's the problem",
+        "the main issue",
+        "the biggest challenge",
+        "that's it",
+    ]
+    if any(phrase in message_lower for phrase in problem_fatigue_phrases):
+        fatigue_signals.append("problem_identified")
 
     return fatigue_signals
 
@@ -184,7 +203,15 @@ async def extract_context_from_messages(
 Extract business context from this conversation. Return ONLY a JSON object with these fields:
 - business_idea: Brief description of the business/product (or null if not clear)
 - target_customer: Who the customers are (or null if not mentioned)
-- problem: What problem is being solved (or null if not mentioned)
+- problem: What specific problem is being solved (or null if not mentioned)
+
+For the problem field, look for:
+- Pain points mentioned by the user
+- Challenges or difficulties described
+- Issues that need solving
+- Problems the business aims to address
+
+Be specific about the problem - avoid generic statements.
 
 Conversation:
 {conversation_text}

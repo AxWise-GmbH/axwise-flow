@@ -7,7 +7,7 @@ import pytest
 
 # Add project root to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from infrastructure.config.settings import Settings
+from backend.infrastructure.config.settings import Settings
 
 def test_database_config_defaults(monkeypatch):
     """Test default database configuration settings"""

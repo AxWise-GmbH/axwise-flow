@@ -9,7 +9,7 @@ from urllib.parse import quote_plus
 
 # Add project root to Python path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from infrastructure.config.settings import Settings
+from backend.infrastructure.config.settings import Settings
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

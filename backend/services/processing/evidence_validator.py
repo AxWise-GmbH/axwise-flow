@@ -180,11 +180,14 @@ class EvidenceValidator:
         },
     }
 
-    def __init__(self):
+    def __init__(self, keyword_highlighter=None):
         """Initialize the evidence validator."""
         self.all_domain_keywords = set()
         for category_keywords in self.DOMAIN_KEYWORDS.values():
             self.all_domain_keywords.update(category_keywords)
+
+        # Store reference to keyword highlighter for dynamic domain keywords
+        self.keyword_highlighter = keyword_highlighter
 
     def validate_persona_evidence(
         self, persona: Dict[str, Any]
@@ -313,12 +316,25 @@ class EvidenceValidator:
             )
             suggestions.append("Remove highlighting from generic function words")
 
-        # Calculate relevance score
+        # Calculate relevance score using both static and dynamic domain keywords
         if highlighted_keywords:
+            # Get dynamic domain keywords from highlighter if available
+            all_relevant_keywords = self.all_domain_keywords.copy()
+            if self.keyword_highlighter:
+                # Add dynamic domain keywords
+                if hasattr(self.keyword_highlighter, "dynamic_domain_keywords"):
+                    all_relevant_keywords.update(
+                        self.keyword_highlighter.dynamic_domain_keywords
+                    )
+                if hasattr(self.keyword_highlighter, "domain_core_terms"):
+                    all_relevant_keywords.update(
+                        self.keyword_highlighter.domain_core_terms
+                    )
+
             domain_relevant = sum(
                 1
                 for kw in highlighted_keywords
-                if kw.lower().strip() in self.all_domain_keywords
+                if kw.lower().strip() in all_relevant_keywords
             )
             relevance_ratio = domain_relevant / len(highlighted_keywords)
             total_score = relevance_ratio

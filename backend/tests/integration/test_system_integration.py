@@ -5,16 +5,16 @@ import pytest
 from typing import List, Dict, Any
 from datetime import datetime
 
-from infrastructure.events.event_system import event_manager, EventType
-from infrastructure.state.state_manager import state_manager
-from infrastructure.reliability.reliability_manager import reliability_manager
-from infrastructure.reliability.error_handler import (
+from backend.infrastructure.events.event_system import event_manager, EventType
+from backend.infrastructure.state.state_manager import state_manager
+from backend.infrastructure.reliability.reliability_manager import reliability_manager
+from backend.infrastructure.reliability.error_handler import (
     error_handler,
     ErrorSeverity,
     ErrorCategory,
     RecoveryStrategy
 )
-from infrastructure.events.processing_events import ProcessingStage, QualityMetrics
+from backend.infrastructure.events.processing_events import ProcessingStage, QualityMetrics
 
 # Test data
 TEST_PATTERN = {
