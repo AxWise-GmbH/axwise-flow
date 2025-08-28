@@ -967,6 +967,33 @@ class PersonaFormationService:
                 },
             }
 
+            # Calculate influence metrics for fallback persona
+            try:
+                influence_metrics = self._calculate_persona_influence_metrics(
+                    fallback_persona
+                )
+                fallback_persona["stakeholder_intelligence"] = {
+                    "influence_metrics": influence_metrics
+                }
+                logger.info(
+                    f"[FALLBACK_PERSONA] Added influence metrics for {stakeholder_category}: "
+                    f"decision_power={influence_metrics.get('decision_power', 0.5):.2f}, "
+                    f"technical_influence={influence_metrics.get('technical_influence', 0.5):.2f}, "
+                    f"budget_influence={influence_metrics.get('budget_influence', 0.5):.2f}"
+                )
+            except Exception as influence_error:
+                logger.error(
+                    f"[FALLBACK_PERSONA] Failed to calculate influence metrics for {stakeholder_category}: {influence_error}"
+                )
+                # Use default values if calculation fails
+                fallback_persona["stakeholder_intelligence"] = {
+                    "influence_metrics": {
+                        "decision_power": 0.5,
+                        "technical_influence": 0.5,
+                        "budget_influence": 0.5,
+                    }
+                }
+
             logger.info(
                 f"[FALLBACK_PERSONA] Created fallback persona for {stakeholder_category}"
             )
@@ -2222,6 +2249,41 @@ Generate a complete DirectPersona object with all required traits populated base
 
                 # Ensure we have a valid persona with required fields
                 if isinstance(persona_dict, dict) and persona_dict.get("name"):
+                    # Calculate influence metrics based on persona characteristics
+                    try:
+                        influence_metrics = self._calculate_persona_influence_metrics(
+                            persona_dict
+                        )
+
+                        # Add stakeholder intelligence with calculated influence metrics
+                        if "stakeholder_intelligence" not in persona_dict:
+                            persona_dict["stakeholder_intelligence"] = {}
+
+                        persona_dict["stakeholder_intelligence"][
+                            "influence_metrics"
+                        ] = influence_metrics
+
+                        logger.info(
+                            f"[SINGLE_STAKEHOLDER] Added influence metrics for {persona_dict.get('name', 'Unknown')}: "
+                            f"decision_power={influence_metrics.get('decision_power', 0.5):.2f}, "
+                            f"technical_influence={influence_metrics.get('technical_influence', 0.5):.2f}, "
+                            f"budget_influence={influence_metrics.get('budget_influence', 0.5):.2f}"
+                        )
+                    except Exception as influence_error:
+                        logger.error(
+                            f"[SINGLE_STAKEHOLDER] Failed to calculate influence metrics for {persona_dict.get('name', 'Unknown')}: {influence_error}"
+                        )
+                        # Use default values if calculation fails
+                        if "stakeholder_intelligence" not in persona_dict:
+                            persona_dict["stakeholder_intelligence"] = {}
+                        persona_dict["stakeholder_intelligence"][
+                            "influence_metrics"
+                        ] = {
+                            "decision_power": 0.5,
+                            "technical_influence": 0.5,
+                            "budget_influence": 0.5,
+                        }
+
                     logger.info(
                         f"[SINGLE_STAKEHOLDER] Successfully generated persona: {persona_dict.get('name', 'Unknown')}"
                     )
@@ -2642,16 +2704,101 @@ Generate a complete DirectPersona object with all required traits populated base
             description = persona.get("description", "").lower()
             archetype = persona.get("archetype", "").lower()
 
+            # Extract demographics information for additional context
+            demographics = persona.get("demographics", {})
+            roles_info = ""
+            professional_context = ""
+
+            if isinstance(demographics, dict):
+                # Handle structured demographics
+                if "roles" in demographics:
+                    roles_data = demographics["roles"]
+                    if isinstance(roles_data, dict) and "value" in roles_data:
+                        roles_info = str(roles_data["value"]).lower()
+                    elif isinstance(roles_data, str):
+                        roles_info = roles_data.lower()
+
+                if "professional_context" in demographics:
+                    context_data = demographics["professional_context"]
+                    if isinstance(context_data, dict) and "value" in context_data:
+                        professional_context = str(context_data["value"]).lower()
+                    elif isinstance(context_data, str):
+                        professional_context = context_data.lower()
+
             # Combine all text for analysis
-            combined_text = f"{name} {description} {archetype}".lower()
+            combined_text = f"{name} {description} {archetype} {roles_info} {professional_context}".lower()
 
             # Initialize default scores
             decision_power = 0.5
             technical_influence = 0.5
             budget_influence = 0.5
 
-            # Decision makers (high decision power, high budget influence)
+            # Mobile Gaming/Publishing Industry Leaders (high decision power, high budget influence)
             if any(
+                keyword in combined_text
+                for keyword in [
+                    "publishing lead",
+                    "hypercasual",
+                    "mobile publishing",
+                    "game publishing",
+                    "publishing director",
+                    "publishing manager",
+                ]
+            ):
+                decision_power = (
+                    0.95  # Very high - they control game publishing decisions
+                )
+                budget_influence = 0.9  # High - they manage publishing budgets
+                technical_influence = 0.7  # Good - understand game development
+
+            # Mobile Marketing/Brand Campaign Managers (high decision power, moderate budget influence)
+            elif any(
+                keyword in combined_text
+                for keyword in [
+                    "brand campaign manager",
+                    "mobile brand",
+                    "campaign manager",
+                    "mobile marketing",
+                    "marketing director",
+                    "brand manager",
+                ]
+            ):
+                decision_power = 0.85  # High - make campaign decisions
+                budget_influence = 0.8  # High - control marketing budgets
+                technical_influence = 0.6  # Moderate - understand mobile tech
+
+            # Business Development Leaders (high decision power, high budget influence)
+            elif any(
+                keyword in combined_text
+                for keyword in [
+                    "business development lead",
+                    "bd lead",
+                    "business development",
+                    "partnership",
+                    "strategic",
+                ]
+            ):
+                decision_power = 0.9  # Very high - make strategic partnership decisions
+                budget_influence = 0.85  # High - influence major spending decisions
+                technical_influence = 0.5  # Moderate - business focused
+
+            # Creative Agency Directors (high decision power, high budget influence)
+            elif any(
+                keyword in combined_text
+                for keyword in [
+                    "agency director",
+                    "creative agency",
+                    "digital agency",
+                    "creative director",
+                    "agency lead",
+                ]
+            ):
+                decision_power = 0.9  # Very high - make client and vendor decisions
+                budget_influence = 0.9  # Very high - manage client budgets
+                technical_influence = 0.7  # Good - understand digital/creative tech
+
+            # General Decision makers (high decision power, high budget influence)
+            elif any(
                 keyword in combined_text
                 for keyword in [
                     "manager",
@@ -2767,6 +2914,16 @@ Generate a complete DirectPersona object with all required traits populated base
                 decision_power = 0.5
                 technical_influence = 0.4
                 budget_influence = 0.6
+
+            # Log the calculated influence metrics for debugging
+            persona_name = persona.get("name", "Unknown")
+            logger.info(
+                f"[INFLUENCE_CALCULATION] {persona_name}: "
+                f"decision_power={decision_power:.2f}, "
+                f"technical_influence={technical_influence:.2f}, "
+                f"budget_influence={budget_influence:.2f} "
+                f"(based on: {combined_text[:100]}...)"
+            )
 
             return {
                 "decision_power": decision_power,

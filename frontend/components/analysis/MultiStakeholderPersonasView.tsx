@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { User, Users, Target, Lightbulb, AlertCircle, TrendingUp } from 'lucide-react';
+import { User, Users, Target, Lightbulb, AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { parseDemographics } from '@/utils/demographicsParser';
 
 interface Persona {
@@ -20,6 +20,10 @@ interface Persona {
     evidence: string[];
   };
   pain_points?: {
+    value: string;
+    evidence: string[];
+  };
+  challenges_and_frustrations?: {
     value: string;
     evidence: string[];
   };
@@ -782,6 +786,46 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
             </Card>
           )}
 
+
+
+          {/* Challenges and Pain Points */}
+          {(persona.challenges_and_frustrations || persona.pain_points) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span>Challenges and Pain Points</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Key Challenges</h4>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {renderTraitValue((persona.challenges_and_frustrations || persona.pain_points)?.value)}
+                    </ul>
+                  </div>
+                  {((persona.challenges_and_frustrations || persona.pain_points)?.evidence && (persona.challenges_and_frustrations || persona.pain_points)?.evidence.length > 0) && (
+                    <Accordion type="single" collapsible className="mt-2">
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-sm text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {(persona.challenges_and_frustrations || persona.pain_points)?.evidence.map((evidence: string, idx: number) => (
+                              <li key={idx}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Key Quotes */}
           {persona.key_quotes && (
             <Card>
@@ -813,44 +857,6 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
                               </blockquote>
                             ))}
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Behavioral Patterns */}
-          {(persona as any).patterns && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="h-5 w-5" />
-                  <span>Behavioral Patterns</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Identified Patterns</h4>
-                    <ul className="list-disc pl-5 space-y-1">
-                      {renderTraitValue((persona as any).patterns.value)}
-                    </ul>
-                  </div>
-                  {(persona as any).patterns.evidence && (persona as any).patterns.evidence.length > 0 && (
-                    <Accordion type="single" collapsible className="mt-2">
-                      <AccordionItem value="evidence">
-                        <AccordionTrigger className="text-sm text-muted-foreground">
-                          Supporting Evidence
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                            {(persona as any).patterns.evidence.map((evidence: string, idx: number) => (
-                              <li key={idx}>{evidence}</li>
-                            ))}
-                          </ul>
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>

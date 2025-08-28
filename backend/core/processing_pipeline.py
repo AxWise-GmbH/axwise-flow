@@ -354,11 +354,14 @@ def _create_stakeholder_intelligence_summary(
                         "value", ""
                     ),
                 },
-                "influence_metrics": {
-                    "decision_power": 0.7,
-                    "technical_influence": 0.6,
-                    "budget_influence": 0.5,
-                },
+                "influence_metrics": persona.get("stakeholder_intelligence", {}).get(
+                    "influence_metrics",
+                    {
+                        "decision_power": 0.5,
+                        "technical_influence": 0.5,
+                        "budget_influence": 0.5,
+                    },
+                ),
                 "confidence": persona.get("overall_confidence", 0.7),
                 "authentic_evidence": {
                     "quotes_evidence": persona.get("key_quotes", {}).get("evidence", [])
