@@ -371,12 +371,21 @@ const processGeneratedQuestions = async (
       let session = LocalResearchStorage.getSession(data.session_id);
 
       if (session) {
+        console.log('🎯 Updating session to mark questionnaire as generated:', session.session_id);
+
         // Update session to mark questions as generated
         session.questions_generated = true;
         session.status = 'completed';
         session.stage = 'completed';
         session.completed_at = new Date().toISOString();
         session.updated_at = new Date().toISOString();
+
+        console.log('📊 Session status updated:', {
+          questions_generated: session.questions_generated,
+          status: session.status,
+          stage: session.stage,
+          completed_at: session.completed_at
+        });
 
         // Clean up any old questionnaire messages to prevent data conflicts
         if (session.messages) {
@@ -406,7 +415,18 @@ const processGeneratedQuestions = async (
 
         // Save the updated session
         LocalResearchStorage.saveSession(session);
-        console.log('✅ Local questionnaire saved successfully');
+        console.log('✅ Local questionnaire saved successfully with completed status');
+
+        // Verify the session was saved correctly
+        const verifySession = LocalResearchStorage.getSession(session.session_id);
+        if (verifySession) {
+          console.log('🔍 Verification - Session saved with status:', {
+            questions_generated: verifySession.questions_generated,
+            status: verifySession.status,
+            stage: verifySession.stage,
+            message_count: verifySession.message_count
+          });
+        }
       } else {
         console.warn('⚠️ Local session not found for questionnaire saving');
       }

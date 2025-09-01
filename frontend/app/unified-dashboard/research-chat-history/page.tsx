@@ -54,7 +54,8 @@ import {
   FileText,
   Download,
   Play,
-  BarChart
+  BarChart,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/components/providers/toast-provider';
 import { getResearchSessions, type ResearchSession } from '@/lib/api/research';
@@ -70,7 +71,7 @@ export default function ResearchChatHistory() {
   const [sessions, setSessions] = useState<ResearchSession[]>([]);
   const [allSessions, setAllSessions] = useState<ResearchSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showOnlyWithQuestionnaires, setShowOnlyWithQuestionnaires] = useState(true);
+  const [showOnlyWithQuestionnaires, setShowOnlyWithQuestionnaires] = useState(false);
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [stableSessionData, setStableSessionData] = useState<Map<string, ResearchSession>>(new Map());
   const [loadingDebounce, setLoadingDebounce] = useState<NodeJS.Timeout | null>(null);
@@ -234,8 +235,41 @@ export default function ResearchChatHistory() {
 
   // Filter sessions based on stage and questionnaire filters
   useEffect(() => {
+    console.log('🔍 Filtering sessions:', {
+      totalSessions: allSessions.length,
+      showOnlyWithQuestionnaires,
+      stageFilter
+    });
+
+    // Debug: Log session details for troubleshooting
+    allSessions.forEach(session => {
+      console.log(`📋 Session ${session.session_id}:`, {
+        questions_generated: session.questions_generated,
+        status: session.status,
+        stage: session.stage,
+        hasMessages: session.messages?.length || 0,
+        hasQuestionnaireMessage: session.messages?.some(msg =>
+          msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
+          msg.metadata?.comprehensiveQuestions
+        )
+      });
+    });
+
     let filtered = showOnlyWithQuestionnaires
-      ? allSessions.filter(s => s.questions_generated)
+      ? allSessions.filter(s => {
+          const hasFlag = s.questions_generated;
+          const hasQuestionnaireMessage = s.messages?.some(msg =>
+            msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
+            msg.metadata?.comprehensiveQuestions
+          );
+          const shouldShow = hasFlag || hasQuestionnaireMessage;
+
+          if (!shouldShow) {
+            console.log(`❌ Session ${s.session_id} filtered out - no questionnaire flag or message`);
+          }
+
+          return shouldShow;
+        })
       : allSessions;
 
     if (stageFilter !== 'all') {
@@ -245,6 +279,7 @@ export default function ResearchChatHistory() {
       });
     }
 
+    console.log(`✅ Filtered sessions: ${filtered.length}/${allSessions.length}`);
     setSessions(filtered);
   }, [allSessions, showOnlyWithQuestionnaires, stageFilter]);
 
@@ -321,14 +356,31 @@ export default function ResearchChatHistory() {
           }
         }
 
-        // Exclude empty sessions without business ideas or meaningful content
+        // Include sessions with any meaningful content (more inclusive)
         const hasBusinessIdea = session.business_idea && session.business_idea.trim().length > 0;
-        const hasMessages = session.messages && session.messages.length > 1; // More than just initial message
+        const hasMessages = session.messages && session.messages.length > 0; // Any messages
+        const hasTargetCustomer = session.target_customer && session.target_customer.trim().length > 0;
+        const hasProblem = session.problem && session.problem.trim().length > 0;
 
-        return hasBusinessIdea && hasMessages;
+        // Include if has business context OR messages (more inclusive than before)
+        return hasBusinessIdea || hasMessages || hasTargetCustomer || hasProblem;
       });
 
       console.log(`📊 Filtered sessions: ${stableSessions.length} total → ${sessionsWithQuestionnaires.length} with questionnaires`);
+
+      // Debug specific session if it exists
+      const debugSession = stableSessions.find(s => s.session_id === 'local_1756720524346_2yc1tnpd5');
+      if (debugSession) {
+        console.log('🔍 Debug session found in stable sessions:', {
+          session_id: debugSession.session_id,
+          business_idea: debugSession.business_idea || 'N/A',
+          questions_generated: debugSession.questions_generated,
+          messages_count: debugSession.messages?.length || 0,
+          included_in_questionnaire_filter: sessionsWithQuestionnaires.some(s => s.session_id === debugSession.session_id)
+        });
+      } else {
+        console.log('🔍 Debug session NOT found in stable sessions');
+      }
 
       // Store both filtered and unfiltered stable data
       setAllSessions(stableSessions);
@@ -699,13 +751,34 @@ export default function ResearchChatHistory() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Research History</h1>
-        <p className="text-muted-foreground mt-2">
-          {showOnlyWithQuestionnaires
-            ? 'Showing research sessions that have generated questionnaires'
-            : 'View and manage all your research chat conversations and generated questionnaires'
-          }
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Research History</h1>
+            <p className="text-muted-foreground mt-2">
+              {showOnlyWithQuestionnaires
+                ? 'Showing research sessions that have generated questionnaires'
+                : 'View and manage all your research chat conversations and generated questionnaires'
+              }
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={refreshSessions}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/unified-dashboard/research-chat'}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Chat
+            </Button>
+          </div>
+        </div>
 
         {/* Enhanced Filter Controls */}
         <Card className="mt-4">

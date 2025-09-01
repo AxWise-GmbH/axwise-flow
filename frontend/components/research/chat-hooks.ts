@@ -323,10 +323,23 @@ export const useSaveSession = (state: any, context: any) => {
           );
 
           if (hasQuestionnaire) {
-            session.questions_generated = true;
-            session.status = 'completed';
-            session.stage = 'completed';
-            session.completed_at = new Date().toISOString();
+            // IMPORTANT: Preserve existing completion status if already set
+            // This prevents overwriting the completed status set during questionnaire generation
+            if (!session.questions_generated) {
+              session.questions_generated = true;
+              session.status = 'completed';
+              session.stage = 'completed';
+              session.completed_at = new Date().toISOString();
+              console.log('🎯 Session marked as completed with questionnaire');
+            } else {
+              console.log('✅ Session already marked as completed, preserving status');
+            }
+          } else {
+            // Only update to in-progress if not already completed
+            if (!session.questions_generated) {
+              session.status = 'active';
+              session.stage = 'in_progress';
+            }
           }
 
           // Update context data
@@ -337,7 +350,7 @@ export const useSaveSession = (state: any, context: any) => {
 
           // Save the updated session
           LocalResearchStorage.saveSession(session);
-          console.log('✅ Local session saved successfully');
+          console.log('✅ Local session saved successfully with status:', session.status);
         } else {
           console.warn('⚠️ Local session not found for saving');
         }
