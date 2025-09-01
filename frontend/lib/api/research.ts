@@ -142,30 +142,37 @@ export class LocalResearchStorage {
       }
 
       // Process sessions to set questions_generated flag based on ACTUAL message content
-      const validSessions = sessions.filter((session: any) => {
-        // Filter out sessions with no messages but flagged as having questionnaires (corrupted data)
+      // REPAIR corrupted sessions instead of removing them
+      let repairedCount = 0;
+      const repairedSessions = sessions.map((session: any) => {
+        // Check for corruption: questions_generated=true but no actual questionnaire data
         const hasMessages = Array.isArray(session.messages) && session.messages.length > 0;
-        const isCorrupted = session.questions_generated && !hasMessages;
+        const hasQuestionnaire = hasMessages && session.messages.some((msg: any) =>
+          msg.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' &&
+          msg.metadata?.comprehensiveQuestions
+        );
 
-        if (isCorrupted) {
-          console.log(`🧹 CLEANING: Removing corrupted session ${session.session_id} (no messages but flagged as having questionnaires)`);
-          return false;
+        // Auto-repair corrupted sessions by resetting the flag
+        if (session.questions_generated && !hasQuestionnaire) {
+          console.log(`🔧 REPAIRING: Fixing corrupted session ${session.session_id} (resetting questions_generated to false)`);
+          session.questions_generated = false;
+          repairedCount++;
         }
 
-        return true;
+        return session;
       });
 
-      // If we filtered out corrupted sessions, update localStorage
-      if (validSessions.length !== sessions.length) {
-        console.log(`🧹 CLEANUP: Removed ${sessions.length - validSessions.length} corrupted sessions from localStorage`);
+      // If we repaired corrupted sessions, update localStorage
+      if (repairedCount > 0) {
+        console.log(`🔧 REPAIR: Fixed ${repairedCount} corrupted sessions in localStorage`);
         try {
-          localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(validSessions));
+          localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(repairedSessions));
         } catch (error) {
-          console.error('Failed to update localStorage after cleanup:', error);
+          console.error('Failed to update localStorage after repair:', error);
         }
       }
 
-      return validSessions.map((session: any) => {
+      return repairedSessions.map((session: any) => {
         // Check if session has questionnaire data in messages - support both new and legacy formats
         const hasQuestionnaire = Array.isArray(session.messages) && session.messages.some((msg: any) => {
           const meta = msg?.metadata || {};
