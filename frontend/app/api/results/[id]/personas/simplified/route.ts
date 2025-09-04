@@ -23,8 +23,8 @@ export async function GET(
 
     if (isProduction || enableClerkValidation) {
       // Production or explicit Clerk validation - require authentication
-      const { userId } = auth();
-      
+      const { userId, getToken } = await auth();
+
       if (!userId) {
         console.log('Simplified Personas API: No authenticated user found');
         return NextResponse.json(
@@ -35,9 +35,8 @@ export async function GET(
 
       // Get the session token from Clerk
       try {
-        const { getToken } = auth();
         const token = await getToken();
-        
+
         if (!token) {
           console.log('Simplified Personas API: No session token found');
           return NextResponse.json(

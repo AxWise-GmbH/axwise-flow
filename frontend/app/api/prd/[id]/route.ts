@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 async function getToken(): Promise<string> {
   try {
     // Get the current user's auth token from Clerk
-    const { getToken } = await auth();
-    const token = await getToken();
+    const authResult = await auth();
+    const token = await authResult.getToken();
 
     if (!token) {
       throw new Error('No authentication token available');

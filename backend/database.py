@@ -156,9 +156,9 @@ def run_migrations():
         from alembic import command
 
         # Get the absolute path to alembic.ini
-        alembic_ini_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "alembic.ini"
-        )
+        # In Docker container, the structure is /app/backend/database.py and /app/backend/alembic.ini
+        backend_dir = os.path.dirname(__file__)  # /app/backend
+        alembic_ini_path = os.path.join(backend_dir, "alembic.ini")
 
         # Create Alembic configuration
         alembic_cfg = alembic.config.Config(alembic_ini_path)

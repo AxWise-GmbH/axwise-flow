@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 async function getToken(): Promise<string | null> {
   try {
     // Get the authentication context from Clerk
-    const { userId, getToken } = await auth();
+    const authResult = await auth();
+    const { userId } = authResult;
 
     if (!userId) {
       console.log('No authenticated user found');
@@ -15,7 +16,7 @@ async function getToken(): Promise<string | null> {
     }
 
     // Get the JWT token from Clerk
-    const token = await getToken();
+    const token = await authResult.getToken();
 
     if (!token) {
       console.log('No JWT token available from Clerk');

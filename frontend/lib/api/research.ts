@@ -34,6 +34,34 @@ function getOrCreateAnonymousUserId(): string {
   return userId;
 }
 
+// Helper function to get auth headers
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Only add auth in production or when explicitly enabled
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED*** 'true';
+
+  if (isProduction || enableClerkValidation) {
+    try {
+      // For client-side API calls, we need to get the token from the frontend API route
+      // This function is used by client-side components, so we can't use server-side auth here
+      console.warn('⚠️ Client-side auth token retrieval not implemented in utility function');
+      console.warn('⚠️ This should be handled by the frontend API routes instead');
+    } catch (error) {
+      console.warn('Failed to get auth token:', error);
+    }
+  } else {
+    // Development mode - use development token
+    headers['Authorization'] = 'Bearer DEV_TOKEN_REDACTED';
+    console.log('🔧 Using development token for API requests');
+  }
+
+  return headers;
+}
+
 export interface Message {
   id: string;
   content: string;
@@ -849,7 +877,8 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
   // Use retry and timeout wrappers
   return await withRetry(async () => {
     return await withTimeout(async () => {
-      const response = await fetch(`${API_BASE_URL}/api/research/conversation-routines/chat`, {
+      // Call the frontend API route which handles authentication
+      const response = await fetch('/api/research/conversation-routines/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

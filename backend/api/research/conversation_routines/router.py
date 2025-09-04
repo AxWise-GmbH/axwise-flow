@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from .service import ConversationRoutineService
 from .models import ConversationRoutineRequest, ConversationRoutineResponse
 from backend.database import get_db
+from backend.models import User
+from backend.services.external.auth_middleware import get_current_user
 from backend.services.research_session_service import ResearchSessionService
 from backend.models.research_session import ResearchSessionCreate, ResearchSessionUpdate
 
@@ -28,6 +30,7 @@ async def conversation_routine_chat(
     request: ConversationRoutineRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     """
     Conversation Routines Chat Endpoint
@@ -45,6 +48,10 @@ async def conversation_routine_chat(
     """
     try:
         logger.info(f"🎯 Conversation Routines chat request: {request.input[:50]}...")
+
+        # SECURITY: Override request user_id with authenticated user
+        request.user_id = user.user_id
+        logger.info(f"🔐 Using authenticated user_id: {user.user_id}")
 
         # Process through conversation routine service
         response = await conversation_service.process_conversation(request)

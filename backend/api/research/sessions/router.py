@@ -9,6 +9,8 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
+from backend.models import User
+from backend.services.external.auth_middleware import get_current_user
 from backend.services.research_session_service import ResearchSessionService
 from backend.models.research_session import (
     ResearchSession,
@@ -29,28 +31,25 @@ router = APIRouter(
 
 @router.get("/sessions", response_model=List[ResearchSessionSummary])
 async def get_research_sessions(
-    user_id: Optional[str] = Query(None, description="Filter by user ID"),
     limit: int = Query(50, description="Maximum number of sessions to return"),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> List[ResearchSessionSummary]:
     """
-    Get research sessions.
+    Get research sessions for the authenticated user.
 
-    Returns a list of research sessions, optionally filtered by user_id.
-    For now, returns all sessions if no user_id is provided.
+    Returns a list of research sessions filtered by the authenticated user's ID.
+    SECURITY: Only returns sessions belonging to the authenticated user.
     """
     try:
         logger.info(
-            f"📋 Getting research sessions (user_id: {user_id}, limit: {limit})"
+            f"📋 Getting research sessions for user: {user.user_id} (limit: {limit})"
         )
 
         service = ResearchSessionService(db)
 
-        if user_id:
-            sessions = service.get_user_sessions(user_id, limit)
-        else:
-            # For now, get all sessions when no user_id is provided
-            sessions = service.get_all_sessions(limit)
+        # SECURITY: Always filter by authenticated user - never return all sessions
+        sessions = service.get_user_sessions(user.user_id, limit)
 
         # Convert to summary format
         session_summaries = []
@@ -413,6 +412,7 @@ async def save_questionnaire(
 async def get_questionnaire(
     session_id: str,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get the questionnaire for a research session."""
     try:
@@ -424,6 +424,13 @@ async def get_questionnaire(
         if not session:
             raise HTTPException(
                 status_code=404, detail=f"Research session {session_id} not found"
+            )
+
+        # SECURITY: Verify user owns this session
+        if session.user_id != user.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You can only access your own sessions",
             )
 
         if not session.questions_generated or not session.research_questions:
@@ -512,6 +519,7 @@ async def export_questionnaire(
 async def get_session_messages(
     session_id: str,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get all messages for a research session."""
     try:
@@ -523,6 +531,13 @@ async def get_session_messages(
         if not session:
             raise HTTPException(
                 status_code=404, detail=f"Research session {session_id} not found"
+            )
+
+        # SECURITY: Verify user owns this session
+        if session.user_id != user.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You can only access your own sessions",
             )
 
         messages = session.messages or []
@@ -549,18 +564,28 @@ async def add_session_message(
     session_id: str,
     message_data: Dict[str, Any],
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Add a message to a research session."""
     try:
         logger.info(f"💬 Adding message to session: {session_id}")
 
         service = ResearchSessionService(db)
-        session = service.add_message(session_id, message_data)
 
+        # SECURITY: First verify user owns this session
+        session = service.get_session(session_id)
         if not session:
             raise HTTPException(
                 status_code=404, detail=f"Research session {session_id} not found"
             )
+
+        if session.user_id != user.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: You can only modify your own sessions",
+            )
+
+        session = service.add_message(session_id, message_data)
 
         logger.info(f"✅ Added message to session: {session_id}")
         return {

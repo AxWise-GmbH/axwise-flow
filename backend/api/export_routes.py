@@ -29,38 +29,7 @@ async def options_export(result_id: int, format: str):
     )
 
 
-@router.get("/{result_id}/pdf")
-@router.post("/{result_id}/pdf")
-async def export_analysis_pdf(
-    result_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_export_user),
-    auth_token: Optional[str] = Form(None),  # This is handled by get_export_user
-):
-    """
-    Export analysis results as PDF
-    """
-    try:
-        # Create export service
-        export_service = ExportService(db, current_user)
-
-        # Generate PDF
-        pdf_bytes = await export_service.generate_analysis_pdf(result_id)
-
-        # Return PDF as downloadable file
-        from fastapi.responses import Response
-
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=analysis_report_{result_id}.pdf"
-            },
-        )
-    except Exception as e:
-        logger.error(f"Error exporting PDF: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
+# PDF export functionality removed as requested
 
 
 @router.get("/{result_id}/markdown")
@@ -87,14 +56,14 @@ async def export_analysis_markdown(
 
         # Ensure proper encoding and line endings for better compatibility
         # First normalize line endings to LF
-        normalized_content = markdown_content.replace('\r\n', '\n')
+        normalized_content = markdown_content.replace("\r\n", "\n")
 
         return Response(
             content=normalized_content.encode("utf-8"),
             media_type="text/markdown",
             headers={
                 "Content-Disposition": f"attachment; filename=analysis_report_{result_id}.md",
-                "Content-Type": "text/markdown; charset=utf-8"
+                "Content-Type": "text/markdown; charset=utf-8",
             },
         )
     except Exception as e:

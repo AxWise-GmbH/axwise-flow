@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -7,10 +8,45 @@ export async function GET(request: NextRequest) {
     console.log('Proxying research sessions request to backend');
     console.log('API_BASE_URL:', API_BASE_URL);
 
+    // Get authentication token
+    let authToken = '';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED*** 'true';
+
+    if (isProduction || enableClerkValidation) {
+      // Get the session token from Clerk
+      try {
+        const authResult = await auth();
+        const token = await authResult.getToken();
+
+        if (!token) {
+          console.log('Research Sessions API: No session token found');
+          return NextResponse.json(
+            { error: 'Authentication token required' },
+            { status: 401 }
+          );
+        }
+
+        authToken = token;
+        console.log('Research Sessions API: Using Clerk JWT token');
+      } catch (tokenError) {
+        console.error('Research Sessions API: Error getting Clerk token:', tokenError);
+        return NextResponse.json(
+          { error: 'Authentication error' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // Development mode - use development token
+      authToken = 'DEV_TOKEN_REDACTED';
+      console.log('Research Sessions API: Using development token');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/research/sessions`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
       },
     });
 

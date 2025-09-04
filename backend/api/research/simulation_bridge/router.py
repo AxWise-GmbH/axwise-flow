@@ -28,6 +28,8 @@ from .services.file_processor import (
     FileProcessingResult,
 )
 from pydantic_ai.models.gemini import GeminiModel
+from backend.models import User
+from backend.services.external.auth_middleware import get_current_user
 
 # Import authentication dependencies
 from backend.services.external.auth_middleware import get_current_user
@@ -247,19 +249,14 @@ async def get_simulation_progress(
             if not db_simulation:
                 raise HTTPException(status_code=404, detail="Simulation not found")
 
-            # Ensure user can only access their own simulations (bypass in development)
-            from backend.services.external.auth_middleware import (
-                ENABLE_CLERK_VALIDATION,
-            )
-
-            if ENABLE_CLERK_VALIDATION and db_simulation.user_id != user.user_id:
+            # SECURITY: Always verify user owns this simulation - no bypasses
+            if db_simulation.user_id != user.user_id:
+                logger.warning(
+                    f"Access denied: User {user.user_id} attempted to access simulation {simulation_id} owned by {db_simulation.user_id}"
+                )
                 raise HTTPException(
                     status_code=403,
                     detail="Access denied: You can only access your own simulations",
-                )
-            elif not ENABLE_CLERK_VALIDATION:
-                logger.info(
-                    f"Development mode: Bypassing ownership check for simulation {simulation_id}"
                 )
 
         # Get simulation progress with debug logging
