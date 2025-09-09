@@ -276,11 +276,14 @@ function OperationalPRDContent({ prd, getPriorityColorClass }: { prd: Operationa
   // Try to enrich user stories with justification from BRD stakeholder_scenarios when missing
   const stakeholderScenarios: any[] | undefined = brd?.stakeholder_scenarios;
   const enrichedUserStories: any[] = (userStories || []).map((s: any, i: number) => {
-    if (s?.justification) return s;
-    const fallbackJust = stakeholderScenarios && stakeholderScenarios.length === (userStories || []).length
-      ? stakeholderScenarios[i]?.justification
+    const scenario = stakeholderScenarios && stakeholderScenarios.length === (userStories || []).length
+      ? stakeholderScenarios[i]
       : undefined;
-    return fallbackJust ? { ...s, justification: fallbackJust } : s;
+    const justification = s?.justification ?? scenario?.justification;
+    const acceptance_criteria = Array.isArray(s?.acceptance_criteria) && s.acceptance_criteria.length > 0
+      ? s.acceptance_criteria
+      : (Array.isArray(scenario?.acceptance_criteria) ? scenario!.acceptance_criteria : undefined);
+    return { ...s, ...(justification ? { justification } : {}), ...(acceptance_criteria ? { acceptance_criteria } : {}) };
   });
 
 
@@ -370,6 +373,17 @@ function OperationalPRDContent({ prd, getPriorityColorClass }: { prd: Operationa
                       <span className="font-medium">How:</span> {story.how || '—'}
                     </div>
                   </div>
+                  {Array.isArray(story.acceptance_criteria) && story.acceptance_criteria.length > 0 && (
+                    <div className="pt-3">
+                      <h4 className="font-medium mb-1">Acceptance Criteria</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {story.acceptance_criteria.map((ac: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{ac}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {story.justification && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
                       <div>
