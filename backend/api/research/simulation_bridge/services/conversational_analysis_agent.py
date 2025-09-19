@@ -11,7 +11,7 @@ import json
 import re
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelSettings
 from pydantic_ai.models.gemini import GeminiModel
 
 from backend.schemas import (
@@ -31,6 +31,37 @@ from backend.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Typed stage result models for structured outputs
+class ThemesResult(BaseModel):
+    themes: List[Theme] = Field(default_factory=list)
+    enhanced_themes: List[Theme] = Field(default_factory=list)
+
+
+class PatternsResult(BaseModel):
+    patterns: List[Pattern] = Field(default_factory=list)
+    enhanced_patterns: List[Pattern] = Field(default_factory=list)
+
+
+class SentimentResult(BaseModel):
+    sentiment_overview: SentimentOverview = Field(default_factory=SentimentOverview)
+    # Keep flexible shape for details; downstream code only reads lists of items
+    sentiment_details: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class PersonaResults(BaseModel):
+    personas: List[Persona] = Field(default_factory=list)
+    enhanced_personas: List[Persona] = Field(default_factory=list)
+
+
+class InsightsResult(BaseModel):
+    insights: List[Insight] = Field(default_factory=list)
+    enhanced_insights: List[Insight] = Field(default_factory=list)
+
+
+class StakeholderResult(BaseModel):
+    stakeholder_intelligence: Optional[StakeholderIntelligence] = None
 
 
 class AnalysisContext(BaseModel):
@@ -71,6 +102,44 @@ class ConversationalAnalysisAgent:
 
     def __init__(self, gemini_model: GeminiModel):
         self.model = gemini_model
+        # Stage-specific typed agents (PydanticAI v1)
+        self.themes_agent = Agent(
+            model=self.model,
+            output_type=ThemesResult,
+            system_prompt="You extract interview themes with stakeholder attribution. Always return ThemesResult.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        self.patterns_agent = Agent(
+            model=self.model,
+            output_type=PatternsResult,
+            system_prompt="You detect cross-stakeholder patterns and relationships. Always return PatternsResult.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        self.stakeholder_agent = Agent(
+            model=self.model,
+            output_type=StakeholderResult,
+            system_prompt="You analyze stakeholders and produce stakeholder intelligence. Always return StakeholderResult.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        self.sentiment_agent = Agent(
+            model=self.model,
+            output_type=SentimentResult,
+            system_prompt="You analyze sentiment distribution and details. Always return SentimentResult.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        self.persona_agent = Agent(
+            model=self.model,
+            output_type=PersonaResults,
+            system_prompt="You generate personas and enhanced personas from simulation data. Always return PersonaResults.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        self.insights_agent = Agent(
+            model=self.model,
+            output_type=InsightsResult,
+            system_prompt="You synthesize business insights and enhanced insights. Always return InsightsResult.",
+            model_settings=ModelSettings(timeout=300),
+        )
+        # Keep legacy generic agent (unused now) for backward-compatibility
         self.analysis_agent = self._create_analysis_agent()
 
     def _create_analysis_agent(self) -> Agent:
@@ -299,17 +368,20 @@ class ConversationalAnalysisAgent:
             }}
             """
 
-            # Get themes for this window
-            response = await self.analysis_agent.run(prompt)
-            window_themes = self._parse_themes_response(response.data)
+            # Get themes for this window (typed)
+            window_result = await self.themes_agent.run(prompt)
+            window_themes = [t.model_dump() for t in window_result.output.themes]
 
             # Merge with accumulated themes
             accumulated_themes = self._merge_themes(accumulated_themes, window_themes)
 
-        # Convert accumulated themes to final format
+        # Convert accumulated themes to final typed models
         themes = list(accumulated_themes.values())
+        themes_typed = [
+            t if isinstance(t, Theme) else Theme.model_validate(t) for t in themes
+        ]
 
-        return {"themes": themes, "enhanced_themes": enhanced_themes}
+        return {"themes": themes_typed, "enhanced_themes": []}
 
     async def _extract_themes_single_pass(
         self, simulation_text: str, context: AnalysisContext
@@ -384,8 +456,11 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_themes_response(response.output)
+        result = await self.themes_agent.run(prompt)
+        return {
+            "themes": result.output.themes,
+            "enhanced_themes": result.output.enhanced_themes,
+        }
 
     async def _detect_patterns_conversational(
         self, simulation_text: str, context: AnalysisContext
@@ -427,8 +502,11 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_patterns_response(response.output)
+        result = await self.patterns_agent.run(prompt)
+        return {
+            "patterns": result.output.patterns,
+            "enhanced_patterns": result.output.enhanced_patterns,
+        }
 
     async def _analyze_stakeholders_conversational(
         self, simulation_text: str, context: AnalysisContext
@@ -522,8 +600,8 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_stakeholder_response(response.output)
+        result = await self.stakeholder_agent.run(prompt)
+        return {"stakeholder_intelligence": result.output.stakeholder_intelligence}
 
     def _parse_themes_response(self, response_data: str) -> Dict[str, Any]:
         """Parse themes response from LLM"""
@@ -641,8 +719,11 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_sentiment_response(response.output)
+        result = await self.sentiment_agent.run(prompt)
+        return {
+            "sentiment_overview": result.output.sentiment_overview,
+            "sentiment_details": result.output.sentiment_details,
+        }
 
     async def _generate_personas_conversational(
         self, simulation_text: str, context: AnalysisContext
@@ -719,8 +800,11 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_personas_response(response.output)
+        result = await self.persona_agent.run(prompt)
+        return {
+            "personas": result.output.personas,
+            "enhanced_personas": result.output.enhanced_personas,
+        }
 
     async def _synthesize_insights_conversational(
         self,
@@ -769,8 +853,11 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        response = await self.analysis_agent.run(prompt)
-        return self._parse_insights_response(response.output)
+        result = await self.insights_agent.run(prompt)
+        return {
+            "insights": result.output.insights,
+            "enhanced_insights": result.output.enhanced_insights,
+        }
 
     def _parse_sentiment_response(self, response_data: str) -> Dict[str, Any]:
         """Parse sentiment response from LLM"""

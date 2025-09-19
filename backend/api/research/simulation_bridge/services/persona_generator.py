@@ -26,7 +26,7 @@ class PersonaGenerator:
         self.model = model
         self.agent = Agent(
             model=model,
-            result_type=List[AIPersona],
+            output_type=List[AIPersona],
             system_prompt=self._get_system_prompt(),
         )
         self.used_names_by_category = {}  # Track used names per stakeholder category

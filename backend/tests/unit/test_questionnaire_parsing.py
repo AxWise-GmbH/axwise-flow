@@ -74,7 +74,7 @@ async def test_questionnaire_parsing():
         model = GeminiModel("gemini-2.5-flash")
         parser_agent = Agent(
             model=model,
-            result_type=ParsedQuestionnaire,
+            output_type=ParsedQuestionnaire,
             system_prompt="""You are an expert at parsing customer research questionnaires.
             Extract the business context and all interview questions from the provided content.
             Clean up questions by removing numbering and formatting.

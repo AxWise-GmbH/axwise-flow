@@ -349,7 +349,8 @@ const processGeneratedQuestions = async (
   updateContext({ questionsGenerated: true });
 
   // Save comprehensive questionnaire data to backend if we have a session ID
-  if (data.session_id && !data.session_id.startsWith('local_')) {
+  // Allow local_* sessions as well; backend will auto-create local sessions if missing
+  if (data.session_id) {
     try {
       await saveQuestionnaireToBackend(data.session_id, comprehensiveQuestions);
       console.log('✅ Questionnaire saved to backend successfully');
@@ -405,7 +406,12 @@ const processGeneratedQuestions = async (
           metadata: {
             type: 'component',
             comprehensiveQuestions,
-            businessContext: session.business_idea || context.businessIdea
+            businessContext: {
+              business_idea: session.business_idea || context.businessIdea || '',
+              target_customer: session.target_customer || (context as any)?.targetCustomer || '',
+              problem: session.problem || (context as any)?.problem || '',
+              industry: (session as any)?.industry || 'general'
+            }
           }
         };
 

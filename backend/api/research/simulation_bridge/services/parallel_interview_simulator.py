@@ -32,7 +32,7 @@ class ParallelInterviewSimulator:
         self.max_concurrent = max_concurrent
         self.agent = Agent(
             model=model,
-            result_type=SimulatedInterview,
+            output_type=SimulatedInterview,
             system_prompt=self._get_system_prompt(),
         )
         self._semaphore = asyncio.Semaphore(max_concurrent)

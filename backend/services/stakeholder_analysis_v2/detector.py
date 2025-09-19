@@ -111,7 +111,21 @@ class StakeholderDetector:
                 # Extract and normalize stakeholder type
                 raw_type = self._extract_stakeholder_type(persona)
                 stakeholder_type = self._normalize_stakeholder_type(raw_type)
-                stakeholder_id = f"stakeholder_{i+1}"
+
+                # Prefer specific role/title from persona for identifier and display
+                role_title: str = (
+                    str(persona.get("role")).strip()
+                    if persona.get("role")
+                    else str(persona.get("name", f"Stakeholder {i+1}")).strip()
+                )
+                import re
+
+                slug_base = role_title.lower() if role_title else f"stakeholder {i+1}"
+                slug = (
+                    re.sub(r"[^a-z0-9]+", "-", slug_base).strip("-")
+                    or f"stakeholder-{i+1}"
+                )
+                stakeholder_id = slug
 
                 # Build schema-compliant stakeholder
                 demographic_profile: Optional[Dict[str, Any]] = None
@@ -126,8 +140,10 @@ class StakeholderDetector:
                     confidence_score=0.9,  # High confidence from persona data
                     demographic_profile=demographic_profile,
                     individual_insights={
-                        "name": persona.get("name", f"Stakeholder {i+1}"),
-                        "role": persona.get("role", "Unknown"),
+                        "name": persona.get("name", role_title or f"Stakeholder {i+1}"),
+                        "role": role_title or "Unknown",
+                        "title": role_title or "Unknown",
+                        "display_label": role_title or "Unknown",
                         "influence_level": self._calculate_influence_level(persona),
                         "key_concerns": self._extract_key_concerns(persona),
                         "source": "persona_extraction",

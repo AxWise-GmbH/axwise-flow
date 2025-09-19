@@ -703,14 +703,22 @@ class ResultsService:
                             if personas_ssot
                             else {"speaker_mismatches": []}
                         )
+                        contamination = validator.detect_contamination(personas_ssot)
                         summary = validator.summarize(
                             all_matches,
                             duplication=all_dup,
                             speaker_check=speaker_check,
+                            contamination=contamination,
                         )
                         validation_summary = {
                             "counts": summary.get("counts", {}),
                             "method": "persona_evidence_validator_v1",
+                            "speaker_mismatches": len(
+                                summary.get("speaker_check", {}).get(
+                                    "speaker_mismatches", []
+                                )
+                            ),
+                            "contamination": summary.get("contamination", {}),
                         }
                         status = validator.compute_status(summary)
                         validation_status = "pass" if status == "PASS" else "warning"

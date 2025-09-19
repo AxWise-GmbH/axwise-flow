@@ -38,7 +38,7 @@ langextract>=1.0.6  # For reliable structured extraction with Gemini (replaces P
 # Data processing
 python-dotenv==1.0.1
 pydantic>=2.8.0
-pydantic-ai==0.4.3  # Pin to v0.4.3 with explicit API key handling for Gemini
+pydantic-ai==1.0.1  # Pinned to V1 for stable API (ModelSettings, output_type)
 numpy==1.26.3
 pandas==2.1.4
 openpyxl>=3.1.2  # Required for Excel file processing with pandas

@@ -85,7 +85,7 @@ class SimulationOrchestrator:
         # Create PydanticAI agent for parsing
         parser_agent = Agent(
             model=self.model,
-            result_type=ParsedQuestionnaire,
+            output_type=ParsedQuestionnaire,
             system_prompt="""You are an expert at parsing customer research questionnaires.
 
             Extract the business context and organize questions by stakeholder type.

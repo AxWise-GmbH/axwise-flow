@@ -36,6 +36,69 @@ class PersonaEvidenceValidator:
         self.normalization = normalization
 
     @staticmethod
+    def _looks_like_metadata_line(q: str) -> bool:
+        if not q:
+            return False
+        s = str(q).strip()
+        if ":" in s:
+            prefix = s.split(":", 1)[0].strip().lower()
+            meta_keys = {
+                "primary stakeholder category",
+                "stakeholder category",
+                "category",
+                "role",
+                "age",
+                "gender",
+                "location",
+                "department",
+                "participant details",
+                "interviewee",
+                "interviewer",
+            }
+            return any(k in prefix for k in meta_keys)
+        return False
+
+    @staticmethod
+    def _looks_like_researcher_question(q: str) -> bool:
+        if not q:
+            return False
+        s = str(q).strip()
+        return s.endswith("?")
+
+    @staticmethod
+    def detect_contamination(personas_ssot: List[Dict[str, Any]]) -> Dict[str, Any]:
+        cnt = 0
+        examples: List[str] = []
+        for p in personas_ssot or []:
+            if not isinstance(p, dict):
+                continue
+            for field in [
+                "goals_and_motivations",
+                "challenges_and_frustrations",
+                "key_quotes",
+            ]:
+                trait = p.get(field)
+                if not isinstance(trait, dict):
+                    continue
+                for ev in trait.get("evidence", []) or []:
+                    quote = (
+                        ev.get("quote")
+                        if isinstance(ev, dict)
+                        else (ev if isinstance(ev, str) else None)
+                    )
+                    if not quote:
+                        continue
+                    if PersonaEvidenceValidator._looks_like_metadata_line(
+                        quote
+                    ) or PersonaEvidenceValidator._looks_like_researcher_question(
+                        quote
+                    ):
+                        cnt += 1
+                        if len(examples) < 5:
+                            examples.append(str(quote)[:160])
+        return {"metadata_or_question": cnt, "examples": examples}
+
+    @staticmethod
     def _normalize(text: str) -> str:
         t = text or ""
         # Lowercase
@@ -213,6 +276,7 @@ class PersonaEvidenceValidator:
         matches: List[EvidenceMatch],
         duplication: Dict[str, Any],
         speaker_check: Dict[str, Any],
+        contamination: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         total = len(matches)
         counts = {"verbatim": 0, "normalized": 0, "no_match": 0}
@@ -223,6 +287,7 @@ class PersonaEvidenceValidator:
             "total": total,
             "duplication": duplication,
             "speaker_check": speaker_check,
+            "contamination": contamination or {"metadata_or_question": 0},
         }
         return summary
 
@@ -233,7 +298,13 @@ class PersonaEvidenceValidator:
         ratio_no_match = no_match / total
         if ratio_no_match > 0.25:
             return "HARD_FAIL"
+        # Soft fail if any contamination or speaker mismatches detected
+        contamination = summary.get("contamination", {})
+        if (contamination.get("metadata_or_question", 0) or 0) > 0:
+            return "SOFT_FAIL"
         if summary.get("duplication", {}).get("cross_trait_reuse"):
+            return "SOFT_FAIL"
+        if summary.get("speaker_check", {}).get("speaker_mismatches"):
             return "SOFT_FAIL"
         return "PASS"
 

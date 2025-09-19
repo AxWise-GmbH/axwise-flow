@@ -50,7 +50,7 @@ async def test_pydantic_ai():
         print("🤖 Creating PydanticAI agent...")
         agent = Agent(
             model=model,
-            result_type=List[SimplePersona],
+            output_type=List[SimplePersona],
             system_prompt="You are a persona generator. Create realistic customer personas.",
         )
         print("✅ Agent created")

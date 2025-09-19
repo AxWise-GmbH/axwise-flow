@@ -598,6 +598,36 @@ class EvidenceLinkingService:
     def _span_overlaps(self, a: Tuple[int, int], b: Tuple[int, int]) -> bool:
         return not (a[1] <= b[0] or b[1] <= a[0])
 
+    def _looks_like_metadata(self, sent: str) -> bool:
+        """Heuristic: reject lines that look like metadata/labels (e.g., 'Primary Stakeholder Category: ...')."""
+        if not sent:
+            return False
+        s = sent.strip()
+        if ":" in s:
+            prefix = s.split(":", 1)[0].strip().lower()
+            meta_keys = {
+                "primary stakeholder category",
+                "stakeholder category",
+                "category",
+                "role",
+                "age",
+                "gender",
+                "location",
+                "department",
+                "participant details",
+                "interviewee",
+                "interviewer",
+            }
+            if any(k in prefix for k in meta_keys):
+                return True
+        return False
+
+    def _looks_like_question(self, sent: str) -> bool:
+        """Heuristic: reject researcher-style questions as evidence (ends with '?')."""
+        if not sent:
+            return False
+        return sent.strip().endswith("?")
+
     def _select_candidate_spans(
         self,
         trait_value: str,
@@ -621,6 +651,13 @@ class EvidenceLinkingService:
                         metrics.get("rejected_low_overlap", 0) + 1
                     )
                 continue
+            # Additional hygiene filters: drop metadata-like lines and researcher-style questions
+            if self._looks_like_metadata(sent) or self._looks_like_question(sent):
+                if metrics is not None:
+                    metrics["rejected_metadata_or_question"] = (
+                        metrics.get("rejected_metadata_or_question", 0) + 1
+                    )
+                continue
             # Dedup against already used spans across traits
             if any(self._span_overlaps((s, e), u) for u in used_spans):
                 if metrics is not None:
@@ -642,6 +679,7 @@ class EvidenceLinkingService:
             "start_char": s,
             "end_char": e,
             "speaker": meta.get("speaker"),
+            "speaker_role": meta.get("speaker_role"),
             "document_id": meta.get("document_id"),
         }
 

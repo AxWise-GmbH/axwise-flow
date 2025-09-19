@@ -27,7 +27,7 @@ class InterviewSimulator:
         self.model = model
         self.agent = Agent(
             model=model,
-            result_type=SimulatedInterview,
+            output_type=SimulatedInterview,
             system_prompt=self._get_system_prompt(),
         )
 
@@ -253,7 +253,7 @@ Create a realistic interview that feels like a genuine conversation with this pe
             # Create a simple agent for single response generation
             single_response_agent = Agent(
                 model=self.model,
-                result_type=str,
+                output_type=str,
                 system_prompt=self._get_single_response_system_prompt(),
             )
 

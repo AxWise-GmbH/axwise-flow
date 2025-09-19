@@ -491,6 +491,29 @@ async def save_questionnaire(
                 "questions_generated": True,
             }
 
+        # Auto-create session for local_* IDs to support dev/local flows
+        if existing_session is None and session_id.startswith("local_"):
+            try:
+                from backend.models.research_session import ResearchSessionCreate
+
+                service.create_session(
+                    ResearchSessionCreate(
+                        session_id=session_id,
+                        user_id="anonymous",
+                        business_idea=questionnaire_data.get("business_idea"),
+                        target_customer=questionnaire_data.get("target_customer"),
+                        problem=questionnaire_data.get("problem"),
+                        industry="general",
+                        stage="initial",
+                        status="active",
+                        messages=[],
+                        questions_generated=False,
+                    ),
+                    session_id=session_id,
+                )
+            except Exception as e:
+                logger.warning(f"Auto-create local session failed: {e}")
+
         session = service.complete_session(session_id, questionnaire_data)
 
         if not session:
@@ -560,8 +583,11 @@ async def get_questionnaire(
                 status_code=404, detail=f"Research session {session_id} not found"
             )
 
-        # SECURITY: Verify user owns this session
-        if session.user_id != user.user_id:
+        # SECURITY: Verify user owns this session (skip for local_* sessions in dev/local flows)
+        if (
+            not session.session_id.startswith("local_")
+            and session.user_id != user.user_id
+        ):
             http_status = 403
             raise HTTPException(
                 status_code=403,
@@ -579,6 +605,14 @@ async def get_questionnaire(
             "success": True,
             "session_id": session_id,
             "questionnaire": session.research_questions,
+            # Backward/forward compatibility for frontend expectations
+            "questionnaire_data": session.research_questions,
+            "business_context": {
+                "business_idea": session.business_idea or "",
+                "target_customer": session.target_customer or "",
+                "problem": session.problem or "",
+                "industry": session.industry or "general",
+            },
             "generated_at": (
                 session.completed_at.isoformat() if session.completed_at else None
             ),

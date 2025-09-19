@@ -601,6 +601,18 @@ export default function InterviewSimulationPage() {
         console.log('✅ Final timeEstimate:', questionnaireData.timeEstimate);
         console.log('✅ Final timeEstimate type:', typeof questionnaireData.timeEstimate);
         console.log('✅ Business context:', businessContext);
+        // Fallback: use businessContext in questionnaire message metadata if session fields are incomplete
+        const metaBC: any = (questionnaireMessage as any)?.metadata?.businessContext;
+        if (metaBC) {
+          businessContext = {
+            business_idea: businessContext.business_idea || metaBC.business_idea || metaBC.businessIdea || '',
+            target_customer: businessContext.target_customer || metaBC.target_customer || metaBC.targetCustomer || '',
+            problem: businessContext.problem || metaBC.problem || '',
+            industry: businessContext.industry || metaBC.industry || 'general'
+          };
+          console.log('✅ Business context after metadata fallback:', businessContext);
+        }
+
 
         // Validate required data before sending to API
         if (!businessContext.business_idea || !businessContext.target_customer || !businessContext.problem) {
@@ -628,8 +640,8 @@ export default function InterviewSimulationPage() {
         }
 
         const sessionData = await sessionResponse.json();
-        questionnaireData = sessionData.questionnaire_data;
-        businessContext = sessionData.business_context;
+        questionnaireData = sessionData.questionnaire_data || sessionData.questionnaire;
+        businessContext = sessionData.business_context || businessContext;
       }
 
       // Use the existing simulation API client

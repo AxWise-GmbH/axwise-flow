@@ -36,7 +36,7 @@ async def test_pydantic_ai_import():
         # Test agent creation
         agent = Agent(
             model=gemini_model,
-            result_type=PersonaModel,
+            output_type=PersonaModel,
             system_prompt="You are a test agent.",
         )
         print("✅ PydanticAI agent creation successful")
@@ -105,7 +105,7 @@ async def test_simple_persona_generation():
         gemini_model = GeminiModel("gemini-2.5-flash")
         agent = Agent(
             model=gemini_model,
-            result_type=PersonaModel,
+            output_type=PersonaModel,
             system_prompt="""You are an expert persona analyst. Create a detailed persona from the provided text.
 
 CRITICAL REQUIREMENTS:

@@ -4,6 +4,7 @@ Stakeholder Theme Analyzer Module
 Handles theme analysis and stakeholder attribution with clear separation of concerns.
 Extracts theme analysis logic from the monolithic service.
 """
+
 from typing import List, Dict, Any, Optional
 import logging
 import os
@@ -12,6 +13,29 @@ from backend.domain.interfaces.llm_unified import ILLMService
 from backend.schemas import DetectedStakeholder
 
 logger = logging.getLogger(__name__)
+
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+
+class KeyValuePair(BaseModel):
+    key: str
+    value: str
+
+
+class StakeholderContribution(BaseModel):
+    stakeholder_id: str
+    contribution_strength: float = Field(ge=0.0, le=1.0)
+    context: Optional[str] = None
+
+
+class ThemeAttributionModel(BaseModel):
+    stakeholder_contributions: List[StakeholderContribution] = Field(
+        default_factory=list
+    )
+    theme_distribution: List[KeyValuePair] = Field(default_factory=list)
+    dominant_stakeholder: Optional[str] = None
+    theme_consensus_level: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class StakeholderThemeAnalyzer:
@@ -24,24 +48,27 @@ class StakeholderThemeAnalyzer:
         self.llm_service = llm_service
         self.pydantic_ai_available = False
         self.theme_agent = None
-        
+
         # Initialize PydanticAI agent if available
         self._initialize_theme_agent()
 
     def _initialize_theme_agent(self):
         """Initialize PydanticAI theme agent for structured analysis."""
         try:
-            from pydantic_ai import Agent
+            from pydantic_ai import Agent, ModelSettings
             from pydantic_ai.models.gemini import GeminiModel
-            
+
             # Create theme attribution agent
             self.theme_agent = Agent(
                 model=GeminiModel("gemini-2.5-flash"),
+                output_type=ThemeAttributionModel,
                 system_prompt=self._get_theme_attribution_prompt(),
+                model_settings=ModelSettings(timeout=300),
+                temperature=0,
             )
             self.pydantic_ai_available = True
             logger.info("Theme agent initialized successfully")
-            
+
         except Exception as e:
             logger.warning(f"Failed to initialize theme agent: {e}")
             self.pydantic_ai_available = False
@@ -75,39 +102,39 @@ Focus on authentic evidence-based attribution and avoid generic responses.
     ) -> List[Dict[str, Any]]:
         """
         Enhance themes with stakeholder attribution analysis.
-        
+
         Args:
             themes: Original themes to enhance
             detected_stakeholders: Detected stakeholders for attribution
             files: Source files for evidence
-            
+
         Returns:
             Enhanced themes with stakeholder attribution
         """
         logger.info(f"Enhancing {len(themes)} themes with stakeholder attribution")
-        
+
         if not themes or not detected_stakeholders:
             return themes
-        
+
         enhanced_themes = []
         stakeholder_map = self._create_stakeholder_map(detected_stakeholders)
-        
+
         for i, theme in enumerate(themes):
             try:
                 # Analyze theme-stakeholder attribution
                 attribution = await self._analyze_theme_attribution(
-                    theme, stakeholder_map, files, theme_number=i+1
+                    theme, stakeholder_map, files, theme_number=i + 1
                 )
-                
+
                 # Create enhanced theme
                 enhanced_theme = self._create_enhanced_theme(theme, attribution)
                 enhanced_themes.append(enhanced_theme)
-                
+
             except Exception as e:
                 logger.warning(f"Failed to enhance theme {i}: {e}")
                 # Keep original theme as fallback
                 enhanced_themes.append(theme)
-        
+
         logger.info(f"Successfully enhanced {len(enhanced_themes)} themes")
         return enhanced_themes
 
@@ -119,15 +146,17 @@ Focus on authentic evidence-based attribution and avoid generic responses.
         theme_number: int,
     ) -> Dict[str, Any]:
         """Analyze stakeholder attribution for a specific theme."""
-        
+
         if not self.pydantic_ai_available or not self.theme_agent:
-            logger.warning(f"PydanticAI not available for theme {theme_number}, using fallback")
+            logger.warning(
+                f"PydanticAI not available for theme {theme_number}, using fallback"
+            )
             return self._create_basic_theme_attribution(theme, stakeholder_map)
-        
+
         try:
             # Prepare theme context
             theme_context = self._prepare_theme_context(theme, stakeholder_map, files)
-            
+
             # Use theme service if available
             if os.getenv("USE_THEME_SERVICE", "false").lower() in ("1", "true", "yes"):
                 attribution = await self._use_theme_service(theme_context, theme_number)
@@ -135,30 +164,40 @@ Focus on authentic evidence-based attribution and avoid generic responses.
                 # Direct agent call
                 attribution_result = await self.theme_agent.run(theme_context)
                 attribution = self._parse_attribution_result(attribution_result)
-            
+
             return attribution
-            
+
         except Exception as e:
-            logger.error(f"Theme attribution analysis failed for theme {theme_number}: {e}")
+            logger.error(
+                f"Theme attribution analysis failed for theme {theme_number}: {e}"
+            )
             return self._create_basic_theme_attribution(theme, stakeholder_map)
 
-    async def _use_theme_service(self, theme_context: str, theme_number: int) -> Dict[str, Any]:
+    async def _use_theme_service(
+        self, theme_context: str, theme_number: int
+    ) -> Dict[str, Any]:
         """Use dedicated theme service if available."""
         try:
-            from backend.services.stakeholder.analysis.theme_analysis_service import ThemeAnalysisService
+            from backend.services.stakeholder.analysis.theme_analysis_service import (
+                ThemeAnalysisService,
+            )
             from backend.utils.pydantic_ai_retry import get_conservative_retry_config
-            
+
             # Get agent factory (simplified for V2)
-            theme_service = ThemeAnalysisService(None)  # Will need proper factory injection
+            theme_service = ThemeAnalysisService(
+                None
+            )  # Will need proper factory injection
             retry_config = get_conservative_retry_config()
-            
+
             result = await theme_service.analyze_with_retry(
                 theme_context, retry_config, f"Theme {theme_number} attribution"
             )
             return self._parse_attribution_result(result)
-            
+
         except Exception as e:
-            logger.warning(f"Theme service unavailable, falling back to direct agent: {e}")
+            logger.warning(
+                f"Theme service unavailable, falling back to direct agent: {e}"
+            )
             attribution_result = await self.theme_agent.run(theme_context)
             return self._parse_attribution_result(attribution_result)
 
@@ -166,17 +205,17 @@ Focus on authentic evidence-based attribution and avoid generic responses.
         self, theme: Any, stakeholder_map: Dict[str, Any], files: List[Any]
     ) -> str:
         """Prepare context for theme attribution analysis."""
-        
+
         # Extract theme information
-        theme_name = getattr(theme, 'theme', str(theme))
-        theme_description = getattr(theme, 'description', '')
-        
+        theme_name = getattr(theme, "theme", str(theme))
+        theme_description = getattr(theme, "description", "")
+
         # Create stakeholder context
         stakeholder_context = []
         for stakeholder_id, stakeholder_data in stakeholder_map.items():
             context_line = f"- {stakeholder_id}: {stakeholder_data.get('name', 'Unknown')} ({stakeholder_data.get('stakeholder_type', 'Unknown')})"
             stakeholder_context.append(context_line)
-        
+
         context = f"""
 Theme to analyze: {theme_name}
 Description: {theme_description}
@@ -188,10 +227,12 @@ Please analyze which stakeholders contributed to this theme and provide attribut
 """
         return context
 
-    def _create_stakeholder_map(self, detected_stakeholders: List[DetectedStakeholder]) -> Dict[str, Any]:
+    def _create_stakeholder_map(
+        self, detected_stakeholders: List[DetectedStakeholder]
+    ) -> Dict[str, Any]:
         """Create a map of stakeholders for easy lookup."""
         stakeholder_map = {}
-        
+
         for stakeholder in detected_stakeholders:
             stakeholder_map[stakeholder.stakeholder_id] = {
                 "name": stakeholder.name,
@@ -200,50 +241,74 @@ Please analyze which stakeholders contributed to this theme and provide attribut
                 "influence_level": stakeholder.influence_level,
                 "key_concerns": stakeholder.key_concerns,
             }
-        
+
         return stakeholder_map
 
     def _parse_attribution_result(self, result: Any) -> Dict[str, Any]:
-        """Parse attribution result from LLM response."""
+        """Parse attribution result from LLM response and normalize to safe structure."""
         try:
-            if hasattr(result, 'data'):
-                return result.data
-            elif isinstance(result, dict):
-                return result
+            data = None
+            if hasattr(result, "data"):
+                data = result.data
+            elif isinstance(result, (dict, list)):
+                data = result
             else:
                 # Try to parse as JSON string
                 import json
-                return json.loads(str(result))
+
+                data = json.loads(str(result))
+
+            # If Pydantic model instance, dump to dict
+            try:
+                if hasattr(data, "model_dump"):
+                    data = data.model_dump()
+            except Exception:
+                pass
+
+            # Normalize theme_distribution to List[KeyValuePair]-like list
+            if isinstance(data, dict):
+                td = data.get("theme_distribution")
+                if isinstance(td, dict):
+                    data["theme_distribution"] = [
+                        {"key": str(k), "value": str(v)} for k, v in td.items()
+                    ]
+                elif isinstance(td, str) and td.strip():
+                    data["theme_distribution"] = [{"key": "summary", "value": td}]
+                elif td is None:
+                    data["theme_distribution"] = []
+            return data if isinstance(data, dict) else {}
         except Exception as e:
             logger.warning(f"Failed to parse attribution result: {e}")
             return {}
 
-    def _create_enhanced_theme(self, original_theme: Any, attribution: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_enhanced_theme(
+        self, original_theme: Any, attribution: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Create enhanced theme with attribution data."""
-        
+
         # Convert original theme to dict if needed
-        if hasattr(original_theme, 'model_dump'):
+        if hasattr(original_theme, "model_dump"):
             theme_dict = original_theme.model_dump()
-        elif hasattr(original_theme, 'dict'):
+        elif hasattr(original_theme, "dict"):
             theme_dict = original_theme.dict()
         elif isinstance(original_theme, dict):
             theme_dict = original_theme.copy()
         else:
             theme_dict = {"theme": str(original_theme)}
-        
+
         # Add stakeholder attribution
         theme_dict["stakeholder_attribution"] = attribution
-        
+
         return theme_dict
 
     def _create_basic_theme_attribution(
         self, theme: Any, stakeholder_map: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Create basic theme attribution as fallback."""
-        
-        theme_name = getattr(theme, 'theme', str(theme))
+
+        theme_name = getattr(theme, "theme", str(theme))
         stakeholder_ids = list(stakeholder_map.keys())
-        
+
         # Create basic contributions
         stakeholder_contributions = []
         for stakeholder_id in stakeholder_ids[:3]:  # Limit to top 3
@@ -251,13 +316,18 @@ Please analyze which stakeholders contributed to this theme and provide attribut
             contribution = {
                 "stakeholder_id": stakeholder_id,
                 "contribution_strength": 0.7,  # Default moderate contribution
-                "context": f"Stakeholder {stakeholder_data['name']} contributed to theme '{theme_name}'"
+                "context": f"Stakeholder {stakeholder_data['name']} contributed to theme '{theme_name}'",
             }
             stakeholder_contributions.append(contribution)
-        
+
         return {
             "stakeholder_contributions": stakeholder_contributions,
-            "theme_distribution": f"Theme '{theme_name}' distributed across {len(stakeholder_ids)} stakeholders",
+            "theme_distribution": [
+                {
+                    "key": "summary",
+                    "value": f"Theme '{theme_name}' distributed across {len(stakeholder_ids)} stakeholders",
+                }
+            ],
             "dominant_stakeholder": stakeholder_ids[0] if stakeholder_ids else None,
             "theme_consensus_level": 0.7,  # Default moderate consensus
         }

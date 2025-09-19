@@ -2433,7 +2433,8 @@ Generate a complete DirectPersona object with all required traits populated base
                                 self.evidence_linking_service, "enable_v2", False
                             ):
                                 scope_meta = {
-                                    "speaker": stakeholder_category,
+                                    "speaker": None,  # avoid misattribution to category label
+                                    "speaker_role": "Interviewee",
                                     "stakeholder_category": stakeholder_category,
                                 }
                                 try:
@@ -2455,6 +2456,74 @@ Generate a complete DirectPersona object with all required traits populated base
                                         protect_key_quotes=True,
                                     )
                                 )
+                                # Ensure age is populated if missing (pattern-based fallback)
+                                try:
+                                    demo = (
+                                        persona_dict.get("demographics")
+                                        if isinstance(persona_dict, dict)
+                                        else None
+                                    )
+                                    need_age = True
+                                    if isinstance(demo, dict):
+                                        ar = demo.get("age_range")
+                                        if isinstance(ar, dict) and ar.get("value"):
+                                            need_age = False
+                                    if need_age:
+                                        from backend.services.evidence_intelligence.demographic_intelligence import (
+                                            DemographicIntelligence,
+                                        )
+                                        from backend.services.evidence_intelligence.speaker_intelligence import (
+                                            SpeakerProfile,
+                                            SpeakerRole,
+                                        )
+
+                                        di = DemographicIntelligence(llm_service=None)
+                                        sp = SpeakerProfile(
+                                            speaker_id=str(stakeholder_category),
+                                            role=SpeakerRole.INTERVIEWEE,
+                                            unique_identifier=str(stakeholder_category),
+                                        )
+                                        demographics_data = di._fallback_extraction(
+                                            stakeholder_text, sp
+                                        )
+                                        if demographics_data and (
+                                            demographics_data.age_range
+                                            or demographics_data.age
+                                        ):
+                                            age_value = demographics_data.age_range or (
+                                                str(demographics_data.age)
+                                                if demographics_data.age
+                                                else None
+                                            )
+                                            if age_value:
+                                                demo = (
+                                                    dict(demo)
+                                                    if isinstance(demo, dict)
+                                                    else {}
+                                                )
+                                                existing_evd = []
+                                                if isinstance(
+                                                    demo.get("age_range"), dict
+                                                ):
+                                                    existing_evd = (
+                                                        demo["age_range"].get(
+                                                            "evidence", []
+                                                        )
+                                                        or []
+                                                    )
+                                                demo["age_range"] = {
+                                                    "value": age_value,
+                                                    "evidence": existing_evd,
+                                                }
+                                                demo["confidence"] = (
+                                                    demo.get("confidence", 0.7) or 0.7
+                                                )
+                                                persona_dict["demographics"] = demo
+                                except Exception as _age_err:
+                                    logger.debug(
+                                        f"[DEMOGRAPHICS] Age fallback extraction skipped (stakeholder persona): {_age_err}"
+                                    )
+
                         except Exception as el_err:
                             logger.warning(
                                 f"[EVIDENCE_LINKING_V2] Skipped for stakeholder {stakeholder_category}: {el_err}"
@@ -3334,7 +3403,7 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
                 # Enhance evidence with V2 linking using scoped speaker text and metadata
                 try:
                     if getattr(self.evidence_linking_service, "enable_v2", False):
-                        scope_meta = {"speaker_id": speaker, "speaker": role}
+                        scope_meta = {"speaker": speaker, "speaker_role": role}
                         try:
                             if context and isinstance(context, dict):
                                 if context.get("stakeholder_category"):
@@ -3353,6 +3422,65 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
                                 protect_key_quotes=True,
                             )
                         )
+                        # Ensure age is populated if missing (pattern-based fallback)
+                        try:
+                            demo = (
+                                persona_data.get("demographics")
+                                if isinstance(persona_data, dict)
+                                else None
+                            )
+                            need_age = True
+                            if isinstance(demo, dict):
+                                ar = demo.get("age_range")
+                                if isinstance(ar, dict) and ar.get("value"):
+                                    need_age = False
+                            if need_age:
+                                from backend.services.evidence_intelligence.demographic_intelligence import (
+                                    DemographicIntelligence,
+                                )
+                                from backend.services.evidence_intelligence.speaker_intelligence import (
+                                    SpeakerProfile,
+                                    SpeakerRole,
+                                )
+
+                                di = DemographicIntelligence(llm_service=None)
+                                sp = SpeakerProfile(
+                                    speaker_id=str(speaker),
+                                    role=SpeakerRole.INTERVIEWEE,
+                                    unique_identifier=str(speaker),
+                                )
+                                demographics_data = di._fallback_extraction(text, sp)
+                                if demographics_data and (
+                                    demographics_data.age_range or demographics_data.age
+                                ):
+                                    age_value = demographics_data.age_range or (
+                                        str(demographics_data.age)
+                                        if demographics_data.age
+                                        else None
+                                    )
+                                    if age_value:
+                                        demo = (
+                                            dict(demo) if isinstance(demo, dict) else {}
+                                        )
+                                        existing_evd = []
+                                        if isinstance(demo.get("age_range"), dict):
+                                            existing_evd = (
+                                                demo["age_range"].get("evidence", [])
+                                                or []
+                                            )
+                                        demo["age_range"] = {
+                                            "value": age_value,
+                                            "evidence": existing_evd,
+                                        }
+                                        demo["confidence"] = (
+                                            demo.get("confidence", 0.7) or 0.7
+                                        )
+                                        persona_data["demographics"] = demo
+                        except Exception as _age_err:
+                            logger.debug(
+                                f"[DEMOGRAPHICS] Age fallback extraction skipped: {_age_err}"
+                            )
+
                 except Exception as el_err:
                     logger.warning(
                         f"[EVIDENCE_LINKING_V2] Skipped during persona build for {speaker}: {el_err}"
