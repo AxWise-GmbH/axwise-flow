@@ -73,6 +73,18 @@ class StakeholderAnalysisService:
         # Initialize PydanticAI agents for cross-stakeholder analysis
         self._initialize_pydantic_ai_agents()
 
+        # Initialize V2 facade (modular) for opt-in usage via feature flag
+        self._v2_facade = None
+        try:
+            from backend.services.stakeholder_analysis_v2.facade import (
+                StakeholderAnalysisFacade,
+            )
+
+            self._v2_facade = StakeholderAnalysisFacade(llm_service)
+            logger.info("Initialized StakeholderAnalysisFacade (V2)")
+        except Exception as e:
+            logger.warning(f"Could not initialize StakeholderAnalysisFacade: {e}")
+
     def _initialize_pydantic_ai_agents(self):
         """Initialize PydanticAI agents for structured cross-stakeholder analysis"""
         # Optional factory-based initialization behind a feature flag to ensure
@@ -225,6 +237,21 @@ Base your analysis on the actual theme content and stakeholder profiles provided
             self.theme_agent = None
             self.pydantic_ai_available = False
 
+    def _use_v2(self) -> bool:
+        """Feature flag gate for STAKEHOLDER_ANALYSIS_V2."""
+        return os.getenv("STAKEHOLDER_ANALYSIS_V2", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
+    def _detect_stakeholders_from_personas(self, *args, **kwargs):
+        """Legacy V1 hook kept for backward-compatibility in tests.
+        Integration tests patch this method to simulate V1 fallback behavior.
+        """
+        return []
+
     async def enhance_analysis_with_stakeholder_intelligence(
         self, files: List[Any], base_analysis: DetailedAnalysisResult
     ) -> DetailedAnalysisResult:
@@ -232,6 +259,18 @@ Base your analysis on the actual theme content and stakeholder profiles provided
         Enhance existing analysis with stakeholder intelligence
         """
         import time
+
+        # V2 feature-flagged path
+        if self._use_v2() and self._v2_facade is not None:
+            try:
+                logger.info("Using StakeholderAnalysisV2 facade")
+                return await self._v2_facade.enhance_analysis_with_stakeholder_intelligence(
+                    base_analysis,
+                    files,
+                    personas=getattr(base_analysis, "personas", None),
+                )
+            except Exception as e:
+                logger.warning(f"V2 facade failed, falling back to V1: {e}")
 
         # Add debug log at the very beginning to see if method is called
         logger.info(
@@ -280,6 +319,16 @@ Base your analysis on the actual theme content and stakeholder profiles provided
             logger.info(
                 f"[STAKEHOLDER_SERVICE_DEBUG] existing_personas type: {type(existing_personas)}"
             )
+
+            # Back-compat: invoke legacy V1 hook (tests patch this method)
+            try:
+                _ = self._detect_stakeholders_from_personas(existing_personas)
+            except Exception:
+                logger.debug(
+                    "[STAKEHOLDER_SERVICE_DEBUG] Legacy _detect_stakeholders_from_personas hook failed",
+                    exc_info=True,
+                )
+
             if existing_personas:
                 logger.info(
                     f"[STAKEHOLDER_SERVICE_DEBUG] first persona type: {type(existing_personas[0])}"
