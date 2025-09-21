@@ -4,6 +4,7 @@ Stakeholder Analysis V2 Facade
 Orchestrates modular components behind a feature flag while maintaining
 backward compatibility with the existing StakeholderAnalysisService API.
 """
+
 from typing import List, Dict, Any, Optional
 import os
 import logging
@@ -35,7 +36,7 @@ class StakeholderAnalysisFacade:
 
     def __init__(self, llm_service: ILLMService):
         self.llm_service = llm_service
-        
+
         # Initialize modular components
         self.detector = StakeholderDetector(llm_service)
         self.theme_analyzer = StakeholderThemeAnalyzer(llm_service)
@@ -52,43 +53,43 @@ class StakeholderAnalysisFacade:
     ) -> DetailedAnalysisResult:
         """
         Main entry point that mirrors the original service API while using modular components.
-        
+
         Args:
             base_analysis: Base analysis result to enhance
             files: Interview files for analysis
             personas: Optional personas for stakeholder mapping
-            
+
         Returns:
             Enhanced analysis result with stakeholder intelligence
         """
         logger.info("Starting V2 modular stakeholder analysis")
-        
+
         try:
             # Phase 1: Stakeholder Detection
             detected_stakeholders = await self.detector.detect_stakeholders(
                 files, base_analysis, personas
             )
-            
+
             # Phase 2: Cross-stakeholder Pattern Analysis
             cross_patterns = await self.influence_calculator.analyze_patterns(
                 detected_stakeholders, files
             )
-            
+
             # Phase 3: Multi-stakeholder Summary
             multi_summary = await self.report_assembler.generate_summary(
                 detected_stakeholders, cross_patterns, files
             )
-            
+
             # Phase 4: Theme Attribution Enhancement
             enhanced_themes = await self.theme_analyzer.enhance_themes_with_attribution(
                 base_analysis.themes, detected_stakeholders, files
             )
-            
+
             # Phase 5: Evidence Aggregation
             aggregated_evidence = await self.evidence_aggregator.aggregate_evidence(
                 detected_stakeholders, files
             )
-            
+
             # Assemble final result
             enhanced_analysis = self.report_assembler.assemble_final_result(
                 base_analysis=base_analysis,
@@ -100,13 +101,15 @@ class StakeholderAnalysisFacade:
                 enhanced_themes=enhanced_themes,
                 evidence=aggregated_evidence,
             )
-            
+
             # Validate result
-            validated_analysis = self.validator.validate_analysis_result(enhanced_analysis)
-            
+            validated_analysis = self.validator.validate_analysis_result(
+                enhanced_analysis
+            )
+
             logger.info("V2 modular stakeholder analysis completed successfully")
             return validated_analysis
-            
+
         except Exception as e:
             logger.error(f"V2 stakeholder analysis failed: {e}")
             # Return original analysis as fallback
