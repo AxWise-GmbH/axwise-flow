@@ -1058,6 +1058,19 @@ class TranscriptStructuringService:
                     )
                     logger.info(
                         f"Successfully validated manually extracted transcript with {len(validated_transcript.segments)} segments"
+                    )
+
+                    # We don't need to return this since we already have the structured_data list
+                except ValidationError as e:
+                    logger.warning(
+                        f"Manually extracted transcript failed validation as a whole: {e}"
+                    )
+            else:
+                logger.warning("Manual extraction failed to find any speaker turns")
+        except Exception as e:
+            logger.error(f"Error in manual transcript extraction: {e}")
+
+        return structured_data
 
     def _normalize_roles(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Infer a consistent interviewer vs interviewee role per speaker and normalize.
@@ -1078,12 +1091,16 @@ class TranscriptStructuringService:
                     continue
                 txt = str(seg.get("dialogue") or seg.get("text") or "")
                 role = str(seg.get("role") or "").strip()
-                d = speakers.setdefault(spk, {"count": 0, "avg_length": 0.0, "qmarks": 0})
+                d = speakers.setdefault(
+                    spk, {"count": 0, "avg_length": 0.0, "qmarks": 0}
+                )
                 d["count"] += 1
                 d["avg_length"] += len(txt)
                 d["qmarks"] += txt.count("?")
                 if role.lower() == "interviewer":
-                    explicit_interviewer_counts[spk] = explicit_interviewer_counts.get(spk, 0) + 1
+                    explicit_interviewer_counts[spk] = (
+                        explicit_interviewer_counts.get(spk, 0) + 1
+                    )
             # Compute averages
             for spk, d in speakers.items():
                 if d["count"] > 0:
@@ -1091,7 +1108,9 @@ class TranscriptStructuringService:
             interviewer: Optional[str] = None
             # Prefer explicit interviewer labels
             if explicit_interviewer_counts:
-                interviewer = max(explicit_interviewer_counts.items(), key=lambda kv: kv[1])[0]
+                interviewer = max(
+                    explicit_interviewer_counts.items(), key=lambda kv: kv[1]
+                )[0]
             # Else choose by question ratio
             if not interviewer and speakers:
                 best_spk = None
@@ -1104,12 +1123,12 @@ class TranscriptStructuringService:
                 interviewer = best_spk
             # If still none (unlikely), choose shortest avg length
             if not interviewer and speakers:
-                interviewer = min(speakers.items(), key=lambda kv: kv[1]["avg_length"])[0]
+                interviewer = min(speakers.items(), key=lambda kv: kv[1]["avg_length"])[
+                    0
+                ]
             # Normalize roles on segments
             if len(speakers) <= 1:
-                # Single-speaker transcript -> Interviewee
-                for seg in segments:
-                    seg["role"] = "Interviewee"
+                # Single-speaker transcript -> keep original roles
                 return segments
             if interviewer:
                 for seg in segments:
@@ -1119,20 +1138,9 @@ class TranscriptStructuringService:
                     # Only override ambiguous/default roles; keep explicit non-ambiguous ones
                     current = str(seg.get("role") or "").strip().lower()
                     if current in {"", "participant", "unknown"}:
-                        seg["role"] = "Interviewer" if spk == interviewer else "Interviewee"
+                        seg["role"] = (
+                            "Interviewer" if spk == interviewer else "Interviewee"
+                        )
             return segments
         except Exception:
             return segments
-
-                    )
-                    # We don't need to return this since we already have the structured_data list
-                except ValidationError as e:
-                    logger.warning(
-                        f"Manually extracted transcript failed validation as a whole: {e}"
-                    )
-            else:
-                logger.warning("Manual extraction failed to find any speaker turns")
-        except Exception as e:
-            logger.error(f"Error in manual transcript extraction: {e}")
-
-        return structured_data
