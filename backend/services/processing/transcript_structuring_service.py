@@ -282,6 +282,13 @@ class TranscriptStructuringService:
                             )
 
             structured_transcript = validated_segments
+            # Normalize roles consistently across the transcript (infer interviewer vs interviewee)
+            try:
+                structured_transcript = self._normalize_roles(structured_transcript)
+            except Exception:
+                logger.warning(
+                    "Role normalization failed; continuing with original roles"
+                )
 
             if structured_transcript:
                 logger.info(
@@ -1051,6 +1058,72 @@ class TranscriptStructuringService:
                     )
                     logger.info(
                         f"Successfully validated manually extracted transcript with {len(validated_transcript.segments)} segments"
+
+    def _normalize_roles(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Infer a consistent interviewer vs interviewee role per speaker and normalize.
+        - If any segments explicitly marked as Interviewer, prefer that speaker.
+        - Else choose the speaker with highest question ratio as Interviewer; ties -> shortest avg length.
+        - All other speakers become Interviewee. If only one speaker, mark as Interviewee.
+        """
+        try:
+            if not segments:
+                return segments
+            # Gather per-speaker stats
+            speakers: Dict[str, Dict[str, float]] = {}
+            explicit_interviewer_counts: Dict[str, int] = {}
+            for seg in segments:
+                spk = str(seg.get("speaker_id") or seg.get("speaker") or "").strip()
+                if not spk:
+                    # Skip segments without a speaker id
+                    continue
+                txt = str(seg.get("dialogue") or seg.get("text") or "")
+                role = str(seg.get("role") or "").strip()
+                d = speakers.setdefault(spk, {"count": 0, "avg_length": 0.0, "qmarks": 0})
+                d["count"] += 1
+                d["avg_length"] += len(txt)
+                d["qmarks"] += txt.count("?")
+                if role.lower() == "interviewer":
+                    explicit_interviewer_counts[spk] = explicit_interviewer_counts.get(spk, 0) + 1
+            # Compute averages
+            for spk, d in speakers.items():
+                if d["count"] > 0:
+                    d["avg_length"] = d["avg_length"] / d["count"]
+            interviewer: Optional[str] = None
+            # Prefer explicit interviewer labels
+            if explicit_interviewer_counts:
+                interviewer = max(explicit_interviewer_counts.items(), key=lambda kv: kv[1])[0]
+            # Else choose by question ratio
+            if not interviewer and speakers:
+                best_spk = None
+                best_ratio = -1.0
+                for spk, d in speakers.items():
+                    ratio = (d["qmarks"] / d["count"]) if d["count"] else 0.0
+                    if ratio > best_ratio:
+                        best_ratio = ratio
+                        best_spk = spk
+                interviewer = best_spk
+            # If still none (unlikely), choose shortest avg length
+            if not interviewer and speakers:
+                interviewer = min(speakers.items(), key=lambda kv: kv[1]["avg_length"])[0]
+            # Normalize roles on segments
+            if len(speakers) <= 1:
+                # Single-speaker transcript -> Interviewee
+                for seg in segments:
+                    seg["role"] = "Interviewee"
+                return segments
+            if interviewer:
+                for seg in segments:
+                    spk = str(seg.get("speaker_id") or seg.get("speaker") or "").strip()
+                    if not spk:
+                        continue
+                    # Only override ambiguous/default roles; keep explicit non-ambiguous ones
+                    current = str(seg.get("role") or "").strip().lower()
+                    if current in {"", "participant", "unknown"}:
+                        seg["role"] = "Interviewer" if spk == interviewer else "Interviewee"
+            return segments
+        except Exception:
+            return segments
+
                     )
                     # We don't need to return this since we already have the structured_data list
                 except ValidationError as e:

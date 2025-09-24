@@ -344,9 +344,44 @@ def _create_stakeholder_intelligence_summary(
     # Extract stakeholder information from enhanced personas
     for persona in enhanced_personas:
         if isinstance(persona, dict):
+            # Derive a specific stakeholder_type with robust fallbacks (avoid generic primary_customer)
+            derived_type = None
+            # 1) Prefer explicit type from stakeholder_intelligence if present and specific
+            if "stakeholder_intelligence" in persona:
+                si = persona["stakeholder_intelligence"]
+                if isinstance(si, dict):
+                    t = si.get("stakeholder_type")
+                    if (
+                        t
+                        and str(t).strip()
+                        and str(t).strip().lower() != "primary_customer"
+                    ):
+                        derived_type = str(t).strip()
+            # 2) Fallback to persona.role if available
+            if not derived_type:
+                t = persona.get("role")
+                if (
+                    t
+                    and str(t).strip()
+                    and str(t).strip().lower() != "primary_customer"
+                ):
+                    derived_type = str(t).strip()
+            # 3) Fallback to demographics.role if available
+            if not derived_type:
+                demographics = persona.get("demographics") or {}
+                if isinstance(demographics, dict):
+                    t = demographics.get("role") or demographics.get("job_title")
+                    if t and str(t).strip():
+                        derived_type = str(t).strip()
+                elif isinstance(demographics, str) and demographics.strip():
+                    derived_type = demographics.strip()
+            # 4) Final fallback to persona name token
+            if not derived_type:
+                derived_type = persona.get("name", "Primary Customer").strip()
+
             stakeholder_info = {
                 "stakeholder_id": persona.get("name", "Unknown").replace(" ", "_"),
-                "stakeholder_type": "primary_customer",  # Default type
+                "stakeholder_type": derived_type,
                 "demographic_info": {},
                 "individual_insights": {
                     "goals": persona.get("goals_and_motivations", {}).get("value", ""),
@@ -367,12 +402,6 @@ def _create_stakeholder_intelligence_summary(
                     "quotes_evidence": persona.get("key_quotes", {}).get("evidence", [])
                 },
             }
-
-            # Extract stakeholder type from persona if available
-            if "stakeholder_intelligence" in persona:
-                si = persona["stakeholder_intelligence"]
-                if isinstance(si, dict) and "stakeholder_type" in si:
-                    stakeholder_info["stakeholder_type"] = si["stakeholder_type"]
 
             detected_stakeholders.append(stakeholder_info)
 

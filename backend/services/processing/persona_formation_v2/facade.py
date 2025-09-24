@@ -148,30 +148,48 @@ class PersonaFormationFacade:
 
         # Group dialogues by speaker for non-interviewer roles to create per-participant personas
         by_speaker: Dict[str, List[str]] = {}
+        role_counts: Dict[str, Dict[str, int]] = {}
         for seg in transcript:
             try:
                 role = (seg.get("role") or "").strip().lower()
+                speaker = seg.get("speaker_id") or seg.get("speaker") or "Participant"
+                # Track role counts per speaker to compute a modal role later
+                role_counts.setdefault(speaker, {})[role or "participant"] = (
+                    role_counts.setdefault(speaker, {}).get(role or "participant", 0)
+                    + 1
+                )
+                # Exclude interviewer/moderator/researcher turns from persona formation
                 if role in {"interviewer", "moderator", "researcher"}:
                     continue
-                speaker = seg.get("speaker_id") or seg.get("speaker") or "Participant"
                 by_speaker.setdefault(speaker, []).append(
                     seg.get("dialogue") or seg.get("text") or ""
                 )
             except Exception:
                 continue
 
+        # Compute modal role per speaker to propagate into scope metadata (default Participant)
+        modal_role_by_speaker: Dict[str, str] = {}
+        for spk, counts in role_counts.items():
+            if counts:
+                modal = max(counts.items(), key=lambda kv: kv[1])[0]
+                # Normalize to title case for downstream display/filters
+                modal_role_by_speaker[spk] = (modal or "participant").capitalize()
+            else:
+                modal_role_by_speaker[spk] = "Participant"
+
         personas: List[Dict[str, Any]] = []
         for speaker, utterances in by_speaker.items():
             scoped_text = "\n".join(u for u in utterances if u)
             # Extract attributes for this speaker scope
+            speaker_role = modal_role_by_speaker.get(speaker, "Participant")
             scope_meta = {
                 "speaker": speaker,
-                "speaker_role": "Participant",
+                "speaker_role": speaker_role,
                 "document_id": (context or {}).get("document_id"),
             }
             try:
                 attributes = await self.extractor.extract_attributes_from_text(
-                    scoped_text, role="Participant", scope_meta=scope_meta
+                    scoped_text, role=speaker_role, scope_meta=scope_meta
                 )
                 enhanced_attrs = attributes
                 evidence_map = None
