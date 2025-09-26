@@ -318,6 +318,72 @@ class PersonaBuilder:
                         f"Name is not a string: {attr_name}, using role as fallback"
                     )
                     name = role
+            # Sanitize generic names (avoid names like "Interviewee"/"Participant")
+            try:
+                nm = (name or "").strip()
+                generic_names = {
+                    "interviewee",
+                    "participant",
+                    "user",
+                    "customer",
+                    "stakeholder",
+                    "unknown",
+                }
+
+                def _extract_role_from_text(text: str) -> str:
+                    if not isinstance(text, str):
+                        return ""
+                    text = text.strip()
+                    if not text:
+                        return ""
+                    import re
+
+                    # Prefer phrase after comma (e.g., "Lena, The Agile Marketing Manager")
+                    seg = text
+                    if "," in text:
+                        parts = [p.strip() for p in text.split(",", 1)]
+                        seg = parts[1] if len(parts) > 1 else parts[0]
+                    if seg.lower().startswith("the "):
+                        seg = seg[4:].strip()
+                    role_terms = [
+                        "Owner",
+                        "Founder",
+                        "Marketing Manager",
+                        "Manager",
+                        "Advisor",
+                        "Consultant",
+                        "Designer",
+                        "Developer",
+                        "Engineer",
+                        "Director",
+                        "Advocate",
+                        "Founder & CEO",
+                        "Shop Owner",
+                        "Boutique Owner",
+                        "Cafe Owner",
+                        "Restaurant Owner",
+                        "Freelancer",
+                    ]
+                    roles_alt = sorted(role_terms, key=len, reverse=True)
+                    for term in roles_alt:
+                        pat = re.compile(
+                            r"((?:[A-Z][a-z]+\s+){0,3}" + re.escape(term) + r")\b"
+                        )
+                        m = pat.search(seg)
+                        if m:
+                            return m.group(1).strip()
+                    return ""
+
+                if nm.lower() in generic_names:
+                    cand = (
+                        _extract_role_from_text(attributes.get("name", ""))
+                        or _extract_role_from_text(attributes.get("archetype", ""))
+                        or _extract_role_from_text(attributes.get("description", ""))
+                    )
+                    if cand:
+                        name = f"The {cand}"
+            except Exception:
+                pass
 
             # Log the attributes for debugging
             logger.info(f"Building persona with name: {name}, role: {role}")
@@ -652,100 +718,96 @@ class PersonaBuilder:
             # Create Persona object
             persona = Persona(
                 name=name,
-                description=self._get_string_value(
-                    attributes.get("description"), "No description provided."
-                ),
-                archetype=self._get_string_value(
-                    attributes.get("archetype"), "Unknown"
-                ),
+                description=self._get_string_value(attributes.get("description"), ""),
+                archetype=self._get_string_value(attributes.get("archetype"), ""),
                 # Create PersonaTrait instances from processed data with validation
                 role_context=self._validate_and_create_persona_trait(
                     processed_traits["role_context"],
                     "role_context",
-                    "Professional role context",
+                    "",
                 ),
                 key_responsibilities=self._validate_and_create_persona_trait(
                     processed_traits["key_responsibilities"],
                     "key_responsibilities",
-                    "Key professional responsibilities",
+                    "",
                 ),
                 tools_used=self._validate_and_create_persona_trait(
                     processed_traits["tools_used"],
                     "tools_used",
-                    "Tools and methods used",
+                    "",
                 ),
                 collaboration_style=self._validate_and_create_persona_trait(
                     processed_traits["collaboration_style"],
                     "collaboration_style",
-                    "Collaboration approach",
+                    "",
                 ),
                 analysis_approach=self._validate_and_create_persona_trait(
                     processed_traits["analysis_approach"],
                     "analysis_approach",
-                    "Analysis approach",
+                    "",
                 ),
                 # Core PydanticAI fields
                 demographics=self._convert_demographics_to_structured(
                     self._validate_and_create_persona_trait(
                         processed_traits["demographics"],
                         "demographics",
-                        "Professional demographics",
+                        "",
                     )
                 ),
                 goals_and_motivations=self._validate_and_create_persona_trait(
                     processed_traits["goals_and_motivations"],
                     "goals_and_motivations",
-                    "Professional goals and motivations",
+                    "",
                 ),
                 needs_and_expectations=self._validate_and_create_persona_trait(
                     processed_traits["needs_and_expectations"],
                     "needs_and_expectations",
-                    "Professional needs and expectations",
+                    "",
                 ),
                 decision_making_process=self._validate_and_create_persona_trait(
                     processed_traits["decision_making_process"],
                     "decision_making_process",
-                    "Decision making process",
+                    "",
                 ),
                 communication_style=self._validate_and_create_persona_trait(
                     processed_traits["communication_style"],
                     "communication_style",
-                    "Communication style",
+                    "",
                 ),
                 technology_usage=self._validate_and_create_persona_trait(
                     processed_traits["technology_usage"],
                     "technology_usage",
-                    "Technology usage patterns",
+                    "",
                 ),
                 pain_points=self._validate_and_create_persona_trait(
                     processed_traits["pain_points"],
                     "pain_points",
-                    "Professional challenges",
+                    "",
                 ),
                 skills_and_expertise=self._validate_and_create_persona_trait(
                     processed_traits["skills_and_expertise"],
                     "skills_and_expertise",
-                    "Skills and expertise not clearly identified from interview content",
+                    "",
                 ),
                 workflow_and_environment=self._validate_and_create_persona_trait(
                     processed_traits["workflow_and_environment"],
                     "workflow_and_environment",
-                    "Workflow and work environment details not clearly specified in interview",
+                    "",
                 ),
                 challenges_and_frustrations=self._validate_and_create_persona_trait(
                     processed_traits["challenges_and_frustrations"],
                     "challenges_and_frustrations",
-                    "Professional challenges and frustrations",
+                    "",
                 ),
                 technology_and_tools=self._validate_and_create_persona_trait(
                     processed_traits["technology_and_tools"],
                     "technology_and_tools",
-                    "Technology tools and preferences not clearly mentioned in interview",
+                    "",
                 ),
                 key_quotes=self._validate_and_create_persona_trait(
                     processed_traits["key_quotes"],
                     "key_quotes",
-                    "Representative quotes",
+                    "",
                 ),
                 # Set other fields
                 patterns=patterns,
@@ -1149,25 +1211,25 @@ class PersonaBuilder:
         demographics_trait = PersonaTrait(
             value=demographics_value,
             confidence=0.6,
-            evidence=[f"Inferred from {role} role in interview context"],
+            evidence=[],
         )
 
         goals_trait = PersonaTrait(
             value=goals_value,
             confidence=0.6,
-            evidence=[f"Standard expectations for {role} role"],
+            evidence=[],
         )
 
         challenges_trait = PersonaTrait(
             value=challenges_value,
             confidence=0.6,
-            evidence=[f"Common challenges for {role} participants"],
+            evidence=[],
         )
 
         needs_trait = PersonaTrait(
             value=needs_value,
             confidence=0.6,
-            evidence=[f"Typical needs for {role} in research context"],
+            evidence=[],
         )
 
         # Create fallback persona
@@ -1248,7 +1310,7 @@ class PersonaBuilder:
         self,
         trait_data: Dict[str, Any],
         field_name: str,
-        default_value: str = "Not specified",
+        default_value: str = "",
     ) -> PersonaTrait:
         """
         Validate and create a PersonaTrait with complete structure.
@@ -1269,12 +1331,10 @@ class PersonaBuilder:
         # Validate value is not empty
         if not value:
             logger.warning(
-                f"Empty value for {field_name}, using default: '{default_value}'"
+                f"Empty value for {field_name}, leaving blank (no generic placeholder)"
             )
-            value = default_value
-            confidence = (
-                0.2  # Significantly reduce confidence for generic fallback content
-            )
+            value = ""
+            confidence = 0.2
 
         # Validate confidence is in valid range
         confidence = max(0.0, min(1.0, confidence))
@@ -1377,9 +1437,20 @@ class PersonaBuilder:
             confidence = (
                 demographics_trait.confidence if demographics_trait.confidence else 0.7
             )
-            evidence = (
+            raw_evidence = (
                 demographics_trait.evidence if demographics_trait.evidence else []
             )
+            # Keep only evidence items that are already structured and linked (with offsets/speaker)
+            structured_evidence = [
+                it
+                for it in (raw_evidence or [])
+                if isinstance(it, dict)
+                and isinstance(it.get("start_char"), int)
+                and isinstance(it.get("end_char"), int)
+                and (it.get("speaker") or "").strip()
+                and (it.get("speaker") or "").strip().lower()
+                not in {"researcher", "interviewer", "moderator"}
+            ]
 
             # Try to extract structured information from the value
             # This is a simple approach - ideally the LLM would generate structured data directly
@@ -1456,20 +1527,34 @@ class PersonaBuilder:
             return StructuredDemographics(
                 experience_level=AttributedField(
                     value=experience_level,
-                    evidence=evidence[:2] if len(evidence) > 1 else evidence,
+                    evidence=(
+                        structured_evidence[:2]
+                        if len(structured_evidence) > 1
+                        else structured_evidence
+                    ),
                 ),
                 industry=AttributedField(
-                    value=industry, evidence=evidence[2:4] if len(evidence) > 3 else []
+                    value=industry,
+                    evidence=(
+                        structured_evidence[2:4] if len(structured_evidence) > 3 else []
+                    ),
                 ),
                 location=AttributedField(
-                    value=location, evidence=evidence[4:6] if len(evidence) > 5 else []
+                    value=location,
+                    evidence=(
+                        structured_evidence[4:6] if len(structured_evidence) > 5 else []
+                    ),
                 ),
                 professional_context=AttributedField(
-                    value=professional_context, evidence=evidence
+                    value=professional_context, evidence=structured_evidence
                 ),
                 roles=AttributedField(
                     value=roles,
-                    evidence=evidence[:3] if len(evidence) > 2 else evidence,
+                    evidence=(
+                        structured_evidence[:3]
+                        if len(structured_evidence) > 2
+                        else structured_evidence
+                    ),
                 ),
                 age_range=AttributedField(value=age_range, evidence=[]),
                 confidence=confidence,
@@ -1484,24 +1569,14 @@ class PersonaBuilder:
             )
 
             return StructuredDemographics(
-                experience_level=AttributedField(
-                    value="Not specified", evidence=["Not available"]
-                ),
-                industry=AttributedField(
-                    value="Not specified", evidence=["Not available"]
-                ),
-                location=AttributedField(
-                    value="Not specified", evidence=["Not available"]
-                ),
+                experience_level=AttributedField(value="Not specified", evidence=[]),
+                industry=AttributedField(value="Not specified", evidence=[]),
+                location=AttributedField(value="Not specified", evidence=[]),
                 professional_context=AttributedField(
-                    value="Professional individual", evidence=["Inferred"]
+                    value="Professional individual", evidence=[]
                 ),
-                roles=AttributedField(
-                    value="Not specified", evidence=["Not available"]
-                ),
-                age_range=AttributedField(
-                    value="Not specified", evidence=["Not available"]
-                ),
+                roles=AttributedField(value="Not specified", evidence=[]),
+                age_range=AttributedField(value="Not specified", evidence=[]),
                 confidence=0.1,
             )
 
@@ -1632,11 +1707,8 @@ class PersonaBuilder:
         demo_value = demographics.get("value", "")
         role_value = role_context.get("value", "")
 
-        # Combine evidence
-        combined_evidence = demographics.get("evidence", []) + role_context.get(
-            "evidence", []
-        )
-        combined_evidence = list(set(combined_evidence))  # Remove duplicates
+        # Combine evidence - keep only structured, linked evidence items (with offsets/speaker)
+        combined_evidence = []
 
         # Extract company and organizational information from role context
         company_info = []

@@ -933,120 +933,135 @@ class TranscriptStructuringService:
             else:
                 content_text = "\n".join(content_lines)
 
-            # Try different regex patterns for speaker extraction
-            # First try the standard "Name: Text" format
-            pattern1 = re.compile(r"([^:]+):\s*(.+?)(?=\n[^:]+:|$)", re.DOTALL)
-            matches1 = pattern1.findall(content_text)
+            # Split by interview blocks if present (e.g., "INTERVIEW 6 OF 25")
+            blocks: list[tuple[int, str]] = []
+            block_indices = [
+                (m.start(), m.group(0))
+                for m in re.finditer(
+                    r"(?im)^\s*INTERVIEW\s+\d+\s+OF\s+\d+\s*$", content_text
+                )
+            ]
+            if block_indices:
+                # Append a sentinel end
+                positions = [pos for (pos, _) in block_indices] + [len(content_text)]
+                for i in range(len(block_indices)):
+                    start_pos = positions[i]
+                    end_pos = positions[i + 1]
+                    blocks.append((i + 1, content_text[start_pos:end_pos]))
+            else:
+                blocks.append((1, content_text))
 
-            # Also try timestamp pattern "[00:00:00] Name: Text"
-            pattern2 = re.compile(
-                r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*([^:]+):\s*(.+?)(?=\n\[?\d{1,2}:\d{2}|$)",
-                re.DOTALL,
-            )
-            matches2 = pattern2.findall(content_text)
-
-            # Use the pattern that found more matches
-            matches = matches1 if len(matches1) >= len(matches2) else matches2
-
-            if not matches:
-                # Try a more lenient pattern for dialogue without clear speaker markers
-                pattern3 = re.compile(
-                    r"([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s*[-:])?\s*(.+?)(?=\n[A-Z][a-z]+(?:\s[A-Z][a-z]+)?(?:\s*[-:])?|$)",
+            total_turns = 0
+            for block_id, block_text in blocks:
+                # Try different regex patterns for speaker extraction within the block
+                # Strictly anchor to line starts to avoid capturing headers
+                pattern1 = re.compile(
+                    r"(?m)^\s*([^:\n]{1,80})\s*[:：]\s*(.+?)(?=(?:\n\s*[^:\n]{1,80}\s*[:：]\s*)|\Z)",
                     re.DOTALL,
                 )
-                matches = pattern3.findall(content_text)
+                matches1 = pattern1.findall(block_text)
 
-            if matches:
-                logger.info(f"Manually extracted {len(matches)} speaker turns")
+                pattern2 = re.compile(
+                    r"(?m)^\s*(?:\[\d{1,2}:\d{2}(?::\d{2})?\]\s*)?([^:\n]{1,80})\s*[:：]\s*(.+?)(?=(?:\n\s*(?:\[\d{1,2}:\d{2}(?::\d{2})?\]\s*)?[^:\n]{1,80}\s*[:：]\s*)|\Z)",
+                    re.DOTALL,
+                )
+                matches2 = pattern2.findall(block_text)
 
-                # Analyze speakers to determine roles
-                speakers = {}
+                # Prefer timestamp-aware matches when present
+                matches = matches2 if matches2 else (matches1 if matches1 else [])
+                if not matches:
+                    pattern3 = re.compile(
+                        r"(?m)^\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s*(?:[-:])\s*(.+?)(?=\n[A-Z][a-z]+(?:\s[A-Z][a-z]+)?\s*(?:[-:])|\Z)",
+                        re.DOTALL,
+                    )
+                    matches = pattern3.findall(block_text)
+
+                if not matches:
+                    continue
+
+                total_turns += len(matches)
+
+                # Analyze speakers for this block to determine interviewer
+                speakers: dict[str, dict[str, float]] = {}
                 for speaker, dialogue in matches:
                     speaker_clean = speaker.strip()
-                    # Remove timestamps if present
                     speaker_clean = re.sub(
                         r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_clean
                     )
-
                     if speaker_clean not in speakers:
                         speakers[speaker_clean] = {
                             "count": 0,
-                            "avg_length": 0,
+                            "avg_length": 0.0,
                             "question_marks": 0,
                         }
-
                     speakers[speaker_clean]["count"] += 1
                     speakers[speaker_clean]["avg_length"] += len(dialogue)
                     speakers[speaker_clean]["question_marks"] += dialogue.count("?")
 
-                # Calculate averages
-                for speaker in speakers:
-                    if speakers[speaker]["count"] > 0:
-                        speakers[speaker]["avg_length"] /= speakers[speaker]["count"]
+                for spk in speakers:
+                    if speakers[spk]["count"]:
+                        speakers[spk]["avg_length"] /= speakers[spk]["count"]
 
-                # Determine interviewer based on question frequency and shorter responses
-                interviewer = None
-                max_question_ratio = 0
+                # Prefer explicit researcher/interviewer labels in this block
+                explicit = [
+                    spk
+                    for spk in speakers.keys()
+                    if re.search(r"(?i)^(researcher|interviewer)$", spk.strip())
+                ]
+                interviewer = explicit[0] if explicit else None
 
-                for speaker in speakers:
-                    if speakers[speaker]["count"] > 0:
-                        question_ratio = (
-                            speakers[speaker]["question_marks"]
-                            / speakers[speaker]["count"]
-                        )
-                        if question_ratio > max_question_ratio:
-                            max_question_ratio = question_ratio
-                            interviewer = speaker
-
-                # If no clear interviewer found, use the speaker with shortest average responses
+                # Else by question ratio
                 if not interviewer:
-                    min_length = float("inf")
-                    for speaker in speakers:
-                        if speakers[speaker]["avg_length"] < min_length:
-                            min_length = speakers[speaker]["avg_length"]
-                            interviewer = speaker
+                    best_spk, best_ratio = None, -1.0
+                    for spk, d in speakers.items():
+                        ratio = (
+                            (d["question_marks"] / d["count"]) if d["count"] else 0.0
+                        )
+                        if ratio > best_ratio:
+                            best_ratio = ratio
+                            best_spk = spk
+                    interviewer = best_spk
 
-                logger.info(f"Identified '{interviewer}' as the likely interviewer")
+                # Else shortest average length
+                if not interviewer and speakers:
+                    interviewer = min(
+                        speakers.items(), key=lambda kv: kv[1]["avg_length"]
+                    )[0]
+
+                logger.info(
+                    f"Block {block_id}: identified '{interviewer}' as likely interviewer"
+                )
 
                 for speaker, dialogue in matches:
-                    # Clean up speaker name and dialogue
                     speaker_id = speaker.strip()
-                    # Remove timestamps if present
                     speaker_id = re.sub(
                         r"\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*", "", speaker_id
                     )
                     dialogue_text = dialogue.strip()
 
-                    # Infer role based on speaker analysis
-                    if speaker_id == interviewer:
+                    # Normalize explicit labels and infer role
+                    spk_norm = speaker_id.strip()
+                    if re.search(r"(?i)^(researcher|interviewer)$", spk_norm):
+                        role = "Interviewer"
+                    elif interviewer and spk_norm == interviewer:
                         role = "Interviewer"
                     else:
                         role = "Interviewee"
 
-                    # Create a segment
+                    # Ensure uniqueness across blocks
+                    unique_speaker_id = f"I{block_id}|{spk_norm}"
                     segment_data = {
-                        "speaker_id": speaker_id,
+                        "speaker_id": unique_speaker_id,
                         "role": role,
                         "dialogue": dialogue_text,
                     }
-
-                    # Validate the segment
                     try:
                         validated_segment = TranscriptSegment(**segment_data)
                         structured_data.append(validated_segment.model_dump())
-                        logger.debug(
-                            f"Successfully validated manually extracted segment for speaker: {speaker_id}"
-                        )
-                    except ValidationError as e:
-                        logger.warning(
-                            f"Manually extracted segment failed validation: {e}"
-                        )
-                        # Add it anyway as a best effort
+                    except ValidationError:
                         structured_data.append(segment_data)
-                        logger.info(
-                            f"Added non-validated manually extracted segment as best effort"
-                        )
 
+            if total_turns:
                 logger.info(
                     f"Successfully created {len(structured_data)} structured transcript entries manually"
                 )

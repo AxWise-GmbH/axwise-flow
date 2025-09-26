@@ -2873,29 +2873,148 @@ Generate a complete DirectPersona object with all required traits populated base
                         persona
                     )
 
+                    # Determine a specific stakeholder title/type from persona fields
+                    specific_type = None
+                    try:
+                        role_val = str(persona.get("role", "")).strip()
+                        if role_val:
+                            specific_type = role_val
+                        else:
+                            sd = persona.get("structured_demographics") or {}
+                            roles = sd.get("roles") if isinstance(sd, dict) else None
+                            roles_val = (
+                                roles.get("value") if isinstance(roles, dict) else None
+                            )
+                            if isinstance(roles_val, str) and roles_val.strip():
+                                specific_type = roles_val.strip()
+                        # If still not set, try to extract a role phrase from name/archetype/description
+                        if not specific_type:
+
+                            def _extract_role_phrase(text: str) -> str:
+                                if not isinstance(text, str):
+                                    return ""
+                                text = text.strip()
+                                if not text:
+                                    return ""
+                                seg = text
+                                if "," in text:
+                                    parts = [p.strip() for p in text.split(",", 1)]
+                                    seg = parts[1] if len(parts) > 1 else parts[0]
+                                if seg.lower().startswith("the "):
+                                    seg = seg[4:].strip()
+                                import re
+
+                                role_terms = [
+                                    "Owner",
+                                    "Founder",
+                                    "Marketing Manager",
+                                    "Manager",
+                                    "Advisor",
+                                    "Consultant",
+                                    "Designer",
+                                    "Developer",
+                                    "Engineer",
+                                    "Director",
+                                    "Advocate",
+                                    "Founder & CEO",
+                                    "Shop Owner",
+                                    "Boutique Owner",
+                                    "Cafe Owner",
+                                    "Restaurant Owner",
+                                    "Freelancer",
+                                ]
+                                roles_alt = sorted(role_terms, key=len, reverse=True)
+                                for term in roles_alt:
+                                    m = re.search(
+                                        r"((?:[A-Z][a-z]+\s+){0,3}"
+                                        + re.escape(term)
+                                        + r")\b",
+                                        seg,
+                                    )
+                                    if m:
+                                        return m.group(1).strip()
+                                return ""
+
+                            name_text = persona.get("name", "")
+                            arc_text = persona.get("archetype", "")
+                            desc_text = persona.get("description", "")
+                            candidate = (
+                                _extract_role_phrase(name_text)
+                                or _extract_role_phrase(arc_text)
+                                or _extract_role_phrase(desc_text)
+                            )
+                            if candidate:
+                                specific_type = candidate
+                    except Exception:
+                        specific_type = None
+
                     # Update the persona's stakeholder intelligence
                     if (
                         "stakeholder_intelligence" in persona
                         and persona["stakeholder_intelligence"]
                     ):
+                        # Always update influence metrics
                         persona["stakeholder_intelligence"][
                             "influence_metrics"
                         ] = influence_metrics
+                        # If the current type is generic or missing, and we have a specific title, set it
+                        try:
+                            current_type = str(
+                                persona["stakeholder_intelligence"].get(
+                                    "stakeholder_type", ""
+                                )
+                            ).strip()
+                            import re
+
+                            if (
+                                not current_type
+                                or current_type == "primary_customer"
+                                or re.match(r"^[A-Z][a-z]+$", current_type)
+                            ) and specific_type:
+                                persona["stakeholder_intelligence"][
+                                    "stakeholder_type"
+                                ] = specific_type
+                        except Exception:
+                            if specific_type:
+                                persona["stakeholder_intelligence"][
+                                    "stakeholder_type"
+                                ] = specific_type
                         logger.info(
-                            f"[STAKEHOLDER_INTELLIGENCE] Updated metrics for {persona.get('name', 'Unknown')}: {influence_metrics}"
+                            f"[STAKEHOLDER_INTELLIGENCE] Updated metrics/type for {persona.get('name', 'Unknown')}: {influence_metrics} / {persona['stakeholder_intelligence'].get('stakeholder_type')}"
                         )
                     else:
                         # Create stakeholder intelligence if it doesn't exist
                         persona["stakeholder_intelligence"] = {
-                            "stakeholder_type": "primary_customer",
+                            "stakeholder_type": specific_type or "primary_customer",
                             "influence_metrics": influence_metrics,
                             "relationships": [],
                             "conflict_indicators": [],
                             "consensus_levels": [],
                         }
                         logger.info(
-                            f"[STAKEHOLDER_INTELLIGENCE] Created stakeholder intelligence for {persona.get('name', 'Unknown')}: {influence_metrics}"
+                            f"[STAKEHOLDER_INTELLIGENCE] Created stakeholder intelligence for {persona.get('name', 'Unknown')}: {influence_metrics} / {persona['stakeholder_intelligence'].get('stakeholder_type')}"
                         )
+                        # If persona name is generic and we have a specific stakeholder type, set a role-based name
+                        try:
+                            nm = str(persona.get("name", "")).strip()
+                            generic_names = {
+                                "interviewee",
+                                "participant",
+                                "user",
+                                "customer",
+                                "stakeholder",
+                                "unknown",
+                            }
+                            if (
+                                nm.lower() in generic_names
+                                and specific_type
+                                and isinstance(specific_type, str)
+                                and specific_type.strip()
+                            ):
+                                persona["name"] = f"The {specific_type.strip()}"
+                        except Exception:
+                            pass
+
                 except Exception as e:
                     logger.error(
                         f"[STAKEHOLDER_INTELLIGENCE] Error calculating influence metrics for {persona.get('name', 'Unknown')}: {str(e)}"

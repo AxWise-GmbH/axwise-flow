@@ -100,6 +100,16 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
             if "top_k" in request:
                 custom_config["top_k"] = request["top_k"]
 
+            # If caller requests strict JSON, enforce via response_mime_type
+            try:
+                if request.get("enforce_json"):
+                    # application/json forces Gemini to emit JSON; keep temp at 0 for structure
+                    custom_config["response_mime_type"] = "application/json"
+                    # Prefer deterministic output for structured tasks
+                    custom_config.setdefault("temperature", 0.0)
+            except Exception:
+                pass
+
             # Call the AsyncGenAIClient
             return await self.client.generate_content(
                 task=task,

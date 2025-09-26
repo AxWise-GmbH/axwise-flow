@@ -604,13 +604,41 @@ class AsyncGenAIClient:
                                 logger.info(f"Part type: {type(part)}")
                                 logger.info(f"Part attributes: {dir(part)}")
 
-                                if hasattr(part, "text"):
-                                    text_response = part.text
+                                # Prefer JSON-bearing fields before .text
+                                extracted = None
+                                try:
+                                    # Some SDK variants return inline_data for JSON parts
+                                    inline = getattr(part, "inline_data", None)
+                                    if inline is not None:
+                                        # Try common attributes in order
+                                        for attr in ("data", "value", "content"):
+                                            val = getattr(inline, attr, None)
+                                            if val:
+                                                try:
+                                                    extracted = (
+                                                        val.decode("utf-8")
+                                                        if hasattr(val, "decode")
+                                                        else str(val)
+                                                    )
+                                                    break
+                                                except Exception:
+                                                    extracted = str(val)
+                                                    break
+                                except Exception as _e:
+                                    pass
+
+                                if not extracted and hasattr(part, "text"):
+                                    extracted = part.text
+
+                                if extracted:
+                                    text_response = extracted
                                     logger.info(
-                                        f"Successfully extracted text from parts[0].text: '{text_response}' (length: {len(text_response) if text_response else 0})"
+                                        f"Successfully extracted content from first part (len={len(text_response) if text_response else 0})"
                                     )
                                 else:
-                                    logger.error(f"Part has no text attribute")
+                                    logger.error(
+                                        "Part has neither inline_data nor text; cannot extract"
+                                    )
                             else:
                                 logger.error(f"Content has no parts or parts is empty")
                         else:

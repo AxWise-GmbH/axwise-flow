@@ -819,3 +819,118 @@ async def get_analysis_results(
     except Exception as e:
         logger.error(f"Error retrieving analysis results: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.post("/debug/restart-analysis/{result_id}")
+async def restart_analysis(
+    result_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Restart the full analysis pipeline using the same InterviewData as an existing result.
+    - Creates a NEW analysis result ID (does not overwrite the original)
+    - Reuses original llm_provider/llm_model when available; defaults to Gemini 2.5 Flash
+    - Infers is_free_text from InterviewData.input_type or stored payload
+    - Preserves prior 'industry' if present in results
+    """
+    try:
+        # Authorize and fetch the original analysis result
+        analysis_result = (
+            db.query(AnalysisResult)
+            .filter(
+                AnalysisResult.result_id == result_id,
+                AnalysisResult.data_id.in_(
+                    db.query(InterviewData.id).filter(
+                        InterviewData.user_id == current_user.user_id
+                    )
+                ),
+            )
+            .first()
+        )
+        if not analysis_result:
+            raise HTTPException(status_code=404, detail="Analysis result not found")
+
+        # Fetch the original InterviewData
+        interview_data = (
+            db.query(InterviewData)
+            .filter(InterviewData.id == analysis_result.data_id)
+            .first()
+        )
+        if not interview_data:
+            raise HTTPException(status_code=404, detail="Interview data not found")
+
+        # Determine prior settings
+        llm_provider = analysis_result.llm_provider or "gemini"
+        llm_model = analysis_result.llm_model
+        # Preserve prior industry if present in stored results
+        prior_results = analysis_result.results or {}
+        if isinstance(prior_results, str):
+            try:
+                prior_results = json.loads(prior_results)
+            except Exception:
+                prior_results = {}
+        industry = prior_results.get("industry")
+
+        # Infer is_free_text from InterviewData
+        is_free_text = False
+        try:
+            if (interview_data.input_type or "").lower() == "text":
+                is_free_text = True
+            else:
+                # Inspect payload
+                parsed = json.loads(interview_data.original_data)
+                if isinstance(parsed, dict) and (
+                    "free_text" in parsed
+                    or parsed.get("metadata", {}).get("is_free_text")
+                ):
+                    is_free_text = True
+        except Exception:
+            # If payload is raw text, treat as free text
+            if (
+                isinstance(interview_data.original_data, str)
+                and len(interview_data.original_data) > 0
+            ):
+                is_free_text = True
+
+        # Fallback to default Gemini model if none recorded
+        if not llm_model:
+            try:
+                from backend.infrastructure.config.settings import settings
+
+                llm_model = settings.llm_providers.get("gemini", {}).get(
+                    "model", "models/gemini-2.5-flash"
+                )
+            except Exception:
+                llm_model = "models/gemini-2.5-flash"
+
+        # Start a fresh analysis run using AnalysisService
+        from backend.services.analysis_service import AnalysisService
+
+        analysis_service = AnalysisService(db, current_user)
+        result = await analysis_service.start_analysis(
+            data_id=analysis_result.data_id,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            is_free_text=is_free_text,
+            industry=industry,
+        )
+
+        return {
+            "status": "success",
+            "message": "Analysis restarted successfully",
+            "original_result_id": result_id,
+            "new_result_id": result.get("result_id"),
+            "llm_provider": llm_provider,
+            "llm_model": llm_model,
+            "is_free_text": is_free_text,
+            "industry": industry,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error restarting analysis {result_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Error restarting analysis: {str(e)}"
+        )

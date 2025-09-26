@@ -207,12 +207,16 @@ class GenAIConfigFactory:
     """Factory for creating GenAI configurations based on task type."""
 
     # Map task types to their corresponding schema models
+    # NOTE: We intentionally do NOT enforce a response_schema for PERSONA_FORMATION here
+    # because persona extraction prompts can vary (simplified vs. structured), and
+    # forcing a schema caused plain-text fallbacks and parse failures. We still
+    # enforce JSON via response_mime_type at config level.
     TASK_SCHEMA_MAP = {
         TaskType.PATTERN_RECOGNITION: PatternResponse,
         TaskType.THEME_ANALYSIS: ThemeResponse,
         TaskType.THEME_ANALYSIS_ENHANCED: ThemeResponse,
         TaskType.INSIGHT_GENERATION: InsightResponse,
-        TaskType.PERSONA_FORMATION: PersonaResponse,  # Re-enabled with fixed schema
+        # TaskType.PERSONA_FORMATION: PersonaResponse,  # removed to avoid schema mismatch
     }
 
     @staticmethod

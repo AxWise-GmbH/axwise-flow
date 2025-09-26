@@ -180,6 +180,20 @@ class PersonaFormationFacade:
         personas: List[Dict[str, Any]] = []
         for speaker, utterances in by_speaker.items():
             scoped_text = "\n".join(u for u in utterances if u)
+            # LLM-clean: keep only participant-verbatim lines (fail-open)
+            try:
+                scoped_text = await self.evidence_linker.llm_clean_scoped_text(
+                    scoped_text,
+                    scope_meta={
+                        "speaker": speaker,
+                        "speaker_role": modal_role_by_speaker.get(
+                            speaker, "Participant"
+                        ),
+                        "document_id": (context or {}).get("document_id"),
+                    },
+                )
+            except Exception:
+                pass
             # Extract attributes for this speaker scope
             speaker_role = modal_role_by_speaker.get(speaker, "Participant")
             scope_meta = {
@@ -207,7 +221,230 @@ class PersonaFormationFacade:
                         # Fail open: continue without V2 evidence if anything goes wrong
                         enhanced_attrs = attributes
                         evidence_map = None
+
+                # Persona-level hard gate: drop any question/metadata-like evidence strings
+                def _is_bad_evidence_line(q: str) -> bool:
+                    try:
+                        import re
+
+                        s = (q or "").strip()
+                        if not s:
+                            return False
+                        # Strip leading timestamps like "[20:04]"
+                        s2 = re.sub(r"^\s*(\[[^\]]+\]\s*){1,3}", "", s)
+                        ls2 = s2.lower()
+                        # Q/Question prefixes
+                        if re.match(r"^(q|question)\s*[:\-\u2014\u2013]\s*", ls2):
+                            return True
+                        # Interviewer/researcher/moderator labels
+                        if re.match(r"^(interviewer|researcher|moderator)\s*:\s*", ls2):
+                            return True
+                        # All-caps labels (e.g., "INTERVIEWER:")
+                        if re.match(r"^[A-Z][A-Z ]{1,20}:\s", s2):
+                            return True
+                        # Section headers and insights
+                        if (
+                            re.match(r"^(\ud83d\udca1\s*)?key insights?:", ls2)
+                            or "key themes identified" in ls2
+                        ):
+                            return True
+                        # Trailing question mark
+                        return s2.endswith("?") or s2.endswith("\uff1f")
+                    except Exception:
+                        return False
+
+                # Filter evidence arrays in enhanced attributes
+                if isinstance(enhanced_attrs, dict):
+                    for fk, fv in list(enhanced_attrs.items()):
+                        if isinstance(fv, dict) and isinstance(
+                            fv.get("evidence"), list
+                        ):
+                            filtered = [
+                                q
+                                for q in fv["evidence"]
+                                if not _is_bad_evidence_line(q)
+                            ]
+                            # Optional LLM gate (fail-open)
+                            try:
+                                approved_idx = (
+                                    await self.evidence_linker.llm_filter_quotes(
+                                        filtered, scope_meta
+                                    )
+                                )
+                                if approved_idx and len(approved_idx) != len(filtered):
+                                    filtered = [
+                                        q
+                                        for i, q in enumerate(filtered)
+                                        if i in approved_idx
+                                    ]
+                            except Exception:
+                                pass
+                            if len(filtered) != len(fv["evidence"]):
+                                nf = dict(fv)
+                                nf["evidence"] = filtered
+                                enhanced_attrs[fk] = nf
+                # Also filter structured evidence_map for instrumentation cleanliness
+                if isinstance(evidence_map, dict):
+                    for field, items in list(evidence_map.items()):
+                        # First apply local hygiene
+                        pre = [
+                            it
+                            for it in items
+                            if not _is_bad_evidence_line(it.get("quote", ""))
+                        ]
+                        # Optional LLM gate over quotes (fail-open)
+                        try:
+                            quotes = [it.get("quote", "") for it in pre]
+                            approved_idx = await self.evidence_linker.llm_filter_quotes(
+                                quotes, scope_meta
+                            )
+                            if approved_idx and len(approved_idx) != len(pre):
+                                pre = [
+                                    it for i, it in enumerate(pre) if i in approved_idx
+                                ]
+                        except Exception:
+                            pass
+                        evidence_map[field] = pre
                 persona = self._make_persona_from_attributes(enhanced_attrs)
+
+                # Derive a specific role/title for stakeholder detection downstream
+                try:
+                    if "role" not in persona or not str(persona.get("role")).strip():
+                        # Prefer structured_demographics.roles.value if available
+                        sd = persona.get("structured_demographics") or {}
+                        roles_val = (
+                            (sd.get("roles") or {}).get("value")
+                            if isinstance(sd, dict)
+                            else None
+                        )
+                        if (
+                            isinstance(roles_val, str)
+                            and roles_val.strip()
+                            and roles_val.lower()
+                            not in {"not specified", "professional role"}
+                        ):
+                            persona["role"] = roles_val.strip()
+                        else:
+                            # Fallback: try role_context.value
+                            rc = persona.get("role_context")
+                            if isinstance(rc, dict) and rc.get("value"):
+                                persona["role"] = str(rc["value"]).strip()[:120]
+                            else:
+                                # Last resort: use leading part of name before comma as a title-ish hint
+                                nm = str(persona.get("name") or "").strip()
+                                if "," in nm:
+                                    persona["role"] = nm.split(",", 1)[0].strip()
+                except Exception:
+                    pass
+
+                # Final hard gate (post-assembly): remove any evidence items with invalid offsets/speaker
+                try:
+
+                    def _valid_struct_item(it: Any) -> bool:
+                        if not isinstance(it, dict):
+                            return True  # leave plain strings
+                        spk = str((it.get("speaker") or "").strip())
+                        if not spk or spk.lower() == "researcher":
+                            return False
+                        if it.get("start_char") is None or it.get("end_char") is None:
+                            return False
+                        return True
+
+                    # Clean top-level trait evidence lists
+                    for fk, fv in list(persona.items()):
+                        if isinstance(fv, dict) and isinstance(
+                            fv.get("evidence"), list
+                        ):
+                            persona[fk]["evidence"] = [
+                                it for it in fv["evidence"] if _valid_struct_item(it)
+                            ]
+                    # Clean StructuredDemographics nested evidence
+                    sd = persona.get("structured_demographics")
+                    if isinstance(sd, dict):
+                        for dk, dv in list(sd.items()):
+                            if isinstance(dv, dict) and isinstance(
+                                dv.get("evidence"), list
+                            ):
+                                sd[dk]["evidence"] = [
+                                    it
+                                    for it in dv["evidence"]
+                                    if _valid_struct_item(it)
+                                ]
+                    # Clean evidence_map instrumentation too
+                    if self.enable_evidence_v2 and isinstance(evidence_map, dict):
+                        for field, items in list(evidence_map.items()):
+                            evidence_map[field] = [
+                                it for it in (items or []) if _valid_struct_item(it)
+                            ]
+                except Exception:
+                    pass
+
+                # Stakeholder type correction: prefer specific titles over generic placeholders
+                try:
+                    import re
+
+                    def _is_generic_type(val: str) -> bool:
+                        v = (val or "").strip().lower()
+                        if not v:
+                            return True
+                        generic = {
+                            "primary_customer",
+                            "customer",
+                            "user",
+                            "participant",
+                            "interviewee",
+                            "respondent",
+                            "unknown",
+                            "n/a",
+                            "not specified",
+                            "professional role",
+                            "professional role context",
+                            "professional demographics",
+                        }
+                        if v in generic:
+                            return True
+                        if re.match(r"^(primary|generic)\s+(customer|user)s?$", v):
+                            return True
+                        return False
+
+                    specific_type = None
+                    meta = persona.get("persona_metadata") or {}
+                    cat = (
+                        meta.get("stakeholder_category")
+                        if isinstance(meta, dict)
+                        else None
+                    )
+                    if (
+                        isinstance(cat, str)
+                        and cat.strip()
+                        and not _is_generic_type(cat)
+                    ):
+                        specific_type = cat.strip()
+                    else:
+                        role_val = str(persona.get("role", "")).strip()
+                        if role_val and not _is_generic_type(role_val):
+                            specific_type = role_val
+                        else:
+                            sd = persona.get("structured_demographics") or {}
+                            roles_val = (
+                                (sd.get("roles") or {}).get("value")
+                                if isinstance(sd, dict)
+                                else None
+                            )
+                            if (
+                                isinstance(roles_val, str)
+                                and roles_val.strip()
+                                and not _is_generic_type(roles_val)
+                            ):
+                                specific_type = roles_val.strip()
+                    if specific_type:
+                        si = persona.setdefault("stakeholder_intelligence", {})
+                        cur = str(si.get("stakeholder_type", "") or "").strip().lower()
+                        if (not cur) or _is_generic_type(cur):
+                            si["stakeholder_type"] = specific_type
+                except Exception:
+                    pass
+
                 # Attach instrumentation for tests/AB only (non-breaking)
                 if self.enable_evidence_v2 and evidence_map is not None:
                     persona["_evidence_linking_v2"] = {
@@ -258,6 +495,18 @@ class PersonaFormationFacade:
             fallback_text = (
                 non_interviewer_text if non_interviewer_text.strip() else all_text
             )
+            # LLM-clean fallback scoped text as well (fail-open)
+            try:
+                fallback_text = await self.evidence_linker.llm_clean_scoped_text(
+                    fallback_text,
+                    scope_meta={
+                        "speaker": "Participant",
+                        "speaker_role": "Participant",
+                        "document_id": (context or {}).get("document_id"),
+                    },
+                )
+            except Exception:
+                pass
 
             try:
                 attributes = await self.extractor.extract_attributes_from_text(
@@ -283,7 +532,195 @@ class PersonaFormationFacade:
                     except Exception:
                         enhanced_attrs = attributes
                         evidence_map = None
+
+                # Persona-level hard gate on fallback path as well
+                def _is_bad_evidence_line(q: str) -> bool:
+                    try:
+                        import re
+
+                        s = (q or "").strip()
+                        if not s:
+                            return False
+                        # Strip leading timestamps like "[20:04]"
+                        s2 = re.sub(r"^\s*(\[[^\]]+\]\s*){1,3}", "", s)
+                        ls2 = s2.lower()
+                        # Q/Question prefixes
+                        if re.match(r"^(q|question)\s*[:\-\u2014\u2013]\s*", ls2):
+                            return True
+                        # Interviewer/researcher/moderator labels
+                        if re.match(r"^(interviewer|researcher|moderator)\s*:\s*", ls2):
+                            return True
+                        # All-caps labels (e.g., "INTERVIEWER:")
+                        if re.match(r"^[A-Z][A-Z ]{1,20}:\s", s2):
+                            return True
+                        # Section headers and insights
+                        if (
+                            re.match(r"^(\ud83d\udca1\s*)?key insights?:", ls2)
+                            or "key themes identified" in ls2
+                        ):
+                            return True
+                        # Trailing question mark
+                        return s2.endswith("?") or s2.endswith("\uff1f")
+                    except Exception:
+                        return False
+
+                if isinstance(enhanced_attrs, dict):
+                    for fk, fv in list(enhanced_attrs.items()):
+                        if isinstance(fv, dict) and isinstance(
+                            fv.get("evidence"), list
+                        ):
+                            filtered = [
+                                q
+                                for q in fv["evidence"]
+                                if not _is_bad_evidence_line(q)
+                            ]
+                            # Optional LLM gate (fail-open)
+                            try:
+                                approved_idx = (
+                                    await self.evidence_linker.llm_filter_quotes(
+                                        filtered, scope_meta
+                                    )
+                                )
+                                if approved_idx and len(approved_idx) != len(filtered):
+                                    filtered = [
+                                        q
+                                        for i, q in enumerate(filtered)
+                                        if i in approved_idx
+                                    ]
+                            except Exception:
+                                pass
+                            if len(filtered) != len(fv["evidence"]):
+                                nf = dict(fv)
+                                nf["evidence"] = filtered
+                                enhanced_attrs[fk] = nf
+                if isinstance(evidence_map, dict):
+                    for field, items in list(evidence_map.items()):
+                        # First apply local hygiene
+                        pre = [
+                            it
+                            for it in items
+                            if not _is_bad_evidence_line(it.get("quote", ""))
+                        ]
+                        # Optional LLM gate over quotes (fail-open)
+                        try:
+                            quotes = [it.get("quote", "") for it in pre]
+                            approved_idx = await self.evidence_linker.llm_filter_quotes(
+                                quotes, scope_meta
+                            )
+                            if approved_idx and len(approved_idx) != len(pre):
+                                pre = [
+                                    it for i, it in enumerate(pre) if i in approved_idx
+                                ]
+                        except Exception:
+                            pass
+                        evidence_map[field] = pre
                 persona = self._make_persona_from_attributes(enhanced_attrs)
+
+                # Final hard gate (post-assembly) on fallback path: drop invalid evidence items
+                try:
+
+                    def _valid_struct_item(it: Any) -> bool:
+                        if not isinstance(it, dict):
+                            return True
+                        spk = str((it.get("speaker") or "").strip())
+                        if not spk or spk.lower() == "researcher":
+                            return False
+                        if it.get("start_char") is None or it.get("end_char") is None:
+                            return False
+                        return True
+
+                    for fk, fv in list(persona.items()):
+                        if isinstance(fv, dict) and isinstance(
+                            fv.get("evidence"), list
+                        ):
+                            persona[fk]["evidence"] = [
+                                it for it in fv["evidence"] if _valid_struct_item(it)
+                            ]
+                    sd = persona.get("structured_demographics")
+                    if isinstance(sd, dict):
+                        for dk, dv in list(sd.items()):
+                            if isinstance(dv, dict) and isinstance(
+                                dv.get("evidence"), list
+                            ):
+                                sd[dk]["evidence"] = [
+                                    it
+                                    for it in dv["evidence"]
+                                    if _valid_struct_item(it)
+                                ]
+                    if self.enable_evidence_v2 and isinstance(evidence_map, dict):
+                        for field, items in list(evidence_map.items()):
+                            evidence_map[field] = [
+                                it for it in (items or []) if _valid_struct_item(it)
+                            ]
+                except Exception:
+                    pass
+
+                # Stakeholder type correction on fallback path as well (skip generic placeholders)
+                try:
+                    import re
+
+                    def _is_generic_type(val: str) -> bool:
+                        v = (val or "").strip().lower()
+                        if not v:
+                            return True
+                        generic = {
+                            "primary_customer",
+                            "customer",
+                            "user",
+                            "participant",
+                            "interviewee",
+                            "respondent",
+                            "unknown",
+                            "n/a",
+                            "not specified",
+                            "professional role",
+                            "professional role context",
+                            "professional demographics",
+                        }
+                        if v in generic:
+                            return True
+                        if re.match(r"^(primary|generic)\s+(customer|user)s?$", v):
+                            return True
+                        return False
+
+                    specific_type = None
+                    meta = persona.get("persona_metadata") or {}
+                    cat = (
+                        meta.get("stakeholder_category")
+                        if isinstance(meta, dict)
+                        else None
+                    )
+                    if (
+                        isinstance(cat, str)
+                        and cat.strip()
+                        and not _is_generic_type(cat)
+                    ):
+                        specific_type = cat.strip()
+                    else:
+                        role_val = str(persona.get("role", "")).strip()
+                        if role_val and not _is_generic_type(role_val):
+                            specific_type = role_val
+                        else:
+                            sd = persona.get("structured_demographics") or {}
+                            roles_val = (
+                                (sd.get("roles") or {}).get("value")
+                                if isinstance(sd, dict)
+                                else None
+                            )
+                            if (
+                                isinstance(roles_val, str)
+                                and roles_val.strip()
+                                and not _is_generic_type(roles_val)
+                            ):
+                                specific_type = roles_val.strip()
+                    if specific_type:
+                        si = persona.setdefault("stakeholder_intelligence", {})
+                        cur = str(si.get("stakeholder_type", "") or "").strip().lower()
+                        if (not cur) or _is_generic_type(cur):
+                            si["stakeholder_type"] = specific_type
+                except Exception:
+                    pass
+
                 if self.enable_evidence_v2 and evidence_map is not None:
                     persona["_evidence_linking_v2"] = {
                         "evidence_map": evidence_map,

@@ -320,13 +320,13 @@ class AttributeExtractor:
                 logger.warning(
                     f"Failed to extract attributes for {role}, returning fallback attributes"
                 )
-                return self._create_fallback_attributes(role)
+                return self._create_fallback_attributes(role, text)
 
         except Exception as e:
             logger.error(
                 f"Error extracting attributes for {role}: {str(e)}", exc_info=True
             )
-            return self._create_fallback_attributes(role)
+            return self._create_fallback_attributes(role, text)
 
     def _parse_llm_json_response(
         self, response: Any, context: str = ""
@@ -439,7 +439,7 @@ class AttributeExtractor:
                 attributes[field] = {
                     "value": string_value,
                     "confidence": 0.7,
-                    "evidence": [f"Extracted from text: {string_value[:100]}..."],
+                    "evidence": [],  # avoid generic placeholder evidence
                 }
                 logger.info(f"Converted string value to structured trait for {field}")
             # Check if the field doesn't exist or isn't a dict
@@ -448,31 +448,9 @@ class AttributeExtractor:
             else:
                 # Ensure trait has all required fields
                 trait = attributes[field]
-                if "value" not in trait or not trait["value"]:
-                    # Set default value based on field name
-                    default_values = {
-                        "demographics": f"Information about {attributes.get('name', 'the persona')}",
-                        "goals_and_motivations": "Primary objectives and driving factors",
-                        "skills_and_expertise": "Technical and soft skills, knowledge areas",
-                        "workflow_and_environment": "Work processes and environment",
-                        "challenges_and_frustrations": "Pain points and obstacles",
-                        "needs_and_desires": "Specific needs and desires",
-                        "technology_and_tools": "Software, hardware, and tools used",
-                        "attitude_towards_research": "Views on research and data",
-                        "attitude_towards_ai": "Perspective on AI and automation",
-                        "key_quotes": "Representative quotes from the text",
-                        "role_context": "Primary job function and work environment",
-                        "key_responsibilities": "Main tasks and responsibilities",
-                        "tools_used": "Specific tools or methods used",
-                        "collaboration_style": "How they work with others",
-                        "analysis_approach": "How they approach problems/analysis",
-                        "pain_points": "Specific challenges mentioned",
-                    }
-                    default_value = default_values.get(
-                        field, f"Information about {field}"
-                    )
-                    logger.info(f"Setting default value for {field}: {default_value}")
-                    trait["value"] = default_value
+                if "value" not in trait:
+                    # Do not inject generic placeholder values; leave empty to avoid contamination
+                    trait["value"] = ""
 
                 if "confidence" not in trait:
                     trait["confidence"] = 0.5
@@ -491,59 +469,8 @@ class AttributeExtractor:
                     trait["evidence"] = []
                 trait["evidence"] = [str(e) for e in trait["evidence"] if e]
 
-                # If evidence is still empty, add a default evidence item
-                if not trait["evidence"]:
-                    # Add default evidence based on the field
-                    default_evidence = {
-                        "demographics": [
-                            "Inferred from the overall context of the conversation"
-                        ],
-                        "goals_and_motivations": [
-                            "Based on statements about objectives and priorities"
-                        ],
-                        "skills_and_expertise": [
-                            "Derived from mentions of capabilities and knowledge areas"
-                        ],
-                        "workflow_and_environment": [
-                            "Inferred from descriptions of work processes"
-                        ],
-                        "challenges_and_frustrations": [
-                            "Based on mentions of difficulties and pain points"
-                        ],
-                        "needs_and_desires": [
-                            "Derived from expressions of wants and requirements"
-                        ],
-                        "technology_and_tools": [
-                            "Inferred from mentions of software, hardware, and tools"
-                        ],
-                        "attitude_towards_research": [
-                            "Based on statements about research and data"
-                        ],
-                        "attitude_towards_ai": [
-                            "Derived from mentions of AI and automation"
-                        ],
-                        "key_quotes": ["Representative statements from the text"],
-                        "role_context": [
-                            "Inferred from descriptions of job function and environment"
-                        ],
-                        "key_responsibilities": [
-                            "Based on mentions of tasks and duties"
-                        ],
-                        "tools_used": [
-                            "Derived from mentions of specific tools and methods"
-                        ],
-                        "collaboration_style": [
-                            "Inferred from descriptions of interactions with others"
-                        ],
-                        "analysis_approach": [
-                            "Based on statements about problem-solving methods"
-                        ],
-                        "pain_points": ["Derived from mentions of specific challenges"],
-                    }
-
-                    trait["evidence"] = default_evidence.get(
-                        field, [f"No specific evidence found in the text for {field}"]
-                    )
+                # Do not inject default evidence; keep empty if we have no linked quotes
+                # trait['evidence'] stays [] unless evidence linking finds concrete quotes
 
         # Ensure patterns, confidence, and evidence are present
         if "patterns" not in attributes or not isinstance(attributes["patterns"], list):
@@ -755,53 +682,77 @@ class AttributeExtractor:
 
         return attributes
 
-    def _create_fallback_attributes(self, role: str) -> Dict[str, Any]:
+    def _create_fallback_attributes(
+        self, role: str, text: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Create fallback attributes when extraction fails.
+        Create fallback attributes when extraction fails, without generic placeholders.
+        Prefer returning an empty-but-valid structure and extract a few representative
+        participant quotes heuristically so downstream stages still have evidence
+        to link while avoiding contamination.
 
         Args:
             role: Role of the person (Interviewer, Interviewee, Participant)
+            text: Optional scoped text to mine for quotes
 
         Returns:
             Fallback attributes
         """
         logger.info(f"Creating fallback attributes for {role}")
 
-        # Create a default trait
-        default_trait = {
-            "value": f"Unknown {role}",
-            "confidence": 0.3,
-            "evidence": [f"Fallback trait for {role}"],
-        }
+        # Heuristically extract up to 5 long, declarative lines as quotes
+        quotes: list[str] = []
+        try:
+            src = (text or "").splitlines()
+            # Keep non-empty lines that are likely statements (not questions/headers)
+            candidates = [
+                ln.strip()
+                for ln in src
+                if ln and len(ln.strip()) >= 30 and not ln.strip().endswith("?")
+            ]
+            # De-duplicate while preserving order
+            seen = set()
+            unique = []
+            for c in candidates:
+                lc = c.lower()
+                if lc not in seen:
+                    seen.add(lc)
+                    unique.append(c)
+            quotes = unique[:5]
+        except Exception:
+            quotes = []
 
-        # Create fallback attributes
-        return {
+        def empty_trait():
+            return {"value": "", "confidence": 0.3, "evidence": []}
+
+        attrs = {
             "name": f"{role}",
-            "description": f"Default {role} due to extraction failure",
-            "archetype": "Unknown",
-            # Detailed attributes
-            "demographics": default_trait.copy(),
-            "goals_and_motivations": default_trait.copy(),
-            "skills_and_expertise": default_trait.copy(),
-            "workflow_and_environment": default_trait.copy(),
-            "challenges_and_frustrations": default_trait.copy(),
-            "needs_and_desires": default_trait.copy(),
-            "technology_and_tools": default_trait.copy(),
-            "attitude_towards_research": default_trait.copy(),
-            "attitude_towards_ai": default_trait.copy(),
-            "key_quotes": default_trait.copy(),
+            "description": "",
+            "archetype": "",
+            # Detailed attributes (leave empty; no placeholders)
+            "demographics": empty_trait(),
+            "goals_and_motivations": empty_trait(),
+            "skills_and_expertise": empty_trait(),
+            "workflow_and_environment": empty_trait(),
+            "challenges_and_frustrations": empty_trait(),
+            "needs_and_desires": empty_trait(),
+            "technology_and_tools": empty_trait(),
+            "attitude_towards_research": empty_trait(),
+            "attitude_towards_ai": empty_trait(),
+            "key_quotes": {"value": "", "confidence": 0.3, "evidence": quotes},
             # Legacy fields
-            "role_context": default_trait.copy(),
-            "key_responsibilities": default_trait.copy(),
-            "tools_used": default_trait.copy(),
-            "collaboration_style": default_trait.copy(),
-            "analysis_approach": default_trait.copy(),
-            "pain_points": default_trait.copy(),
+            "role_context": empty_trait(),
+            "key_responsibilities": empty_trait(),
+            "tools_used": empty_trait(),
+            "collaboration_style": empty_trait(),
+            "analysis_approach": empty_trait(),
+            "pain_points": empty_trait(),
             # Overall persona information
             "patterns": [],
             "confidence": 0.3,
-            "evidence": [f"Fallback persona for {role}"],
+            "evidence": [],
         }
+        return attrs
 
     def _create_enhanced_persona_prompt(self, text: str, role: str) -> str:
         """

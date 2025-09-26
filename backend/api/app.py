@@ -618,6 +618,115 @@ async def analyze_data(
         )
         # Re-raise HTTP exceptions
         raise
+
+
+@app.post(
+    "/api/analyses/{result_id}/restart",
+    response_model=AnalysisResponse,
+    tags=["Analysis"],
+    summary="Restart analysis",
+    description="Restart the full analysis pipeline using the same InterviewData as an existing result. Creates a new analysis result and preserves prior settings when available.",
+)
+async def restart_analysis_endpoint(
+    result_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Restart an analysis, creating a new result using prior settings where possible."""
+    try:
+        # Authorize and fetch the original analysis result
+        analysis_result = (
+            db.query(AnalysisResult)
+            .filter(
+                AnalysisResult.result_id == result_id,
+                AnalysisResult.data_id.in_(
+                    db.query(InterviewData.id).filter(
+                        InterviewData.user_id == current_user.user_id
+                    )
+                ),
+            )
+            .first()
+        )
+        if not analysis_result:
+            raise HTTPException(status_code=404, detail="Analysis result not found")
+
+        # Fetch original InterviewData
+        interview_data = (
+            db.query(InterviewData)
+            .filter(InterviewData.id == analysis_result.data_id)
+            .first()
+        )
+        if not interview_data:
+            raise HTTPException(status_code=404, detail="Interview data not found")
+
+        # Determine prior settings / fallbacks
+        llm_provider = analysis_result.llm_provider or "gemini"
+        llm_model = analysis_result.llm_model
+        # Preserve prior industry if present
+        prior_results = analysis_result.results or {}
+        if isinstance(prior_results, str):
+            try:
+                prior_results = json.loads(prior_results)
+            except Exception:
+                prior_results = {}
+        industry = prior_results.get("industry")
+
+        # Infer is_free_text from InterviewData
+        is_free_text = False
+        try:
+            if (interview_data.input_type or "").lower() == "text":
+                is_free_text = True
+            else:
+                parsed = json.loads(interview_data.original_data)
+                if isinstance(parsed, dict) and (
+                    "free_text" in parsed
+                    or parsed.get("metadata", {}).get("is_free_text")
+                ):
+                    is_free_text = True
+        except Exception:
+            if (
+                isinstance(interview_data.original_data, str)
+                and len(interview_data.original_data) > 0
+            ):
+                is_free_text = True
+
+        # Fallback to default Gemini model if none recorded
+        if not llm_model:
+            try:
+                llm_model = settings.llm_providers.get("gemini", {}).get(
+                    "model", "models/gemini-2.5-flash"
+                )
+            except Exception:
+                llm_model = "models/gemini-2.5-flash"
+
+        # Kick off a new analysis
+        from backend.services.analysis_service import AnalysisService
+
+        analysis_service = AnalysisService(db, current_user)
+        result = await analysis_service.start_analysis(
+            data_id=analysis_result.data_id,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+            is_free_text=is_free_text,
+            industry=industry,
+        )
+
+        return AnalysisResponse(
+            result_id=int(result.get("result_id")),
+            message="Analysis restarted",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"[RestartAnalysis] Error restarting analysis {result_id}: {e}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Error restarting analysis: {str(e)}"
+        )
+
     except Exception as e:
         logger.error(f"Error initiating analysis: {str(e)}")
         logger.error(

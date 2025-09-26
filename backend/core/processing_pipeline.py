@@ -344,40 +344,142 @@ def _create_stakeholder_intelligence_summary(
     # Extract stakeholder information from enhanced personas
     for persona in enhanced_personas:
         if isinstance(persona, dict):
-            # Derive a specific stakeholder_type with robust fallbacks (avoid generic primary_customer)
+            # Derive a specific stakeholder_type with robust fallbacks (skip generic placeholders)
+            import re
+
+            def _is_generic_type(val: str) -> bool:
+                v = (val or "").strip().lower()
+                if not v:
+                    return True
+                generic = {
+                    "primary_customer",
+                    "customer",
+                    "user",
+                    "participant",
+                    "interviewee",
+                    "respondent",
+                    "unknown",
+                    "n/a",
+                    "not specified",
+                    "professional role",
+                    "professional role context",
+                    "professional demographics",
+                }
+                if v in generic:
+                    return True
+                if re.match(r"^(primary|generic)\s+(customer|user)s?$", v):
+                    return True
+                return False
+
             derived_type = None
             # 1) Prefer explicit type from stakeholder_intelligence if present and specific
             if "stakeholder_intelligence" in persona:
                 si = persona["stakeholder_intelligence"]
                 if isinstance(si, dict):
                     t = si.get("stakeholder_type")
-                    if (
-                        t
-                        and str(t).strip()
-                        and str(t).strip().lower() != "primary_customer"
-                    ):
+                    if t and str(t).strip() and not _is_generic_type(str(t)):
                         derived_type = str(t).strip()
-            # 2) Fallback to persona.role if available
+            # 2) Next prefer persona_metadata.stakeholder_category if present
+            if not derived_type:
+                meta = persona.get("persona_metadata") or {}
+                if isinstance(meta, dict):
+                    cat = meta.get("stakeholder_category")
+                    if cat and str(cat).strip() and not _is_generic_type(str(cat)):
+                        derived_type = str(cat).strip()
+            # 3) Fallback to persona.role if available
             if not derived_type:
                 t = persona.get("role")
-                if (
-                    t
-                    and str(t).strip()
-                    and str(t).strip().lower() != "primary_customer"
-                ):
+                if t and str(t).strip() and not _is_generic_type(str(t)):
                     derived_type = str(t).strip()
-            # 3) Fallback to demographics.role if available
+            # 4) Fallback to structured_demographics.roles.value if available
+            if not derived_type:
+                sd = persona.get("structured_demographics") or {}
+                if isinstance(sd, dict):
+                    roles_val = (
+                        (sd.get("roles") or {}).get("value")
+                        if isinstance(sd.get("roles"), dict)
+                        else None
+                    )
+                    if (
+                        roles_val
+                        and str(roles_val).strip()
+                        and not _is_generic_type(str(roles_val))
+                    ):
+                        derived_type = str(roles_val).strip()
+            # 5) Fallback to demographics.role if available
             if not derived_type:
                 demographics = persona.get("demographics") or {}
                 if isinstance(demographics, dict):
                     t = demographics.get("role") or demographics.get("job_title")
-                    if t and str(t).strip():
+                    if t and str(t).strip() and not _is_generic_type(str(t)):
                         derived_type = str(t).strip()
-                elif isinstance(demographics, str) and demographics.strip():
+                elif (
+                    isinstance(demographics, str)
+                    and demographics.strip()
+                    and not _is_generic_type(demographics)
+                ):
                     derived_type = demographics.strip()
-            # 4) Final fallback to persona name token
+            # 6) Attempt to extract a specific role/title from persona name or text (avoid names)
             if not derived_type:
-                derived_type = persona.get("name", "Primary Customer").strip()
+                name_text = str(persona.get("name", "")).strip()
+                arc_text = str(persona.get("archetype", "")).strip()
+                desc_text = str(persona.get("description", "")).strip()
+
+                role_terms = [
+                    "Owner",
+                    "Founder",
+                    "Marketing Manager",
+                    "Manager",
+                    "Advisor",
+                    "Consultant",
+                    "Designer",
+                    "Developer",
+                    "Engineer",
+                    "Director",
+                    "Advocate",
+                    "Founder & CEO",
+                    "Shop Owner",
+                    "Boutique Owner",
+                    "Café Owner",
+                    "Restaurant Owner",
+                    "Freelancer",
+                ]
+
+                def _extract_role_phrase(text: str) -> str:
+                    if not text:
+                        return ""
+                    # Prefer segment after comma if present (e.g., "Lena, The Agile Marketing Manager")
+                    seg = text
+                    if "," in text:
+                        parts = [p.strip() for p in text.split(",", 1)]
+                        seg = parts[1] if len(parts) > 1 else parts[0]
+                    # Drop leading "The " if present
+                    if seg.lower().startswith("the "):
+                        seg = seg[4:].strip()
+                    # Try to find a phrase ending with a known role term, including up to 3 preceding words
+                    import re
+
+                    roles_alt = sorted(role_terms, key=len, reverse=True)
+                    for term in roles_alt:
+                        pat = re.compile(
+                            r"((?:[A-Z][a-z]+\s+){0,3}" + re.escape(term) + r")\b"
+                        )
+                        m = pat.search(seg)
+                        if m:
+                            return m.group(1).strip()
+                    return ""
+
+                candidate = (
+                    _extract_role_phrase(name_text)
+                    or _extract_role_phrase(arc_text)
+                    or _extract_role_phrase(desc_text)
+                )
+                if candidate and not _is_generic_type(candidate):
+                    derived_type = candidate
+
+            # 7) Final fallback: keep empty rather than a personal name if still not specific
+            if not derived_type:
+                derived_type = ""
 
             stakeholder_info = {
                 "stakeholder_id": persona.get("name", "Unknown").replace(" ", "_"),

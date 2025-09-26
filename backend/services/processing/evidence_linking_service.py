@@ -71,6 +71,13 @@ class EvidenceLinkingService:
             "yes",
             "on",
         )
+        # Optional: LLM-based gating of evidence candidates (default ON; fail-open on errors)
+        self.enable_llm_filter = os.getenv("EVIDENCE_LLM_FILTER", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
         logger.info("Initialized EvidenceLinkingService")
 
     async def link_evidence_to_attributes(
@@ -600,10 +607,30 @@ class EvidenceLinkingService:
         return not (a[1] <= b[0] or b[1] <= a[0])
 
     def _looks_like_metadata(self, sent: str) -> bool:
-        """Heuristic: reject lines that look like metadata/labels (e.g., 'Primary Stakeholder Category: ...')."""
+        """Heuristic: reject lines that look like metadata/labels or section headers.
+        Examples: 'Primary Stakeholder Category: ...', '💡 Key Insights:', 'KEY THEMES IDENTIFIED'
+        """
         if not sent:
             return False
-        s = sent.strip()
+        s = (sent or "").strip()
+        ls = s.lower()
+        # Common section headers (with or without emoji)
+        heading_patterns = [
+            r"^💡\s*key insights?:",
+            r"^key insights?:",
+            r"^key themes identified",
+            r"^interview metadata",
+            r"^interview dialogue",
+            r"^simulation metadata",
+            r"^stakeholder breakdown",
+        ]
+        for pat in heading_patterns:
+            try:
+                if re.match(pat, ls):
+                    return True
+            except Exception:
+                pass
+        # Label-style metadata with colon
         if ":" in s:
             prefix = s.split(":", 1)[0].strip().lower()
             meta_keys = {
@@ -618,6 +645,10 @@ class EvidenceLinkingService:
                 "participant details",
                 "interviewee",
                 "interviewer",
+                "overall sentiment",
+                "interview id",
+                "conducted",
+                "duration",
             }
             if any(k in prefix for k in meta_keys):
                 return True
@@ -625,17 +656,27 @@ class EvidenceLinkingService:
 
     def _looks_like_question(self, sent: str) -> bool:
         """Heuristic: reject researcher-style questions as evidence.
-        Criteria:
-        - Ends with '?'
-        - Or starts with common prompt markers like 'Q:' or 'Question:' (case-insensitive)
+        Handles timestamps and labels like "[20:04] Researcher: ..." and Q/Question prefixes.
         """
         if not sent:
             return False
-        s = sent.strip()
-        ls = s.lower()
-        if ls.startswith("q:") or ls.startswith("question:"):
+        s = (sent or "").strip()
+        # Strip leading timestamps in square brackets (up to 3 groups)
+        s2 = re.sub(r"^\s*(\[[^\]]+\]\s*){1,3}", "", s)
+        ls2 = s2.lower()
+        # Explicit Q prefixes
+        if re.match(r"^(q|question)\s*[:\-—–]\s*", ls2):
             return True
-        return s.endswith("?")
+        # Interviewer/researcher/moderator labels after optional timestamp
+        if re.match(r"^(interviewer|researcher|moderator)\s*:\s*", ls2):
+            return True
+        # Uppercase speaker label + colon (e.g., "INTERVIEWER:") after removing timestamp
+        if re.match(r"^[A-Z][A-Z ]{1,20}:\s", s2):
+            return True
+        # Trailing question mark (ASCII or Unicode full-width)
+        if s2.endswith("?") or s2.endswith("？"):
+            return True
+        return False
 
     def _select_candidate_spans(
         self,
@@ -691,6 +732,152 @@ class EvidenceLinkingService:
             "speaker_role": meta.get("speaker_role"),
             "document_id": meta.get("document_id"),
         }
+
+    async def llm_filter_quotes(
+        self,
+        quotes: List[str],
+        scope_meta: Optional[Dict[str, Any]] = None,
+    ) -> Set[int]:
+        """
+        LLM-based gate to approve only participant/verbatim evidence lines.
+        - Returns a set of approved indices into the provided quotes list.
+        - Fail-open: on any error, approves all indices to avoid breaking pipeline/tests.
+        """
+        try:
+            if not quotes or not getattr(self, "enable_llm_filter", False):
+                return set(range(len(quotes)))
+
+            speaker = (
+                (scope_meta or {}).get("speaker")
+                or (scope_meta or {}).get("speaker_role")
+                or "participant"
+            )
+            numbered = "\n".join(
+                f"{i}. " + (q or "").strip() for i, q in enumerate(quotes)
+            )
+            system_rules = (
+                "You are filtering evidence lines for persona formation.\n"
+                "Approve ONLY lines that are the participant's own statements (first-person voice, verbatim).\n"
+                "REJECT all interviewer/researcher/moderator content, prompts, instructions, section headers, metadata, or summaries.\n"
+                "Hard disallow: lines starting with timestamps + role labels (e.g., [12:34] Researcher: ...), any line containing 'Interviewer:' or 'Researcher:' anywhere,\n"
+                "lines that are clearly questions (end with ?), lines that begin with 'Q:' or 'Question:', and lines starting 'As a <role>...' when it reads like a prompt rather than self-description.\n"
+                "If uncertain, prefer REJECT. Return strict JSON ONLY."
+            )
+            prompt = (
+                f"Speaker context: {speaker}. Select lines spoken by the participant only.\n\n"
+                f"LINES:\n{numbered}\n\n"
+                'Respond with JSON: {"approved_indices": [<int>, ...]} only.'
+            )
+
+            resp = await self.llm_service.analyze(
+                {
+                    "task": "classification",
+                    "prompt": system_rules + "\n\n" + prompt,
+                    "enforce_json": True,
+                    "temperature": 0.0,
+                    "timeout": 30,
+                }
+            )
+            data = {}
+            if isinstance(resp, dict):
+                # Prefer parsed field if present; otherwise try direct usage
+                data = resp.get("parsed") or resp.get("response") or resp
+            approved = data.get("approved_indices") if isinstance(data, dict) else None
+            if isinstance(approved, list):
+                out: Set[int] = set()
+                for i in approved:
+                    try:
+                        out.add(int(i))
+                    except Exception:
+                        continue
+                # Clamp to valid range
+                return {i for i in out if 0 <= i < len(quotes)} or set()
+        except Exception as e:
+            logger.warning(
+                "LLM evidence gate failed; falling back to approve-all. err=%s", e
+            )
+        return set(range(len(quotes)))
+
+    async def llm_clean_scoped_text(
+        self,
+        scoped_text: str,
+        scope_meta: Optional[Dict[str, Any]] = None,
+        max_chars: int = 12000,
+    ) -> str:
+        """
+        LLM-based cleaner to keep only participant-verbatim lines from scoped_text.
+        - Splits into lines, asks LLM to approve indices (same policy as llm_filter_quotes)
+        - Returns the cleaned text joined with newlines, preserving original line order
+        - Fail-open: on any error, returns the original scoped_text
+        """
+        try:
+            if not scoped_text or not getattr(self, "enable_llm_filter", False):
+                return scoped_text or ""
+
+            text = scoped_text[: max(1000, max_chars)]
+            # Prepare numbered lines (skip empty-only lines to reduce noise, but keep index mapping)
+            raw_lines: List[str] = text.splitlines()
+            indexed: List[tuple[int, str]] = [
+                (i, (ln or "").strip()) for i, ln in enumerate(raw_lines)
+            ]
+            nonempty = [(i, ln) for i, ln in indexed if ln]
+            if not nonempty:
+                return scoped_text
+
+            numbered = "\n".join(f"{i}. {ln}" for i, ln in nonempty)
+            speaker = (
+                (scope_meta or {}).get("speaker")
+                or (scope_meta or {}).get("speaker_role")
+                or "participant"
+            )
+            system_rules = (
+                "You are cleaning a speaker-scoped transcript.\n"
+                "Approve ONLY lines that are the participant's own statements (first-person voice, verbatim).\n"
+                "REJECT all interviewer/researcher/moderator content, prompts, instructions, headers, or summaries.\n"
+                "Reject lines that begin with role labels (even with timestamps), any questions (ending with ?), and section headers like 'Key Insights:'.\n"
+                "If uncertain, prefer REJECT. Return strict JSON ONLY."
+            )
+            prompt = (
+                f"Speaker context: {speaker}. Select participant-spoken lines only.\n\n"
+                f"LINES:\n{numbered}\n\n"
+                'Respond with JSON: {"approved_indices": [<int>, ...]} only.'
+            )
+
+            resp = await self.llm_service.analyze(
+                {
+                    "task": "classification",
+                    "system": system_rules,
+                    "prompt": prompt,
+                    "enforce_json": True,
+                    "temperature": 0.0,
+                    "timeout": 45,
+                    "response_schema": {
+                        "type": "object",
+                        "properties": {
+                            "approved_indices": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                            }
+                        },
+                    },
+                }
+            )
+            try:
+                data = resp if isinstance(resp, dict) else json.loads(str(resp))
+            except Exception:
+                data = {}
+            approved = set(data.get("approved_indices") or [])
+            # Map approved indices (indices refer to positions in `nonempty` list) back to raw line numbers
+            keep_raw_indices = {
+                nonempty[i][0] for i in approved if 0 <= i < len(nonempty)
+            }
+            cleaned_lines = [ln for i, ln in indexed if i in keep_raw_indices]
+            return "\n".join(cleaned_lines) if cleaned_lines else scoped_text
+        except Exception as e:
+            logger.warning(
+                "LLM scoped-text cleaner failed; returning original text. err=%s", e
+            )
+            return scoped_text or ""
 
     def link_evidence_to_attributes_v2(
         self,
@@ -774,9 +961,24 @@ class EvidenceLinkingService:
                 # Metrics: count accepted items per sentence
                 metrics["accepted_items"] = metrics.get("accepted_items", 0) + 1
 
-            if items:
-                evidence_map[field] = items
-                quotes = [it["quote"] for it in items]
+            # Hard gates: drop items with null offsets/speaker or interviewer speaker
+            def _valid_item(it: Dict[str, Any]) -> bool:
+                try:
+                    if it.get("start_char") is None or it.get("end_char") is None:
+                        return False
+                    spk = (it.get("speaker") or "").strip()
+                    if not spk:
+                        return False
+                    return spk.lower() != "researcher"
+                except Exception:
+                    return False
+
+            filtered_items = [it for it in items if _valid_item(it)]
+
+            if filtered_items:
+                # Use only deterministically linked, validated items (overwrite any pre-existing evidence)
+                evidence_map[field] = filtered_items
+                quotes = [it["quote"] for it in filtered_items]
                 if isinstance(field_data, dict):
                     field_data = dict(field_data)
                     field_data["evidence"] = quotes
@@ -789,6 +991,18 @@ class EvidenceLinkingService:
                         "value": trait_value,
                         "confidence": 0.8,
                         "evidence": quotes,
+                    }
+            else:
+                # No deterministic valid matches found — explicitly clear evidence to prevent contamination
+                if isinstance(field_data, dict):
+                    field_copy = dict(field_data)
+                    field_copy["evidence"] = []
+                    enhanced[field] = field_copy
+                else:
+                    enhanced[field] = {
+                        "value": trait_value,
+                        "confidence": 0.7,
+                        "evidence": [],
                     }
 
         # key_quotes: protect unless empty
