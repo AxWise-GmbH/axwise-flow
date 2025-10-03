@@ -25,9 +25,6 @@ from backend.domain.models.persona_schema import StructuredDemographics, Attribu
 
 # Import enhanced JSON parsing (kept for fallback compatibility)
 from backend.utils.json.enhanced_json_repair import EnhancedJSONRepair
-from backend.services.processing.persona_formation_service_enhanced import (
-    parse_llm_json_response_enhanced,
-)
 
 # Import our modules
 from .transcript_structuring_service import TranscriptStructuringService
@@ -884,58 +881,12 @@ class PersonaFormationService:
     def _create_clean_fallback_demographics(
         self, persona_name: str = "Unknown"
     ) -> StructuredDemographics:
-        """
-        Create completely clean fallback StructuredDemographics with no corruption.
+        """Thin delegator to persona_formation.fallbacks.demographics.create_clean_fallback_demographics."""
+        from backend.services.processing.persona_formation.fallbacks.demographics import (
+            create_clean_fallback_demographics as _clean,
+        )
 
-        This ensures that even if the LLM generates corrupted data, we have a
-        clean fallback that will serialize to proper JSON.
-        """
-        try:
-            # Create clean AttributedField objects with simple, non-corrupted values
-            clean_demographics = StructuredDemographics(
-                experience_level=AttributedField(
-                    value="Professional experience level not specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                industry=AttributedField(
-                    value="Industry context not clearly specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                location=AttributedField(
-                    value="Location not specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                age_range=AttributedField(
-                    value="Age range not specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                professional_context=AttributedField(
-                    value="Professional context not clearly specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                roles=AttributedField(
-                    value="Role not clearly specified",
-                    evidence=["Inferred from interview context"],
-                ),
-                confidence=0.3,
-            )
-
-            # Validate that our fallback is actually clean
-            if self._validate_structured_demographics(clean_demographics):
-                logger.info(
-                    f"[CLEAN_FALLBACK] Created clean fallback demographics for {persona_name}"
-                )
-                return clean_demographics
-            else:
-                logger.error(
-                    f"[CLEAN_FALLBACK] Fallback demographics validation failed for {persona_name}"
-                )
-                # If even our fallback is corrupted, create the most minimal version
-                return self._create_minimal_fallback_demographics()
-
-        except Exception as e:
-            logger.error(f"[CLEAN_FALLBACK] Error creating clean fallback: {e}")
-            return self._create_minimal_fallback_demographics()
+        return _clean(self._validate_structured_demographics, persona_name)
 
     def _create_fallback_stakeholder_persona(
         self,
@@ -1035,331 +986,42 @@ class PersonaFormationService:
             return None
 
     def _create_minimal_fallback_demographics(self) -> StructuredDemographics:
-        """
-        Create the most minimal possible StructuredDemographics as last resort.
-        """
-        return StructuredDemographics(
-            experience_level=AttributedField(
-                value="Not specified", evidence=["Not available"]
-            ),
-            industry=AttributedField(value="Not specified", evidence=["Not available"]),
-            location=AttributedField(value="Not specified", evidence=["Not available"]),
-            confidence=0.1,
+        """Thin delegator to persona_formation.fallbacks.demographics.create_minimal_fallback_demographics."""
+        from backend.services.processing.persona_formation.fallbacks.demographics import (
+            create_minimal_fallback_demographics as _minimal,
         )
 
+        return _minimal()
+
     def _initialize_pydantic_ai_agent(self):
-        """
-        MIGRATION TO PYDANTICAI: Initialize PydanticAI agent for persona generation.
+        """Thin delegator to persona_formation.agents.initializers.initialize_pydantic_ai_agent."""
+        from backend.services.processing.persona_formation.agents.initializers import (
+            initialize_pydantic_ai_agent as _init,
+        )
 
-        This replaces the Instructor-based approach with a modern PydanticAI agent
-        while maintaining the same high-quality persona generation capabilities.
-        """
-        try:
-            # Get API key from environment (PydanticAI v0.4.3 compatibility)
-            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError(
-                    "Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set"
-                )
-
-            # QUALITY OPTIMIZATION: Use full Gemini 2.5 Flash for high-quality persona generation
-            # Full Flash model provides better quality and detail for persona formation
-            from pydantic_ai.providers.google_gla import GoogleGLAProvider
-            from pydantic_ai import (
-                PromptedOutput,
-            )  # Import PromptedOutput for Gemini compatibility
-
-            provider = GoogleGLAProvider(api_key=api_key)
-            gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
-            logger.info(
-                "[QUALITY] Initialized Gemini 2.5 Flash model for high-quality persona generation"
-            )
-
-            # Import simplified model for PydanticAI
-            from backend.models.enhanced_persona_models import SimplifiedPersonaModel
-
-            # THE GOLDEN PROMPT - Absolutely explicit, no contradictions
-            golden_system_prompt = """You are an expert data extraction agent. Your task is to populate the SimplifiedPersonaModel JSON schema.
-
-**ABSOLUTELY CRITICAL RULES:**
-
-1. For ALL demographic fields (experience_level, industry, location, professional_context, roles, age_range), create objects with ONLY "value" and "evidence" keys.
-
-2. For all other fields (goals_and_motivations, challenges_and_frustrations, key_quotes), create objects with ONLY "value" and "evidence" keys.
-
-3. NEVER create top-level "value" objects or top-level "evidence" lists.
-
-4. NEVER generate Python constructor syntax like "AttributedField(".
-
-**REQUIRED STRUCTURE EXAMPLE:**
-```json
-{
-  "demographics": {
-    "experience_level": {
-      "value": "Senior level professional",
-      "evidence": ["I have 8 years of experience"]
-    },
-    "industry": {
-      "value": "Technology",
-      "evidence": ["I work in the tech sector"]
-    },
-    "location": {
-      "value": "Bremen",
-      "evidence": ["Here in Bremen"]
-    },
-    "confidence": 0.9
-  },
-  "goals_and_motivations": {
-    "value": "To improve operational efficiency",
-    "evidence": ["I want to streamline our processes"]
-  }
-}
-```
-
-**WHAT YOU MUST NEVER GENERATE:**
-- Top-level value objects: ~~{"demographics": {"value": {...}}}~~
-- Python syntax: ~~AttributedField(value='...', evidence=[...])~~
-- String representations of code: ~~"industry=AttributedField"~~
-
-Generate ONLY clean JSON matching the schema. No text, explanations, or formatting."""
-
-            # Create persona generation agent with Golden Schema approach
-            self.persona_agent = Agent(
-                model=gemini_model,
-                output_type=SimplifiedPersonaModel,
-                system_prompt=golden_system_prompt,
-            )
-
-            logger.info(
-                "[PYDANTIC_AI] Successfully initialized persona generation agent with PromptedOutput mode"
-            )
-            logger.info(
-                "[CORRUPTION_FIX] Using PromptedOutput to avoid Gemini tool calling corruption issues"
-            )
-            self.pydantic_ai_available = True
-
-        except Exception as e:
-            logger.error(f"[PYDANTIC_AI] Failed to initialize PydanticAI agent: {e}")
-            logger.error("[PYDANTIC_AI] Full error traceback:", exc_info=True)
-
-            # Check specific error types for better debugging
-            error_str = str(e).lower()
-            if "import" in error_str or "module" in error_str:
-                logger.error(
-                    "[PYDANTIC_AI] Import error - check if pydantic-ai is installed"
-                )
-            elif "api" in error_str or "key" in error_str:
-                logger.error(
-                    "[PYDANTIC_AI] API key error - check Gemini API configuration"
-                )
-            elif "model" in error_str:
-                logger.error(
-                    "[PYDANTIC_AI] Model error - check if gemini-2.5-flash is available"
-                )
-
-            self.persona_agent = None
-            self.pydantic_ai_available = False
-            logger.warning(
-                "[PYDANTIC_AI] Falling back to legacy Instructor-based approach"
-            )
+        agent, available = _init()
+        self.persona_agent = agent
+        self.pydantic_ai_available = available
 
     def _initialize_production_persona_agent(self):
-        """
-        Initialize PydanticAI agent for production-ready persona generation.
+        """Thin delegator to persona_formation.agents.initializers.initialize_production_persona_agent."""
+        from backend.services.processing.persona_formation.agents.initializers import (
+            initialize_production_persona_agent as _init,
+        )
 
-        This agent generates ProductionPersona objects that eliminate schema conflicts
-        and ensure consistent PersonaTrait structure throughout the system.
-        """
-        try:
-            # Get API key from environment
-            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError(
-                    "Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set"
-                )
-
-            # Initialize Gemini model
-            from pydantic_ai.providers.google_gla import GoogleGLAProvider
-            from pydantic_ai import PromptedOutput
-
-            provider = GoogleGLAProvider(api_key=api_key)
-            gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
-            logger.info(
-                "[PRODUCTION_PERSONA] Initialized Gemini 2.5 Flash model for production persona generation"
-            )
-
-            # Import the ProductionPersona model
-            from backend.domain.models.production_persona import ProductionPersona
-
-            # Create production persona generation agent
-            production_prompt = """You are a persona generation expert. Generate comprehensive user personas based on interview data.
-
-REQUIRED OUTPUT STRUCTURE:
-- demographics: Single PersonaTrait with aggregated demographic information
-- goals_and_motivations: PersonaTrait with clear goals and evidence
-- challenges_and_frustrations: PersonaTrait with pain points and evidence
-- key_quotes: PersonaTrait with representative quotes
-
-Each PersonaTrait must have:
-- value: Clear, specific description
-- confidence: 0.0-1.0 confidence score
-- evidence: Array of supporting quotes from source material
-
-Generate ONLY valid JSON matching the ProductionPersona schema.
-
-CRITICAL RULES:
-1. CONSISTENT TRAIT STRUCTURE: ALL trait fields must have "value", "confidence", and "evidence" properties
-2. EVIDENCE REQUIREMENTS: Each trait's evidence array should contain quotes that specifically support ONLY that trait's content
-3. NO CONVERSION NEEDED: This is the FINAL format - generate exactly what the frontend expects
-
-OUTPUT: Complete ProductionPersona object matching the exact schema structure."""
-
-            self.production_persona_agent = Agent(
-                model=gemini_model,
-                output_type=PromptedOutput(
-                    ProductionPersona,
-                    name="ProductionPersona",
-                    description="Generate a production-ready persona in the final format",
-                    template='Generate valid JSON matching this exact schema: {schema}\n\nCRITICAL: Generate the final persona structure directly. Each trait must have "value", "confidence", and "evidence" fields.',
-                ),
-                system_prompt=production_prompt,
-            )
-
-            logger.info(
-                "[PRODUCTION_PERSONA] Successfully initialized production persona generation agent"
-            )
-            self.production_persona_available = True
-
-        except Exception as e:
-            logger.error(
-                f"[PRODUCTION_PERSONA] Failed to initialize production persona agent: {e}"
-            )
-            self.production_persona_agent = None
-            self.production_persona_available = False
+        agent, available = _init()
+        self.production_persona_agent = agent
+        self.production_persona_available = available
 
     def _initialize_direct_persona_agent(self):
-        """
-        Initialize PydanticAI agent for direct persona generation without conversion.
+        """Thin delegator to persona_formation.agents.initializers.initialize_direct_persona_agent."""
+        from backend.services.processing.persona_formation.agents.initializers import (
+            initialize_direct_persona_agent as _init,
+        )
 
-        This agent generates DirectPersona objects that match the frontend structure
-        exactly, eliminating the fragile conversion step that was causing corruption.
-        """
-        try:
-            # Get API key from environment
-            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError(
-                    "Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set"
-                )
-
-            # Initialize Gemini model
-            from pydantic_ai.providers.google_gla import GoogleGLAProvider
-            from pydantic_ai import PromptedOutput
-
-            provider = GoogleGLAProvider(api_key=api_key)
-            gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
-            logger.info(
-                "[DIRECT_PERSONA] Initialized Gemini 2.5 Flash model for direct persona generation"
-            )
-
-            # Import the DirectPersona model
-            from backend.models.enhanced_persona_models import DirectPersona
-
-            # Create direct persona generation agent
-            self.direct_persona_agent = Agent(
-                model=gemini_model,
-                output_type=PromptedOutput(
-                    DirectPersona,
-                    name="DirectPersona",
-                    description="Generate a complete persona directly in the final format",
-                    template='Generate valid JSON matching this exact schema: {schema}\n\nCRITICAL: Generate the final persona structure directly. Each trait must have "value", "confidence", and "evidence" fields.',
-                ),
-                system_prompt="""You are an expert persona analyst. Create detailed, authentic personas from interview data.
-
-CRITICAL: Generate ONLY valid JSON that matches the DirectPersona schema. No additional text, explanations, or formatting.
-
-REQUIRED JSON OUTPUT STRUCTURE:
-{
-  "name": "Descriptive persona name (e.g., 'Alex, The Strategic Optimizer')",
-  "description": "Brief persona overview summarizing key characteristics",
-  "archetype": "General persona category (e.g., 'Tech-Savvy Strategist')",
-  "demographics": {
-    "value": "Demographic information extracted from the interview",
-    "confidence": 0.85,
-    "evidence": ["Quote 1 supporting demographics", "Quote 2 supporting demographics"]
-  },
-  "goals_and_motivations": {
-    "value": "Detailed description of what drives this person and their primary objectives",
-    "confidence": 0.85,
-    "evidence": ["Supporting quote 1", "Supporting quote 2", "Supporting quote 3"]
-  },
-  "challenges_and_frustrations": {
-    "value": "Specific challenges and obstacles they face in their work or context",
-    "confidence": 0.85,
-    "evidence": ["Supporting quote 1", "Supporting quote 2", "Supporting quote 3"]
-  },
-  "key_quotes": {
-    "value": "3-5 representative quotes that capture their voice and perspective",
-    "confidence": 0.85,
-    "evidence": ["Quote 1 from interview", "Quote 2 from interview", "Quote 3 from interview"]
-  },
-  "skills_and_expertise": {
-    "value": "Professional skills and areas of expertise",
-    "confidence": 0.80,
-    "evidence": ["Supporting quote about skills"]
-  },
-  "workflow_and_environment": {
-    "value": "Work environment and workflow preferences",
-    "confidence": 0.80,
-    "evidence": ["Supporting quote about workflow"]
-  },
-  "technology_and_tools": {
-    "value": "Technology usage and tool preferences",
-    "confidence": 0.80,
-    "evidence": ["Supporting quote about technology"]
-  },
-  "pain_points": {
-    "value": "Specific pain points and frustrations",
-    "confidence": 0.80,
-    "evidence": ["Supporting quote about pain points"]
-  },
-  "patterns": ["Behavioral pattern 1", "Behavioral pattern 2"],
-  "overall_confidence": 0.85,
-  "evidence": ["Overall supporting quote 1", "Overall supporting quote 2"],
-  "metadata": {}
-}
-
-CRITICAL FORMATTING RULES:
-1. CONSISTENT TRAIT STRUCTURE:
-   - ALL trait fields (demographics, goals_and_motivations, etc.) must have "value", "confidence", and "evidence" properties
-   - The "value" property contains the extracted information as a string
-   - The "confidence" property is a float between 0.0 and 1.0
-   - The "evidence" property contains an array of supporting quotes from the interview
-
-2. EVIDENCE REQUIREMENTS:
-   - Each trait's evidence array should contain quotes that specifically support ONLY that trait's content
-   - Only include traits if you can find explicit evidence in the text
-   - Each evidence quote must directly and specifically support the value it's paired with
-
-3. NO CONVERSION NEEDED:
-   - This is the FINAL format - no conversion will be performed
-   - Generate exactly what the frontend expects
-   - Ensure all required fields are present and properly structured
-
-OUTPUT: Complete DirectPersona object matching the exact schema structure shown above.""",
-            )
-
-            logger.info(
-                "[DIRECT_PERSONA] Successfully initialized direct persona generation agent"
-            )
-            self.direct_persona_available = True
-
-        except Exception as e:
-            logger.error(
-                f"[DIRECT_PERSONA] Failed to initialize direct persona agent: {e}"
-            )
-            self.direct_persona_agent = None
-            self.direct_persona_available = False
+        agent, available = _init()
+        self.direct_persona_agent = agent
+        self.direct_persona_available = available
 
     async def _generate_production_persona(
         self,
@@ -3053,256 +2715,12 @@ Generate a complete DirectPersona object with all required traits populated base
     def _calculate_persona_influence_metrics(
         self, persona: Dict[str, Any]
     ) -> Dict[str, float]:
-        """
-        Calculate differentiated stakeholder influence metrics based on persona characteristics.
+        """Thin delegator to persona_formation.influence.metrics.calculate_persona_influence_metrics."""
+        from backend.services.processing.persona_formation.influence.metrics import (
+            calculate_persona_influence_metrics as _calc,
+        )
 
-        Args:
-            persona: Persona dictionary with name, description, archetype, etc.
-
-        Returns:
-            Dictionary with decision_power, technical_influence, and budget_influence scores (0.0-1.0)
-        """
-        try:
-            # Extract persona characteristics
-            name = persona.get("name", "").lower()
-            description = persona.get("description", "").lower()
-            archetype = persona.get("archetype", "").lower()
-
-            # Extract demographics information for additional context
-            demographics = persona.get("demographics", {})
-            roles_info = ""
-            professional_context = ""
-
-            if isinstance(demographics, dict):
-                # Handle structured demographics
-                if "roles" in demographics:
-                    roles_data = demographics["roles"]
-                    if isinstance(roles_data, dict) and "value" in roles_data:
-                        roles_info = str(roles_data["value"]).lower()
-                    elif isinstance(roles_data, str):
-                        roles_info = roles_data.lower()
-
-                if "professional_context" in demographics:
-                    context_data = demographics["professional_context"]
-                    if isinstance(context_data, dict) and "value" in context_data:
-                        professional_context = str(context_data["value"]).lower()
-                    elif isinstance(context_data, str):
-                        professional_context = context_data.lower()
-
-            # Combine all text for analysis
-            combined_text = f"{name} {description} {archetype} {roles_info} {professional_context}".lower()
-
-            # Initialize default scores
-            decision_power = 0.5
-            technical_influence = 0.5
-            budget_influence = 0.5
-
-            # Mobile Gaming/Publishing Industry Leaders (high decision power, high budget influence)
-            if any(
-                keyword in combined_text
-                for keyword in [
-                    "publishing lead",
-                    "hypercasual",
-                    "mobile publishing",
-                    "game publishing",
-                    "publishing director",
-                    "publishing manager",
-                ]
-            ):
-                decision_power = (
-                    0.95  # Very high - they control game publishing decisions
-                )
-                budget_influence = 0.9  # High - they manage publishing budgets
-                technical_influence = 0.7  # Good - understand game development
-
-            # Mobile Marketing/Brand Campaign Managers (high decision power, moderate budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "brand campaign manager",
-                    "mobile brand",
-                    "campaign manager",
-                    "mobile marketing",
-                    "marketing director",
-                    "brand manager",
-                ]
-            ):
-                decision_power = 0.85  # High - make campaign decisions
-                budget_influence = 0.8  # High - control marketing budgets
-                technical_influence = 0.6  # Moderate - understand mobile tech
-
-            # Business Development Leaders (high decision power, high budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "business development lead",
-                    "bd lead",
-                    "business development",
-                    "partnership",
-                    "strategic",
-                ]
-            ):
-                decision_power = 0.9  # Very high - make strategic partnership decisions
-                budget_influence = 0.85  # High - influence major spending decisions
-                technical_influence = 0.5  # Moderate - business focused
-
-            # Creative Agency Directors (high decision power, high budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "agency director",
-                    "creative agency",
-                    "digital agency",
-                    "creative director",
-                    "agency lead",
-                ]
-            ):
-                decision_power = 0.9  # Very high - make client and vendor decisions
-                budget_influence = 0.9  # Very high - manage client budgets
-                technical_influence = 0.7  # Good - understand digital/creative tech
-
-            # General Decision makers (high decision power, high budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "manager",
-                    "director",
-                    "ceo",
-                    "owner",
-                    "executive",
-                    "leader",
-                    "boss",
-                    "decision maker",
-                    "authority",
-                    "supervisor",
-                    "head of",
-                    "chief",
-                ]
-            ):
-                decision_power = 0.9
-                budget_influence = 0.9
-                technical_influence = 0.6
-
-            # Real estate agents and professionals (high decision power, moderate budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "agent",
-                    "real estate",
-                    "broker",
-                    "property",
-                    "sales",
-                    "advisor",
-                    "consultant",
-                    "professional",
-                    "expert",
-                ]
-            ):
-                decision_power = 0.8
-                technical_influence = 0.7
-                budget_influence = 0.6
-
-            # Elderly or retired individuals (moderate decision power, high budget influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "elderly",
-                    "retired",
-                    "senior",
-                    "aging",
-                    "older",
-                    "pension",
-                    "grandmother",
-                    "grandfather",
-                ]
-            ):
-                decision_power = 0.7
-                technical_influence = 0.3
-                budget_influence = 0.8
-
-            # Adult children managing parents' property (high budget influence, moderate decision power)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "adult child",
-                    "daughter",
-                    "son",
-                    "coordinator",
-                    "manager",
-                    "caregiver",
-                    "overburdened",
-                    "managing",
-                    "responsible for",
-                ]
-            ):
-                decision_power = 0.4
-                technical_influence = 0.5
-                budget_influence = 0.9
-
-            # Technical professionals (high technical influence)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "architect",
-                    "engineer",
-                    "technical",
-                    "it",
-                    "developer",
-                    "designer",
-                    "specialist",
-                    "technician",
-                ]
-            ):
-                decision_power = 0.6
-                technical_influence = 0.9
-                budget_influence = 0.5
-
-            # Homeowners and property owners (moderate across all metrics)
-            elif any(
-                keyword in combined_text
-                for keyword in [
-                    "homeowner",
-                    "property owner",
-                    "resident",
-                    "home",
-                    "house",
-                    "property",
-                ]
-            ):
-                decision_power = 0.6
-                technical_influence = 0.4
-                budget_influence = 0.7
-
-            # Default for primary customers
-            else:
-                decision_power = 0.5
-                technical_influence = 0.4
-                budget_influence = 0.6
-
-            # Log the calculated influence metrics for debugging
-            persona_name = persona.get("name", "Unknown")
-            logger.info(
-                f"[INFLUENCE_CALCULATION] {persona_name}: "
-                f"decision_power={decision_power:.2f}, "
-                f"technical_influence={technical_influence:.2f}, "
-                f"budget_influence={budget_influence:.2f} "
-                f"(based on: {combined_text[:100]}...)"
-            )
-
-            return {
-                "decision_power": decision_power,
-                "technical_influence": technical_influence,
-                "budget_influence": budget_influence,
-            }
-
-        except Exception as e:
-            logger.error(f"Error calculating persona influence metrics: {str(e)}")
-            # Return default values on error
-            return {
-                "decision_power": 0.5,
-                "technical_influence": 0.5,
-                "budget_influence": 0.5,
-            }
+        return _calc(persona)
 
     def _select_diverse_speakers(
         self,
@@ -3310,66 +2728,12 @@ Generate a complete DirectPersona object with all required traits populated base
         speaker_roles_map: Dict[str, str],
         max_personas: int,
     ) -> List[Tuple[str, str]]:
-        """
-        PERFORMANCE OPTIMIZATION: Select diverse speakers for persona generation.
-
-        Prioritizes speakers with:
-        1. Different roles (Interviewee, Participant, etc.)
-        2. Substantial content (longer text)
-        3. Diverse content patterns
-
-        Args:
-            sorted_speakers: List of (speaker, text) tuples sorted by text length
-            speaker_roles_map: Mapping of speakers to their roles
-            max_personas: Maximum number of personas to generate
-
-        Returns:
-            List of selected (speaker, text) tuples
-        """
-        if len(sorted_speakers) <= max_personas:
-            return sorted_speakers
-
-        selected_speakers = []
-        role_counts = {}
-
-        # First pass: Select speakers with different roles
-        for speaker, text in sorted_speakers:
-            role = speaker_roles_map.get(speaker, "Participant")
-
-            # Skip interviewers (already filtered above)
-            if role == "Interviewer":
-                continue
-
-            # Prioritize role diversity
-            if role not in role_counts:
-                role_counts[role] = 0
-
-            if role_counts[role] < 2:  # Max 2 personas per role
-                selected_speakers.append((speaker, text))
-                role_counts[role] += 1
-
-                if len(selected_speakers) >= max_personas:
-                    break
-
-        # Second pass: Fill remaining slots with speakers with most content
-        if len(selected_speakers) < max_personas:
-            remaining_speakers = [
-                (speaker, text)
-                for speaker, text in sorted_speakers
-                if (speaker, text) not in selected_speakers
-                and speaker_roles_map.get(speaker, "Participant") != "Interviewer"
-            ]
-
-            needed = max_personas - len(selected_speakers)
-            selected_speakers.extend(remaining_speakers[:needed])
-
-        logger.info(
-            f"[PERFORMANCE] Selected {len(selected_speakers)} diverse speakers: "
-            f"roles={list(role_counts.keys())}, "
-            f"avg_text_length={sum(len(text) for _, text in selected_speakers) // len(selected_speakers) if selected_speakers else 0}"
+        """Thin delegator to persona_formation.speakers.selection.select_diverse_speakers."""
+        from backend.services.processing.persona_formation.speakers.selection import (
+            select_diverse_speakers as _sel,
         )
 
-        return selected_speakers
+        return _sel(sorted_speakers, speaker_roles_map, max_personas)
 
     async def _generate_single_persona_with_semaphore(
         self,
@@ -4189,57 +3553,12 @@ Please analyze these patterns and generate a comprehensive persona based on the 
     def _create_fallback_attributes(
         self, patterns: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """
-        Create fallback attributes when pattern analysis fails.
+        """Thin delegator to persona_formation.fallbacks.attributes.create_fallback_attributes."""
+        from backend.services.processing.persona_formation.fallbacks.attributes import (
+            create_fallback_attributes as _cfa,
+        )
 
-        Args:
-            patterns: List of patterns
-
-        Returns:
-            Dictionary of fallback attributes
-        """
-        logger.info("Creating fallback attributes from patterns")
-
-        # Create a default trait
-        default_trait = {
-            "value": "Unknown",
-            "confidence": 0.3,
-            "evidence": ["Fallback due to analysis error"],
-        }
-
-        # Extract pattern descriptions for evidence
-        pattern_descriptions = [
-            p.get("description", "Unknown pattern")
-            for p in patterns
-            if p.get("description")
-        ]
-
-        # Return structure that can be processed by Persona constructor
-        return {
-            # Basic information
-            "name": "Default Persona",
-            "archetype": "Unknown",
-            "description": "Default persona due to analysis error or low confidence",
-            # Detailed attributes (new fields)
-            "demographics": default_trait,
-            "goals_and_motivations": default_trait,
-            "skills_and_expertise": default_trait,
-            "workflow_and_environment": default_trait,
-            "challenges_and_frustrations": default_trait,
-            "technology_and_tools": default_trait,
-            "key_quotes": default_trait,
-            # Legacy fields
-            "role_context": default_trait,
-            "key_responsibilities": default_trait,
-            "tools_used": default_trait,
-            "collaboration_style": default_trait,
-            "analysis_approach": default_trait,
-            "pain_points": default_trait,
-            # Overall persona information
-            "patterns": pattern_descriptions[:5],
-            "confidence": 0.3,
-            "evidence": ["Fallback due to analysis error"],
-        }
+        return _cfa(patterns)
 
     # MIGRATION TO PYDANTICAI: Removed instructor_client property
     # This has been replaced with PydanticAI agent initialization
@@ -4304,250 +3623,50 @@ Please analyze these patterns and generate a comprehensive persona based on the 
     def _parse_llm_json_response(
         self, response: Union[str, Dict[str, Any]], context: str = ""
     ) -> Dict[str, Any]:
-        """
-        Parse JSON response from LLM with enhanced error recovery.
+        """Thin delegator to persona_formation.parsing.llm_json.parse_persona_llm_json_response."""
+        from backend.services.processing.persona_formation.parsing.llm_json import (
+            parse_persona_llm_json_response as _pp,
+        )
 
-        Args:
-            response: LLM response (string or dictionary)
-            context: Context for error logging
-
-        Returns:
-            Parsed JSON as dictionary
-        """
-        # First try the new Instructor-based parser
-        try:
-            # Use the Instructor-based parser with task-specific handling
-            result = parse_llm_json_response_with_instructor(
-                response, context=context, task="persona_formation"
-            )
-
-            # If we got a valid result, process structured demographics and return it
-            if result and isinstance(result, dict) and len(result) > 0:
-                logger.info(f"Successfully parsed JSON with Instructor in {context}")
-                # Process structured demographics if present
-                result = self._process_structured_demographics(result)
-                return result
-
-        except Exception as e:
-            logger.warning(f"Instructor-based parsing failed in {context}: {e}")
-
-        # Fall back to the enhanced JSON parsing implementation
-        logger.info(f"Falling back to enhanced JSON parsing in {context}")
-        result = parse_llm_json_response_enhanced(response, context)
-        # Process structured demographics if present
-        return self._process_structured_demographics(result)
+        return _pp(response, context, self._process_structured_demographics)
 
     def _convert_string_to_structured_demographics(
         self, demographics_string: str
     ) -> Optional[Dict[str, Any]]:
-        """
-        Convert string demographics to structured format.
-
-        Args:
-            demographics_string: String containing demographics information
-
-        Returns:
-            Dictionary with structured demographics fields or None if conversion fails
-        """
-        if not demographics_string or not isinstance(demographics_string, str):
-            return None
-
-        structured_demo = {}
-
-        # Parse bullet-point format demographics
-        lines = demographics_string.split("•")
-        lines = [line.strip() for line in lines if line.strip()]
-
-        for line in lines:
-            if ":" not in line:
-                continue
-
-            key, value = line.split(":", 1)
-            key = key.strip().lower()
-            value = value.strip()
-
-            if not value:
-                continue
-
-            # Map common demographic fields
-            if "experience" in key and "level" in key:
-                structured_demo["experience_level"] = value
-            elif "industry" in key:
-                structured_demo["industry"] = value
-            elif "location" in key:
-                structured_demo["location"] = value
-            elif "age" in key and "range" in key:
-                structured_demo["age_range"] = value
-            elif "role" in key or "position" in key:
-                # Handle roles as array
-                roles = [r.strip() for r in value.split(",") if r.strip()]
-                if roles:
-                    structured_demo["roles"] = roles
-
-        # Extract professional context from remaining text
-        import re
-
-        context_match = re.search(
-            r"professional context[:\s]+(.*?)(?:\.|$)",
-            demographics_string,
-            re.IGNORECASE,
+        """Thin delegator to persona_formation.converters.persona_converter.convert_string_to_structured_demographics."""
+        from backend.services.processing.persona_formation.converters.persona_converter import (
+            convert_string_to_structured_demographics as _conv,
         )
-        if context_match:
-            structured_demo["professional_context"] = context_match.group(1).strip()
 
-        # Only return if we found meaningful structured data
-        if len(structured_demo) > 0:
-            logger.info(
-                f"Converted string demographics to structured format: {list(structured_demo.keys())}"
-            )
-            return structured_demo
-
-        return None
+        return _conv(demographics_string)
 
     def _process_structured_demographics(
         self, persona_data: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """
-        Process structured demographics in persona data, handling both StructuredDemographics
-        and legacy AttributedField formats.
+        """Thin delegator to persona_formation.converters.persona_converter.process_structured_demographics."""
+        from backend.services.processing.persona_formation.converters.persona_converter import (
+            process_structured_demographics as _proc,
+        )
 
-        Args:
-            persona_data: Parsed persona data dictionary
-
-        Returns:
-            Persona data with processed demographics
-        """
-        if "demographics" not in persona_data:
-            return persona_data
-
-        demographics = persona_data["demographics"]
-        if not isinstance(demographics, dict):
-            return persona_data
-
-        # Debug: Log the demographics structure
-        logger.info(f"[DEMOGRAPHICS_DEBUG] Processing demographics: {demographics}")
-
-        # Check if this is the new StructuredDemographics format
-        # (has individual demographic fields like experience_level, industry, etc.)
-        structured_fields = [
-            "experience_level",
-            "industry",
-            "location",
-            "professional_context",
-            "roles",
-            "age_range",
-        ]
-
-        found_fields = [key for key in structured_fields if key in demographics]
-        logger.info(f"[DEMOGRAPHICS_DEBUG] Found structured fields: {found_fields}")
-
-        if found_fields:
-            # This is already in StructuredDemographics format - don't process it further
-            logger.info(
-                f"[DEMOGRAPHICS_DEBUG] Demographics already in StructuredDemographics format with {len(found_fields)} fields - preserving structure"
-            )
-            return persona_data
-
-        # Handle legacy AttributedField format (has "value" key)
-        demo_value = demographics.get("value")
-
-        if isinstance(demo_value, dict):
-            try:
-                # Try to create a DemographicsValue object from the structured data
-                structured_demo = DemographicsValue(**demo_value)
-                demographics["value"] = structured_demo
-                logger.info(
-                    "Successfully converted demographics dict to DemographicsValue"
-                )
-            except Exception as e:
-                logger.warning(
-                    f"Failed to convert demographics dict to DemographicsValue: {e}"
-                )
-                # Keep the original dict format as fallback
-                pass
-        elif isinstance(demo_value, str):
-            # Try to convert string to structured format
-            structured_dict = self._convert_string_to_structured_demographics(
-                demo_value
-            )
-            if structured_dict:
-                try:
-                    structured_demo = DemographicsValue(**structured_dict)
-                    demographics["value"] = structured_demo
-                    logger.info(
-                        "Successfully converted string demographics to DemographicsValue"
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Failed to convert string demographics to DemographicsValue: {e}"
-                    )
-                    # Keep the original string format as fallback
-                    pass
-
-        return persona_data
+        return _proc(persona_data)
 
     def _group_patterns(
         self, patterns: List[Dict[str, Any]]
     ) -> List[List[Dict[str, Any]]]:
-        """
-        Group patterns by similarity.
+        """Thin delegator to persona_formation.grouping.patterns.group_patterns."""
+        from backend.services.processing.persona_formation.grouping.patterns import (
+            group_patterns as _grp,
+        )
 
-        Args:
-            patterns: List of patterns from analysis
-
-        Returns:
-            List of pattern groups
-        """
-        # Simple grouping by pattern type
-        grouped = {}
-        for pattern in patterns:
-            pattern_type = pattern.get(
-                "type", "unknown"
-            )  # Use 'type' if available, else 'category'
-            if not pattern_type or pattern_type == "unknown":
-                pattern_type = pattern.get("category", "unknown")
-
-            if pattern_type not in grouped:
-                grouped[pattern_type] = []
-            grouped[pattern_type].append(pattern)
-
-        # Convert to list of groups
-        return list(grouped.values())
+        return _grp(patterns)
 
     def _generate_descriptive_name_from_speaker_id(self, speaker_id: str) -> str:
-        """Generate a descriptive persona name from speaker_id for better fallback personas"""
-        try:
-            # Extract meaningful parts from speaker_id
-            if "_" in speaker_id:
-                parts = speaker_id.split("_")
-                if len(parts) >= 2:
-                    # Convert from "Tech_Reviewers_Influencers" to "Alex, the Tech Reviewer"
-                    category = parts[0].replace("_", " ")
-                    role = parts[1].replace("_", " ")
+        """Thin delegator to persona_formation.naming.speaker_labels.generate_descriptive_name_from_speaker_id."""
+        from backend.services.processing.persona_formation.naming.speaker_labels import (
+            generate_descriptive_name_from_speaker_id as _gen,
+        )
 
-                    # Generate a human name based on category
-                    names = {
-                        "Tech": ["Alex", "Sarah", "David", "Emma"],
-                        "Price": ["Patricia", "Michael", "Lisa", "James"],
-                        "Savvy": ["Jordan", "Taylor", "Morgan", "Casey"],
-                        "Community": ["Riley", "Avery", "Quinn", "Blake"],
-                        "Principled": ["Eleanor", "William", "Grace", "Henry"],
-                    }
-
-                    for key, name_list in names.items():
-                        if key.lower() in category.lower():
-                            import random
-
-                            name = random.choice(name_list)
-                            return f"{name}, the {category} {role}"
-
-            # Fallback to cleaned up speaker_id
-            cleaned = speaker_id.replace("_", " ").title()
-            return f"Representative {cleaned}"
-
-        except Exception as e:
-            logger.warning(f"Error generating descriptive name for {speaker_id}: {e}")
-            return f"Representative User"
+        return _gen(speaker_id)
 
     def _convert_simplified_to_full_persona(
         self, simplified_persona, original_dialogues: List[str] = None
@@ -4562,9 +3681,28 @@ Please analyze these patterns and generate a comprehensive persona based on the 
         Returns:
             Dictionary in full Persona format with PersonaTrait objects
         """
-        from backend.models.enhanced_persona_models import PersonaTrait
+        # Thin delegator: use extracted converter and return early to preserve behavior
+        try:
+            from backend.services.processing.persona_formation.converters.simplified_to_full_converter import (
+                convert_simplified_to_full_persona as _convert,
+            )
 
-        # Helper function to create PersonaTrait
+            return _convert(
+                simplified_persona,
+                original_dialogues,
+                validate_structured_demographics_fn=self._validate_structured_demographics,
+                create_clean_fallback_fn=self._create_clean_fallback_demographics,
+                create_minimal_fallback_fn=self._create_minimal_fallback_demographics,
+                assess_content_quality_fn=self._assess_content_quality,
+                assess_evidence_quality_fn=self._assess_evidence_quality,
+                extract_evidence_from_description_fn=self._extract_evidence_from_description,
+            )
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"[PERSONA_CONVERTER_DELEGATE] Delegation failed: {e}")
+            # If delegation fails for any reason, fall through to legacy body below
+
+        # Helper function to create PersonaTrait (legacy fallback body)
         def create_trait(
             value: str, confidence: float, evidence: List[str] = None
         ) -> Dict[str, Any]:
@@ -4599,7 +3737,7 @@ Please analyze these patterns and generate a comprehensive persona based on the 
         # Extract evidence from demographics (StructuredDemographics with nested AttributedFields)
         if simplified_persona.demographics:
             demographics_dict = simplified_persona.demographics.model_dump()
-            for field_name, field_data in demographics_dict.items():
+            for _, field_data in demographics_dict.items():
                 if (
                     isinstance(field_data, dict)
                     and "evidence" in field_data
@@ -4618,116 +3756,9 @@ Please analyze these patterns and generate a comprehensive persona based on the 
             )
 
         # Create unique evidence pools for different categories to prevent duplication
-        def distribute_evidence_semantically(quotes_list, num_pools=8):
-            """Distribute quotes based on semantic relevance to persona trait categories"""
-            if not quotes_list:
-                return [[] for _ in range(num_pools)]
-
-            # Define semantic keywords for each persona trait category
-            trait_keywords = {
-                0: [
-                    "role",
-                    "position",
-                    "company",
-                    "department",
-                    "experience",
-                    "background",
-                    "demographics",
-                ],  # demographics
-                1: [
-                    "goal",
-                    "motivation",
-                    "want",
-                    "need",
-                    "objective",
-                    "aim",
-                    "purpose",
-                    "drive",
-                ],  # goals_and_motivations
-                2: [
-                    "challenge",
-                    "frustration",
-                    "problem",
-                    "issue",
-                    "difficulty",
-                    "struggle",
-                    "pain",
-                ],  # challenges_and_frustrations
-                3: [
-                    "skill",
-                    "expertise",
-                    "ability",
-                    "competency",
-                    "knowledge",
-                    "proficient",
-                    "expert",
-                ],  # skills_and_expertise
-                4: [
-                    "technology",
-                    "tool",
-                    "software",
-                    "system",
-                    "platform",
-                    "application",
-                    "tech",
-                ],  # technology_and_tools
-                5: [
-                    "workflow",
-                    "environment",
-                    "process",
-                    "work",
-                    "office",
-                    "team",
-                    "collaboration",
-                ],  # workflow_and_environment
-                6: [
-                    "responsibility",
-                    "duty",
-                    "task",
-                    "role",
-                    "accountable",
-                    "manage",
-                    "lead",
-                ],  # key_responsibilities
-                7: [
-                    "quote",
-                    "said",
-                    "mentioned",
-                    "stated",
-                    "expressed",
-                    "voice",
-                    "opinion",
-                ],  # key_quotes/general
-            }
-
-            pools = [[] for _ in range(num_pools)]
-
-            # Distribute quotes based on semantic matching
-            for quote in quotes_list:
-                quote_lower = quote.lower()
-                best_pool = 7  # Default to general pool
-                max_matches = 0
-
-                # Find the pool with the most keyword matches
-                for pool_idx, keywords in trait_keywords.items():
-                    matches = sum(1 for keyword in keywords if keyword in quote_lower)
-                    if matches > max_matches:
-                        max_matches = matches
-                        best_pool = pool_idx
-
-                pools[best_pool].append(quote)
-
-            # Ensure no pool is completely empty by redistributing if needed
-            non_empty_pools = [i for i, pool in enumerate(pools) if pool]
-            if len(non_empty_pools) < num_pools and quotes_list:
-                # Distribute some quotes to empty pools
-                for i, pool in enumerate(pools):
-                    if not pool and non_empty_pools:
-                        source_pool_idx = non_empty_pools[i % len(non_empty_pools)]
-                        if len(pools[source_pool_idx]) > 1:
-                            pools[i].append(pools[source_pool_idx].pop())
-
-            return pools
+        from backend.services.processing.persona_formation.converters.full_persona_evidence import (
+            distribute_evidence_semantically,
+        )
 
         evidence_pools = distribute_evidence_semantically(quotes, 8)
 
@@ -4763,196 +3794,6 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                 logger.info(
                     f"[QUALITY_FIX] Enhanced evidence with {len(enhanced_quotes)} quotes from description"
                 )
-
-        # AUTHENTIC QUOTE EXTRACTION: Extract direct quotes from original interview dialogue
-        def extract_authentic_quotes_from_dialogue(
-            original_dialogues: List[str], trait_content: Any, trait_name: str
-        ) -> tuple[List[str], List[str]]:
-            """Extract authentic verbatim quotes from original interview dialogue that support the trait
-
-            Returns:
-                tuple: (evidence_quotes, actual_keywords_used)
-            """
-            logger.error(
-                f"🔥 [AUTHENTIC_QUOTES] FUNCTION CALLED! Extracting quotes for trait: {trait_name}"
-            )
-            logger.error(
-                f"🔥 [AUTHENTIC_QUOTES] Original dialogues count: {len(original_dialogues) if original_dialogues else 0}"
-            )
-
-            # Handle both old string format and new StructuredDemographics format
-            trait_content_str = ""
-            if isinstance(trait_content, StructuredDemographics):
-                # StructuredDemographics format - extract meaningful text for keyword matching
-                # Combine all field values for keyword extraction
-                field_values = []
-                demographics_dict = trait_content.model_dump()
-                for _, field_data in demographics_dict.items():
-                    if isinstance(field_data, dict) and "value" in field_data:
-                        if field_data["value"]:
-                            field_values.append(str(field_data["value"]))
-                trait_content_str = " ".join(field_values)
-                logger.info(
-                    f"[STRUCTURED_DEMOGRAPHICS] Extracted text for keyword matching: {trait_content_str[:100]}..."
-                )
-            elif isinstance(trait_content, AttributedField):
-                # AttributedField format - use the value
-                trait_content_str = (
-                    str(trait_content.value) if trait_content.value else ""
-                )
-            elif hasattr(trait_content, "value"):
-                # Legacy structured field format
-                trait_content_str = (
-                    str(trait_content.value) if trait_content.value else ""
-                )
-            elif isinstance(trait_content, str):
-                # Old string format
-                trait_content_str = trait_content
-            else:
-                trait_content_str = str(trait_content) if trait_content else ""
-
-            logger.error(
-                f"🔥 [AUTHENTIC_QUOTES] Trait content length: {len(trait_content_str)}"
-            )
-
-            # Log first few dialogues for debugging
-            if original_dialogues:
-                for i, dialogue in enumerate(original_dialogues[:3]):
-                    logger.error(
-                        f"🔥 [AUTHENTIC_QUOTES] Dialogue {i+1}: {dialogue[:100]}..."
-                    )
-
-            if not original_dialogues or not trait_content_str:
-                logger.warning(
-                    f"[AUTHENTIC_QUOTES] Missing data - dialogues: {bool(original_dialogues)}, trait_content: {bool(trait_content_str)}"
-                )
-                return [], []  # Return empty evidence and keywords
-
-            import re
-
-            evidence = []
-            actual_keywords_used = (
-                set()
-            )  # Track keywords that were actually used for highlighting
-
-            # Use LLM-based keyword extraction instead of hardcoded keywords
-            from backend.utils.persona.nlp_processor import (
-                extract_trait_keywords_for_highlighting,
-            )
-
-            # Extract keywords using PydanticAI based on trait content and existing evidence
-            existing_evidence = []  # We'll build this as we find quotes
-            keywords = extract_trait_keywords_for_highlighting(
-                trait_content_str, existing_evidence
-            )
-
-            logger.info(
-                f"[LLM_KEYWORDS] Extracted keywords for {trait_name}: {keywords}"
-            )
-
-            # Search through original dialogues for relevant quotes
-            for dialogue in original_dialogues:
-                if not dialogue or len(dialogue.strip()) < 20:
-                    continue
-
-                dialogue = dialogue.strip()
-
-                # Split dialogue into sentences
-                sentences = re.split(r"[.!?]+", dialogue)
-
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    if len(sentence) < 30:  # Skip very short sentences
-                        continue
-
-                    # Check if sentence contains trait-relevant keywords
-                    sentence_lower = sentence.lower()
-                    keyword_matches = [kw for kw in keywords if kw in sentence_lower]
-
-                    if keyword_matches:
-                        # Format the quote with keyword highlighting
-                        formatted_quote = f'"{sentence}"'
-
-                        # Highlight the first 2-3 matched keywords with bold formatting
-                        for keyword in keyword_matches[:3]:
-                            # Use case-insensitive replacement with word boundaries
-                            pattern = r"\b" + re.escape(keyword) + r"\b"
-                            formatted_quote = re.sub(
-                                pattern,
-                                f"**{keyword}**",
-                                formatted_quote,
-                                flags=re.IGNORECASE,
-                            )
-                            # Track that this keyword was actually used
-                            actual_keywords_used.add(keyword)
-
-                        evidence.append(formatted_quote)
-
-                        if len(evidence) >= 3:  # Limit to 3 quotes per trait
-                            break
-
-                if len(evidence) >= 3:
-                    break
-
-            # If no keyword matches found, try semantic matching with trait content
-            if not evidence:
-                # Look for quotes that contain words from the trait content
-                trait_words = set(re.findall(r"\b\w{4,}\b", trait_content_str.lower()))
-
-                for dialogue in original_dialogues:
-                    if not dialogue or len(dialogue.strip()) < 20:
-                        continue
-
-                    sentences = re.split(r"[.!?]+", dialogue.strip())
-
-                    for sentence in sentences:
-                        sentence = sentence.strip()
-                        if len(sentence) < 30:
-                            continue
-
-                        sentence_words = set(
-                            re.findall(r"\b\w{4,}\b", sentence.lower())
-                        )
-
-                        # Check for word overlap
-                        if len(trait_words & sentence_words) >= 2:
-                            # Find overlapping words for highlighting
-                            overlap_words = list(trait_words & sentence_words)[:3]
-
-                            formatted_quote = f'"{sentence}"'
-                            for word in overlap_words:
-                                pattern = r"\b" + re.escape(word) + r"\b"
-                                formatted_quote = re.sub(
-                                    pattern,
-                                    f"**{word}**",
-                                    formatted_quote,
-                                    flags=re.IGNORECASE,
-                                )
-
-                            evidence.append(formatted_quote)
-
-                            if len(evidence) >= 2:  # Limit to 2 for semantic matching
-                                break
-
-                    if len(evidence) >= 2:
-                        break
-
-            logger.error(
-                f"🔥 [AUTHENTIC_QUOTES] EXTRACTED {len(evidence)} quotes for {trait_name}"
-            )
-            for i, quote in enumerate(evidence[:3]):
-                logger.error(f"🔥 [AUTHENTIC_QUOTES] Quote {i+1}: {quote[:100]}...")
-
-            # Return both evidence and the keywords that were actually used for highlighting
-            actual_keywords_list = list(actual_keywords_used)
-            logger.info(
-                f"[LLM_KEYWORDS] Actually used keywords for {trait_name}: {actual_keywords_list}"
-            )
-
-            return (
-                evidence[:3],
-                actual_keywords_list,
-            )  # Return evidence and actual keywords used
 
         # Helper function to create trait with keywords
         def create_trait_with_keywords(
@@ -5024,7 +3865,11 @@ Please analyze these patterns and generate a comprehensive persona based on the 
 
             # Handle other content types (legacy support)
             else:
-                evidence, keywords = extract_authentic_quotes_from_dialogue(
+                from backend.services.processing.persona_formation.converters.full_persona_evidence import (
+                    extract_authentic_quotes_from_dialogue as _extract_auth,
+                )
+
+                evidence, keywords = _extract_auth(
                     original_dialogues or [], content, trait_name
                 )
 
@@ -5215,101 +4060,20 @@ Please analyze these patterns and generate a comprehensive persona based on the 
         return persona_data
 
     def _assess_content_quality(self, content: str) -> float:
-        """
-        Assess the quality of content (description, traits) to detect rich vs generic content.
+        """Thin delegator to persona_formation.quality.assessors.assess_content_quality."""
+        from backend.services.processing.persona_formation.quality.assessors import (
+            assess_content_quality as _acq,
+        )
 
-        Args:
-            content: Content to assess
-
-        Returns:
-            Quality score from 0.0 (generic) to 1.0 (rich, specific)
-        """
-        if not content or len(content.strip()) < 10:
-            return 0.0
-
-        # Indicators of rich content
-        rich_indicators = [
-            # Specific details
-            r"\b\d+\b",  # Numbers (ages, years, quantities)
-            r"\b[A-Z][a-z]+\b",  # Proper nouns (names, places)
-            r"\b(husband|wife|son|daughter|family|children)\b",  # Family relationships
-            r"\b(years?|months?|experience|background)\b",  # Experience indicators
-            r"\b(specific|particular|detailed|mentioned)\b",  # Specificity indicators
-            # Emotional/personal language
-            r"\b(loves?|enjoys?|prefers?|dislikes?|frustrated|excited)\b",
-            # Professional context
-            r"\b(manager|director|analyst|developer|consultant|specialist)\b",
-            # Geographic/cultural context
-            r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b.*\b(city|country|region|area)\b",
-        ]
-
-        # Indicators of generic content
-        generic_indicators = [
-            r"\b(generic|placeholder|unknown|not specified|inferred)\b",
-            r"\b(stakeholder|participant|individual|person)\b.*\b(sharing|providing)\b",
-            r"\b(no specific|limited|insufficient|unclear)\b",
-            r"\b(fallback|default|basic)\b",
-        ]
-
-        import re
-
-        rich_score = 0
-        for pattern in rich_indicators:
-            matches = len(re.findall(pattern, content, re.IGNORECASE))
-            rich_score += min(matches * 0.1, 0.3)  # Cap each pattern's contribution
-
-        generic_score = 0
-        for pattern in generic_indicators:
-            matches = len(re.findall(pattern, content, re.IGNORECASE))
-            generic_score += min(matches * 0.2, 0.4)  # Penalize generic content more
-
-        # Length bonus for detailed content
-        length_bonus = min(len(content) / 200, 0.3)
-
-        # Calculate final quality score
-        quality = min(rich_score + length_bonus - generic_score, 1.0)
-        return max(quality, 0.0)
+        return _acq(content)
 
     def _assess_evidence_quality(self, quotes: List[str]) -> float:
-        """
-        Assess the quality of evidence quotes.
+        """Thin delegator to persona_formation.quality.assessors.assess_evidence_quality."""
+        from backend.services.processing.persona_formation.quality.assessors import (
+            assess_evidence_quality as _aeq,
+        )
 
-        Args:
-            quotes: List of evidence quotes
-
-        Returns:
-            Quality score from 0.0 (poor/generic) to 1.0 (rich, authentic)
-        """
-        if not quotes:
-            return 0.0
-
-        total_quality = 0
-        for quote in quotes:
-            quote_quality = self._assess_content_quality(quote)
-
-            # Additional evidence-specific indicators
-            if any(
-                indicator in quote.lower()
-                for indicator in [
-                    "no specific",
-                    "generic placeholder",
-                    "inferred from",
-                    "contextual",
-                    "derived from",
-                    "using generic",
-                ]
-            ):
-                quote_quality *= 0.3  # Heavily penalize generic evidence
-
-            # Bonus for direct quotes (contain quotation marks or first person)
-            if '"' in quote or any(
-                word in quote.lower() for word in ["i ", "my ", "we ", "our "]
-            ):
-                quote_quality += 0.2
-
-            total_quality += quote_quality
-
-        return min(total_quality / len(quotes), 1.0)
+        return _aeq(quotes)
 
     def _extract_evidence_from_description(self, simplified_persona) -> List[str]:
         """
@@ -5374,218 +4138,33 @@ Please analyze these patterns and generate a comprehensive persona based on the 
         return evidence_quotes[:5]  # Limit to 5 extracted quotes
 
     async def _validate_persona_quality(self, personas: List[Dict[str, Any]]) -> None:
-        """
-        Simple quality validation with developer-friendly logging.
-
-        Args:
-            personas: List of persona dictionaries to validate
-        """
-        if not personas:
-            logger.warning("[QUALITY_VALIDATION] ⚠️ No personas generated")
-            return
-
-        quality_issues = []
-
-        for i, persona in enumerate(personas):
-            persona_name = persona.get("name", f"Persona {i+1}")
-
-            # Check description quality
-            description = persona.get("description", "")
-            description_quality = self._assess_content_quality(description)
-
-            # Check evidence quality across traits
-            evidence_qualities = []
-            trait_fields = [
-                "demographics",
-                "goals_and_motivations",
-                "challenges_and_frustrations",
-                "skills_and_expertise",
-                "technology_and_tools",
-                "workflow_and_environment",
-            ]
-
-            for field in trait_fields:
-                trait_data = persona.get(field, {})
-                if isinstance(trait_data, dict) and "evidence" in trait_data:
-                    evidence = trait_data["evidence"]
-                    if evidence:
-                        evidence_quality = self._assess_evidence_quality(evidence)
-                        evidence_qualities.append(evidence_quality)
-
-            avg_evidence_quality = (
-                sum(evidence_qualities) / len(evidence_qualities)
-                if evidence_qualities
-                else 0
-            )
-
-            # Detect quality mismatches
-            if description_quality > 0.7 and avg_evidence_quality < 0.5:
-                quality_issues.append(
-                    {
-                        "persona": persona_name,
-                        "issue": "quality_mismatch",
-                        "description_quality": description_quality,
-                        "evidence_quality": avg_evidence_quality,
-                        "message": f"Rich description ({description_quality:.2f}) but poor evidence ({avg_evidence_quality:.2f})",
-                    }
-                )
-
-            # Detect generic content
-            if description_quality < 0.4:
-                quality_issues.append(
-                    {
-                        "persona": persona_name,
-                        "issue": "generic_description",
-                        "description_quality": description_quality,
-                        "message": f"Generic description detected ({description_quality:.2f})",
-                    }
-                )
-
-            if avg_evidence_quality < 0.3:
-                quality_issues.append(
-                    {
-                        "persona": persona_name,
-                        "issue": "generic_evidence",
-                        "evidence_quality": avg_evidence_quality,
-                        "message": f"Generic evidence detected ({avg_evidence_quality:.2f})",
-                    }
-                )
-
-        # ENHANCED VALIDATION: Add evidence and keyword highlighting validation
-        logger.info("[DEBUG] 🔍 About to call enhanced validation system...")
-        logger.info(
-            f"[DEBUG] Personas count: {len(personas)}, Quality issues count: {len(quality_issues)}"
+        """Thin delegator to persona_formation.quality.assessors.validate_persona_quality."""
+        from backend.services.processing.persona_formation.quality.assessors import (
+            validate_persona_quality as _vpq,
         )
 
-        try:
-            logger.info("[DEBUG] 🚀 Calling _validate_evidence_and_highlighting...")
-            await self._validate_evidence_and_highlighting(personas, quality_issues)
-            logger.info("[DEBUG] ✅ Enhanced validation completed successfully")
-        except ImportError as e:
-            logger.error(f"[ERROR] 🚨 Import error in enhanced validation: {e}")
-            logger.error(
-                "[ERROR] Enhanced validation services may not be properly imported"
+        async def _enhanced(personas_arg, quality_issues_arg):
+            return await self._validate_evidence_and_highlighting(
+                personas_arg, quality_issues_arg
             )
-            import traceback
 
-            traceback.print_exc()
-        except Exception as e:
-            logger.error(f"[ERROR] 🚨 Enhanced validation failed with exception: {e}")
-            logger.error(f"[ERROR] Exception type: {type(e).__name__}")
-            import traceback
-
-            traceback.print_exc()
-
-        logger.info("[DEBUG] 🏁 Enhanced validation section completed")
-
-        # Log quality summary
-        if quality_issues:
-            logger.warning(
-                f"[QUALITY_VALIDATION] ⚠️ Found {len(quality_issues)} quality issues:"
-            )
-            for issue in quality_issues:
-                logger.warning(f"  • {issue['persona']}: {issue['message']}")
-        else:
-            logger.info(
-                f"[QUALITY_VALIDATION] ✅ All {len(personas)} personas passed quality validation"
-            )
+        await _vpq(personas, _enhanced)
 
     def _assess_content_quality(self, content: str) -> float:
-        """
-        Assess the quality of content (description, traits) to detect rich vs generic content.
+        """Thin delegator to persona_formation.quality.assessors.assess_content_quality."""
+        from backend.services.processing.persona_formation.quality.assessors import (
+            assess_content_quality as _acq,
+        )
 
-        Args:
-            content: Content to assess
-
-        Returns:
-            Quality score from 0.0 (generic) to 1.0 (rich, specific)
-        """
-        if not content or len(content.strip()) < 10:
-            return 0.0
-
-        # Indicators of rich content
-        rich_indicators = [
-            # Specific details
-            r"\b\d+\b",  # Numbers (ages, years, quantities)
-            r"\b[A-Z][a-z]+\b",  # Proper nouns (names, places)
-            r"\b(husband|wife|son|daughter|family|children)\b",  # Family relationships
-            r"\b(years?|months?|experience|background)\b",  # Experience indicators
-            r"\b(specific|particular|detailed|mentioned)\b",  # Specificity indicators
-            # Emotional/personal language
-            r"\b(loves?|enjoys?|prefers?|dislikes?|frustrated|excited)\b",
-            # Professional context
-            r"\b(manager|director|analyst|developer|consultant|specialist)\b",
-            # Geographic/cultural context
-            r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b.*\b(city|country|region|area)\b",
-        ]
-
-        # Indicators of generic content
-        generic_indicators = [
-            r"\b(generic|placeholder|unknown|not specified|inferred)\b",
-            r"\b(stakeholder|participant|individual|person)\b.*\b(sharing|providing)\b",
-            r"\b(no specific|limited|insufficient|unclear)\b",
-            r"\b(fallback|default|basic)\b",
-        ]
-
-        import re
-
-        rich_score = 0
-        for pattern in rich_indicators:
-            matches = len(re.findall(pattern, content, re.IGNORECASE))
-            rich_score += min(matches * 0.1, 0.3)  # Cap each pattern's contribution
-
-        generic_score = 0
-        for pattern in generic_indicators:
-            matches = len(re.findall(pattern, content, re.IGNORECASE))
-            generic_score += min(matches * 0.2, 0.4)  # Penalize generic content more
-
-        # Length bonus for detailed content
-        length_bonus = min(len(content) / 200, 0.3)
-
-        # Calculate final quality score
-        quality = min(rich_score + length_bonus - generic_score, 1.0)
-        return max(quality, 0.0)
+        return _acq(content)
 
     def _assess_evidence_quality(self, evidence: List[str]) -> float:
-        """
-        Assess the quality of evidence quotes.
+        """Thin delegator to persona_formation.quality.assessors.assess_evidence_quality."""
+        from backend.services.processing.persona_formation.quality.assessors import (
+            assess_evidence_quality as _aeq,
+        )
 
-        Args:
-            evidence: List of evidence quotes
-
-        Returns:
-            Quality score from 0.0 (poor/generic) to 1.0 (rich, authentic)
-        """
-        if not evidence:
-            return 0.0
-
-        total_quality = 0
-        for quote in evidence:
-            quote_quality = self._assess_content_quality(quote)
-
-            # Additional evidence-specific indicators
-            if any(
-                indicator in quote.lower()
-                for indicator in [
-                    "no specific",
-                    "generic placeholder",
-                    "inferred from",
-                    "contextual",
-                    "derived from",
-                    "using generic",
-                ]
-            ):
-                quote_quality *= 0.3  # Heavily penalize generic evidence
-
-            # Bonus for direct quotes (contain quotation marks or first person)
-            if '"' in quote or any(
-                word in quote.lower() for word in ["i ", "my ", "we ", "our "]
-            ):
-                quote_quality += 0.2
-
-            total_quality += quote_quality
-
-        return min(total_quality / len(evidence), 1.0)
+        return _aeq(evidence)
 
     async def _validate_evidence_and_highlighting(
         self, personas: List[Dict[str, Any]], quality_issues: List[Dict[str, Any]]
