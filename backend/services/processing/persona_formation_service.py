@@ -33,7 +33,6 @@ from .persona_builder import PersonaBuilder, persona_to_dict, Persona
 from .prompts import PromptGenerator
 from .evidence_linking_service import EvidenceLinkingService
 from .trait_formatting_service import TraitFormattingService
-from backend.utils.content_deduplication import deduplicate_persona_list
 from backend.utils.pydantic_ai_retry import (
     safe_pydantic_ai_call,
     get_conservative_retry_config,
@@ -1097,13 +1096,19 @@ Generate a complete ProductionPersona object with all required traits populated 
             persona_dict = persona_result.to_frontend_dict()
 
             # Add metadata
-            persona_dict["metadata"] = {
-                "speaker": speaker,
-                "generation_method": "production_pydantic_ai",
-                "timestamp": time.time(),
-                "content_length": len(text),
-                "quality_score": persona_result.get_quality_score(),
-            }
+            from backend.services.processing.persona_formation_v1.hygiene.metadata_filter import (
+                add_generation_metadata as _add_meta,
+            )
+
+            _add_meta(
+                persona_dict,
+                speaker=speaker,
+                generation_method="production_pydantic_ai",
+                extra={
+                    "content_length": len(text),
+                    "quality_score": persona_result.get_quality_score(),
+                },
+            )
 
             logger.info(
                 f"[PRODUCTION_PERSONA] Production persona generation completed for {speaker} - production ready!"
@@ -1193,12 +1198,16 @@ Generate a complete DirectPersona object with all required traits populated base
             persona_dict = persona_result.model_dump()
 
             # Add metadata
-            persona_dict["metadata"] = {
-                "speaker": speaker,
-                "generation_method": "direct_pydantic_ai",
-                "timestamp": time.time(),
-                "sample_size": len(text),
-            }
+            from backend.services.processing.persona_formation_v1.hygiene.metadata_filter import (
+                add_generation_metadata as _add_meta,
+            )
+
+            _add_meta(
+                persona_dict,
+                speaker=speaker,
+                generation_method="direct_pydantic_ai",
+                extra={"sample_size": len(text)},
+            )
 
             logger.info(
                 f"[DIRECT_PERSONA] Direct persona generation completed for {speaker} - no conversion needed!"
@@ -1221,125 +1230,27 @@ Generate a complete DirectPersona object with all required traits populated base
         self, patterns: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """
-        Form personas from identified patterns.
-
-        Args:
-            patterns: List of identified patterns from analysis
-            context: Optional additional context
-
-        Returns:
-            List of persona dictionaries
+        Thin delegator to the extracted orchestrator for pattern-based persona formation.
+        Behavior preserved; reduces LOC in this service.
         """
         try:
-            logger.info(f"Forming personas from {len(patterns)} patterns")
-
-            # Skip if no patterns
-            if not patterns or len(patterns) == 0:
-                logger.warning("No patterns provided for persona formation")
-                return []
-
-            # Group patterns by similarity
-            grouped_patterns = self._group_patterns(patterns)
-            logger.info(
-                f"Grouped patterns into {len(grouped_patterns)} potential personas"
+            from backend.services.processing.persona_formation_v1.orchestrators import (
+                pattern_persona_orchestrator as _pat,
             )
+        except Exception as _imp_err:
+            logger = logging.getLogger(__name__)
+            logger.error(f"[FORM_PERSONAS_DELEGATE] Import failed: {_imp_err}")
+            return []
 
-            # Form a persona from each group
-            personas = []
-
-            for i, group in enumerate(grouped_patterns):
-                try:
-                    # Convert the group to a persona
-                    attributes = await self._analyze_patterns_for_persona(group)
-                    logger.debug(
-                        f"[form_personas] Attributes received from LLM for group {i}: {attributes}"
-                    )
-
-                    if (
-                        attributes
-                        and isinstance(attributes, dict)
-                        and attributes.get("confidence", 0) >= self.validation_threshold
-                    ):
-                        try:
-                            # Build persona from attributes
-                            persona = (
-                                self.persona_builder.build_persona_from_attributes(
-                                    attributes
-                                )
-                            )
-                            personas.append(persona)
-                            logger.info(
-                                f"Created persona: {persona.name} with confidence {persona.confidence}"
-                            )
-                        except Exception as persona_creation_error:
-                            logger.error(
-                                f"Error creating Persona object for group {i}: {persona_creation_error}",
-                                exc_info=True,
-                            )
-                    else:
-                        logger.warning(
-                            f"Skipping persona creation for group {i} - confidence {attributes.get('confidence', 0)} "
-                            f"below threshold {self.validation_threshold} or attributes invalid."
-                        )
-                except Exception as attr_error:
-                    logger.error(
-                        f"Error analyzing persona attributes for group {i}: {str(attr_error)}",
-                        exc_info=True,
-                    )
-
-                # Emit event for tracking
-                try:
-                    await event_manager.emit(
-                        EventType.PROCESSING_STEP,
-                        {
-                            "stage": "persona_formation",
-                            "progress": (i + 1) / len(grouped_patterns),
-                            "data": {
-                                "personas_found": len(personas),
-                                "groups_processed": i + 1,
-                            },
-                        },
-                    )
-                except Exception as event_error:
-                    logger.warning(
-                        f"Could not emit processing step event: {str(event_error)}"
-                    )
-
-            # If no personas were created, try to create a default one
-            if not personas:
-                logger.warning(
-                    "No personas created from patterns, creating default persona"
-                )
-                personas = await self._create_default_persona(context)
-
-            logger.info(f"[form_personas] Returning {len(personas)} personas.")
-            # Convert Persona objects to dictionaries before returning
-            persona_dicts = [persona_to_dict(p) for p in personas]
-
-            # CONTENT DEDUPLICATION: Remove repetitive patterns from persona content
-            logger.info("[form_personas] 🧹 Deduplicating persona content...")
-            deduplicated_personas = deduplicate_persona_list(persona_dicts)
-            logger.info(f"[form_personas] ✅ Content deduplication completed")
-
-            # QUALITY VALIDATION: Simple pipeline validation with logging
-            try:
-                await self._validate_persona_quality(deduplicated_personas)
-            except Exception as validation_error:
-                logger.error(
-                    f"[QUALITY_VALIDATION] Error in persona validation: {str(validation_error)}",
-                    exc_info=True,
-                )
-                # Don't fail the entire process due to validation errors
-
-            return deduplicated_personas
-
+        try:
+            return await _pat.form_personas(
+                self, patterns, context, event_manager, EventType
+            )
         except Exception as e:
-            logger.error(f"Error creating personas: {str(e)}", exc_info=True)
-            try:
-                await event_manager.emit_error(e, {"stage": "persona_formation"})
-            except Exception as event_error:
-                logger.warning(f"Could not emit error event: {str(event_error)}")
-            # Return empty list instead of raising to prevent analysis failure
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"[FORM_PERSONAS_DELEGATE] Delegation failed: {e}", exc_info=True
+            )
             return []
 
     async def generate_persona_from_text(
@@ -1370,7 +1281,11 @@ Generate a complete DirectPersona object with all required traits populated base
             logger.info(f"Generating persona from text of type {type(text)}")
 
             # Check if text is empty or too short
-            if isinstance(text, str) and (not text or len(text.strip()) < 10):
+            from backend.services.processing.persona_formation_v1.hygiene.content_filter import (
+                is_empty_or_short_text as _short,
+            )
+
+            if _short(text, 10):
                 logger.warning("Text is empty or too short for persona generation")
                 # Return a fallback persona
                 fallback_persona = self.persona_builder.create_fallback_persona(
@@ -1581,7 +1496,11 @@ Generate a complete DirectPersona object with all required traits populated base
             "Starting fast persona generation (bypassing transcript structuring)"
         )
 
-        if not text or len(text.strip()) == 0:
+        from backend.services.processing.persona_formation_v1.hygiene.content_filter import (
+            is_empty_or_short_text as _short,
+        )
+
+        if _short(text, 1):
             logger.warning("Empty text provided for fast persona generation")
             return []
 
@@ -1652,9 +1571,20 @@ Generate a complete DirectPersona object with all required traits populated base
                     f"V2 facade (transcript) failed, falling back to V1: {e}"
                 )
 
-        # Use the new parallel implementation
-        return await self._form_personas_from_transcript_parallel(
-            transcript, participants, context
+        # Use the new parallel implementation via orchestrator seam
+        try:
+            from backend.services.processing.persona_formation_v1.orchestrators import (
+                transcript_persona_orchestrator as _tx,
+            )
+        except Exception as _imp_err:
+            logger = logging.getLogger(__name__)
+            logger.error(f"[TRANSCRIPT_DELEGATE] Import failed: {_imp_err}")
+            # Fall back to in-file implementation
+            return await self._form_personas_from_transcript_parallel(
+                transcript, participants, context
+            )
+        return await _tx.form_personas_from_transcript_parallel(
+            self, transcript, participants, context
         )
 
     async def form_personas_by_stakeholder(
@@ -1663,92 +1593,43 @@ Generate a complete DirectPersona object with all required traits populated base
         context: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Generate personas from stakeholder-segmented transcript data.
-
-        This method processes each stakeholder category separately to maintain
-        stakeholder boundaries and populate stakeholder_mapping fields.
-
-        Args:
-            stakeholder_segments: Dictionary of stakeholder segments from transcript processor
-            context: Optional additional context information
-
-        Returns:
-            List of persona dictionaries with stakeholder_mapping populated
+        Thin delegator to the extracted orchestrator for stakeholder-aware persona formation.
+        Behavior preserved; reduces LOC in this service.
         """
         try:
-            logger.info(
-                f"[STAKEHOLDER_PERSONA] Starting stakeholder-aware persona formation"
+            from backend.services.processing.persona_formation_v1.orchestrators import (
+                stakeholder_persona_orchestrator as _stk,
             )
-            logger.info(
-                f"[STAKEHOLDER_PERSONA] Processing {len(stakeholder_segments)} stakeholder categories"
-            )
-
-            all_personas = []
-
-            for stakeholder_category, segment_data in stakeholder_segments.items():
-                logger.info(
-                    f"[STAKEHOLDER_PERSONA] Processing stakeholder: {stakeholder_category}"
-                )
-
-                # Extract segments for this stakeholder
-                segments = segment_data.get("segments", [])
-                interview_count = segment_data.get("interview_count", 0)
-
-                if not segments:
-                    logger.warning(
-                        f"[STAKEHOLDER_PERSONA] No segments found for stakeholder: {stakeholder_category}"
-                    )
-                    continue
-
-                logger.info(
-                    f"[STAKEHOLDER_PERSONA] Generating personas from {len(segments)} segments for {stakeholder_category}"
-                )
-
-                # Generate personas for this stakeholder category
-                stakeholder_personas = (
-                    await self._generate_stakeholder_specific_personas(
-                        segments, stakeholder_category, interview_count, context
-                    )
-                )
-
-                # Add stakeholder mapping to each persona
-                for persona in stakeholder_personas:
-                    if isinstance(persona, dict):
-                        persona["stakeholder_mapping"] = {
-                            "stakeholder_category": stakeholder_category,
-                            "interview_count": interview_count,
-                            "confidence": persona.get("overall_confidence", 0.7),
-                            "processing_method": "stakeholder_aware",
-                        }
-                        logger.info(
-                            f"[STAKEHOLDER_PERSONA] Added stakeholder mapping for persona: {persona.get('name', 'Unknown')}"
-                        )
-
-                all_personas.extend(stakeholder_personas)
-                logger.info(
-                    f"[STAKEHOLDER_PERSONA] Generated {len(stakeholder_personas)} personas for {stakeholder_category}"
-                )
-
-            logger.info(
-                f"[STAKEHOLDER_PERSONA] Total personas generated: {len(all_personas)}"
-            )
-            return all_personas
-
-        except Exception as e:
-            logger.error(
-                f"[STAKEHOLDER_PERSONA] Error in stakeholder-aware persona formation: {str(e)}",
-                exc_info=True,
-            )
-            # Fall back to standard processing
-            logger.info(
-                "[STAKEHOLDER_PERSONA] Falling back to standard persona formation"
-            )
-
-            # Flatten all segments for fallback processing
+        except Exception as _imp_err:
+            logger = logging.getLogger(__name__)
+            logger.error(f"[STAKEHOLDER_DELEGATE] Import failed: {_imp_err}")
+            # Fall back to flattened processing
             all_segments = []
-            for segment_data in stakeholder_segments.values():
-                all_segments.extend(segment_data.get("segments", []))
+            try:
+                for segment_data in stakeholder_segments.values():
+                    all_segments.extend(segment_data.get("segments", []))
+            except Exception:
+                pass
+            return await self.form_personas_from_transcript(
+                all_segments, context=context
+            )
 
+        try:
+            return await _stk.form_personas_by_stakeholder(
+                self, stakeholder_segments, context
+            )
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"[STAKEHOLDER_DELEGATE] Delegation failed: {e}", exc_info=True
+            )
+            # Fall back to flattened processing
+            all_segments = []
+            try:
+                for segment_data in stakeholder_segments.values():
+                    all_segments.extend(segment_data.get("segments", []))
+            except Exception:
+                pass
             return await self.form_personas_from_transcript(
                 all_segments, context=context
             )
@@ -1780,30 +1661,12 @@ Generate a complete DirectPersona object with all required traits populated base
                 f"[STAKEHOLDER_SPECIFIC] Processing {len(segments)} segments from {interview_count} interviews"
             )
 
-            # Combine all text for this stakeholder
-            stakeholder_text = ""
-            speakers = set()
+            # Combine all text for this stakeholder (exclude non-interviewee speakers)
+            from backend.services.processing.persona_formation_v1.hygiene.speaker_filter import (
+                aggregate_stakeholder_text_excluding_non_interviewers as _agg,
+            )
 
-            for segment in segments:
-                if isinstance(segment, dict):
-                    text = segment.get("text", "")
-                    speaker = (segment.get("speaker") or "Unknown").strip()
-                    # Exclude researcher/interviewer/moderator lines from stakeholder text
-                    if speaker.lower() in {"researcher", "interviewer", "moderator"}:
-                        continue
-                    speakers.add(speaker)
-                    stakeholder_text += f"\n{text}"
-                elif hasattr(segment, "text"):
-                    text = segment.text
-                    speaker = (
-                        getattr(segment, "speaker", "Unknown") or "Unknown"
-                    ).strip()
-                    if speaker.lower() in {"researcher", "interviewer", "moderator"}:
-                        continue
-                    speakers.add(speaker)
-                    stakeholder_text += f"\n{text}"
-
-            stakeholder_text = stakeholder_text.strip()
+            stakeholder_text, speakers = _agg(segments)
 
             if not stakeholder_text:
                 logger.warning(
@@ -2110,13 +1973,16 @@ Generate a complete DirectPersona object with all required traits populated base
                                         ]
                                 except Exception:
                                     pass
-                                persona_dict, _evmap = (
-                                    self.evidence_linking_service.link_evidence_to_attributes_v2(
-                                        persona_dict,
-                                        scoped_text=stakeholder_text,
-                                        scope_meta=scope_meta,
-                                        protect_key_quotes=True,
-                                    )
+                                from backend.services.processing.persona_formation_v1.evidence.linker_adapter import (
+                                    link_evidence_v2 as _link_v2,
+                                )
+
+                                persona_dict, _ = _link_v2(
+                                    self.evidence_linking_service,
+                                    persona_dict,
+                                    scoped_text=stakeholder_text,
+                                    scope_meta=scope_meta,
+                                    protect_key_quotes=True,
                                 )
                                 # Ensure age is populated if missing (pattern-based fallback)
                                 try:
@@ -2262,441 +2128,120 @@ Generate a complete DirectPersona object with all required traits populated base
             List of persona dictionaries
         """
         try:
-            logger.info(
-                f"[PERSONA_FORMATION_DEBUG] Starting PARALLEL persona formation with {len(transcript)} entries"
-            )
-            start_time = time.time()
-
-            # Log a sample of the transcript for debugging
-            if transcript and len(transcript) > 0:
-                logger.info(
-                    f"[PERSONA_FORMATION_DEBUG] Sample transcript entry: {transcript[0]}"
+            # Phase 1 extraction: prepare inputs and concurrency in orchestrator
+            try:
+                from backend.services.processing.persona_formation_v1.orchestrators import (
+                    transcript_persona_orchestrator as _tx,
                 )
-
-            # Validate input
-            if not transcript or len(transcript) == 0:
+            except Exception as _imp_err:
                 logger.warning(
-                    "[PERSONA_FORMATION_DEBUG] Empty transcript provided, returning empty list"
+                    f"[TRANSCRIPT_PREP] Import failed, using inline prep: {_imp_err}"
                 )
-                return []
+                _tx = None
 
-            # Consolidate text per speaker and extract roles
-            speaker_dialogues = {}
-            speaker_roles_map = {}
-
-            # Handle both old and new transcript formats
-            for turn in transcript:
-                # Extract speaker ID (handle both old and new formats)
-                speaker_id = turn.get(
-                    "speaker_id", turn.get("speaker", "Unknown Speaker")
+            if _tx is not None:
+                (
+                    start_time,
+                    speaker_dialogues,
+                    speaker_roles_map,
+                    sorted_speakers,
+                    semaphore,
+                ) = await _tx.prepare_transcript_parallel_inputs(
+                    self, transcript, participants, context
                 )
-
-                # Extract dialogue/text (handle both old and new formats)
-                dialogue = turn.get("dialogue", turn.get("text", ""))
-
-                # Extract role (handle both old and new formats, with fallback to participants if provided)
-                role = turn.get("role", "Participant")
-
-                # Initialize speaker entry if not exists
-                if speaker_id not in speaker_dialogues:
-                    speaker_dialogues[speaker_id] = []
-                    speaker_roles_map[speaker_id] = (
-                        role  # Store the first inferred role
-                    )
-
-                # Add this dialogue to the speaker's collection
-                speaker_dialogues[speaker_id].append(dialogue)
-
-            # Consolidate dialogues into a single text per speaker
-            speaker_texts = {
-                speaker: " ".join(dialogues)
-                for speaker, dialogues in speaker_dialogues.items()
-            }
-
-            logger.info(f"Consolidated text for {len(speaker_texts)} speakers")
-
-            # Log the speakers and text lengths for debugging
-            for speaker, text in speaker_texts.items():
-                logger.info(
-                    f"Speaker: {speaker}, Role: {speaker_roles_map.get(speaker, 'Unknown')}, Text length: {len(text)} chars"
-                )
-
-            # Override with provided participant roles if available
-            if participants and isinstance(participants, list):
-                for participant in participants:
-                    if "name" in participant and "role" in participant:
-                        speaker_name = participant["name"]
-                        if speaker_name in speaker_roles_map:
-                            speaker_roles_map[speaker_name] = participant["role"]
-                            logger.info(
-                                f"Overriding role for {speaker_name} to {participant['role']}"
-                            )
-
-                logger.info(f"Applied {len(participants)} provided participant roles")
-
-            # Generate personas for all speakers using parallel processing
-            personas = []
-
-            # Process speakers in order of text length (most text first)
-            sorted_speakers = sorted(
-                speaker_texts.items(), key=lambda x: len(x[1]), reverse=True
-            )
-
-            # PERFORMANCE OPTIMIZATION: Intelligent persona limiting based on content diversity
-            MAX_PERSONAS = int(os.getenv("MAX_PERSONAS", "6"))
-            if len(sorted_speakers) > MAX_PERSONAS:
-                logger.info(
-                    f"[PERFORMANCE] Applying intelligent persona clustering: {len(sorted_speakers)} speakers → {MAX_PERSONAS} diverse personas"
-                )
-                # Keep the speakers with most diverse content (by text length and role diversity)
-                sorted_speakers = self._select_diverse_speakers(
-                    sorted_speakers, speaker_roles_map, MAX_PERSONAS
-                )
-
-            # PERFORMANCE OPTIMIZATION: Use parallel processing with semaphore-controlled concurrency
-            logger.info(
-                f"[PERFORMANCE] Starting parallel persona generation for {len(sorted_speakers)} speakers..."
-            )
-
-            # PAID TIER OPTIMIZATION: Use 12 concurrent LLM calls for maximum performance
-            # PERFORMANCE OPTIMIZATION: Increased to 12 for paid Gemini API tier (1000+ RPM)
-            PAID_TIER_CONCURRENCY = int(os.getenv("PAID_TIER_CONCURRENCY", "12"))
-            semaphore = asyncio.Semaphore(PAID_TIER_CONCURRENCY)
-            logger.info(
-                f"[PERFORMANCE] Created semaphore with max {PAID_TIER_CONCURRENCY} concurrent persona generations (PAID TIER OPTIMIZATION)"
-            )
-
-            # Create tasks for parallel persona generation
-            persona_tasks = []
-            for i, (speaker, text) in enumerate(sorted_speakers):
-                # Get the role for this speaker from our consolidated role mapping
-                role = speaker_roles_map.get(speaker, "Participant")
-
-                # PERFORMANCE OPTIMIZATION: Skip interviewer personas
-                if role == "Interviewer":
-                    logger.info(
-                        f"[PERFORMANCE] Skipping interviewer persona for {speaker} - focusing on interviewees only"
-                    )
-                    continue
-
-                # Skip if text is too short (likely noise)
-                if len(text) < 100:
-                    logger.warning(
-                        f"[PERSONA_FORMATION_DEBUG] Skipping persona generation for {speaker} - text too short ({len(text)} chars)"
-                    )
-                    continue
-
-                # Create task for parallel persona generation
-                # Pass original dialogues for authentic quote extraction
-                original_dialogues = speaker_dialogues.get(speaker, [])
-                task = self._generate_single_persona_with_semaphore(
-                    speaker, text, role, semaphore, i + 1, context, original_dialogues
-                )
-                persona_tasks.append((i, speaker, task))
-
-            # Execute all persona generation tasks in parallel with robust error handling
-            logger.info(
-                f"[PERFORMANCE] Executing {len(persona_tasks)} persona generation tasks in parallel..."
-            )
-
-            # Use asyncio.gather with return_exceptions=True to handle individual failures gracefully
-            task_results = await asyncio.gather(
-                *[task for _, _, task in persona_tasks], return_exceptions=True
-            )
-
-            # Process results and handle exceptions
-            successful_personas = 0
-            failed_personas = 0
-
-            for (i, speaker, _), result in zip(persona_tasks, task_results):
-                if isinstance(result, Exception):
-                    logger.error(
-                        f"[PERFORMANCE] Persona generation failed for {speaker}: {str(result)}",
-                        exc_info=True,
-                    )
-                    failed_personas += 1
-
-                    # Create fallback persona for failed generation
-                    role = speaker_roles_map.get(speaker, "Participant")
-                    minimal_persona = self.persona_builder.create_fallback_persona(
-                        role, speaker
-                    )
-                    personas.append(persona_to_dict(minimal_persona))
-                    logger.info(
-                        f"[PERFORMANCE] Created fallback persona for failed generation: {speaker}"
-                    )
-                elif result and isinstance(result, dict):
-                    personas.append(result)
-                    successful_personas += 1
-                    logger.info(
-                        f"[PERFORMANCE] Successfully processed persona for {speaker}"
-                    )
-                else:
-                    logger.warning(
-                        f"[PERFORMANCE] Invalid result for {speaker}, creating fallback"
-                    )
-                    failed_personas += 1
-
-                    # Create fallback persona for invalid result
-                    role = speaker_roles_map.get(speaker, "Participant")
-                    minimal_persona = self.persona_builder.create_fallback_persona(
-                        role, speaker
-                    )
-                    personas.append(persona_to_dict(minimal_persona))
-
-            # Enhanced performance logging with aggressive concurrency metrics
-            total_time = time.time() - start_time
-            requests_per_minute = (len(sorted_speakers) / total_time) * 60
-            sequential_estimate = len(sorted_speakers) * 2.5  # minutes
-            performance_improvement = sequential_estimate / max(total_time / 60, 0.1)
-
-            logger.info(
-                f"[PYDANTIC_AI] BALANCED PARALLEL persona generation completed in {total_time:.2f} seconds "
-                f"({successful_personas} successful, {failed_personas} failed, concurrency=5)"
-            )
-            logger.info(
-                f"[PYDANTIC_AI] Achieved {requests_per_minute:.1f} requests per minute with 5 concurrent PydanticAI agents"
-            )
-            logger.info(
-                f"[PYDANTIC_AI] Performance improvement: ~{performance_improvement:.1f}x faster than sequential "
-                f"(estimated {sequential_estimate:.1f} min → {total_time/60:.1f} min)"
-            )
-
-            # Rate limit monitoring with PydanticAI
-            if failed_personas > 0:
-                failure_rate = (failed_personas / len(sorted_speakers)) * 100
-                logger.warning(
-                    f"[PYDANTIC_AI] Failure rate: {failure_rate:.1f}% - Monitor for rate limit issues with PydanticAI agents"
-                )
-                if failure_rate > 20:
-                    logger.error(
-                        f"[PYDANTIC_AI] HIGH FAILURE RATE ({failure_rate:.1f}%) - Consider reducing concurrency"
-                    )
+                if not sorted_speakers:
+                    return []
             else:
-                logger.info(
-                    "[PYDANTIC_AI] ✅ Zero failures - Balanced concurrency with PydanticAI working perfectly!"
-                )
-
-            # Emit final progress event
-            try:
-                await event_manager.emit(
-                    EventType.PROCESSING_STEP,
-                    {
-                        "stage": "persona_formation_from_transcript",
-                        "progress": 1.0,
-                        "data": {
-                            "personas_found": len(personas),
-                            "speakers_processed": len(sorted_speakers),
-                            "processing_time_seconds": total_time,
-                            "concurrency_level": 15,
-                            "requests_per_minute": requests_per_minute,
-                            "performance_improvement": f"~{performance_improvement:.1f}x faster",
-                            "failure_rate": (
-                                (failed_personas / len(sorted_speakers)) * 100
-                                if len(sorted_speakers) > 0
-                                else 0
-                            ),
-                            "optimization_type": "AGGRESSIVE_PARALLEL",
-                        },
-                    },
-                )
-            except Exception as event_error:
-                logger.warning(
-                    f"Could not emit processing step event: {str(event_error)}"
-                )
-
-            logger.info(
-                f"[PERSONA_FORMATION_DEBUG] 🎯 FINAL RESULT: Returning {len(personas)} personas from transcript with {len(sorted_speakers)} speakers"
-            )
-
-            # CONTENT DEDUPLICATION: Remove repetitive patterns from persona content
-            logger.info("[PERSONA_FORMATION_DEBUG] 🧹 Deduplicating persona content...")
-            deduplicated_personas = deduplicate_persona_list(personas)
-            logger.info(f"[PERSONA_FORMATION_DEBUG] ✅ Content deduplication completed")
-
-            # QUALITY VALIDATION: Simple pipeline validation with logging
-            try:
-                await self._validate_persona_quality(deduplicated_personas)
-            except Exception as validation_error:
-                logger.error(
-                    f"[QUALITY_VALIDATION] Error in transcript persona validation: {str(validation_error)}",
-                    exc_info=True,
-                )
-                # Don't fail the entire process due to validation errors
-
-            # STAKEHOLDER INTELLIGENCE: Calculate proper influence metrics for each persona
-            logger.info(
-                "[PERSONA_FORMATION_DEBUG] 🎯 Calculating stakeholder intelligence metrics..."
-            )
-            for persona in deduplicated_personas:
-                try:
-                    # Calculate influence metrics based on persona characteristics
-                    influence_metrics = self._calculate_persona_influence_metrics(
-                        persona
+                # Fallback to inline prep if orchestrator unavailable
+                start_time = time.time()
+                speaker_dialogues = {}
+                speaker_roles_map = {}
+                for turn in transcript:
+                    speaker_id = turn.get(
+                        "speaker_id", turn.get("speaker", "Unknown Speaker")
                     )
+                    dialogue = turn.get("dialogue", turn.get("text", ""))
+                    role = turn.get("role", "Participant")
+                    if speaker_id not in speaker_dialogues:
+                        speaker_dialogues[speaker_id] = []
+                        speaker_roles_map[speaker_id] = role
+                    speaker_dialogues[speaker_id].append(dialogue)
+                speaker_texts = {
+                    speaker: " ".join(dialogues)
+                    for speaker, dialogues in speaker_dialogues.items()
+                }
+                sorted_speakers = sorted(
+                    speaker_texts.items(), key=lambda x: len(x[1]), reverse=True
+                )
+                semaphore = asyncio.Semaphore(
+                    int(os.getenv("PAID_TIER_CONCURRENCY", "12"))
+                )
 
-                    # Determine a specific stakeholder title/type from persona fields
-                    specific_type = None
-                    try:
-                        role_val = str(persona.get("role", "")).strip()
-                        if role_val:
-                            specific_type = role_val
-                        else:
-                            sd = persona.get("structured_demographics") or {}
-                            roles = sd.get("roles") if isinstance(sd, dict) else None
-                            roles_val = (
-                                roles.get("value") if isinstance(roles, dict) else None
-                            )
-                            if isinstance(roles_val, str) and roles_val.strip():
-                                specific_type = roles_val.strip()
-                        # If still not set, try to extract a role phrase from name/archetype/description
-                        if not specific_type:
+            # Execute parallel generation in orchestrator (Phase 2 extraction)
+            try:
+                from backend.services.processing.persona_formation_v1.orchestrators import (
+                    transcript_persona_orchestrator as _tx,
+                )
+            except Exception as _imp_err:
+                _tx = None
+                logger.warning(
+                    f"[TRANSCRIPT_EXEC] Import failed, using inline exec: {_imp_err}"
+                )
 
-                            def _extract_role_phrase(text: str) -> str:
-                                if not isinstance(text, str):
-                                    return ""
-                                text = text.strip()
-                                if not text:
-                                    return ""
-                                seg = text
-                                if "," in text:
-                                    parts = [p.strip() for p in text.split(",", 1)]
-                                    seg = parts[1] if len(parts) > 1 else parts[0]
-                                if seg.lower().startswith("the "):
-                                    seg = seg[4:].strip()
-                                import re
-
-                                role_terms = [
-                                    "Owner",
-                                    "Founder",
-                                    "Marketing Manager",
-                                    "Manager",
-                                    "Advisor",
-                                    "Consultant",
-                                    "Designer",
-                                    "Developer",
-                                    "Engineer",
-                                    "Director",
-                                    "Advocate",
-                                    "Founder & CEO",
-                                    "Shop Owner",
-                                    "Boutique Owner",
-                                    "Cafe Owner",
-                                    "Restaurant Owner",
-                                    "Freelancer",
-                                ]
-                                roles_alt = sorted(role_terms, key=len, reverse=True)
-                                for term in roles_alt:
-                                    m = re.search(
-                                        r"((?:[A-Z][a-z]+\s+){0,3}"
-                                        + re.escape(term)
-                                        + r")\b",
-                                        seg,
-                                    )
-                                    if m:
-                                        return m.group(1).strip()
-                                return ""
-
-                            name_text = persona.get("name", "")
-                            arc_text = persona.get("archetype", "")
-                            desc_text = persona.get("description", "")
-                            candidate = (
-                                _extract_role_phrase(name_text)
-                                or _extract_role_phrase(arc_text)
-                                or _extract_role_phrase(desc_text)
-                            )
-                            if candidate:
-                                specific_type = candidate
-                    except Exception:
-                        specific_type = None
-
-                    # Update the persona's stakeholder intelligence
-                    if (
-                        "stakeholder_intelligence" in persona
-                        and persona["stakeholder_intelligence"]
-                    ):
-                        # Always update influence metrics
-                        persona["stakeholder_intelligence"][
-                            "influence_metrics"
-                        ] = influence_metrics
-                        # If the current type is generic or missing, and we have a specific title, set it
-                        try:
-                            current_type = str(
-                                persona["stakeholder_intelligence"].get(
-                                    "stakeholder_type", ""
-                                )
-                            ).strip()
-                            import re
-
-                            if (
-                                not current_type
-                                or current_type == "primary_customer"
-                                or re.match(r"^[A-Z][a-z]+$", current_type)
-                            ) and specific_type:
-                                persona["stakeholder_intelligence"][
-                                    "stakeholder_type"
-                                ] = specific_type
-                        except Exception:
-                            if specific_type:
-                                persona["stakeholder_intelligence"][
-                                    "stakeholder_type"
-                                ] = specific_type
-                        logger.info(
-                            f"[STAKEHOLDER_INTELLIGENCE] Updated metrics/type for {persona.get('name', 'Unknown')}: {influence_metrics} / {persona['stakeholder_intelligence'].get('stakeholder_type')}"
-                        )
+            if _tx is not None:
+                personas = await _tx.execute_transcript_parallel_generation(
+                    self,
+                    start_time,
+                    speaker_dialogues,
+                    speaker_roles_map,
+                    sorted_speakers,
+                    semaphore,
+                    context,
+                    event_manager,
+                    EventType,
+                )
+            else:
+                # Fallback to previous inline implementation if orchestrator unavailable
+                personas = []
+                persona_tasks = []
+                for i, (speaker, text) in enumerate(sorted_speakers):
+                    role = speaker_roles_map.get(speaker, "Participant")
+                    if role == "Interviewer":
+                        continue
+                    if len(text) < 100:
+                        continue
+                    original_dialogues = speaker_dialogues.get(speaker, [])
+                    task = self._generate_single_persona_with_semaphore(
+                        speaker,
+                        text,
+                        role,
+                        semaphore,
+                        i + 1,
+                        context,
+                        original_dialogues,
+                    )
+                    persona_tasks.append((i, speaker, task))
+                task_results = await asyncio.gather(
+                    *[task for _, _, task in persona_tasks], return_exceptions=True
+                )
+                for (i, speaker, _), result in zip(persona_tasks, task_results):
+                    if isinstance(result, dict):
+                        personas.append(result)
                     else:
-                        # Create stakeholder intelligence if it doesn't exist
-                        persona["stakeholder_intelligence"] = {
-                            "stakeholder_type": specific_type or "primary_customer",
-                            "influence_metrics": influence_metrics,
-                            "relationships": [],
-                            "conflict_indicators": [],
-                            "consensus_levels": [],
-                        }
-                        logger.info(
-                            f"[STAKEHOLDER_INTELLIGENCE] Created stakeholder intelligence for {persona.get('name', 'Unknown')}: {influence_metrics} / {persona['stakeholder_intelligence'].get('stakeholder_type')}"
+                        role = speaker_roles_map.get(speaker, "Participant")
+                        minimal_persona = self.persona_builder.create_fallback_persona(
+                            role, speaker
                         )
-                        # If persona name is generic and we have a specific stakeholder type, set a role-based name
-                        try:
-                            nm = str(persona.get("name", "")).strip()
-                            generic_names = {
-                                "interviewee",
-                                "participant",
-                                "user",
-                                "customer",
-                                "stakeholder",
-                                "unknown",
-                            }
-                            if (
-                                nm.lower() in generic_names
-                                and specific_type
-                                and isinstance(specific_type, str)
-                                and specific_type.strip()
-                            ):
-                                persona["name"] = f"The {specific_type.strip()}"
-                        except Exception:
-                            pass
+                        personas.append(persona_to_dict(minimal_persona))
 
-                except Exception as e:
-                    logger.error(
-                        f"[STAKEHOLDER_INTELLIGENCE] Error calculating influence metrics for {persona.get('name', 'Unknown')}: {str(e)}"
-                    )
-                    # Keep default values if calculation fails
+            # Finalize in orchestrator (Phase 3 extraction)
+            from backend.services.processing.persona_formation_v1.orchestrators import (
+                transcript_persona_orchestrator as _tx,
+            )
 
-            # Log summary of generated personas
-            if deduplicated_personas:
-                persona_names = [
-                    p.get("name", "Unknown") for p in deduplicated_personas
-                ]
-                logger.info(
-                    f"[PERSONA_FORMATION_DEBUG] Generated persona names: {persona_names}"
-                )
-            else:
-                logger.warning(
-                    f"[PERSONA_FORMATION_DEBUG] ⚠️ No personas were generated despite having {len(sorted_speakers)} speakers"
-                )
-
-            return deduplicated_personas
+            return await _tx.finalize_transcript_personas(
+                self, personas, sorted_speakers
+            )
 
         except Exception as e:
             logger.error(
@@ -2771,347 +2316,31 @@ Generate a complete DirectPersona object with all required traits populated base
                 f"[PERSONA_FORMATION_DEBUG] Processing speaker {persona_number}: {speaker} with role {role}, text length: {len(text)} chars"
             )
 
+            # Delegate per-speaker generation core to orchestrator (Phase extraction)
             try:
-                # PRODUCTION PERSONA: Use the new production-ready persona generation
-                if self.production_persona_available and self.production_persona_agent:
-                    logger.info(
-                        f"[PRODUCTION_PERSONA] Using production persona generation for {speaker} - unified schema approach"
-                    )
-                    return await self._generate_production_persona(
-                        speaker, text, role, context
-                    )
-
-                # DIRECT PERSONA: Fall back to direct persona generation
-                elif self.direct_persona_available and self.direct_persona_agent:
-                    logger.info(
-                        f"[DIRECT_PERSONA] Using direct persona generation for {speaker} - no conversion approach"
-                    )
-                    return await self._generate_direct_persona(
-                        speaker, text, role, context
-                    )
-
-                # LEGACY PYDANTIC_AI: Fall back to existing PydanticAI approach
-                elif self.pydantic_ai_available and self.persona_agent:
-                    logger.info(
-                        f"[LEGACY_PYDANTIC_AI] Using legacy PydanticAI generation for {speaker} - with conversion"
-                    )
-                    # Continue with existing legacy PydanticAI logic below
-                else:
-                    logger.warning(
-                        f"[FALLBACK] No PydanticAI agents available for {speaker}, falling back to legacy method"
-                    )
-                    return await self._generate_persona_legacy_fallback(
-                        speaker, text, role, context
-                    )
-
-                # Create a context object for this speaker
-                speaker_context = {
-                    "speaker": speaker,
-                    "role": role,
-                    **(context or {}),
-                }
-
-                # GOLDEN SCHEMA FIX: Use only the Golden Prompt in system_prompt
-                # Do NOT add conflicting prompts that contradict the Golden Schema
-                logger.info(
-                    f"Using Golden Schema approach for {speaker} - no conflicting prompts"
+                from backend.services.processing.persona_formation_v1.orchestrators import (
+                    speaker_persona_generator as _sp,
+                )
+            except Exception as _imp_err:
+                _sp = None
+                logger.warning(
+                    f"[SPEAKER_PERSONA] Import failed, using inline body: {_imp_err}"
+                )
+            if _sp is not None:
+                return await _sp.generate_single_persona_core(
+                    self,
+                    speaker,
+                    text,
+                    role,
+                    context,
+                    original_dialogues,
+                    persona_number,
                 )
 
-                # MAINTAIN HIGH QUALITY: Use the full text for analysis with Gemini 2.5 Flash's large context window
-                text_to_analyze = text  # Use the full text without truncation
-                logger.info(
-                    f"Using full text of {len(text_to_analyze)} chars for {speaker}"
-                )
-
-                # GOLDEN SCHEMA: Simple analysis prompt that doesn't conflict with system_prompt
-                analysis_prompt = f"""
-SPEAKER ANALYSIS REQUEST:
-Speaker: {speaker}
-Role: {role}
-Context: {speaker_context.get('industry', 'general')}
-
-TRANSCRIPT CONTENT:
-{text_to_analyze}
-
-Please analyze this speaker's content and generate a comprehensive SimplifiedPersonaModel based on the evidence provided. Focus on authentic characteristics, genuine quotes, and realistic behavioral patterns."""
-
-                # NO ARTIFICIAL DELAYS: Semaphore handles rate limiting
-                # Call PydanticAI agent to generate persona with enhanced error handling
-                # Log content size for timeout monitoring
-                content_size = len(analysis_prompt)
-                if content_size > 30000:
-                    logger.warning(
-                        f"[PYDANTIC_AI] Large content detected for {speaker}: {content_size:,} characters "
-                        f"(May take longer to process, timeout extended to 15min)"
-                    )
-
-                logger.info(
-                    f"[PYDANTIC_AI] Calling PydanticAI persona agent for {speaker} ({content_size:,} chars)"
-                )
-
-                # Use temperature 0 for consistent structured output with retry logic
-                retry_config = get_conservative_retry_config()
-
-                # Call PydanticAI agent directly with retry logic
-                persona_result = await safe_pydantic_ai_call(
-                    agent=self.persona_agent,
-                    prompt=analysis_prompt,
-                    context=f"Persona generation for {speaker} (#{persona_number})",
-                    retry_config=retry_config,
-                )
-
-                logger.info(
-                    f"[PYDANTIC_AI] PydanticAI agent returned response for {speaker} (type: {type(persona_result)})"
-                )
-
-                # The safe_pydantic_ai_call already extracts the output, so persona_result is the SimplifiedPersona model
-                simplified_persona = persona_result
-                logger.info(
-                    f"[PYDANTIC_AI] Extracted simplified persona model for {speaker}: {simplified_persona.name}"
-                )
-
-                # Convert SimplifiedPersona to full Persona with PersonaTrait objects
-                logger.info(
-                    f"[PERSONA_FORMATION_DEBUG] Converting SimplifiedPersona to full Persona for {speaker}"
-                )
-
-                # Convert simplified persona to full persona format with original dialogues
-                persona_data = self._convert_simplified_to_full_persona(
-                    simplified_persona, original_dialogues
-                )
-                logger.info(
-                    f"[PYDANTIC_AI] Successfully converted persona model to dictionary for {speaker}"
-                )
-
-                # Enhance evidence with V2 linking using scoped speaker text and metadata
-                try:
-                    if getattr(self.evidence_linking_service, "enable_v2", False):
-                        scope_meta = {"speaker": speaker, "speaker_role": role}
-                        try:
-                            if context and isinstance(context, dict):
-                                if context.get("stakeholder_category"):
-                                    scope_meta["stakeholder_category"] = context[
-                                        "stakeholder_category"
-                                    ]
-                                if context.get("document_id"):
-                                    scope_meta["document_id"] = context["document_id"]
-                        except Exception:
-                            pass
-                        persona_data, _evmap = (
-                            self.evidence_linking_service.link_evidence_to_attributes_v2(
-                                persona_data,
-                                scoped_text=text,
-                                scope_meta=scope_meta,
-                                protect_key_quotes=True,
-                            )
-                        )
-                        # Ensure age is populated if missing (pattern-based fallback)
-                        try:
-                            demo = (
-                                persona_data.get("demographics")
-                                if isinstance(persona_data, dict)
-                                else None
-                            )
-                            need_age = True
-                            if isinstance(demo, dict):
-                                ar = demo.get("age_range")
-                                if isinstance(ar, dict) and ar.get("value"):
-                                    need_age = False
-                            if need_age:
-                                from backend.services.evidence_intelligence.demographic_intelligence import (
-                                    DemographicIntelligence,
-                                )
-                                from backend.services.evidence_intelligence.speaker_intelligence import (
-                                    SpeakerProfile,
-                                    SpeakerRole,
-                                )
-
-                                di = DemographicIntelligence(llm_service=None)
-                                sp = SpeakerProfile(
-                                    speaker_id=str(speaker),
-                                    role=SpeakerRole.INTERVIEWEE,
-                                    unique_identifier=str(speaker),
-                                )
-                                demographics_data = di._fallback_extraction(text, sp)
-                                if demographics_data and (
-                                    demographics_data.age_range or demographics_data.age
-                                ):
-                                    age_value = demographics_data.age_range or (
-                                        str(demographics_data.age)
-                                        if demographics_data.age
-                                        else None
-                                    )
-                                    if age_value:
-                                        demo = (
-                                            dict(demo) if isinstance(demo, dict) else {}
-                                        )
-                                        existing_evd = []
-                                        if isinstance(demo.get("age_range"), dict):
-                                            existing_evd = (
-                                                demo["age_range"].get("evidence", [])
-                                                or []
-                                            )
-                                        demo["age_range"] = {
-                                            "value": age_value,
-                                            "evidence": existing_evd,
-                                        }
-                                        demo["confidence"] = (
-                                            demo.get("confidence", 0.7) or 0.7
-                                        )
-                                        persona_data["demographics"] = demo
-                        except Exception as _age_err:
-                            logger.debug(
-                                f"[DEMOGRAPHICS] Age fallback extraction skipped: {_age_err}"
-                            )
-
-                except Exception as el_err:
-                    logger.warning(
-                        f"[EVIDENCE_LINKING_V2] Skipped during persona build for {speaker}: {el_err}"
-                    )
-
-                # DEBUG: Log the actual PersonaTrait field values to understand why they're empty
-                logger.info(
-                    f"[PERSONA_FORMATION_DEBUG] Persona data keys for {speaker}: {list(persona_data.keys())}"
-                )
-
-                # Check specific PersonaTrait fields
-                trait_fields = [
-                    "demographics",
-                    "goals_and_motivations",
-                    "challenges_and_frustrations",
-                    "needs_and_expectations",
-                    "decision_making_process",
-                    "communication_style",
-                    "technology_usage",
-                    "pain_points",
-                    "key_quotes",
-                ]
-
-                for field in trait_fields:
-                    field_value = persona_data.get(field)
-                    if field_value is None:
-                        logger.warning(
-                            f"[PERSONA_FORMATION_DEBUG] Field '{field}' is None for {speaker}"
-                        )
-                    elif isinstance(field_value, dict):
-                        logger.info(
-                            f"[PERSONA_FORMATION_DEBUG] Field '{field}' for {speaker}: {field_value.get('value', 'NO_VALUE')[:100]}..."
-                        )
-                    else:
-                        logger.info(
-                            f"[PERSONA_FORMATION_DEBUG] Field '{field}' for {speaker} (type {type(field_value)}): {str(field_value)[:100]}..."
-                        )
-
-                # Log the persona data keys for debugging
-                if persona_data and isinstance(persona_data, dict):
-                    logger.info(
-                        f"[PERSONA_FORMATION_DEBUG] Persona data keys for {speaker}: {list(persona_data.keys())}"
-                    )
-
-                    # Use the speaker ID from the transcript as the default/override name
-                    name_override = speaker
-                    logger.info(
-                        f"Using speaker ID from transcript as name_override: {name_override}"
-                    )
-
-                    # If the persona data doesn't have a name, use the speaker name
-                    if "name" not in persona_data or not persona_data["name"]:
-                        persona_data["name"] = name_override
-                        logger.info(
-                            f"Using speaker name as persona name: {name_override}"
-                        )
-                    elif name_override and name_override != persona_data.get("name"):
-                        logger.info(
-                            f"PydanticAI provided name '{persona_data.get('name')}' differs from transcript speaker_id '{name_override}'. Using PydanticAI name for now."
-                        )
-
-                    # MAINTAIN HIGH QUALITY: Build persona from attributes using the same detailed process
-                    persona = self.persona_builder.build_persona_from_attributes(
-                        persona_data, persona_data.get("name", name_override), role
-                    )
-                    result = persona_to_dict(persona)
-                    logger.info(
-                        f"[PYDANTIC_AI] ✅ Successfully created persona for {speaker}: {persona.name}"
-                    )
-                    return result
-                else:
-                    logger.warning(f"[PYDANTIC_AI] No valid persona data for {speaker}")
-                    raise Exception(f"No valid persona data generated for {speaker}")
-
-            except Exception as e:
-                error_message = str(e).lower()
-
-                # Enhanced error monitoring for rate limits and API issues with PydanticAI
-                if (
-                    "rate limit" in error_message
-                    or "quota" in error_message
-                    or "429" in error_message
-                ):
-                    logger.error(
-                        f"[PYDANTIC_AI] ⚠️ RATE LIMIT ERROR for {speaker}: {str(e)} "
-                        f"(Consider reducing concurrency from 15)",
-                        exc_info=True,
-                    )
-                elif (
-                    "timeout" in error_message
-                    or "connection" in error_message
-                    or "ReadTimeout" in str(e)
-                ):
-                    content_size = len(speaker_content.get(speaker, ""))
-                    logger.error(
-                        f"[PYDANTIC_AI] ⏱️ TIMEOUT ERROR for {speaker}: {str(e)} "
-                        f"(Content size: {content_size:,} chars, Consider chunking large content)",
-                        exc_info=True,
-                    )
-                elif "pydantic" in error_message or "validation" in error_message:
-                    logger.error(
-                        f"[PYDANTIC_AI] 📋 VALIDATION ERROR for {speaker}: {str(e)} "
-                        f"(PydanticAI model validation failed)",
-                        exc_info=True,
-                    )
-                elif (
-                    "malformed_function_call" in error_message
-                    or "finishreason" in error_message
-                ):
-                    logger.error(
-                        f"[PYDANTIC_AI] 🔧 MALFORMED_FUNCTION_CALL ERROR for {speaker}: {str(e)} "
-                        f"(Gemini API returned malformed function call response - retrying with fallback)",
-                        exc_info=True,
-                    )
-                    # For MALFORMED_FUNCTION_CALL errors, we should try to continue with fallback
-                    # instead of failing completely
-                    logger.info(
-                        f"[PYDANTIC_AI] Attempting fallback persona generation for {speaker}"
-                    )
-                    try:
-                        # Create a proper fallback persona using persona_builder (includes is_fallback metadata)
-                        fallback_persona_obj = (
-                            self.persona_builder.create_fallback_persona(
-                                role if role else "Participant",
-                                self._generate_descriptive_name_from_speaker_id(
-                                    speaker
-                                ),
-                            )
-                        )
-                        fallback_persona = persona_to_dict(fallback_persona_obj)
-                        logger.info(
-                            f"[PYDANTIC_AI] Created fallback persona for {speaker} with is_fallback metadata"
-                        )
-                        return fallback_persona
-                    except Exception as fallback_error:
-                        logger.error(
-                            f"[PYDANTIC_AI] Failed to create fallback persona: {fallback_error}"
-                        )
-                        # Re-raise original error if fallback fails
-                        raise
-                else:
-                    logger.error(
-                        f"[PYDANTIC_AI] ❌ GENERAL ERROR for {speaker}: {str(e)}",
-                        exc_info=True,
-                    )
-
-                # Re-raise the exception to be handled by the calling method
-                raise
+            # Orchestrator not available; use minimal legacy fallback
+            return await self._generate_persona_legacy_fallback(
+                speaker, text, role, context
+            )
 
     async def _generate_persona_legacy_fallback(
         self,
@@ -3229,7 +2458,7 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                     persona_result = await safe_pydantic_ai_call(
                         agent=self.persona_agent,
                         prompt=analysis_prompt,
-                        context=f"Pattern-based persona generation for {pattern.get('name', 'Unknown')}",
+                        context="Pattern-based persona generation",
                         retry_config=retry_config,
                     )
 
@@ -3260,7 +2489,6 @@ Please analyze these patterns and generate a comprehensive persona based on the 
 
                 # Fall back to original implementation
                 # Import Pydantic model for response schema
-                from backend.models.enhanced_persona_models import Persona
 
                 # Create a response schema for structured output
                 response_schema = {
@@ -3471,7 +2699,6 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                 prompt = self.prompt_generator.create_participant_prompt(original_text)
 
                 # Import Pydantic model for response schema
-                from backend.models.enhanced_persona_models import Persona
 
                 # Create a response schema for structured output
                 response_schema = {
@@ -3687,377 +2914,21 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                 convert_simplified_to_full_persona as _convert,
             )
 
+            from backend.services.processing.persona_formation_v1.validation.validator import (
+                make_converter_callbacks as _mk,
+            )
+
+            _cb = _mk(self)
             return _convert(
                 simplified_persona,
                 original_dialogues,
-                validate_structured_demographics_fn=self._validate_structured_demographics,
-                create_clean_fallback_fn=self._create_clean_fallback_demographics,
-                create_minimal_fallback_fn=self._create_minimal_fallback_demographics,
-                assess_content_quality_fn=self._assess_content_quality,
-                assess_evidence_quality_fn=self._assess_evidence_quality,
-                extract_evidence_from_description_fn=self._extract_evidence_from_description,
+                **_cb,
             )
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"[PERSONA_CONVERTER_DELEGATE] Delegation failed: {e}")
-            # If delegation fails for any reason, fall through to legacy body below
-
-        # Helper function to create PersonaTrait (legacy fallback body)
-        def create_trait(
-            value: str, confidence: float, evidence: List[str] = None
-        ) -> Dict[str, Any]:
-            return {
-                "value": value,
-                "confidence": confidence,
-                "evidence": evidence or [],
-            }
-
-        # Extract quotes for evidence and distribute them intelligently
-        # Collect evidence from all AttributedField objects in the SimplifiedPersona
-        quotes = []
-
-        # Extract evidence from goals_and_motivations
-        if (
-            simplified_persona.goals_and_motivations
-            and simplified_persona.goals_and_motivations.evidence
-        ):
-            quotes.extend(simplified_persona.goals_and_motivations.evidence)
-
-        # Extract evidence from challenges_and_frustrations
-        if (
-            simplified_persona.challenges_and_frustrations
-            and simplified_persona.challenges_and_frustrations.evidence
-        ):
-            quotes.extend(simplified_persona.challenges_and_frustrations.evidence)
-
-        # Extract evidence from key_quotes
-        if simplified_persona.key_quotes and simplified_persona.key_quotes.evidence:
-            quotes.extend(simplified_persona.key_quotes.evidence)
-
-        # Extract evidence from demographics (StructuredDemographics with nested AttributedFields)
-        if simplified_persona.demographics:
-            demographics_dict = simplified_persona.demographics.model_dump()
-            for _, field_data in demographics_dict.items():
-                if (
-                    isinstance(field_data, dict)
-                    and "evidence" in field_data
-                    and field_data["evidence"]
-                ):
-                    quotes.extend(field_data["evidence"])
-
-        logger.info(
-            f"[EVIDENCE_EXTRACTION] Extracted {len(quotes)} evidence quotes from SimplifiedPersona"
-        )
-        if quotes:
-            logger.info(f"[EVIDENCE_EXTRACTION] Sample evidence: {quotes[0][:100]}...")
-        else:
-            logger.warning(
-                f"[EVIDENCE_EXTRACTION] No evidence found in SimplifiedPersona - this may indicate an issue with persona generation"
-            )
-
-        # Create unique evidence pools for different categories to prevent duplication
-        from backend.services.processing.persona_formation.converters.full_persona_evidence import (
-            distribute_evidence_semantically,
-        )
-
-        evidence_pools = distribute_evidence_semantically(quotes, 8)
-
-        # Log evidence distribution for debugging
-        logger.info(
-            f"[EVIDENCE_DISTRIBUTION] Distributed {len(quotes)} quotes across {len(evidence_pools)} semantic pools"
-        )
-        for i, pool in enumerate(evidence_pools):
-            if pool:
-                logger.info(f"[EVIDENCE_DISTRIBUTION] Pool {i}: {len(pool)} quotes")
-
-        # QUALITY VALIDATION: Check if we have rich description but poor evidence
-        description_quality = self._assess_content_quality(
-            simplified_persona.description
-        )
-        evidence_quality = self._assess_evidence_quality(quotes)
-
-        logger.info(
-            f"[QUALITY_CHECK] Description quality: {description_quality}, Evidence quality: {evidence_quality}"
-        )
-
-        # If description is rich but evidence is poor, try to extract evidence from description
-        if description_quality > 0.7 and evidence_quality < 0.5:
-            logger.warning(
-                f"[QUALITY_MISMATCH] Rich description ({description_quality:.2f}) but poor evidence ({evidence_quality:.2f}) - attempting evidence extraction from description"
-            )
-            enhanced_quotes = self._extract_evidence_from_description(
-                simplified_persona
-            )
-            if enhanced_quotes:
-                quotes.extend(enhanced_quotes)
-                evidence_pools = distribute_evidence_semantically(quotes, 8)
-                logger.info(
-                    f"[QUALITY_FIX] Enhanced evidence with {len(enhanced_quotes)} quotes from description"
-                )
-
-        # Helper function to create trait with keywords
-        def create_trait_with_keywords(
-            content: Any, confidence: float, trait_name: str
-        ):
-            # Special handling for StructuredDemographics - preserve nested structure
-            if isinstance(content, StructuredDemographics):
-                logger.info(
-                    f"[STRUCTURED_DEMOGRAPHICS] Preserving nested structure for {trait_name}"
-                )
-
-                # Validate the StructuredDemographics before processing
-                if not self._validate_structured_demographics(content):
-                    logger.error(
-                        f"[STRUCTURED_DEMOGRAPHICS] Corruption detected in {trait_name}, using clean fallback"
-                    )
-                    # Use clean fallback if corruption is detected
-                    content = self._create_clean_fallback_demographics(
-                        f"fallback_{trait_name}"
-                    )
-
-                # Convert to dictionary while preserving AttributedField structure
-                demographics_dict = content.model_dump()
-
-                # Validate the serialized output for corruption
-                # Use JSON serialization to avoid constructor syntax corruption
-                if hasattr(content, "model_dump_json"):
-                    serialized_str = content.model_dump_json()
-                else:
-                    serialized_str = json.dumps(demographics_dict)
-
-                corruption_indicators = [
-                    "AttributedField(",
-                    "experience_level=",
-                    "industry=",
-                    "evidence=[",
-                ]
-                if any(
-                    indicator in serialized_str for indicator in corruption_indicators
-                ):
-                    logger.error(
-                        f"[STRUCTURED_DEMOGRAPHICS] Serialization corruption detected in {trait_name}, using minimal fallback"
-                    )
-                    # Create minimal clean fallback
-                    minimal_fallback = self._create_minimal_fallback_demographics()
-                    demographics_dict = minimal_fallback.model_dump()
-
-                # Add overall confidence to the structure
-                demographics_dict["confidence"] = confidence
-
-                # Log the preserved structure
-                logger.info(
-                    f"[STRUCTURED_DEMOGRAPHICS] Preserved fields: {list(demographics_dict.keys())}"
-                )
-
-                return demographics_dict
-
-            # Handle AttributedField objects
-            elif isinstance(content, AttributedField):
-                logger.info(
-                    f"[ATTRIBUTED_FIELD] Preserving AttributedField structure for {trait_name}"
-                )
-
-                # Convert to dictionary while preserving structure
-                field_dict = content.model_dump()
-                field_dict["confidence"] = confidence
-
-                return field_dict
-
-            # Handle other content types (legacy support)
-            else:
-                from backend.services.processing.persona_formation.converters.full_persona_evidence import (
-                    extract_authentic_quotes_from_dialogue as _extract_auth,
-                )
-
-                evidence, keywords = _extract_auth(
-                    original_dialogues or [], content, trait_name
-                )
-
-                # Extract string value for legacy content types
-                content_str = ""
-                if hasattr(content, "value"):
-                    # Legacy AttributedField-like format
-                    content_str = str(content.value) if content.value else ""
-                elif isinstance(content, str):
-                    # Old string format
-                    content_str = content
-                else:
-                    content_str = str(content) if content else ""
-
-                trait = create_trait(content_str, confidence, evidence)
-                # Add keywords to the trait
-                if hasattr(trait, "__dict__"):
-                    trait.actual_keywords = keywords
-                return trait
-
-        # Validate StructuredDemographics before processing
-        if not self._validate_structured_demographics(simplified_persona.demographics):
-            logger.error(
-                f"[PERSONA_FORMATION_DEBUG] StructuredDemographics validation failed for {simplified_persona.name}"
-            )
-            # Use proper JSON serialization to avoid AttributedField constructor syntax
-            demographics_json = (
-                simplified_persona.demographics.model_dump_json()
-                if hasattr(simplified_persona.demographics, "model_dump_json")
-                else (
-                    json.dumps(simplified_persona.demographics.model_dump())
-                    if hasattr(simplified_persona.demographics, "model_dump")
-                    else str(simplified_persona.demographics)
-                )
-            )
-            logger.error(
-                f"[PERSONA_FORMATION_DEBUG] Demographics content: {demographics_json[:500]}..."
-            )
-
-            # Create a clean fallback StructuredDemographics object
-            fallback_demographics = self._create_clean_fallback_demographics(
-                simplified_persona.name
-            )
-            logger.warning(
-                f"[PERSONA_FORMATION_DEBUG] Using clean fallback demographics for {simplified_persona.name}"
-            )
-            simplified_persona.demographics = fallback_demographics
-
-        # Convert to full persona format with contextual evidence extraction
-        persona_data = {
-            "name": simplified_persona.name,
-            "description": simplified_persona.description,
-            "archetype": simplified_persona.archetype,
-            # Convert StructuredDemographics to PersonaTrait objects with authentic quote evidence
-            "demographics": create_trait_with_keywords(
-                simplified_persona.demographics,  # This is now StructuredDemographics
-                simplified_persona.demographics_confidence,
-                "demographics",
-            ),
-            "goals_and_motivations": create_trait_with_keywords(
-                simplified_persona.goals_and_motivations,  # Fixed property name
-                simplified_persona.goals_confidence,
-                "goals_and_motivations",
-            ),
-            "challenges_and_frustrations": create_trait_with_keywords(
-                simplified_persona.challenges_and_frustrations,  # Fixed property name
-                simplified_persona.challenges_confidence,
-                "challenges_and_frustrations",
-            ),
-            # Legacy fields - provide fallback values since they're not in the new SimplifiedPersona model
-            "skills_and_expertise": create_trait(
-                "Skills and expertise derived from interview context",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "technology_and_tools": create_trait(
-                "Technology and tools mentioned in interview",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "pain_points": create_trait_with_keywords(
-                simplified_persona.challenges_and_frustrations,  # Map challenges to pain points
-                simplified_persona.challenges_confidence,
-                "pain_points",
-            ),
-            "workflow_and_environment": create_trait(
-                "Workflow and environment context from interview",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "needs_and_expectations": create_trait(
-                "Needs and expectations derived from goals and challenges",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            # Use the new key_quotes structured field
-            "key_quotes": create_trait_with_keywords(
-                simplified_persona.key_quotes,  # This is now an AttributedField
-                simplified_persona.overall_confidence,
-                "key_quotes",
-            ),
-            # Additional fields that PersonaBuilder expects (provide fallback values)
-            "key_responsibilities": create_trait(
-                "Key responsibilities derived from interview context",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "tools_used": create_trait(
-                "Tools and technologies mentioned in interview",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "analysis_approach": create_trait(
-                "Analysis approach derived from interview responses",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "decision_making_process": create_trait_with_keywords(
-                simplified_persona.goals_and_motivations,  # Fixed property name
-                simplified_persona.goals_confidence,
-                "decision_making_process",
-            ),
-            "communication_style": create_trait(
-                "Communication style derived from interview responses",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "technology_usage": create_trait(
-                "Technology usage patterns mentioned in interview",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            # Legacy fields for compatibility
-            "role_context": create_trait(
-                f"Professional context: {simplified_persona.demographics}",
-                getattr(
-                    simplified_persona,
-                    "demographics_confidence",
-                    simplified_persona.overall_confidence,
-                ),
-                evidence_pools[0][:1] if evidence_pools else [],
-            ),
-            "key_responsibilities": create_trait(
-                "Key responsibilities derived from role context and goals",
-                simplified_persona.overall_confidence,
-                evidence_pools[1][:2] if len(evidence_pools) > 1 else [],
-            ),
-            "tools_used": create_trait(
-                "Tools and technologies mentioned in interviews",
-                simplified_persona.overall_confidence
-                * 0.8,  # Lower confidence for inferred data
-                [],
-            ),
-            "collaboration_style": create_trait(
-                "Collaboration style derived from interview responses",
-                simplified_persona.overall_confidence,
-                [],
-            ),
-            "analysis_approach": create_trait(
-                "Analysis approach based on professional context",
-                simplified_persona.overall_confidence * 0.7,
-                [],
-            ),
-            "pain_points": create_trait(
-                (
-                    simplified_persona.challenges_and_frustrations.value
-                    if simplified_persona.challenges_and_frustrations
-                    else "Pain points not specified"
-                ),
-                (
-                    simplified_persona.challenges_and_frustrations.confidence
-                    if simplified_persona.challenges_and_frustrations
-                    else 0.5
-                ),
-                (
-                    simplified_persona.challenges_and_frustrations.evidence
-                    if simplified_persona.challenges_and_frustrations
-                    else []
-                ),
-            ),
-            # Overall confidence
-            "overall_confidence": simplified_persona.overall_confidence,
-        }
-
-        logger.info(
-            f"[CONVERSION] Successfully converted SimplifiedPersona to full Persona format with intelligent evidence distribution"
-        )
-        return persona_data
+            # Remove legacy fallback; surface the error to avoid silent divergence
+            raise
 
     def _assess_content_quality(self, content: str) -> float:
         """Thin delegator to persona_formation.quality.assessors.assess_content_quality."""
