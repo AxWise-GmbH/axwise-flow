@@ -49,9 +49,10 @@ export async function POST(request: NextRequest) {
 
     // Create AbortController for timeout handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10 * 60 * 1000); // 10 minutes timeout
+    // Safety timeout; backend returns 202 immediately and UI polls progress
+    const timeoutId = setTimeout(() => controller.abort(), 12 * 60 * 1000); // 12 minutes timeout
 
-    const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/simulate`, {
+    const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/simulate-async`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,18 +84,23 @@ export async function POST(request: NextRequest) {
     console.error('Error proxying simulation request:', error);
 
     // Handle timeout errors specifically
-    if (error instanceof Error && error.name === 'AbortError') {
+    // Normalize known Undici timeout errors for clearer UX
+    const message = error instanceof Error ? error.message : String(error);
+    const code = (error as any)?.code || (error as any)?.cause?.code || (error as any)?.name;
+
+    if (error instanceof Error && (error.name === 'AbortError' || code === 'UND_ERR_HEADERS_TIMEOUT')) {
       return NextResponse.json(
         {
           error: 'Simulation timeout',
-          details: 'The simulation took longer than expected. Please try again with fewer stakeholders or simpler configuration.'
+          details: 'The simulation is taking longer than expected. It may still be processing on the server.',
+          suggestion: 'Reduce the number of stakeholders or depth, or try again later. We recommend using the progress endpoints to poll status.',
         },
-        { status: 408 } // Request Timeout
+        { status: 408 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal server error', details: message },
       { status: 500 }
     );
   }

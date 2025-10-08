@@ -313,12 +313,15 @@ class SimulationOrchestrator:
             )
 
     async def simulate_with_persistence(
-        self, request: SimulationRequest, user_id: str = "testuser123"
+        self,
+        request: SimulationRequest,
+        user_id: str = "testuser123",
+        simulation_id: Optional[str] = None,
     ) -> SimulationResponse:
         """
         Enhanced simulation with database persistence and parallel processing.
         """
-        simulation_id = str(uuid.uuid4())
+        simulation_id = simulation_id or str(uuid.uuid4())
 
         try:
             logger.info(f"Starting enhanced simulation: {simulation_id}")

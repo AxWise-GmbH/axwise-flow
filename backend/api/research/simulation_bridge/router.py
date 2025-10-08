@@ -5,6 +5,7 @@ FastAPI router for the Simulation Bridge system.
 import logging
 import os
 import time
+import uuid
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
 from fastapi.responses import JSONResponse
@@ -46,7 +47,8 @@ router = APIRouter(
 )
 
 # Global orchestrator instance with enhanced capabilities
-orchestrator = SimulationOrchestrator(use_parallel=True, max_concurrent=5)
+# Increase concurrency to align with user preferences (10–15)
+orchestrator = SimulationOrchestrator(use_parallel=True, max_concurrent=12)
 
 
 @router.get("/health")
@@ -152,6 +154,87 @@ async def create_simulation(
             endpoint, start, user_id=user.user_id, http_status=http_status, error=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
+
+
+@router.post("/simulate-async")
+async def simulate_async(
+    request: SimulationRequest,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Start simulation asynchronously and return simulation_id immediately.
+
+    - Validates and (if needed) parses raw questionnaire.
+    - Schedules the simulation in background with persistence and parallel processing.
+    - Returns 202 Accepted with simulation_id and helpful next-step URLs.
+    """
+    endpoint = "/api/research/simulation-bridge/simulate-async"
+    start = request_start(endpoint, user_id=user.user_id)
+    http_status = 202
+    try:
+        # Handle raw questionnaire content with PydanticAI parsing
+        if request.raw_questionnaire_content:
+            parsed_request = await orchestrator.parse_raw_questionnaire(
+                request.raw_questionnaire_content, request.config
+            )
+            request.questions_data = parsed_request.questions_data
+            request.business_context = parsed_request.business_context
+
+        # Validate required data
+        if not request.questions_data or not request.business_context:
+            raise HTTPException(
+                status_code=400,
+                detail="Both questions_data and business_context are required",
+            )
+
+        # Generate a simulation_id now so the client can start polling
+        simulation_id = str(uuid.uuid4())
+
+        # Schedule background task to run the full simulation
+        background_tasks.add_task(
+            orchestrator.simulate_with_persistence, request, user.user_id, simulation_id
+        )
+
+        # Record request end with 202
+        request_end(
+            endpoint,
+            start,
+            user_id=user.user_id,
+            http_status=http_status,
+            simulation_id=simulation_id,
+        )
+
+        base = "/api/research/simulation-bridge"
+        return JSONResponse(
+            status_code=202,
+            content={
+                "success": True,
+                "message": "Simulation accepted and started in background",
+                "simulation_id": simulation_id,
+                "next_steps": {
+                    "progress_url": f"{base}/simulate/{simulation_id}/progress",
+                    "result_url": f"{base}/completed/{simulation_id}",
+                },
+            },
+        )
+
+    except HTTPException as he:
+        request_error(
+            endpoint,
+            start,
+            user_id=user.user_id,
+            http_status=getattr(he, "status_code", 500),
+            error=str(getattr(he, "detail", he)),
+        )
+        raise
+    except Exception as e:
+        request_error(
+            endpoint, start, user_id=user.user_id, http_status=500, error=str(e)
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start async simulation: {str(e)}"
+        )
 
 
 @router.post("/simulate-enhanced")
