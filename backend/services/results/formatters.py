@@ -16,3 +16,4 @@ from .formatting import (
     derive_detected_stakeholders_from_personas,
     adjust_theme_frequencies_for_prevalence,
 )
+from .formatting.themes import adjust_theme_frequencies_with_persona_evidence

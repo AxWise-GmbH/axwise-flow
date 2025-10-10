@@ -67,11 +67,11 @@ Follow these steps meticulously:
 6.  **Construct JSON Output:**
     *   The final output MUST be a JSON array.
     *   Each element in the array will be an object representing a single speaking turn.
-    *   Each turn object MUST have EXACTLY the following three keys (no more, no less):
+    *   Each turn object MUST have the following keys:
         *   `speaker_id`: (String) The identified name or generic identifier of the speaker for that turn. Be consistent.
         *   `role`: (String) The inferred role (MUST be one of: "Interviewer", "Interviewee", or "Participant").
-        *   `dialogue`: (String) The exact transcribed speech for that turn, including any relevant action descriptions. Preserve original wording. **CRITICALLY IMPORTANT: Ensure all special characters within this string are properly JSON-escaped. For example, double quotes (`"`) inside the dialogue must be escaped as `\\"`, backslashes (`\\`) as `\\\\`, newlines as `\\n`, etc.**
-    *   Do NOT add any additional fields to the objects.
+        *   `dialogue`: (String) The exact transcribed speech for that turn, including any relevant action descriptions. Preserve original wording. **CRITICALLY IMPORTANT: Ensure all special characters within this string are properly JSON-escaped. For example, double quotes (`\"`) inside the dialogue must be escaped as `\\\"`, backslashes (`\\`) as `\\\\`, newlines as `\\n`, etc.**
+        *   `document_id` (String, REQUIRED for multi-interview files; OPTIONAL otherwise): For multi-interview transcripts, set this to a stable identifier like `"interview_1"`, `"interview_2"`, etc., so downstream evidence linking can attribute quotes to the correct interview. For single interviews, you MAY set `document_id` to `"interview_1"`.
     *   Do NOT use any nested objects or arrays within these objects.
     *   Each object MUST follow this exact structure.
 
@@ -80,17 +80,20 @@ EXAMPLE OUTPUT STRUCTURE:
   {
     "speaker_id": "Interviewer",
     "role": "Interviewer",
-    "dialogue": "Good morning. Thanks for coming in. Can you start by telling me about your experience with project management tools?"
+    "dialogue": "Good morning. Thanks for coming in. Can you start by telling me about your experience with project management tools?",
+    "document_id": "interview_1"
   },
   {
     "speaker_id": "Sarah Miller",
     "role": "Interviewee",
-    "dialogue": "Certainly. [clears throat] I've used several tools over the past five years, primarily Jira and Asana. I find Jira very powerful for development tracking, but Asana is often better for less technical teams."
+    "dialogue": "Certainly. [clears throat] I've used several tools over the past five years, primarily Jira and Asana. I find Jira very powerful for development tracking, but Asana is often better for less technical teams.",
+    "document_id": "interview_1"
   },
   {
     "speaker_id": "Interviewer",
     "role": "Interviewer",
-    "dialogue": "Interesting. What specific challenges have you faced with Jira?"
+    "dialogue": "Interesting. What specific challenges have you faced with Jira?",
+    "document_id": "interview_1"
   }
 ]
 
@@ -99,27 +102,32 @@ INTELLIGENT CLUSTERING EXAMPLE (for multiple interviews):
   {
     "speaker_id": "Researcher",
     "role": "Interviewer",
-    "dialogue": "What challenges do you face with food delivery as a new expat?"
+    "dialogue": "What challenges do you face with food delivery as a new expat?",
+    "document_id": "interview_3"
   },
   {
     "speaker_id": "Young_Professional_Newcomers",
     "role": "Interviewee",
-    "dialogue": "The biggest issue is the language barrier. I work long hours and just want something quick and reliable."
+    "dialogue": "The biggest issue is the language barrier. I work long hours and just want something quick and reliable.",
+    "document_id": "interview_3"
   },
   {
     "speaker_id": "Researcher",
     "role": "Interviewer",
-    "dialogue": "How important is finding familiar food from your home country?"
+    "dialogue": "How important is finding familiar food from your home country?",
+    "document_id": "interview_5"
   },
   {
     "speaker_id": "Family_Expats_With_Children",
     "role": "Interviewee",
-    "dialogue": "Very important! With kids, I need to know exactly what's in the food and if it's safe. Allergen information is crucial."
+    "dialogue": "Very important! With kids, I need to know exactly what's in the food and if it's safe. Allergen information is crucial.",
+    "document_id": "interview_5"
   },
   {
     "speaker_id": "Budget_Conscious_Students",
     "role": "Interviewee",
-    "dialogue": "Price is everything for me. I'm on a tight budget and need affordable options with cash payment."
+    "dialogue": "Price is everything for me. I'm on a tight budget and need affordable options with cash payment.",
+    "document_id": "interview_12"
   }
 ]
 
@@ -130,9 +138,9 @@ CRITICAL CLUSTERING REMINDER:
 - This enables proper persona formation with diverse, meaningful personas instead of generic merged ones
 
 IMPORTANT VALIDATION RULES:
-1. Each object MUST have exactly the three keys: "speaker_id", "role", and "dialogue".
+1. Each object MUST include the keys: "speaker_id", "role", and "dialogue". For multi-interview transcripts, each object MUST also include "document_id". For single interviews, "document_id" MAY be included. Only these keys are allowed.
 2. The "role" value MUST be one of: "Interviewer", "Interviewee", or "Participant".
-3. All values MUST be strings (not numbers, booleans, objects, or arrays).
+3. All values MUST be strings (not numbers, booleans, objects, or arrays). "document_id" MUST be a simple string like "interview_1".
 4. The JSON must be properly formatted with no syntax errors.
 5. The entire output must be ONLY the JSON array, with no additional text before or after.
 

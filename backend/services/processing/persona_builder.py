@@ -41,7 +41,8 @@ class PersonaTrait:
 
     value: Union[str, dict, list]
     confidence: float
-    evidence: List[str] = field(default_factory=list)
+    # Preserve structured evidence items (dicts) with offsets/speaker/document_id
+    evidence: List[Any] = field(default_factory=list)
 
 
 @dataclass
@@ -1016,17 +1017,19 @@ class PersonaBuilder:
                         authentic_trait_evidence = []
 
                         for evidence in trait.evidence:
-                            # Check if this is an authentic quote
-                            # FIXED: More lenient authentic evidence detection
-                            evidence_text = evidence.strip()
+                            # Support both string and structured dict evidence
+                            if isinstance(evidence, dict):
+                                quote_text = str((evidence.get("quote") or "").strip())
+                            else:
+                                quote_text = str(evidence).strip()
 
                             # Basic authenticity checks
-                            is_long_enough = len(evidence_text) > 10
-                            is_not_empty = bool(evidence_text)
+                            is_long_enough = len(quote_text) > 10
+                            is_not_empty = bool(quote_text)
 
                             # Check for generic/placeholder content (more lenient)
                             is_not_generic = not any(
-                                generic in evidence.lower()
+                                generic in quote_text.lower()
                                 for generic in [
                                     "generic",
                                     "placeholder",
@@ -1044,10 +1047,10 @@ class PersonaBuilder:
 
                             # Additional check: if it looks like a direct quote or has first person language, it's likely authentic
                             looks_like_quote = (
-                                evidence_text.startswith('"')
-                                or "**" in evidence_text  # Has highlighting
+                                quote_text.startswith('"')
+                                or "**" in quote_text  # Has highlighting
                                 or any(
-                                    first_person in evidence.lower()
+                                    first_person in quote_text.lower()
                                     for first_person in [
                                         "i ",
                                         "my ",
@@ -1063,12 +1066,12 @@ class PersonaBuilder:
                                 is_authentic_quote = True
 
                             logger.debug(
-                                f"Evidence authenticity for '{evidence_text[:50]}...': authentic={is_authentic_quote}"
+                                f"Evidence authenticity for '{quote_text[:50]}...': authentic={is_authentic_quote}"
                             )
 
                             # Check for cross-contamination
                             has_cross_contamination = any(
-                                indicator in evidence.lower()
+                                indicator in (quote_text.lower())
                                 for indicator in [
                                     "chloe",
                                     "hr",
@@ -1274,7 +1277,7 @@ class PersonaBuilder:
             role_in_interview=role,
         )
 
-    def _clean_evidence_list(self, evidence: Any) -> List[str]:
+    def _clean_evidence_list(self, evidence: Any) -> List[Any]:
         """
         Clean and validate evidence list.
 
@@ -1282,7 +1285,7 @@ class PersonaBuilder:
             evidence: Evidence data
 
         Returns:
-            Cleaned evidence list
+            Cleaned evidence list preserving structured dict items when present
         """
         if not evidence:
             return []
@@ -1296,13 +1299,26 @@ class PersonaBuilder:
 
                     parsed_evidence = json.loads(evidence.replace("'", '"'))
                     if isinstance(parsed_evidence, list):
-                        return [str(e) for e in parsed_evidence if e]
+                        # Preserve dict items; coerce scalars to str
+                        out: List[Any] = []
+                        for e in parsed_evidence:
+                            if isinstance(e, dict):
+                                out.append(e)
+                            elif e:
+                                out.append(str(e))
+                        return out
                 except Exception as e:
                     logger.warning(f"Failed to parse evidence string as JSON: {e}")
             return [evidence]
 
         if isinstance(evidence, list):
-            return [str(e) for e in evidence if e]
+            out: List[Any] = []
+            for e in evidence:
+                if isinstance(e, dict):
+                    out.append(e)
+                elif e:
+                    out.append(str(e))
+            return out
 
         return []
 

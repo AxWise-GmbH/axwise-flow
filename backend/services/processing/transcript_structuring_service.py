@@ -1054,6 +1054,8 @@ class TranscriptStructuringService:
                         "speaker_id": unique_speaker_id,
                         "role": role,
                         "dialogue": dialogue_text,
+                        # Assign per-interview document id based on detected block
+                        "document_id": f"interview_{block_id}",
                     }
                     try:
                         validated_segment = TranscriptSegment(**segment_data)

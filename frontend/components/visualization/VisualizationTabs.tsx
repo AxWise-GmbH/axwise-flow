@@ -18,15 +18,15 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
  */
 import { ThemeChart } from './ThemeChart'; // The canonical ThemeChart component
 import { PatternList } from './PatternList';
-import { PersonaList } from './PersonaList';
+
 import PersonasTabContent from './PersonasTabContent';
-import MultiStakeholderPersonasView from '../analysis/MultiStakeholderPersonasView';
+
 import { InsightList } from './InsightList';
 import { PriorityInsightsDisplay } from './PriorityInsightsDisplay';
 import { apiClient } from '@/lib/apiClient';
-import type { PriorityInsightsResponse } from '@/types/api';
+
 import { PRDDisplay } from './PRDDisplay';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -44,6 +44,7 @@ interface VisualizationTabsProps {
   analysisId?: string;
   analysisData?: DetailedAnalysisResult | null;
   initialTab?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prdData?: any | null; // PRD data from server-side generation
 }
 
@@ -62,7 +63,7 @@ export default function VisualizationTabsRefactored({
   analysisData: serverAnalysisData,
   initialTab,
   prdData
-}: VisualizationTabsProps) {
+}: VisualizationTabsProps): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -72,6 +73,7 @@ export default function VisualizationTabsRefactored({
   );
 
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [localAnalysis, setLocalAnalysis] = useState<any>({ themes: [], patterns: [], sentiment: null, personas: [] });
   const [loading, setLoading] = useState<boolean>(!serverAnalysisData); // Initial loading based on server data
   const [fetchError, setFetchError] = useState<string | null>(null); // Renamed for clarity
@@ -108,7 +110,7 @@ export default function VisualizationTabsRefactored({
       return;
     }
 
-    const fetchAnalysis = async () => {
+    const fetchAnalysis = async (): Promise<void> => {
       try {
         setLoading(true);
         setFetchError(null);
@@ -123,9 +125,11 @@ export default function VisualizationTabsRefactored({
 
         if (isMounted) {
           console.log('VisualizationTabs: Received analysis result:', result);
-          console.log('VisualizationTabs: Personas in result:', result.personas?.length || 0);
-          if (result.personas?.length > 0) {
-            console.log('VisualizationTabs: Persona names:', result.personas.map((p: any) => p.name));
+          const personasCount = Array.isArray(result.personas) ? result.personas.length : 0;
+          console.log('VisualizationTabs: Personas in result:', personasCount);
+          if (personasCount > 0) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            console.log('VisualizationTabs: Persona names:', (result.personas as any[]).map((p) => p.name));
           }
           setLocalAnalysis(result);
           lastFetchedId.current = effectiveAnalysisId;
@@ -201,6 +205,7 @@ export default function VisualizationTabsRefactored({
     }
 
     // Process themes
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processedThemes = themesToUse.map((theme: any) => {
       const processed = {
         id: theme.id?.toString() || '',
@@ -237,7 +242,7 @@ export default function VisualizationTabsRefactored({
   }, [analysis?.themes, analysis?.enhanced_themes, stakeholderIntelligence]);
 
   // Handle tab change
-  const handleTabChange = (newTab: string) => {
+  const handleTabChange = (newTab: string): void => {
     const newTabValue = newTab as TabValue;
 
     // Debug logging
@@ -395,6 +400,7 @@ export default function VisualizationTabsRefactored({
                   <p className="text-red-600">There was an error rendering the personas visualization.</p>
                 </div>
               }
+                /* eslint-disable @typescript-eslint/no-explicit-any */
             >
               <TabsContent value="personas" className="mt-6">
                 {analysis?.personas?.length || (isMultiStakeholder && stakeholderIntelligence?.detected_stakeholders?.length) ? (
@@ -409,6 +415,7 @@ export default function VisualizationTabsRefactored({
                     validationStatus={(analysis as any)?.validation_status || null}
                     confidenceComponents={(analysis as any)?.confidence_components || null}
                     sourceInfo={(analysis as any)?.source || {}}
+                /* eslint-enable @typescript-eslint/no-explicit-any */
                   />
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">

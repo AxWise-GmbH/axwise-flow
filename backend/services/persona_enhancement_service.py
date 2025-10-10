@@ -7,6 +7,7 @@ stakeholder entities.
 """
 
 import logging
+import os
 from typing import List, Dict, Any, Optional
 from backend.models.enhanced_persona_models import (
     EnhancedPersona,
@@ -153,42 +154,71 @@ class PersonaEnhancementService:
 
     def _extract_demographics_evidence(
         self, demographics_data: Dict[str, Any]
-    ) -> List[str]:
-        """Extract evidence from StructuredDemographics"""
-        evidence = []
+    ) -> List[Any]:
+        """Extract evidence from StructuredDemographics and filter non-participant content.
+
+        - Preserve structured evidence dicts when available
+        - Exclude Researcher/Interviewer or empty-speaker items
+        - Exclude question-like strings (likely interviewer prompts)
+        """
+        raw: List[Any] = []
 
         # Handle string-wrapped StructuredDemographics (most common format)
         if "value" in demographics_data and isinstance(demographics_data["value"], str):
             try:
                 import ast
 
-                # Try to parse the string as a Python literal
                 parsed_data = ast.literal_eval(demographics_data["value"])
                 if isinstance(parsed_data, dict):
-                    for field, data in parsed_data.items():
-                        if (
-                            isinstance(data, dict)
-                            and "evidence" in data
-                            and data["evidence"]
-                        ):
-                            evidence.extend(data["evidence"])
+                    for _, data in parsed_data.items():
+                        if isinstance(data, dict) and data.get("evidence"):
+                            raw.extend(data["evidence"])
             except (ValueError, SyntaxError):
-                # If parsing fails, check if there's evidence at the top level
-                if "evidence" in demographics_data and isinstance(
-                    demographics_data["evidence"], list
-                ):
-                    evidence.extend(demographics_data["evidence"])
+                if isinstance(demographics_data.get("evidence"), list):
+                    raw.extend(demographics_data["evidence"])
         else:
             # Handle direct structure formats
             for field, data in demographics_data.items():
-                # Handle nested structure (new format)
-                if isinstance(data, dict) and "evidence" in data and data["evidence"]:
-                    evidence.extend(data["evidence"])
-                # Handle legacy format where evidence might be at top level
+                if isinstance(data, dict) and data.get("evidence"):
+                    raw.extend(data["evidence"])
                 elif field == "evidence" and isinstance(data, list):
-                    evidence.extend(data)
+                    raw.extend(data)
 
-        return evidence[:5]  # Limit to top 5 pieces of evidence
+        # Filtering rules
+        def _is_ok_dict(d: Dict[str, Any]) -> bool:
+            spk = str((d.get("speaker") or "").strip())
+            if not spk or spk.lower() in {"researcher", "interviewer", "moderator"}:
+                return False
+            # Require offsets when present in dict form
+            if d.get("start_char") is None or d.get("end_char") is None:
+                return False
+            return True
+
+        def _looks_like_question(s: str) -> bool:
+            try:
+                ls = s.strip().lower()
+                if not ls:
+                    return False
+                import re
+
+                if re.match(r"^(q|question)\s*[:\-\u2014\u2013]", ls):
+                    return True
+                if re.match(r"^(interviewer|researcher|moderator)\s*:\s*", ls):
+                    return True
+                return ls.endswith("?") or ls.endswith("\uff1f")
+            except Exception:
+                return False
+
+        filtered: List[Any] = []
+        for it in raw:
+            if isinstance(it, dict):
+                if _is_ok_dict(it):
+                    filtered.append(it)
+            elif isinstance(it, str):
+                if not _looks_like_question(it):
+                    filtered.append(it)
+
+        return filtered[:5]
 
     async def _convert_to_enhanced_persona(
         self, persona: Dict[str, Any], index: int
@@ -315,7 +345,7 @@ class PersonaEnhancementService:
         return enhanced_persona
 
     def _convert_trait(self, trait_data: Any) -> Optional[EnhancedPersonaTrait]:
-        """Convert a trait to enhanced format with evidence coercion to strings."""
+        """Convert a trait to enhanced format; preserve structured evidence when V2 enabled."""
         if not trait_data:
             return None
 
@@ -350,10 +380,29 @@ class PersonaEnhancementService:
             return quotes
 
         if isinstance(trait_data, dict):
+            enable_v2 = os.getenv("EVIDENCE_LINKING_V2", "true").lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+            ev = trait_data.get("evidence", [])
+            preserve_structured = (
+                enable_v2
+                and isinstance(ev, list)
+                and any(
+                    isinstance(it, dict)
+                    and isinstance(it.get("quote"), str)
+                    and it.get("quote")
+                    for it in ev
+                )
+            )
             return EnhancedPersonaTrait(
                 value=trait_data.get("value", ""),
                 confidence=trait_data.get("confidence", 0.7),
-                evidence=_coerce_evidence_to_strings(trait_data.get("evidence", [])),
+                evidence=(
+                    ev if preserve_structured else _coerce_evidence_to_strings(ev)
+                ),
             )
         elif isinstance(trait_data, str):
             return EnhancedPersonaTrait(value=trait_data, confidence=0.7, evidence=[])

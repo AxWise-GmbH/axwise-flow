@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import json
 import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Literal
-from sqlalchemy import desc, asc
+
 
 import re
 
@@ -29,7 +31,7 @@ class ResultsService:
     Service class for handling retrieval and formatting of analysis results.
     """
 
-    def __init__(self, db: Session, user: User):
+    def __init__(self, db: Session, user: "User"):
         """
         Initialize the ResultsService with database session and user.
 
@@ -443,15 +445,40 @@ class ResultsService:
                 # Fix mis-scaled theme frequencies that look like normalized weights (sum≈1)
                 try:
                     if isinstance(flattened.get("themes"), list):
-                        flattened["themes"] = adjust_theme_frequencies_for_prevalence(
-                            flattened["themes"]
-                        )
-                    if isinstance(flattened.get("enhanced_themes"), list):
-                        flattened["enhanced_themes"] = (
-                            adjust_theme_frequencies_for_prevalence(
-                                flattened["enhanced_themes"]
+                        try:
+                            # Prefer prevalence from persona evidence coverage when available
+                            from backend.services.results.formatters import (
+                                adjust_theme_frequencies_with_persona_evidence,
                             )
-                        )
+
+                            flattened["themes"] = (
+                                adjust_theme_frequencies_with_persona_evidence(
+                                    flattened["themes"], personas_ssot
+                                )
+                            )
+                        except Exception:
+                            flattened["themes"] = (
+                                adjust_theme_frequencies_for_prevalence(
+                                    flattened["themes"]
+                                )
+                            )
+                    if isinstance(flattened.get("enhanced_themes"), list):
+                        try:
+                            from backend.services.results.formatters import (
+                                adjust_theme_frequencies_with_persona_evidence,
+                            )
+
+                            flattened["enhanced_themes"] = (
+                                adjust_theme_frequencies_with_persona_evidence(
+                                    flattened["enhanced_themes"], personas_ssot
+                                )
+                            )
+                        except Exception:
+                            flattened["enhanced_themes"] = (
+                                adjust_theme_frequencies_for_prevalence(
+                                    flattened["enhanced_themes"]
+                                )
+                            )
                 except Exception:
                     pass
 
@@ -671,7 +698,7 @@ class ResultsService:
         )
         results_dict["personas"] = []
 
-    def _get_filename_for_result(self, analysis_result: AnalysisResult) -> str:
+    def _get_filename_for_result(self, analysis_result: "AnalysisResult") -> str:
         """
         Get filename for analysis result through direct query instead of relationship.
 
@@ -691,7 +718,7 @@ class ResultsService:
                 return interview_data.filename or "Unknown"
         return "Unknown"
 
-    def _format_analysis_list_item(self, result: AnalysisResult) -> Dict[str, Any]:
+    def _format_analysis_list_item(self, result: "AnalysisResult") -> Dict[str, Any]:
         """
         Format a single analysis result for the list view.
 

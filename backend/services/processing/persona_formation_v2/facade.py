@@ -180,6 +180,23 @@ class PersonaFormationFacade:
         personas: List[Dict[str, Any]] = []
         for speaker, utterances in by_speaker.items():
             scoped_text = "\n".join(u for u in utterances if u)
+            # Determine per-speaker document_id from transcript segments (mode)
+            doc_ids_for_speaker = [
+                (seg.get("document_id") or "").strip()
+                for seg in transcript
+                if (seg.get("speaker_id") or seg.get("speaker")) == speaker
+            ]
+            doc_id = None
+            if doc_ids_for_speaker:
+                # Choose the most frequent non-empty document_id
+                from collections import Counter
+
+                counts = Counter([d for d in doc_ids_for_speaker if d])
+                if counts:
+                    doc_id = counts.most_common(1)[0][0]
+            if not doc_id:
+                doc_id = (context or {}).get("document_id")
+
             # LLM-clean: keep only participant-verbatim lines (fail-open)
             try:
                 scoped_text = await self.evidence_linker.llm_clean_scoped_text(
@@ -189,7 +206,7 @@ class PersonaFormationFacade:
                         "speaker_role": modal_role_by_speaker.get(
                             speaker, "Participant"
                         ),
-                        "document_id": (context or {}).get("document_id"),
+                        "document_id": doc_id,
                     },
                 )
             except Exception:
@@ -199,7 +216,7 @@ class PersonaFormationFacade:
             scope_meta = {
                 "speaker": speaker,
                 "speaker_role": speaker_role,
-                "document_id": (context or {}).get("document_id"),
+                "document_id": doc_id,
             }
             try:
                 attributes = await self.extractor.extract_attributes_from_text(
@@ -305,6 +322,20 @@ class PersonaFormationFacade:
                         except Exception:
                             pass
                         evidence_map[field] = pre
+                # Write structured evidence back into attributes when V2 is enabled
+                if (
+                    self.enable_evidence_v2
+                    and isinstance(evidence_map, dict)
+                    and isinstance(enhanced_attrs, dict)
+                ):
+                    for field, items in evidence_map.items():
+                        fv = enhanced_attrs.get(field)
+                        if isinstance(fv, dict) and isinstance(items, list) and items:
+                            nf = dict(fv)
+                            nf["evidence"] = (
+                                items  # preserve dict items with offsets/speaker
+                            )
+                            enhanced_attrs[field] = nf
                 persona = self._make_persona_from_attributes(enhanced_attrs)
 
                 # Derive a specific role/title for stakeholder detection downstream
@@ -614,6 +645,18 @@ class PersonaFormationFacade:
                         except Exception:
                             pass
                         evidence_map[field] = pre
+                # Write structured evidence back into attributes when V2 is enabled (fallback path)
+                if (
+                    self.enable_evidence_v2
+                    and isinstance(evidence_map, dict)
+                    and isinstance(enhanced_attrs, dict)
+                ):
+                    for field, items in evidence_map.items():
+                        fv = enhanced_attrs.get(field)
+                        if isinstance(fv, dict) and isinstance(items, list) and items:
+                            nf = dict(fv)
+                            nf["evidence"] = items
+                            enhanced_attrs[field] = nf
                 persona = self._make_persona_from_attributes(enhanced_attrs)
 
                 # Final hard gate (post-assembly) on fallback path: drop invalid evidence items
@@ -805,6 +848,78 @@ class PersonaFormationFacade:
             except Exception:
                 # Fail-open on dedup issues
                 pass
+
+        # Persona name normalization and uniqueness (archetypal first name + optional short role)
+        try:
+            import re
+
+            def _short_role(p: Dict[str, Any]) -> str:
+                si = p.get("stakeholder_intelligence") or {}
+                role = si.get("stakeholder_type") if isinstance(si, dict) else None
+                if not role:
+                    role = str(p.get("role") or "").strip()
+                if not role:
+                    sd = p.get("structured_demographics") or {}
+                    if isinstance(sd, dict):
+                        r = (
+                            (sd.get("roles") or {}).get("value")
+                            if sd.get("roles")
+                            else None
+                        )
+                        role = r or role
+                return (role or "").strip()[:40]
+
+            def _pick_first_name(nm: str) -> str:
+                nm = (nm or "").strip()
+                if nm.lower().startswith("the "):
+                    nm = ""
+                token = nm.split("—")[0].split(",")[0].strip()
+                if re.match(r"^[A-Z][a-z]{2,}$", token):
+                    return token
+                m = re.search(r"\b[A-Z][a-z]{2,}\b", nm)
+                if m:
+                    return m.group(0)
+                return ""
+
+            used: set[str] = set()
+            fallback_pool = [
+                "Ava",
+                "Liam",
+                "Mia",
+                "Noah",
+                "Emma",
+                "Ethan",
+                "Olivia",
+                "Lucas",
+                "Sophia",
+                "Leo",
+            ]
+            pool_idx = 0
+
+            for i, p in enumerate(personas):
+                base = _pick_first_name(str(p.get("name") or ""))
+                role = _short_role(p)
+                if not base:
+                    # Deterministic fallback from pool
+                    while (
+                        pool_idx < len(fallback_pool)
+                        and fallback_pool[pool_idx] in used
+                    ):
+                        pool_idx += 1
+                    base = fallback_pool[pool_idx % len(fallback_pool)]
+                    pool_idx += 1
+                composite = f"{base} — {role}" if role else base
+                final = composite
+                suffix = 2
+                while final in used:
+                    final = (
+                        f"{base} — {role} ({suffix})" if role else f"{base} ({suffix})"
+                    )
+                    suffix += 1
+                used.add(final)
+                p["name"] = final
+        except Exception:
+            pass
 
         # Telemetry: completed
         if self.enable_events:
