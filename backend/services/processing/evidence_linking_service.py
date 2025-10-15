@@ -591,16 +591,28 @@ class EvidenceLinkingService:
     def _iter_sentences_with_spans(self, text: str) -> List[Tuple[int, int, str]]:
         if not text:
             return []
-        # Simple sentence segmentation by punctuation, preserving spans
-        spans = []
+        # Sentence segmentation by punctuation with spans
+        spans: List[Tuple[int, int, str]] = []
         for m in re.finditer(r"[^.!?\n]+[.!?]", text, flags=re.MULTILINE):
             s, e = m.span()
             sent = text[s:e].strip()
             if len(sent) >= 20:
                 spans.append((s, e, sent))
-        # Fallback: if no sentences matched, use the whole text
+        # Newline-aware fallback segmentation for sparse-punctuation texts
+        if len(spans) < 3:
+            try:
+                start = 0
+                for line in text.splitlines(keepends=True):
+                    raw = (line or "").rstrip("\n")
+                    end = start + len(line)
+                    if raw and len(raw.strip()) >= 20:
+                        spans.append((start, end, raw.strip()))
+                    start = end
+            except Exception:
+                pass
+        # Final fallback: whole text
         if not spans:
-            spans.append((0, len(text), text.strip()))
+            spans.append((0, len(text), (text or "").strip()))
         return spans
 
     def _span_overlaps(self, a: Tuple[int, int], b: Tuple[int, int]) -> bool:
@@ -940,6 +952,38 @@ class EvidenceLinkingService:
             return ""
 
         # Iterate traits and select candidate quotes
+        def _is_first_person(sent: str) -> bool:
+            ls = (sent or "").lower()
+            fp = [
+                " i ",
+                " i'm ",
+                " i’m ",
+                " my ",
+                " we ",
+                " we're ",
+                " we’re ",
+                " our ",
+            ]
+            # add boundary padding
+            padded = f" {ls} "
+            return any(tok in padded for tok in fp)
+
+        def _has_third_party_markers(sent: str) -> bool:
+            ls = (sent or "").lower()
+            padded = f" {ls} "
+            tp = [
+                " client",
+                " clients",
+                " policyholder",
+                " policyholders",
+                " customer",
+                " customers",
+                " they ",
+                " their ",
+                " them ",
+            ]
+            return any(tok in padded for tok in tp)
+
         for field in trait_fields:
             field_data = enhanced.get(field)
             if field_data is None:
@@ -949,9 +993,68 @@ class EvidenceLinkingService:
                 # Nothing to do
                 continue
 
+            # Field-specific candidate limit
+            limit = 5 if field == "demographics" else 3
             candidates = self._select_candidate_spans(
-                trait_value, scoped_text, used_spans, limit=3, metrics=metrics
+                trait_value, scoped_text, used_spans, limit=limit, metrics=metrics
             )
+
+            # Focused anchor fallback for demographics when long summaries underperform
+            if (
+                field == "demographics"
+                and not candidates
+                and isinstance(field_data, dict)
+            ):
+                try:
+                    anchors: List[str] = []
+                    for sub in ("roles", "industry", "professional_context"):
+                        v = field_data.get(sub)
+                        if isinstance(v, dict) and v.get("value"):
+                            anchors.append(str(v.get("value")))
+                    if anchors:
+                        concise_anchor = "; ".join([a for a in anchors if a])[:200]
+                        if concise_anchor:
+                            candidates = self._select_candidate_spans(
+                                concise_anchor,
+                                scoped_text,
+                                used_spans,
+                                limit=limit,
+                                metrics=metrics,
+                            )
+                except Exception:
+                    pass
+
+            # Demographics heuristic safeguard: prefer first-person; strictly drop third-party markers
+            # If no first-person candidates remain, still drop third-party lines (may yield zero items; clean > contaminated)
+            if field == "demographics" and candidates:
+                fp = [
+                    (s, e, sent, sc)
+                    for (s, e, sent, sc) in candidates
+                    if _is_first_person(sent) and not _has_third_party_markers(sent)
+                ]
+                if fp:
+                    candidates = fp
+                else:
+                    no_tp = [
+                        (s, e, sent, sc)
+                        for (s, e, sent, sc) in candidates
+                        if not _has_third_party_markers(sent)
+                    ]
+                    candidates = no_tp
+
+            # Goals/Challenges: apply similar preference heuristics (soft)
+            if (
+                field in ("goals_and_motivations", "challenges_and_frustrations")
+                and candidates
+            ):
+                filtered_gc = [
+                    (s, e, sent, sc)
+                    for (s, e, sent, sc) in candidates
+                    if _is_first_person(sent) and not _has_third_party_markers(sent)
+                ]
+                if filtered_gc:
+                    candidates = filtered_gc
+
             items: List[Dict[str, Any]] = []
             for s, e, sent, _score in candidates:
                 items.append(self._evidence_item(sent.strip(), s, e, scope_meta))
@@ -968,7 +1071,12 @@ class EvidenceLinkingService:
                         return False
                     spk = (it.get("speaker") or "").strip()
                     if not spk:
-                        return False
+                        role = (it.get("speaker_role") or "").strip().lower()
+                        if role != "interviewee":
+                            return False
+                        # Accept items with correct role even if explicit speaker label missing
+                        spk = "Interviewee"
+                        it["speaker"] = spk
                     return spk.lower() != "researcher"
                 except Exception:
                     return False

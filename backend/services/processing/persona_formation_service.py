@@ -1958,32 +1958,82 @@ Generate a complete DirectPersona object with all required traits populated base
                                 self.evidence_linking_service, "enable_v2", False
                             ):
                                 scope_meta = {
-                                    "speaker": None,  # avoid misattribution to category label
+                                    "speaker": "Interviewee",
                                     "speaker_role": "Interviewee",
                                     "stakeholder_category": stakeholder_category,
                                 }
                                 try:
-                                    if (
-                                        context
-                                        and isinstance(context, dict)
-                                        and context.get("document_id")
-                                    ):
-                                        scope_meta["document_id"] = context[
-                                            "document_id"
-                                        ]
+                                    doc_id = None
+                                    if context and isinstance(context, dict):
+                                        doc_id = context.get("document_id")
+                                        # Fallback to stable id when transcripts absent but original_text present
+                                        if not doc_id and (
+                                            context.get("original_text") or context.get("source_text") or context.get("raw_text")
+                                        ):
+                                            doc_id = "original_text"
+                                    if doc_id:
+                                        scope_meta["document_id"] = doc_id
                                 except Exception:
                                     pass
                                 from backend.services.processing.persona_formation_v1.evidence.linker_adapter import (
                                     link_evidence_v2 as _link_v2,
                                 )
 
-                                persona_dict, _ = _link_v2(
+                                persona_dict, evidence_map = _link_v2(
                                     self.evidence_linking_service,
                                     persona_dict,
                                     scoped_text=stakeholder_text,
                                     scope_meta=scope_meta,
                                     protect_key_quotes=True,
                                 )
+
+                                # Strict generation-time post-filter for demographics
+                                try:
+                                    ev2 = evidence_map or {}
+                                    demo_items = list(ev2.get("demographics", []))
+                                    before_cnt = len(demo_items)
+
+                                    def _is_first_person(q: str) -> bool:
+                                        ls = (q or "").lower()
+                                        padded = f" {ls} "
+                                        return any(tok in padded for tok in [" i ", " i'm ", " i’m ", " my ", " we ", " we're ", " we’re ", " our "])
+
+                                    def _has_third_party(q: str) -> bool:
+                                        ls = (q or "").lower()
+                                        padded = f" {ls} "
+                                        return any(tok in padded for tok in [" client", " clients", " policyholder", " policyholders", " customer", " customers", " they ", " their ", " them "])
+
+                                    cleaned = [it for it in demo_items if _is_first_person(it.get("quote")) and not _has_third_party(it.get("quote"))]
+                                    ev2["demographics"] = cleaned
+                                    after_cnt = len(cleaned)
+                                    try:
+                                        logger.info(f"[EV2_DEMOGRAPHICS_FILTER] kept={after_cnt}/before={before_cnt}")
+                                    except Exception:
+                                        pass
+
+                                    # Soft preference filter for goals/challenges
+                                    try:
+                                        for trait_key in ("goals_and_motivations", "challenges_and_frustrations"):
+                                            items = list(ev2.get(trait_key, []) or [])
+                                            if not items:
+                                                continue
+                                            def _is_first_person(q: str) -> bool:
+                                                ls = (q or "").lower(); padded = f" {ls} "
+                                                return any(tok in padded for tok in [" i ", " i'm ", " i’m ", " my ", " we ", " we're ", " we’re ", " our "])
+                                            def _has_third_party(q: str) -> bool:
+                                                ls = (q or "").lower(); padded = f" {ls} "
+                                                return any(tok in padded for tok in [" client", " clients", " policyholder", " policyholders", " customer", " customers", " they ", " their ", " them "])
+                                            gc_filtered = [it for it in items if _is_first_person(it.get("quote")) and not _has_third_party(it.get("quote"))]
+                                            if gc_filtered:
+                                                ev2[trait_key] = gc_filtered
+                                    except Exception:
+                                        pass
+
+                                    # Persist cleaned EV2 instrumentation on persona for UI by default
+                                    persona_dict["_evidence_linking_v2"] = {"evidence_map": ev2}
+                                except Exception as _ev2_err:
+                                    logger.debug(f"[EV2_DEMOGRAPHICS_FILTER] skipped due to error: {_ev2_err}")
+
                                 # Ensure age is populated if missing (pattern-based fallback)
                                 try:
                                     demo = (

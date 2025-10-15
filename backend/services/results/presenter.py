@@ -80,6 +80,62 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
         },
     )
 
+    # EV2 on-read hydration fallback for legacy results lacking instrumentation
+    try:
+        hydrate_ev2 = os.getenv("RESULTS_SERVICE_V2_PRESENTER", "false").lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        if hydrate_ev2 and isinstance(flattened.get("personas"), list):
+            original_text = source_payload.get("original_text") if isinstance(source_payload, dict) else None
+            if isinstance(original_text, str) and original_text.strip():
+                # Minimal no-op LLM for constructor compatibility
+                class _NoOpLLM:
+                    async def analyze(self, *_args, **_kwargs):
+                        return {}
+                try:
+                    from backend.services.processing.evidence_linking_service import (
+                        EvidenceLinkingService,
+                    )
+                    ev = EvidenceLinkingService(_NoOpLLM())
+                    scope_meta = {
+                        "speaker": "Interviewee",
+                        "speaker_role": "Interviewee",
+                        "document_id": source_payload.get("document_id") or "original_text",
+                    }
+                    hydrated = []
+                    for p in flattened.get("personas", []):
+                        if not isinstance(p, dict):
+                            hydrated.append(p)
+                            continue
+                        if not p.get("_evidence_linking_v2"):
+                            try:
+                                enhanced, evmap = ev.link_evidence_to_attributes_v2(
+                                    p, scoped_text=original_text, scope_meta=scope_meta, protect_key_quotes=True
+                                )
+                                p = enhanced if isinstance(enhanced, dict) else p
+                                p["_evidence_linking_v2"] = {"evidence_map": evmap}
+                            except Exception:
+                                pass
+                        # Backfill missing document_id on items if needed
+                        try:
+                            ev2 = p.get("_evidence_linking_v2") or {}
+                            evidence_map = ev2.get("evidence_map") or {}
+                            for items in evidence_map.values():
+                                for it in items or []:
+                                    if not it.get("document_id"):
+                                        it["document_id"] = scope_meta["document_id"]
+                        except Exception:
+                            pass
+                        hydrated.append(p)
+                    flattened["personas"] = hydrated
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     # Fix mis-scaled theme frequencies that look like normalized weights (sum≈1)
     try:
         if isinstance(flattened.get("themes"), list):
