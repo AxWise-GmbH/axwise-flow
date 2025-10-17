@@ -762,6 +762,16 @@ class EvidenceLinkingService:
                         break
         except Exception:
             pass
+        # Fallback: if no doc_spans mapping and no document_id was provided, default to
+        # original_text to ensure stable linking for single-document sources.
+        try:
+            if doc_id is None:
+                spans = meta.get("doc_spans") or []
+                if not spans:
+                    doc_id = meta.get("document_id") or "original_text"
+        except Exception:
+            # Best-effort fallback; ignore
+            pass
         return {
             "quote": quote,
             "start_char": ls,

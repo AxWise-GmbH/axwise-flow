@@ -772,8 +772,9 @@ async def get_results(
         try:
             import os
 
+            # Default to enabled in Python-run/dev to simplify local use; still can disable via env.
             hydrate = str(
-                os.getenv("ENABLE_FULL_RESULTS_PERSONAS_HYDRATION", "false")
+                os.getenv("ENABLE_FULL_RESULTS_PERSONAS_HYDRATION", "true")
             ).lower() in {"1", "true", "yes"}
 
             if hydrate and isinstance(result, dict):
