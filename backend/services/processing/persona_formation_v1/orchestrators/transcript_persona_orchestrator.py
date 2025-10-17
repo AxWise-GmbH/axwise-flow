@@ -72,10 +72,55 @@ async def prepare_transcript_parallel_inputs(
         # Add this dialogue to the speaker's collection
         speaker_dialogues[speaker_id].append(dialogue)
 
-    # Consolidate dialogues into a single text per speaker
-    speaker_texts = {
-        speaker: " ".join(dialogues) for speaker, dialogues in speaker_dialogues.items()
-    }
+    # Build grouped text per speaker by document_id and compute doc_spans
+    speaker_texts: Dict[str, str] = {}
+    speaker_doc_spans_map: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        # Prepare buckets preserving per-speaker document order
+        buckets_by_speaker: Dict[str, Dict[str, List[str]]] = {}
+        order_by_speaker: Dict[str, List[str]] = {}
+        for turn in transcript:
+            spk = turn.get("speaker_id", turn.get("speaker", "Unknown Speaker"))
+            dlg = turn.get("dialogue", turn.get("text", "")) or ""
+            did = turn.get("document_id") or "original_text"
+            if spk not in buckets_by_speaker:
+                buckets_by_speaker[spk] = {}
+                order_by_speaker[spk] = []
+            if did not in buckets_by_speaker[spk]:
+                buckets_by_speaker[spk][did] = []
+                order_by_speaker[spk].append(did)
+            if dlg:
+                buckets_by_speaker[spk][did].append(str(dlg))
+        # Assemble texts and spans
+        for spk, buckets in buckets_by_speaker.items():
+            pieces: List[str] = []
+            spans: List[Dict[str, Any]] = []
+            cursor = 0
+            sep = "\n\n"
+            for did in order_by_speaker.get(spk, []):
+                block = "\n".join(buckets.get(did) or [])
+                start = cursor
+                end = start + len(block)
+                spans.append({"document_id": did, "start": start, "end": end})
+                pieces.append(block)
+                cursor = end + len(sep)
+            speaker_texts[spk] = sep.join(pieces)
+            speaker_doc_spans_map[spk] = spans
+    except Exception as _e:
+        # Fallback to simple join if anything goes wrong
+        speaker_texts = {
+            speaker: " ".join(dialogues)
+            for speaker, dialogues in speaker_dialogues.items()
+        }
+        speaker_doc_spans_map = {}
+
+    # Expose doc_spans and scoped_text to downstream via context (mutates by ref)
+    try:
+        if context is not None and isinstance(context, dict):
+            context.setdefault("_doc_spans_map", {}).update(speaker_doc_spans_map)
+            context.setdefault("_scoped_text_map", {}).update(speaker_texts)
+    except Exception:
+        pass
 
     logger.info(f"Consolidated text for {len(speaker_texts)} speakers")
 

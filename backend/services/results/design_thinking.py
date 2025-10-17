@@ -38,7 +38,9 @@ def filter_design_thinking_persona(persona_dict: Dict[str, Any]) -> Dict[str, An
         if trait and hasattr(trait, "value") and hasattr(trait, "confidence"):
             value = trait.value or ""
             confidence = trait.confidence or 0
-            evidence = getattr(trait, "evidence", []) if hasattr(trait, "evidence") else []
+            evidence = (
+                getattr(trait, "evidence", []) if hasattr(trait, "evidence") else []
+            )
         elif trait and "PersonaTrait" in str(type(trait)):
             try:
                 value = getattr(trait, "value", "")
@@ -57,22 +59,34 @@ def filter_design_thinking_persona(persona_dict: Dict[str, Any]) -> Dict[str, An
         else:
             continue
 
-        if value and len(value) >= MIN_CONTENT_LENGTH and confidence >= CONFIDENCE_THRESHOLD:
-            filtered["populated_traits"][field] = {
+        if (
+            value
+            and len(value) >= MIN_CONTENT_LENGTH
+            and confidence >= CONFIDENCE_THRESHOLD
+        ):
+            trait_dict = {
                 "value": value,
                 "confidence": confidence,
                 "evidence": evidence,
             }
+            # Store in populated_traits for backward compatibility
+            filtered["populated_traits"][field] = trait_dict
+            # Also expose as top-level fields to satisfy ProductionPersona validator
+            filtered[field] = trait_dict
+            filtered[field] = trait_dict
 
     filtered["trait_count"] = len(filtered["populated_traits"])
     filtered["evidence_count"] = sum(
-        len(trait.get("evidence", [])) for trait in filtered["populated_traits"].values()
+        len(trait.get("evidence", []))
+        for trait in filtered["populated_traits"].values()
     )
 
     return filtered
 
 
-def assemble_design_thinking_personas(full_result: Dict[str, Any]) -> List[Dict[str, Any]]:
+def assemble_design_thinking_personas(
+    full_result: Dict[str, Any],
+) -> List[Dict[str, Any]]:
     """Build the list of design-thinking personas from a full analysis result dict.
 
     full_result is the output of ResultsService.get_analysis_result. This function is
@@ -99,4 +113,3 @@ def assemble_design_thinking_personas(full_result: Dict[str, Any]) -> List[Dict[
             out.append(filtered)
 
     return out
-

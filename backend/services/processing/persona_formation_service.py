@@ -2260,6 +2260,10 @@ Generate a complete DirectPersona object with all required traits populated base
         Returns:
             List of persona dictionaries
         """
+        # Ensure we always have a mutable context to allow orchestrators to pass metadata (e.g., doc_spans)
+        if context is None:
+            context = {}
+
         try:
             # Phase 1 extraction: prepare inputs and concurrency in orchestrator
             try:

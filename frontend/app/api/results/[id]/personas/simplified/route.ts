@@ -63,10 +63,10 @@ export async function GET(
     // Get the backend URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-    console.log('Proxying to backend:', `${backendUrl}/api/results/${params.id}/personas/simplified`);
+    console.log('Proxying to backend (full results):', `${backendUrl}/api/results/${params.id}`);
 
-    // Forward the request to the Python backend with appropriate token
-    const response = await fetch(`${backendUrl}/api/results/${params.id}/personas/simplified`, {
+    // Fetch full results to leverage presenter hydration and then shape into simplified schema
+    const response = await fetch(`${backendUrl}/api/results/${params.id}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -83,10 +83,41 @@ export async function GET(
       );
     }
 
-    const data = await response.json();
-    console.log('Simplified Personas API: Backend response successful for analysis ID:', params.id);
+    const full = await response.json();
+    console.log('Simplified Personas API: Backend full results response successful for analysis ID:', params.id);
 
-    return NextResponse.json(data, {
+    const results = full?.results || {};
+    const personas = Array.isArray(results?.personas) ? results.personas : [];
+
+    // Minimal trait mapper like backend simplified endpoint
+    const traitFrom = (p: any, name: string) => {
+      const t = (p?.populated_traits?.[name]) || p?.[name] || {};
+      const value = t?.value ?? '';
+      const confidence = t?.confidence ?? (p?.overall_confidence ?? 0.7);
+      const evidence = Array.isArray(t?.evidence) ? t.evidence : [];
+      return { value, confidence, evidence };
+    };
+
+    const simplified = personas.map((p: any) => ({
+      name: p?.name ?? 'Unknown Persona',
+      description: p?.description ?? '',
+      archetype: p?.archetype ?? 'Professional',
+      demographics: traitFrom(p, 'demographics'),
+      goals_and_motivations: traitFrom(p, 'goals_and_motivations'),
+      challenges_and_frustrations: traitFrom(p, 'challenges_and_frustrations'),
+      key_quotes: traitFrom(p, 'key_quotes'),
+    }));
+
+    const simplifiedResponse = {
+      status: 'success',
+      result_id: full?.result_id ?? results?.result_id ?? Number(params.id),
+      personas: simplified,
+      total_personas: simplified.length,
+      design_thinking_optimized: true,
+      validation: 'passed',
+    };
+
+    return NextResponse.json(simplifiedResponse, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',

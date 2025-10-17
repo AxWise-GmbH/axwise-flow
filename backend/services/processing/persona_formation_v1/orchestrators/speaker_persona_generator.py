@@ -45,7 +45,10 @@ async def generate_single_persona_core(
         return await svc._generate_direct_persona(speaker, text, role, context)
 
     # Use legacy PydanticAI path if available
-    if not (getattr(svc, "pydantic_ai_available", False) and getattr(svc, "persona_agent", None)):
+    if not (
+        getattr(svc, "pydantic_ai_available", False)
+        and getattr(svc, "persona_agent", None)
+    ):
         logger.warning(
             f"[FALLBACK] No PydanticAI agents available for {speaker}, falling back to legacy method"
         )
@@ -118,10 +121,19 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
                 scope_meta = {"speaker": speaker, "speaker_role": role}
                 try:
                     if context and isinstance(context, dict):
+                        # Optional higher-level meta
                         if context.get("stakeholder_category"):
-                            scope_meta["stakeholder_category"] = context["stakeholder_category"]
+                            scope_meta["stakeholder_category"] = context[
+                                "stakeholder_category"
+                            ]
                         if context.get("document_id"):
                             scope_meta["document_id"] = context["document_id"]
+                        # V1 doc_spans propagation (per speaker)
+                        spans_map = context.get("_doc_spans_map") or {}
+                        if isinstance(spans_map, dict):
+                            spans = spans_map.get(speaker)
+                            if spans:
+                                scope_meta["doc_spans"] = spans
                 except Exception:
                     pass
                 from backend.services.processing.persona_formation_v1.evidence.linker_adapter import (
@@ -138,7 +150,11 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
 
                 # Ensure age is populated if missing (pattern-based fallback)
                 try:
-                    demo = persona_data.get("demographics") if isinstance(persona_data, dict) else None
+                    demo = (
+                        persona_data.get("demographics")
+                        if isinstance(persona_data, dict)
+                        else None
+                    )
                     need_age = True
                     if isinstance(demo, dict):
                         ar = demo.get("age_range")
@@ -152,6 +168,7 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
                             SpeakerProfile,
                             SpeakerRole,
                         )
+
                         di = DemographicIntelligence(llm_service=None)
                         sp = SpeakerProfile(
                             speaker_id=str(speaker),
@@ -159,20 +176,31 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
                             unique_identifier=str(speaker),
                         )
                         demographics_data = di._fallback_extraction(text, sp)
-                        if demographics_data and (demographics_data.age_range or demographics_data.age):
+                        if demographics_data and (
+                            demographics_data.age_range or demographics_data.age
+                        ):
                             age_value = demographics_data.age_range or (
-                                str(demographics_data.age) if demographics_data.age else None
+                                str(demographics_data.age)
+                                if demographics_data.age
+                                else None
                             )
                             if age_value:
                                 demo = dict(demo) if isinstance(demo, dict) else {}
                                 existing_evd = []
                                 if isinstance(demo.get("age_range"), dict):
-                                    existing_evd = demo["age_range"].get("evidence", []) or []
-                                demo["age_range"] = {"value": age_value, "evidence": existing_evd}
+                                    existing_evd = (
+                                        demo["age_range"].get("evidence", []) or []
+                                    )
+                                demo["age_range"] = {
+                                    "value": age_value,
+                                    "evidence": existing_evd,
+                                }
                                 demo["confidence"] = demo.get("confidence", 0.7) or 0.7
                                 persona_data["demographics"] = demo
                 except Exception as _age_err:
-                    logger.debug(f"[DEMOGRAPHICS] Age fallback extraction skipped: {_age_err}")
+                    logger.debug(
+                        f"[DEMOGRAPHICS] Age fallback extraction skipped: {_age_err}"
+                    )
         except Exception as el_err:
             logger.warning(
                 f"[EVIDENCE_LINKING_V2] Skipped during persona build for {speaker}: {el_err}"
@@ -262,7 +290,8 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
             )
         # Malformed function call
         elif (
-            "malformed_function_call" in error_message or "finishreason" in error_message
+            "malformed_function_call" in error_message
+            or "finishreason" in error_message
         ):
             logger.error(
                 f"[PYDANTIC_AI] 🔧 MALFORMED_FUNCTION_CALL ERROR for {speaker}: {str(e)} (Gemini malformed function call - retry via fallback)",
@@ -289,4 +318,3 @@ Please analyze this speaker's content and generate a comprehensive SimplifiedPer
             )
         # Re-raise for caller to handle
         raise
-

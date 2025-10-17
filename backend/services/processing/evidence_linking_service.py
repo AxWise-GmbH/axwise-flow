@@ -425,13 +425,13 @@ class EvidenceLinkingService:
             term_quotes.sort(key=len, reverse=True)
 
             # Take the top 1-2 quotes for this term
-            quotes.extend(term_quotes[:2])
+            quotes.extend(term_quotes[:3])
 
-            # Limit to 3 quotes total
-            if len(quotes) >= 3:
+            # Limit to 6 quotes total
+            if len(quotes) >= 6:
                 break
 
-        return quotes[:3]
+        return quotes[:6]
 
     def _are_quotes_generic(self, quotes: List[str]) -> bool:
         """
@@ -499,7 +499,7 @@ class EvidenceLinkingService:
 
             for pattern in quote_patterns:
                 matches = re.findall(pattern, full_text, re.IGNORECASE | re.MULTILINE)
-                for match in matches[:2]:  # Limit per pattern
+                for match in matches[:3]:  # Limit per pattern (raised from 2 to 3)
                     if len(match.strip()) > 15:
                         direct_quotes.append(f'"{match.strip()}"')
 
@@ -698,7 +698,7 @@ class EvidenceLinkingService:
         trait_value: str,
         scoped_text: str,
         used_spans: List[Tuple[int, int]],
-        limit: int = 3,
+        limit: int = 6,
         metrics: Optional[Dict[str, int]] = None,
     ) -> List[Tuple[int, int, str, float]]:
         """
@@ -739,13 +739,36 @@ class EvidenceLinkingService:
     def _evidence_item(
         self, quote: str, s: int, e: int, meta: Dict[str, Any]
     ) -> Dict[str, Any]:
+        """Create an evidence item and resolve document/local offsets if doc_spans provided.
+        meta may include:
+          - document_id: single-doc id
+          - doc_spans: list of {document_id, start, end} covering scoped_text ranges
+        """
+        doc_id = meta.get("document_id")
+        ls, le = s, e
+        try:
+            spans = meta.get("doc_spans") or []
+            if spans:
+                for seg in spans:
+                    ss = seg.get("start")
+                    ee = seg.get("end")
+                    if isinstance(ss, int) and isinstance(ee, int) and ss <= s < ee:
+                        # Map to local offsets within this document
+                        did = seg.get("document_id") or seg.get("doc_id")
+                        if did:
+                            doc_id = did
+                            ls = s - ss
+                            le = e - ss
+                        break
+        except Exception:
+            pass
         return {
             "quote": quote,
-            "start_char": s,
-            "end_char": e,
+            "start_char": ls,
+            "end_char": le,
             "speaker": meta.get("speaker"),
             "speaker_role": meta.get("speaker_role"),
-            "document_id": meta.get("document_id"),
+            "document_id": doc_id,
         }
 
     async def llm_filter_quotes(
@@ -1000,11 +1023,47 @@ class EvidenceLinkingService:
                 # Nothing to do
                 continue
 
-            # Field-specific candidate limit
-            limit = 5 if field == "demographics" else 3
+            # Field-specific candidate limit (adaptive by text size)
+            base_limit = 8 if field == "demographics" else 6
+            if len(scoped_text) > 5000:
+                base_limit += 2
+            limit = base_limit
             candidates = self._select_candidate_spans(
                 trait_value, scoped_text, used_spans, limit=limit, metrics=metrics
             )
+
+            # Demographics pattern-based augmentation (age/location/experience) if still sparse
+            if field == "demographics" and len(candidates) < limit:
+                try:
+                    import re as _re
+
+                    seen = {(s, e) for (s, e, _t, _sc) in candidates}
+                    for s2, e2, sent2 in self._iter_sentences_with_spans(scoped_text):
+                        if any(self._span_overlaps((s2, e2), u) for u in used_spans):
+                            continue
+                        if (s2, e2) in seen:
+                            continue
+                        ls2 = (sent2 or "").lower()
+                        has_age = bool(
+                            _re.search(r"\b(\d{2})\s*(years old|y/o|yo)\b", ls2)
+                        )
+                        has_loc = bool(
+                            _re.search(
+                                r"\b(based in|from|in)\s+[A-Z][A-Za-z\- ]+\b", sent2
+                            )
+                        )
+                        has_exp = bool(
+                            _re.search(
+                                r"\b(junior|mid[- ]level|senior|lead|principal)\b", ls2
+                            )
+                        )
+                        if has_age or has_loc or has_exp:
+                            candidates.append((s2, e2, sent2, 0.51))
+                            seen.add((s2, e2))
+                            if len(candidates) >= limit:
+                                break
+                except Exception:
+                    pass
 
             # Focused anchor fallback for demographics when long summaries underperform
             if (
@@ -1014,7 +1073,14 @@ class EvidenceLinkingService:
             ):
                 try:
                     anchors: List[str] = []
-                    for sub in ("roles", "industry", "professional_context"):
+                    for sub in (
+                        "roles",
+                        "industry",
+                        "professional_context",
+                        "location",
+                        "experience_level",
+                        "age_range",
+                    ):
                         v = field_data.get(sub)
                         if isinstance(v, dict) and v.get("value"):
                             anchors.append(str(v.get("value")))
@@ -1056,10 +1122,14 @@ class EvidenceLinkingService:
             field_spans: List[Tuple[int, int]] = []
             for s, e, sent, _score in candidates:
                 span = (s, e)
-                # Within-field de-duplication: avoid adding overlapping spans twice for the same trait
-                if any(self._span_overlaps(span, fs) for fs in field_spans):
+                # Within-field de-duplication and diversity: avoid overlapping or very-nearby spans
+                if any(
+                    self._span_overlaps(span, fs) or abs(span[0] - fs[0]) < 20
+                    for fs in field_spans
+                ):
                     continue
                 items.append(self._evidence_item(sent.strip(), s, e, scope_meta))
+                metrics[f"accepted_{field}"] = metrics.get(f"accepted_{field}", 0) + 1
                 field_spans.append(span)
                 used_spans.append(span)
 
@@ -1085,14 +1155,37 @@ class EvidenceLinkingService:
                     return False
 
             filtered_items = [it for it in items if _valid_item(it)]
+            # Ensure a minimum number of evidence items per field via controlled reuse if needed
+            try:
+                desired_min = 4 if field == "demographics" else 3
+                if len(filtered_items) < desired_min:
+                    # Re-run candidate selection ignoring cross-trait collisions to avoid starving this field
+                    more_cands = self._select_candidate_spans(
+                        trait_value, scoped_text, [], limit=limit, metrics=None
+                    )
+                    for s, e, sent, _ in more_cands:
+                        span = (s, e)
+                        # still avoid within-field duplicates
+                        if any(self._span_overlaps(span, fs) for fs in field_spans):
+                            continue
+                        extra_item = self._evidence_item(sent.strip(), s, e, scope_meta)
+                        metrics[f"accepted_{field}"] = (
+                            metrics.get(f"accepted_{field}", 0) + 1
+                        )
+                        if _valid_item(extra_item):
+                            filtered_items.append(extra_item)
+                            field_spans.append(span)
+                        if len(filtered_items) >= desired_min:
+                            break
+            except Exception:
+                pass
 
             if filtered_items:
                 # Use only deterministically linked, validated items (overwrite any pre-existing evidence)
                 evidence_map[field] = filtered_items
-                quotes = [it["quote"] for it in filtered_items]
                 if isinstance(field_data, dict):
                     field_data = dict(field_data)
-                    field_data["evidence"] = quotes
+                    field_data["evidence"] = filtered_items  # preserve structured items
                     # Slightly boost confidence since grounded
                     conf = field_data.get("confidence", 0.7)
                     field_data["confidence"] = min(conf + 0.1, 1.0)
@@ -1101,7 +1194,7 @@ class EvidenceLinkingService:
                     enhanced[field] = {
                         "value": trait_value,
                         "confidence": 0.8,
-                        "evidence": quotes,
+                        "evidence": filtered_items,  # preserve structured items
                     }
             else:
                 # No deterministic valid matches found — explicitly clear evidence to prevent contamination
@@ -1136,13 +1229,12 @@ class EvidenceLinkingService:
                         continue
                     kq_items.append(it)
                     kq_spans.append(span)
-                    if len(kq_items) >= 5:
+                    if len(kq_items) >= 6:
                         break
                 if kq_items:
                     evidence_map["key_quotes"] = kq_items
-                    kq_quotes = [it["quote"] for it in kq_items]
                     kq = dict(kq)
-                    kq["evidence"] = kq_quotes
+                    kq["evidence"] = kq_items  # preserve structured items
                     enhanced["key_quotes"] = kq
 
         # Compute and store V2 metrics

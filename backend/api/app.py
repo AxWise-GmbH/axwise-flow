@@ -767,6 +767,136 @@ async def get_results(
         # Get formatted results
         result = results_service.get_analysis_result(result_id)
 
+        # Optional on-read hydration for personas within full results so UI gets
+        # doc_id/offset-enriched evidence without changing data sources.
+        try:
+            import os
+
+            hydrate = str(
+                os.getenv("ENABLE_FULL_RESULTS_PERSONAS_HYDRATION", "false")
+            ).lower() in {"1", "true", "yes"}
+
+            if hydrate and isinstance(result, dict):
+                results_obj = result.get("results") or {}
+                personas = results_obj.get("personas")
+                if isinstance(personas, list) and personas:
+                    source_payload = results_obj.get("source") or {}
+
+                    # Helper: build concatenated text and doc_spans from transcript
+                    def _build_concat_and_spans(tx):
+                        try:
+                            order = []
+                            buckets = {}
+                            for seg in tx or []:
+                                if not isinstance(seg, dict):
+                                    continue
+                                did = seg.get("document_id") or "original_text"
+                                if did not in buckets:
+                                    buckets[did] = []
+                                    order.append(did)
+                                dlg = seg.get("dialogue") or seg.get("text") or ""
+                                if dlg:
+                                    buckets[did].append(str(dlg))
+                            pieces, spans, cursor = [], [], 0
+                            sep = "\n\n"
+                            for did in order:
+                                block = "\n".join(buckets.get(did) or [])
+                                start, end = cursor, cursor + len(block)
+                                spans.append(
+                                    {"document_id": did, "start": start, "end": end}
+                                )
+                                pieces.append(block)
+                                cursor = end + len(sep)
+                            return sep.join(pieces), spans
+                        except Exception:
+                            return "", []
+
+                    transcript = (
+                        source_payload.get("transcript")
+                        if isinstance(source_payload, dict)
+                        else None
+                    )
+                    scoped_text, doc_spans = None, None
+                    if isinstance(transcript, list) and transcript:
+                        txt, spans = _build_concat_and_spans(transcript)
+                        if txt and spans:
+                            scoped_text, doc_spans = txt, spans
+                    if not scoped_text:
+                        scoped_text = source_payload.get("original_text") or ""
+
+                    if isinstance(scoped_text, str) and scoped_text.strip():
+                        # Lazy import
+                        from backend.services.processing.evidence_linking_service import (
+                            EvidenceLinkingService,
+                        )
+
+                        svc = EvidenceLinkingService(None)
+                        svc.enable_v2 = True
+                        scope_meta = {
+                            "speaker": "Interviewee",
+                            "speaker_role": "Interviewee",
+                            "document_id": "original_text",
+                        }
+                        if doc_spans:
+                            scope_meta["doc_spans"] = doc_spans
+
+                        trait_names = [
+                            "demographics",
+                            "goals_and_motivations",
+                            "challenges_and_frustrations",
+                            "key_quotes",
+                        ]
+
+                        for p in personas:
+                            try:
+                                attributes = {
+                                    tn: {
+                                        "value": (p.get(tn, {}) or {}).get("value", "")
+                                    }
+                                    for tn in trait_names
+                                }
+                                _, ev_map = svc.link_evidence_to_attributes_v2(
+                                    attributes,
+                                    scoped_text=scoped_text,
+                                    scope_meta=scope_meta,
+                                    protect_key_quotes=True,
+                                )
+                                for tn in trait_names:
+                                    trait = p.get(tn) or {}
+                                    ev = trait.get("evidence")
+                                    ev = ev if isinstance(ev, list) else []
+                                    needs_hydration = True
+                                    if ev:
+                                        good = 0
+                                        for it in ev:
+                                            try:
+                                                if (
+                                                    isinstance(
+                                                        it.get("start_char"), int
+                                                    )
+                                                    and isinstance(
+                                                        it.get("end_char"), int
+                                                    )
+                                                    and (
+                                                        it.get("document_id")
+                                                        is not None
+                                                    )
+                                                ):
+                                                    good += 1
+                                            except Exception:
+                                                pass
+                                        needs_hydration = good == 0
+                                    if needs_hydration:
+                                        trait["evidence"] = ev_map.get(tn, ev)
+                                        p[tn] = trait
+                            except Exception:
+                                # Skip hydration for this persona on any error
+                                continue
+        except Exception as _full_hydrate_err:
+            logger.warning(
+                f"[FULL_RESULTS_HYDRATION] Skipped due to error: {_full_hydrate_err}"
+            )
+
         return result
 
     except Exception as e:
@@ -809,18 +939,234 @@ async def get_simplified_personas(
         # Get filtered design thinking personas
         simplified_personas = results_service.get_design_thinking_personas(result_id)
 
+        # Normalize to ProductionPersona-compatible shape (top-level trait fields)
+        def _trait_from_populated(p: Dict[str, Any], name: str) -> Dict[str, Any]:
+            traits = p.get("populated_traits", {}) if isinstance(p, dict) else {}
+            t = traits.get(name) or {}
+            if isinstance(t, dict) and "value" in t:
+                val = t.get("value", "")
+                conf = t.get("confidence", p.get("overall_confidence", 0.7))
+                ev = t.get("evidence", [])
+                ev = ev if isinstance(ev, list) else []
+                return {"value": val, "confidence": conf, "evidence": ev}
+            return {
+                "value": "",
+                "confidence": p.get("overall_confidence", 0.7),
+                "evidence": [],
+            }
+
+        normalized_personas = []
+        for p in simplified_personas:
+            if not isinstance(p, dict):
+                continue
+            normalized_personas.append(
+                {
+                    "name": p.get("name", "Unknown Persona"),
+                    "description": p.get("description", ""),
+                    "archetype": p.get("archetype", "Professional"),
+                    "demographics": _trait_from_populated(p, "demographics"),
+                    "goals_and_motivations": _trait_from_populated(
+                        p, "goals_and_motivations"
+                    ),
+                    "challenges_and_frustrations": _trait_from_populated(
+                        p, "challenges_and_frustrations"
+                    ),
+                    "key_quotes": _trait_from_populated(p, "key_quotes"),
+                }
+            )
+
         # Import validation functions
         from backend.domain.models.production_persona import PersonaAPIResponse
 
         # Create validated API response
         try:
+            # Compute evidence quality summary per persona
+            def _quality_for_trait(trait: Dict[str, Any]) -> Dict[str, Any]:
+                ev = trait.get("evidence", []) if isinstance(trait, dict) else []
+                total = len(ev)
+                non_null = 0
+                for it in ev:
+                    try:
+                        if (
+                            isinstance(it.get("start_char"), int)
+                            and isinstance(it.get("end_char"), int)
+                            and (it.get("document_id") is not None)
+                        ):
+                            non_null += 1
+                    except Exception:
+                        pass
+                ratio = (non_null / total) if total else 0.0
+                return {"count": total, "non_null_offset_ratio": ratio}
+
+            per_persona = []
+            for p in normalized_personas:
+                per_persona.append(
+                    {
+                        "name": p.get("name"),
+                        "demographics": _quality_for_trait(p.get("demographics", {})),
+                        "goals_and_motivations": _quality_for_trait(
+                            p.get("goals_and_motivations", {})
+                        ),
+                        "challenges_and_frustrations": _quality_for_trait(
+                            p.get("challenges_and_frustrations", {})
+                        ),
+                        "key_quotes": _quality_for_trait(p.get("key_quotes", {})),
+                    }
+                )
+
+            # Optional on-read hydration to populate offsets/doc_ids if missing
+            import os
+
+            hydrate = str(
+                os.getenv("ENABLE_SIMPLIFIED_PERSONAS_HYDRATION", "false")
+            ).lower() in {"1", "true", "yes"}
+            if hydrate:
+                try:
+                    # Fetch full results to get source text when available
+                    full_result = results_service.get_analysis_result(result_id)
+                    results_obj = (
+                        full_result.get("results", {})
+                        if isinstance(full_result, dict)
+                        else {}
+                    )
+                    source_payload = results_obj.get("source") or {}
+
+                    # Helper: build concatenated text and doc_spans from transcript
+                    def _build_concat_and_spans(tx):
+                        try:
+                            order = []
+                            buckets = {}
+                            for seg in tx or []:
+                                if not isinstance(seg, dict):
+                                    continue
+                                did = seg.get("document_id") or "original_text"
+                                if did not in buckets:
+                                    buckets[did] = []
+                                    order.append(did)
+                                dlg = seg.get("dialogue") or seg.get("text") or ""
+                                if dlg:
+                                    buckets[did].append(str(dlg))
+                            pieces, spans, cursor = [], [], 0
+                            sep = "\n\n"
+                            for did in order:
+                                block = "\n".join(buckets.get(did) or [])
+                                start, end = cursor, cursor + len(block)
+                                spans.append(
+                                    {"document_id": did, "start": start, "end": end}
+                                )
+                                pieces.append(block)
+                                cursor = end + len(sep)
+                            return sep.join(pieces), spans
+                        except Exception:
+                            return "", []
+
+                    transcript = (
+                        source_payload.get("transcript")
+                        if isinstance(source_payload, dict)
+                        else None
+                    )
+                    scoped_text, doc_spans = None, None
+                    if isinstance(transcript, list) and transcript:
+                        txt, spans = _build_concat_and_spans(transcript)
+                        if txt and spans:
+                            scoped_text, doc_spans = txt, spans
+                    if not scoped_text:
+                        scoped_text = source_payload.get("original_text") or ""
+
+                    # Only hydrate if we have some text
+                    if isinstance(scoped_text, str) and scoped_text.strip():
+                        # Lazy import to avoid heavy import at module top
+                        from backend.services.processing.evidence_linking_service import (
+                            EvidenceLinkingService,
+                        )
+
+                        svc = EvidenceLinkingService(None)
+                        svc.enable_v2 = True
+                        scope_meta = {
+                            "speaker": "Interviewee",
+                            "speaker_role": "Interviewee",
+                            "document_id": "original_text",
+                        }
+                        if doc_spans:
+                            scope_meta["doc_spans"] = doc_spans
+                        # For each persona, attempt to fill missing/invalid evidence
+                        trait_names = [
+                            "demographics",
+                            "goals_and_motivations",
+                            "challenges_and_frustrations",
+                            "key_quotes",
+                        ]
+                        for p in normalized_personas:
+                            # Build attributes from values
+                            attributes = {
+                                tn: {"value": (p.get(tn, {}) or {}).get("value", "")}
+                                for tn in trait_names
+                            }
+                            enhanced, ev_map = svc.link_evidence_to_attributes_v2(
+                                attributes,
+                                scoped_text=scoped_text,
+                                scope_meta=scope_meta,
+                                protect_key_quotes=True,
+                            )
+                            # Replace evidence if empty or missing offsets/doc_ids
+                            for tn in trait_names:
+                                trait = p.get(tn) or {}
+                                ev = (
+                                    trait.get("evidence")
+                                    if isinstance(trait, dict)
+                                    else []
+                                )
+                                ev = ev if isinstance(ev, list) else []
+                                needs_hydration = True
+                                if ev:
+                                    good = 0
+                                    for it in ev:
+                                        try:
+                                            if (
+                                                isinstance(it.get("start_char"), int)
+                                                and isinstance(it.get("end_char"), int)
+                                                and (it.get("document_id") is not None)
+                                            ):
+                                                good += 1
+                                        except Exception:
+                                            pass
+                                    needs_hydration = good == 0
+                                if needs_hydration:
+                                    trait["evidence"] = ev_map.get(tn, ev)
+                                    p[tn] = trait
+                        # Recompute quality after hydration
+                        per_persona = []
+                        for p in normalized_personas:
+                            per_persona.append(
+                                {
+                                    "name": p.get("name"),
+                                    "demographics": _quality_for_trait(
+                                        p.get("demographics", {})
+                                    ),
+                                    "goals_and_motivations": _quality_for_trait(
+                                        p.get("goals_and_motivations", {})
+                                    ),
+                                    "challenges_and_frustrations": _quality_for_trait(
+                                        p.get("challenges_and_frustrations", {})
+                                    ),
+                                    "key_quotes": _quality_for_trait(
+                                        p.get("key_quotes", {})
+                                    ),
+                                }
+                            )
+                except Exception as _hydrate_err:
+                    logger.warning(
+                        f"[SIMPLIFIED_HYDRATION] Skipped due to error: {_hydrate_err}"
+                    )
+
             validated_response = PersonaAPIResponse(
-                personas=simplified_personas,
+                personas=normalized_personas,
                 metadata={
                     "result_id": result_id,
                     "design_thinking_optimized": True,
-                    "total_personas": len(simplified_personas),
+                    "total_personas": len(normalized_personas),
                     "filtered": True,
+                    "evidence_quality": {"per_persona": per_persona},
                 },
             )
 
@@ -828,9 +1174,10 @@ async def get_simplified_personas(
                 "status": "success",
                 "result_id": result_id,
                 "personas": validated_response.personas,
-                "total_personas": len(simplified_personas),
+                "total_personas": len(normalized_personas),
                 "design_thinking_optimized": True,
                 "validation": "passed",
+                "evidence_quality": validated_response.metadata.get("evidence_quality"),
             }
         except Exception as validation_error:
             logger.error(f"PersonaAPIResponse validation failed: {validation_error}")
@@ -838,8 +1185,8 @@ async def get_simplified_personas(
             return {
                 "status": "success",
                 "result_id": result_id,
-                "personas": simplified_personas,
-                "total_personas": len(simplified_personas),
+                "personas": normalized_personas,
+                "total_personas": len(normalized_personas),
                 "design_thinking_optimized": True,
                 "validation": "failed",
                 "validation_error": str(validation_error),

@@ -179,7 +179,41 @@ class PersonaFormationFacade:
 
         personas: List[Dict[str, Any]] = []
         for speaker, utterances in by_speaker.items():
-            scoped_text = "\n".join(u for u in utterances if u)
+            # Build grouped scoped_text per document and corresponding doc_spans for this speaker
+            try:
+                # Collect (doc_id, text) pairs for this speaker preserving order
+                speaker_turns = [
+                    (
+                        (seg.get("document_id") or "original_text"),
+                        (seg.get("dialogue") or seg.get("text") or ""),
+                    )
+                    for seg in transcript
+                    if (seg.get("speaker_id") or seg.get("speaker")) == speaker
+                ]
+                order = []
+                buckets: Dict[str, List[str]] = {}
+                for did, txt in speaker_turns:
+                    if did not in buckets:
+                        buckets[did] = []
+                        order.append(did)
+                    if txt:
+                        buckets[did].append(str(txt))
+                pieces: List[str] = []
+                doc_spans: List[Dict[str, Any]] = []  # type: ignore[name-defined]
+                cursor = 0
+                sep = "\n\n"
+                for did in order:
+                    block = "\n".join(buckets.get(did) or [])
+                    start = cursor
+                    end = start + len(block)
+                    doc_spans.append({"document_id": did, "start": start, "end": end})
+                    pieces.append(block)
+                    cursor = end + len(sep)
+                scoped_text = sep.join(pieces)
+            except Exception:
+                scoped_text = "\n".join(u for u in utterances if u)
+                doc_spans = []
+
             # Determine per-speaker document_id from transcript segments (mode)
             doc_ids_for_speaker = [
                 (seg.get("document_id") or "").strip()
@@ -199,6 +233,7 @@ class PersonaFormationFacade:
 
             # LLM-clean: keep only participant-verbatim lines (fail-open)
             try:
+                _pre_clean = scoped_text
                 scoped_text = await self.evidence_linker.llm_clean_scoped_text(
                     scoped_text,
                     scope_meta={
@@ -209,6 +244,9 @@ class PersonaFormationFacade:
                         "document_id": doc_id,
                     },
                 )
+                # If cleaning changed the text, previously computed doc_spans no longer align; drop them
+                if doc_spans and scoped_text != _pre_clean:
+                    doc_spans = []
             except Exception:
                 pass
             # Extract attributes for this speaker scope
@@ -218,6 +256,8 @@ class PersonaFormationFacade:
                 "speaker_role": speaker_role,
                 "document_id": doc_id,
             }
+            if doc_spans:
+                scope_meta["doc_spans"] = doc_spans
             try:
                 attributes = await self.extractor.extract_attributes_from_text(
                     scoped_text, role=speaker_role, scope_meta=scope_meta

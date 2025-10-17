@@ -89,12 +89,56 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
             "on",
         )
         if hydrate_ev2 and isinstance(flattened.get("personas"), list):
-            original_text = (
-                source_payload.get("original_text")
+            # Helper: build concatenated text and doc_spans from transcript
+            def _build_concat_and_spans(tx):
+                try:
+                    # Group by document_id preserving first-seen order
+                    order = []
+                    buckets = {}
+                    for seg in tx or []:
+                        if not isinstance(seg, dict):
+                            continue
+                        did = seg.get("document_id") or "original_text"
+                        if did not in buckets:
+                            buckets[did] = []
+                            order.append(did)
+                        # prefer 'dialogue' then 'text'
+                        dlg = seg.get("dialogue") or seg.get("text") or ""
+                        if dlg:
+                            buckets[did].append(str(dlg))
+                    # Assemble blocks and spans
+                    pieces = []
+                    spans = []
+                    cursor = 0
+                    sep = "\n\n"
+                    for did in order:
+                        block = "\n".join(buckets.get(did) or [])
+                        start = cursor
+                        end = start + len(block)
+                        spans.append({"document_id": did, "start": start, "end": end})
+                        pieces.append(block)
+                        cursor = end + len(sep)
+                    return sep.join(pieces), spans
+                except Exception:
+                    return "", []
+
+            transcript = (
+                source_payload.get("transcript")
                 if isinstance(source_payload, dict)
                 else None
             )
-            if isinstance(original_text, str) and original_text.strip():
+            scoped_text = None
+            doc_spans = None
+            if isinstance(transcript, list) and transcript:
+                txt, spans = _build_concat_and_spans(transcript)
+                if txt and spans:
+                    scoped_text = txt
+                    doc_spans = spans
+            if not scoped_text:
+                scoped_text = original_text
+
+            # Choose scoped_text from transcript (with doc_spans) or fall back to original_text
+            if isinstance(scoped_text, str) and scoped_text.strip():
                 # Minimal no-op LLM for constructor compatibility
                 class _NoOpLLM:
                     async def analyze(self, *_args, **_kwargs):
@@ -112,6 +156,8 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
                         "document_id": source_payload.get("document_id")
                         or "original_text",
                     }
+                    if doc_spans:
+                        scope_meta["doc_spans"] = doc_spans
                     hydrated = []
                     for p in flattened.get("personas", []):
                         if not isinstance(p, dict):
@@ -121,7 +167,7 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
                             try:
                                 enhanced, evmap = ev.link_evidence_to_attributes_v2(
                                     p,
-                                    scoped_text=original_text,
+                                    scoped_text=scoped_text,
                                     scope_meta=scope_meta,
                                     protect_key_quotes=True,
                                 )
@@ -184,26 +230,15 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
         flattened["sentimentStatements"] = ss
 
     # Optionally derive influence metrics per persona (nest under stakeholder_intelligence)
-    # Strip legacy trait-level evidence arrays (unverifiable) regardless of EV2 presence
+    # Preserve existing trait-level evidence; do not strip. Hydration below will only fill when missing.
     try:
+        # Still drop any top-level legacy 'evidence' list if present to avoid duplication.
         cleaned_personas = []
         for p in flattened.get("personas", []):
             if not isinstance(p, dict):
                 cleaned_personas.append(p)
                 continue
             p2 = dict(p)
-            for trait in (
-                "key_quotes",
-                "goals_and_motivations",
-                "challenges_and_frustrations",
-                "demographics",
-            ):
-                tv = p2.get(trait)
-                if isinstance(tv, dict) and "evidence" in tv:
-                    tv2 = dict(tv)
-                    tv2.pop("evidence", None)
-                    p2[trait] = tv2
-            # Also drop any top-level legacy 'evidence' field if present
             if isinstance(p2.get("evidence"), list):
                 p2.pop("evidence", None)
             cleaned_personas.append(p2)
@@ -239,11 +274,12 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
                     "key_quotes",
                 ):
                     items = ev_map.get(trait) or []
-                    if items and isinstance(p2.get(trait), dict):
+                    if isinstance(p2.get(trait), dict):
                         tv = dict(p2[trait])
-                        # attach rich EV2 items for UI (it supports string or {quote,speaker,...})
-                        tv["evidence"] = items
-                        p2[trait] = tv
+                        # attach rich EV2 items for UI only if missing; preserve existing structured evidence
+                        if not tv.get("evidence") and items:
+                            tv["evidence"] = items
+                            p2[trait] = tv
             hydrated_personas.append(p2)
         flattened["personas"] = hydrated_personas
     except Exception:
