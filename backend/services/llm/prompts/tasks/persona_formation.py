@@ -98,7 +98,7 @@ class PersonaFormationPrompts:
         Extract the following details to build a rich, detailed persona specific to the {industry.upper()} industry:
 
         BASIC INFORMATION:
-        1. name: A descriptive role-based name relevant to the {industry.upper()} industry (e.g., "Data-Driven Healthcare Administrator")
+        1. name: A first-name-only archetypal name (no titles/roles, not starting with "The"); names must be unique across personas
         2. archetype: A general category this persona falls into within the {industry.upper()} context (e.g., "Clinical Decision Maker", "Technical Healthcare Expert")
         3. description: A brief 1-3 sentence overview of the persona highlighting their role in the {industry.upper()} industry
 
@@ -124,7 +124,7 @@ class PersonaFormationPrompts:
 
         FORMAT YOUR RESPONSE AS JSON with the following structure:
         {{
-          "name": "Role-Based Name",
+          "name": "FirstNameOnly",
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{
@@ -268,7 +268,7 @@ class PersonaFormationPrompts:
         Extract the following details to build a rich, detailed persona:
 
         BASIC INFORMATION:
-        1. name: A descriptive role-based name (e.g., "Data-Driven Product Manager")
+        1. name: A first-name-only archetypal name (no titles/roles, not starting with "The"); names must be unique across personas
         2. archetype: A general category this persona falls into (e.g., "Decision Maker", "Technical Expert")
         3. description: A brief 1-3 sentence overview of the persona
 
@@ -337,7 +337,7 @@ class PersonaFormationPrompts:
 
         FORMAT YOUR RESPONSE AS VALID JSON with this exact structure:
         {{
-          "name": "Role-Based Name",
+          "name": "FirstNameOnly",
           "archetype": "Persona Category",
           "description": "Brief overview of the persona",
           "demographics": {{

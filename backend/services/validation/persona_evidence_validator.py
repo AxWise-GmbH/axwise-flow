@@ -101,16 +101,60 @@ class PersonaEvidenceValidator:
     @staticmethod
     def _normalize(text: str) -> str:
         t = text or ""
-        # Lowercase
-        t = t.lower()
+        # Lowercase early for consistent comparisons
+        t = t.lower().strip()
+
+        # Remove leading bracketed timestamps like "[12:40]" (simple, non-regex)
+        # Do it repeatedly in case of stacked prefixes
+        def strip_leading_timestamp(s: str) -> str:
+            s = s.lstrip()
+            while s.startswith("["):
+                close = s.find("]")
+                if 0 < close <= 8:
+                    inside = s[1:close]
+                    parts = inside.split(":")
+                    if (
+                        len(parts) == 2
+                        and all(p.isdigit() for p in parts)
+                        and len(parts[1]) in (2,)
+                    ):
+                        s = s[close + 1 :].lstrip()
+                        continue
+                break
+            return s
+
+        t = strip_leading_timestamp(t)
+
+        # Strip common speaker labels at the start (no heavy regex)
+        labels = [
+            "researcher",
+            "interviewer",
+            "moderator",
+            "interviewee",
+            "participant",
+            "speaker",
+            "user",
+            "customer",
+            "stakeholder",
+        ]
+
+        def strip_leading_label(s: str) -> str:
+            s0 = s.lstrip()
+            for lbl in labels:
+                if s0.startswith(lbl + ":"):
+                    return s0[len(lbl) + 1 :].lstrip()
+                if s0.startswith(lbl + " -"):
+                    return s0[len(lbl) + 2 :].lstrip()
+            return s0
+
+        t = strip_leading_label(t)
+
         # Normalize smart quotes/apostrophes
         t = t.replace("\u201c", '"').replace("\u201d", '"').replace("\u2019", "'")
         # Normalize dashes and ellipsis
         t = t.replace("\u2013", "-").replace("\u2014", "-").replace("\u2026", "...")
         # Remove zero-width and non-breaking spaces
         t = t.replace("\u200b", "").replace("\u00a0", " ")
-        # Strip common speaker labels if accidentally included at start
-        t = re.sub(r"^(researcher|interviewer|moderator)\s*:\s*", "", t)
         # Collapse whitespace
         t = re.sub(r"[\s\n\r\t]+", " ", t).strip()
         # Light punctuation normalization: remove surrounding quotes/brackets
@@ -194,6 +238,22 @@ class PersonaEvidenceValidator:
 
         for index, item in evidence_pool:
             quote = item.get("quote", "")
+            # Treat missing attribution metadata as a hard no-match
+            missing_doc = not (item.get("document_id") or "").strip()
+            missing_speaker = False
+            if transcript is not None:
+                missing_speaker = not (item.get("speaker") or "").strip()
+            if missing_doc or missing_speaker:
+                matches.append(
+                    EvidenceMatch(
+                        index=index,
+                        match_type="no_match",
+                        start_char=None,
+                        end_char=None,
+                        speaker=None,
+                    )
+                )
+                continue
             if transcript:
                 mtype, s, e, sp = self._find_in_transcript(transcript, quote)
             else:

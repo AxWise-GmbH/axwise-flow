@@ -276,10 +276,30 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
                     items = ev_map.get(trait) or []
                     if isinstance(p2.get(trait), dict):
                         tv = dict(p2[trait])
-                        # attach rich EV2 items for UI only if missing; preserve existing structured evidence
-                        if not tv.get("evidence") and items:
-                            tv["evidence"] = items
+                        # prefer EV2 items for UI when available; override legacy evidence
+                        if items:
+                            # Guardrail: coerce falsy document_id to "original_text"
+                            safe_items = []
+                            for it in items:
+                                if isinstance(it, dict):
+                                    it2 = dict(it)
+                                    if not (it2.get("document_id") or "").strip():
+                                        it2["document_id"] = "original_text"
+                                    safe_items.append(it2)
+                                else:
+                                    safe_items.append(it)
+                            tv["evidence"] = safe_items
                             p2[trait] = tv
+                            # Also hydrate populated_traits if present (frontend may prefer this path)
+                            try:
+                                if isinstance(p2.get("populated_traits"), dict):
+                                    pt = dict(p2.get("populated_traits") or {})
+                                    if isinstance(pt.get(trait), dict):
+                                        pt[trait] = dict(pt[trait])
+                                        pt[trait]["evidence"] = safe_items
+                                        p2["populated_traits"] = pt
+                            except Exception:
+                                pass
             hydrated_personas.append(p2)
         flattened["personas"] = hydrated_personas
     except Exception:

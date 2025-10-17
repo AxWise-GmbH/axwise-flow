@@ -864,32 +864,37 @@ async def get_results(
                                 )
                                 for tn in trait_names:
                                     trait = p.get(tn) or {}
-                                    ev = trait.get("evidence")
-                                    ev = ev if isinstance(ev, list) else []
-                                    needs_hydration = True
-                                    if ev:
-                                        good = 0
-                                        for it in ev:
-                                            try:
-                                                if (
-                                                    isinstance(
-                                                        it.get("start_char"), int
-                                                    )
-                                                    and isinstance(
-                                                        it.get("end_char"), int
-                                                    )
-                                                    and (
-                                                        it.get("document_id")
-                                                        is not None
-                                                    )
-                                                ):
-                                                    good += 1
-                                            except Exception:
-                                                pass
-                                        needs_hydration = good == 0
-                                    if needs_hydration:
-                                        trait["evidence"] = ev_map.get(tn, ev)
+                                    # Prefer EV2 items for display when available
+                                    items = ev_map.get(tn) or []
+                                    if items:
+                                        # Guardrail: coerce falsy document_id to "original_text"
+                                        safe_items = []
+                                        for it in items:
+                                            if isinstance(it, dict):
+                                                it2 = dict(it)
+                                                if not (
+                                                    it2.get("document_id") or ""
+                                                ).strip():
+                                                    it2["document_id"] = "original_text"
+                                                safe_items.append(it2)
+                                            else:
+                                                safe_items.append(it)
+                                        trait["evidence"] = safe_items
                                         p[tn] = trait
+                                        # Also hydrate populated_traits if present (frontend may prefer this path)
+                                        try:
+                                            if isinstance(
+                                                p.get("populated_traits"), dict
+                                            ):
+                                                pt = dict(
+                                                    p.get("populated_traits") or {}
+                                                )
+                                                if isinstance(pt.get(tn), dict):
+                                                    pt[tn] = dict(pt[tn])
+                                                    pt[tn]["evidence"] = safe_items
+                                                    p["populated_traits"] = pt
+                                        except Exception:
+                                            pass
                             except Exception:
                                 # Skip hydration for this persona on any error
                                 continue
@@ -897,6 +902,270 @@ async def get_results(
             logger.warning(
                 f"[FULL_RESULTS_HYDRATION] Skipped due to error: {_full_hydrate_err}"
             )
+
+        # Optional on-read revalidation of persona evidence to ensure validation_summary reflects
+        # the latest normalization/sanitization. This does not persist; it only modifies the
+        # response shape for the current request.
+        try:
+            import os
+
+            revalidate = str(
+                os.getenv("ENABLE_ON_READ_PERSONAS_REVALIDATION", "true")
+            ).lower() in {"1", "true", "yes"}
+            if revalidate and isinstance(result, dict):
+                results_obj = result.get("results") or {}
+                personas = results_obj.get("personas")
+                if isinstance(personas, list) and personas:
+                    source_payload = results_obj.get("source") or {}
+                    transcript = (
+                        source_payload.get("transcript")
+                        if isinstance(source_payload, dict)
+                        else None
+                    )
+                    source_text = (
+                        source_payload.get("original_text")
+                        if isinstance(source_payload, dict)
+                        else None
+                    )
+
+                    from backend.services.validation.persona_evidence_validator import (
+                        PersonaEvidenceValidator,
+                    )
+
+                    validator = PersonaEvidenceValidator()
+                    all_matches = []
+                    any_cross_trait = False
+                    speaker_mismatch_count = 0
+
+                    # Normalize transcript to None if empty or invalid
+                    if not (isinstance(transcript, list) and transcript):
+                        transcript = None
+
+                    for p in personas:
+                        if not isinstance(p, dict):
+                            continue
+                        try:
+                            matches = validator.match_evidence(
+                                persona_ssot=p,
+                                source_text=source_text,
+                                transcript=transcript,
+                            )
+                            all_matches.extend(matches)
+
+                            dup = PersonaEvidenceValidator.detect_duplication(p)
+                            ctr = dup.get("cross_trait_reuse")
+                            if isinstance(ctr, list):
+                                any_cross_trait = any_cross_trait or bool(ctr)
+                            elif ctr:
+                                any_cross_trait = True
+
+                            sc = PersonaEvidenceValidator.check_speaker_consistency(
+                                p, transcript
+                            )
+                            sm = sc.get("speaker_mismatches")
+                            if isinstance(sm, list):
+                                speaker_mismatch_count += len(sm)
+                            elif isinstance(sm, int):
+                                speaker_mismatch_count += sm
+                        except Exception:
+                            continue
+
+                    contamination = PersonaEvidenceValidator.detect_contamination(
+                        personas
+                    )
+                    summary = PersonaEvidenceValidator.summarize(
+                        all_matches,
+                        {"cross_trait_reuse": any_cross_trait},
+                        {"speaker_mismatches": speaker_mismatch_count},
+                        contamination,
+                    )
+                    confidence = PersonaEvidenceValidator.compute_confidence_components(
+                        summary
+                    )
+
+                    # Hydrate additional sections and compute integrity metrics
+                    null_doc_total = 0
+                    null_speaker_total = 0
+                    offsets_null_total = 0
+                    empty_demo_personas = []
+
+                    def _maybe_fill_doc_id(item: dict):
+                        nonlocal null_doc_total, null_speaker_total, offsets_null_total
+                        if not isinstance(item, dict):
+                            return
+                        doc = item.get("document_id")
+                        s, e = item.get("start_char"), item.get("end_char")
+                        q = item.get("quote") or ""
+                        sp = item.get("speaker")
+
+                        match_found = False
+
+                        # Try to backfill offsets and speaker using current validator if missing
+                        if (s is None or e is None) and q:
+                            try:
+                                if transcript:
+                                    mtype, ms, me, msp = validator._find_in_transcript(transcript, q)  # type: ignore[attr-defined]
+                                    if mtype != "no_match":
+                                        match_found = True
+                                    if msp and not sp:
+                                        item["speaker"] = msp
+                                        sp = msp
+                                    s, e = ms, me
+                                else:
+                                    mtype, ms, me = validator._find_in_text(source_text or "", q)  # type: ignore[attr-defined]
+                                    if mtype != "no_match":
+                                        match_found = True
+                                    s, e = ms, me
+                                if s is not None and e is not None:
+                                    item["start_char"], item["end_char"] = s, e
+                                else:
+                                    offsets_null_total += 1
+                            except Exception:
+                                offsets_null_total += 1
+                        else:
+                            if s is None or e is None:
+                                offsets_null_total += 1
+
+                        # Speaker integrity when transcript exists
+                        if transcript and not (sp or "").strip():
+                            null_speaker_total += 1
+
+                        # Backfill document_id when possible
+                        if not doc:
+                            # Prefer offsets-based attribution, but fall back to normalized match
+                            can_use_offsets = (
+                                isinstance(source_text, str)
+                                and isinstance(s, int)
+                                and isinstance(e, int)
+                                and 0 <= s <= e <= len(source_text)
+                            )
+                            if can_use_offsets or match_found:
+                                item["document_id"] = "original_text"
+                            else:
+                                null_doc_total += 1
+
+                    # Scan hydrated personas for integrity and hydrate persona_metadata.preserved_key_quotes
+                    if isinstance(personas, list):
+                        for p in personas:
+                            if not isinstance(p, dict):
+                                continue
+                            # Traits evidence
+                            for trait in (
+                                "goals_and_motivations",
+                                "challenges_and_frustrations",
+                                "key_quotes",
+                            ):
+                                tr = (
+                                    (p.get("populated_traits") or {}).get(trait)
+                                    or p.get(trait)
+                                    or {}
+                                )
+                                ev = tr.get("evidence") or []
+                                if isinstance(ev, list):
+                                    for it in ev:
+                                        _maybe_fill_doc_id(it)
+                            # Persona metadata preserved_key_quotes
+                            meta = p.get("persona_metadata") or {}
+                            pkq = meta.get("preserved_key_quotes") or {}
+                            pkev = pkq.get("evidence") or []
+                            if isinstance(pkev, list):
+                                for it in pkev:
+                                    _maybe_fill_doc_id(it)
+                            # Demographics emptiness check
+                            demo = (
+                                (p.get("populated_traits") or {}).get("demographics")
+                                or p.get("demographics")
+                                or {}
+                            )
+                            any_ev = False
+                            if isinstance(demo, dict):
+                                for v in demo.values():
+                                    if (
+                                        isinstance(v, dict)
+                                        and isinstance(v.get("evidence"), list)
+                                        and v.get("evidence")
+                                    ):
+                                        any_ev = True
+                                        break
+                            if not any_ev:
+                                name = p.get("name") or p.get("title") or "UNKNOWN"
+                                empty_demo_personas.append(name)
+
+                    # Hydrate personas_ssot evidence document_id where possible and include in integrity
+                    ssot = results_obj.get("personas_ssot")
+                    if isinstance(ssot, list):
+                        for sp in ssot:
+                            if not isinstance(sp, dict):
+                                continue
+                            for trait in (
+                                "goals_and_motivations",
+                                "challenges_and_frustrations",
+                                "key_quotes",
+                            ):
+                                tev = (sp.get(trait) or {}).get("evidence") or []
+                                if isinstance(tev, list):
+                                    for it in tev:
+                                        _maybe_fill_doc_id(it)
+
+                    # Compose integrity metrics
+                    integrity = {
+                        "null_document_id_total": null_doc_total,
+                        "null_speaker_total": null_speaker_total,
+                        "offsets_null_total": offsets_null_total,
+                        "empty_demographics_personas": empty_demo_personas,
+                        "empty_demographics_personas_count": len(empty_demo_personas),
+                    }
+
+                    # Fold integrity into counts/total so scores aren't misleading
+                    attr_failures = (
+                        int(null_doc_total)
+                        + int(offsets_null_total)
+                        + int(null_speaker_total)
+                    )
+                    if attr_failures > 0:
+                        # Make defensive copies
+                        counts = dict(summary.get("counts", {}))
+                        total = int(summary.get("total", 0))
+                        counts["no_match"] = counts.get("no_match", 0) + attr_failures
+                        total += attr_failures
+                        summary["counts"] = counts
+                        summary["total"] = total
+
+                    # Recompute confidence after folding failures
+                    confidence = PersonaEvidenceValidator.compute_confidence_components(
+                        summary
+                    )
+
+                    # Adjust final confidence to reflect integrity signals (conservative deduction)
+                    try:
+                        ems = float(confidence.get("evidence_match_score", 0.0))
+                    except Exception:
+                        ems = 0.0
+                    penalty = 0.0
+                    if null_doc_total > 0:
+                        penalty += 0.15
+                    if offsets_null_total > 0:
+                        penalty += 0.10
+                    if null_speaker_total > 0:
+                        penalty += 0.10
+                    if len(empty_demo_personas) > 0:
+                        penalty += 0.15
+                    final_confidence = max(0.0, min(1.0, ems - penalty))
+                    confidence["final_confidence"] = final_confidence
+                    # Ensure the exported evidence_match_score reflects integrity
+                    confidence["evidence_match_score"] = round(final_confidence, 3)
+
+                    # Shape similar to previous payloads consumers expect
+                    results_obj["validation_summary"] = {
+                        "counts": summary.get("counts", {}),
+                        "method": "persona_evidence_validator_v1",
+                        "speaker_mismatches": speaker_mismatch_count,
+                        "contamination": contamination,
+                        "integrity": integrity,
+                        "confidence_components": confidence,
+                    }
+        except Exception as _reval_err:
+            logger.warning(f"[ON_READ_REVALIDATION] Skipped due to error: {_reval_err}")
 
         return result
 
@@ -1109,32 +1378,35 @@ async def get_simplified_personas(
                                 scope_meta=scope_meta,
                                 protect_key_quotes=True,
                             )
-                            # Replace evidence if empty or missing offsets/doc_ids
+                            # Prefer EV2 items for display when available
                             for tn in trait_names:
                                 trait = p.get(tn) or {}
-                                ev = (
-                                    trait.get("evidence")
-                                    if isinstance(trait, dict)
-                                    else []
-                                )
-                                ev = ev if isinstance(ev, list) else []
-                                needs_hydration = True
-                                if ev:
-                                    good = 0
-                                    for it in ev:
-                                        try:
-                                            if (
-                                                isinstance(it.get("start_char"), int)
-                                                and isinstance(it.get("end_char"), int)
-                                                and (it.get("document_id") is not None)
-                                            ):
-                                                good += 1
-                                        except Exception:
-                                            pass
-                                    needs_hydration = good == 0
-                                if needs_hydration:
-                                    trait["evidence"] = ev_map.get(tn, ev)
+                                items = ev_map.get(tn) or []
+                                if items:
+                                    # Guardrail: coerce falsy document_id to "original_text"
+                                    safe_items = []
+                                    for it in items:
+                                        if isinstance(it, dict):
+                                            it2 = dict(it)
+                                            if not (
+                                                it2.get("document_id") or ""
+                                            ).strip():
+                                                it2["document_id"] = "original_text"
+                                            safe_items.append(it2)
+                                        else:
+                                            safe_items.append(it)
+                                    trait["evidence"] = safe_items
                                     p[tn] = trait
+                                    # Also hydrate populated_traits if present (frontend may prefer this path)
+                                    try:
+                                        if isinstance(p.get("populated_traits"), dict):
+                                            pt = dict(p.get("populated_traits") or {})
+                                            if isinstance(pt.get(tn), dict):
+                                                pt[tn] = dict(pt[tn])
+                                                pt[tn]["evidence"] = safe_items
+                                                p["populated_traits"] = pt
+                                    except Exception:
+                                        pass
                         # Recompute quality after hydration
                         per_persona = []
                         for p in normalized_personas:

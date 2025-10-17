@@ -762,18 +762,83 @@ class EvidenceLinkingService:
                         break
         except Exception:
             pass
-        # Fallback: if no doc_spans mapping and no document_id was provided, default to
-        # original_text to ensure stable linking for single-document sources.
+        # Robust fallback: if no mapping resolved a document_id, choose a best-effort id
+        # Priority: (1) nearest span's document_id if spans exist, (2) meta.document_id, (3) "original_text"
         try:
             if doc_id is None:
                 spans = meta.get("doc_spans") or []
-                if not spans:
+                if spans:
+                    try:
+                        nearest = min(
+                            spans,
+                            key=lambda seg: abs(int(seg.get("start") or 0) - int(s)),
+                        )
+                        did = nearest.get("document_id") or nearest.get("doc_id")
+                        if did:
+                            doc_id = did
+                            ss = nearest.get("start")
+                            ee = nearest.get("end")
+                            if (
+                                isinstance(ss, int)
+                                and isinstance(ee, int)
+                                and ss <= s < ee
+                            ):
+                                ls = s - ss
+                                le = e - ss
+                    except Exception:
+                        pass
+                if doc_id is None:
                     doc_id = meta.get("document_id") or "original_text"
         except Exception:
-            # Best-effort fallback; ignore
-            pass
+            # Best-effort fallback; ensure non-null document_id
+            doc_id = doc_id or meta.get("document_id") or "original_text"
+
+        # Sanitize quote by removing leading timestamps and speaker labels
+        def _strip_leading_timestamp(s: str) -> str:
+            ss = s.lstrip()
+            while ss.startswith("["):
+                close = ss.find("]")
+                if 0 < close <= 8:
+                    inside = ss[1:close]
+                    parts = inside.split(":")
+                    if (
+                        len(parts) == 2
+                        and all(p.isdigit() for p in parts)
+                        and len(parts[1]) in (2,)
+                    ):
+                        ss = ss[close + 1 :].lstrip()
+                        continue
+                break
+            return ss
+
+        def _strip_leading_label(s: str) -> str:
+            ss = s.lstrip()
+            low = ss.lower()
+            labels = [
+                "interviewee",
+                "interviewer",
+                "researcher",
+                "moderator",
+                "participant",
+                "speaker",
+                "user",
+                "customer",
+                "stakeholder",
+            ]
+            for lbl in labels:
+                if low.startswith(lbl + ":"):
+                    return ss[len(lbl) + 1 :].lstrip()
+                if low.startswith(lbl + " -"):
+                    return ss[len(lbl) + 2 :].lstrip()
+            return ss
+
+        q = _strip_leading_timestamp(quote)
+        q = _strip_leading_label(q)
+        if not q:
+            q = quote  # fallback to original if we stripped everything by mistake
+
         return {
-            "quote": quote,
+            "quote": q,
             "start_char": ls,
             "end_char": le,
             "speaker": meta.get("speaker"),
@@ -1151,6 +1216,10 @@ class EvidenceLinkingService:
             def _valid_item(it: Dict[str, Any]) -> bool:
                 try:
                     if it.get("start_char") is None or it.get("end_char") is None:
+                        return False
+                    # Require non-empty document_id for verifiability
+                    doc_ok = bool((it.get("document_id") or "").strip())
+                    if not doc_ok:
                         return False
                     spk = (it.get("speaker") or "").strip()
                     if not spk:
