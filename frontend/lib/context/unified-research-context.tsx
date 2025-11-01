@@ -50,6 +50,9 @@ export interface UnifiedResearchState {
   conversationStarted: boolean;
   currentSuggestions: string[];
 
+  // LLM-generated sidebar narrative
+  sidebarNarrative?: string;
+
   // Sync Status
   syncStatus: {
     isOnline: boolean;
@@ -70,6 +73,7 @@ type UnifiedResearchAction =
   | { type: 'SET_QUESTIONNAIRE'; payload: QuestionnaireData }
   | { type: 'SET_CONVERSATION_STARTED'; payload: boolean }
   | { type: 'SET_SUGGESTIONS'; payload: string[] }
+  | { type: 'SET_SIDEBAR_NARRATIVE'; payload: string }
   | { type: 'UPDATE_SYNC_STATUS'; payload: Partial<UnifiedResearchState['syncStatus']> }
   | { type: 'RESET_STATE' };
 
@@ -93,6 +97,7 @@ const initialState: UnifiedResearchState = {
   },
   conversationStarted: false,
   currentSuggestions: [],
+  sidebarNarrative: '',
   syncStatus: {
     isOnline: true,
     pendingSyncs: 0
@@ -114,11 +119,16 @@ function unifiedResearchReducer(
         ...state,
         currentSession: action.payload,
         businessContext: action.payload ? {
-          businessIdea: action.payload.business_idea || '',
-          targetCustomer: action.payload.target_customer || '',
-          problem: action.payload.problem || '',
-          industry: action.payload.industry || 'general'
+          // Prefer non-empty values from the loaded session, but do not overwrite
+          // existing richer context with empty/defaults (e.g., 'general' industry)
+          businessIdea: action.payload.business_idea || state.businessContext.businessIdea,
+          targetCustomer: action.payload.target_customer || state.businessContext.targetCustomer,
+          problem: action.payload.problem || state.businessContext.problem,
+          industry: (action.payload.industry && action.payload.industry !== 'general')
+            ? action.payload.industry
+            : state.businessContext.industry
         } : state.businessContext,
+        sidebarNarrative: action.payload?.conversation_context || state.sidebarNarrative,
         messages: action.payload?.messages || [],
         questionnaire: {
           ...state.questionnaire,
@@ -152,6 +162,9 @@ function unifiedResearchReducer(
 
     case 'SET_SUGGESTIONS':
       return { ...state, currentSuggestions: action.payload };
+
+    case 'SET_SIDEBAR_NARRATIVE':
+      return { ...state, sidebarNarrative: action.payload };
 
     case 'UPDATE_SYNC_STATUS':
       return {
@@ -193,6 +206,7 @@ const UnifiedResearchContext = createContext<{
     setLoading: (loading: boolean) => void;
     setConversationStarted: (started: boolean) => void;
     setSuggestions: (suggestions: string[]) => void;
+    setSidebarNarrative: (summary: string) => void;
 
     // Sync Management
     forcSync: () => Promise<void>;
@@ -301,13 +315,14 @@ export function UnifiedResearchProvider({ children }: { children: React.ReactNod
         target_customer: state.businessContext.targetCustomer,
         problem: state.businessContext.problem,
         industry: state.businessContext.industry,
+        conversation_context: state.sidebarNarrative || state.currentSession.conversation_context,
         questions_generated: state.questionnaire.generated,
         updated_at: new Date().toISOString()
       };
 
       await sessionManager.saveSession(updatedSession);
       dispatch({ type: 'SET_SESSION', payload: updatedSession });
-    }, [state.currentSession, state.messages, state.businessContext, state.questionnaire.generated]),
+    }, [state.currentSession, state.messages, state.businessContext, state.questionnaire.generated, state.sidebarNarrative]),
 
     deleteSession: useCallback(async (sessionId: string) => {
       await sessionManager.deleteSession(sessionId);
@@ -362,6 +377,24 @@ export function UnifiedResearchProvider({ children }: { children: React.ReactNod
     setSuggestions: useCallback((suggestions: string[]) => {
       dispatch({ type: 'SET_SUGGESTIONS', payload: suggestions });
     }, []),
+
+    setSidebarNarrative: useCallback((summary: string) => {
+      dispatch({ type: 'SET_SIDEBAR_NARRATIVE', payload: summary });
+      try {
+        if (state.currentSession?.syncStatus?.isLocal) {
+          const updatedSession: UnifiedSession = {
+            ...state.currentSession,
+            conversation_context: summary,
+            updated_at: new Date().toISOString(),
+          };
+          // Persist locally without forcing backend sync
+          sessionManager.saveSession(updatedSession);
+          dispatch({ type: 'SET_SESSION', payload: updatedSession });
+        }
+      } catch (e) {
+        console.warn('Failed to persist sidebar narrative to session:', e);
+      }
+    }, [state.currentSession]),
 
     // Sync Management
     forcSync: useCallback(async () => {

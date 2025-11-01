@@ -105,6 +105,7 @@ export interface ChatResponse {
     researchStage?: string;
     suggestions?: string[];
     extracted_context?: Record<string, any>;
+    full_prompt?: string;
   };
   questions?: GeneratedQuestions;
   session_id?: string;
@@ -143,6 +144,7 @@ export interface ResearchSession {
   completed_at?: string;
   message_count?: number;
   messages?: Message[]; // For local storage
+  conversation_context?: string; // Short executive summary/narrative for sidebar
   isLocal?: boolean; // Flag to indicate local storage
 }
 
@@ -874,6 +876,7 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
     })),
     session_id: sessionId,
     user_id: anonymousUserId,
+    request_sidebar_summary: true,
   };
 
   // Use retry and timeout wrappers
@@ -954,6 +957,7 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
           updated_at: new Date().toISOString(),
           message_count: messages.length,
           messages,
+          conversation_context: result.metadata?.sidebar_summary || existingSession?.conversation_context,
           isLocal: true,
         };
 
@@ -1017,11 +1021,16 @@ export async function sendResearchChatMessage(request: ChatRequest): Promise<Cha
              result.context?.business_idea ? 0.4 : 0.0),
           exchange_count: result.context?.exchange_count || 0,
           fatigue_signals: result.context?.user_fatigue_signals || [],
-          // Add extracted context for frontend compatibility
+          // Add extracted context for frontend compatibility (merge to preserve richer fields)
           extracted_context: {
-            business_idea: result.context?.business_idea,
-            target_customer: result.context?.target_customer,
-            problem: result.context?.problem,
+            ...result.metadata?.extracted_context,
+            business_idea: result.context?.business_idea ?? result.metadata?.extracted_context?.business_idea,
+            target_customer: result.context?.target_customer ?? result.metadata?.extracted_context?.target_customer,
+            problem: result.context?.problem ?? result.metadata?.extracted_context?.problem,
+            // Prefer explicit location, fall back to region if provided
+            location: (result.context?.location ?? result.context?.region ?? result.metadata?.extracted_context?.location ?? result.metadata?.extracted_context?.region),
+            industry: result.context?.industry ?? result.metadata?.extracted_context?.industry,
+            stage: result.metadata?.extracted_context?.stage ?? result.context?.stage,
             questions_generated: result.should_generate_questions || hasNonEmptyQuestions
           }
         },

@@ -870,6 +870,7 @@ Question:
                     "context_completeness": context.get_completeness_score(),
                     "exchange_count": context.exchange_count,
                     "fatigue_signals": context.user_fatigue_signals,
+                    "full_prompt": full_prompt,
                 },
                 session_id=request.session_id,
             )

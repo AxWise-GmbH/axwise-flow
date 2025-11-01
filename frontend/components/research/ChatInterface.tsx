@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw, Play } from 'lucide-react';
+import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw } from 'lucide-react';
 import { ContextPanel } from './ContextPanel';
 import { NextStepsChatMessage } from './NextStepsChatMessage';
 
@@ -33,6 +33,7 @@ import { StakeholderAlert } from './StakeholderAlert';
 
 import { useUnifiedResearch } from '@/lib/context/unified-research-context';
 import { useChatMobileOptimization } from '@/hooks/useMobileViewport';
+import { usePathname } from 'next/navigation';
 
 // Import modular components
 import { ChatInterfaceProps } from './types';
@@ -40,7 +41,6 @@ import {
   useChatState,
   useScrollManagement,
   useChatClear,
-  useSessionLoading,
   useClipboard,
   useLoadingTimer,
   useSaveSession
@@ -56,6 +56,10 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
 
   // Use modular hooks for state management
   const { state, actions } = useChatState();
+
+  // Hide questions summary on unified dashboard research chat
+  const pathname = usePathname();
+  const hideQuestionsSummary = pathname?.startsWith('/unified-dashboard/research-chat');
 
   // Ensure initial message is present when no session is loading
   React.useEffect(() => {
@@ -130,6 +134,36 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
 
   // Local state for questions to handle API responses directly
   const currentQuestions = state.localQuestions || unifiedState.questionnaire;
+
+  // Derived context for the Research Progress panel (show all tracked fields)
+  const contextForPanel = React.useMemo(() => {
+    const session: any = unifiedState.currentSession;
+    const bc = unifiedState.businessContext;
+    const resolvedIndustry = (bc.industry && bc.industry !== 'general')
+      ? bc.industry
+      : (session?.industry && session.industry !== 'general')
+        ? session.industry
+        : bc.industry;
+    return {
+      ...bc,
+      questionsGenerated: unifiedState.questionnaire.generated,
+      stage: session?.stage,
+      location: session?.location,
+      industry: resolvedIndustry,
+      narrative: unifiedState.sidebarNarrative,
+    } as any;
+  }, [unifiedState.businessContext, unifiedState.questionnaire.generated, unifiedState.currentSession]);
+  // Capture the last full LLM prompt from assistant message metadata
+  const lastFullPrompt = React.useMemo(() => {
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const m = state.messages[i];
+      const fp = (m as any)?.metadata?.full_prompt || (m as any)?.metadata?.llm_prompt || (m as any)?.metadata?.fullPrompt;
+      if (typeof fp === 'string' && fp.trim()) return fp as string;
+    }
+    return undefined;
+  }, [state.messages]);
+
+
 
   // Enhanced export function that uses comprehensive stakeholder questions
   const exportComprehensiveQuestions = (format: 'txt' | 'json' | 'csv' = 'txt') => {
@@ -303,6 +337,7 @@ Ready for simulation bridge and interview analysis`;
         });
         unifiedActions.markQuestionnaireGenerated();
       },
+      unifiedActions.setSidebarNarrative,
       onComplete
     );
 
@@ -330,9 +365,6 @@ Ready for simulation bridge and interview analysis`;
     }
   };
 
-  const loadSessionLocal = useCallback(async (sessionId: string) => {
-    await unifiedActions.loadSession(sessionId);
-  }, [unifiedActions]);
 
   // Keyboard handlers
   const handleKeyDownLocal = (e: React.KeyboardEvent) => {
@@ -414,6 +446,21 @@ Ready for simulation bridge and interview analysis`;
       actions.setSessionId(loadedId);
     }
   }, [unifiedState.currentSession?.session_id]);
+
+  // When ChatState.sessionId is set (e.g., after first API call), load that session into unified store
+  React.useEffect(() => {
+    if (!state.sessionId) return;
+    // Avoid thrashing while a load is already in progress
+    if (unifiedState.sessionLoading) return;
+
+    if (!unifiedState.currentSession || unifiedState.currentSession.session_id !== state.sessionId) {
+      console.log('🔗 Loading unified session from ChatState.sessionId:', state.sessionId);
+      unifiedActions.loadSession(state.sessionId);
+    }
+    // Intentionally omit unifiedActions from deps: its identity changes each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.sessionId, unifiedState.currentSession?.session_id, unifiedState.sessionLoading]);
+
 
   // Handle new messages for mobile optimization
   React.useEffect(() => {
@@ -1025,10 +1072,11 @@ Ready for simulation bridge and interview analysis`;
         <div className="hidden lg:block lg:col-span-1 min-h-0">
           <div className="h-full overflow-y-auto space-y-4 min-h-0">
             <ContextPanel
-              context={unifiedState.businessContext}
-              questions={currentQuestions || undefined}
+              context={contextForPanel}
+              questions={hideQuestionsSummary ? undefined : (currentQuestions || undefined)}
               onExport={() => exportComprehensiveQuestions('txt')}
               onContinueToAnalysis={continueToAnalysis}
+              debugPrompt={lastFullPrompt}
             />
           </div>
         </div>

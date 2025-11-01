@@ -16,6 +16,30 @@ import {
   scrollToBottomIfNeeded
 } from './chat-utils';
 
+// Lightweight helpers to parse or infer industry from free text
+const normalizeIndustry = (s: string) => s.toLowerCase().trim().replace(/\.$/, '');
+const parseIndustryFromText = (text: string): string | null => {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  // e.g., "in the fintech industry", "in fintech industry"
+  const m1 = lower.match(/\bin(?: the)? ([a-z0-9\- &/]+?) industry\b/);
+  if (m1 && m1[1]) return normalizeIndustry(m1[1]);
+  // e.g., "industry is fintech", "industry: fintech"
+  const m2 = lower.match(/\bindustry(?: is|:)\s*([a-z0-9\- &/]+)/);
+  if (m2 && m2[1]) return normalizeIndustry(m2[1]);
+  return null;
+};
+
+const inferIndustryFromText = (text: string): string | null => {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  if (lower.includes('fintech')) return 'fintech';
+  if (lower.includes('healthcare') || lower.includes('health tech') || lower.includes('health-tech')) return 'healthcare';
+  if (lower.includes('b2b saas') || lower.includes('saas')) return lower.includes('b2b') ? 'b2b saas' : 'saas';
+  if (lower.includes('ecommerce') || lower.includes('e-commerce') || lower.includes('retail')) return 'ecommerce';
+  return null;
+};
+
 /**
  * Save questionnaire data to backend
  */
@@ -48,6 +72,7 @@ export const handleSendMessage = async (
   context: any,
   updateContext: (updates: any) => void,
   updateQuestions: (questions: any) => void,
+  setSidebarNarrative?: (summary: string) => void,
   onComplete?: (questions: any) => void
 ) => {
   const textToSend = messageText || state.input;
@@ -136,6 +161,43 @@ export const handleSendMessage = async (
 
     actions.setMessages(prev => [...prev, assistantMessage]);
 
+    // Update LLM-generated sidebar narrative every turn
+    try {
+      if (typeof setSidebarNarrative === 'function') {
+        const metaSummary = (data as any)?.metadata?.sidebar_summary as string | undefined;
+        const content = (data?.content || '').toString();
+        let summary = (metaSummary || '').trim();
+        if (!summary) {
+          // Heuristic extraction from assistant content
+          let text = content.replace(/\s+/g, ' ').trim();
+          const lower = text.toLowerCase();
+          // Remove trailing confirmation question if present
+          const idx = lower.lastIndexOf('is this correct?');
+          if (idx > 0) text = text.slice(0, idx).trim();
+          // Remove preamble like "Let me confirm ...:"
+          text = text.replace(/^let me (?:quickly )?confirm[^:]*:\s*/i, '').trim();
+          // Use first sentence as concise narrative
+          const m = text.match(/^(.+?[.!?])(?:\s|$)/);
+          summary = m ? m[1] : text;
+          // Tone/length: one sentence, ~180 chars, capitalized and with ending punctuation
+          if (summary.length > 180) {
+            summary = summary.slice(0, 180).trim();
+          }
+          // Ensure sentence case and punctuation
+          summary = summary.trim();
+          if (summary && summary[0] === summary[0].toLowerCase()) {
+            summary = summary[0].toUpperCase() + summary.slice(1);
+          }
+          if (!/[.!?]$/.test(summary)) summary += '.';
+        }
+        if (summary) {
+          setSidebarNarrative(summary);
+        }
+      }
+    } catch (e) {
+      console.warn('Sidebar narrative extraction failed:', e);
+    }
+
     // Update session ID from response
     if (data.session_id && !state.sessionId) {
       actions.setSessionId(data.session_id);
@@ -155,8 +217,18 @@ export const handleSendMessage = async (
         businessIdea: extractedContext.business_idea || context.businessIdea,
         targetCustomer: extractedContext.target_customer || context.targetCustomer,
         problem: extractedContext.problem || context.problem,
+        industry: extractedContext.industry || context.industry,
         questionsGenerated: extractedContext.questions_generated || context.questionsGenerated
-      };
+      } as any;
+
+      // Fallback: infer industry from assistant confirmation or target customer if missing/'general'
+      if (!newContext.industry || newContext.industry === 'general') {
+        const fromAssistant = parseIndustryFromText(data.content || '');
+        const fromTargetCustomer = parseIndustryFromText(newContext.targetCustomer || '') || inferIndustryFromText(newContext.targetCustomer || '');
+        newContext.industry = fromAssistant || fromTargetCustomer || newContext.industry;
+      }
+
+      console.log('🧭 Context update:', { extractedIndustry: extractedContext.industry, resolvedIndustry: newContext.industry });
       updateContext(newContext);
     }
 
@@ -488,10 +560,11 @@ export const handleSuggestionClick = (
   context: any,
   updateContext: (updates: any) => void,
   updateQuestions: (questions: any) => void,
+  setSidebarNarrative?: (summary: string) => void,
   onComplete?: (questions: any) => void
 ) => {
   console.log('🔧 Suggestion clicked:', suggestion);
-  handleSendMessage(suggestion, state, actions, context, updateContext, updateQuestions, onComplete);
+  handleSendMessage(suggestion, state, actions, context, updateContext, updateQuestions, setSidebarNarrative, onComplete);
 };
 
 /**

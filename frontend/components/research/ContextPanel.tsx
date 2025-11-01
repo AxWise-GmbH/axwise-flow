@@ -21,6 +21,9 @@ interface ResearchContext {
   completionPercentage?: number;
   multiStakeholderConsidered?: boolean;
   multiStakeholderDetected?: boolean;
+  industry?: string;
+  location?: string;
+  narrative?: string;
   detectedStakeholders?: {
     primary: (string | { name: string; description: string })[];
     secondary: (string | { name: string; description: string })[];
@@ -39,13 +42,15 @@ interface ContextPanelProps {
   questions?: GeneratedQuestions;
   onExport?: () => void;
   onContinueToAnalysis?: () => void;
+  debugPrompt?: string;
 }
 
 export function ContextPanel({
   context,
   questions,
   onExport,
-  onContinueToAnalysis
+  onContinueToAnalysis,
+  debugPrompt
 }: ContextPanelProps) {
   const getCompletionPercentage = () => {
     let completed = 0;
@@ -60,9 +65,42 @@ export function ContextPanel({
   };
 
   const completionPercentage = getCompletionPercentage();
+  // Humanized, consultant-style descriptions for sidebar
+  const ensureSentence = (s?: string) => (s ? (/([.!?])$/.test(s.trim()) ? s.trim() : `${s.trim()}.`) : '');
+  const niceStage = (s?: string) => {
+    switch ((s || '').toLowerCase()) {
+      case 'in_progress': return 'In progress';
+      case 'completed': return 'Completed';
+      case 'validation': return 'Validation';
+      case 'analysis': return 'Analysis';
+      case 'initial': return 'Initial';
+      default: return s || '';
+    }
+  };
+  const describeBusinessIdea = (bi?: string) => bi ? ensureSentence(bi) : '';
+  const describeTargetCustomer = (tc?: string) => tc ? ensureSentence(`Primary target customers are ${tc}`) : '';
+  const describeProblem = (p?: string) => p ? ensureSentence(`They are struggling with ${p}`) : '';
+  const describeIndustry = (i?: string) => (i && i !== 'general') ? ensureSentence(`They operate in the ${i} industry`) : '';
+  const describeLocation = (loc?: string) => loc ? ensureSentence(`Operating primarily in ${loc}`) : '';
+  const describeStage = (s?: string) => (s && s !== 'initial') ? ensureSentence(`Current research stage: ${niceStage(s)}`) : '';
 
   return (
     <div className="space-y-4">
+      {/* Executive Summary (LLM-generated) */}
+      {context.narrative && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Executive summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed">{context.narrative}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress Card */}
       <Card>
         <CardHeader className="pb-3">
@@ -88,7 +126,7 @@ export function ContextPanel({
                   </span>
                 </div>
                 {context.businessIdea && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{context.businessIdea}</p>
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeBusinessIdea(context.businessIdea)}</p>
                 )}
               </div>
 
@@ -100,7 +138,7 @@ export function ContextPanel({
                   </span>
                 </div>
                 {context.targetCustomer && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{context.targetCustomer}</p>
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeTargetCustomer(context.targetCustomer)}</p>
                 )}
               </div>
 
@@ -112,7 +150,43 @@ export function ContextPanel({
                   </span>
                 </div>
                 {context.problem && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{context.problem}</p>
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeProblem(context.problem)}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className={`h-4 w-4 ${(context.industry && context.industry !== 'general') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm ${(context.industry && context.industry !== 'general') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    Industry
+                  </span>
+                </div>
+                {(context.industry && context.industry !== 'general') && (
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeIndustry(context.industry)}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className={`h-4 w-4 ${context.location ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm ${context.location ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    Location/Region
+                  </span>
+                </div>
+                {context.location && (
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeLocation(context.location)}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className={`h-4 w-4 ${(context.stage && context.stage !== 'initial') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm ${(context.stage && context.stage !== 'initial') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+                    Research stage
+                  </span>
+                </div>
+                {(context.stage && context.stage !== 'initial') && (
+                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeStage(context.stage)}</p>
                 )}
               </div>
 
@@ -129,6 +203,7 @@ export function ContextPanel({
               </div>
             </div>
           </div>
+
         </CardContent>
       </Card>
 
@@ -149,6 +224,7 @@ export function ContextPanel({
                   {questions.problemDiscovery?.length || 0} questions to understand current challenges
                 </p>
               </div>
+
               <div>
                 <Badge variant="outline" className="mb-2">Solution Validation</Badge>
                 <p className="text-sm text-muted-foreground">
@@ -180,6 +256,24 @@ export function ContextPanel({
           </CardContent>
         </Card>
       )}
+      {/* Original LLM Prompt (Debug) */}
+      {debugPrompt && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              Original prompt (debug)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <details>
+              <summary className="text-sm text-muted-foreground cursor-pointer">Show prompt</summary>
+              <pre className="mt-2 max-h-64 overflow-auto text-xs whitespace-pre-wrap">{debugPrompt}</pre>
+            </details>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }

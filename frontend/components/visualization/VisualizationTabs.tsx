@@ -272,19 +272,46 @@ export default function VisualizationTabsRefactored({
     router.push(newUrl);
   };
 
-  // Check if this is multi-stakeholder analysis
-  const isMultiStakeholder = !!(stakeholderIntelligence?.detected_stakeholders?.length);
+  // Check if this is multi-stakeholder analysis (require at least 2 stakeholders)
   const stakeholderCount = stakeholderIntelligence?.detected_stakeholders?.length || 0;
+  const isMultiStakeholder = stakeholderCount >= 2;
+
+  // Determine if Stakeholder Dynamics has meaningful content to show
+  const dynamicsCounts = {
+    consensus: stakeholderIntelligence?.cross_stakeholder_patterns?.consensus_areas?.length || 0,
+    conflicts: stakeholderIntelligence?.cross_stakeholder_patterns?.conflict_zones?.length || 0,
+    influence: stakeholderIntelligence?.cross_stakeholder_patterns?.influence_networks?.length || 0,
+  };
+  const hasDynamicsContent = (dynamicsCounts.consensus + dynamicsCounts.conflicts + dynamicsCounts.influence) > 0
+    || !!stakeholderIntelligence?.multi_stakeholder_summary;
+
+  // Feature flag: hide Stakeholder Dynamics by default in OSS until ready
+  const dynamicsEnabled = process.env.NEXT_PUBLIC_...=***REMOVED*** 'true';
+  const showStakeholderDynamics = dynamicsEnabled && isMultiStakeholder && hasDynamicsContent;
 
   // Debug logging for stakeholder intelligence (temporarily enabled for production debugging)
   console.log('Analysis data keys:', analysis ? Object.keys(analysis) : 'No analysis');
   console.log('Has stakeholder_intelligence:', !!stakeholderIntelligence);
   console.log('Stakeholder intelligence data:', stakeholderIntelligence);
+  console.log('Stakeholders detected:', stakeholderCount);
   console.log('Is multi-stakeholder:', isMultiStakeholder);
+  console.log('Dynamics content counts:', dynamicsCounts);
+  console.log('Show Stakeholder Dynamics:', showStakeholderDynamics);
   console.log('Environment variables:', {
+    NEXT_PUBLIC_...=***REMOVED***
     NEXT_PUBLIC_...=***REMOVED***
     NODE_ENV: process.env.NODE_ENV
   });
+
+  // If URL requests Stakeholder Dynamics but it's not available, redirect to a safe tab
+  useEffect(() => {
+    if (activeTabFromUrl === 'stakeholder-dynamics' && !showStakeholderDynamics) {
+      const currentParams = new URLSearchParams(searchParams.toString());
+      currentParams.set('visualizationTab', 'themes');
+      router.replace(`/unified-dashboard?${currentParams.toString()}`);
+      setActiveTabSafe('themes');
+    }
+  }, [activeTabFromUrl, showStakeholderDynamics, router, searchParams, setActiveTabSafe]);
 
   return (
     <Card className="w-full">
@@ -294,12 +321,12 @@ export default function VisualizationTabsRefactored({
           <CardDescription>
             Created {analysis?.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Date unavailable'} • {analysis?.llmProvider || 'AI'} Analysis
             {/* NEW: Multi-stakeholder indicator - moved outside CardDescription to avoid div in p */}
-            {isMultiStakeholder && (
+            {showStakeholderDynamics && (
               <> • {stakeholderCount} Stakeholders</>
             )}
           </CardDescription>
           {/* Multi-stakeholder badge moved outside CardDescription */}
-          {isMultiStakeholder && (
+          {showStakeholderDynamics && (
             <Badge variant="outline" className="ml-2 text-xs mt-1">
               Multi-Stakeholder Analysis
             </Badge>
@@ -329,10 +356,10 @@ export default function VisualizationTabsRefactored({
         {!loading && !fetchError && analysis && ( // Ensure analysis data exists
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             {/* Enhanced TabsList - conditionally show 7th tab */}
-            <TabsList className={`w-full ${isMultiStakeholder ? 'grid-cols-7' : 'grid-cols-6'} grid`}>
+            <TabsList className={`w-full ${showStakeholderDynamics ? 'grid-cols-7' : 'grid-cols-6'} grid`}>
               <TabsTrigger value="themes">
                 Themes
-                {isMultiStakeholder && <Badge variant="outline" className="ml-1 text-xs">Multi</Badge>}
+                {showStakeholderDynamics && <Badge variant="outline" className="ml-1 text-xs">Multi</Badge>}
               </TabsTrigger>
               <TabsTrigger value="patterns">Patterns</TabsTrigger>
               <TabsTrigger value="personas">Personas</TabsTrigger>
@@ -340,7 +367,7 @@ export default function VisualizationTabsRefactored({
               <TabsTrigger value="priority">Priority</TabsTrigger>
               <TabsTrigger value="prd">PRD</TabsTrigger>
               {/* NEW: Stakeholder Dynamics tab - only show for multi-stakeholder data */}
-              {isMultiStakeholder && (
+              {showStakeholderDynamics && (
                 <TabsTrigger value="stakeholder-dynamics">
                   <div className="flex items-center gap-1">
                     <Network className="h-3 w-3" />
@@ -490,7 +517,7 @@ export default function VisualizationTabsRefactored({
             </CustomErrorBoundary>
 
             {/* NEW: Stakeholder Dynamics Tab */}
-            {isMultiStakeholder && (
+            {showStakeholderDynamics && (
               <CustomErrorBoundary
                 fallback={
                   <div className="p-4 border border-red-300 bg-red-50 rounded-md mt-6">
