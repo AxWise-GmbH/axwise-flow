@@ -30,6 +30,7 @@ class PersonaGenerator:
             system_prompt=self._get_system_prompt(),
         )
         self.used_names_by_category = {}  # Track used names per stakeholder category
+        self.used_names_global = set()  # Track used first+last names across entire simulation
 
     def _get_system_prompt(self) -> str:
         return """You are an expert persona generator for customer research simulations.
@@ -118,8 +119,21 @@ Keep responses concise and realistic."""
                     f"🏷️ Assigned stakeholder_type '{stakeholder.name}' to persona '{person.name}'"
                 )
 
-                # Track names for uniqueness within stakeholder category
-                self.used_names_by_category[stakeholder_key].add(person.name)
+                # Enforce global uniqueness on first+last (before comma)
+                base_name = person.name.split(',')[0].strip() if person.name else ""
+                if base_name and base_name in self.used_names_global:
+                    original = person.name
+                    person.name = self._make_unique_full_name(person.name)
+                    logger.info(f"🔁 Renamed duplicate '{original}' to '{person.name}'")
+                    base_name = person.name.split(',')[0].strip()
+
+                if base_name:
+                    self.used_names_global.add(base_name)
+                    # Track names for uniqueness within stakeholder category too
+                    self.used_names_by_category[stakeholder_key].add(base_name)
+                else:
+                    # Fallback: add full name if parsing failed
+                    self.used_names_by_category[stakeholder_key].add(person.name)
 
             logger.info(
                 f"Successfully generated {len(people)} people for {stakeholder.name}"
@@ -133,6 +147,28 @@ Keep responses concise and realistic."""
             logger.error(f"Failed to generate personas: {str(e)}", exc_info=True)
             raise
 
+    def _make_unique_full_name(self, full_name: str) -> str:
+        """Create a unique full name by adding a middle initial or numeric suffix.
+        Works on the base 'First Last' part before the comma, preserves title after comma.
+        """
+        base, sep, title = (full_name or "").partition(',')
+        base = base.strip()
+        title = title.strip()
+        parts = base.split()
+        # Try adding middle initial variations if we have First and Last
+        if len(parts) >= 2:
+            first, last = parts[0], parts[-1]
+            for i in range(26):
+                candidate_base = f"{first} {chr(65 + i)}. {last}"
+                if candidate_base not in getattr(self, 'used_names_global', set()):
+                    return f"{candidate_base}{(', ' + title) if sep and title else ''}"
+        # Fallback: append a numeric suffix
+        suffix = 2
+        while f"{base} {suffix}" in getattr(self, 'used_names_global', set()):
+            suffix += 1
+        candidate_base = f"{base} {suffix}"
+        return f"{candidate_base}{(', ' + title) if sep and title else ''}"
+
     def _build_person_prompt(
         self,
         stakeholder: Stakeholder,
@@ -141,7 +177,7 @@ Keep responses concise and realistic."""
     ) -> str:
         """Build the prompt for individual person generation."""
 
-        # Include used names to avoid duplicates within stakeholder category
+        # Include used names to avoid duplicates (category and global)
         used_names_text = ""
         stakeholder_key = f"{stakeholder.name}_{stakeholder.description}"
         if (
@@ -149,6 +185,12 @@ Keep responses concise and realistic."""
             and self.used_names_by_category[stakeholder_key]
         ):
             used_names_text = f"\n\nIMPORTANT: Do NOT use these names (already used for {stakeholder.name}): {', '.join(sorted(self.used_names_by_category[stakeholder_key]))}"
+
+        used_global_text = ""
+        if getattr(self, 'used_names_global', None):
+            global_list = sorted(list(self.used_names_global))
+            if global_list:
+                used_global_text = f"\n\nIMPORTANT: Do NOT reuse these first+last names across ANY stakeholder category in this simulation: {', '.join(global_list)}"
 
         return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
@@ -184,14 +226,13 @@ Make sure the people are diverse in:
 IMPORTANT: Generate individual people, not behavioral patterns. Each person should be a unique individual with their own characteristics, not a representative of a pattern or archetype.
 
 CRITICAL REQUIREMENTS:
-- Each persona must have a UNIQUE name within this stakeholder category only
-- Names should reflect the stakeholder's professional context and include position/title
+- Each person must have a UNIQUE first+last name across the entire simulation (across all stakeholder categories)
+- Do NOT reuse any first+last combination listed as already used in this simulation
 - Format: "FirstName LastName, Position/Title" (e.g., "Sarah Chen, Senior Finance Director")
 - Personas should be distinctly different from each other within this stakeholder category
 - Focus on realistic diversity within the stakeholder category
-- Different stakeholder categories can have people with similar names (they're different people)
 
-The personas should feel like real people who would genuinely interact with this business idea.{used_names_text}"""
+The personas should feel like real people who would genuinely interact with this business idea.{used_names_text}{used_global_text}"""
 
     async def generate_all_people(
         self,
@@ -203,6 +244,7 @@ The personas should feel like real people who would genuinely interact with this
 
         # Reset used names for each new simulation
         self.used_names_by_category.clear()
+        self.used_names_global.clear()
         all_people = []
 
         for stakeholder_category, stakeholder_list in stakeholders.items():

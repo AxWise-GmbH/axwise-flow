@@ -14,13 +14,25 @@ export async function GET(
     const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
     console.log('Simulation Download API: Using development token (OSS mode)');
 
-    const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/completed/${simulationId}`, {
+    // Prefer query-param endpoint to avoid any path-based redirect quirks
+    let response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/completed-item?simulation_id=${encodeURIComponent(simulationId)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
       },
     });
+
+    // Fallback to path-param endpoint if needed
+    if (!response.ok) {
+      response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/completed/${simulationId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+    }
 
     if (!response.ok) {
       console.error(`Backend responded with ${response.status}: ${response.statusText}`);

@@ -123,6 +123,8 @@ export default function SimulationHistoryPage(): JSX.Element {
     );
   };
 
+
+
   // Fetch simulation history from both localStorage and backend API
   const fetchSimulationHistory = useCallback(async () => {
     setIsLoading(true);
@@ -200,6 +202,7 @@ export default function SimulationHistoryPage(): JSX.Element {
 
               // Group interviews by stakeholder type
               const stakeholderMap = new Map<string, InterviewData[]>();
+              const allEntries: Array<{ interview: InterviewData; stakeholderType: string }> = [];
 
               simulationData.interviews?.forEach((interview: any) => {
                 const stakeholderType = interview.stakeholder_type || 'Unknown';
@@ -244,6 +247,31 @@ export default function SimulationHistoryPage(): JSX.Element {
                   stakeholderMap.set(stakeholderType, []);
                 }
                 stakeholderMap.get(stakeholderType)!.push(interviewData);
+                allEntries.push({ interview: interviewData, stakeholderType });
+              });
+
+              // Disambiguate duplicate base names across clusters for display
+              const baseNameCounts = new Map<string, number>();
+              allEntries.forEach(({ interview }) => {
+                const base = (interview.personaDetails.name || '').split(',')[0].trim();
+                if (!base) return;
+                baseNameCounts.set(base, (baseNameCounts.get(base) || 0) + 1);
+              });
+              const duplicates = Array.from(baseNameCounts.entries()).filter(([, c]) => c > 1).map(([n]) => n);
+              if (duplicates.length > 0) {
+                const dupInfo = duplicates.map((base) => {
+                  const samples = allEntries
+                    .filter(e => (e.interview.personaDetails.name || '').split(',')[0].trim() === base)
+                    .map(e => ({ stakeholderType: e.stakeholderType, role: e.interview.personaDetails.role, age: e.interview.personaDetails.age }));
+                  return { base, samples };
+                });
+                console.warn('🔁 Duplicate person base names across clusters (localStorage):', dupInfo);
+              }
+              allEntries.forEach(({ interview, stakeholderType }) => {
+                const base = (interview.personaDetails.name || '').split(',')[0].trim();
+                if (base && (baseNameCounts.get(base) || 0) > 1) {
+                  interview.personaName = `${interview.personaDetails.name} • ${stakeholderType}`;
+                }
               });
 
               stakeholders = Array.from(stakeholderMap.entries()).map(([type, interviews]) => ({
@@ -253,13 +281,26 @@ export default function SimulationHistoryPage(): JSX.Element {
             } else if (source === 'backend') {
               // Try to fetch detailed data from backend
               try {
-                const detailResponse = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+                // Prefer direct backend endpoint to avoid Next.js route redirect quirk
+                let detailResponse = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/completed-item?simulation_id=${encodeURIComponent(simulationId)}` , {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${devToken}`,
+                  },
+                });
+                // Fallback to Next.js API route proxy if needed
+                if (!detailResponse.ok) {
+                  detailResponse = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
+                }
                 if (detailResponse.ok) {
                   const detailData = await detailResponse.json();
                   businessContext = detailData.business_context || detailData.metadata?.business_context || '';
 
                   // Group interviews by stakeholder type
                   const stakeholderMap = new Map<string, InterviewData[]>();
+                  const allEntries2: Array<{ interview: InterviewData; stakeholderType: string }> = [];
 
                   detailData.interviews?.forEach((interview: any) => {
                     const stakeholderType = interview.stakeholder_type || 'Unknown';
@@ -301,6 +342,31 @@ export default function SimulationHistoryPage(): JSX.Element {
                       stakeholderMap.set(stakeholderType, []);
                     }
                     stakeholderMap.get(stakeholderType)!.push(interviewData);
+                    allEntries2.push({ interview: interviewData, stakeholderType });
+                  });
+
+                  // Disambiguate duplicate base names across clusters for display (backend)
+                  const baseNameCounts2 = new Map<string, number>();
+                  allEntries2.forEach(({ interview }) => {
+                    const base = (interview.personaDetails.name || '').split(',')[0].trim();
+                    if (!base) return;
+                    baseNameCounts2.set(base, (baseNameCounts2.get(base) || 0) + 1);
+                  });
+                  const duplicates2 = Array.from(baseNameCounts2.entries()).filter(([, c]) => c > 1).map(([n]) => n);
+                  if (duplicates2.length > 0) {
+                    const dupInfo2 = duplicates2.map((base) => {
+                      const samples = allEntries2
+                        .filter(e => (e.interview.personaDetails.name || '').split(',')[0].trim() === base)
+                        .map(e => ({ stakeholderType: e.stakeholderType, role: e.interview.personaDetails.role, age: e.interview.personaDetails.age }));
+                      return { base, samples };
+                    });
+                    console.warn('🔁 Duplicate person base names across clusters (backend):', dupInfo2);
+                  }
+                  allEntries2.forEach(({ interview, stakeholderType }) => {
+                    const base = (interview.personaDetails.name || '').split(',')[0].trim();
+                    if (base && (baseNameCounts2.get(base) || 0) > 1) {
+                      interview.personaName = `${interview.personaDetails.name} • ${stakeholderType}`;
+                    }
                   });
 
                   stakeholders = Array.from(stakeholderMap.entries()).map(([type, interviews]) => ({
@@ -470,7 +536,17 @@ export default function SimulationHistoryPage(): JSX.Element {
       } else {
         // Fallback to backend API
         console.log('🔗 Fetching from backend API for download');
-        const response = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+        let response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/completed-item?simulation_id=${encodeURIComponent(simulationId)}` , {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${devToken}`,
+          },
+        });
+        if (!response.ok) {
+          response = await fetch(`/api/research/simulation-bridge/completed/${simulationId}`);
+        }
 
         if (!response.ok) {
           throw new Error(`Download failed: ${response.statusText}`);
@@ -838,6 +914,30 @@ export default function SimulationHistoryPage(): JSX.Element {
                   {/* Expanded Stakeholder List */}
                   {expandedSimulations.has(simulation.id) && simulation.stakeholders && (
                     <div className="ml-4 mt-2 space-y-1">
+
+
+
+	                      
+	                        
+	                        
+	                        
+	                          
+	                            
+	                              
+	                              
+	                            
+	                            
+	                              
+	                                
+	                                  
+	                                
+	                              
+	                            
+	                          
+	                        
+	                      
+                      
+
                       {simulation.stakeholders.map((stakeholder, index) => (
                         <div key={stakeholder.type} className={`space-y-1 ${index > 0 ? 'mt-3' : ''}`}>
                           <div className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted/30 rounded">

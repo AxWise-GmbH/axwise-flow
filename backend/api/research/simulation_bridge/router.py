@@ -548,6 +548,29 @@ async def get_cache_info() -> Dict[str, Any]:
         )
 
 
+# Compatibility route to avoid redirect quirks on some setups
+@router.get("/completed/by-id/{simulation_id}")
+async def get_completed_simulation_by_id(
+    simulation_id: str, user: User = Depends(get_current_user)
+) -> SimulationResponse:
+    """
+    Alternate path for fetching a completed simulation by ID.
+    Delegates to the primary handler to ensure identical behavior.
+    """
+    return await get_completed_simulation(simulation_id, user)
+
+# Query-param alternative to avoid any path segment redirect issues
+@router.get("/completed-item")
+async def get_completed_simulation_item(
+    simulation_id: str, user: User = Depends(get_current_user)
+) -> SimulationResponse:
+    """
+    Fetch a completed simulation by ID using a query parameter.
+    Equivalent to GET /completed/{simulation_id}.
+    """
+    return await get_completed_simulation(simulation_id, user)
+
+
 @router.get("/completed/{simulation_id}")
 async def get_completed_simulation(
     simulation_id: str, user: User = Depends(get_current_user)
@@ -563,76 +586,70 @@ async def get_completed_simulation(
             logger.info(f"Retrieved completed simulation from memory: {simulation_id}")
             return result
 
-        # If not in memory, try database (only when auth/production mode)
+        # If not in memory, try database (always attempt; ownership enforced only when auth validation is enabled)
         try:
             from backend.services.external.auth_middleware import ENABLE_CLERK_VALIDATION
         except Exception:
             ENABLE_CLERK_...=***REMOVED***
 
-        if ENABLE_CLERK_VALIDATION:
-            try:
-                from backend.infrastructure.persistence.unit_of_work import UnitOfWork
-                from backend.infrastructure.persistence.simulation_repository import (
-                    SimulationRepository,
-                )
-                from backend.database import SessionLocal
-
-                async with UnitOfWork(SessionLocal) as uow:
-                    simulation_repo = SimulationRepository(uow.session)
-                    db_simulation = await simulation_repo.get_by_simulation_id(simulation_id)
-
-                    if not db_simulation or db_simulation.status != "completed":
-                        raise HTTPException(
-                            status_code=404, detail="Completed simulation not found"
-                        )
-
-                    # Ownership check (only when auth is enabled)
-                    if db_simulation.user_id != user.user_id:
-                        raise HTTPException(
-                            status_code=403,
-                            detail="Access denied: You can only access your own simulations",
-                        )
-
-                    # Convert database record to SimulationResponse
-                    response = SimulationResponse(
-                        success=True,
-                        message="Simulation completed successfully",
-                        simulation_id=db_simulation.simulation_id,
-                        data=db_simulation.formatted_data or {},
-                        metadata={
-                            "total_personas": db_simulation.total_personas or 0,
-                            "total_interviews": db_simulation.total_interviews or 0,
-                            "created_at": (
-                                db_simulation.completed_at.isoformat()
-                                if db_simulation.completed_at
-                                else db_simulation.created_at.isoformat()
-                            ),
-                        },
-                        people=db_simulation.personas or [],
-                        interviews=db_simulation.interviews or [],
-                        simulation_insights=db_simulation.insights,
-                        recommendations=[],
-                    )
-
-                    logger.info(
-                        f"Retrieved completed simulation from database: {simulation_id}"
-                    )
-                    return response
-            except HTTPException:
-                raise
-            except Exception as db_ex:
-                # DB table may be missing in OSS mode; treat as not found instead of 500
-                logger.warning(
-                    f"Completed simulation DB lookup skipped due to error: {db_ex}"
-                )
-                raise HTTPException(
-                    status_code=404, detail="Completed simulation not found"
-                )
-        else:
-            logger.info(
-                f"Development mode: Skipping database lookup for completed simulation {simulation_id}"
+        try:
+            from backend.infrastructure.persistence.unit_of_work import UnitOfWork
+            from backend.infrastructure.persistence.simulation_repository import (
+                SimulationRepository,
             )
-            raise HTTPException(status_code=404, detail="Completed simulation not found")
+            from backend.database import SessionLocal
+
+            async with UnitOfWork(SessionLocal) as uow:
+                simulation_repo = SimulationRepository(uow.session)
+                db_simulation = await simulation_repo.get_by_simulation_id(simulation_id)
+
+                if not db_simulation or db_simulation.status != "completed":
+                    raise HTTPException(
+                        status_code=404, detail="Completed simulation not found"
+                    )
+
+                # Ownership check only when auth validation is enforced
+                if ENABLE_CLERK_VALIDATION and db_simulation.user_id != user.user_id:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Access denied: You can only access your own simulations",
+                    )
+
+                # Convert database record to SimulationResponse
+                response = SimulationResponse(
+                    success=True,
+                    message="Simulation completed successfully",
+                    simulation_id=db_simulation.simulation_id,
+                    data=db_simulation.formatted_data or {},
+                    metadata={
+                        "total_personas": db_simulation.total_personas or 0,
+                        "total_interviews": db_simulation.total_interviews or 0,
+                        "created_at": (
+                            db_simulation.completed_at.isoformat()
+                            if db_simulation.completed_at
+                            else db_simulation.created_at.isoformat()
+                        ),
+                    },
+                    people=db_simulation.personas or [],
+                    interviews=db_simulation.interviews or [],
+                    simulation_insights=db_simulation.insights,
+                    recommendations=[],
+                )
+
+                logger.info(
+                    f"Retrieved completed simulation from database: {simulation_id}"
+                )
+                return response
+        except HTTPException:
+            raise
+        except Exception as db_ex:
+            # DB table may be missing in OSS mode; treat as not found instead of 500
+            logger.warning(
+                f"Completed simulation DB lookup skipped due to error: {db_ex}"
+            )
+            raise HTTPException(
+                status_code=404, detail="Completed simulation not found"
+            )
 
     except HTTPException:
         raise

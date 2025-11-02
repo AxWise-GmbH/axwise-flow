@@ -731,27 +731,29 @@ class SimulationOrchestrator:
         return int(total_time)
 
     def _calculate_remaining_time(self, progress: SimulationProgress) -> int:
-        """Calculate estimated remaining time based on current progress."""
+        """Calculate estimated remaining time based on current progress.
+
+        Uses the same per-persona timing assumptions as _estimate_simulation_time
+        and scales by the remaining percentage to keep estimates consistent.
+        """
         if progress.progress_percentage >= 100:
             return 0
 
-        # Estimate based on stage and progress
-        stage_weights = {
-            "initializing": 0.05,
-            "generating_personas": 0.20,
-            "simulating_interviews": 0.60,
-            "generating_insights": 0.10,
-            "formatting_data": 0.03,
-            "creating_files": 0.01,
-            "saving_results": 0.01,
-        }
+        # Derive total expected time using the same formula as _estimate_simulation_time
+        try:
+            total_personas = getattr(progress, "total_personas", 0) or 0
+        except Exception:
+            total_personas = 0
 
-        current_weight = stage_weights.get(progress.stage, 0.1)
-        remaining_percentage = (100 - progress.progress_percentage) / 100
+        persona_generation_time = max(1, total_personas * 0.3)
+        interview_time = max(2, total_personas * 0.8)
+        analysis_time = max(1, total_personas * 0.2)
+        overhead_time = 2
 
-        # Base estimate: 2-5 minutes for typical simulation
-        base_time = max(2, progress.total_personas * 0.15)
-        remaining_time = int(base_time * remaining_percentage)
+        total_time = persona_generation_time + interview_time + analysis_time + overhead_time
+
+        remaining_fraction = max(0.0, 1.0 - (progress.progress_percentage / 100.0))
+        remaining_time = int(round(total_time * remaining_fraction))
 
         return max(1, remaining_time)
 
