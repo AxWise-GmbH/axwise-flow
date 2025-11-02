@@ -568,7 +568,7 @@ export default function VisualizationTabsRefactored({
         )}
 
         {/* Admin debug panel - only visible to admin users */}
-        {process.env.NODE_ENV === 'development' && user?.primaryEmailAddress?.emailAddress === 'vitalijs@axwise.de' && (
+        {process.env.NODE_ENV === 'development' && user?.primaryEmailAddress?.emailAddress && (
           <div className="mt-8 p-4 border border-gray-200 rounded-md bg-gray-50">
             <h3 className="font-medium mb-2">Debug Information (Admin Only)</h3>
             <div className="space-y-2">
