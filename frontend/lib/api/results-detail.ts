@@ -305,7 +305,7 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
       const response = await fetch(`${backendUrl}/api/results/${id}`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer DEV_TOKEN_REDACTED',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED'}`,
           'Content-Type': 'application/json',
         },
       });
@@ -350,7 +350,7 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         try {
           // In dev, backend accepts any non-empty Bearer when Clerk validation is disabled
-          const devToken = 'DEV_TOKEN_REDACTED';
+          const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
           const resp2 = await fetch(`${backendUrl}/api/results/${id}`, {
             method: 'GET',
             headers: {

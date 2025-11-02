@@ -73,7 +73,7 @@ export function AdminLayout({
   if (requireSuperAdmin) {
     const userRole = user?.publicMetadata?.role as string;
     const isSuperAdmin = userRole === 'super_admin' || 
-      user?.primaryEmailAddress?.emailAddress === 'vitalijs@axwise.de';
+      user?.primaryEmailAddress?.emailAddress; // Admin check removed for OSS
     
     if (!isSuperAdmin) {
       return (

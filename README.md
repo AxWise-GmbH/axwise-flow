@@ -113,6 +113,26 @@ npm run dev
 
 Open http://localhost:3000 in your browser
 
+### Minimal environment you need for a local showcase (no per‑file edits)
+
+You do not need to set environment variables inside each `route.ts` or `page.tsx`. The code reads configuration from the env files and shared helpers.
+
+- Backend (edit `backend/.env.oss`):
+  - `OSS_MODE=true`
+  - `DATABASE_URL=***REDACTED***
+  - `GEMINI_API_KEY=***REMOVED***
+
+- Frontend (edit `frontend/.env.local.oss`):
+  - `NEXT_PUBLIC_...=***REMOVED***
+  - `NEXT_PUBLIC_...=***REMOVED***
+  - `NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED***
+  - Optional: `NEXT_PUBLIC_...=***REMOVED*** (defaults to `DEV_TOKEN_REDACTED` if omitted)
+
+Notes:
+- In OSS mode the backend accepts development tokens that start with `dev_test_token_`; the frontend injects this token automatically into API calls via shared helpers.
+- No changes to individual routes/pages are required for auth in OSS mode.
+
+
 ## 📚 Documentation
 
 - [Backend Documentation](backend/README.md)

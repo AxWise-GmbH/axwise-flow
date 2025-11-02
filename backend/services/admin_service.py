@@ -24,9 +24,9 @@ class AdminService:
     """Secure admin service with role-based access control"""
 
     # Secure admin configuration from environment
-    ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "vitalijs@axwise.de").split(",")
+    ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "admin@example.com").split(",")
     ADMIN_USER_IDS = os.getenv(
-        "ADMIN_USER_IDS", "user_2xdZVfEfNCMGdl6ZsBLYYdCoWIw"
+        "ADMIN_USER_IDS", "user_admin_id_placeholder"
     ).split(",")
     ADMIN_TRIAL_DURATION_DAYS = int(os.getenv("ADMIN_TRIAL_DURATION_DAYS", "30"))
     MAX_ADMIN_TRIALS_PER_USER = int(os.getenv("MAX_ADMIN_TRIALS_PER_USER", "1"))

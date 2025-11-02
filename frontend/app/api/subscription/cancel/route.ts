@@ -4,14 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string> {
-  // In development mode, use a development token
-  if (process.env.NODE_ENV === 'development') {
-    return 'DEV_TOKEN_REDACTED';
-  }
-
-  // In production, this would get the actual Clerk JWT token
-  // For now, return development token
-  return 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
 }
 
 export async function POST(request: NextRequest) {

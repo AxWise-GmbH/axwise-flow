@@ -1,0 +1,19 @@
+# pack-refs with: peeled fully-peeled sorted 
+8a1f6551a434a1d8ae8c7c291b7f8809125102af refs/heads/main
+8a1f6551a434a1d8ae8c7c291b7f8809125102af refs/remotes/origin/HEAD
+8ec6b3a3e2bc257d7a93dc00353c81d715a8ab44 refs/remotes/origin/backup-before-override-9e35e83f
+7a6df82c33d6d2e2c2b1000a3d7f545cd4c1f850 refs/remotes/origin/backup-main
+9bade45ab62ba15791b9fb6079c32befc0471432 refs/remotes/origin/cherry-pick-2025-09-21
+e354fa82152dc0164b8fb54c4bf705907e06f5e9 refs/remotes/origin/chore/safety-fixes-lazy-factory-readiness
+83993b7bd6ec4b48a14e9472b0ffa1b2abf72a83 refs/remotes/origin/fix-clerk-auth
+2c43d3fa44635d0d40d87577d65ee9e5cc328630 refs/remotes/origin/fix-deployment
+93bb36ae9ac93fcc4b8c9b6fbcd5fbc73f90a528 refs/remotes/origin/fix/restore-396-parity-evidence-stakeholders
+8a1f6551a434a1d8ae8c7c291b7f8809125102af refs/remotes/origin/main
+28979dd67c2464c56d3fe3ad86e07325a4549ffc refs/remotes/origin/merged-branch
+b731209fbe37413f6bdf5b80a68100a3f6a8d34f refs/remotes/origin/merged-branch-2
+0cbc563599837bc54ce2a0b40fb52b27ed9d47e7 refs/remotes/origin/model-params-refactoring
+2f46c7de5f9ad6e13eda9f02aee8d26060f290de refs/remotes/origin/new-main
+56660b835aebb0cee67a5f3d60026714c7d6a0d4 refs/remotes/origin/recover-2025-09-22-ed31
+eb880c0e9c166817dbb03bdff8718727ea29e98c refs/remotes/origin/restored-2025-09-21
+bf8361da556bac076ab51e63b29aa637643f1583 refs/remotes/origin/rollback_branch
+3d10156c7ba90c4adf57534eccea6f9095bf796e refs/remotes/origin/working-conversation-routines

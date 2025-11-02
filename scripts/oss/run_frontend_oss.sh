@@ -56,19 +56,25 @@ echo -e "${GREEN}✓ NEXT_PUBLIC_...=***REMOVED*** ${NEXT_PUBLIC_...=***REMOVED*
 echo -e "${GREEN}✓ NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED*** ${NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED***"
 echo ""
 
+# Reminder: minimal OSS setup (no per-file edits needed)
+echo -e "${BLUE}OSS showcase setup:${NC} Configure ${YELLOW}frontend/.env.local.oss${NC}; script copies it to .env.local"
+echo -e "${BLUE}Auth in OSS mode:${NC} Backend accepts dev tokens starting with ${YELLOW}dev_test_token_${NC}"
+echo -e "${BLUE}Frontend token:${NC} Use NEXT_PUBLIC_DEV_AUTH_TOKEN or default ${YELLOW}DEV_TOKEN_REDACTED${NC}"
+
+
 # Check if node_modules exists
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
     echo -e "${YELLOW}⚠ Warning: node_modules not found${NC}"
     echo -e "${YELLOW}  Installing dependencies...${NC}"
     echo ""
-    
+
     # Check if npm is available
     if ! command -v npm &> /dev/null; then
         echo -e "${RED}Error: npm is not installed${NC}"
         echo -e "${YELLOW}Please install Node.js and npm first${NC}"
         exit 1
     fi
-    
+
     npm install
     echo ""
 fi

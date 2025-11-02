@@ -66,6 +66,12 @@ echo -e "${GREEN}✓ DATABASE_URL=***REDACTED*** ${DATABASE_URL}"
 echo -e "${GREEN}✓ GEMINI_API_KEY=***REMOVED*** ${GEMINI_API_KEY=***REMOVED***"
 echo ""
 
+# Reminder: minimal OSS setup (no per-file edits needed)
+echo -e "${BLUE}OSS showcase setup:${NC} Set OSS_MODE, DATABASE_URL, GEMINI_API_KEY in backend/.env.oss"
+echo -e "${BLUE}Auth in OSS mode:${NC} Backend accepts dev tokens starting with ${YELLOW}dev_test_token_${NC}"
+echo -e "${BLUE}Frontend token:${NC} Provided via NEXT_PUBLIC_DEV_AUTH_TOKEN or defaults to ${YELLOW}DEV_TOKEN_REDACTED${NC}"
+
+
 # Check if PostgreSQL is running and ensure database exists
 echo -e "${BLUE}Checking PostgreSQL connection...${NC}"
 if command -v psql &> /dev/null; then

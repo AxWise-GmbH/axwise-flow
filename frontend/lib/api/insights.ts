@@ -46,7 +46,7 @@ export async function getPriorityInsights(analysisId: string): Promise<PriorityI
     const directResponse = await fetch(`${backendUrl}/api/analysis/priority?result_id=${analysisId}`, {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer DEV_TOKEN_REDACTED', // Development token
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED'}`,
         'Content-Type': 'application/json',
       },
     });

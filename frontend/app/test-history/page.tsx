@@ -14,7 +14,7 @@ export default function TestHistoryPage() {
         const response = await fetch('http://localhost:8000/api/analyses', {
           method: 'GET',
           headers: {
-            'Authorization': 'Bearer DEV_TOKEN_REDACTED',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED'}`,
             'Content-Type': 'application/json',
           },
         });

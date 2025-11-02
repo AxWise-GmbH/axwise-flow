@@ -97,6 +97,20 @@ The default database configuration expects:
 
 You can modify these in `backend/.env.oss` if your PostgreSQL setup is different.
 
+
+### Frontend environment (optional)
+
+For the Next.js UI you also do not need to touch individual `route.ts`/`page.tsx` files. Configure only `frontend/.env.local.oss` and the scripts will copy it to `.env.local`:
+
+- `NEXT_PUBLIC_...=***REMOVED***
+- `NEXT_PUBLIC_...=***REMOVED***
+- `NEXT_PUBLIC_ENABLE_CLERK_...=***REMOVED***
+- Optional: `NEXT_PUBLIC_...=***REMOVED*** (defaults to `DEV_TOKEN_REDACTED`)
+
+Notes:
+- The frontend automatically attaches the dev token via shared API helpers; the backend accepts any token starting with `dev_test_token_` in OSS mode.
+- No per-file edits are required to enable auth-less OSS mode.
+
 ## Troubleshooting
 
 ### PostgreSQL Connection Issues

@@ -29,7 +29,7 @@ export const initializeAuth = async (): Promise<void> => {
 
     if (!isProduction && !enableClerkValidation) {
       // For development mode only, provide a test token
-      const devToken = 'DEV_TOKEN_REDACTED';
+      const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
       console.log('Setting development auth token (development mode only)');
       apiClient.setAuthToken(devToken);
     } else {

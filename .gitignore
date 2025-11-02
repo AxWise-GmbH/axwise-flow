@@ -12,3 +12,18 @@ frontend/node_modules/
 .vercel/
 .env.local
 .env.*.local
+
+
+# Security/cleanup artifacts
+repomix-output.xml
+.firebase/
+bfg.jar
+*.jar
+backend.env.prod
+
+# Local env files in frontend (use .env.local.oss via script)
+frontend/.env.local
+frontend/.env.production
+
+# Build metadata
+*.tsbuildinfo

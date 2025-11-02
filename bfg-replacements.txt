@@ -1,17 +1,43 @@
 ***REMOVED***
 <replacement>==><replacement>
 
+***REMOVED***
 regex:(?i)GEMINI_API_KEY\s*[:=]\s*[^\s'"\n]+==>GEMINI_API_KEY=***REMOVED***
 regex:(?i)OPENAI_API_KEY\s*[:=]\s*[^\s'"\n]+==>OPENAI_API_KEY=***REMOVED***
 regex:(?i)ANTHROPIC_API_KEY\s*[:=]\s*[^\s'"\n]+==>ANTHROPIC_API_KEY=***REMOVED***
 regex:(?i)HUGGINGFACE_TOKEN\s*[:=]\s*[^\s'"\n]+==>HUGGINGFACE_TOKEN=***REMOVED***
 regex:(?i)GOOGLE_(API|CLIENT|SECRET)_KEY\s*[:=]\s*[^\s'"\n]+==>GOOGLE_...=***REMOVED***
+
+***REMOVED***
 regex:(?i)AWS_(ACCESS|SECRET)_KEY[A-Z_]*\s*[:=]\s*[^\s'"\n]+==>AWS_...=***REMOVED***
+
+***REMOVED***
 regex:(?i)CLERK_[A-Z0-9_]+\s*[:=]\s*[^\s'"\n]+==>CLERK_...=***REMOVED***
+regex:(?i)STRIPE_(PUBLISHABLE|SECRET|WEBHOOK)_KEY\s*[:=]\s*[^\s'"\n]+==>STRIPE_...=***REMOVED***
+
+***REMOVED***
 regex:(?i)DATABASE_URL\s*[:=]\s*[^\s]+==>DATABASE_URL=***REDACTED***
 regex:(?i)DB_PASSWORD\s*[:=]\s*[^\s'"\n]+==>DB_PASSWORD=***REMOVED***
 regex:(?i)POSTGRES_PASSWORD\s*[:=]\s*[^\s'"\n]+==>POSTGRES_PASSWORD=***REMOVED***
+regex:(?i)postgresql\+?[^:\s/]*://[^:@\s]+:[^@\s]+@[^/\s]+/[^\s]+==>postgresql://USER:PASS@HOST:PORT/DB
+
+***REMOVED***
+regex:(?i)FIREBASE_(API_KEY|PROJECT_ID|AUTH_DOMAIN|STORAGE_BUCKET|MESSAGING_SENDER_ID|APP_ID|MEASUREMENT_ID)\s*[:=]\s*[^\s'"\n]+==>FIREBASE_...=***REMOVED***
+
+***REMOVED***
 regex:(?i)NEXT_PUBLIC_[A-Z0-9_]+\s*[:=]\s*[^\s'"\n]+==>NEXT_PUBLIC_...=***REMOVED***
 
+***REMOVED***
+regex:(?i)AIza[-_A-Za-z0-9]{20,}==>AIzaREDACTED
+regex:(?i)(pk_live|pk_test)_[A-Za-z0-9]{10,}==>pk_REDACTED
+regex:(?i)(sk_live|sk_test)_[A-Za-z0-9]{10,}==>sk_REDACTED
+regex:(?i)whsec_[A-Za-z0-9]{10,}==>whsec_REDACTED
 
-regex:(?i)STRIPE_(PUBLISHABLE|SECRET|WEBHOOK)_KEY\s*[:=]\s*[^\s'"\n]+==>STRIPE_...=***REMOVED***
+***REMOVED***
+regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
+regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
+regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
+regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
+
+***REMOVED***
+regex:(?i)34\.13\.154\.146==>REDACTED_DB_HOST

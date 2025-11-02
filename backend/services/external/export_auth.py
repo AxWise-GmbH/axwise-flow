@@ -58,7 +58,7 @@ async def get_export_user(
 
     # For development, use a default token if none provided
     if not token and os.getenv("ENABLE_CLERK_VALIDATION", "false").lower() != "true":
-        token = "DEV_TOKEN_REDACTED"  # This matches the token used in apiClient.ts
+        token = os.getenv("DEV_AUTH_TOKEN") or os.getenv("NEXT_PUBLIC_DEV_AUTH_TOKEN") or "DEV_TOKEN_REDACTED"
 
     if not token:
         logger.warning("Export authentication failed: No token provided")

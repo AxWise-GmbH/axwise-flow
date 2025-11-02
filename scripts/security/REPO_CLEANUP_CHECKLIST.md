@@ -36,6 +36,7 @@ Replace with environment-driven placeholders or remove entirely. Found occurrenc
 
 - Dev tokens "DEV_TOKEN_REDACTED" and "DEV_TOKEN_REDACTED"
   - frontend/lib/api/auth.ts
+  - frontend/lib/api/research.ts
   - frontend/app/actions.ts
   - frontend/app/api/analysis/[id]/status/route.ts
   - frontend/app/api/data/route.ts
@@ -81,11 +82,14 @@ Ensure no real keys remain in HEAD nor history:
 - README.md, QUICKSTART.md, description.md: ensure no real keys in examples (replace with YOUR_API_KEY / <your_key_here> placeholders)
 
 ## F) Non-secret but advisable cleanups before release
-- Remove or move debug/developer-only pages and scripts as appropriate
+- Remove or move debug/developer-only pages and scripts; specifically remove public debug pages:
+  - frontend/public/debug-session.html
+  - frontend/public/test-cleanup.html
 - Remove committed virtualenv or node_modules (if any) and add to .gitignore:
   - venv_py-flow-oss/
   - frontend/node_modules/
 - Scrub hardcoded absolute local paths in tests/scripts
+- Verify Next.js security redirects in frontend/next.config.js block access to .env, backend/.env, .git, etc. (present in this repo)
 
 ## G) BFG replacement patterns (extend and run)
 You already have both bfg-replacements.txt and scripts/security/run-bfg-clean.sh. Extend patterns to cover current exposures:
@@ -112,10 +116,12 @@ regex:(?i)DB_PASSWORD\s*[:=]\s*[^\s'"\n]+==>DB_PASSWORD=***REMOVED***
 regex:(?i)POSTGRES_PASSWORD\s*[:=]\s*[^\s'"\n]+==>POSTGRES_PASSWORD=***REMOVED***
 regex:(?i)NEXT_PUBLIC_[A-Z0-9_]+\s*[:=]\s*[^\s'"\n]+==>NEXT_PUBLIC_...=***REMOVED***
 regex:(?i)STRIPE_(PUBLISHABLE|SECRET|WEBHOOK)_KEY\s*[:=]\s*[^\s'"\n]+==>STRIPE_...=***REMOVED***
+regex:(?i)FIREBASE_(API_KEY|PROJECT_ID|AUTH_DOMAIN|STORAGE_BUCKET|MESSAGING_SENDER_ID|APP_ID|MEASUREMENT_ID)\s*[:=]\s*[^\s'"\n]+==>FIREBASE_...=***REMOVED***
 ```
 
 Repo-specific dev tokens (to eliminate from history):
 ```
+regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
 regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
 regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
 regex:(?i)DEV_TOKEN_REDACTED==>DEV_TOKEN_REDACTED
@@ -125,6 +131,12 @@ Generic Postgres URLs with embedded creds and static IP:
 ```
 regex:(?i)postgresql\+?[^:\s/]*://[^:@\s]+:[^@\s]+@[^/\s]+/[^\s]+==>postgresql://USER:PASS@HOST:PORT/DB
 regex:(?i)34\.13\.154\.146==>REDACTED_DB_HOST
+```
+
+Note on the runner script:
+- scripts/security/run-bfg-clean.sh currently generates a minimal replacement file in $WORK_DIR (REPL_FILE) and does not read the repository’s bfg-replacements.txt. Either update that script to use the repo file, or run BFG manually with:
+```
+java -jar /path/to/bfg.jar --replace-text bfg-replacements.txt --mirror "$MIRROR_DIR"
 ```
 
 ## H) Files to delete entirely (then purge history)
@@ -140,7 +152,7 @@ Run after cleaning and force-push:
 
 - Grep HEAD for common patterns:
 ```
-grep -R -nI -E '(pk_live|pk_test)_[A-Za-z0-9]{10,}|(sk_live|sk_test)_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|AIza[-_A-Za-z0-9]{20,}|CLERK_SECRET_KEY|GEMINI_API_KEY=***REMOVED*** ]+:[^ ]+@' . --exclude-dir=.git --exclude-dir=node_modules
+grep -R -nI -E '(pk_live|pk_test)_[A-Za-z0-9]{10,}|(sk_live|sk_test)_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|AIza[-_A-Za-z0-9]{20,}|CLERK_SECRET_KEY|GEMINI_API_KEY=***REMOVED***' . --exclude-dir=.git --exclude-dir=node_modules
 ```
 - Confirm README/QUICKSTART/docs contain placeholders only
 - Ensure example .env files are placeholders only
@@ -156,6 +168,16 @@ git reflog expire --expire=now --all && git gc --prune=now --aggressive
 - Multiple scripts with full prod DB URL and password under backend/scripts/
 
 ## Notes
-- There is an existing helper: scripts/security/run-bfg-clean.sh (creates a mirror, runs BFG with robust patterns, force-pushes, and verifies). Update its replacement patterns per section G, then run it.
-- After the purge, re-add safe example configs and adjust code to read tokens strictly from environment variables (no hardcoded fallbacks).
+- scripts/security/run-bfg-clean.sh creates a mirror and runs BFG, but it currently writes a minimal REPL_FILE in $WORK_DIR and does not read the repository’s bfg-replacements.txt. Either update the script to point to bfg-replacements.txt, or run BFG manually with:
+
+  ```
+  java -jar /path/to/bfg.jar --replace-text bfg-replacements.txt --mirror "$MIRROR_DIR"
+  ```
+- After the purge, re-add safe example configs and adjust code to read tokens strictly from environment variables (no hardcoded fallbacks). Prefer example envs with placeholders (backend/.env.production, backend/.env.example, frontend/.env.local.oss).
+- Quick OSS smoke test (to ensure the app still works post-cleanup):
+  - Terminal 1: scripts/oss/run_backend_oss.sh (auto-checks DB, runs migrations, starts FastAPI)
+  - Terminal 2: scripts/oss/run_frontend_oss.sh (copies frontend/.env.local.oss, starts Next.js)
+  - Validate:
+    - curl -sSf http://localhost:8000/health
+    - open http://localhost:3000
 

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Development: send a dev token so backend HTTPBearer is satisfied
-      authToken = 'DEV_TOKEN_REDACTED';
+      authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
     }
 
     // Forward query params (limit, etc.)
