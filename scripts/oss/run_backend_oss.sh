@@ -154,7 +154,7 @@ fi
 # Run database migrations
 echo -e "${BLUE}Running database migrations...${NC}"
 if [ -f "$BACKEND_DIR/run_migrations.py" ]; then
-    python3 run_migrations.py || echo -e "${YELLOW}⚠ Warning: Migration failed (this may be normal for first run)${NC}"
+    python3.11 run_migrations.py || echo -e "${YELLOW}⚠ Warning: Migration failed (this may be normal for first run)${NC}"
 else
     echo -e "${YELLOW}⚠ Warning: run_migrations.py not found, skipping migrations${NC}"
 fi
@@ -175,7 +175,7 @@ echo ""
 # Set PYTHONPATH to include the repository root so imports work correctly
 export PYTHONPATH="$REPO_ROOT:$PYTHONPATH"
 
-python3 -m uvicorn backend.api.app:app \
+python3.11 -m uvicorn backend.api.app:app \
     --host "${UVICORN_HOST:-0.0.0.0}" \
     --port "${UVICORN_PORT:-8000}" \
     --reload

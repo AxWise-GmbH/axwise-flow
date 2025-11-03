@@ -12,8 +12,6 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { UsageWarning } from '@/components/usage-warning';
-import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { FileText, BarChart3, MessageSquare, Users, FlaskConical, BookOpen, Upload, Clock, TrendingUp, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,9 +35,6 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
   // Get the current path to determine active nav item
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  // Get subscription status for usage warnings
-  const { subscription, loading: subscriptionLoading } = useSubscriptionStatus();
 
   // Get current visualization tab from URL params
   const currentTab = searchParams.get('visualizationTab');
@@ -158,23 +153,6 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
             );
           })}
         </nav>
-
-        {/* Usage Warning in Sidebar */}
-        {!subscriptionLoading && subscription && subscription.limits && subscription.currentUsage && (
-          <div className="p-4 border-t border-border">
-            <UsageWarning
-              currentUsage={{
-                analyses: subscription.currentUsage.analyses || 0,
-                prdGenerations: subscription.currentUsage.prdGenerations || 0
-              }}
-              limits={{
-                analysesPerMonth: subscription.limits.analysesPerMonth || 0,
-                prdGenerationsPerMonth: subscription.limits.prdGenerationsPerMonth || 0
-              }}
-              tier={subscription.tier}
-            />
-          </div>
-        )}
       </div>
 
       {/* Main Content */}

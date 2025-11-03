@@ -16,7 +16,6 @@ export * from './persona';
 export * from './insights';
 export * from './export';
 export * from './mocks';
-export * from './subscription';
 export * from './types';
 
 // Import core for singleton instance
