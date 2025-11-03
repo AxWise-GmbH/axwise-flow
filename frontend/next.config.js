@@ -195,41 +195,7 @@ const nextConfig = {
     ];
   },
 
-  // Add rewrites for legacy static pages and business plan
-  async rewrites() {
-    return [
-      {
-        source: '/onepager-presentation',
-        destination: '/onepager-presentation/index.html',
-      },
-      {
-        source: '/workshop-designthinking',
-        destination: '/workshop-designthinking/index.html',
-      },
-      // Blog routing
-      {
-        source: '/blog',
-        destination: '/api/blog',
-      },
-      {
-        source: '/blog/:path*',
-        destination: '/api/blog/:path*',
-      },
-      // Business plan routing
-      {
-        source: '/grund',
-        destination: '/grund/index.html',
-      },
-      {
-        source: '/grund/businessplan',
-        destination: '/grund/businessplande.html',
-      },
-      {
-        source: '/businessplan',
-        destination: '/grund/businessplande.html',
-      },
-    ];
-  },
+
 
   // Custom webpack configuration to ensure middleware manifest is in the right place
   webpack: (config, { isServer }) => {
