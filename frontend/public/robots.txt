@@ -1,13 +1,7 @@
 User-agent: *
 Allow: /
 
-# Allow crawling of main pages
-Allow: /blog/
-Allow: /onepager-presentation/
-Allow: /workshop-designthinking/
-
 # Disallow sensitive areas
-Disallow: /admin/
 Disallow: /api/
 Disallow: /_next/
 Disallow: /unified-dashboard/
