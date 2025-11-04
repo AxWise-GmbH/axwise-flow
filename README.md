@@ -38,32 +38,39 @@ Verbatim Quote ("Our board asked for...")
 Interview + Speaker + Timestamp
 ```
 
-### 5-Phase Context Engineering Workflow
+### Context Engineering Principles
 
-#### **Phase 1: Research Scoping**
-Define your research question, stakeholder segments, and context boundaries. The scope acts as a **context lens** that filters all downstream analysis.
+AxWise Flow implements **context engineering** through a unified analysis pipeline that maintains evidence traceability at every step:
 
-#### **Phase 2: Context Assembly**
-The **Context Builder** agent generates **synthetic interview scenarios** to fill gaps in your evidence (e.g., "What if a startup instead of enterprise adopted this?"). These expand the solution space while maintaining traceability.
+#### **1. Context Assembly**
+- **Research Chat**: Conversational interface extracts business context (idea, customer, problem, industry, location)
+- **Synthetic Interviews**: AI-generated personas and interviews fill gaps in your evidence
+- **Direct Upload**: Support for real interview transcripts (TXT, DOCX, PDF)
 
-#### **Phase 3: Hierarchical Analysis**
-Multi‑agent pipeline extracts insights through progressive compression:
+#### **2. Unified Analysis Pipeline**
+A single **Analysis Agent** performs 6 stages of progressive compression:
 
-- **Agent 1: Theme Extractor** → Hierarchical themes with verbatim quotes
-- **Agent 2: Pattern Recognizer** → Cross-interview patterns (repeating concepts)
-- **Agent 3: Persona Generator** → Evidence-linked personas (only self-identified claims)
-- **Agent 4: Insight Synthesizer** → Actionable insights with audit trails
+1. **Theme Extraction** → Hierarchical themes with verbatim quotes
+2. **Pattern Recognition** → Cross-interview patterns (repeating concepts)
+3. **Stakeholder Intelligence** → Multi-stakeholder dynamics and conflicts
+4. **Sentiment Analysis** → Emotional tone and confidence levels
+5. **Persona Generation** → Evidence-linked personas (only self-identified claims)
+6. **Insight Synthesis** → Actionable insights with audit trails
 
-#### **Phase 4: Context Compression & Evolution**
-Each layer compresses information while preserving evidence links:
-- **Themes** (L1): Raw quotes grouped
-- **Patterns** (L2): Cross-theme insights
-- **Personas** (L3): Pattern synthesis into roles
-- **Insights** (L4): Actionable findings
-- **PRD** (L5): User stories + acceptance criteria
+#### **3. Evidence Traceability**
+Every layer preserves the evidence chain:
+- **Themes** → Raw quotes grouped by topic
+- **Patterns** → Cross-theme insights with source links
+- **Personas** → Pattern synthesis into roles with demographics
+- **Insights** → Actionable findings ranked by priority
+- **PRD** → User stories + acceptance criteria linked to insights
 
-#### **Phase 5: Export & PRD Generation**
-The **PRD Agent** synthesizes user stories, acceptance criteria, and requirements—each with a complete evidence chain back to source interviews.
+#### **4. PRD Generation**
+The **PRD Agent** synthesizes requirements with complete evidence chains:
+- Every user story links to insights
+- Every insight links to themes
+- Every theme links to verbatim quotes
+- Every quote links to source interviews
 
 ---
 
@@ -94,10 +101,10 @@ The **PRD Agent** synthesizes user stories, acceptance criteria, and requirement
 | Feature | Description |
 |---------|-------------|
 | **Evidence Traceability** | Every insight links back to interview + speaker + timestamp |
-| **Context Engineering** | Active assembly, compression, and evolution of context |
-| **Multi-Agent Pipeline** | Theme Extractor → Pattern Recognizer → Persona Generator → Insight Synthesizer |
-| **Synthetic Interviews** | Gap-filling scenarios that maintain evidence lineage |
-| **Hierarchical Compression** | 5 layers: Themes → Patterns → Personas → Insights → PRD |
+| **Context Engineering** | LLM-based context extraction + progressive compression pipeline |
+| **Unified Analysis Agent** | Single PydanticAI agent with 6 typed stages (themes → patterns → stakeholders → sentiment → personas → insights) |
+| **Synthetic Interviews** | AI-generated personas and interviews that fill research gaps |
+| **Evidence Chain** | PRD → Insights → Personas → Patterns → Themes → Quotes → Interviews |
 | **API-First Design** | FastAPI backend with interactive `/docs` |
 | **Self-Hosted** | PostgreSQL + Python 3.11 + Node.js 18+ |
 | **OSS Mode** | Authentication disabled for simplified local setup |
