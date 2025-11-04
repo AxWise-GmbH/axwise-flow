@@ -33,3 +33,5 @@ frontend/.env.production
 
 # Build metadata
 *.tsbuildinfo
+backend/.env.oss
+axwise-corrected-arch

@@ -10,18 +10,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('History API route called');
-
     // Check environment
     const isProduction = process.env.NODE_ENV === 'production';
     const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
-
-    console.log('History API: Environment check:', {
-      isProduction,
-      enableClerkValidation,
-      envVar: process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION,
-      nodeEnv: process.env.NODE_ENV
-    });
 
     // OSS mode: always use development token
     const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
@@ -32,8 +23,6 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
-
-    console.log('Proxying to backend:', `${backendUrl}/api/analyses${queryString ? `?${queryString}` : ''}`);
 
     // Forward the request to the Python backend with appropriate token
     const response = await fetch(`${backendUrl}/api/analyses${queryString ? `?${queryString}` : ''}`, {
@@ -46,15 +35,21 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend error:', response.status, errorText);
-      return NextResponse.json(
-        { error: `Backend error: ${errorText}` },
-        { status: response.status }
-      );
+      // Only log non-connection errors (connection errors are expected when backend is down)
+      if (response.status !== 0) {
+        console.error('Backend error:', response.status, errorText);
+      }
+      // Graceful fallback when backend is unavailable
+      return NextResponse.json([], {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
     }
 
     const data = await response.json();
-    console.log('Backend response successful, returning', data.length, 'analyses');
 
     return NextResponse.json(data, {
       headers: {
@@ -65,11 +60,20 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('History API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Only log non-connection errors (ECONNREFUSED is expected when backend is down)
+    const isConnectionError = error instanceof Error &&
+      (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed'));
+    if (!isConnectionError) {
+      console.error('History API error:', error);
+    }
+    // Graceful fallback when backend is down
+    return NextResponse.json([], {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
 }
 

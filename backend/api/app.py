@@ -266,17 +266,6 @@ app.include_router(priority_insights_router, prefix="/api/analysis")
 app.include_router(export_router)
 app.include_router(prd_router)
 
-# Include subscription and payment routers (optional in OSS)
-try:
-    from backend.api.routes.subscription import router as subscription_router
-    from backend.api.routes.stripe_webhook import router as stripe_webhook_router
-    app.include_router(subscription_router)
-    app.include_router(stripe_webhook_router)
-    logger.info("Subscription and Stripe webhook routes enabled")
-except ModuleNotFoundError:
-    logger.info("Subscription/Stripe routes not available in this build; skipping")
-except Exception as e:
-    logger.warning(f"Failed to load subscription/Stripe routes: {e}")
 
 # Include debug router
 from backend.api.endpoints.debug import router as debug_router

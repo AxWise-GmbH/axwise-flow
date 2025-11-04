@@ -16,14 +16,6 @@ export default function DashboardNav(): JSX.Element { // Add return type
   const [isHistory, setIsHistory] = useState(false);
   const { isAdmin, isLoading, user } = useAdminAccess();
 
-  // Debug logging
-  console.log('DashboardNav - Admin Access Debug:', {
-    isAdmin,
-    isLoading,
-    userEmail: user?.primaryEmailAddress?.emailAddress,
-    userRole: user?.publicMetadata?.role
-  });
-
   // Keep track of current path for highlighting active tab
   useEffect(() => {
     setIsHistory(pathname?.includes('/history'));

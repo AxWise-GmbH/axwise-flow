@@ -425,7 +425,8 @@ export default function SimulationHistoryPage(): JSX.Element {
 
   useEffect(() => {
     fetchSimulationHistory();
-  }, [fetchSimulationHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only fetch once on mount
 
   // Add localStorage monitoring for real-time updates
   useEffect(() => {

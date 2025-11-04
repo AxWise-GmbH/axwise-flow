@@ -38,9 +38,7 @@ function VisualizationMode({ analysisId, visualizationTab }: { analysisId: strin
     const fetchAnalysisData = async () => {
       try {
         setLoadingAnalysis(true);
-        console.log('VisualizationMode: Fetching analysis data for ID:', analysisId);
         const data = await apiClient.getAnalysisById(analysisId);
-        console.log('VisualizationMode: Fetched analysis data:', data);
         setAnalysisData(data);
       } catch (error) {
         console.error('VisualizationMode: Error fetching analysis data:', error);
@@ -51,7 +49,8 @@ function VisualizationMode({ analysisId, visualizationTab }: { analysisId: strin
     };
 
     fetchAnalysisData();
-  }, [analysisId, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisId]); // Only re-fetch when analysisId changes, not when showToast changes
 
   return (
     <div className="space-y-6">
@@ -97,15 +96,6 @@ export default function DashboardOverview() {
   const visualizationTab = searchParams.get('visualizationTab');
   const analysisId = searchParams.get('analysisId');
   const shouldShowVisualization = visualizationTab && analysisId && ['themes', 'patterns', 'personas', 'insights', 'priority', 'prd', 'stakeholder-dynamics'].includes(visualizationTab);
-
-  // Debug logging
-  console.log('DashboardOverview: URL params debug:', {
-    visualizationTab,
-    analysisId,
-    shouldShowVisualization,
-    searchParamsString: searchParams.toString(),
-    url: typeof window !== 'undefined' ? window.location.href : 'server-side'
-  });
 
   // If we're in visualization mode, handle that separately without loading dashboard stats
   if (shouldShowVisualization) {
@@ -185,7 +175,8 @@ export default function DashboardOverview() {
     if (!shouldShowVisualization) {
       fetchDashboardStats();
     }
-  }, [fetchDashboardStats, shouldShowVisualization]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldShowVisualization]); // Only re-fetch when visualization mode changes
 
   // Loading state for dashboard stats
   if (isLoading) {

@@ -133,10 +133,10 @@ export default function HistoryPanel(): JSX.Element {
   // Fetch history when filters change and component is mounted
   useEffect(() => {
     if (isMounted) {
-      console.log('HistoryPanel: useEffect triggered, calling fetchHistory');
       fetchHistory();
     }
-  }, [fetchHistory, isMounted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted, filters]); // Re-fetch when filters change, not when fetchHistory changes
 
   // Format file size for display - memoize as it's a pure function
   const formatFileSize = useMemo(() => (bytes: number | undefined): string => { // Add return type

@@ -28,6 +28,7 @@ CONVERSATION WORKFLOW:
    - Business Idea: What product/service are you creating? (minimum 10 words)
    - Target Customer: Who specifically experiences this problem? (minimum 5 words)
    - Core Problem: What main pain point are you solving? (minimum 5 words)
+   - Industry: What industry/sector (e.g., fintech, healthcare, venture studios, b2b saas) - infer from business idea if clearly indicated
    - Location/Market: Where will you operate or validate first? (country/city/region)
 
    Gathering Rules:

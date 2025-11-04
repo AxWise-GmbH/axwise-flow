@@ -4,7 +4,6 @@ import { WhyChooseSection } from '@/components/marketing/WhyChooseSection';
 import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
 import { TestimonialsSection } from '@/components/marketing/TestimonialsSection';
 import { SecuritySection } from '@/components/marketing/SecuritySection';
-import { CTASection } from '@/components/marketing/CTASection';
 
 /**
  * Main landing page showcasing AxWise features and capabilities
@@ -22,9 +21,6 @@ export default function HomePage(): JSX.Element {
         </div>
         <div id="security">
           <SecuritySection />
-        </div>
-        <div id="pricing">
-          <CTASection />
         </div>
       </main>
     </div>

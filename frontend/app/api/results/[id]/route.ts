@@ -13,15 +13,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Results API route called for ID:', params.id);
-
     // OSS mode: always use development token
     const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
 
     // Get the backend URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-    console.log('Proxying to backend:', `${backendUrl}/api/results/${params.id}`);
 
     // Forward the request to the Python backend with appropriate token
     const response = await fetch(`${backendUrl}/api/results/${params.id}`, {
@@ -42,7 +38,6 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log('Backend response successful for analysis ID:', params.id);
 
     return NextResponse.json(data, {
       headers: {

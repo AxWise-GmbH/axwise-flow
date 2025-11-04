@@ -16,7 +16,8 @@ import {
   scrollToBottomIfNeeded
 } from './chat-utils';
 
-// Lightweight helpers to parse or infer industry from free text
+// Lightweight helper to parse industry from assistant response text
+// NOTE: This is a MINIMAL fallback. The LLM backend should extract industry in most cases.
 const normalizeIndustry = (s: string) => s.toLowerCase().trim().replace(/\.$/, '');
 const parseIndustryFromText = (text: string): string | null => {
   if (!text) return null;
@@ -25,18 +26,8 @@ const parseIndustryFromText = (text: string): string | null => {
   const m1 = lower.match(/\bin(?: the)? ([a-z0-9\- &/]+?) industry\b/);
   if (m1 && m1[1]) return normalizeIndustry(m1[1]);
   // e.g., "industry is fintech", "industry: fintech"
-  const m2 = lower.match(/\bindustry(?: is|:)\s*([a-z0-9\- &/]+)/);
+  const m2 = lower.match(/\bindustry(?: is|:)\s*([a-z0-9\- &/]+?)(?:[,.]|$)/);
   if (m2 && m2[1]) return normalizeIndustry(m2[1]);
-  return null;
-};
-
-const inferIndustryFromText = (text: string): string | null => {
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  if (lower.includes('fintech')) return 'fintech';
-  if (lower.includes('healthcare') || lower.includes('health tech') || lower.includes('health-tech')) return 'healthcare';
-  if (lower.includes('b2b saas') || lower.includes('saas')) return lower.includes('b2b') ? 'b2b saas' : 'saas';
-  if (lower.includes('ecommerce') || lower.includes('e-commerce') || lower.includes('retail')) return 'ecommerce';
   return null;
 };
 
@@ -218,17 +209,26 @@ export const handleSendMessage = async (
         targetCustomer: extractedContext.target_customer || context.targetCustomer,
         problem: extractedContext.problem || context.problem,
         industry: extractedContext.industry || context.industry,
+        location: extractedContext.location || extractedContext.region || context.location,
+        stage: extractedContext.stage || extractedContext.research_stage || context.stage,
         questionsGenerated: extractedContext.questions_generated || context.questionsGenerated
       } as any;
 
-      // Fallback: infer industry from assistant confirmation or target customer if missing/'general'
+      // Minimal fallback: only parse from assistant response if LLM didn't extract industry
+      // The backend LLM should handle industry extraction in most cases
       if (!newContext.industry || newContext.industry === 'general') {
         const fromAssistant = parseIndustryFromText(data.content || '');
-        const fromTargetCustomer = parseIndustryFromText(newContext.targetCustomer || '') || inferIndustryFromText(newContext.targetCustomer || '');
-        newContext.industry = fromAssistant || fromTargetCustomer || newContext.industry;
+        if (fromAssistant) {
+          newContext.industry = fromAssistant;
+        }
       }
 
-      console.log('🧭 Context update:', { extractedIndustry: extractedContext.industry, resolvedIndustry: newContext.industry });
+      console.log('🧭 Context update:', {
+        extractedIndustry: extractedContext.industry,
+        resolvedIndustry: newContext.industry,
+        location: newContext.location,
+        stage: newContext.stage
+      });
       updateContext(newContext);
     }
 

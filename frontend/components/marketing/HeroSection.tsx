@@ -104,10 +104,10 @@ export const HeroSection = () => {
         {/* Open Source Announcement Banner */}
         <div className="mb-4 md:mb-6 flex justify-center">
           <Link
-            href="https://github.com/AxWise-GmbH/Flow"
+            href="https://github.com/AxWise-GmbH/axwise-flow"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackButtonClick('Open Source GitHub', ButtonLocation.HERO, 'https://github.com/AxWise-GmbH/Flow')}
+            onClick={() => trackButtonClick('Open Source GitHub', ButtonLocation.HERO, 'https://github.com/AxWise-GmbH/axwise-flow')}
             className="hover:scale-105 transition-transform duration-200"
           >
             <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-sm cursor-pointer">
@@ -121,6 +121,8 @@ export const HeroSection = () => {
             </div>
           </Link>
         </div>
+
+
 
         {/* Hero Content */}
         <div className="text-center mb-12 md:mb-16 animate-fade-in">

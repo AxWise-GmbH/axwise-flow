@@ -12,7 +12,6 @@ async function getAuthTokenRequired() {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Proxying research sessions request to backend');
 
     // Auth token: required in production or when Clerk validation is explicitly enabled
     const requireAuth = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
@@ -40,14 +39,8 @@ export async function GET(request: NextRequest) {
       headers,
     });
 
-    console.log('Backend response status:', response.status);
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Backend responded with ${response.status}: ${response.statusText}`, errorText);
-
       if (response.status === 404) {
-        console.log('Backend sessions endpoint not found, returning empty array');
         return NextResponse.json([], {
           headers: {
             'Access-Control-Allow-Origin': '*',
@@ -117,7 +110,14 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching research sessions:', error);
+    // Only log non-connection errors (ECONNREFUSED is expected when backend is down)
+    const isConnectionError = error instanceof Error &&
+      (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed'));
+
+    if (!isConnectionError) {
+      console.error('Error fetching research sessions:', error);
+    }
+
     return NextResponse.json([], {
       headers: {
         'Access-Control-Allow-Origin': '*',

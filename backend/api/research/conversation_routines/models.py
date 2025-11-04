@@ -18,6 +18,9 @@ class ConversationContext(BaseModel):
         None, description="Primary target customer or user group"
     )
     problem: Optional[str] = Field(None, description="Core problem being solved")
+    industry: Optional[str] = Field(
+        None, description="Industry/sector (e.g., fintech, healthcare, venture studios)"
+    )
     location: Optional[str] = Field(
         None, description="Target location/market (country/city/region)"
     )
@@ -209,11 +212,13 @@ Extract business context ONLY from USER messages below. Ignore assistant content
 - business_idea: Brief description explicitly stated by the user (or null if not clear)
 - target_customer: Who the customers are, as explicitly stated by the user (or null if not mentioned)
 - problem: Specific problem the user explicitly stated (or null if not mentioned)
+- industry: Industry/sector explicitly stated or clearly implied from the business idea (e.g., "fintech", "healthcare", "venture studios", "b2b saas", "ecommerce", etc.) (or null if not clear)
 - location: Country/city/region explicitly stated by the user (or null if not mentioned)
 
 STRICT RULES:
 - Do NOT infer or guess from assistant text or implications
 - If not explicitly stated by the USER, return null for that field
+- For industry: infer from business idea if clearly indicated (e.g., "venture studios" → "venture studios", "fintech startup" → "fintech")
 - Keep values concise and literal
 
 USER Messages:
@@ -240,6 +245,7 @@ Return only valid JSON, no other text:"""
                 context.business_idea = extracted_data.get("business_idea")
                 context.target_customer = extracted_data.get("target_customer")
                 context.problem = extracted_data.get("problem")
+                context.industry = extracted_data.get("industry")
                 context.location = extracted_data.get("location")
 
                 # Debug logging
@@ -247,7 +253,7 @@ Return only valid JSON, no other text:"""
 
                 logger = logging.getLogger(__name__)
                 logger.info(
-                    f"🔍 Context extraction result: business_idea='{context.business_idea}', target_customer='{context.target_customer}', problem='{context.problem}', location='{context.location}'"
+                    f"🔍 Context extraction result: business_idea='{context.business_idea}', target_customer='{context.target_customer}', problem='{context.problem}', industry='{context.industry}', location='{context.location}'"
                 )
 
         except Exception:

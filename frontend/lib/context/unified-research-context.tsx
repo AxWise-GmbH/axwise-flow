@@ -21,6 +21,8 @@ export interface BusinessContext {
   targetCustomer: string;
   problem: string;
   industry: string;
+  location?: string;
+  stage?: string;
 }
 
 export interface QuestionnaireData {
@@ -87,7 +89,9 @@ const initialState: UnifiedResearchState = {
     businessIdea: '',
     targetCustomer: '',
     problem: '',
-    industry: 'general'
+    industry: 'general',
+    location: '',
+    stage: 'initial'
   },
   questionnaire: {
     primaryStakeholders: [],
@@ -126,7 +130,9 @@ function unifiedResearchReducer(
           problem: action.payload.problem || state.businessContext.problem,
           industry: (action.payload.industry && action.payload.industry !== 'general')
             ? action.payload.industry
-            : state.businessContext.industry
+            : state.businessContext.industry,
+          location: (action.payload as any).location || state.businessContext.location || '',
+          stage: (action.payload as any).stage || state.businessContext.stage || 'initial'
         } : state.businessContext,
         sidebarNarrative: action.payload?.conversation_context || state.sidebarNarrative,
         messages: action.payload?.messages || [],

@@ -4,16 +4,12 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Proxying simulation config defaults request to backend');
-
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/config/defaults`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     });
-
-    console.log('Backend response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();

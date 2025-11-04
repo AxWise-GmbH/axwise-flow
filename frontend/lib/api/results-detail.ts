@@ -2,9 +2,7 @@
  * Detailed results retrieval methods for the API client
  */
 
-import { apiCore } from './core';
 import { DetailedAnalysisResult, SentimentOverview } from './types';
-import { getAuthToken } from '@/lib/auth/clerk-auth';
 
 // Persona quality filtering interfaces
 interface PersonaTrait {

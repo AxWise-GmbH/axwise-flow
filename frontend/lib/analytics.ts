@@ -1,51 +1,7 @@
-// Firebase Analytics Event Tracking Service for AxWise
-import { initializeApp, getApps } from 'firebase/app';
-import { getAnalytics, logEvent, isSupported } from 'firebase/analytics';
+// OSS Analytics shim (no Firebase). Safe no-ops that keep the API intact.
 
-// Respect OSS analytics flag; only enable when explicitly allowed
+// Respect OSS analytics flag; only log to console when explicitly enabled
 const analyticsEnabled = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === 'true';
-const firebaseApiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-
-// Initialize analytics (browser-only) when enabled and API key is present
-let analytics: any = null;
-if (analyticsEnabled && typeof window !== 'undefined' && firebaseApiKey) {
-  // Firebase config for analytics only
-  const firebaseConfig = {
-    apiKey: firebaseApiKey,
-    authDomain: 'axwise-73425.firebaseapp.com',
-    projectId: 'axwise-73425',
-    storageBucket: 'axwise-73425.firebasestorage.app',
-    messagingSenderId: '993236701053',
-    appId: '1:993236701053:web:385685bda2446ccef94614',
-    measurementId: 'G-VVCYDEQ1YM',
-  };
-
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  isSupported()
-    .then((supported) => {
-      if (supported) {
-        analytics = getAnalytics(app);
-        console.log('🔥 Firebase Analytics initialized for AxWise');
-      } else {
-        console.warn('🔥 Firebase Analytics not supported in this environment');
-      }
-    })
-    .catch((error) => {
-      console.warn('🔥 Firebase Analytics initialization failed:', error);
-    });
-} else {
-  // Disabled in OSS mode or missing key; avoid 400 errors from Firebase endpoints
-  if (typeof window !== 'undefined') {
-    console.log('🔥 Firebase Analytics disabled (OSS mode or missing API key)');
-  }
-}
-
-/**
- * Firebase Analytics Event Tracking Service
- *
- * This service implements comprehensive event tracking for the AxWise application.
- * It tracks user interactions with key elements across all pages and components.
- */
 
 // Button locations for categorizing events
 export enum ButtonLocation {
@@ -69,36 +25,31 @@ export enum EventType {
   CONVERSION = 'conversion_action'
 }
 
-/**
- * Safe analytics logging with error handling
- */
-const logAnalyticsEvent = (eventName: string, parameters: Record<string, string | number | boolean | undefined>) => {
+// Safe analytics logging with error handling (console-only when enabled)
+const logAnalyticsEvent = (
+  eventName: string,
+  parameters: Record<string, string | number | boolean | undefined>
+): void => {
   try {
-    if (analytics) {
-      // Filter out undefined values
-      const cleanParameters = Object.fromEntries(
-        Object.entries(parameters).filter(([_, value]) => value !== undefined)
-      ) as Record<string, string | number | boolean>;
-
-      console.log(`🔥 Analytics Event: ${eventName}`, cleanParameters);
-      logEvent(analytics, eventName, cleanParameters);
-    } else {
-      console.warn('🔥 Analytics not initialized, event not tracked:', eventName);
-    }
+    if (!analyticsEnabled) return; // hard no-op unless enabled
+    const cleanParameters = Object.fromEntries(
+      Object.entries(parameters).filter(([_, value]) => value !== undefined)
+    ) as Record<string, string | number | boolean>;
+    // eslint-disable-next-line no-console
+    console.log(`Analytics Event: ${eventName}`, cleanParameters);
   } catch (error) {
-    console.error('🔥 Analytics error:', error);
+    // eslint-disable-next-line no-console
+    console.error('Analytics error:', error);
   }
 };
 
-/**
- * Track button clicks with location context
- */
+// Track button clicks with location context
 export const trackButtonClick = (
   buttonText: string,
   location: ButtonLocation,
   destination?: string,
   additionalData?: Record<string, string | number | boolean>
-) => {
+): void => {
   logAnalyticsEvent(EventType.BUTTON_CLICK, {
     button_text: buttonText,
     button_location: location,
@@ -108,15 +59,13 @@ export const trackButtonClick = (
   });
 };
 
-/**
- * Track navigation events
- */
+// Track navigation events
 export const trackNavigation = (
   linkText: string,
   fromPage: string,
   toPage: string,
   location: ButtonLocation = ButtonLocation.HEADER
-) => {
+): void => {
   logAnalyticsEvent(EventType.NAVIGATION, {
     link_text: linkText,
     from_page: fromPage,
@@ -126,14 +75,12 @@ export const trackNavigation = (
   });
 };
 
-/**
- * Track CTA button clicks (high-value conversion events)
- */
+// Track CTA button clicks (high-value conversion events)
 export const trackCTAClick = (
   ctaText: string,
   location: ButtonLocation,
   ctaType: 'primary' | 'secondary' = 'primary'
-) => {
+): void => {
   logAnalyticsEvent(EventType.CONVERSION, {
     cta_text: ctaText,
     cta_location: location,
@@ -142,30 +89,26 @@ export const trackCTAClick = (
   });
 };
 
-/**
- * Track file upload events
- */
+// Track file upload events
 export const trackFileUpload = (
   fileType: string,
   fileSize: number,
   uploadMethod: string = 'drag_drop'
-) => {
+): void => {
   logAnalyticsEvent(EventType.UPLOAD, {
     file_type: fileType,
-    file_size_mb: Math.round(fileSize / (1024 * 1024) * 100) / 100,
+    file_size_mb: Math.round((fileSize / (1024 * 1024)) * 100) / 100,
     upload_method: uploadMethod,
     timestamp: Date.now()
   });
 };
 
-/**
- * Track analysis actions
- */
+// Track analysis actions
 export const trackAnalysisAction = (
   action: 'start' | 'complete' | 'view' | 'export',
   analysisType?: string,
   duration?: number
-) => {
+): void => {
   logAnalyticsEvent(EventType.ANALYSIS, {
     analysis_action: action,
     analysis_type: analysisType,
@@ -174,14 +117,12 @@ export const trackAnalysisAction = (
   });
 };
 
-/**
- * Track pricing interactions
- */
+// Track pricing interactions
 export const trackPricingInteraction = (
   action: 'view_plan' | 'select_plan' | 'upgrade',
   planName: string,
   planPrice?: string
-) => {
+): void => {
   logAnalyticsEvent('pricing_interaction', {
     pricing_action: action,
     plan_name: planName,
@@ -190,14 +131,12 @@ export const trackPricingInteraction = (
   });
 };
 
-/**
- * Track roadmap interactions
- */
+// Track roadmap interactions
 export const trackRoadmapInteraction = (
   action: 'view_phase' | 'navigate' | 'toggle_view',
   phaseNumber?: number,
   viewType?: 'timeline' | 'detail'
-) => {
+): void => {
   logAnalyticsEvent('roadmap_interaction', {
     roadmap_action: action,
     phase_number: phaseNumber,
@@ -206,13 +145,11 @@ export const trackRoadmapInteraction = (
   });
 };
 
-/**
- * Track page views
- */
+// Track page views
 export const trackPageView = (
   pageName: string,
   pageCategory: 'marketing' | 'dashboard' | 'auth' | 'legal' = 'marketing'
-) => {
+): void => {
   logAnalyticsEvent('page_view', {
     page_name: pageName,
     page_category: pageCategory,
@@ -220,14 +157,12 @@ export const trackPageView = (
   });
 };
 
-/**
- * Track user engagement events
- */
+// Track user engagement events
 export const trackEngagement = (
   engagementType: 'scroll' | 'time_on_page' | 'interaction',
   value: number,
   context?: string
-) => {
+): void => {
   logAnalyticsEvent('user_engagement', {
     engagement_type: engagementType,
     engagement_value: value,
@@ -246,5 +181,5 @@ export default {
   trackPricingInteraction,
   trackRoadmapInteraction,
   trackPageView,
-  trackEngagement
+  trackEngagement,
 };

@@ -1,27 +1,108 @@
 # AxWise Flow OSS
 
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow-oss.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow-oss/stargazers)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow)
+[![arXiv](https://img.shields.io/badge/arXiv-2501.11613-b31b1b.svg)](https://arxiv.org/abs/2501.11613)
 
-Your AI co‑pilot from raw customer input to actionable product plans.
+[![Star History Chart](https://api.star-history.com/svg?repos=AxWise-GmbH/axwise-flow&type=Date)](https://star-history.com/#AxWise-GmbH/axwise-flow&Date)
 
-This OSS repo contains the actual code we run locally:
-- FastAPI backend to analyze interviews, generate evidence‑linked personas and insights, and expose a documented API (see /health and /docs when running)
-- Next.js frontend (optional) for local exploration of results
-- OSS scripts to bootstrap the environment quickly for self‑hosting and development
+[![Contributors](https://contrib.rocks/image?repo=AxWise-GmbH/axwise-flow)](https://github.com/AxWise-GmbH/axwise-flow/graphs/contributors)
 
-Authentication is disabled in OSS mode to streamline local setup; production deployments can enable Clerk auth.
-## Overview
 
-AxWise Flow OSS is an open‑source, API‑first backend with an optional Next.js UI that turns user interviews and customer feedback into evidence‑linked insights and context‑engineered personas. It clusters themes, surfaces sentiment, and keeps every finding traceable to source quotes. Self‑hosted by default and built for product discovery and UX research.
+**Your AI co‑pilot from raw customer input to actionable product plans.**
 
-### At a glance
-- Evidence‑linked insights and personas (trace conclusions to original quotes)
-- Automated themes/topics and sentiment across transcripts and notes
-- Simulates context‑engineered personas to explore stakeholder perspectives and scenarios
+AxWise Flow transforms user interviews and customer feedback into **evidence‑linked Product Requirements Documents (PRDs)** through a context‑engineered workflow. Every insight, persona, and requirement traces back to verbatim quotes, interviews, speakers, and timestamps.
 
-- REST API with interactive docs at /docs; integrate without the UI
-- PostgreSQL + Alembic; FastAPI + Uvicorn; optional Next.js frontend
-- OSS mode runs locally without auth; production can enable Clerk
+## 🎯 What Makes AxWise Flow Different
+
+### Context Engineering 2.0: Active Understanding, Not Passive Retrieval
+
+Most tools dump all your data into an LLM and hope for the best. AxWise Flow **actively assembles, compresses, and evolves context** across a multi‑agent pipeline:
+
+```
+Research Scope → Synthetic Interviews → Analysis → Themes → Patterns → Personas → Insights → PRD
+```
+
+**Every step maintains complete evidence traceability:**
+
+```
+PRD Requirement
+     ↓ traces to
+Insight ("CFOs need 18-month ROI")
+     ↓ traces to
+Persona + Pattern ("Enterprise CFO archetype")
+     ↓ traces to
+Themes ("Budget approval concerns")
+     ↓ traces to
+Verbatim Quote ("Our board asked for...")
+     ↓ traces to
+Interview + Speaker + Timestamp
+```
+
+### 5-Phase Context Engineering Workflow
+
+#### **Phase 1: Research Scoping**
+Define your research question, stakeholder segments, and context boundaries. The scope acts as a **context lens** that filters all downstream analysis.
+
+#### **Phase 2: Context Assembly**
+The **Context Builder** agent generates **synthetic interview scenarios** to fill gaps in your evidence (e.g., "What if a startup instead of enterprise adopted this?"). These expand the solution space while maintaining traceability.
+
+#### **Phase 3: Hierarchical Analysis**
+Multi‑agent pipeline extracts insights through progressive compression:
+
+- **Agent 1: Theme Extractor** → Hierarchical themes with verbatim quotes
+- **Agent 2: Pattern Recognizer** → Cross-interview patterns (repeating concepts)
+- **Agent 3: Persona Generator** → Evidence-linked personas (only self-identified claims)
+- **Agent 4: Insight Synthesizer** → Actionable insights with audit trails
+
+#### **Phase 4: Context Compression & Evolution**
+Each layer compresses information while preserving evidence links:
+- **Themes** (L1): Raw quotes grouped
+- **Patterns** (L2): Cross-theme insights
+- **Personas** (L3): Pattern synthesis into roles
+- **Insights** (L4): Actionable findings
+- **PRD** (L5): User stories + acceptance criteria
+
+#### **Phase 5: Export & PRD Generation**
+The **PRD Agent** synthesizes user stories, acceptance criteria, and requirements—each with a complete evidence chain back to source interviews.
+
+---
+
+## 🚀 What You Get
+
+### For Product Teams
+- ✅ **Evidence-Linked PRDs**: Every requirement traces to customer quotes
+- ✅ **Synthetic Scenarios**: Explore edge cases and gaps in your research
+- ✅ **Stakeholder Personas**: Built only from self-identified claims, not assumptions
+- ✅ **Audit Trails**: Defend decisions with complete evidence chains
+
+### For Researchers
+- ✅ **Automated Theme Extraction**: Hierarchical themes across all interviews
+- ✅ **Pattern Recognition**: Surface cross-interview insights automatically
+- ✅ **Sentiment Analysis**: Track emotional signals across transcripts
+- ✅ **Multi-Stakeholder Analysis**: Analyze different perspectives simultaneously
+
+### For Developers
+- ✅ **REST API First**: Interactive docs at `/docs`—integrate without the UI
+- ✅ **Self-Hosted**: PostgreSQL + FastAPI + optional Next.js frontend
+- ✅ **OSS Mode**: No auth required for local development
+- ✅ **Production Ready**: Enable Clerk auth for production deployments
+
+---
+
+## 📊 At a Glance
+
+| Feature | Description |
+|---------|-------------|
+| **Evidence Traceability** | Every insight links back to interview + speaker + timestamp |
+| **Context Engineering** | Active assembly, compression, and evolution of context |
+| **Multi-Agent Pipeline** | Theme Extractor → Pattern Recognizer → Persona Generator → Insight Synthesizer |
+| **Synthetic Interviews** | Gap-filling scenarios that maintain evidence lineage |
+| **Hierarchical Compression** | 5 layers: Themes → Patterns → Personas → Insights → PRD |
+| **API-First Design** | FastAPI backend with interactive `/docs` |
+| **Self-Hosted** | PostgreSQL + Python 3.11 + Node.js 18+ |
+| **OSS Mode** | Authentication disabled for simplified local setup |
+
+---
 
 
 ## 🚀 Quick Start
@@ -37,8 +118,8 @@ AxWise Flow OSS is an open‑source, API‑first backend with an optional Next.j
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git
-   cd axwise-flow-oss
+   git clone https://github.com/AxWise-GmbH/axwise-flow.git
+   cd axwise-flow
    ```
 
 2. **Set up PostgreSQL database**
@@ -154,11 +235,128 @@ NEXT_PUBLIC_DEV_AUTH_TOKEN=dev_test_token_local
 
 ## 🏗️ Architecture
 
+### How AxWise Flow Actually Works
+
+AxWise Flow implements a **two-path architecture** that supports both conversational research and direct data upload:
+
+#### **Path 1: Research Chat → Simulation → Analysis**
+
+```
+User Chat → Context Extraction → Stakeholder Questions → Synthetic Interviews → Analysis → PRD
+```
+
+1. **Research Chat** (`/api/research/conversation-routines/chat`)
+   - User describes their business idea conversationally
+   - LLM extracts context: business idea, target customer, problem, industry, location, stage
+   - System generates stakeholder-specific questions
+
+2. **Simulation Bridge** (`/api/research/simulation-bridge/simulate`)
+   - Generates AI personas for each stakeholder category
+   - Simulates realistic interviews based on business context
+   - Creates synthetic evidence to fill research gaps
+
+3. **Analysis Agent** (Single agent, 6 stages)
+   - **Stage 1**: Theme extraction with verbatim quotes
+   - **Stage 2**: Pattern detection across themes
+   - **Stage 3**: Stakeholder intelligence analysis
+   - **Stage 4**: Sentiment analysis
+   - **Stage 5**: Persona generation from patterns
+   - **Stage 6**: Insight synthesis with evidence links
+
+4. **PRD Generation** (`/api/prd/{result_id}`)
+   - Synthesizes user stories and acceptance criteria
+   - Every requirement links back to themes → quotes → interviews
+
+#### **Path 2: Upload → Analysis → PRD**
+
+```
+Upload Transcripts → Theme Extraction → Pattern Recognition → Persona Formation → PRD
+```
+
+1. **Upload** (`/api/upload`)
+   - User uploads interview transcripts (TXT, DOCX, PDF)
+   - System parses and stores raw interview data
+
+2. **Analysis** (`/api/analyze`)
+   - Theme extraction with stakeholder attribution
+   - Pattern recognition across interviews
+   - Persona formation from transcript evidence
+   - Insight synthesis
+
+3. **PRD Generation** (`/api/prd/{result_id}`)
+   - Same PRD agent as Path 1
+   - Uses themes, patterns, insights, personas as input
+
+---
+
+### Key Architectural Principles
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Evidence Traceability** | Every insight stores `source_interview_id`, `speaker_id`, `timestamp`, `verbatim_quote` |
+| **Context Engineering** | LLM-based context extraction in conversation routines; progressive compression in analysis |
+| **Unified Analysis Agent** | One PydanticAI agent with 6 typed sub-agents for all analysis tasks |
+| **Synthetic Evidence** | Simulation Bridge generates personas + interviews that maintain evidence lineage |
+| **API-First Design** | All features accessible via REST API at `/docs` |
+| **OSS Mode** | `ENABLE_CLERK_VALIDATION=false` disables auth for local development |
+
+---
+
+### Data Flow Example
+
+**Scenario**: User wants to understand "How enterprise CFOs think about pricing"
+
+```bash
+# Step 1: Start research chat
+POST /api/research/conversation-routines/chat
+{
+  "message": "I'm building a B2B SaaS pricing tool for enterprise CFOs",
+  "session_id": "abc123"
+}
+# → LLM extracts: industry="fintech", target_customer="enterprise CFOs", location="US"
+
+# Step 2: Generate stakeholder questions
+# → System creates questions for: CFOs, Finance Teams, Procurement, End Users
+
+# Step 3: Simulate interviews
+POST /api/research/simulation-bridge/simulate
+{
+  "business_context": {...},
+  "stakeholders": [...]
+}
+# → Generates 12 AI personas (3 per stakeholder category)
+# → Simulates 12 realistic interviews
+
+# Step 4: Analyze (automatic after simulation)
+# → Analysis agent extracts:
+#    - Themes: "Budget approval process", "ROI requirements", "Vendor evaluation"
+#    - Patterns: "18-month ROI threshold", "Board approval needed for >$100k"
+#    - Personas: "Risk-Averse CFO", "Growth-Focused CFO"
+#    - Insights: "CFOs need ROI calculators in first demo"
+
+# Step 5: Generate PRD
+POST /api/prd/{result_id}
+# → Creates user stories:
+#    "As a CFO, I want to see 18-month ROI projections..."
+#    Evidence: Interview #3, Speaker "Sarah Chen", 00:04:32
+#              Quote: "Our board asked for 18-month payback..."
+```
+
+---
+
+### Technical File Structure
+
 ```
 axwise-flow-oss/
 ├── backend/              # FastAPI backend
 │   ├── api/             # API routes and endpoints
+│   │   ├── research/    # Research chat + simulation bridge
+│   │   ├── upload/      # File upload endpoints
+│   │   ├── analyze/     # Analysis endpoints
+│   │   └── prd/         # PRD generation endpoints
 │   ├── services/        # Business logic
+│   │   ├── processing/  # Theme, pattern, persona, PRD services
+│   │   └── llm/         # LLM integration (Google Gemini)
 │   ├── models/          # Data models
 │   ├── infrastructure/  # Configuration and utilities
 │   └── .env.oss        # OSS environment configuration
@@ -283,8 +481,8 @@ This project is licensed under the terms specified in the [LICENSE](LICENSE) fil
 ## 📞 Support
 
 - 📧 Email: support@axwise.de or vitalijs@axwise.de
-- 🐛 Issues: [GitHub Issues](https://github.com/AxWise-GmbH/axwise-flow-oss/issues)
-- 📖 Documentation: [Wiki](https://github.com/AxWise-GmbH/axwise-flow-oss/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/AxWise-GmbH/axwise-flow/issues)
+- 📖 Documentation: [Wiki](https://github.com/AxWise-GmbH/axwise-flow/wiki)
 
 ## 🙏 Acknowledgments
 

@@ -191,6 +191,8 @@ class ConversationRoutineService:
                 - business_idea: The product/service concept (or null)
                 - target_customer: The primary customer group (or null)
                 - problem: The main problem being solved (or null)
+                - industry: Industry/sector explicitly stated or clearly implied from business idea (e.g., "fintech", "healthcare", "venture studios", "b2b saas") (or null)
+                - location: Country/city/region mentioned (or null)
 
                 Only extract what is clearly stated. Use null for missing information.
                 """
@@ -216,11 +218,11 @@ class ConversationRoutineService:
                 logger.warning(
                     "Failed to parse JSON from response text; returning null-context"
                 )
-                return {"business_idea": None, "target_customer": None, "problem": None}
+                return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
             except Exception as e:
                 logger.error(f"🔴 Context extraction failed: {e}")
-                return {"business_idea": None, "target_customer": None, "problem": None}
+                return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
         # Create agent with tools
         agent = Agent(
@@ -384,7 +386,7 @@ JSON array:
         """Extract business context from conversation history using LLM"""
         try:
             if not messages:
-                return {"business_idea": None, "target_customer": None, "problem": None}
+                return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
             # Use LLM to extract context
             conversation_text = "\n".join(
@@ -403,6 +405,8 @@ JSON array:
             - business_idea: The product/service concept (or null)
             - target_customer: The primary customer group (or null)
             - problem: The main problem being solved (or null)
+            - industry: Industry/sector explicitly stated or clearly implied from business idea (e.g., "fintech", "healthcare", "venture studios", "b2b saas") (or null)
+            - location: Country/city/region mentioned (or null)
 
             Only extract what is clearly stated. Use null for missing information.
             """
@@ -428,11 +432,11 @@ JSON array:
             logger.warning(
                 "Failed to parse JSON from response string; returning null-context"
             )
-            return {"business_idea": None, "target_customer": None, "problem": None}
+            return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
         except Exception as e:
             logger.error(f"🔴 Context extraction failed: {e}")
-            return {"business_idea": None, "target_customer": None, "problem": None}
+            return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
     async def process_conversation(
         self, request: ConversationRoutineRequest

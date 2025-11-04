@@ -85,31 +85,25 @@ export function Header(): JSX.Element {
             </Link>
 
             <Link
-              href="/pricing"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
+              href="https://github.com/AxWise-GmbH/axwise-flow"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-underline"
               onClick={() => {
                 try {
-                  trackNavigation('Pricing', pathname, '/pricing', ButtonLocation.HEADER);
+                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow', ButtonLocation.HEADER);
                 } catch (error) {
                   console.warn('Analytics tracking failed:', error);
                 }
               }}
             >
-              Pricing
+              <img
+                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star"
+                alt="GitHub stars"
+                className="h-5"
+              />
             </Link>
-            <Link
-              href="/contact"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={() => {
-                try {
-                  trackNavigation('Contact Us', pathname, '/contact', ButtonLocation.HEADER);
-                } catch (error) {
-                  console.warn('Analytics tracking failed:', error);
-                }
-              }}
-            >
-              Contact Us
-            </Link>
+
           </nav>
 
           {/* Mobile Menu Button */}
@@ -176,33 +170,26 @@ export function Header(): JSX.Element {
             </Link>
 
             <Link
-              href="/pricing"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
+              href="https://github.com/AxWise-GmbH/axwise-flow"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-underline"
               onClick={() => {
                 try {
-                  trackNavigation('Pricing', pathname, '/pricing', ButtonLocation.MOBILE_MENU);
+                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow', ButtonLocation.MOBILE_MENU);
                 } catch (error) {
                   console.warn('Analytics tracking failed:', error);
                 }
                 closeMobileMenu();
               }}
             >
-              Pricing
+              <img
+                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star"
+                alt="GitHub stars"
+                className="h-5"
+              />
             </Link>
-            <Link
-              href="/contact"
-              className="text-sm font-medium text-foreground no-underline transition-all duration-300 ease-in-out hover:text-primary"
-              onClick={() => {
-                try {
-                  trackNavigation('Contact Us', pathname, '/contact', ButtonLocation.MOBILE_MENU);
-                } catch (error) {
-                  console.warn('Analytics tracking failed:', error);
-                }
-                closeMobileMenu();
-              }}
-            >
-              Contact Us
-            </Link>
+
           </nav>
         </div>
       )}
