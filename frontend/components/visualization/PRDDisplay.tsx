@@ -11,6 +11,7 @@ import { FileText, Target, Users, Lightbulb, CheckCircle, AlertTriangle, Refresh
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { generatePRD } from '@/lib/api/prd';
 import type { DetailedAnalysisResult, PRDResponse, OperationalPRD, TechnicalPRD } from '@/types/api';
+import { JiraExportButton } from './JiraExportButton';
 
 import { useSearchParams } from 'next/navigation';
 
@@ -243,16 +244,19 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
                 {prdData.prd_data.metadata?.generated_from.insights_count || 0} Insights
               </Badge>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRegenerate}
-              className="flex items-center"
-              disabled={loading}
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Regenerating...' : 'Regenerate'}
-            </Button>
+            <div className="flex gap-2">
+              <JiraExportButton analysisId={analysis.id.toString()} disabled={loading} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerate}
+                className="flex items-center"
+                disabled={loading}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                {loading ? 'Regenerating...' : 'Regenerate'}
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>

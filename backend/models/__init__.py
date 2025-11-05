@@ -16,6 +16,14 @@ from .research_session import (
     ResearchSessionResponse,
     ResearchSessionSummary,
 )
+from .jira_export import (
+    JiraCredentials,
+    JiraExportRequest,
+    JiraExportResponse,
+    JiraIssue,
+    JiraConnectionTestRequest,
+    JiraConnectionTestResponse,
+)
 
 # Re-export SQLAlchemy models from the original location for backward compatibility
 # Use a centralized import mechanism to avoid SQLAlchemy registry conflicts
@@ -114,6 +122,12 @@ __all__ = [
     "ResearchSessionUpdate",
     "ResearchSessionResponse",
     "ResearchSessionSummary",
+    "JiraCredentials",
+    "JiraExportRequest",
+    "JiraExportResponse",
+    "JiraIssue",
+    "JiraConnectionTestRequest",
+    "JiraConnectionTestResponse",
     # SQLAlchemy models
     "User",
     "InterviewData",

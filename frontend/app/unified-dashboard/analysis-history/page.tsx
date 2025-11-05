@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,40 +14,55 @@ import { DetailedAnalysisResult } from '@/types/api';
 export default function AnalysisHistoryPage(): JSX.Element {
   const router = useRouter();
   const { showToast } = useToast();
+  const hasFetchedRef = useRef(false);
+  const renderCountRef = useRef(0);
 
   const [analysisHistory, setAnalysisHistory] = useState<DetailedAnalysisResult[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Fetch analysis history
-  const fetchAnalysisHistory = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // Track renders
+  renderCountRef.current += 1;
+  console.log(`🔄 [RENDER #${renderCountRef.current}] AnalysisHistoryPage rendered`);
 
-    try {
-      const response = await fetch('/api/history');
-
-      if (response.ok) {
-        const data = await response.json();
-        setAnalysisHistory(Array.isArray(data) ? data : []);
-      } else if (response.status === 401) {
-        setError(new Error('Please sign in to view your analysis history'));
-      } else {
-        const errorText = await response.text();
-        setError(new Error(`Failed to load analysis history: ${errorText}`));
-      }
-    } catch (err) {
-      console.error('Error fetching analysis history:', err);
-      setError(err instanceof Error ? err : new Error('Failed to load analysis history'));
-      showToast('Failed to load analysis history', { variant: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
+  // Fetch analysis history - use ref to prevent multiple fetches
   useEffect(() => {
+    // Prevent multiple fetches (even in Strict Mode)
+    if (hasFetchedRef.current) {
+      return;
+    }
+    hasFetchedRef.current = true;
+
+    const fetchAnalysisHistory = async () => {
+      console.log('📊 Fetching analysis history...');
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/history');
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Analysis history loaded:', data.length, 'items');
+          setAnalysisHistory(Array.isArray(data) ? data : []);
+        } else if (response.status === 401) {
+          setError(new Error('Please sign in to view your analysis history'));
+        } else {
+          const errorText = await response.text();
+          setError(new Error(`Failed to load analysis history: ${errorText}`));
+        }
+      } catch (err) {
+        console.error('❌ Error fetching analysis history:', err);
+        setError(err instanceof Error ? err : new Error('Failed to load analysis history'));
+        showToast('Failed to load analysis history', { variant: 'error' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchAnalysisHistory();
-  }, [fetchAnalysisHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only fetch once on mount
 
   // Handle viewing an analysis
   const handleViewAnalysis = useCallback((analysis: DetailedAnalysisResult) => {

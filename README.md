@@ -240,6 +240,93 @@ NEXT_PUBLIC_DEV_AUTH_TOKEN=dev_test_token_local
 - [OSS Scripts Documentation](scripts/oss/README.md)
 - [API Documentation](http://localhost:8000/docs) (when backend is running)
 
+
+## 📤 Jira Export (Epic • Stories • Tasks)
+
+Export your PRD directly to Jira with rich descriptions and evidence context.
+
+### What it does
+- Creates 1 Epic for the PRD, Stories for each user story/scenario, and Tasks for technical requirements
+- Rich Jira formatting (ADF): WHAT / WHY / HOW headings; bullet lists for Acceptance Criteria and Dependencies
+- Update Existing mode: matches by summary within the project to update descriptions instead of creating duplicates
+
+### Use it in the UI
+1. Open a PRD and click “Export to Jira”.
+2. Enter Jira credentials: Jira URL, Email, API Token, Project Key.
+3. Click “Test Connection” to validate access.
+4. Set options:
+   - Include Technical Requirements as Tasks
+   - Include Acceptance Criteria in Stories
+   - Update Existing Issues (match by summary)
+5. Click “Export to Jira”.
+
+Notes:
+- This creates real issues in your Jira project. Consider a test epic name first (e.g., “TEST — Your PRD”).
+- Update Existing matches by summary and updates the most recent match if multiple exist.
+
+### API endpoints (backend)
+- POST /api/export/jira/test-connection
+  - Accepts either flat credentials or wrapped as { "credentials": { ... } }
+- POST /api/export/jira
+  - Body: JiraExportRequest including update_existing
+
+Example: test connection
+```bash
+curl -X POST "http://localhost:8000/api/export/jira/test-connection" \
+  -H "Authorization: Bearer dev_test_token_local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "credentials": {
+      "jira_url": "https://your-domain.atlassian.net",
+      "email": "user@example.com",
+      "api_token": "your-api-token",
+      "project_key": "PROJ"
+    }
+  }'
+```
+
+Example: export PRD
+```bash
+curl -X POST "http://localhost:8000/api/export/jira" \
+  -H "Authorization: Bearer dev_test_token_local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "result_id": 123,
+    "credentials": {
+      "jira_url": "https://your-domain.atlassian.net",
+      "email": "user@example.com",
+      "api_token": "your-api-token",
+      "project_key": "PROJ"
+    },
+    "epic_name": "Customer Research PRD",
+    "include_technical": true,
+    "include_acceptance_criteria": true,
+    "update_existing": true
+  }'
+```
+
+Expected success response (example):
+```json
+{
+  "success": true,
+  "message": "Export successful: 1 created, 3 updated",
+  "total_issues_created": 4,
+  "stories_created": 3,
+  "tasks_created": 5,
+  "errors": []
+}
+```
+
+### Troubleshooting
+- 422 validation: ensure body shape matches examples; if using the UI, hard refresh the page and retry
+- Auth: in OSS mode, use a dev token (e.g., dev_test_token_local)
+- Jira types: project must support Epic, Story, and Task/Sub-task
+- If export succeeds but fields aren’t visible, your Jira project screen may hide certain fields (e.g., parent)
+
+### Security
+- API tokens are never persisted; they are used only for the export call
+- All Jira requests are HTTPS; credentials sent via Authorization header (Basic auth)
+
 ## 🏗️ Architecture
 
 ### How AxWise Flow Actually Works

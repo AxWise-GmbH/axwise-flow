@@ -104,6 +104,7 @@ export default function DashboardOverview() {
 
   // Fetch dashboard statistics only when not in visualization mode
   const fetchDashboardStats = useCallback(async () => {
+    console.log('📊 [DashboardOverview] Fetching dashboard stats...');
     setIsLoading(true);
     setError(null);
 
@@ -176,7 +177,7 @@ export default function DashboardOverview() {
       fetchDashboardStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldShowVisualization]); // Only re-fetch when visualization mode changes
+  }, [shouldShowVisualization]); // Only re-fetch when visualization mode changes, not when fetchDashboardStats changes
 
   // Loading state for dashboard stats
   if (isLoading) {
