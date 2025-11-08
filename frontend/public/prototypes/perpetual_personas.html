@@ -54,6 +54,13 @@
     .pref-tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid}
     .pref-tag{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
 
+    /* Food images */
+    .food-image{width:100%;max-width:300px;height:auto;border-radius:8px;margin:6px 0 8px 12px;cursor:pointer;opacity:0.95;transition:opacity 0.2s;border:1px solid var(--muted)}
+    .food-image:hover{opacity:1}
+    .food-image-placeholder{width:100%;max-width:300px;height:180px;border-radius:8px;margin:6px 0 8px 12px;background:rgba(255,255,255,0.03);border:1px dashed var(--muted);display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:11px;cursor:pointer;transition:background 0.2s}
+    .food-image-placeholder:hover{background:rgba(255,255,255,0.05)}
+    .food-image-loading{opacity:0.5;pointer-events:none}
+
     /* Lightbox modal for full-size images */
     .lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
     .lightbox.show{display:flex}
@@ -204,11 +211,14 @@
       const img=card.querySelector('.avatar');
       let ok=false;
       if(cfg.useBackend && cfg.resultId){
+        const cityInput = document.getElementById('cityInput');
+        const city = cityInput?.value?.trim() || '';
+
         try{
           const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/avatar`, {
             method:'POST',
             headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
-            body: JSON.stringify({ style_pack:{ name:getPersonaName(card), style_desc:'distinctive editorial color grade, rim light, depth, characterful' } })
+            body: JSON.stringify({ city: city, style_pack:{ name:getPersonaName(card), style_desc:'distinctive editorial color grade, rim light, depth, characterful' } })
           });
           if(r.ok){ const data = await r.json(); if(data.avatar_data_uri||data.avatar_url){ img.src = data.avatar_data_uri || data.avatar_url; ok=true; } }
         }catch(_e){}
@@ -319,22 +329,57 @@
 
           const lunch=bp.lunch?.nearby_recommendations||[];
           const dinner=bp.dinner?.nearby_recommendations||[];
+          const hasCityProfile = !!bp && ((lunch.length||0) + (dinner.length||0) > 0);
 
           if(lunch.length>0) {
             html+=`<br/><strong>🍽️ Lunch:</strong><br/>`;
-            lunch.slice(0,2).forEach(r=>{
+            lunch.slice(0,2).forEach((r,idx)=>{
               html+=`<small><strong>• ${r.name}</strong> <span style="opacity:0.7">(${r.type}${r.area?', '+r.area:''})</span></small><br/>`;
               if(r.typical_order) html+=`<small style="opacity:0.8;margin-left:12px">→ ${r.typical_order}</small><br/>`;
               if(r.drink) html+=`<small style="opacity:0.7;margin-left:12px">🥤 ${r.drink}</small><br/>`;
+
+              // Add food image placeholder/display - only if typical_order has content
+              const imageKey = `lunch_${idx}`;
+              const foodImages = data.persona?.food_images || {};
+              const hasTypicalOrder = r.typical_order && r.typical_order.trim().length > 0;
+
+              if(hasTypicalOrder) {
+                if(foodImages[imageKey]) {
+                  html+=`<img src="${foodImages[imageKey]}" class="food-image" alt="${r.typical_order}" data-meal="lunch" data-index="${idx}" />`;
+                } else {
+                  // Show placeholder with click-to-generate functionality
+                  html+=`<div class="food-image-placeholder" data-meal="lunch" data-index="${idx}" data-dish="${r.typical_order}" data-drink="${r.drink||''}" style="width:200px;height:150px;background:#1e293b;border:1px dashed #475569;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:8px 0;font-size:11px;color:#94a3b8;transition:all 0.2s;" onmouseover="this.style.borderColor='#60a5fa';this.style.color='#60a5fa'" onmouseout="this.style.borderColor='#475569';this.style.color='#94a3b8'">
+                    <span>📸 Click to generate<br/>food image</span>
+                  </div>`;
+                }
+              }
+
             });
           }
 
           if(dinner.length>0) {
             html+=`<br/><strong>🍷 Dinner:</strong><br/>`;
-            dinner.slice(0,2).forEach(r=>{
+            dinner.slice(0,2).forEach((r,idx)=>{
               html+=`<small><strong>• ${r.name}</strong> <span style="opacity:0.7">(${r.type}${r.area?', '+r.area:''})</span></small><br/>`;
               if(r.typical_order) html+=`<small style="opacity:0.8;margin-left:12px">→ ${r.typical_order}</small><br/>`;
               if(r.drink) html+=`<small style="opacity:0.7;margin-left:12px">🍷 ${r.drink}</small><br/>`;
+
+              // Add food image placeholder/display - only if typical_order has content
+              const imageKey = `dinner_${idx}`;
+              const foodImages = data.persona?.food_images || {};
+              const hasTypicalOrder = r.typical_order && r.typical_order.trim().length > 0;
+
+              if(hasTypicalOrder) {
+                if(foodImages[imageKey]) {
+                  html+=`<img src="${foodImages[imageKey]}" class="food-image" alt="${r.typical_order}" data-meal="dinner" data-index="${idx}" />`;
+                } else {
+                  // Show placeholder with click-to-generate functionality
+                  html+=`<div class="food-image-placeholder" data-meal="dinner" data-index="${idx}" data-dish="${r.typical_order}" data-drink="${r.drink||''}" style="width:200px;height:150px;background:#1e293b;border:1px dashed #475569;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin:8px 0;font-size:11px;color:#94a3b8;transition:all 0.2s;" onmouseover="this.style.borderColor='#60a5fa';this.style.color='#60a5fa'" onmouseout="this.style.borderColor='#475569';this.style.color='#94a3b8'">
+                    <span>📸 Click to generate<br/>food image</span>
+                  </div>`;
+                }
+              }
+
             });
           }
 
@@ -365,9 +410,71 @@
       finally{ setLoading(btn,false); }
     }
 
+    async function genFoodImage(card, placeholder){
+      if(!(cfg.useBackend && cfg.resultId)) return;
+
+      const mealType = placeholder.dataset.meal;
+      const recIndex = parseInt(placeholder.dataset.index);
+
+      try{
+        placeholder.textContent = 'Generating...';
+        placeholder.classList.add('food-image-loading');
+
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/food-image`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
+          // Send dish/drink from UI to avoid DB/UI mismatches
+          body: JSON.stringify({
+            meal_type: mealType,
+            recommendation_index: recIndex,
+            dish: (placeholder.dataset.dish||'').trim(),
+            drink: (placeholder.dataset.drink||'').trim()
+          })
+        });
+
+        if(r.ok){
+          const data = await r.json();
+          if(data.image_data_uri){
+            // Replace placeholder with actual image
+            const img = document.createElement('img');
+            img.src = data.image_data_uri;
+            img.className = 'food-image';
+            img.alt = data.dish;
+            img.dataset.meal = mealType;
+            img.dataset.index = recIndex;
+            placeholder.replaceWith(img);
+          } else {
+            placeholder.textContent = 'Failed to generate';
+            placeholder.classList.remove('food-image-loading');
+          }
+        } else {
+          // Get error message from response
+          let errorMsg = 'Error - click to retry';
+          try {
+            const errorData = await r.json();
+            console.error('[Food Image Error]', errorData);
+            if(errorData.detail) {
+              // Show first 50 chars of error message
+              errorMsg = errorData.detail.substring(0, 50) + (errorData.detail.length > 50 ? '...' : '');
+            }
+          } catch(_) {}
+
+          placeholder.textContent = errorMsg;
+          placeholder.classList.remove('food-image-loading');
+          placeholder.style.fontSize = '10px';
+          placeholder.style.padding = '8px';
+        }
+      }catch(_e){
+        console.error('Food image generation error:', _e);
+        placeholder.textContent = 'Error - click to retry';
+        placeholder.classList.remove('food-image-loading');
+      }
+    }
+
     document.getElementById('cards').addEventListener('click', async (e)=>{
       const btn=e.target.closest('button');
       const card=e.target.closest('.card');
+
       if(!btn || !card) return; const act=btn.dataset.action;
       if(act==='avatar') await genAvatar(card,btn);
       if(act==='profile') await genProfile(card,btn);
@@ -379,6 +486,17 @@
     });
     document.getElementById('gen-all-profiles').addEventListener('click', async ()=>{
       for(const btn of document.querySelectorAll('[data-action="profile"]')){ const card=btn.closest('.card'); await genProfile(card,btn); }
+    });
+
+    // Food image placeholder click handler
+    document.getElementById('cards').addEventListener('click', async (e)=>{
+      const placeholder = e.target.closest('.food-image-placeholder');
+      if(!placeholder) return;
+
+      const card = e.target.closest('.card');
+      if(!card) return;
+
+      await genFoodImage(card, placeholder);
     });
 
     window.addEventListener('DOMContentLoaded',()=>{
@@ -409,11 +527,13 @@
       const lightboxImg = lightbox?.querySelector('img');
       const lightboxClose = lightbox?.querySelector('.lightbox-close');
 
-      // Open lightbox when clicking any avatar
+      // Open lightbox when clicking any avatar or food image
       document.addEventListener('click', (e) => {
         const avatar = e.target.closest('.avatar');
-        if(avatar && lightbox && lightboxImg){
-          lightboxImg.src = avatar.src;
+        const foodImage = e.target.closest('.food-image');
+
+        if((avatar || foodImage) && lightbox && lightboxImg){
+          lightboxImg.src = (avatar || foodImage).src;
           lightbox.classList.add('show');
         }
       });

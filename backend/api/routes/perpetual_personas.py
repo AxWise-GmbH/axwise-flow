@@ -8,10 +8,15 @@ Design goals:
 - Photorealistic 85mm headshots with consistent camera angle
 """
 from typing import Dict, Any, Optional
+import json
+import os
+import re
+import time
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-import json, os
+from sqlalchemy.orm.attributes import flag_modified
 
 from backend.database import get_db
 from backend.models import AnalysisResult, InterviewData, User
@@ -42,6 +47,47 @@ def _load_results_obj(ar: AnalysisResult) -> Dict[str, Any]:
     if not isinstance(res, dict):
         res = {}
     return res
+
+
+def _detect_city_from_persona(persona: Dict[str, Any], payload_city: Optional[str] = None) -> str:
+    """
+    Intelligently detect city from persona data with multiple fallback strategies.
+
+    Priority:
+    1. Explicit payload city (user input)
+    2. Existing city_profile or berlin_profile
+    3. Scan structured_demographics and demographics for known cities
+    4. Default to empty string (caller can decide default)
+    """
+    city = (payload_city or "").strip()
+
+    if not city:
+        # Prefer city from existing city_profile/berlin_profile if present
+        cp = persona.get("city_profile") or persona.get("berlin_profile") or {}
+        if isinstance(cp, dict):
+            city = (cp.get("city") or "").strip()
+
+    if not city:
+        # Try structured demographics and demographics fields for known cities
+        structured_demo = persona.get("structured_demographics") or {}
+        location_value = ""
+        if isinstance(structured_demo, dict):
+            loc_field = structured_demo.get("location")
+            if isinstance(loc_field, dict):
+                location_value = loc_field.get("value", "")
+            else:
+                location_value = loc_field or ""
+        demo_value = ""
+        demographics = persona.get("demographics")
+        if isinstance(demographics, dict):
+            demo_value = demographics.get("value", "")
+        scan_str = f"{location_value} {demo_value}".strip()
+        for supported_city in ["Berlin", "Munich", "Frankfurt", "Paris", "Barcelona", "London", "Tokyo", "New York"]:
+            if supported_city.lower() in str(scan_str).lower():
+                city = supported_city
+                break
+
+    return city
 
 
 def _assert_ownership(db: Session, result_id: int, user: User) -> AnalysisResult:
@@ -79,6 +125,15 @@ async def generate_persona_avatar(
     # Build a rich prompt when Google SDK is available
     style_pack = payload.get("style_pack") or {}
     persona_name = style_pack.get("name") or persona_id
+
+    # Resolve persona and detect city for city-aware avatar generation
+    persona = upsert_persona_fields(results, persona_id, {})
+    city = _detect_city_from_persona(persona, payload.get("city"))
+
+    if city:
+        # Annotate style pack with the chosen city for traceability
+        style_pack["city"] = city
+
     # Enforce authentic workplace interview-style photography
     style_desc = style_pack.get("style_desc") or (
         "Authentic workplace interview photograph, 85mm portrait lens, shallow depth of field, "
@@ -87,7 +142,16 @@ async def generate_persona_avatar(
         "no artificial studio lighting or neutral backgrounds, genuine workplace context, "
         "no cartoon or illustration, real person, documentary photography style"
     )
-    prompt = f"Workplace interview portrait of {persona_name}. {style_desc}. No text or graphics."
+
+    # Generate unique identifier to prevent image caching/reuse
+    unique_id = f"{uuid.uuid4().hex[:8]}-{int(time.time() * 1000)}"
+
+    if city:
+        prompt = f"Workplace interview portrait of {persona_name}. {style_desc}. Authentically set in {city}, with subtle local background cues (workplace/café). Unique session: {unique_id}. No text or graphics."
+    else:
+        prompt = f"Workplace interview portrait of {persona_name}. {style_desc}. Unique session: {unique_id}. No text or graphics."
+
+    print(f"[DEBUG] Avatar generation for {persona_name} (city: {city or 'none'}, unique_id: {unique_id})")
 
     # Try Gemini image generation; fallback to unique SVG avatar
     g = GeminiImageService()
@@ -110,10 +174,11 @@ async def generate_persona_avatar(
     # Persist
     ar.results = results
     try:
+        flag_modified(ar, "results")
         db.add(ar)
         db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[ERROR] Failed to persist avatar for persona {persona_id}: {e}")
 
     return {"ok": True, "result_id": result_id, "persona_id": persona_id, "avatar_data_uri": data_uri}
 
@@ -216,12 +281,250 @@ async def generate_persona_quote(
 
     ar.results = results
     try:
+        flag_modified(ar, "results")
         db.add(ar)
         db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[ERROR] Failed to persist quote for persona {persona_id}: {e}")
 
     return {"ok": True, "result_id": result_id, "persona_id": persona_id, "quote": quote}
+
+
+@router.post("/{result_id}/{persona_id}/food-image")
+async def generate_food_image(
+    result_id: int,
+    persona_id: str,
+    payload: Dict[str, Any] = Body(default={}),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Generate a food + beverage image for a specific restaurant recommendation.
+
+    Expects payload with:
+    - meal_type: "lunch" or "dinner"
+    - recommendation_index: index in the nearby_recommendations array
+    """
+    ar = _assert_ownership(db, result_id, user)
+    results = _load_results_obj(ar)
+
+    persona = upsert_persona_fields(results, persona_id, {})
+
+    # Get parameters
+    meal_type = payload.get("meal_type", "lunch")  # "lunch" or "dinner"
+    rec_index = payload.get("recommendation_index", 0)
+
+    print(f"[DEBUG] Food-image request: result_id={result_id}, persona_id={persona_id}, meal={meal_type}, index={rec_index}")
+    # Optional overrides from frontend to avoid stale DB mismatches
+    dish_override = (payload.get("dish") or payload.get("dish_override") or "").strip()
+    drink_override = (payload.get("drink") or payload.get("drink_override") or "").strip()
+
+    # Get city profile
+    city_profile = persona.get("city_profile") or persona.get("berlin_profile") or {}
+
+    # Check if city profile exists; allow override-only generation to proceed
+    if not city_profile and not dish_override:
+        raise HTTPException(
+            status_code=400,
+            detail="City profile not generated yet. Please generate city profile first by clicking 'City profile' button."
+        )
+
+    meal_data = city_profile.get(meal_type, {})
+    recommendations = meal_data.get("nearby_recommendations", [])
+
+    # Check if recommendations exist (unless UI provided explicit overrides)
+    if not recommendations and not dish_override:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No {meal_type} recommendations found. Please regenerate city profile."
+        )
+
+    # Check if the specific recommendation index exists (unless overrides provided)
+    if rec_index >= len(recommendations) and not dish_override:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Recommendation index {rec_index} not found. Only {len(recommendations)} {meal_type} recommendations available."
+        )
+
+    dish = ""
+    drink = ""
+    restaurant_name = "Unknown Restaurant"
+    if recommendations and rec_index < len(recommendations):
+        recommendation = recommendations[rec_index]
+        dish = (recommendation.get("typical_order", "") or "").strip()
+        drink = (recommendation.get("drink", "") or "").strip()
+        restaurant_name = recommendation.get("name", "Unknown Restaurant")
+
+    # Apply overrides from frontend if provided (prevents stale DB mismatches)
+    value_source = "db"
+    if dish_override:
+        dish = dish_override
+        value_source = "override"
+    if drink_override:
+        drink = drink_override
+        value_source = "override"
+
+    # Basic beverage detection to prevent beverages classified as dishes
+    def _is_beverage(text: str) -> bool:
+        """
+        Detect if text is a beverage using word boundary matching with context awareness.
+
+        Uses regex word boundaries to avoid false positives like:
+        - "Dry-Aged Ribeye Steak" matching "lager" (contains "age")
+        - "Cottage Cheese" matching "cottage"
+        - "Sage Butter" matching "sage"
+
+        Also handles edge cases like:
+        - "Coffee Cake" (food, not beverage)
+        - "Tea Sandwich" (food, not beverage)
+        - "Beer-Battered Fish" (food, not beverage)
+        """
+        t = (text or "").lower().strip()
+        if not t:
+            return False
+
+        # Food context keywords that indicate it's NOT a beverage
+        # These are common food preparation methods or food types
+        food_context_keywords = [
+            r"\bcake\b", r"\bsandwich\b", r"\bbattered\b", r"\bbraised\b",
+            r"\bglazed\b", r"\binfused\b", r"\brub\b", r"\bmarinade\b",
+            r"\bsauce\b", r"\bbutter\b", r"\bcheese\b", r"\bcream\b",
+            r"\bpasta\b", r"\bpizza\b", r"\bsalad\b", r"\bsoup\b",
+            r"\bsteak\b", r"\bburger\b", r"\bsandwich\b", r"\bwrap\b",
+            r"\bbowl\b", r"\bplate\b", r"\bplatter\b"
+        ]
+
+        # Check if text contains food context keywords (indicates it's food, not beverage)
+        for pattern in food_context_keywords:
+            if re.search(pattern, t):
+                return False
+
+        # Beverage keywords - use word boundaries to match complete words only
+        beverage_keywords = [
+            # Coffee drinks
+            r"\bcoffee\b", r"\blatte\b", r"\bflat white\b", r"\bespresso\b",
+            r"\bcappuccino\b", r"\bamericano\b", r"\bmocha\b", r"\bmacchiato\b",
+            # Tea drinks
+            r"\btea\b", r"\bmatcha\b", r"\bchai\b", r"\bherbal tea\b", r"\bgreen tea\b",
+            # Smoothies and juices
+            r"\bsmoothie\b", r"\bjuice\b", r"\bdetox\b", r"\bshake\b", r"\bmilkshake\b",
+            # Soft drinks
+            r"\bsoda\b", r"\bcola\b", r"\bwater\b", r"\bsparkling water\b", r"\blemonade\b",
+            # Beer
+            r"\bbeer\b", r"\blager\b", r"\bipa\b", r"\bpils\b", r"\bale\b", r"\bstout\b",
+            # Wine
+            r"\bwine\b", r"\bred wine\b", r"\bwhite wine\b", r"\brosé\b", r"\brose\b",
+            # Cocktails
+            r"\bspritz\b", r"\baperol\b", r"\bnegroni\b", r"\bcocktail\b", r"\bmocktail\b",
+            r"\bmartini\b", r"\bmojito\b", r"\bmargarita\b"
+        ]
+
+        # Check if any beverage keyword matches with word boundaries
+        for pattern in beverage_keywords:
+            if re.search(pattern, t):
+                return True
+
+        return False
+
+    if _is_beverage(dish):
+        # If the dish looks like a beverage, surface a clear validation error
+        print(f"[DEBUG] Food-image validation: '{dish}' detected as beverage for {restaurant_name} (index {rec_index}, meal={meal_type}).")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Dish appears to be a beverage for {restaurant_name} ('{dish}'). "
+                "typical_order must be a food item; drink must be a beverage. Please regenerate the city profile."
+            ),
+        )
+
+    # Check if dish is specified after overrides
+    if not dish:
+        print(f"[DEBUG] Food-image validation: No dish for {restaurant_name} (index {rec_index}, meal={meal_type}).")
+        raise HTTPException(
+            status_code=400,
+            detail=f"No dish specified for {restaurant_name}. Please regenerate city profile to include food details."
+        )
+
+    print(f"[DEBUG] Food-image request: {restaurant_name} | dish='{dish}' | drink='{drink}' | meal={meal_type} index={rec_index}")
+
+    # Generate image using Gemini
+    gimg = GeminiImageService()
+    image_data_uri = None
+
+    if gimg.is_available() and os.getenv("ENABLE_PERPETUAL_PERSONAS", "true").lower() in {"1", "true", "yes"}:
+        # Generate unique identifier to prevent image caching/reuse
+        unique_id = f"{uuid.uuid4().hex[:8]}-{int(time.time() * 1000)}"
+
+        # Create detailed prompt for food photography
+        prompt_parts = [
+            "Professional food photography,",
+            "skeumorphic design,",
+            "high-quality detailed image,",
+            f"featuring {dish}",
+        ]
+
+        if drink:
+            prompt_parts.append(f"and {drink}")
+
+        prompt_parts.extend([
+            f"at {restaurant_name},",
+            "on a clean restaurant table,",
+            "appetizing presentation,",
+            "well-lit with natural lighting,",
+            "shallow depth of field,",
+            "restaurant quality plating,",
+            "detailed textures,",
+            "vibrant colors,",
+            "overhead or 45-degree angle,",
+            "minimalist composition,",
+            "editorial food magazine style,",
+            f"unique session: {unique_id}"
+        ])
+
+        prompt = " ".join(prompt_parts)
+
+        print(f"[DEBUG] Generating food image for {restaurant_name} ({meal_type} #{rec_index}, unique_id: {unique_id})")
+
+        try:
+            # Use temperature=0.9 for more variation in food images
+            b64 = gimg.generate_avatar_base64(prompt, temperature=0.9)
+            if b64:
+                image_data_uri = f"data:image/png;base64,{b64}"
+        except Exception as e:
+            print(f"[ERROR] Food image generation failed: {e}")
+
+    # Store the image in the recommendation
+    if image_data_uri:
+        # Initialize food_images dict if it doesn't exist
+        if "food_images" not in persona:
+            persona["food_images"] = {}
+
+        # Store by meal_type and index
+        image_key = f"{meal_type}_{rec_index}"
+        persona["food_images"][image_key] = image_data_uri
+
+        # Update persona
+        persona = upsert_persona_fields(results, persona_id, {"food_images": persona["food_images"]})
+
+        ar.results = results
+        try:
+            flag_modified(ar, "results")
+            db.add(ar)
+            db.commit()
+        except Exception as e:
+            print(f"[ERROR] Failed to save food image: {e}")
+
+    return {
+        "ok": True,
+        "result_id": result_id,
+        "persona_id": persona_id,
+        "meal_type": meal_type,
+        "recommendation_index": rec_index,
+        "restaurant_name": restaurant_name,
+        "dish": dish,
+        "drink": drink,
+        "image_data_uri": image_data_uri,
+        "value_source": value_source
+    }
 
 
 @router.get("/results")
@@ -394,10 +697,11 @@ async def generate_persona_city_profile(
     if not city:
         city = "Berlin"
 
-    # Validate city
+    # Validate city for fallback only. Allow any city for Gemini; fallback template
+    # will default to Berlin if generation fails.
     supported_cities = ["Berlin", "Munich", "Frankfurt", "Paris", "Barcelona"]
     if city not in supported_cities:
-        city = "Berlin"
+        print(f"[DEBUG] City '{city}' not in supported fallback list; will attempt Gemini; fallback uses Berlin.")
 
     neighborhood_hint = (payload.get("neighborhood") or persona.get("neighborhood") or "").strip() or None
 
@@ -515,12 +819,21 @@ async def generate_persona_city_profile(
     })
     ar.results = results
     try:
+        flag_modified(ar, "results")
         db.add(ar)
         db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[ERROR] Failed to persist city profile for persona {persona_id}: {e}")
 
-    return {"ok": True, "result_id": result_id, "persona_id": persona_id, "city_profile": city_profile}
+    return {
+        "ok": True,
+        "result_id": result_id,
+        "persona_id": persona_id,
+        "city_profile": city_profile,
+        "persona": {
+            "food_images": persona.get("food_images", {})
+        }
+    }
 
 
 @router.post("/{result_id}/{persona_id}/berlin-profile")

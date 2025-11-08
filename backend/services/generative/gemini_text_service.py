@@ -88,10 +88,10 @@ class GeminiTextService:
             print(f"[DEBUG] GeminiTextService: Client not available for city profile generation")
             return None
 
-        # Validate city
+        # Allow any city for Gemini; restrict only when using fallback template
         supported_cities = ["Berlin", "Munich", "Frankfurt", "Paris", "Barcelona"]
         if city not in supported_cities:
-            city = "Berlin"  # Default fallback
+            print(f"[DEBUG] GeminiTextService: '{city}' not in supported fallback list; attempting Gemini generation. Fallback defaults to Berlin.")
 
         print(f"[DEBUG] GeminiTextService: Generating city profile for {name} in {city} (neighborhood: {neighborhood_hint})")
 
@@ -187,8 +187,12 @@ class GeminiTextService:
             "dinner {summary, weekday, weekend, date_night, nearby_recommendations[name,type,area,why,typical_order,drink]}. "
             f"Recommendations must be realistic {city} places near the neighborhood (walk/short transit). "
             f"Use authentic local restaurants, cafes, and food spots that match {city}'s food culture. "
-            "For each recommendation, include 'typical_order' (specific real dish/menu item from that place) "
-            "and 'drink' (specific beverage that pairs well, considering the persona's likely preferences). "
+            "STRICT CONSTRAINTS: \n"
+            "- 'typical_order' MUST be a solid food dish (e.g., sandwich, bowl, salad, pastry, entrée); it can never be a beverage.\n"
+            "- 'drink' MUST be a beverage only (e.g., coffee, tea, smoothie, juice, soda, beer, wine, cocktail).\n"
+            "- Both 'typical_order' and 'drink' MUST be populated for every recommendation.\n"
+            "- For coffee shops/cafes, set 'typical_order' to a realistic food item served there (e.g., 'Avocado toast', 'Croissant', 'Granola bowl').\n"
+            "- Use specific menu items commonly associated with that venue — avoid generic placeholders.\n"
             f"Base all choices on the persona profile: {persona_context}.{hint} "
             "For dining_context: Assign probability percentages (0-100) for each dining behavior based on their work style, lifestyle, and social patterns. "
             "For example, a remote worker might have solo:85, social:60, business:15. A sales executive might have solo:30, social:80, business:90. "
