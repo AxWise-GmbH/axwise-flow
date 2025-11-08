@@ -23,7 +23,8 @@
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
     .card{background:var(--panel);border:1px solid var(--muted);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
     .head{display:flex;gap:12px;align-items:center}
-    .avatar{width:72px;height:72px;border-radius:12px;border:none;object-fit:cover;background:transparent;opacity:0.95}
+    .avatar{width:72px;height:72px;border-radius:12px;border:none;object-fit:cover;background:transparent;opacity:0.95;cursor:pointer;transition:opacity 0.2s}
+    .avatar:hover{opacity:1}
     .meta b{display:block;font-size:14px}
     .meta span{font-size:12px;opacity:.8}
     .actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -52,6 +53,13 @@
     .pref-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
     .pref-tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid}
     .pref-tag{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
+
+    /* Lightbox modal for full-size images */
+    .lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+    .lightbox.show{display:flex}
+    .lightbox img{max-width:90%;max-height:90%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+    .lightbox-close{position:absolute;top:20px;right:30px;color:white;font-size:40px;font-weight:300;cursor:pointer;opacity:0.8;transition:opacity 0.2s}
+    .lightbox-close:hover{opacity:1}
 
   </style>
 </head>
@@ -134,6 +142,12 @@
     </div>
 
     <footer>Photorealistic 85mm headshots with Berlin profiles and meaningful quotes from analysis.</footer>
+  </div>
+
+  <!-- Lightbox for full-size images -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close">&times;</span>
+    <img src="" alt="Full size avatar" />
   </div>
 
   <script>
@@ -388,6 +402,38 @@
       document.querySelectorAll('.card').forEach(c=>{ const av=c.querySelector('.avatar'); if(av){ av.style.border='none'; av.style.boxShadow='none'; }});
       loadResultsChoices(); apply();
     });
+
+    // Lightbox functionality for full-size avatar viewing
+    (function(){
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = lightbox?.querySelector('img');
+      const lightboxClose = lightbox?.querySelector('.lightbox-close');
+
+      // Open lightbox when clicking any avatar
+      document.addEventListener('click', (e) => {
+        const avatar = e.target.closest('.avatar');
+        if(avatar && lightbox && lightboxImg){
+          lightboxImg.src = avatar.src;
+          lightbox.classList.add('show');
+        }
+      });
+
+      // Close lightbox when clicking background or close button
+      if(lightbox){
+        lightbox.addEventListener('click', (e) => {
+          if(e.target === lightbox || e.target === lightboxClose){
+            lightbox.classList.remove('show');
+          }
+        });
+      }
+
+      // Close lightbox with Escape key
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && lightbox){
+          lightbox.classList.remove('show');
+        }
+      });
+    })();
   </script>
 </body>
 </html>

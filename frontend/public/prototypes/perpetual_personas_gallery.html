@@ -20,7 +20,8 @@
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
     .card{background:var(--panel);border:1px solid var(--muted);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
     .media{position:relative;background:#0b1224;height:160px;display:flex;align-items:center;justify-content:center}
-    .avatar{width:100%;height:100%;object-fit:cover;display:block;border:none;opacity:0.95}
+    .avatar{width:100%;height:100%;object-fit:cover;display:block;border:none;opacity:0.95;cursor:pointer;transition:opacity 0.2s}
+    .avatar:hover{opacity:1}
     .badge{position:absolute;top:10px;left:10px;background:#0e1b2d;border:1px solid var(--muted);padding:2px 8px;border-radius:999px;font-size:11px}
     .content{padding:12px;display:flex;flex-direction:column;gap:6px}
     .title{font-weight:700}
@@ -45,6 +46,13 @@
     .pref-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
     .pref-tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid}
     .pref-tag{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
+
+    /* Lightbox modal for full-size images */
+    .lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+    .lightbox.show{display:flex}
+    .lightbox img{max-width:90%;max-height:90%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+    .lightbox-close{position:absolute;top:20px;right:30px;color:white;font-size:40px;font-weight:300;cursor:pointer;opacity:0.8;transition:opacity 0.2s}
+    .lightbox-close:hover{opacity:1}
 
   </style>
 
@@ -80,6 +88,12 @@
     </section>
 
     <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Lightbox for full-size images -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close">&times;</span>
+    <img src="" alt="Full size avatar" />
   </div>
 
   <script>
@@ -278,6 +292,38 @@
     async function loadResultsChoices(){ if(!sel) return; sel.innerHTML='<option value="">Loading…</option>'; try{ const r=await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/results`,{ headers:{'Authorization':'Bearer '+(tok?.value||'dev_test_token_local')} }); const data=await r.json(); const items=data.items||[]; if(items.length===0){ sel.innerHTML='<option value="">No analyses found</option>'; } else { sel.innerHTML='<option value="">Select analysis/persona pack…</option>'+ items.map(i=>`<option value="${i.result_id}">${(i.label||('Result '+i.result_id))}</option>`).join(''); } }catch(e){ sel.innerHTML='<option value="">Error loading analyses</option>'; } }
     const refresh=document.getElementById('refreshResults'); if(refresh){ refresh.addEventListener('click', ()=> loadResultsChoices()); }
     applyCfg(); loadResultsChoices();
+
+    // Lightbox functionality for full-size avatar viewing
+    (function(){
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = lightbox?.querySelector('img');
+      const lightboxClose = lightbox?.querySelector('.lightbox-close');
+
+      // Open lightbox when clicking any avatar
+      document.addEventListener('click', (e) => {
+        const avatar = e.target.closest('.avatar');
+        if(avatar && lightbox && lightboxImg){
+          lightboxImg.src = avatar.src;
+          lightbox.classList.add('show');
+        }
+      });
+
+      // Close lightbox when clicking background or close button
+      if(lightbox){
+        lightbox.addEventListener('click', (e) => {
+          if(e.target === lightbox || e.target === lightboxClose){
+            lightbox.classList.remove('show');
+          }
+        });
+      }
+
+      // Close lightbox with Escape key
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && lightbox){
+          lightbox.classList.remove('show');
+        }
+      });
+    })();
 
   </script>
 </body>
