@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AxWise Flow — Prototypes Index</title>
+  <style>
+    :root{--bg:#0b1120;--panel:#0f172a;--muted:#334155;--text:#e5e7eb;--cta:#3b82f6}
+    *{box-sizing:border-box} body{margin:0;font:15px/1.5 system-ui,Segoe UI,Roboto;color:var(--text);background:linear-gradient(180deg,#0a0f1f,#0b1120)}
+    .container{max-width:860px;margin:0 auto;padding:28px}
+    h1{margin:0 0 8px 0;font-size:20px}
+    p{opacity:.85;margin:0 0 16px 0}
+    .list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px}
+    .card{background:var(--panel);border:1px solid var(--muted);border-radius:12px;padding:14px}
+    a{color:#93c5fd;text-decoration:none}
+    .title{font-weight:700;margin-bottom:6px}
+    .desc{opacity:.85;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AxWise Flow — HTML Prototypes</h1>
+    <p>Quick links to static UI prototypes. These are standalone and simulate interactions without backend calls.</p>
+
+    <div class="list">
+      <div class="card">
+        <div class="title"><a href="/prototypes/perpetual_personas.html">Perpetual Personas — Cards</a></div>
+        <div class="desc">Persona cards with inline actions: generate avatar, intro video, and dialogue. Includes batch actions.</div>
+      </div>
+      <div class="card">
+        <div class="title"><a href="/prototypes/perpetual_personas_gallery.html">Perpetual Personas — Gallery</a></div>
+        <div class="desc">Full-page gallery view with larger media area, search, segment filter, and lightbox video playback.</div>
+      </div>
+    </div>
+
+    <p style="margin-top:18px;opacity:.75">Tip: Serve via Next.js dev server and open <code>/prototypes/</code> to browse.</p>
+  </div>
+</body>
+</html>
+

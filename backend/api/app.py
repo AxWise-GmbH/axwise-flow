@@ -14,8 +14,17 @@ import sys
 import os
 from slowapi.errors import RateLimitExceeded
 
-# Add the parent directory to the Python path
+# Load environment variables from .env.oss file
+from dotenv import load_dotenv
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_file = os.path.join(backend_dir, ".env.oss")
+if os.path.exists(env_file):
+    load_dotenv(env_file)
+    print(f"[INFO] Loaded environment from {env_file}")
+else:
+    print(f"[WARNING] .env.oss file not found at {env_file}")
+
+# Add the parent directory to the Python path
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
@@ -72,6 +81,8 @@ logger = logging.getLogger(__name__)
 from backend.api.endpoints.priority_insights import router as priority_insights_router
 from backend.api.export_routes import router as export_router
 from backend.api.routes.prd import router as prd_router
+from backend.api.routes.perpetual_personas import router as perpetual_personas_router
+
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
 
@@ -265,6 +276,8 @@ async def security_logging_middleware(request: Request, call_next):
 app.include_router(priority_insights_router, prefix="/api/analysis")
 app.include_router(export_router)
 app.include_router(prd_router)
+
+app.include_router(perpetual_personas_router)
 
 
 # Include debug router
