@@ -102,6 +102,29 @@ class GeminiTextService:
                 "neighborhood": {"type": "string"},
                 "district": {"type": "string"},
                 "origin_description": {"type": "string"},
+                "dining_context": {
+                    "type": "object",
+                    "description": "Probability scores (0-100) for dine-in contexts based on persona profile",
+                    "properties": {
+                        "solo": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of dining alone"},
+                        "social": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of dining with colleagues, friends, or family"},
+                        "business": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of dining for business/networking purposes"}
+                    }
+                },
+                "takeaway_context": {
+                    "type": "object",
+                    "description": "Probability scores (0-100) for takeaway methods based on persona profile",
+                    "properties": {
+                        "pickup": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of picking up food to-go"},
+                        "delivery_home": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of ordering delivery to home"},
+                        "delivery_office": {"type": "number", "minimum": 0, "maximum": 100, "description": "Likelihood (%) of ordering delivery to workplace"}
+                    }
+                },
+                "food_beverage_preferences": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "5-7 specific tags covering dietary restrictions, cuisine preferences, beverage preferences, and food style preferences"
+                },
                 "lunch": {
                     "type": "object",
                     "properties": {
@@ -155,15 +178,26 @@ class GeminiTextService:
             f"Fields: city ('{city}'), neighborhood (a real neighborhood in {city}), "
             f"district (the district/borough that contains the neighborhood), "
             f"origin_description (where in {city} they are from), "
+            "dining_context {solo: number, social: number, business: number} - Probability scores (0-100) for dine-in contexts, "
+            "takeaway_context {pickup: number, delivery_home: number, delivery_office: number} - Probability scores (0-100) for takeaway methods, "
+            "food_beverage_preferences (array of 5-7 specific tags covering: dietary restrictions like 'Vegetarian'/'Vegan'/'Gluten-Free'/'Halal'/'Kosher', "
+            "cuisine preferences like 'Italian'/'Asian Fusion'/'Mediterranean', beverage preferences like 'Coffee Enthusiast'/'Wine Lover'/'Craft Beer'/'Tea Drinker', "
+            "and food style preferences like 'Street Food'/'Fine Dining'/'Comfort Food'/'Health-Conscious'/'Organic'), "
             "lunch {summary, typical_weekday, nearby_recommendations[name,type,area,why,typical_order,drink]}, "
             "dinner {summary, weekday, weekend, date_night, nearby_recommendations[name,type,area,why,typical_order,drink]}. "
             f"Recommendations must be realistic {city} places near the neighborhood (walk/short transit). "
             f"Use authentic local restaurants, cafes, and food spots that match {city}'s food culture. "
             "For each recommendation, include 'typical_order' (specific real dish/menu item from that place) "
             "and 'drink' (specific beverage that pairs well, considering the persona's likely preferences). "
-            f"Base food and drink choices on the persona profile: {persona_context}.{hint} "
-            "Make the food/drink choices reflect their personality, work style, and preferences. "
-            "Keep total under 1500 characters. "
+            f"Base all choices on the persona profile: {persona_context}.{hint} "
+            "For dining_context: Assign probability percentages (0-100) for each dining behavior based on their work style, lifestyle, and social patterns. "
+            "For example, a remote worker might have solo:85, social:60, business:15. A sales executive might have solo:30, social:80, business:90. "
+            "For takeaway_context: Assign probability percentages (0-100) for each takeaway method based on their location, work setup, and habits. "
+            "For example, someone working from home might have pickup:70, delivery_home:85, delivery_office:10. An office worker might have pickup:50, delivery_home:40, delivery_office:75. "
+            "For food_beverage_preferences: Generate 5-7 specific, actionable tags (1-3 words each) that cover dietary needs, cuisine tastes, beverage habits, and food style. "
+            "Be realistic and nuanced with probability scores - not everyone needs to score high on everything. Use the full 0-100 range. "
+            "Make all classifications reflect their personality, work style, lifestyle, and preferences. "
+            "Keep total under 2000 characters. "
             "Return strict JSON only."
         )
 

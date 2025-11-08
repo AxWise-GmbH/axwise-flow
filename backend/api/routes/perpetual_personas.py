@@ -125,43 +125,92 @@ async def generate_persona_quote(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Extract a meaningful quote from the persona's analysis data."""
+    """Generate a concise, impactful quote from the persona's analysis data using LLM."""
     ar = _assert_ownership(db, result_id, user)
     results = _load_results_obj(ar)
 
     persona = upsert_persona_fields(results, persona_id, {})
 
-    # Extract meaningful quote from analysis
-    quote = None
+    # Get persona name and context
+    name = persona.get("name") or persona_id.title()
 
-    # Try goals_and_motivations first
+    # Collect context from persona data
+    context_parts = []
+
+    # Extract goals and motivations
     gm = persona.get("goals_and_motivations") or {}
     if isinstance(gm, dict):
         gm_value = gm.get("value") or ""
-        if gm_value and len(gm_value) > 20:
-            quote = f'"{gm_value}"'
+        if gm_value:
+            context_parts.append(f"Goals: {gm_value}")
 
-    # Try pain_points if no quote yet
-    if not quote:
-        pp = persona.get("pain_points") or {}
-        if isinstance(pp, dict):
-            pp_value = pp.get("value") or ""
-            if pp_value and len(pp_value) > 20:
-                quote = f'"{pp_value}"'
+    # Extract pain points
+    pp = persona.get("pain_points") or {}
+    if isinstance(pp, dict):
+        pp_value = pp.get("value") or ""
+        if pp_value:
+            context_parts.append(f"Pain points: {pp_value}")
 
-    # Try key_insights
-    if not quote:
-        insights = persona.get("key_insights") or []
-        if isinstance(insights, list) and len(insights) > 0:
-            first_insight = insights[0]
-            if isinstance(first_insight, dict):
-                insight_text = first_insight.get("value") or first_insight.get("insight") or ""
-                if insight_text and len(insight_text) > 20:
-                    quote = f'"{insight_text}"'
+    # Extract key insights
+    insights = persona.get("key_insights") or []
+    if isinstance(insights, list) and len(insights) > 0:
+        first_insight = insights[0]
+        if isinstance(first_insight, dict):
+            insight_text = first_insight.get("value") or first_insight.get("insight") or ""
+            if insight_text:
+                context_parts.append(f"Key insight: {insight_text}")
 
-    # Fallback to a generic quote
+    # Extract archetype/title for additional context
+    archetype = persona.get("archetype") or persona.get("title") or ""
+    if archetype:
+        context_parts.append(f"Role: {archetype}")
+
+    # Try to generate condensed quote using LLM
+    quote = None
+    gtxt = GeminiTextService()
+
+    if gtxt.is_available() and context_parts and os.getenv("ENABLE_PERPETUAL_PERSONAS", "true").lower() in {"1","true","yes"}:
+        context = " | ".join(context_parts[:3])  # Limit to first 3 context parts
+
+        prompt = (
+            f"You are a persona quote generator. Based on the following persona information, "
+            f"create a single, concise, impactful first-person quote that captures their essence. "
+            f"The quote must be 1-2 sentences maximum and under 150 characters. "
+            f"Make it authentic, specific, and memorable. Do NOT include quotation marks in the output. "
+            f"Return JSON with a single field 'quote' containing the text.\n\n"
+            f"Persona: {name}\n"
+            f"Context: {context}\n\n"
+            f"Generate a quote that sounds like something this person would actually say."
+        )
+
+        try:
+            result = gtxt.generate_json(prompt, temperature=0.7)
+            if result and isinstance(result, dict) and result.get("quote"):
+                quote = result["quote"].strip()
+                # Ensure it doesn't already have quotes
+                if quote.startswith('"') and quote.endswith('"'):
+                    quote = quote[1:-1]
+        except Exception as e:
+            print(f"[DEBUG] LLM quote generation failed: {e}")
+
+    # Fallback: extract first sentence from goals/pain points
+    if not quote and context_parts:
+        # Try to extract a short, punchy sentence from the context
+        for part in context_parts:
+            text = part.split(": ", 1)[-1] if ": " in part else part
+            # Take first sentence
+            sentences = text.split(". ")
+            if sentences and len(sentences[0]) < 150:
+                quote = sentences[0].strip()
+                break
+
+    # Final fallback
     if not quote:
-        quote = f'"I champion pragmatic solutions that deliver measurable value."'
+        quote = "I champion pragmatic solutions that deliver measurable value"
+
+    # Ensure quote doesn't end with period if it's a fragment
+    if quote and not quote.endswith((".", "!", "?")):
+        quote = quote.rstrip()
 
     persona = upsert_persona_fields(results, persona_id, {"quote": quote})
 

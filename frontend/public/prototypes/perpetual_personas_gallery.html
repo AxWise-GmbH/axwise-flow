@@ -26,8 +26,25 @@
     .title{font-weight:700}
     .subtitle{opacity:.8;font-size:12px}
     .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-    .bubble{display:none;background:#0e1b2d;border:1px solid var(--muted);padding:10px;border-radius:10px;font-size:13px;margin:8px 12px}
+    .bubble{display:none;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;padding:8px 12px;border-radius:6px;font-size:12px;font-style:italic;color:#cbd5e1;line-height:1.5;margin:8px 12px 0 12px}
     .bubble.show{display:block}
+
+    /* Context and Preference styles */
+    .contexts-section{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .context-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .context-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
+    .context-item{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid}
+    .context-item.active{opacity:1}
+    .context-item.inactive{opacity:0.4}
+    .context-item.dining{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3);color:#a78bfa}
+    .context-item.takeaway{background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.3);color:#fb923c}
+    .check-icon{font-size:10px;font-weight:700}
+
+    .preferences-section{margin-top:8px}
+    .pref-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .pref-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
+    .pref-tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid}
+    .pref-tag{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
 
   </style>
 
@@ -129,13 +146,90 @@
     }
     async function genProfile(card,btn){
       setLoading(btn,true,'Generating…');
+      const bubble = card.querySelector('.bubble');
       if(!(cfg.useBackend && cfg.resultId)){ setLoading(btn,false); return; }
       try{
-        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/berlin-profile`, {
-          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')}, body: JSON.stringify({})
+        const cityInput = document.getElementById('cityInput');
+        const city = cityInput?.value?.trim() || 'Berlin';
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/city-profile`, {
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')}, body: JSON.stringify({city: city})
         });
-        if(r.ok){ const data=await r.json(); console.log('Berlin profile:', data.berlin_profile); }
-      }catch(_e){}
+        if(r.ok){
+          const data=await r.json();
+          const bp = data.city_profile || data.berlin_profile || {};
+
+          // Build display with contexts and preferences
+          let html = `<strong>📍 ${bp.city || city}</strong>`;
+          if(bp.neighborhood) html += ` • ${bp.neighborhood}`;
+          html += `<br/>`;
+
+          // Display dining and takeaway contexts with probability filtering
+          const diningCtx = bp.dining_context || {};
+          const takeawayCtx = bp.takeaway_context || {};
+          const foodBevPrefs = bp.food_beverage_preferences || [];
+
+          const THRESHOLD = 70; // Only show options with ≥70% probability
+
+          // Filter and sort dining context options
+          const diningOptions = [
+            { name: 'Solo', value: diningCtx.solo },
+            { name: 'Social', value: diningCtx.social },
+            { name: 'Business', value: diningCtx.business }
+          ].filter(opt => opt.value >= THRESHOLD)
+           .sort((a, b) => b.value - a.value); // Sort by probability descending
+
+          // Filter and sort takeaway context options
+          const takeawayOptions = [
+            { name: 'Pickup', value: takeawayCtx.pickup },
+            { name: 'Home Delivery', value: takeawayCtx.delivery_home },
+            { name: 'Office Delivery', value: takeawayCtx.delivery_office }
+          ].filter(opt => opt.value >= THRESHOLD)
+           .sort((a, b) => b.value - a.value); // Sort by probability descending
+
+          if(diningOptions.length > 0 || takeawayOptions.length > 0 || foodBevPrefs.length > 0) {
+            html+=`<div class="contexts-section">`;
+
+            // Dining context - only show high-probability options
+            if(diningOptions.length > 0) {
+              html+=`<div class="context-group">`;
+              html+=`<span class="context-label">Dine-in:</span>`;
+
+              diningOptions.forEach(opt => {
+                html+=`<span class="context-item dining active"><span class="check-icon">✓</span> ${opt.name} (${opt.value}%)</span>`;
+              });
+              html+=`</div>`;
+            }
+
+            // Takeaway context - only show high-probability options
+            if(takeawayOptions.length > 0) {
+              html+=`<div class="context-group">`;
+              html+=`<span class="context-label">Takeaway:</span>`;
+
+              takeawayOptions.forEach(opt => {
+                html+=`<span class="context-item takeaway active"><span class="check-icon">✓</span> ${opt.name} (${opt.value}%)</span>`;
+              });
+              html+=`</div>`;
+            }
+
+            html+=`</div>`;
+          }
+
+          // Display food & beverage preferences
+          if(foodBevPrefs.length > 0) {
+            html+=`<div class="preferences-section">`;
+            html+=`<div class="pref-group">`;
+            html+=`<span class="pref-label">Preferences:</span>`;
+            foodBevPrefs.forEach(pref => {
+              html+=`<span class="pref-tag">${pref}</span>`;
+            });
+            html+=`</div>`;
+            html+=`</div>`;
+          }
+
+          bubble.innerHTML = html;
+          bubble.classList.add('show');
+        }
+      }catch(_e){ console.error('Profile error:', _e); }
       finally{ setLoading(btn,false); }
     }
     async function genQuote(card,btn){
