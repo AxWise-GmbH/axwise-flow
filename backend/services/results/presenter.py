@@ -388,11 +388,28 @@ def present_formatted_results(db: Session, row: AnalysisResultRow) -> Dict[str, 
     enable_ms = os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
     si = None
     if enable_ms:
-        si = (
-            create_ui_safe_stakeholder_intelligence(stakeholder_intelligence_src)
-            if stakeholder_intelligence_src
-            else None
-        )
+        # Convert Pydantic model to dict if needed before passing to UI-safe formatter
+        if stakeholder_intelligence_src:
+            if hasattr(stakeholder_intelligence_src, "model_dump"):
+                # Pydantic v2
+                stakeholder_intelligence_dict = stakeholder_intelligence_src.model_dump()
+            elif hasattr(stakeholder_intelligence_src, "dict"):
+                # Pydantic v1
+                stakeholder_intelligence_dict = stakeholder_intelligence_src.dict()
+            elif isinstance(stakeholder_intelligence_src, dict):
+                # Already a dict
+                stakeholder_intelligence_dict = stakeholder_intelligence_src
+            else:
+                # Unknown type, skip
+                stakeholder_intelligence_dict = None
+
+            si = (
+                create_ui_safe_stakeholder_intelligence(stakeholder_intelligence_dict)
+                if stakeholder_intelligence_dict
+                else None
+            )
+        else:
+            si = None
         if si is None and isinstance(flattened.get("personas"), list):
             si = {
                 "detected_stakeholders": derive_detected_stakeholders_from_personas(

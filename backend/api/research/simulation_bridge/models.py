@@ -53,6 +53,21 @@ class SimulationConfig(BaseModel):
     def personas_per_stakeholder(self) -> int:
         return self.people_per_stakeholder
 
+    @classmethod
+    def from_env(cls) -> "SimulationConfig":
+        """Create SimulationConfig with defaults from environment variables."""
+        import os
+
+        people_per_stakeholder = int(os.getenv("MAX_PERSONAS", "5"))
+
+        return cls(
+            depth=SimulationDepth.DETAILED,
+            people_per_stakeholder=people_per_stakeholder,
+            response_style=ResponseStyle.REALISTIC,
+            include_insights=True,
+            temperature=0.7,
+        )
+
 
 class BusinessContext(BaseModel):
     """Business context for simulation."""

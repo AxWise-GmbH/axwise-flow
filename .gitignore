@@ -35,3 +35,5 @@ frontend/.env.production
 *.tsbuildinfo
 backend/.env.oss
 axwise-corrected-arch
+HACKATHON_SUBMISSION_ANALYSIS.md
+PERPETUAL_PERSONAS_IMPROVEMENTS.md

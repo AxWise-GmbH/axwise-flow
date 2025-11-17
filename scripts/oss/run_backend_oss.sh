@@ -175,8 +175,16 @@ echo ""
 # Set PYTHONPATH to include the repository root so imports work correctly
 export PYTHONPATH="$REPO_ROOT:$PYTHONPATH"
 
+# Determine log level for uvicorn from environment (defaults to info)
+UVICORN_LOG_LEVEL="${LOG_LEVEL:-INFO}"
+UVICORN_LOG_LEVEL_LOWER=$(echo "$UVICORN_LOG_LEVEL" | tr '[:upper:]' '[:lower:]')
+
+echo -e "${GREEN}Starting uvicorn with log level:${NC} $UVICORN_LOG_LEVEL"
+echo ""
+
 python3.11 -m uvicorn backend.api.app:app \
     --host "${UVICORN_HOST:-0.0.0.0}" \
     --port "${UVICORN_PORT:-8000}" \
+    --log-level "$UVICORN_LOG_LEVEL_LOWER" \
     --reload
 

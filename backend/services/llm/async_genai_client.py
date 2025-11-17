@@ -273,10 +273,11 @@ class AsyncGenAIClient:
                         total_length += len(part.text)
 
         # Base timeout varies by task complexity
+        # REDUCED TIMEOUTS: Prevent indefinite hangs while allowing complex tasks to complete
         if task == TaskType.TRANSCRIPT_STRUCTURING or task == "transcript_structuring":
-            # Transcript structuring is much more complex - needs longer base timeout
-            base_timeout = 180.0  # 3 minutes base instead of 2
-            complexity_multiplier = 3.0  # 3x more time per character
+            # Transcript structuring is complex but should complete within reasonable time
+            base_timeout = 120.0  # 2 minutes base (reduced from 3)
+            complexity_multiplier = 2.0  # 2x more time per character (reduced from 3x)
         elif task in [
             TaskType.THEME_ANALYSIS_ENHANCED,
             TaskType.PATTERN_RECOGNITION,
@@ -284,26 +285,27 @@ class AsyncGenAIClient:
             "pattern_recognition",
         ]:
             # Complex analysis tasks need more time
-            base_timeout = 150.0  # 2.5 minutes base
-            complexity_multiplier = 2.0  # 2x more time per character
+            base_timeout = 90.0  # 1.5 minutes base (reduced from 2.5)
+            complexity_multiplier = 1.5  # 1.5x more time per character (reduced from 2x)
         elif task == TaskType.PRD_GENERATION or task == "prd_generation":
             # PRD generation produces very long structured outputs
-            base_timeout = 300.0  # 5 minutes base
-            complexity_multiplier = 3.0
+            base_timeout = 180.0  # 3 minutes base (reduced from 5)
+            complexity_multiplier = 2.0  # (reduced from 3x)
         else:
-            # Standard tasks
-            base_timeout = 120.0  # 2 minutes base
+            # Standard tasks (questionnaire generation, etc.)
+            base_timeout = 60.0  # 1 minute base (reduced from 2)
             complexity_multiplier = 1.0  # Standard time per character
 
         # Add extra time for large content with task-specific multiplier
         if total_length > 50000:  # 50K characters
             extra_timeout = (total_length - 50000) / 1000.0 * complexity_multiplier
-            # Cap at maximum 20 minutes for very complex tasks
+            # Cap at maximum 10 minutes for very complex tasks (reduced from 15-20 minutes)
+            # This prevents indefinite hangs while still allowing large analysis to complete
             max_timeout = (
-                1200.0
+                600.0
                 if task == TaskType.TRANSCRIPT_STRUCTURING
                 or task == "transcript_structuring"
-                else 900.0
+                else 480.0  # 8 minutes for other complex tasks
             )
             extra_timeout = min(extra_timeout, max_timeout - base_timeout)
             base_timeout += extra_timeout
