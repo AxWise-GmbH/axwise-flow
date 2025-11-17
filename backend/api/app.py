@@ -71,17 +71,45 @@ from backend.models import User, InterviewData, AnalysisResult
 # Import timezone utilities
 from backend.utils.timezone_utils import format_iso_utc, ensure_utc
 
-# Configure logging
+# Configure logging using centralized settings (LOG_LEVEL / DEBUG_MODE)
+try:
+    config = settings.get_config()
+    log_level_str = (config.log_level or "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+except Exception:
+    # Fallback to INFO if settings are not yet available
+    log_level = logging.INFO
+
+# Configure logging - basicConfig may not work if uvicorn already configured logging,
+# so we also explicitly set handler and formatter
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+# Ensure backend loggers use the configured level so debug messages are visible
+# Also ensure they have a console handler in case uvicorn's config doesn't propagate
+for name in ("backend", "backend.api", "backend.api.axpersona", "backend.api.research"):
+    logger_instance = logging.getLogger(name)
+    logger_instance.setLevel(log_level)
+
+    # If no handlers exist, add a console handler to ensure logs are visible
+    if not logger_instance.handlers:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        console_handler.setFormatter(formatter)
+        logger_instance.addHandler(console_handler)
+
 logger = logging.getLogger(__name__)
+logger.info("Logging initialized with level %s", logging.getLevelName(log_level))
 
 # Import API routers
 from backend.api.endpoints.priority_insights import router as priority_insights_router
 from backend.api.export_routes import router as export_router
 from backend.api.routes.prd import router as prd_router
 from backend.api.routes.perpetual_personas import router as perpetual_personas_router
+from backend.api.axpersona.router import router as axpersona_router
 
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
@@ -272,12 +300,39 @@ async def security_logging_middleware(request: Request, call_next):
         raise
 
 
+
+
+# Debugging middleware for AxPersona pipeline traffic
+@app.middleware("http")
+async def axpersona_logging_middleware(request: Request, call_next):
+    """Log AxPersona-related HTTP requests for debugging the pipeline.
+
+    This logs whenever a request hits any /api/axpersona path so we can
+    confirm that UI-triggered pipeline calls reach the backend.
+    """
+    path = request.url.path
+    method = request.method
+
+    if path.startswith("/api/axpersona"):
+        logger.info("[AxPersona HTTP] %s %s - request received", method, path)
+
+    response = await call_next(request)
+
+    if path.startswith("/api/axpersona"):
+        logger.info(
+            "[AxPersona HTTP] %s %s -> %s", method, path, response.status_code
+        )
+
+    return response
+
 # Include routers
 app.include_router(priority_insights_router, prefix="/api/analysis")
 app.include_router(export_router)
 app.include_router(prd_router)
 
 app.include_router(perpetual_personas_router)
+# AxPersona research-to-persona pipeline API
+app.include_router(axpersona_router)
 
 
 # Include debug router

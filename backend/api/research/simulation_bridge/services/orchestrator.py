@@ -41,12 +41,10 @@ class SimulationOrchestrator:
     """Orchestrates the complete simulation process."""
 
     def __init__(self, use_parallel: bool = True, max_concurrent: int = 2):
-        # Initialize Gemini model for PydanticAI
-        # PydanticAI GeminiModel uses GEMINI_API_KEY environment variable automatically
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required")
-
+        # Initialize Gemini model for PydanticAI.
+        # NOTE: GeminiModel will read GEMINI_API_KEY from the environment when used.
+        # We intentionally do not enforce the presence of the key here so that tests
+        # and offline tooling can import this module without requiring configuration.
         # QUALITY OPTIMIZATION: Use full gemini-2.5-flash for high-quality simulation tasks
         # Full Flash model provides better quality and detail for interview simulation
         self.model = GeminiModel("gemini-2.5-flash")
@@ -237,19 +235,47 @@ class SimulationOrchestrator:
                 f"Generated {len(personas)} personas for simulation {simulation_id}"
             )
 
-            # Step 2: Simulate interviews
+            # Step 2: Simulate interviews (parallel when enabled)
             await self._update_progress(
                 simulation_id,
                 "simulating_interviews",
                 30,
                 "Conducting simulated interviews",
             )
-            interviews = await self.interview_simulator.simulate_all_interviews(
-                personas,
-                request.questions_data.stakeholders,
-                request.business_context,
-                request.config,
-            )
+
+            if self.use_parallel and self.parallel_interview_simulator:
+                # Use parallel processing with progress updates
+                def progress_callback(message: str, completed: int, total: int, failed: int):
+                    # Map completed count into a 30-70% progress window, mirroring
+                    # the enhanced simulate_with_persistence implementation.
+                    progress_pct = 30 + int((completed / max(total, 1)) * 40)
+                    asyncio.create_task(
+                        self._update_progress_with_counts(
+                            simulation_id,
+                            "simulating_interviews",
+                            progress_pct,
+                            message,
+                            completed_interviews=completed,
+                            failed_interviews=failed,
+                        )
+                    )
+
+                interviews = await self.parallel_interview_simulator.simulate_all_interviews_parallel(
+                    personas,
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                    progress_callback,
+                )
+            else:
+                # Fallback to sequential processing when parallel mode is disabled
+                interviews = await self.interview_simulator.simulate_all_interviews(
+                    personas,
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                )
+
             logger.info(
                 f"Generated {len(interviews)} interviews for simulation {simulation_id}"
             )

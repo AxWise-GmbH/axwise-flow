@@ -69,6 +69,7 @@ def _get_sqlalchemy_models():
                 "Persona": getattr(backend_models, "Persona", None),
                 "CachedPRD": getattr(backend_models, "CachedPRD", None),
                 "SimulationData": getattr(backend_models, "SimulationData", None),
+                "PipelineRun": getattr(backend_models, "PipelineRun", None),
             }
         else:
             _models_cache = {
@@ -78,6 +79,7 @@ def _get_sqlalchemy_models():
                 "Persona": None,
                 "CachedPRD": None,
                 "SimulationData": None,
+                "PipelineRun": None,
             }
 
     except Exception as e:
@@ -93,6 +95,7 @@ def _get_sqlalchemy_models():
             "Persona": None,
             "CachedPRD": None,
             "SimulationData": None,
+            "PipelineRun": None,
         }
 
     return _models_cache
@@ -106,6 +109,7 @@ AnalysisResult = _models["AnalysisResult"]
 Persona = _models["Persona"]
 CachedPRD = _models["CachedPRD"]
 SimulationData = _models["SimulationData"]
+PipelineRun = _models["PipelineRun"]
 
 
 __all__ = [
@@ -135,4 +139,5 @@ __all__ = [
     "Persona",
     "CachedPRD",
     "SimulationData",
+    "PipelineRun",
 ]

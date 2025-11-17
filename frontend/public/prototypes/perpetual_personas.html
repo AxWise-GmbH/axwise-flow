@@ -113,6 +113,7 @@
         <div class="actions">
           <button data-action="avatar">Generate avatar</button>
           <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="clear-food" class="secondary">Clear food images</button>
           <button data-action="quote" class="secondary">Extract quote</button>
         </div>
         <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
@@ -127,6 +128,7 @@
         <div class="actions">
           <button data-action="avatar">Generate avatar</button>
           <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="clear-food" class="secondary">Clear food images</button>
           <button data-action="quote" class="secondary">Extract quote</button>
         </div>
         <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
@@ -141,6 +143,7 @@
         <div class="actions">
           <button data-action="avatar">Generate avatar</button>
           <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="clear-food" class="secondary">Clear food images</button>
           <button data-action="quote" class="secondary">Extract quote</button>
         </div>
         <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
@@ -162,6 +165,12 @@
     const cfg = { useBackend:false, resultId:'', token:'' };
     function setLoading(btn, on, txt){ if(on){ btn.dataset.prev=btn.textContent; btn.textContent=txt; btn.disabled=true; } else { btn.textContent=btn.dataset.prev||btn.textContent; btn.disabled=false; } }
     function getPersonaName(card){ return (card.querySelector('.meta b')?.textContent||card.dataset.id); }
+    function slugify(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+    function foodImageKey(meal, idx, rec){
+      // Include restaurant + dish + drink to avoid stale index-based mismatches
+      const parts = [meal, slugify(rec?.name||''), slugify(rec?.typical_order||''), slugify(rec?.drink||'')].filter(Boolean);
+      return parts.join('__');
+    }
 
     // Load personas from backend when analysis is selected
     async function loadPersonasFromBackend(resultId){
@@ -194,6 +203,7 @@
               <div class="actions">
                 <button data-action="avatar">Regenerate avatar</button>
                 <button data-action="profile" class="secondary">City profile</button>
+                <button data-action="clear-food" class="secondary">Clear food images</button>
                 <button data-action="quote" class="secondary">Extract quote</button>
               </div>
               <div class="bubble">${personaName} persona quote will appear here.</div>
@@ -339,7 +349,7 @@
               if(r.drink) html+=`<small style="opacity:0.7;margin-left:12px">🥤 ${r.drink}</small><br/>`;
 
               // Add food image placeholder/display - only if typical_order has content
-              const imageKey = `lunch_${idx}`;
+              const imageKey = foodImageKey('lunch', idx, r);
               const foodImages = data.persona?.food_images || {};
               const hasTypicalOrder = r.typical_order && r.typical_order.trim().length > 0;
 
@@ -365,7 +375,7 @@
               if(r.drink) html+=`<small style="opacity:0.7;margin-left:12px">🍷 ${r.drink}</small><br/>`;
 
               // Add food image placeholder/display - only if typical_order has content
-              const imageKey = `dinner_${idx}`;
+              const imageKey = foodImageKey('dinner', idx, r);
               const foodImages = data.persona?.food_images || {};
               const hasTypicalOrder = r.typical_order && r.typical_order.trim().length > 0;
 
@@ -407,6 +417,22 @@
         if(r.ok){ const data=await r.json(); if(data.quote){ b.textContent=data.quote; } }
         b.classList.toggle('show');
       }catch(_e){ b.classList.toggle('show'); }
+      finally{ setLoading(btn,false); }
+    }
+
+    async function clearFoodImages(card, btn){
+      if(!(cfg.useBackend && cfg.resultId)) { alert('Enable backend and select an analysis first.'); return; }
+      try{
+        setLoading(btn,true,'Clearing…');
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/food-images/clear`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
+          body: JSON.stringify({})
+        });
+        // After clearing, refresh the city profile view to show placeholders
+        const profileBtn = card.querySelector('[data-action="profile"]');
+        if(profileBtn){ await genProfile(card, profileBtn); }
+      }catch(_e){ console.error('Clear food images error:', _e); }
       finally{ setLoading(btn,false); }
     }
 
@@ -478,6 +504,7 @@
       if(!btn || !card) return; const act=btn.dataset.action;
       if(act==='avatar') await genAvatar(card,btn);
       if(act==='profile') await genProfile(card,btn);
+      if(act==='clear-food') await clearFoodImages(card,btn);
       if(act==='quote') await genQuote(card,btn);
     });
 

@@ -251,3 +251,64 @@ class SimulationData(Base):
         if self.completed_at and self.created_at:
             return int((self.completed_at - self.created_at).total_seconds() / 60)
         return None
+
+
+class PipelineRun(Base):
+    """
+    Model for storing AxPersona pipeline execution history.
+
+    This table provides a persistent record of all pipeline runs, including
+    their configuration, execution trace, and results. This enables:
+    - Historical review of pipeline executions
+    - Comparison across different runs
+    - Debugging via full execution traces
+    - Access to generated personas and datasets from previous runs
+    """
+
+    __tablename__ = "pipeline_runs"
+    __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    job_id = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=True)
+
+    # Status tracking
+    status = Column(String, default="pending")  # pending, running, completed, failed
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Input configuration
+    business_context = Column(JSON, nullable=False)  # BusinessContext input
+
+    # Execution details
+    execution_trace = Column(JSON, nullable=True)  # List[PipelineStageTrace]
+    total_duration_seconds = Column(Float, nullable=True)
+    error = Column(Text, nullable=True)
+
+    # Results - stored as JSON for flexibility
+    dataset = Column(JSON, nullable=True)  # AxPersonaDataset when completed
+
+    # Quick access metadata (denormalized for query performance)
+    questionnaire_stakeholder_count = Column(Integer, nullable=True)
+    simulation_id = Column(String, nullable=True)  # Reference to SimulationData
+    analysis_id = Column(String, nullable=True)  # Reference to AnalysisResult
+    persona_count = Column(Integer, nullable=True)
+    interview_count = Column(Integer, nullable=True)
+
+    user = relationship("User", viewonly=True)
+
+    @property
+    def duration_seconds(self):
+        """Calculate total duration in seconds."""
+        if self.completed_at and self.created_at:
+            return (self.completed_at - self.created_at).total_seconds()
+        return None
+
+    @property
+    def duration_minutes(self):
+        """Calculate total duration in minutes."""
+        if self.completed_at and self.created_at:
+            return int((self.completed_at - self.created_at).total_seconds() / 60)
+        return None

@@ -29,14 +29,45 @@ from backend.schemas import (
     InfluenceNetwork,
     MultiStakeholderSummary,
 )
+from backend.utils.pydantic_ai_retry import safe_pydantic_ai_call
+
 
 logger = logging.getLogger(__name__)
 
 
+# LLM-facing models without recursive structures to keep Gemini JSON Schema simple
+class LLMTheme(BaseModel):
+    """Simplified Theme representation for LLM output (no recursive HierarchicalCode)."""
+
+    name: str
+    frequency: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Frequency score (0-1 representing prevalence)",
+    )
+    sentiment: float = Field(
+        default=0.0,
+        ge=-1.0,
+        le=1.0,
+        description="Sentiment score (-1 to 1, where -1 is negative, 0 is neutral, 1 is positive)",
+    )
+    statements: List[str] = Field(default_factory=list)
+    keywords: List[str] = Field(default_factory=list)
+    definition: Optional[str] = None
+    codes: Optional[List[str]] = None
+    reliability: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    process: Optional[str] = None
+    sentiment_distribution: Optional[Dict[str, Any]] = None
+    stakeholder_context: Optional[Dict[str, Any]] = None
+    stakeholder_attribution: Optional[Dict[str, Any]] = None
+    count: Optional[int] = None
+
+
 # Typed stage result models for structured outputs
 class ThemesResult(BaseModel):
-    themes: List[Theme] = Field(default_factory=list)
-    enhanced_themes: List[Theme] = Field(default_factory=list)
+    themes: List[LLMTheme] = Field(default_factory=list)
+    enhanced_themes: List[LLMTheme] = Field(default_factory=list)
 
 
 class PatternsResult(BaseModel):
@@ -368,9 +399,13 @@ class ConversationalAnalysisAgent:
             }}
             """
 
-            # Get themes for this window (typed)
-            window_result = await self.themes_agent.run(prompt)
-            window_themes = [t.model_dump() for t in window_result.output.themes]
+            # Get themes for this window (typed) with retry handling
+            window_result = await safe_pydantic_ai_call(
+                self.themes_agent,
+                prompt,
+                context="themes_streaming_window",
+            )
+            window_themes = [t.model_dump() for t in window_result.themes]
 
             # Merge with accumulated themes
             accumulated_themes = self._merge_themes(accumulated_themes, window_themes)
@@ -456,10 +491,19 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.themes_agent.run(prompt)
+        result = await safe_pydantic_ai_call(
+            self.themes_agent,
+            prompt,
+            context="themes_single_pass",
+        )
+        themes = [Theme.model_validate(t.model_dump()) for t in result.themes]
+        enhanced_themes = [
+            Theme.model_validate(t.model_dump())
+            for t in result.enhanced_themes
+        ]
         return {
-            "themes": result.output.themes,
-            "enhanced_themes": result.output.enhanced_themes,
+            "themes": themes,
+            "enhanced_themes": enhanced_themes,
         }
 
     async def _detect_patterns_conversational(
@@ -502,10 +546,14 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.patterns_agent.run(prompt)
+        result = await safe_pydantic_ai_call(
+            self.patterns_agent,
+            prompt,
+            context="patterns_conversational",
+        )
         return {
-            "patterns": result.output.patterns,
-            "enhanced_patterns": result.output.enhanced_patterns,
+            "patterns": result.patterns,
+            "enhanced_patterns": result.enhanced_patterns,
         }
 
     async def _analyze_stakeholders_conversational(
@@ -600,8 +648,25 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.stakeholder_agent.run(prompt)
-        return {"stakeholder_intelligence": result.output.stakeholder_intelligence}
+        result = await safe_pydantic_ai_call(
+            self.stakeholder_agent,
+            prompt,
+            context="stakeholder_conversational",
+        )
+
+        # Convert Pydantic model to dict for downstream processing
+        stakeholder_intelligence = result.stakeholder_intelligence
+        if hasattr(stakeholder_intelligence, "model_dump"):
+            # Pydantic v2
+            stakeholder_intelligence_dict = stakeholder_intelligence.model_dump()
+        elif hasattr(stakeholder_intelligence, "dict"):
+            # Pydantic v1
+            stakeholder_intelligence_dict = stakeholder_intelligence.dict()
+        else:
+            # Already a dict or unknown type
+            stakeholder_intelligence_dict = stakeholder_intelligence
+
+        return {"stakeholder_intelligence": stakeholder_intelligence_dict}
 
     def _parse_themes_response(self, response_data: str) -> Dict[str, Any]:
         """Parse themes response from LLM"""
@@ -719,10 +784,14 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.sentiment_agent.run(prompt)
+        result = await safe_pydantic_ai_call(
+            self.sentiment_agent,
+            prompt,
+            context="sentiment_conversational",
+        )
         return {
-            "sentiment_overview": result.output.sentiment_overview,
-            "sentiment_details": result.output.sentiment_details,
+            "sentiment_overview": result.sentiment_overview,
+            "sentiment_details": result.sentiment_details,
         }
 
     async def _generate_personas_conversational(
@@ -800,10 +869,14 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.persona_agent.run(prompt)
+        result = await safe_pydantic_ai_call(
+            self.persona_agent,
+            prompt,
+            context="personas_conversational",
+        )
         return {
-            "personas": result.output.personas,
-            "enhanced_personas": result.output.enhanced_personas,
+            "personas": result.personas,
+            "enhanced_personas": result.enhanced_personas,
         }
 
     async def _synthesize_insights_conversational(
@@ -853,10 +926,14 @@ class ConversationalAnalysisAgent:
         }}
         """
 
-        result = await self.insights_agent.run(prompt)
+        result = await safe_pydantic_ai_call(
+            self.insights_agent,
+            prompt,
+            context="insights_conversational",
+        )
         return {
-            "insights": result.output.insights,
-            "enhanced_insights": result.output.enhanced_insights,
+            "insights": result.insights,
+            "enhanced_insights": result.enhanced_insights,
         }
 
     def _parse_sentiment_response(self, response_data: str) -> Dict[str, Any]:

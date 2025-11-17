@@ -330,9 +330,9 @@ class SentimentOverview(BaseModel):
     Model representing overall sentiment distribution.
     """
 
-    positive: float
-    neutral: float
-    negative: float
+    positive: float = Field(default=0.33, ge=0.0, le=1.0)
+    neutral: float = Field(default=0.34, ge=0.0, le=1.0)
+    negative: float = Field(default=0.33, ge=0.0, le=1.0)
 
     @field_validator("positive", "neutral", "negative")
     @classmethod

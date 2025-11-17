@@ -37,6 +37,25 @@ router = APIRouter(
 
 # --- Utilities ---
 
+def _slugify(s: str) -> str:
+    """Lightweight slugify used for deterministic image keys.
+    Keeps [a-z0-9] and replaces everything else with single dashes.
+    """
+    try:
+        return re.sub(r"(^-|-$)", "", re.sub(r"[^a-z0-9]+", "-", (s or "").lower())).strip("-")
+    except Exception:
+        return ""
+
+
+def _food_image_key(meal: str, restaurant: str, dish: str, drink: str = "") -> str:
+    """Generate deterministic key for food images based on content, not index."""
+    # Include restaurant + dish + optional drink to avoid stale index-based mismatches
+    parts = [meal or "", _slugify(restaurant), _slugify(dish)]
+    if drink:
+        parts.append(_slugify(drink))
+    return "__".join([p for p in parts if p])
+
+
 def _load_results_obj(ar: AnalysisResult) -> Dict[str, Any]:
     res = ar.results or {}
     if isinstance(res, str):
@@ -146,10 +165,24 @@ async def generate_persona_avatar(
     # Generate unique identifier to prevent image caching/reuse
     unique_id = f"{uuid.uuid4().hex[:8]}-{int(time.time() * 1000)}"
 
+    # Build prompt with explicit text/watermark prevention
+    text_prevention = (
+        "NO TEXT of any kind, NO watermarks, NO labels, NO captions, "
+        "NO written words, NO overlays, NO graphics, NO logos, "
+        "pure photographic portrait only, clean image without any text elements"
+    )
+
     if city:
-        prompt = f"Workplace interview portrait of {persona_name}. {style_desc}. Authentically set in {city}, with subtle local background cues (workplace/café). Unique session: {unique_id}. No text or graphics."
+        prompt = (
+            f"Workplace interview portrait of {persona_name}. {style_desc}. "
+            f"Authentically set in {city}, with subtle local background cues (workplace/café). "
+            f"Unique session: {unique_id}. {text_prevention}."
+        )
     else:
-        prompt = f"Workplace interview portrait of {persona_name}. {style_desc}. Unique session: {unique_id}. No text or graphics."
+        prompt = (
+            f"Workplace interview portrait of {persona_name}. {style_desc}. "
+            f"Unique session: {unique_id}. {text_prevention}."
+        )
 
     print(f"[DEBUG] Avatar generation for {persona_name} (city: {city or 'none'}, unique_id: {unique_id})")
 
@@ -363,33 +396,81 @@ async def generate_food_image(
         drink = drink_override
         value_source = "override"
 
-    # Basic beverage detection to prevent beverages classified as dishes
-    def _is_beverage(text: str) -> bool:
+    # LLM-based beverage classification with regex fallback
+    def _classify_dish_with_llm(dish_name: str) -> Dict[str, Any]:
         """
-        Detect if text is a beverage using word boundary matching with context awareness.
+        Use LLM to classify whether a dish is food or beverage.
 
-        Uses regex word boundaries to avoid false positives like:
-        - "Dry-Aged Ribeye Steak" matching "lager" (contains "age")
-        - "Cottage Cheese" matching "cottage"
-        - "Sage Butter" matching "sage"
+        Returns:
+            {
+                "classification": "food" | "beverage",
+                "confidence": 0-100,
+                "method": "llm" | "regex_fallback"
+            }
+        """
+        # Try LLM classification first
+        try:
+            gemini_text = GeminiTextService()
+            if gemini_text.is_available():
+                prompt = (
+                    f"Classify whether '{dish_name}' is a FOOD item or a BEVERAGE. "
+                    "Return JSON with this exact structure:\n"
+                    "{\n"
+                    '  "classification": "food" or "beverage",\n'
+                    '  "confidence": 0-100 (integer),\n'
+                    '  "reasoning": "brief explanation"\n'
+                    "}\n\n"
+                    "Guidelines:\n"
+                    "- FOOD: Solid dishes, meals, snacks, desserts (e.g., steak, salad, cake, sandwich)\n"
+                    "- BEVERAGE: Drinks only (e.g., coffee, tea, juice, wine, cocktail)\n"
+                    "- Edge cases like 'Coffee Cake' or 'Beer-Battered Fish' are FOOD (not beverages)\n"
+                    "- Be confident (80-100) for clear cases, less confident (50-79) for ambiguous cases"
+                )
 
-        Also handles edge cases like:
-        - "Coffee Cake" (food, not beverage)
-        - "Tea Sandwich" (food, not beverage)
-        - "Beer-Battered Fish" (food, not beverage)
+                result = gemini_text.generate_json(prompt, temperature=0.3)
+
+                if result and "classification" in result and "confidence" in result:
+                    classification = result.get("classification", "").lower()
+                    confidence = int(result.get("confidence", 0))
+                    reasoning = result.get("reasoning", "")
+
+                    print(f"[DEBUG] LLM classification for '{dish_name}': {classification} (confidence: {confidence}%, reasoning: {reasoning})")
+
+                    return {
+                        "classification": classification,
+                        "confidence": confidence,
+                        "method": "llm"
+                    }
+        except Exception as e:
+            print(f"[WARNING] LLM classification failed for '{dish_name}': {e}")
+
+        # Fallback to regex-based detection
+        print(f"[DEBUG] Using regex fallback for '{dish_name}'")
+        is_beverage_regex = _is_beverage_regex(dish_name)
+
+        return {
+            "classification": "beverage" if is_beverage_regex else "food",
+            "confidence": 85 if is_beverage_regex else 70,  # Regex is fairly confident but not perfect
+            "method": "regex_fallback"
+        }
+
+    def _is_beverage_regex(text: str) -> bool:
+        """
+        Regex-based beverage detection (fallback method).
+
+        Uses word boundary matching with context awareness to avoid false positives.
         """
         t = (text or "").lower().strip()
         if not t:
             return False
 
         # Food context keywords that indicate it's NOT a beverage
-        # These are common food preparation methods or food types
         food_context_keywords = [
             r"\bcake\b", r"\bsandwich\b", r"\bbattered\b", r"\bbraised\b",
             r"\bglazed\b", r"\binfused\b", r"\brub\b", r"\bmarinade\b",
             r"\bsauce\b", r"\bbutter\b", r"\bcheese\b", r"\bcream\b",
             r"\bpasta\b", r"\bpizza\b", r"\bsalad\b", r"\bsoup\b",
-            r"\bsteak\b", r"\bburger\b", r"\bsandwich\b", r"\bwrap\b",
+            r"\bsteak\b", r"\bburger\b", r"\bwrap\b",
             r"\bbowl\b", r"\bplate\b", r"\bplatter\b"
         ]
 
@@ -425,9 +506,13 @@ async def generate_food_image(
 
         return False
 
-    if _is_beverage(dish):
-        # If the dish looks like a beverage, surface a clear validation error
-        print(f"[DEBUG] Food-image validation: '{dish}' detected as beverage for {restaurant_name} (index {rec_index}, meal={meal_type}).")
+    # Classify the dish using LLM (with regex fallback)
+    classification_result = _classify_dish_with_llm(dish)
+
+    # Only reject if classified as beverage with high confidence (>80%)
+    if classification_result["classification"] == "beverage" and classification_result["confidence"] > 80:
+        print(f"[DEBUG] Food-image validation: '{dish}' classified as beverage for {restaurant_name} "
+              f"(confidence: {classification_result['confidence']}%, method: {classification_result['method']})")
         raise HTTPException(
             status_code=400,
             detail=(
@@ -455,6 +540,7 @@ async def generate_food_image(
         unique_id = f"{uuid.uuid4().hex[:8]}-{int(time.time() * 1000)}"
 
         # Create detailed prompt for food photography
+        # IMPORTANT: Explicitly prevent text, watermarks, labels
         prompt_parts = [
             "Professional food photography,",
             "skeumorphic design,",
@@ -467,6 +553,8 @@ async def generate_food_image(
 
         prompt_parts.extend([
             f"at {restaurant_name},",
+            "exactly depict the named dish (and beverage if provided) — no substitutions or approximations,",
+            "authentic plating and cuisine style for the dish,",
             "on a clean restaurant table,",
             "appetizing presentation,",
             "well-lit with natural lighting,",
@@ -477,6 +565,15 @@ async def generate_food_image(
             "overhead or 45-degree angle,",
             "minimalist composition,",
             "editorial food magazine style,",
+            # Explicit constraints to prevent text/watermarks
+            "NO TEXT of any kind,",
+            "NO watermarks,",
+            "NO labels or captions,",
+            "NO restaurant names or logos,",
+            "NO written words,",
+            "NO overlays,",
+            "pure food and beverage photography only,",
+            "clean image without any text elements,",
             f"unique session: {unique_id}"
         ])
 
@@ -498,8 +595,8 @@ async def generate_food_image(
         if "food_images" not in persona:
             persona["food_images"] = {}
 
-        # Store by meal_type and index
-        image_key = f"{meal_type}_{rec_index}"
+        # Store using content-based deterministic key to avoid stale mismatches
+        image_key = _food_image_key(meal_type, restaurant_name, dish, drink)
         persona["food_images"][image_key] = image_data_uri
 
         # Update persona
@@ -525,6 +622,42 @@ async def generate_food_image(
         "image_data_uri": image_data_uri,
         "value_source": value_source
     }
+
+
+@router.post("/{result_id}/{persona_id}/food-images/clear")
+async def clear_food_images(
+    result_id: int,
+    persona_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Clear all cached/generated food images for a persona.
+
+    This is useful when the text of recommendations changes and you want to
+    regenerate images to fit the new descriptions.
+    """
+    ar = _assert_ownership(db, result_id, user)
+    results = _load_results_obj(ar)
+
+    persona = upsert_persona_fields(results, persona_id, {})
+    cleared = 0
+    try:
+        imgs = persona.get("food_images") or {}
+        if isinstance(imgs, dict):
+            cleared = len(imgs)
+        persona["food_images"] = {}
+
+        # Persist
+        upsert_persona_fields(results, persona_id, {"food_images": persona["food_images"]})
+        ar.results = results
+        flag_modified(ar, "results")
+        db.add(ar)
+        db.commit()
+    except Exception as e:
+        print(f"[ERROR] Failed to clear food images for persona {persona_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to clear food images")
+
+    return {"ok": True, "result_id": result_id, "persona_id": persona_id, "cleared": cleared}
 
 
 @router.get("/results")

@@ -349,9 +349,12 @@ class GeminiService:
             # Make the API call with the correct config parameter and timeout protection
             logger.info(f"Making API call with config={config}")
 
-            # Add timeout protection for large requests
-            timeout_seconds = 600  # 10 minutes timeout for very large requests
+            # Add timeout protection with reasonable defaults
+            # Use 60 seconds for normal requests, 300 seconds (5 min) for very large requests
+            # This prevents indefinite hangs while allowing complex analysis to complete
+            timeout_seconds = 60  # Default 60 seconds for normal requests
             if input_tokens > 50000:
+                timeout_seconds = 300  # 5 minutes for very large requests
                 logger.info(
                     f"Large request detected ({input_tokens:.0f} tokens), using {timeout_seconds}s timeout"
                 )
