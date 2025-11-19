@@ -3,9 +3,9 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Loader2, MessageCircle, UserCircle2, Download } from 'lucide-react';
 import type {
   AxPersonaDataset,
@@ -34,6 +34,21 @@ function getDatasetSummary(dataset: AxPersonaDataset | undefined) {
   };
 }
 
+function getStakeholderRoleLabel(stakeholderType?: string): string {
+  switch (stakeholderType) {
+    case 'primary_customer':
+      return 'Primary customer';
+    case 'secondary_user':
+      return 'Secondary user';
+    case 'decision_maker':
+      return 'Decision maker';
+    case 'influencer':
+      return 'Influencer';
+    default:
+      return stakeholderType ? stakeholderType.replace(/_/g, ' ') : 'Unknown stakeholder role';
+  }
+}
+
 export function ScopeMainView({
   scope,
   result,
@@ -47,19 +62,68 @@ export function ScopeMainView({
     ? (dataset!.personas as Record<string, unknown>[])
     : [];
 
-  const interviewsByRole = !dataset || !Array.isArray(dataset.interviews)
-    ? []
-    : (() => {
-        const groups = new Map<string, any[]>();
-        (dataset.interviews as any[]).forEach((interview) => {
-          const rawRole = (interview as any)['stakeholder_type'];
-          const role = typeof rawRole === 'string' ? rawRole : 'Stakeholder';
-          const existing = groups.get(role) ?? [];
-          existing.push(interview);
-          groups.set(role, existing);
-        });
-        return Array.from(groups.entries());
-      })();
+  const interviews = Array.isArray(dataset?.interviews)
+    ? (dataset!.interviews as Record<string, unknown>[])
+    : [];
+
+  const simulationPeople = Array.isArray((dataset as any)?.simulation_people)
+    ? (((dataset as any).simulation_people as Record<string, unknown>[]))
+    : [];
+
+  const analysis: any = dataset?.analysis;
+  const analysisPersonas: any[] =
+    (analysis?.enhanced_personas as any[]) ??
+    (analysis?.personas as any[]) ??
+    [];
+
+  const personaSections = personas.map((persona, index) => {
+    const personaRecord = persona as Record<string, any>;
+    const rawName = personaRecord['name'];
+    const name =
+      typeof rawName === 'string' ? rawName : `Persona ${index + 1}`;
+
+    let analysisPersona: any = analysisPersonas[index];
+    if (!analysisPersona && analysisPersonas.length > 0) {
+      const matchByName = analysisPersonas.find(
+        (p: any) => p && typeof p.name === 'string' && p.name === name,
+      );
+      if (matchByName) {
+        analysisPersona = matchByName;
+      }
+    }
+
+    const stakeholderType: string | undefined =
+      analysisPersona?.stakeholder_intelligence?.stakeholder_type ??
+      analysisPersona?.stakeholder_type ??
+      undefined;
+
+    const interviewsForPersona = stakeholderType
+      ? interviews.filter(
+          (interview: any) =>
+            interview &&
+            typeof interview.stakeholder_type === 'string' &&
+            interview.stakeholder_type === stakeholderType,
+        )
+      : interviews;
+
+    const simulationProfilesForPersona = stakeholderType
+      ? simulationPeople.filter(
+          (person: any) =>
+            person &&
+            typeof person.stakeholder_type === 'string' &&
+            person.stakeholder_type === stakeholderType,
+        )
+      : simulationPeople;
+
+    return {
+      persona: personaRecord,
+      index,
+      name,
+      stakeholderType,
+      interviewsForPersona,
+      simulationProfilesForPersona,
+    };
+  });
 
   const canExport = !!(pipelineRunDetail?.dataset || result?.dataset);
 
@@ -172,172 +236,328 @@ export function ScopeMainView({
               <Badge variant="outline">Interviews: {interviewCount}</Badge>
             </div>
 
-            <Tabs defaultValue="personas" className="mt-1 flex-1 flex flex-col min-h-0">
-          <TabsList className="grid grid-cols-2 w-full max-w-xs">
-            <TabsTrigger value="personas" className="text-xs">
-              Personas (debug)
-            </TabsTrigger>
-            <TabsTrigger value="interviews" className="text-xs">
-              Interviews
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent
-            value="personas"
-            className="flex-1 mt-1 min-h-0 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col"
-          >
-            {personas.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-muted-foreground">
-                  No personas generated yet for this scope.
-                </p>
-              </div>
-            ) : (
-              <ScrollArea className="flex-1">
-                <div className="space-y-2 pr-4 pb-4">
-                  {personas.map((persona, index) => {
-                    const rawName = persona['name'];
-                    const name =
-                      typeof rawName === 'string'
-                        ? rawName
-                        : `Persona ${index + 1}`;
-                    return (
-                      <div
-                        key={dataset?.scope_id + '-persona-' + index}
-                        className="flex items-start gap-2 rounded-md border bg-muted/30 p-2 text-xs"
-                      >
-                        <UserCircle2 className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{name}</div>
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
-                            Synthetic persona derived from AxPersona analysis.
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            )}
-          </TabsContent>
-          <TabsContent
-            value="interviews"
-            className="flex-1 mt-1 min-h-0 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col"
-          >
-            {interviewsByRole.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-muted-foreground">
-                  No interviews available for this scope.
-                </p>
-              </div>
-            ) : (
-              <ScrollArea className="flex-1">
-                <div className="space-y-3 pr-4 pb-4">
-                  {interviewsByRole.map(([role, interviewsForRole]) => (
-                    <div
-                      key={role as string}
-                      className="rounded-md border bg-muted/30 p-3 text-xs"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-medium text-xs">{role}</div>
-                        <span className="text-[10px] text-muted-foreground">
-                          {(interviewsForRole as any[]).length} interview
-                          {(interviewsForRole as any[]).length === 1 ? '' : 's'}
-                        </span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {(interviewsForRole as any[]).map((interview, index) => {
-                          const responses = (interview as any)['responses'] as Array<{
-                            question: string;
-                            response: string;
-                            sentiment?: string;
-                            key_insights?: string[];
-                          }> || [];
-                          const overallSentiment = (interview as any)['overall_sentiment'];
-                          const keyThemes = ((interview as any)['key_themes'] as string[]) || [];
+            <div className="mt-2 flex-1 min-h-0 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="flex flex-col gap-4 pr-4 pb-4">
+                  {personas.length === 0 ? (
+                    <p className='text-xs text-muted-foreground'>
+                      No personas generated yet for this scope.
+                    </p>
+                  ) : (
+                    <Accordion type='single' collapsible className='w-full'>
+                      {personaSections.map(
+                        ({ persona, index, name, stakeholderType, interviewsForPersona, simulationProfilesForPersona }) => {
+                          const personaKey = `${dataset?.scope_id ?? 'scope'}-persona-${index}`;
+                          const description =
+                            typeof persona['description'] === 'string'
+                              ? (persona['description'] as string)
+                              : undefined;
+                          const archetype =
+                            typeof persona['archetype'] === 'string'
+                              ? (persona['archetype'] as string)
+                              : undefined;
+                          const demographicsValue =
+                            (persona['demographics'] as any)?.value;
+                          const goalsValue =
+                            (persona['goals_and_motivations'] as any)?.value;
+                          const challengesValue =
+                            (persona['challenges_and_frustrations'] as any)?.value;
+                          const keyQuoteValue =
+                            (persona['key_quotes'] as any)?.value;
+                          const overallConfidence =
+                            typeof persona['overall_confidence'] === 'number'
+                              ? (persona['overall_confidence'] as number)
+                              : typeof persona['confidence'] === 'number'
+                                ? (persona['confidence'] as number)
+                                : undefined;
+                          const patterns = Array.isArray(persona['patterns'])
+                            ? (persona['patterns'] as string[])
+                            : [];
+                          const primarySimulationProfile =
+                            Array.isArray(simulationProfilesForPersona) &&
+                            simulationProfilesForPersona.length > 0
+                              ? (simulationProfilesForPersona[0] as any)
+                              : undefined;
+                          const primarySimDemo =
+                            (primarySimulationProfile?.demographic_details as any) || undefined;
+                          const primarySimAge =
+                            typeof primarySimulationProfile?.age === 'number'
+                              ? (primarySimulationProfile.age as number)
+                              : undefined;
+                          const primarySimBackground =
+                            typeof primarySimulationProfile?.background === 'string'
+                              ? (primarySimulationProfile.background as string)
+                              : undefined;
+                          const stakeholderLabel = getStakeholderRoleLabel(stakeholderType);
 
                           return (
-                            <div
-                              key={dataset?.scope_id + '-interview-' + String(role) + '-' + index}
-                              className="pb-3 border-b last:border-b-0"
-                            >
-                              {/* Interview Header */}
-                              <div className="flex items-start gap-2 mb-2">
-                                <MessageCircle className="mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <div className="flex-1">
-                                  <div className="font-medium">
-                                    Interview {index + 1}
+                            <AccordionItem key={personaKey} value={personaKey}>
+                              <AccordionTrigger className='px-2'>
+                                <div className='flex flex-col items-start gap-1'>
+                                  <div className='flex items-center gap-2'>
+                                    <UserCircle2 className='h-4 w-4 text-muted-foreground' />
+                                    <span className='text-sm font-medium'>{name}</span>
                                   </div>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    {overallSentiment && (
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-[10px] px-1.5 py-0 ${
-                                          typeof overallSentiment === 'string' && overallSentiment.toLowerCase().includes('positive')
-                                            ? 'border-green-500 text-green-700'
-                                            : typeof overallSentiment === 'string' && overallSentiment.toLowerCase().includes('negative')
-                                            ? 'border-red-500 text-red-700'
-                                            : 'border-yellow-500 text-yellow-700'
-                                        }`}
-                                      >
-                                        {String(overallSentiment)}
-                                      </Badge>
+                                  <div className='flex flex-wrap gap-1 text-[10px] text-muted-foreground'>
+                                    <span>{stakeholderLabel}</span>
+                                    {archetype && (
+                                      <>
+                                        <span className='mx-1'>•</span>
+                                        <span>Archetype: {archetype}</span>
+                                      </>
                                     )}
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {responses.length} Q&A
-                                    </span>
+                                    {typeof overallConfidence === 'number' && (
+                                      <>
+                                        <span className='mx-1'>•</span>
+                                        <span>
+                                          Confidence: {Math.round(overallConfidence * 100)}%
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-
-                              {/* Key Themes */}
-                              {keyThemes.length > 0 && (
-                                <div className="mb-2 pb-2 border-b">
-                                  <div className="text-[10px] font-medium text-muted-foreground mb-1">
-                                    Key Themes
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {keyThemes.slice(0, 3).map((theme, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded"
-                                      >
-                                        {theme}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Q&A Responses */}
-                              <div className="space-y-2">
-                                {responses.map((resp, respIdx) => (
-                                  <div key={respIdx} className="text-[11px]">
-                                    <div className="font-medium text-foreground mb-0.5">
-                                      Q: {resp.question}
-                                    </div>
-                                    <div className="text-muted-foreground">
-                                      A: {resp.response}
-                                    </div>
-                                    {resp.key_insights && resp.key_insights.length > 0 && (
-                                      <div className="mt-1 text-[10px] text-primary">
-                                        💡 {resp.key_insights[0]}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className='space-y-3 text-xs'>
+                                  {description && (
+                                    <p className='text-muted-foreground'>{description}</p>
+                                  )}
+                                  <div className='flex flex-col gap-1'>
+                                    {demographicsValue && (
+                                      <div>
+                                        <span className='font-medium'>Demographics: </span>
+                                        <span className='text-muted-foreground'>
+                                          {demographicsValue}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {goalsValue && (
+                                      <div>
+                                        <span className='font-medium'>Goals &amp; motivations: </span>
+                                        <span className='text-muted-foreground'>
+                                          {goalsValue}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {challengesValue && (
+                                      <div>
+                                        <span className='font-medium'>
+                                          Challenges &amp; frustrations:{' '}
+                                        </span>
+                                        <span className='text-muted-foreground'>
+                                          {challengesValue}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {keyQuoteValue && (
+                                      <div>
+                                        <span className='font-medium'>Key quote: </span>
+                                        <span className='italic text-muted-foreground'>
+                                          "{keyQuoteValue}"
+                                        </span>
+                                      </div>
+                                    )}
+                                    {patterns.length > 0 && (
+                                      <div>
+                                        <span className='font-medium text-[11px]'>Patterns: </span>
+                                        <div className='mt-1 flex flex-wrap gap-1'>
+                                          {patterns.slice(0, 4).map((pattern, idx) => (
+                                            <span
+                                              key={idx}
+                                              className='text-[9px] bg-muted px-1.5 py-0.5 rounded'
+                                            >
+                                              {pattern}
+                                            </span>
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
-                                ))}
-                              </div>
-                            </div>
+
+                                  {primarySimulationProfile && (
+                                    <div className='mt-2 p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-800'>
+                                      <div className='space-y-2'>
+                                        <div className='text-[11px] font-semibold text-green-900 dark:text-green-100'>
+                                          Simulation persona profile
+                                        </div>
+                                        <div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]'>
+                                          {primarySimAge !== undefined && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Age:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimAge}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.age_range && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Age Range:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.age_range}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.education && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Education:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.education}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.location && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Location:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.location}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.income_level && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Income Level:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.income_level}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.industry_experience && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Industry Experience:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.industry_experience}</span>
+                                            </div>
+                                          )}
+                                          {primarySimDemo?.company_size && (
+                                            <div>
+                                              <span className='font-medium text-muted-foreground'>Company Size:</span>{' '}
+                                              <span className='text-muted-foreground'>{primarySimDemo.company_size}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {primarySimBackground && (
+                                          <div className='text-[11px]'>
+                                            <span className='font-medium text-muted-foreground'>Background:</span>{' '}
+                                            <span className='text-muted-foreground'>{primarySimBackground}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className='mt-2'>
+                                    <div className='flex items-center justify-between mb-1'>
+                                      <h4 className='text-[11px] font-semibold text-muted-foreground uppercase'>
+                                        Interviews that informed this persona
+                                      </h4>
+                                      <span className='text-[10px] text-muted-foreground'>
+                                        {interviewsForPersona.length} interview
+                                        {interviewsForPersona.length === 1 ? '' : 's'}
+                                      </span>
+                                    </div>
+
+                                    {interviewsForPersona.length === 0 ? (
+                                      <p className='text-[11px] text-muted-foreground'>
+                                        No interviews available for this persona.
+                                      </p>
+                                    ) : (
+                                      <div className='space-y-3'>
+                                        {interviewsForPersona.map(
+                                          (interview: any, interviewIndex: number) => {
+                                            const responses =
+                                              (interview['responses'] as Array<{
+                                                question: string;
+                                                response: string;
+                                                sentiment?: string;
+                                                key_insights?: string[];
+                                              }>) || [];
+                                            const overallSentiment = interview['overall_sentiment'];
+                                            const keyThemes =
+                                              (interview['key_themes'] as string[]) || [];
+
+                                            return (
+                                              <div
+                                                key={`${personaKey}-interview-${interviewIndex}`}
+                                                className='pb-3 border-b last:border-b-0'
+                                              >
+                                                <div className='flex items-start gap-2 mb-2'>
+                                                  <MessageCircle className='mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0' />
+                                                  <div className='flex-1'>
+                                                    <div className='font-medium'>
+                                                      Interview {interviewIndex + 1}
+                                                    </div>
+                                                    <div className='flex items-center gap-2 mt-1'>
+                                                      {overallSentiment && (
+                                                        <Badge
+                                                          variant='outline'
+                                                          className={`text-[10px] px-1.5 py-0 ${
+                                                            typeof overallSentiment === 'string' &&
+                                                            overallSentiment
+                                                              .toLowerCase()
+                                                              .includes('positive')
+                                                              ? 'border-green-500 text-green-700'
+                                                              : typeof overallSentiment === 'string' &&
+                                                                overallSentiment
+                                                                  .toLowerCase()
+                                                                  .includes('negative')
+                                                              ? 'border-red-500 text-red-700'
+                                                              : 'border-yellow-500 text-yellow-700'
+                                                          }`}
+                                                        >
+                                                          {String(overallSentiment)}
+                                                        </Badge>
+                                                      )}
+                                                      <span className='text-[10px] text-muted-foreground'>
+                                                        {responses.length} Q&amp;A
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+
+                                                {keyThemes.length > 0 && (
+                                                  <div className='mb-2 pb-2 border-b'>
+                                                    <div className='text-[10px] font-medium text-muted-foreground mb-1'>
+                                                      Key Themes
+                                                    </div>
+                                                    <div className='flex flex-wrap gap-1'>
+                                                      {keyThemes.slice(0, 3).map((theme, idx) => (
+                                                        <span
+                                                          key={idx}
+                                                          className='text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded'
+                                                        >
+                                                          {theme}
+                                                        </span>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                <div className='space-y-2'>
+                                                  {responses.map((resp, respIdx) => (
+                                                    <div key={respIdx} className='text-[11px]'>
+                                                      <div className='font-medium text-foreground mb-0.5'>
+                                                        Q: {resp.question}
+                                                      </div>
+                                                      <div className='text-muted-foreground'>
+                                                        A: {resp.response}
+                                                      </div>
+                                                      {resp.key_insights &&
+                                                        resp.key_insights.length > 0 && (
+                                                          <div className='mt-1 text-[10px] text-primary'>
+                                                            💡 {resp.key_insights[0]}
+                                                          </div>
+                                                        )}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            );
+                                          },
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
                           );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                        },
+                      )}
+                    </Accordion>
+                  )}
+
                 </div>
               </ScrollArea>
-            )}
-          </TabsContent>
-        </Tabs>
+            </div>
           </>
         )}
       </CardContent>

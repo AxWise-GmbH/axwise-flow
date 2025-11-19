@@ -26,6 +26,8 @@ export interface AxPersonaDataset {
   interviews: Record<string, unknown>[];
   analysis: DetailedAnalysisResult;
   quality: Record<string, unknown>;
+  // Optional: raw simulation people (SimulatedPerson) with rich demographics
+  simulation_people?: Record<string, unknown>[];
 }
 
 export type PipelineStatus = 'completed' | 'partial' | 'failed';

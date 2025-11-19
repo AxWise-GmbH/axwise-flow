@@ -191,7 +191,7 @@ export function ScopeSelector({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+      <CardContent className="flex flex-1 min-h-0 flex-col gap-3 pt-0">
         {/* Search */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -221,7 +221,7 @@ export function ScopeSelector({
         </Select>
 
         {/* Dataset List */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-2 pr-1">
             {isLoading && filteredDatasets.length === 0 ? (
               <div className="flex items-center justify-center py-8">

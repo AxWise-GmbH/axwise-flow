@@ -116,7 +116,7 @@ function ScopeDetailPage() {
         </p>
       </div>
       <div className="flex flex-1 gap-4 min-h-0">
-        <div className="w-72 flex-shrink-0">
+        <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
           <ScopeSelector
             onCreateScope={() => setIsCreationOpen(true)}
             isCreating={runPipeline.isPending}
