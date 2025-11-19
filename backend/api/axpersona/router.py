@@ -399,6 +399,8 @@ class AxPersonaDataset(BaseModel):
     interviews: List[Dict[str, Any]]
     analysis: DetailedAnalysisResult
     quality: Dict[str, Any]
+    # Optional: raw simulation people (SimulatedPerson) for richer demographic display
+    simulation_people: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class PipelineStageTrace(BaseModel):
@@ -770,14 +772,19 @@ async def export_persona_dataset(
     analysis: DetailedAnalysisResult = loaded["analysis"]
     simulation_id: Optional[str] = loaded.get("simulation_id")
 
-    # Recover the originating simulation to include raw interviews
+    # Recover the originating simulation to include raw interviews and people
     interviews: List[Dict[str, Any]] = []
+    simulation_people: List[Dict[str, Any]] = []
     if simulation_id:
         try:
             simulation = await _resolve_simulation(simulation_id)
             interviews = [
                 i if isinstance(i, dict) else i.model_dump()  # type: ignore[union-attr]
                 for i in (simulation.interviews or [])
+            ]
+            simulation_people = [
+                p if isinstance(p, dict) else p.model_dump()  # type: ignore[union-attr]
+                for p in (simulation.people or [])
             ]
         except HTTPException:
             # If simulation is missing we still export personas + analysis
@@ -878,8 +885,9 @@ async def export_persona_dataset(
         quality={
             "interview_count": interview_count,
             "stakeholder_coverage": stakeholder_coverage,
-            "average_persona_confidence": avg_persona_quality,
+            "avg_persona_quality": avg_persona_quality,
         },
+        simulation_people=simulation_people,
     )
 
 
