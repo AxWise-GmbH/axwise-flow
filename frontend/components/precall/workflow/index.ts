@@ -1,7 +1,7 @@
 /**
  * Sales Workflow View Components
  *
- * Export all components for the 5-step sales workflow view.
+ * Export all components for the 5-step sales workflow view + insight tabs.
  */
 
 export { SalesWorkflowView } from './SalesWorkflowView';
@@ -11,4 +11,7 @@ export { DiscoverTab } from './DiscoverTab';
 export { ValueTab } from './ValueTab';
 export { CloseTab } from './CloseTab';
 export { PersonaAvatar } from './PersonaAvatar';
+export { MindMapTab } from './MindMapTab';
+export { OrgChartTab } from './OrgChartTab';
+export { TechStackTab } from './TechStackTab';
 
