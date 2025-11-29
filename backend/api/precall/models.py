@@ -64,14 +64,24 @@ class CallGuide(BaseModel):
     )
 
 
+class PersonaQuestion(BaseModel):
+    """A question with a suggested answer."""
+    question: str = Field(..., description="Question the persona might ask")
+    suggested_answer: str = Field(..., description="Suggested talking points/answer for the sales rep")
+
+
 class PersonaDetail(BaseModel):
     """Detailed profile for a stakeholder persona."""
     name: str = Field(..., description="Stakeholder name")
     role: str = Field(..., description="Role/title")
+    role_in_decision: str = Field(
+        default="secondary",
+        description="Role in buying decision: primary, secondary, executor, blocker"
+    )
     communication_style: str = Field(default="", description="Preferred communication style")
-    likely_questions: List[str] = Field(
+    likely_questions: List[PersonaQuestion] = Field(
         default_factory=list,
-        description="Questions this person might ask"
+        description="Questions this person might ask with suggested answers"
     )
     engagement_tips: List[str] = Field(
         default_factory=list,
@@ -92,6 +102,10 @@ class ObjectionDetail(BaseModel):
     supporting_evidence: List[str] = Field(
         default_factory=list,
         description="Evidence to support the rebuttal"
+    )
+    source_persona: Optional[str] = Field(
+        default=None,
+        description="Name of the persona most likely to raise this objection"
     )
 
 

@@ -57,13 +57,24 @@ export interface CallGuide {
 }
 
 /**
+ * A question the persona might ask with a suggested answer
+ */
+export interface PersonaQuestion {
+  question: string;
+  suggested_answer: string;
+}
+
+/**
  * Detailed profile for a stakeholder persona
  */
 export interface PersonaDetail {
   name: string;
   role: string;
+  /** Role in buying decision: primary, secondary, executor, blocker */
+  role_in_decision?: 'primary' | 'secondary' | 'executor' | 'blocker';
   communication_style: string;
-  likely_questions: string[];
+  /** Questions they might ask with suggested answers */
+  likely_questions: PersonaQuestion[];
   engagement_tips: string[];
   decision_factors: string[];
 }
@@ -77,6 +88,8 @@ export interface ObjectionDetail {
   rebuttal: string;
   hook: string;
   supporting_evidence: string[];
+  /** Name of the persona most likely to raise this objection */
+  source_persona?: string;
 }
 
 /**

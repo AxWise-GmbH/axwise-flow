@@ -58,6 +58,7 @@
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.55.0",
+    "react-markdown": "^10.1.0",
     "react-tooltip": "^5.28.0",
     "recharts": "^2.15.1",
     "tailwind-merge": "^2.6.0",

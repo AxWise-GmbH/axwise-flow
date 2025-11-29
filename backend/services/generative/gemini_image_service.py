@@ -32,8 +32,8 @@ class GeminiImageService:
             from google.genai import types  # type: ignore
 
             # Use latest recommended defaults per docs
-            # Supports: gemini-2.5-flash-image, imagen-3.0-generate-002, gemini-2.0-flash-preview-image-generation
-            model_name = os.getenv("GEMINI_IMAGE_MODEL", "imagen-3.0-generate-002")
+            # Supports: models/gemini-3-pro-image-preview, imagen-3.0-generate-002
+            model_name = os.getenv("GEMINI_IMAGE_MODEL", "models/gemini-3-pro-image-preview")
             cfg = types.GenerateContentConfig(
                 temperature=temperature,
                 response_modalities=["Image"],  # image-only response

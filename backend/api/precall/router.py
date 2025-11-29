@@ -158,8 +158,10 @@ async def coaching_chat(request: CoachingRequest) -> CoachingResponse:
             view_context=request.view_context,
         )
 
-        # Generate follow-up suggestions based on the question type
-        suggestions = _generate_suggestions(request.question, request.intelligence)
+        # Generate follow-up suggestions based on the conversation context
+        suggestions = await _generate_suggestions(
+            request.question, response_text, request.intelligence
+        )
 
         logger.info(f"Coaching response generated ({len(response_text)} chars)")
 
@@ -178,61 +180,80 @@ async def coaching_chat(request: CoachingRequest) -> CoachingResponse:
         )
 
 
-def _generate_suggestions(
+async def _generate_suggestions(
     question: str,
+    response_text: str,
     intelligence: Optional[CallIntelligence],
 ) -> list[str]:
     """
-    Generate contextual follow-up suggestions based on the question.
+    Generate contextual follow-up suggestions using AI based on the conversation.
 
-    This provides quick-action suggestions for common coaching needs.
+    Uses Gemini to generate relevant follow-up questions based on:
+    - The user's question
+    - The coaching response
+    - The available intelligence data
     """
-    suggestions = []
-    question_lower = question.lower()
+    try:
+        from google import genai
+        import os
 
-    # Detect question type and suggest relevant follow-ups
-    if any(word in question_lower for word in ["objection", "concern", "push back"]):
-        suggestions = [
-            "What if they say it's too expensive?",
-            "How do I handle a 'not now' response?",
-            "What evidence supports our value proposition?",
-        ]
-    elif any(word in question_lower for word in ["open", "start", "begin", "introduction"]):
-        suggestions = [
-            "What questions should I ask after the opening?",
-            "How do I transition to discovery?",
-            "What if they seem disengaged at the start?",
-        ]
-    elif any(word in question_lower for word in ["stakeholder", "person", "who"]):
-        if intelligence and intelligence.personas:
-            # Use actual stakeholder names if available
-            names = [p.name for p in intelligence.personas[:2]]
-            suggestions = [
-                f"What motivates {names[0]}?" if names else "What motivates the decision maker?",
-                "How do I handle conflicting stakeholder priorities?",
-                "Who should I focus on most?",
-            ]
-        else:
-            suggestions = [
-                "What motivates the decision maker?",
-                "How do I handle conflicting stakeholder priorities?",
-                "Who should I focus on most?",
-            ]
-    elif any(word in question_lower for word in ["close", "next step", "commit"]):
-        suggestions = [
-            "What if they want to 'think about it'?",
-            "How aggressive should my close be?",
-            "What's a good fallback commitment?",
-        ]
-    else:
-        # Default suggestions
-        suggestions = [
-            "What's the most important thing to remember?",
-            "What questions should I definitely ask?",
-            "What's my backup plan if things go off track?",
-        ]
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            return []
 
-    return suggestions[:3]  # Always return max 3 suggestions
+        client = genai.Client(api_key=api_key)
+
+        # Build context for suggestion generation
+        context_parts = []
+        if intelligence:
+            if intelligence.personas:
+                persona_names = [p.name for p in intelligence.personas[:3]]
+                context_parts.append(f"Key stakeholders: {', '.join(persona_names)}")
+            if intelligence.objections:
+                objection_topics = [o.objection[:50] for o in intelligence.objections[:2]]
+                context_parts.append(f"Potential objections: {'; '.join(objection_topics)}")
+
+        context_str = "\n".join(context_parts) if context_parts else "No additional context"
+
+        prompt = f"""Based on this sales coaching conversation, generate exactly 3 brief follow-up questions the user might want to ask next.
+
+USER'S QUESTION: {question}
+
+COACH'S RESPONSE (summary): {response_text[:500]}...
+
+CONTEXT:
+{context_str}
+
+Requirements:
+- Each question should be 5-12 words max
+- Questions should naturally follow from the conversation
+- Focus on practical, actionable sales coaching
+- Make them specific to the topic discussed
+- Do NOT number them or use bullet points
+
+Return ONLY the 3 questions, one per line, nothing else."""
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt],
+        )
+
+        # Parse the response into individual suggestions
+        if response.text:
+            lines = [line.strip() for line in response.text.strip().split('\n') if line.strip()]
+            # Clean up any numbering or bullets
+            cleaned = []
+            for line in lines[:3]:
+                # Remove common prefixes like "1.", "- ", "• ", etc.
+                cleaned_line = line.lstrip('0123456789.-•) ').strip()
+                if cleaned_line and len(cleaned_line) > 5:
+                    cleaned.append(cleaned_line)
+            return cleaned[:3]
+
+        return []
+    except Exception as e:
+        logger.warning(f"Failed to generate AI suggestions: {e}")
+        return []
 
 
 # ============================================================================

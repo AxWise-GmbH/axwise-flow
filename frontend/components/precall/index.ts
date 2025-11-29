@@ -17,3 +17,13 @@ export { PrecallHeader } from './PrecallHeader';
 export { FloatingChatWidget } from './FloatingChatWidget';
 export type { ActiveTabContext } from './FloatingChatWidget';
 
+// Sales Workflow View Components
+export {
+  SalesWorkflowView,
+  PrepTab,
+  OpenTab,
+  DiscoverTab,
+  ValueTab,
+  CloseTab,
+} from './workflow';
+

@@ -184,11 +184,19 @@ export function PersonaCard({ persona, companyContext }: PersonaCardProps) {
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-3 text-sm">
                   {persona.likely_questions.map((q, i) => (
-                    <li key={i} className="flex items-start gap-2 text-muted-foreground">
-                      <span className="text-purple-500 font-medium">{i + 1}.</span>
-                      <span>"{q}"</span>
+                    <li key={i} className="space-y-1">
+                      <div className="flex items-start gap-2 text-muted-foreground">
+                        <span className="text-purple-500 font-medium">{i + 1}.</span>
+                        <span>"{q.question}"</span>
+                      </div>
+                      {q.suggested_answer && (
+                        <div className="ml-6 text-xs text-green-700 bg-green-50 p-2 rounded">
+                          <span className="font-medium">💡 Answer: </span>
+                          {q.suggested_answer}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

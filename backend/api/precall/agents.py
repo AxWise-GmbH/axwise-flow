@@ -75,8 +75,16 @@ ANALYSIS APPROACH:
 OUTPUT REQUIREMENTS:
 - keyInsights: Maximum 5 high-priority insights with clear title, description, priority (high/medium/low), and source (cite evidence from input)
 - callGuide: Practical opening line referencing their specific situation, 4-6 discovery questions based on their challenges, tailored value proposition, closing strategy
-- personas: For each identified stakeholder/persona - communication style, likely questions (3-5), engagement tips, decision factors
-- objections: 3-5 likely objections extracted from concerns/frustrations with rebuttals, hooks, and supporting evidence
+- personas: For each identified stakeholder/persona:
+  * name, role: As identified in the data
+  * role_in_decision: One of "primary" (final decision maker), "secondary" (influencer), "executor" (implementer), "blocker" (potential obstacle)
+  * communication_style, engagement tips, decision factors
+  * likely_questions: 3-5 questions as OBJECTS with:
+    - question: The exact question they might ask
+    - suggested_answer: Practical talking points/answer the sales rep should use (2-3 sentences, based on prospect data)
+- objections: 3-5 likely objections extracted from concerns/frustrations with:
+  * objection, likelihood, rebuttal, hook, supporting_evidence
+  * source_persona: Name of the persona most likely to raise this objection (match with personas list)
 - summary: 2-3 sentence executive summary of the recommended call strategy
 - localIntelligence: Location identification ONLY (see below)
 
