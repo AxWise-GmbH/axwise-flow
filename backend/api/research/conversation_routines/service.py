@@ -94,7 +94,10 @@ class ConversationRoutineService:
 
         @Tool
         async def generate_stakeholder_questions(
-            business_idea: str, target_customer: str, problem: str
+            business_idea: str,
+            target_customer: str,
+            problem: str,
+            location: Optional[str] = None,
         ) -> Dict[str, Any]:
             """Generate comprehensive stakeholder-based research questions"""
             try:
@@ -117,12 +120,17 @@ class ConversationRoutineService:
                 logger.info(f"   Business idea: {business_idea}")
                 logger.info(f"   Target customer: {target_customer}")
                 logger.info(f"   Problem: {problem}")
+                logger.info(
+                    "   Location (primary business region): "
+                    f"{location if location is not None else 'Not specified'}"
+                )
 
                 # Use existing stakeholder detector
                 context_analysis = {
                     "business_idea": business_idea,
                     "target_customer": target_customer,
                     "problem": problem,
+                    "location": location,
                 }
                 stakeholder_data = await self.stakeholder_detector.generate_dynamic_stakeholders_with_unique_questions(
                     self.llm_service,
@@ -299,7 +307,11 @@ JSON array:
         ]
 
     async def _generate_stakeholder_questions_tool(
-        self, business_idea: str, target_customer: str, problem: str
+        self,
+        business_idea: str,
+        target_customer: str,
+        problem: str,
+        location: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate comprehensive stakeholder-based research questions"""
         try:
@@ -320,12 +332,17 @@ JSON array:
             logger.info(f"   Business idea: {business_idea}")
             logger.info(f"   Target customer: {target_customer}")
             logger.info(f"   Problem: {problem}")
+            logger.info(
+                "   Location (primary business region): "
+                f"{location if location is not None else 'Not specified'}"
+            )
 
             # Use existing stakeholder detector with timeout to prevent indefinite hangs
             context_analysis = {
                 "business_idea": business_idea,
                 "target_customer": target_customer,
                 "problem": problem,
+                "location": location,
             }
 
             try:
@@ -748,6 +765,7 @@ Question:
                             business_idea=extracted_context["business_idea"],
                             target_customer=extracted_context["target_customer"],
                             problem=extracted_context["problem"],
+                            location=extracted_context.get("location"),
                         )
                     )
                     logger.info(

@@ -30,6 +30,19 @@ export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Ele
   // Check if this is the marketing landing page (homepage)
   const isMarketingPage = pathname === '/';
 
+  // Check if this is a full-screen page (no header/footer/container)
+  const isFullScreenPage = pathname?.startsWith('/precall');
+
+  // Full-screen pages render without the standard layout
+  if (isFullScreenPage) {
+    return (
+      <div className="min-h-screen bg-background">
+        {children}
+        <Toaster />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />

@@ -110,6 +110,7 @@ from backend.api.export_routes import router as export_router
 from backend.api.routes.prd import router as prd_router
 from backend.api.routes.perpetual_personas import router as perpetual_personas_router
 from backend.api.axpersona.router import router as axpersona_router
+from backend.api.precall.router import router as precall_router
 
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
@@ -333,6 +334,9 @@ app.include_router(prd_router)
 app.include_router(perpetual_personas_router)
 # AxPersona research-to-persona pipeline API
 app.include_router(axpersona_router)
+
+# PRECALL pre-call intelligence dashboard API
+app.include_router(precall_router)
 
 
 # Include debug router

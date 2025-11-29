@@ -37,7 +37,12 @@ class StakeholderDetector:
 
             # Step 2: Generate unique questions for each stakeholder
             enhanced_stakeholders = await self._generate_questions_for_stakeholders(
-                llm_service, stakeholder_data, business_idea, target_customer, problem
+                llm_service,
+                stakeholder_data,
+                business_idea,
+                target_customer,
+                problem,
+                context_analysis.get("location"),
             )
 
             logger.info(
@@ -57,6 +62,7 @@ class StakeholderDetector:
             business_idea = context_analysis.get("business_idea", "")
             target_customer = context_analysis.get("target_customer", "")
             problem = context_analysis.get("problem", "")
+            location = context_analysis.get("location", "")
 
             # Build conversation context
             conversation_text = ""
@@ -74,9 +80,18 @@ Business Context:
 - Business Idea: {business_idea}
 - Target Customer: {target_customer}
 - Problem Being Solved: {problem}
+- Primary Business Location: {location or "Not specified"}
 
 Recent Conversation:
 {conversation_text}
+
+Location & geography guidelines:
+- Treat the primary business location as the main geographic anchor for this business.
+- The clear majority of key stakeholders should be based in or near this region (same city/region/country where it makes sense).
+- A minority of stakeholders can be in other locations, but only when it clearly makes business sense (e.g., another office of the same company, an important regional customer or partner, or a key supplier site).
+- Make each stakeholder's location plausible and obviously connected to the business context.
+- Avoid stakeholders whose primary location is clearly unrelated to this region unless the business idea explicitly mentions operations there.
+- When you mention institutions, labor practices, or regulations, align them with the appropriate region for each stakeholder's location without inventing unrealistic culture-specific details.
 
 Identify specific stakeholders (not generic roles):
 
@@ -106,7 +121,7 @@ Return as JSON:
   ]
 }}
 
-Make stakeholder names specific to this business context."""
+Make stakeholder names specific to this business context and consistent with these location guidelines."""
 
             response_data = await llm_service.analyze(
                 text=prompt,
@@ -152,6 +167,7 @@ Make stakeholder names specific to this business context."""
         business_idea: str,
         target_customer: str,
         problem: str,
+        location: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate unique questions for each stakeholder using parallel processing"""
         try:
@@ -174,6 +190,9 @@ Make stakeholder names specific to this business context."""
             # Create tasks for parallel execution
             all_tasks = []
 
+            # Create a single normalized location string so all stakeholders share the same primary anchor
+            normalized_location = (location or "").strip() if location is not None else ""
+
             # Add primary stakeholder tasks
             for i, stakeholder in enumerate(primary_stakeholders):
                 task = self._generate_stakeholder_specific_questions_with_semaphore(
@@ -183,6 +202,7 @@ Make stakeholder names specific to this business context."""
                     business_idea,
                     target_customer,
                     problem,
+                    normalized_location,
                     "primary",
                     semaphore,
                     i + 1,
@@ -198,6 +218,7 @@ Make stakeholder names specific to this business context."""
                     business_idea,
                     target_customer,
                     problem,
+                    normalized_location,
                     "secondary",
                     semaphore,
                     len(primary_stakeholders) + i + 1,
@@ -257,6 +278,7 @@ Make stakeholder names specific to this business context."""
         business_idea: str,
         target_customer: str,
         problem: str,
+        location: Optional[str],
         stakeholder_type: str,
         semaphore: asyncio.Semaphore,
         stakeholder_index: int,
@@ -265,7 +287,8 @@ Make stakeholder names specific to this business context."""
         async with semaphore:
             try:
                 logger.info(
-                    f"[PERFORMANCE] Generating questions for stakeholder {stakeholder_index}: {stakeholder_name} ({stakeholder_type})"
+                    f"[PERFORMANCE] Generating questions for stakeholder {stakeholder_index}: {stakeholder_name} ({stakeholder_type}) "
+                    f"with primary location anchor: {location or 'Not specified'}"
                 )
 
                 questions = await self._generate_stakeholder_specific_questions(
@@ -275,6 +298,7 @@ Make stakeholder names specific to this business context."""
                     business_idea,
                     target_customer,
                     problem,
+                    location,
                     stakeholder_type,
                 )
 
@@ -315,6 +339,7 @@ Make stakeholder names specific to this business context."""
         business_idea: str,
         target_customer: str,
         problem: str,
+        location: Optional[str],
         stakeholder_type: str,
     ) -> Dict[str, List[str]]:
         """Generate categorized questions specific to a stakeholder type"""
@@ -325,17 +350,27 @@ Make stakeholder names specific to this business context."""
             else:
                 problem_count, solution_count, followup_count = 2, 2, 1
 
+            location_text = (location or "Not specified") if location is not None else "Not specified"
+
             prompt = f"""Generate categorized interview questions for this stakeholder type.
 
 Business Context:
 - Business Idea: {business_idea}
 - Target Customer: {target_customer}
 - Problem Being Solved: {problem}
+- Primary Business Location: {location_text}
 
 Stakeholder:
 - Name: {stakeholder_name}
 - Description: {stakeholder_description}
 - Type: {stakeholder_type}
+
+Location & geography guidelines:
+- Treat the primary business location as the main geographic anchor for this research project.
+- Assume that most stakeholders are based in or near this primary region.
+- If this specific stakeholder is imagined in a different city or country, their location must be clearly and realistically connected to the primary business location (e.g., another office, a key customer region, a supplier/manufacturing site, or an important partner).
+- Avoid placing this stakeholder in a clearly unrelated region unless the business idea explicitly mentions operations there.
+- When you mention institutions, labor practices, or regulations in questions, align them with the appropriate region for the stakeholder's location without hard-coding culture-specific details.
 
 Generate questions in these categories:
 
