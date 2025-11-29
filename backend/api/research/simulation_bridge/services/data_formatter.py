@@ -40,7 +40,7 @@ class DataFormatter:
                 "metadata": self._create_metadata(business_context, simulation_id),
                 "personas": self._format_personas(personas),
                 "interviews": self._format_interviews(interviews),
-                "analysis_ready_text": self._create_analysis_text(interviews),
+                "analysis_ready_text": self._create_analysis_text(interviews, business_context),
                 "file_info": self._create_file_info(simulation_id),
             }
 
@@ -119,9 +119,26 @@ class DataFormatter:
 
         return formatted_interviews
 
-    def _create_analysis_text(self, interviews: List[SimulatedInterview]) -> str:
+    def _create_analysis_text(
+        self,
+        interviews: List[SimulatedInterview],
+        business_context: BusinessContext,
+    ) -> str:
         """Create a consolidated text for analysis pipeline."""
         text_parts = []
+
+        primary_location = getattr(business_context, "location", None)
+        if primary_location:
+            text_parts.append(f"BUSINESS PRIMARY LOCATION: {primary_location}")
+            text_parts.append(
+                "Most simulated stakeholders and interviews represent people who are based in or near this primary region. "
+                "Some interviews may involve people in other locations when that location is clearly relevant to the business "
+                "(for example, another office, a key regional customer, or a supplier site)."
+            )
+            text_parts.append(
+                "When interpreting geography, assume institutions, labor practices, and regulations that are appropriate for each person's stated location."
+            )
+            text_parts.append("")
 
         for interview in interviews:
             # Find the persona name for this interview

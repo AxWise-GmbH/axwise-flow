@@ -588,6 +588,7 @@ async def generate_questionnaire(request: QuestionnaireRequest) -> Questionnaire
         business_idea=ctx.business_idea,
         target_customer=ctx.target_customer,
         problem=ctx.problem,
+        location=ctx.location,
     )
 
     if not isinstance(result, dict):

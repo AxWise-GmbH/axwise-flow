@@ -131,6 +131,12 @@ Return a complete SimulatedInterview object with all responses and metadata."""
     ) -> str:
         """Build the prompt for interview simulation."""
 
+        primary_location = (
+            (business_context.location or "").strip()
+            if getattr(business_context, "location", None)
+            else ""
+        )
+
         return f"""Simulate a customer research interview with the following persona:
 
 PERSONA DETAILS:
@@ -146,6 +152,14 @@ BUSINESS CONTEXT:
 - Business Idea: {business_context.business_idea}
 - Target Customer: {business_context.target_customer}
 - Problem: {business_context.problem}
+- Primary Business Location: {primary_location or "Not specified"}
+
+LOCATION & REGIONAL CONTEXT:
+- Treat the primary business location as the main geographic anchor for this project.
+- Assume that most personas and stakeholders are based in or near this primary region.
+- If this persona's own location (as implied by their demographics) is different, make that location clearly and realistically connected to the primary business location (for example, another office, regional customer, partner, or supplier site).
+- Align institutions, labor practices, and regulatory references with the appropriate region for each person's location.
+- Avoid introducing clearly unrelated cities or regions unless the business idea explicitly describes operations there.
 
 INTERVIEW QUESTIONS:
 {self._format_questions(stakeholder.questions)}
@@ -160,6 +174,7 @@ Instructions:
 5. Provide responses that vary in length naturally
 6. Include specific, concrete details that make responses feel authentic
 7. Maintain consistency with their demographic details and background
+8. Keep the persona's story and examples consistent with both their own location and the company's primary business location, using realistic geographic relationships (nearby cities/regions, key markets, supplier locations, etc.).
 
 For each response, also identify:
 - The sentiment (positive, negative, neutral, mixed)
@@ -322,6 +337,12 @@ Return only the response text that this persona would give - no additional forma
 
         response_style = config.get("response_style", "realistic")
 
+        primary_location = (
+            (business_context.location or "").strip()
+            if getattr(business_context, "location", None)
+            else ""
+        )
+
         return f"""You are {persona.name}, responding to an interview question about a business idea.
 
 PERSONA DETAILS:
@@ -336,6 +357,13 @@ BUSINESS CONTEXT:
 - Business Idea: {business_context.business_idea}
 - Target Customer: {business_context.target_customer}
 - Problem: {business_context.problem}
+- Primary Business Location: {primary_location or "Not specified"}
+
+LOCATION & REGIONAL CONTEXT:
+- Assume the company is primarily based in this location.
+- Most stakeholders are in or near this region; if your own implied location is different, it should be realistically connected to this primary region (another office, key customer region, supplier site, or important partner region).
+- Avoid referring to obviously unrelated regions or cities unless the business idea clearly involves them.
+- Align any institutional, labor, or regulatory references with the appropriate region for the locations you mention.
 
 QUESTION: {question}
 
@@ -349,5 +377,6 @@ Instructions:
 - Provide a response that varies in length naturally (could be short or detailed)
 - Include specific, concrete details that make your response feel authentic
 - Maintain consistency with your demographic details and background
+- Keep your story and examples consistent with both your own implied location and the company's primary business location, using realistic geographic relationships (nearby cities/regions, markets, suppliers, etc.).
 
 Respond naturally as {persona.name} would to this question:"""

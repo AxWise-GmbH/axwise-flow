@@ -85,7 +85,9 @@ Stakeholder: {stakeholder.name}
 Business: {business_context.business_idea}
 Target Customer: {business_context.target_customer}
 Problem: {business_context.problem}
+Primary Business Location: {getattr(business_context, 'location', None) or 'Not specified'}
 
+Most people should be based in or very near this primary location. Only a few should be in other clearly relevant locations (such as another office, key regional customer, or supplier site), and all locations must be plausible for this business.
 Keep responses concise and realistic."""
                         prompt = simple_prompt
                         continue
@@ -192,6 +194,12 @@ Keep responses concise and realistic."""
             if global_list:
                 used_global_text = f"\n\nIMPORTANT: Do NOT reuse these first+last names across ANY stakeholder category in this simulation: {', '.join(global_list)}"
 
+        primary_location = (
+            (business_context.location or "").strip()
+            if getattr(business_context, "location", None)
+            else ""
+        )
+
         return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
 BUSINESS CONTEXT:
@@ -199,6 +207,15 @@ BUSINESS CONTEXT:
 - Target Customer: {business_context.target_customer}
 - Problem Being Solved: {business_context.problem}
 - Industry: {business_context.industry}
+- Primary Business Location: {primary_location or "Not specified"}
+
+LOCATION AND GEOGRAPHY GUIDELINES:
+- Treat the primary business location as the main geographic anchor for this business.
+- The clear majority of people you generate (around 70-80%) should be based in or very near this primary location (same city/region/country where it makes sense).
+- A smaller portion of people (around 20-30%) may be based in other locations, but only when it clearly makes business sense (for example, another office of the same company, an important regional customer or partner, or a key supplier/manufacturing site).
+- Make each person's location plausible and explicitly connected to the business context (for example, "Regional sales manager in Munich for a Stuttgart-based automotive supplier").
+- Avoid placing people in locations that are clearly unrelated to this region unless the business idea explicitly mentions operations there.
+- When you mention institutions, labor practices, or regulations, align them with the appropriate region for each person's location without hard-coding artificial cultural details.
 
 STAKEHOLDER TYPE:
 - Name: {stakeholder.name}
@@ -218,7 +235,7 @@ Create diverse individual people that would realistically be in this stakeholder
 Make sure the people are diverse in:
 - Age ranges (but appropriate for the stakeholder type)
 - Professional backgrounds
-- Geographic locations
+- Locations within and around the primary business region, plus a few clearly relevant other locations when justified by the business context
 - Experience levels
 - Personality types
 - Communication preferences
