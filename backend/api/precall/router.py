@@ -71,17 +71,19 @@ async def generate_intelligence(
 ) -> GenerateIntelligenceResponse:
     """
     Generate call intelligence from prospect data.
-    
+
     Takes prospect information (company, stakeholders, pain points) and
     generates comprehensive call intelligence including:
     - Key insights (max 5)
     - Call guide with opening, questions, and closing strategy
     - Stakeholder personas with communication tips
     - Potential objections with prepared rebuttals
-    
+    - AI-generated mind map and org chart visualizations
+
     Returns:
         GenerateIntelligenceResponse with structured CallIntelligence
     """
+    import asyncio
     start_time = time.time()
 
     try:
@@ -91,6 +93,27 @@ async def generate_intelligence(
 
         agent = get_intelligence_agent()
         intelligence = await agent.generate(request.prospect_data)
+
+        # Generate visualization images in parallel (non-blocking)
+        logger.info("Generating visualization images...")
+        mind_map_task = generate_mind_map_image(intelligence)
+        org_chart_task = generate_org_chart_image(intelligence)
+
+        # Wait for both image generations
+        mind_map_result, org_chart_result = await asyncio.gather(
+            mind_map_task, org_chart_task, return_exceptions=True
+        )
+
+        # Attach images to intelligence if successful
+        if isinstance(mind_map_result, str):
+            intelligence.mindMapImage = mind_map_result
+        elif isinstance(mind_map_result, Exception):
+            logger.warning(f"Mind map generation error: {mind_map_result}")
+
+        if isinstance(org_chart_result, str):
+            intelligence.orgChartImage = org_chart_result
+        elif isinstance(org_chart_result, Exception):
+            logger.warning(f"Org chart generation error: {org_chart_result}")
 
         processing_time_ms = int((time.time() - start_time) * 1000)
 
@@ -370,6 +393,141 @@ async def generate_persona_image(request: PersonaImageRequest) -> PersonaImageRe
             success=False,
             error=str(e)
         )
+
+
+# ============================================================================
+# Mind Map & Org Chart Image Generation
+# ============================================================================
+
+async def generate_mind_map_image(intelligence: CallIntelligence) -> Optional[str]:
+    """
+    Generate a visual mind map image using Gemini 3 Pro Image Preview.
+    Synthesizes all context from the call intelligence into a visual diagram.
+    Returns a base64 data URI or None on failure.
+    """
+    if os.getenv("ENABLE_PRECALL_IMAGES", "true").lower() not in {"1", "true", "yes"}:
+        return None
+
+    img_service = GeminiImageService()
+    if not img_service.is_available():
+        return None
+
+    try:
+        # Build comprehensive context from intelligence
+        insights = [f"• {i.title}: {i.description}" for i in intelligence.keyInsights[:5]]
+        stakeholders = [f"• {p.name} ({p.role}) - {p.role_in_decision}" for p in intelligence.personas[:6]]
+        objections = [f"• {o.objection} [{o.likelihood}]" for o in intelligence.objections[:5]]
+        questions = intelligence.callGuide.discovery_questions[:5]
+        time_alloc = [f"{t.phase}: {t.percentage}%" for t in intelligence.callGuide.time_allocation]
+
+        prompt = f"""Create a professional business mind map infographic with the following structure:
+
+CENTRAL TOPIC: "{intelligence.summary[:100] if intelligence.summary else 'Sales Call Strategy'}"
+
+BRANCHES (create visual branches radiating from center):
+
+1. KEY INSIGHTS (yellow/amber branch):
+{chr(10).join(insights) if insights else '• Strategic opportunity identified'}
+
+2. STAKEHOLDERS (blue branch):
+{chr(10).join(stakeholders) if stakeholders else '• Key decision makers'}
+
+3. OBJECTIONS (red branch):
+{chr(10).join(objections) if objections else '• Potential concerns to address'}
+
+4. VALUE PROPOSITION (green branch):
+• {intelligence.callGuide.value_proposition[:150] if intelligence.callGuide.value_proposition else 'Value to be discussed'}
+
+5. DISCOVERY QUESTIONS (purple branch):
+{chr(10).join(f'• {q}' for q in questions) if questions else '• Key questions to ask'}
+
+6. CALL FLOW (cyan branch):
+{chr(10).join(f'• {t}' for t in time_alloc) if time_alloc else '• Call structure'}
+
+STYLE: Professional business infographic mind map with clean design, clear hierarchy,
+rounded rectangular nodes, connecting lines between related concepts, soft pastel colors
+for each branch. Modern flat design aesthetic. White or light gray background.
+High resolution, suitable for business presentation."""
+
+        logger.info("Generating mind map image...")
+        b64_image = img_service.generate_avatar_base64(prompt, temperature=0.7)
+
+        if b64_image:
+            data_uri = f"data:image/png;base64,{b64_image}"
+            logger.info("Mind map image generated successfully")
+            return data_uri
+    except Exception as e:
+        logger.warning(f"Mind map image generation failed: {e}")
+
+    return None
+
+
+async def generate_org_chart_image(intelligence: CallIntelligence) -> Optional[str]:
+    """
+    Generate an organizational chart image using Gemini 3 Pro Image Preview.
+    Shows hierarchical structure with reporting relationships and decision roles.
+    Returns a base64 data URI or None on failure.
+    """
+    if os.getenv("ENABLE_PRECALL_IMAGES", "true").lower() not in {"1", "true", "yes"}:
+        return None
+
+    img_service = GeminiImageService()
+    if not img_service.is_available():
+        return None
+
+    try:
+        # Organize personas by decision role
+        primary = [p for p in intelligence.personas if p.role_in_decision == "primary"]
+        secondary = [p for p in intelligence.personas if p.role_in_decision == "secondary"]
+        executors = [p for p in intelligence.personas if p.role_in_decision == "executor"]
+        blockers = [p for p in intelligence.personas if p.role_in_decision == "blocker"]
+        others = [p for p in intelligence.personas if p.role_in_decision not in ["primary", "secondary", "executor", "blocker"]]
+
+        def format_person(p) -> str:
+            return f"{p.name} - {p.role}"
+
+        prompt = f"""Create a professional organizational chart infographic showing a corporate hierarchy:
+
+ORGANIZATION STRUCTURE (top to bottom hierarchy):
+
+LEVEL 1 - DECISION MAKERS (Top tier, highlighted with green border):
+{chr(10).join(f'[{format_person(p)}]' for p in primary) if primary else '[Primary Decision Maker - TBD]'}
+
+LEVEL 2 - KEY INFLUENCERS (Second tier, blue accent):
+{chr(10).join(f'[{format_person(p)}]' for p in secondary) if secondary else '[Key Influencer - TBD]'}
+
+LEVEL 3 - EXECUTORS & BLOCKERS:
+EXECUTORS (purple accent):
+{chr(10).join(f'[{format_person(p)}]' for p in executors) if executors else '[Executor - TBD]'}
+
+POTENTIAL BLOCKERS (red accent, warning indicator):
+{chr(10).join(f'[{format_person(p)}]' for p in blockers) if blockers else '[No blockers identified]'}
+
+LEVEL 4 - OTHER STAKEHOLDERS (gray, supporting):
+{chr(10).join(f'[{format_person(p)}]' for p in others) if others else '[Additional stakeholders]'}
+
+VISUAL REQUIREMENTS:
+- Classic org chart layout with boxes connected by vertical and horizontal lines
+- Clear hierarchical levels from top to bottom
+- Each person in a rounded rectangle box with name and role
+- Color-coded borders: Green for decision makers, Blue for influencers, Purple for executors, Red for blockers
+- Show reporting lines between levels with connecting arrows
+- Include a legend showing role types
+- Professional business style, clean modern design
+- White background, suitable for presentation
+- High resolution infographic quality"""
+
+        logger.info("Generating org chart image...")
+        b64_image = img_service.generate_avatar_base64(prompt, temperature=0.7)
+
+        if b64_image:
+            data_uri = f"data:image/png;base64,{b64_image}"
+            logger.info("Org chart image generated successfully")
+            return data_uri
+    except Exception as e:
+        logger.warning(f"Org chart image generation failed: {e}")
+
+    return None
 
 
 # ============================================================================

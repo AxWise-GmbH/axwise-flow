@@ -103,6 +103,10 @@ export interface CallIntelligence {
   summary: string;
   /** Location-based bonding insights for ice-breakers */
   localIntelligence?: LocalIntelligence;
+  /** AI-generated mind map visualization (base64 data URI) */
+  mindMapImage?: string;
+  /** AI-generated org chart visualization (base64 data URI) */
+  orgChartImage?: string;
 }
 
 // ============================================================================

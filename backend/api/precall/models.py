@@ -167,6 +167,15 @@ class CallIntelligence(BaseModel):
         default=None,
         description="Location-based bonding insights for ice-breakers"
     )
+    # AI-generated visualization images
+    mindMapImage: Optional[str] = Field(
+        default=None,
+        description="Base64 data URI of AI-generated mind map visualization"
+    )
+    orgChartImage: Optional[str] = Field(
+        default=None,
+        description="Base64 data URI of AI-generated org chart visualization"
+    )
 
 
 # ============================================================================
