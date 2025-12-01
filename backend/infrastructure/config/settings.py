@@ -57,13 +57,13 @@ class Settings:
 
         # Database configuration
         self.database_url = os.getenv(
-            "DATABASE_URL", "postgresql://postgres@localhost:5432/interview_insights"
+            "DATABASE_URL", "postgresql://jadonwu:@localhost:5432/axwise"
         )
         self.db_user = os.getenv("DB_USER", "postgres")
         self.db_password = os.getenv("DB_PASSWORD", "")
         self.db_host = os.getenv("DB_HOST", "localhost")
         self.db_port = int(os.getenv("DB_PORT", "5432"))
-        self.db_name = os.getenv("DB_NAME", "interview_insights")
+        self.db_name = os.getenv("DB_NAME", "axwise")
         self.db_pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
         self.db_max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "10"))
         self.db_pool_timeout = int(os.getenv("DB_POOL_TIMEOUT", "30"))
@@ -190,16 +190,31 @@ class Settings:
     def _load_env_vars(self):
         """Load environment variables"""
         try:
-            # Load from .env file if exists
-            if os.path.exists(".env"):
-                with open(".env") as f:
-                    for line in f:
-                        if line.strip() and not line.startswith("#"):
-                            key, value = line.strip().split("=", 1)
-                            self._env_vars[key] = value
+            # Check for both .env and .env.oss files
+            env_files = [".env", "backend/.env.oss", ".env.oss"]
+            loaded_file = None
+            
+            for env_file in env_files:
+                if os.path.exists(env_file):
+                    self.logger.info(f"Loading environment variables from {env_file}")
+                    with open(env_file) as f:
+                        for line in f:
+                            if line.strip() and not line.startswith("#"):
+                                key, value = line.strip().split("=", 1)
+                                self._env_vars[key] = value
+                    loaded_file = env_file
+                    break
+            
+            if not loaded_file:
+                self.logger.warning("No .env or .env.oss file found in current directory or backend/")
 
             # Override with actual environment variables
             self._env_vars.update(os.environ)
+            
+            # Log key environment variables for debugging
+            self.logger.info(f"Environment loaded - OSS_MODE: {self._env_vars.get('OSS_MODE', 'not set')}")
+            self.logger.info(f"Environment loaded - DATABASE_URL: {'set' if self._env_vars.get('DATABASE_URL') else 'not set'}")
+            self.logger.info(f"Environment loaded - GEMINI_API_KEY: {'set' if self._env_vars.get('GEMINI_API_KEY') else 'not set'}")
 
         except Exception as e:
             self.logger.warning(f"Error loading environment variables: {str(e)}")

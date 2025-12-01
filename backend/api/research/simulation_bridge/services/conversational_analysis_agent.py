@@ -11,7 +11,8 @@ import json
 import re
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, ModelSettings
+from pydantic_ai import Agent
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai.models.gemini import GeminiModel
 
 from backend.schemas import (

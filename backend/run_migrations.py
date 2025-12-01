@@ -13,11 +13,21 @@ project_root = Path(__file__).parent.parent.absolute()
 
 # Load environment variables from .env file
 env_file = project_root / ".env"
-if env_file.exists():
+env_oss_file = project_root / "backend" / ".env.oss"
+
+print(f"Looking for environment files:")
+print(f"  .env at: {env_file} (exists: {env_file.exists()})")
+print(f"  .env.oss at: {env_oss_file} (exists: {env_oss_file.exists()})")
+
+# Try .env.oss first (for OSS mode), then fall back to .env
+if env_oss_file.exists():
+    print(f"Loading environment variables from {env_oss_file}")
+    load_dotenv(dotenv_path=env_oss_file)
+elif env_file.exists():
     print(f"Loading environment variables from {env_file}")
     load_dotenv(dotenv_path=env_file)
 else:
-    print(f"Warning: .env file not found at {env_file}")
+    print(f"Warning: No environment file found at {env_file} or {env_oss_file}")
 
 # Import the DATABASE_URL from the same source as the application
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

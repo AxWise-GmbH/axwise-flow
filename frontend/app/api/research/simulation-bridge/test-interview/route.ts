@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     console.log('Proxying test interview request to backend');
 
     // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('Test Interview API: Using development token (OSS mode)');
 
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/test-interview`, {

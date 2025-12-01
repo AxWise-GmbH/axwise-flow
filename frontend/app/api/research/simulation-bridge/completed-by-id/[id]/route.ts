@@ -11,7 +11,7 @@ export async function GET(
     console.log('Proxying completed-by-id request for ID:', simulationId);
 
     // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('Completed-by-id API: Using development token (OSS mode)');
 
     const url = `${API_BASE_URL}/api/research/simulation-bridge/completed-item?simulation_id=${encodeURIComponent(simulationId)}`;

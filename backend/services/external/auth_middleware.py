@@ -72,7 +72,7 @@ async def get_current_user(
     if token.startswith(DEV_TOKEN_PREFIX):
         user_id = token[len(DEV_TOKEN_PREFIX):] or "testuser123"
         logger.info(f"Development token used with user_id: {user_id}")
-    elif token == "DEV_TOKEN_REDACTED":
+    elif token == "dev_test_token_":
         user_id = "testuser123"
         logger.info(f"Legacy dev token used; user_id: {user_id}")
     else:

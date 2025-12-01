@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function getAuthTokenOptional() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 }
 
 async function getAuthTokenRequired() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 }
 
 export async function GET(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Development: send a dev token so backend HTTPBearer is satisfied
-      authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     }
 
     // Forward query params (limit, etc.)

@@ -37,6 +37,7 @@ fi
 
 # Pick a venv to activate (first match wins)
 CANDIDATE_VENVS=(
+  "$REPO_ROOT/.venv/bin/activate"
   "$REPO_ROOT/venv_py-flow-oss/bin/activate"
   "$REPO_ROOT/venv_py311/bin/activate"  # backward compatibility
   "$BACKEND_DIR/venv/bin/activate"

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // OSS mode - use development token
     const authToken: string =
-      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     const response = await fetch(
       `${API_BASE_URL}/api/precall/v1/generate-persona-image`,

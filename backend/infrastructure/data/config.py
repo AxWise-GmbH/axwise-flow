@@ -34,12 +34,15 @@ class ModelCapability:
 class ModelType(Enum):
     GPT4O = "gpt-4o"
     GPT4O_MINI = "gpt-4o-mini"
+    GEMINI_25_FLASH = "gemini-2.5-flash"
 
 # Supported models with their capabilities
 MODEL_CAPABILITIES = {
     "gpt-4o-2024-08-06": ModelCapability(128000, 16384),
     "gpt-4o-mini-2024-07-18": ModelCapability(128000, 16384),
     "gpt-4o-2024-05-13": ModelCapability(128000, 4096),
+    "gemini-2.5-flash": ModelCapability(1048576, 65536),
+    "models/gemini-2.5-flash": ModelCapability(1048576, 65536),
 }
 
 @dataclass

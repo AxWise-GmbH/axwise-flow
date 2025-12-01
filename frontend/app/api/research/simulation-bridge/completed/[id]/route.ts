@@ -11,7 +11,7 @@ export async function GET(
     console.log('Proxying simulation download request for ID:', simulationId);
 
     // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('Simulation Download API: Using development token (OSS mode)');
 
     // Prefer query-param endpoint to avoid any path-based redirect quirks

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       console.log('🔄 [UPLOAD] Using token from Authorization header');
     } else {
       // OSS mode: use development token
-      token = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      token = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
       console.log('🔄 [UPLOAD] Using development token (OSS mode)');
     }
 

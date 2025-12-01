@@ -16,7 +16,7 @@ export async function GET(
 
     // OSS mode - always use development token
     const authToken: string =
-      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     const url = `${API_BASE_URL}/api/axpersona/v1/pipeline/runs/${jobId}`;
     console.log('Fetching from:', url);

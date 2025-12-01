@@ -15,7 +15,7 @@ export async function GET(
     console.log('Simplified Personas API route called for ID:', params.id);
 
     // OSS mode - use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Get the backend URL from environment
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';

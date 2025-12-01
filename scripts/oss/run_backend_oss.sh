@@ -69,7 +69,7 @@ echo ""
 # Reminder: minimal OSS setup (no per-file edits needed)
 echo -e "${BLUE}OSS showcase setup:${NC} Set OSS_MODE, DATABASE_URL, GEMINI_API_KEY in backend/.env.oss"
 echo -e "${BLUE}Auth in OSS mode:${NC} Backend accepts dev tokens starting with ${YELLOW}dev_test_token_${NC}"
-echo -e "${BLUE}Frontend token:${NC} Provided via NEXT_PUBLIC_DEV_AUTH_TOKEN or defaults to ${YELLOW}DEV_TOKEN_REDACTED${NC}"
+echo -e "${BLUE}Frontend token:${NC} Provided via NEXT_PUBLIC_DEV_AUTH_TOKEN or defaults to ${YELLOW}dev_test_token_${NC}"
 
 
 # Check if PostgreSQL is running and ensure database exists
@@ -139,7 +139,7 @@ echo -e "${BLUE}Checking Python dependencies...${NC}"
 if ! python -c "import fastapi" 2>/dev/null; then
     echo -e "${YELLOW}⚠ Warning: FastAPI not found${NC}"
     echo -e "${YELLOW}  Installing dependencies from requirements.txt...${NC}"
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
     echo ""
 fi
 # Ensure Alembic is available for migrations
@@ -154,7 +154,7 @@ fi
 # Run database migrations
 echo -e "${BLUE}Running database migrations...${NC}"
 if [ -f "$BACKEND_DIR/run_migrations.py" ]; then
-    python3.11 run_migrations.py || echo -e "${YELLOW}⚠ Warning: Migration failed (this may be normal for first run)${NC}"
+    python run_migrations.py || echo -e "${YELLOW}⚠ Warning: Migration failed (this may be normal for first run)${NC}"
 else
     echo -e "${YELLOW}⚠ Warning: run_migrations.py not found, skipping migrations${NC}"
 fi
@@ -182,7 +182,7 @@ UVICORN_LOG_LEVEL_LOWER=$(echo "$UVICORN_LOG_LEVEL" | tr '[:upper:]' '[:lower:]'
 echo -e "${GREEN}Starting uvicorn with log level:${NC} $UVICORN_LOG_LEVEL"
 echo ""
 
-python3.11 -m uvicorn backend.api.app:app \
+python -m uvicorn backend.api.app:app \
     --host "${UVICORN_HOST:-0.0.0.0}" \
     --port "${UVICORN_PORT:-8000}" \
     --log-level "$UVICORN_LOG_LEVEL_LOWER" \

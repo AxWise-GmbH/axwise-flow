@@ -4,7 +4,7 @@
  * Last Updated: 2025-03-25
  */
 
-import { apiClient } from './apiClient';
+import { apiClient } from "./apiClient";
 
 /**
  * Initializes authentication for the application
@@ -16,29 +16,35 @@ export const initializeAuth = async (): Promise<void> => {
     const clerkToken = await apiClient.getAuthToken();
 
     if (clerkToken) {
-      console.log('Setting Clerk auth token');
+      console.log("Setting Clerk auth token");
       apiClient.setAuthToken(clerkToken);
       return;
     }
 
     // Check if we're in development mode and Clerk validation is disabled
-    const isProduction = process.env.NODE_ENV === 'production';
-    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
+    const isProduction = process.env.NODE_ENV === "production";
+    const enableClerkValidation =
+      process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === "true";
 
-    console.log('Auth initialization:', { isProduction, enableClerkValidation, nodeEnv: process.env.NODE_ENV });
+    console.log("Auth initialization:", {
+      isProduction,
+      enableClerkValidation,
+      nodeEnv: process.env.NODE_ENV,
+    });
 
     if (!isProduction && !enableClerkValidation) {
       // For development mode only, provide a test token
-      const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-      console.log('Setting development auth token (development mode only)');
+      const devToken =
+        process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || "dev_test_token_";
+      console.log("Setting development auth token (development mode only)");
       apiClient.setAuthToken(devToken);
     } else {
       // In production or when Clerk validation is enabled, require proper authentication
-      console.log('No authentication token available - user must sign in');
+      console.log("No authentication token available - user must sign in");
       apiClient.clearAuthToken();
     }
   } catch (error) {
-    console.error('Error initializing authentication:', error);
+    console.error("Error initializing authentication:", error);
     // In case of error, clear any existing tokens
     apiClient.clearAuthToken();
   }

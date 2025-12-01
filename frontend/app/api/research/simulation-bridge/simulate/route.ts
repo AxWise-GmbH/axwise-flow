@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     console.log('Proxying simulation request to backend');
 
     // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('Simulation API: Using development token (OSS mode)');
 
     // Create AbortController for timeout handling

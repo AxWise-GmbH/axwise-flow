@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string> {
   // OSS mode: return development token
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 }
 
 export async function GET(

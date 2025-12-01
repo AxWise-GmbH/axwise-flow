@@ -8,7 +8,7 @@ export async function GET(_request: NextRequest, context: { params: { sessionId:
     const isProduction = process.env.NODE_ENV === 'production';
     const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
 
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     const resp = await fetch(`${API_BASE_URL}/api/research/sessions/${encodeURIComponent(sessionId)}/messages`, {
       method: 'GET',
