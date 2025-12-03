@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   try {
     // OSS mode: no Clerk, return mock user and token status
     const userId = 'testuser123';
-    const token = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const token = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     return NextResponse.json({
       status: 'success',

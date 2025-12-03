@@ -14,7 +14,7 @@ export async function GET(
     console.log('Proxying simulation progress request for ID:', simulationId);
 
     // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('Simulation Progress API: Using development token (OSS mode)');
 
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/simulate/${simulationId}/progress`, {

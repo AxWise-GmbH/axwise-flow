@@ -55,7 +55,8 @@ class StakeholderThemeAnalyzer:
     def _initialize_theme_agent(self):
         """Initialize PydanticAI theme agent for structured analysis."""
         try:
-            from pydantic_ai import Agent, ModelSettings
+            from pydantic_ai import Agent
+            from pydantic_ai.settings import ModelSettings
             from pydantic_ai.models.gemini import GeminiModel
 
             # Create theme attribution agent

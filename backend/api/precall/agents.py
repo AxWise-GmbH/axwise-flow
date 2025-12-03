@@ -13,9 +13,10 @@ import logging
 import os
 from typing import Optional, Dict, Any
 
-from pydantic_ai import Agent, ModelSettings
-from pydantic_ai.models.gemini import GeminiModel
-from pydantic_ai.providers.google_gla import GoogleGLAProvider
+from pydantic_ai import Agent
+from pydantic_ai.settings import ModelSettings
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 from backend.api.precall.models import (
     CallIntelligence,
@@ -29,14 +30,14 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL = "gemini-2.5-flash"
 
 
-def get_gemini_model() -> GeminiModel:
-    """Get a configured GeminiModel instance using GoogleGLAProvider."""
+def get_gemini_model() -> GoogleModel:
+    """Get a configured GoogleModel instance using GoogleProvider."""
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
-    provider = GoogleGLAProvider(api_key=api_key)
-    return GeminiModel(DEFAULT_MODEL, provider=provider)
+    provider = GoogleProvider(api_key=api_key)
+    return GoogleModel(DEFAULT_MODEL, provider=provider)
 
 
 # ============================================================================
@@ -118,7 +119,7 @@ class IntelligenceAgent:
     Accepts flexible input formats (AxPersona, CRM, meeting notes, etc.)
     """
 
-    def __init__(self, model: Optional[GeminiModel] = None):
+    def __init__(self, model: Optional[GoogleModel] = None):
         self.model = model or get_gemini_model()
         self.agent = Agent(
             model=self.model,
@@ -234,7 +235,7 @@ class CoachingAgent:
     Provides contextual guidance based on any JSON prospect data and intelligence.
     """
 
-    def __init__(self, model: Optional[GeminiModel] = None):
+    def __init__(self, model: Optional[GoogleModel] = None):
         self.model = model or get_gemini_model()
         # For coaching, we use plain text output (no structured type)
         self.agent = Agent(

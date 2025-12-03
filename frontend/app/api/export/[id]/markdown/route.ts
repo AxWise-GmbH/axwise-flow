@@ -11,7 +11,7 @@ export async function GET(
     console.log(`Export API: Proxying markdown export request for analysis ${analysisId}`);
 
     // OSS mode - use development token
-    let authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    let authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Get auth_token from query parameters if provided (for direct URL access)
     const url = new URL(request.url);

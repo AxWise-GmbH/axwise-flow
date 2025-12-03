@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function getAuthToken() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 }
 
 export async function GET(_request: NextRequest, context: { params: { sessionId: string } }) {

@@ -6,9 +6,12 @@ Implements the 2025 Conversation Routines framework for customer research
 import logging
 import json
 import asyncio
+import os
 from typing import Dict, Any, List, Optional
 from pydantic_ai import Agent
 from pydantic_ai.tools import Tool
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 from .models import (
     ConversationRoutineRequest,
@@ -35,13 +38,29 @@ class ConversationRoutineService:
     def __init__(self):
         # Initialize GeminiService with default config
         llm_config = {
-            "model": "gemini-2.5-flash",
+            "model": "gemini-2.5-flash",  # Use consistent model name without "models/" prefix
             "temperature": 0.7,
             "max_tokens": 16000,
         }
         self.llm_service = GeminiService(llm_config)
         self.stakeholder_detector = StakeholderDetector()
+        self._pydantic_ai_model = self._create_pydantic_ai_model()
         self.agent = self._create_agent()
+
+    def _create_pydantic_ai_model(self) -> GoogleModel:
+        """Create a PydanticAI GoogleModel with proper provider configuration.
+
+        Returns:
+            GoogleModel: Configured model for PydanticAI Agent
+        """
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
+
+        provider = GoogleProvider(api_key=api_key)
+        model = GoogleModel("gemini-2.5-flash", provider=provider)
+        logger.info("[CONVERSATION_ROUTINES] Initialized GoogleModel for PydanticAI agent")
+        return model
 
     def _extract_json_candidate(self, text: str) -> Optional[str]:
         """Best-effort extraction of a JSON object from free-form text.
@@ -232,9 +251,9 @@ class ConversationRoutineService:
                 logger.error(f"🔴 Context extraction failed: {e}")
                 return {"business_idea": None, "target_customer": None, "problem": None, "industry": None, "location": None}
 
-        # Create agent with tools
+        # Create agent with tools using properly configured GoogleModel
         agent = Agent(
-            model=self.llm_service.get_pydantic_ai_model(),
+            model=self._pydantic_ai_model,
             system_prompt=get_conversation_routine_prompt(),
             tools=[generate_stakeholder_questions, extract_conversation_context],
         )
@@ -906,6 +925,8 @@ Question:
 
         except Exception as e:
             logger.error(f"🔴 Conversation routine failed: {e}")
+            import traceback
+            logger.error(f"🔴 Full traceback: {traceback.format_exc()}")
 
             # Fallback response
             return ConversationRoutineResponse(

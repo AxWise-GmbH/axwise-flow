@@ -56,7 +56,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
     }
 
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
 
@@ -444,7 +444,7 @@ export async function analyzeAction(
 ): Promise<{ success: true; analysisResponse: AnalysisResponse } | { success: false; error: string }> {
   try {
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Call backend directly instead of going through frontend API route
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -516,7 +516,7 @@ export async function getServerSideAnalysis(analysisId: string): Promise<Detaile
 
   try {
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
 
@@ -538,7 +538,7 @@ export async function getServerSideAnalysis(analysisId: string): Promise<Detaile
 export async function getLatestCompletedAnalysis(): Promise<DetailedAnalysisResult | null> {
   try {
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
 
@@ -603,7 +603,7 @@ export async function getLatestCompletedAnalysis(): Promise<DetailedAnalysisResu
 export async function fetchAnalysisHistory(page: number = 1, pageSize: number = 10) {
   try {
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
@@ -643,7 +643,7 @@ export async function getServerSidePRD(analysisId: string, forceRegenerate: bool
     console.log(`[getServerSidePRD] Generating PRD for analysis ID: ${analysisId}, forceRegenerate: ${forceRegenerate}`);
 
     // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Set the token on the API client
     apiClient.setAuthToken(authToken);

@@ -37,7 +37,8 @@ class InfluenceMetricsCalculator:
     def _initialize_patterns_agent(self):
         """Initialize PydanticAI agent for cross-stakeholder pattern analysis."""
         try:
-            from pydantic_ai import Agent, ModelSettings
+            from pydantic_ai import Agent
+            from pydantic_ai.settings import ModelSettings
             from pydantic_ai.models.gemini import GeminiModel
 
             # Create cross-stakeholder patterns agent

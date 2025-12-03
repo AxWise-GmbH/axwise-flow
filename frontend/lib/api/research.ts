@@ -55,7 +55,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     }
   } else {
     // Development mode - use development token
-    headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED'}`;
+    headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_'}`;
     console.log('🔧 Using development token for API requests');
   }
 

@@ -1,7 +1,10 @@
-venv_py311/
-venv_py-flow-oss/
+# Virtual environments
+.venv/
 venv/
+venv_*/
 backend/venv/
+backend/.venv/
+backend/.env.oss
 
 __pycache__/
 
@@ -18,6 +21,7 @@ frontend/node_modules/
 .vercel/
 .env.local
 .env.*.local
+.env.oss
 
 
 # Security/cleanup artifacts
@@ -37,3 +41,10 @@ backend/.env.oss
 axwise-corrected-arch
 HACKATHON_SUBMISSION_ANALYSIS.md
 PERPETUAL_PERSONAS_IMPROVEMENTS.md
+
+backend/.env
+backend/.env.oss
+backend/.env.oss
+backend/.env.oss
+backend/.env.oss
+backend/.env.oss

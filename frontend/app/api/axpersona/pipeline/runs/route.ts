@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     // OSS mode - always use development token
     const authToken: string =
-      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 
     // Forward query parameters
     const searchParams = request.nextUrl.searchParams;

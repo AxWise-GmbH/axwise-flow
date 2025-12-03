@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string> {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
 }
 
 export async function GET(request: NextRequest) {

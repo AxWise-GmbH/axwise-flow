@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     // OSS mode: use development user (Clerk removed)
     let userId: string | null = 'testuser123';
-    let token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    let token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('🔄 [DATA] Using development mode authentication');
 
     console.log('🔄 [DATA] User authenticated:', userId);
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
   try {
     // OSS mode: use development user (Clerk removed)
     const userId: string | null = 'testuser123';
-    const token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    const token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'dev_test_token_';
     console.log('🔄 [DATA GET] Using development mode authentication');
 
     // Get query parameters
