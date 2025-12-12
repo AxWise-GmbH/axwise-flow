@@ -20,6 +20,10 @@ import { PersonaAvatar } from './PersonaAvatar';
 interface PrepTabProps {
   intelligence: CallIntelligence;
   companyContext?: string;
+  /** Time period for historical context (e.g., '1943-1945') */
+  timePeriod?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historicalContext?: string;
 }
 
 const roleIcons: Record<string, React.ElementType> = {
@@ -36,7 +40,17 @@ const roleColors: Record<string, string> = {
   blocker: 'bg-red-100 text-red-800 border-red-200',
 };
 
-function PersonaOverviewCard({ persona, companyContext }: { persona: PersonaDetail; companyContext?: string }) {
+function PersonaOverviewCard({
+  persona,
+  companyContext,
+  timePeriod,
+  historicalContext,
+}: {
+  persona: PersonaDetail;
+  companyContext?: string;
+  timePeriod?: string;
+  historicalContext?: string;
+}) {
   const role = persona.role_in_decision || 'secondary';
   const RoleIcon = roleIcons[role] || UserCheck;
 
@@ -49,6 +63,8 @@ function PersonaOverviewCard({ persona, companyContext }: { persona: PersonaDeta
             role={persona.role}
             communicationStyle={persona.communication_style}
             companyContext={companyContext}
+            timePeriod={timePeriod}
+            historicalContext={historicalContext}
             size="md"
           />
           <div className="flex-1 min-w-0">
@@ -82,7 +98,7 @@ function PersonaOverviewCard({ persona, companyContext }: { persona: PersonaDeta
  *
  * Displays: Executive Summary, High-Priority Insights, Personas Overview, Time Allocation
  */
-export function PrepTab({ intelligence, companyContext }: PrepTabProps) {
+export function PrepTab({ intelligence, companyContext, timePeriod, historicalContext }: PrepTabProps) {
   const { summary, keyInsights, personas, callGuide } = intelligence;
 
   // Filter high-priority insights
@@ -160,7 +176,13 @@ export function PrepTab({ intelligence, companyContext }: PrepTabProps) {
           {personas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {personas.map((persona, idx) => (
-                <PersonaOverviewCard key={idx} persona={persona} companyContext={companyContext} />
+                <PersonaOverviewCard
+                  key={idx}
+                  persona={persona}
+                  companyContext={companyContext}
+                  timePeriod={timePeriod}
+                  historicalContext={historicalContext}
+                />
               ))}
             </div>
           ) : (

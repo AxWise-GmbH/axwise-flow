@@ -37,12 +37,20 @@ class InfluenceMetricsCalculator:
     def _initialize_patterns_agent(self):
         """Initialize PydanticAI agent for cross-stakeholder pattern analysis."""
         try:
+            import os
             from pydantic_ai import Agent, ModelSettings
-            from pydantic_ai.models.gemini import GeminiModel
+            from pydantic_ai.models.google import GoogleModel
+            from pydantic_ai.providers.google import GoogleProvider
 
+            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                logger.warning("No GEMINI_API_KEY found - patterns agent unavailable")
+                return
+
+            provider = GoogleProvider(api_key=api_key)
             # Create cross-stakeholder patterns agent
             self.patterns_agent = Agent(
-                model=GeminiModel("gemini-2.5-flash"),
+                model=GoogleModel("gemini-2.5-flash", provider=provider),
                 system_prompt=self._get_patterns_analysis_prompt(),
                 model_settings=ModelSettings(timeout=300),
                 temperature=0,

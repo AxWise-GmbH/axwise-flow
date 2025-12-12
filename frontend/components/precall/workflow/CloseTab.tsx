@@ -23,6 +23,10 @@ import { PersonaAvatar } from './PersonaAvatar';
 interface CloseTabProps {
   intelligence: CallIntelligence;
   companyContext?: string;
+  /** Time period for historical context (e.g., '1943-1945') */
+  timePeriod?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historicalContext?: string;
 }
 
 const likelihoodColors: Record<string, string> = {
@@ -35,12 +39,16 @@ function ObjectionItem({
   objection,
   index,
   sourcePersona,
-  companyContext
+  companyContext,
+  timePeriod,
+  historicalContext,
 }: {
   objection: ObjectionDetail;
   index: number;
   sourcePersona?: PersonaDetail;
   companyContext?: string;
+  timePeriod?: string;
+  historicalContext?: string;
 }) {
   return (
     <AccordionItem value={`objection-${index}`} className="border rounded-lg px-3 mb-2">
@@ -57,6 +65,8 @@ function ObjectionItem({
                     role={sourcePersona.role}
                     communicationStyle={sourcePersona.communication_style}
                     companyContext={companyContext}
+                    timePeriod={timePeriod}
+                    historicalContext={historicalContext}
                     size="sm"
                     asDiv
                   />
@@ -128,7 +138,7 @@ function ObjectionItem({
  *
  * Displays: Objections with Rebuttals/Hooks, Closing Strategy, Next Steps
  */
-export function CloseTab({ intelligence, companyContext }: CloseTabProps) {
+export function CloseTab({ intelligence, companyContext, timePeriod, historicalContext }: CloseTabProps) {
   const { callGuide, objections, personas } = intelligence;
 
   // Sort objections by likelihood (high first)
@@ -208,6 +218,8 @@ export function CloseTab({ intelligence, companyContext }: CloseTabProps) {
                     index={idx}
                     sourcePersona={sourcePersona}
                     companyContext={companyContext}
+                    timePeriod={timePeriod}
+                    historicalContext={historicalContext}
                   />
                 );
               })}

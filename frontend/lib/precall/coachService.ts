@@ -162,19 +162,25 @@ export function getStarterSuggestions(
  * @param personaRole - Role/title of the persona
  * @param communicationStyle - Optional communication style hint
  * @param companyContext - Optional company/industry context
+ * @param timePeriod - Optional time period for historical context (e.g., '1943-1945')
+ * @param historicalContext - Optional historical context (e.g., 'World War II Military Intelligence')
  * @returns Promise<PersonaImageResponse> - Response with image data URI or error
  */
 export async function generatePersonaImage(
   personaName: string,
   personaRole: string,
   communicationStyle?: string,
-  companyContext?: string
+  companyContext?: string,
+  timePeriod?: string,
+  historicalContext?: string
 ): Promise<PersonaImageResponse> {
   const request: PersonaImageRequest = {
     persona_name: personaName,
     persona_role: personaRole,
     communication_style: communicationStyle,
     company_context: companyContext,
+    time_period: timePeriod,
+    historical_context: historicalContext,
   };
 
   try {
@@ -209,23 +215,37 @@ export async function generatePersonaImage(
  * Search for local news using Gemini's Google Search grounding.
  *
  * This uses Gemini 2.5's native integration with Google Search to fetch
- * real-time news and current events for a specific location.
+ * news and events for a specific location.
+ *
+ * Supports both:
+ * - Recent news: Pass daysBack (default: 7)
+ * - Historical search: Pass startYear and endYear (e.g., 1943, 1945)
  *
  * @param location - Location to search news for (city, region, country)
- * @param daysBack - How many days of news to search (default: 7)
+ * @param daysBack - How many days of news to search (default: 7, ignored if years provided)
  * @param maxItems - Maximum news items to return (default: 5)
+ * @param startYear - Start year for historical search (optional)
+ * @param endYear - End year for historical search (optional)
  * @returns Promise<LocalNewsResponse> - Response with news items and metadata
  */
 export async function searchLocalNews(
   location: string,
   daysBack: number = 7,
-  maxItems: number = 5
+  maxItems: number = 5,
+  startYear?: number,
+  endYear?: number
 ): Promise<LocalNewsResponse> {
   const request: LocalNewsRequest = {
     location,
     days_back: daysBack,
     max_items: maxItems,
   };
+
+  // Add historical search parameters if provided
+  if (startYear !== undefined && endYear !== undefined) {
+    request.start_year = startYear;
+    request.end_year = endYear;
+  }
 
   try {
     const response = await fetch(`${API_BASE}/search-local-news`, {

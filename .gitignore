@@ -1,39 +1,50 @@
-venv_py311/
-venv_py-flow-oss/
+# Virtual environments
+.venv/
 venv/
+venv_*/
 backend/venv/
+backend/.venv/
 
+# Python cache
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
 
 # SQLite database files
 *.db
 backend/*.db
 
-.next/
-
+# Node.js
 node_modules/
 frontend/node_modules/
-
+.next/
 .turbo/
-.vercel/
+
+# Environment files (except templates)
+.env
 .env.local
 .env.*.local
-
-
-# Security/cleanup artifacts
-repomix-output.xml
-.firebase/
-bfg.jar
-*.jar
-backend.env.prod
-
-# Local env files in frontend (use .env.local.oss via script)
 frontend/.env.local
 frontend/.env.production
 
+# Vercel / Firebase
+.vercel/
+.firebase/
+
+# Security/cleanup artifacts
+repomix-output.xml
+bfg.jar
+*.jar
+
 # Build metadata
 *.tsbuildinfo
-backend/.env.oss
-axwise-corrected-arch
-HACKATHON_SUBMISSION_ANALYSIS.md
-PERPETUAL_PERSONAS_IMPROVEMENTS.md
+
+# IDE
+*.code-workspace
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

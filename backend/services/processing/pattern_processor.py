@@ -18,7 +18,8 @@ from backend.infrastructure.api.processor import IProcessor
 
 # PydanticAI imports
 from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 # Import constants for API key
 from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
@@ -56,7 +57,8 @@ class PatternProcessor(IProcessor):
             # Set API key in environment for PydanticAI
             if api_key:
                 os.environ["GEMINI_API_KEY"] = api_key
-            self.model = GeminiModel("gemini-2.5-flash")
+            provider = GoogleProvider(api_key=api_key)
+            self.model = GoogleModel("gemini-2.5-flash", provider=provider)
             self.pattern_agent = Agent(
                 model=self.model,
                 output_type=PatternResponse,

@@ -28,6 +28,10 @@ interface SalesWorkflowViewProps {
   activeStep?: string;
   onStepChange?: (step: string) => void;
   companyContext?: string;
+  /** Time period for historical context (e.g., '1943-1945') */
+  timePeriod?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historicalContext?: string;
 }
 
 /**
@@ -46,6 +50,8 @@ export function SalesWorkflowView({
   activeStep = 'prep',
   onStepChange,
   companyContext,
+  timePeriod,
+  historicalContext,
 }: SalesWorkflowViewProps) {
   const workflowTabs = [
     {
@@ -165,7 +171,12 @@ export function SalesWorkflowView({
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
         <TabsContent value="prep" className="h-full m-0">
-          <PrepTab intelligence={intelligence} companyContext={companyContext} />
+          <PrepTab
+            intelligence={intelligence}
+            companyContext={companyContext}
+            timePeriod={timePeriod}
+            historicalContext={historicalContext}
+          />
         </TabsContent>
         <TabsContent value="open" className="h-full m-0">
           <OpenTab
@@ -174,13 +185,23 @@ export function SalesWorkflowView({
           />
         </TabsContent>
         <TabsContent value="discover" className="h-full m-0">
-          <DiscoverTab intelligence={intelligence} companyContext={companyContext} />
+          <DiscoverTab
+            intelligence={intelligence}
+            companyContext={companyContext}
+            timePeriod={timePeriod}
+            historicalContext={historicalContext}
+          />
         </TabsContent>
         <TabsContent value="value" className="h-full m-0">
           <ValueTab intelligence={intelligence} />
         </TabsContent>
         <TabsContent value="close" className="h-full m-0">
-          <CloseTab intelligence={intelligence} companyContext={companyContext} />
+          <CloseTab
+            intelligence={intelligence}
+            companyContext={companyContext}
+            timePeriod={timePeriod}
+            historicalContext={historicalContext}
+          />
         </TabsContent>
         <TabsContent value="mindmap" className="h-full m-0">
           <MindMapTab intelligence={intelligence} />

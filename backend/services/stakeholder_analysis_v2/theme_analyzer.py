@@ -55,12 +55,20 @@ class StakeholderThemeAnalyzer:
     def _initialize_theme_agent(self):
         """Initialize PydanticAI theme agent for structured analysis."""
         try:
+            import os
             from pydantic_ai import Agent, ModelSettings
-            from pydantic_ai.models.gemini import GeminiModel
+            from pydantic_ai.models.google import GoogleModel
+            from pydantic_ai.providers.google import GoogleProvider
 
+            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                logger.warning("No GEMINI_API_KEY found - theme agent unavailable")
+                return
+
+            provider = GoogleProvider(api_key=api_key)
             # Create theme attribution agent
             self.theme_agent = Agent(
-                model=GeminiModel("gemini-2.5-flash"),
+                model=GoogleModel("gemini-2.5-flash", provider=provider),
                 output_type=ThemeAttributionModel,
                 system_prompt=self._get_theme_attribution_prompt(),
                 model_settings=ModelSettings(timeout=300),

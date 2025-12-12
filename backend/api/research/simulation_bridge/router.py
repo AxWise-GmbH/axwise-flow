@@ -30,7 +30,7 @@ from .services.file_processor import (
     FileProcessingResult,
 )
 from backend.utils.structured_logger import request_start, request_end, request_error
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
 from backend.models import User
 from backend.services.external.auth_middleware import get_current_user
 
@@ -693,7 +693,7 @@ async def analyze_simulation_results(
 
         analysis_config = {
             "llm_provider": analysis_options.get("llm_provider", "gemini"),
-            "llm_model": analysis_options.get("llm_model", "gemini-2.0-flash-exp"),
+            "llm_model": analysis_options.get("llm_model", "gemini-2.5-pro"),
             "industry": analysis_options.get("industry", "general"),
             "analysis_type": "comprehensive_simulation",
             "include_stakeholder_breakdown": True,
@@ -841,7 +841,9 @@ async def test_persona_generation(
         if not api_key:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
-        model = GeminiModel("gemini-2.5-flash")
+        from pydantic_ai.providers.google import GoogleProvider
+        provider = GoogleProvider(api_key=api_key)
+        model = GoogleModel("gemini-2.5-flash", provider=provider)
         generator = PersonaGenerator(model)
         personas = await generator.generate_personas(
             stakeholder, business_ctx, sim_config
@@ -884,7 +886,9 @@ async def test_interview_simulation(
         if not api_key:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
-        model = GeminiModel("gemini-2.5-flash")
+        from pydantic_ai.providers.google import GoogleProvider
+        provider = GoogleProvider(api_key=api_key)
+        model = GoogleModel("gemini-2.5-flash", provider=provider)
         simulator = InterviewSimulator(model)
         interview = await simulator.simulate_interview(
             persona, stakeholder, business_ctx, sim_config
@@ -925,9 +929,12 @@ async def get_default_config() -> Dict[str, Any]:
 # Initialize conversational analysis components
 def get_gemini_model():
     """Get configured Gemini model for conversational analysis"""
-    return GeminiModel(
-        model="gemini-2.0-flash-exp", api_key=os.getenv("GEMINI_API_KEY")
-    )
+    from pydantic_ai.providers.google import GoogleProvider
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
+    provider = GoogleProvider(api_key=api_key)
+    return GoogleModel("gemini-2.5-flash", provider=provider)
 
 
 def get_file_processor():

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScopeSelector } from '@/components/axpersona/ScopeSelector';
 import { ScopeCreationForm } from '@/components/axpersona/ScopeCreationForm';
 import { ScopeMainView } from '@/components/axpersona/ScopeMainView';
 import { AnalysisPanel } from '@/components/axpersona/AnalysisPanel';
-import { useRunPipeline, usePipelineRunDetail } from '@/lib/axpersona/hooks';
+import { useStartPipeline, usePipelineRunDetail } from '@/lib/axpersona/hooks';
+import { useToast } from '@/components/providers/toast-provider';
 import type {
   BusinessContext,
   ScopeSummary,
@@ -18,14 +19,29 @@ function ScopeDetailPage() {
   const [isCreationOpen, setIsCreationOpen] = useState(false);
   const [formError, setFormError] = useState<string | undefined>();
   const [selectedRunJobId, setSelectedRunJobId] = useState<string | null>(null);
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
-  const runPipeline = useRunPipeline();
+  const startPipeline = useStartPipeline();
+  const { showToast } = useToast();
 
   // Fetch detailed pipeline run data when a run is selected
   const { data: pipelineRunDetail, isLoading: isLoadingRunDetail } = usePipelineRunDetail(
     selectedRunJobId
   );
+
+  // Watch for job completion when we have a pending job
+  useEffect(() => {
+    if (pendingJobId && pipelineRunDetail?.job_id === pendingJobId) {
+      if (pipelineRunDetail.status === 'completed') {
+        showToast('Dataset generated successfully!', { variant: 'success' });
+        setPendingJobId(null);
+      } else if (pipelineRunDetail.status === 'failed') {
+        showToast(`Pipeline failed: ${pipelineRunDetail.error || 'Unknown error'}`, { variant: 'error' });
+        setPendingJobId(null);
+      }
+    }
+  }, [pendingJobId, pipelineRunDetail, showToast]);
 
   // Convert pipeline run detail to PipelineExecutionResult format
   const pipelineRunResult: PipelineExecutionResult | undefined = useMemo(() => {
@@ -67,7 +83,9 @@ function ScopeDetailPage() {
   // Display data from pipeline run
   const displayScope = pipelineRunScope;
   const displayResult = pipelineRunResult;
-  const isLoading = runPipeline.isPending || isLoadingRunDetail;
+  // Show loading when starting pipeline OR when we have a pending job that's still running
+  const isLoading = startPipeline.isPending || isLoadingRunDetail ||
+    (pendingJobId !== null && pipelineRunDetail?.status === 'running');
 
   const handleSelectDataset = (dataset: PersonaDatasetSummary) => {
     // Set selected run job ID to fetch details
@@ -77,30 +95,24 @@ function ScopeDetailPage() {
   const handleCreateScope = async (context: BusinessContext) => {
     setFormError(undefined);
     try {
-      const result = await runPipeline.mutateAsync(context);
+      // Start the pipeline - returns immediately with job_id
+      const result = await startPipeline.mutateAsync(context);
 
-      // The backend has already persisted this pipeline run to the database
-      // Now we need to:
-      // 1. Invalidate the pipeline runs list to refetch from the database
-      // 2. Auto-select the newly created run
-
-      // Invalidate pipeline runs query to trigger refetch
-      await queryClient.invalidateQueries({ queryKey: ['pipelineRuns'] });
-
-      // Extract job_id from the result (added by the frontend proxy)
       const jobId = result.job_id;
 
       if (jobId) {
-        // Auto-select the newly created run
+        // Track this job as pending and auto-select it
+        setPendingJobId(jobId);
         setSelectedRunJobId(jobId);
       }
 
+      // Close the form immediately - polling will track progress
       setIsCreationOpen(false);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : 'Failed to generate AxPersona scope';
+          : 'Failed to start AxPersona pipeline';
       setFormError(message);
     }
   };
@@ -119,7 +131,7 @@ function ScopeDetailPage() {
         <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
           <ScopeSelector
             onCreateScope={() => setIsCreationOpen(true)}
-            isCreating={runPipeline.isPending}
+            isCreating={startPipeline.isPending || pendingJobId !== null}
             onSelectDataset={handleSelectDataset}
             selectedJobId={selectedRunJobId}
           />
@@ -142,13 +154,13 @@ function ScopeDetailPage() {
       <ScopeCreationForm
         open={isCreationOpen}
         onClose={() => {
-          if (!runPipeline.isPending) {
+          if (!startPipeline.isPending) {
             setFormError(undefined);
             setIsCreationOpen(false);
           }
         }}
         onSubmit={handleCreateScope}
-        isSubmitting={runPipeline.isPending}
+        isSubmitting={startPipeline.isPending}
         errorMessage={formError}
       />
     </div>

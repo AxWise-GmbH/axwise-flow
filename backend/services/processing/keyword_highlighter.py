@@ -278,7 +278,7 @@ class ContextAwareKeywordHighlighter:
         # Use the new Google GenAI client with PydanticAI
         # PydanticAI automatically handles the google-genai integration
         domain_agent = Agent(
-            model="gemini-2.5-flash",  # PydanticAI will use google-genai automatically
+            model="gemini-2.5-pro",  # PydanticAI will use google-genai automatically
             output_type=DomainAnalysis,
             system_prompt="""You are an expert research analyst who identifies research domains and extracts relevant keywords for highlighting in user interviews.
 

@@ -1,30 +1,43 @@
 'use client';
 
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/providers/toast-provider';
-import { pipelineService } from './pipelineService';
+import { pipelineService, StartPipelineResponse } from './pipelineService';
 import { pipelineRunsService } from './pipelineRunsService';
 import type {
   BusinessContext,
-  PipelineExecutionResult,
   PipelineRunListResponse,
   PipelineRunDetail,
 } from './types';
 
-export function useRunPipeline() {
+/**
+ * Hook to start a pipeline job.
+ * Returns immediately with job_id - use usePipelineRunDetail() to track progress.
+ */
+export function useStartPipeline() {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
-  return useMutation<PipelineExecutionResult, Error, BusinessContext>({
-    mutationFn: (context) => pipelineService.runPipeline(context),
-    onSuccess: () => {
-      showToast('Scope dataset generated successfully', { variant: 'success' });
+  return useMutation<StartPipelineResponse, Error, BusinessContext>({
+    mutationFn: (context) => pipelineService.startPipeline(context),
+    onSuccess: (data) => {
+      showToast('Pipeline job started. Generating dataset...', { variant: 'success' });
+      // Invalidate pipeline runs list to show the new job
+      queryClient.invalidateQueries({ queryKey: ['pipelineRuns'] });
     },
     onError: (error) => {
-      showToast(error.message || 'Failed to run AxPersona pipeline', {
+      showToast(error.message || 'Failed to start AxPersona pipeline', {
         variant: 'error',
       });
     },
   });
+}
+
+/**
+ * @deprecated Use useStartPipeline() instead - it returns immediately and doesn't block
+ */
+export function useRunPipeline() {
+  return useStartPipeline();
 }
 
 /**

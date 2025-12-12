@@ -3,8 +3,8 @@ import logging
 from typing import Any
 
 from pydantic_ai import Agent, PromptedOutput
-from pydantic_ai.models.gemini import GeminiModel
-from pydantic_ai.providers.google_gla import GoogleGLAProvider
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ def initialize_pydantic_ai_agent() -> tuple[Any, bool]:
         if not api_key:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
-        provider = GoogleGLAProvider(api_key=api_key)
-        gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         logger.info("[QUALITY] Initialized Gemini 2.5 Flash model for high-quality persona generation")
 
         # Import here to avoid import cycles
@@ -64,8 +64,8 @@ def initialize_production_persona_agent() -> tuple[Any, bool]:
         if not api_key:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
-        provider = GoogleGLAProvider(api_key=api_key)
-        gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         logger.info("[PRODUCTION_PERSONA] Initialized Gemini 2.5 Flash model")
 
         from backend.domain.models.production_persona import ProductionPersona
@@ -113,8 +113,8 @@ def initialize_direct_persona_agent() -> tuple[Any, bool]:
         if not api_key:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
-        provider = GoogleGLAProvider(api_key=api_key)
-        gemini_model = GeminiModel("gemini-2.5-flash", provider=provider)
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         logger.info("[DIRECT_PERSONA] Initialized Gemini 2.5 Flash model")
 
         from backend.models.enhanced_persona_models import DirectPersona

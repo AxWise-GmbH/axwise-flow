@@ -31,7 +31,7 @@ class GeminiTextService:
         try:
             from google.genai import types  # type: ignore
 
-            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-flash")
+            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.5-pro")
             cfg = types.GenerateContentConfig(
                 temperature=temperature,
                 response_mime_type="application/json",

@@ -257,7 +257,7 @@ Requirements:
 Return ONLY the 3 questions, one per line, nothing else."""
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             contents=[prompt],
         )
 
@@ -289,6 +289,9 @@ class PersonaImageRequest(BaseModel):
     persona_role: str = Field(..., description="Role/title of the persona")
     communication_style: Optional[str] = Field(None, description="Communication style hint")
     company_context: Optional[str] = Field(None, description="Company/industry context")
+    # Historical context for period-appropriate images
+    time_period: Optional[str] = Field(None, description="Time period for historical context (e.g., '1943-1945', '1920s')")
+    historical_context: Optional[str] = Field(None, description="Additional historical context (e.g., 'World War II Military Intelligence')")
 
 
 class PersonaImageResponse(BaseModel):
@@ -327,14 +330,70 @@ async def generate_persona_image(request: PersonaImageRequest) -> PersonaImageRe
         # Generate unique ID for variation
         unique_id = f"{uuid.uuid4().hex[:8]}-{int(time.time() * 1000)}"
 
-        # Build descriptive prompt for professional portrait
-        style_elements = [
-            "professional workplace portrait",
-            "business casual attire",
-            "natural office lighting",
-            "confident posture",
-            "friendly expression",
-        ]
+        # Detect if this is a historical context
+        is_historical = bool(request.time_period or request.historical_context)
+        historical_era = None
+
+        # Parse time period to determine era
+        if request.time_period:
+            time_str = request.time_period.lower()
+            # Check for specific decades/eras
+            if any(year in time_str for year in ['1940', '1941', '1942', '1943', '1944', '1945', '1946', '1947', '1948', '1949']):
+                historical_era = "1940s"
+            elif any(year in time_str for year in ['1930', '1931', '1932', '1933', '1934', '1935', '1936', '1937', '1938', '1939']):
+                historical_era = "1930s"
+            elif any(year in time_str for year in ['1920', '1921', '1922', '1923', '1924', '1925', '1926', '1927', '1928', '1929']):
+                historical_era = "1920s"
+            elif any(year in time_str for year in ['1950', '1951', '1952', '1953', '1954', '1955', '1956', '1957', '1958', '1959']):
+                historical_era = "1950s"
+            elif any(year in time_str for year in ['1960', '1961', '1962', '1963', '1964', '1965', '1966', '1967', '1968', '1969']):
+                historical_era = "1960s"
+            elif "1940s" in time_str or "wwii" in time_str or "ww2" in time_str or "world war" in time_str:
+                historical_era = "1940s"
+            elif "1930s" in time_str:
+                historical_era = "1930s"
+            elif "1920s" in time_str:
+                historical_era = "1920s"
+
+        # Build style elements based on whether this is historical or modern
+        if is_historical and historical_era:
+            # Historical portrait style
+            style_elements = [
+                f"authentic {historical_era} era portrait photograph",
+                f"period-accurate {historical_era} clothing and hairstyle",
+                f"historical {historical_era} setting and environment",
+                "NO modern technology NO laptops NO smartphones NO computers",
+                "confident posture",
+            ]
+
+            # Add era-specific styling
+            if historical_era == "1940s":
+                style_elements.extend([
+                    "black and white or sepia-toned photograph",
+                    "1940s military or formal civilian attire",
+                    "period-appropriate lighting reminiscent of 1940s photography",
+                ])
+            elif historical_era == "1930s":
+                style_elements.extend([
+                    "sepia-toned vintage photograph",
+                    "1930s formal attire with period hairstyle",
+                ])
+            elif historical_era == "1920s":
+                style_elements.extend([
+                    "sepia-toned vintage photograph",
+                    "1920s attire art deco era styling",
+                ])
+            else:
+                style_elements.append(f"{historical_era} period-appropriate attire and setting")
+        else:
+            # Modern professional portrait (default)
+            style_elements = [
+                "professional workplace portrait",
+                "business casual attire",
+                "natural office lighting",
+                "confident posture",
+                "friendly expression",
+            ]
 
         # Add communication style hints if available
         if request.communication_style:
@@ -354,15 +413,28 @@ async def generate_persona_image(request: PersonaImageRequest) -> PersonaImageRe
         )
 
         # Build the prompt
-        prompt = (
-            f"Professional workplace portrait photograph of {request.persona_name}, "
-            f"a {request.persona_role}. "
-            f"{', '.join(style_elements)}. "
-            f"Unique session: {unique_id}. {text_prevention}."
-        )
+        if is_historical and historical_era:
+            prompt = (
+                f"Authentic {historical_era} era portrait photograph of {request.persona_name}, "
+                f"a {request.persona_role}. "
+                f"{', '.join(style_elements)}. "
+                f"Unique session: {unique_id}. {text_prevention}."
+            )
+        else:
+            prompt = (
+                f"Professional workplace portrait photograph of {request.persona_name}, "
+                f"a {request.persona_role}. "
+                f"{', '.join(style_elements)}. "
+                f"Unique session: {unique_id}. {text_prevention}."
+            )
 
-        # Add company context if available
-        if request.company_context:
+        # Add company/historical context if available
+        if request.historical_context:
+            prompt = prompt.replace(
+                "Unique session:",
+                f"Context: {request.historical_context[:80]}. Unique session:"
+            )
+        elif request.company_context:
             prompt = prompt.replace(
                 "Unique session:",
                 f"Industry: {request.company_context[:50]}. Unique session:"
@@ -539,6 +611,9 @@ class LocalNewsRequest(BaseModel):
     location: str = Field(..., description="Location to search news for (city, region, country)")
     days_back: int = Field(default=7, ge=1, le=30, description="How many days of news to search (default: 7 days)")
     max_items: int = Field(default=5, ge=1, le=10, description="Maximum news items to return")
+    # Historical search parameters (optional - if set, days_back is ignored)
+    start_year: Optional[int] = Field(None, ge=1800, le=2100, description="Start year for historical search")
+    end_year: Optional[int] = Field(None, ge=1800, le=2100, description="End year for historical search")
 
 
 class NewsSource(BaseModel):
@@ -570,17 +645,24 @@ class LocalNewsResponse(BaseModel):
 @router.post("/search-local-news", response_model=LocalNewsResponse)
 async def search_local_news(request: LocalNewsRequest) -> LocalNewsResponse:
     """
-    Search for recent local news using Gemini's Google Search grounding.
+    Search for local news using Gemini's Google Search grounding.
 
     This endpoint uses Gemini 2.5's built-in Google Search tool to fetch
-    real-time news and current events for a specific location. The results
-    include conversation-worthy topics for building rapport with prospects.
+    news and events for a specific location. Supports both:
+    - Recent news: Set days_back (default: 7)
+    - Historical search: Set start_year and end_year (e.g., 1943-1945)
 
     Returns:
-        LocalNewsResponse with news items, current events, and source metadata
+        LocalNewsResponse with news items, events, and source metadata
     """
     try:
-        logger.info(f"Searching local news for: {request.location} (last {request.days_back} days)")
+        # Determine if this is a historical search
+        is_historical = request.start_year is not None and request.end_year is not None
+
+        if is_historical:
+            logger.info(f"Searching historical news for: {request.location} ({request.start_year}-{request.end_year})")
+        else:
+            logger.info(f"Searching local news for: {request.location} (last {request.days_back} days)")
 
         # Check if search is enabled
         if os.getenv("ENABLE_PRECALL_SEARCH", "true").lower() not in {"1", "true", "yes"}:
@@ -599,12 +681,20 @@ async def search_local_news(request: LocalNewsRequest) -> LocalNewsResponse:
                 error="Gemini search service not available"
             )
 
-        # Perform the search
-        result = search_service.search_location_news(
-            location=request.location,
-            days_back=request.days_back,
-            max_items=request.max_items,
-        )
+        # Perform the search based on type
+        if is_historical:
+            result = search_service.search_historical_news(
+                location=request.location,
+                start_year=request.start_year,
+                end_year=request.end_year,
+                max_items=request.max_items,
+            )
+        else:
+            result = search_service.search_location_news(
+                location=request.location,
+                days_back=request.days_back,
+                max_items=request.max_items,
+            )
 
         if not result.get("search_performed"):
             return LocalNewsResponse(
@@ -613,8 +703,9 @@ async def search_local_news(request: LocalNewsRequest) -> LocalNewsResponse:
                 error=result.get("error", "Search failed")
             )
 
+        search_type = "historical" if is_historical else "local"
         logger.info(
-            f"Local news search completed for {request.location}: "
+            f"{search_type.capitalize()} news search completed for {request.location}: "
             f"{len(result.get('sources', []))} sources"
         )
 

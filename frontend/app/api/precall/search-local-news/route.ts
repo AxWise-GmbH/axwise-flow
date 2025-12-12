@@ -13,6 +13,8 @@ export interface LocalNewsRequest {
   location: string;
   days_back?: number;
   max_items?: number;
+  start_year?: number;
+  end_year?: number;
 }
 
 export interface NewsSource {
@@ -40,6 +42,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build request body - include historical params if provided
+    const requestBody: Record<string, unknown> = {
+      location: body.location,
+      days_back: body.days_back ?? 7,
+      max_items: body.max_items ?? 5,
+    };
+
+    // Add historical search parameters if both are provided
+    if (body.start_year !== undefined && body.end_year !== undefined) {
+      requestBody.start_year = body.start_year;
+      requestBody.end_year = body.end_year;
+    }
+
     const response = await fetch(
       `${BACKEND_URL}/api/precall/v1/search-local-news`,
       {
@@ -47,11 +62,7 @@ export async function POST(request: NextRequest) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          location: body.location,
-          days_back: body.days_back ?? 7,
-          max_items: body.max_items ?? 5,
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 

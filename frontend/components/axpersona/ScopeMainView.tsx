@@ -1,18 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { Loader2, MessageCircle, UserCircle2, Download } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, MessageCircle, UserCircle2, Download, Newspaper, RefreshCw, ExternalLink } from 'lucide-react';
 import type {
   AxPersonaDataset,
   PipelineExecutionResult,
   ScopeSummary,
   PipelineRunDetail,
+  StakeholderNewsItem,
+  StakeholderNewsSource,
 } from '@/lib/axpersona/types';
+import { pipelineService } from '@/lib/axpersona/pipelineService';
+
+interface StakeholderNewsState {
+  isLoading: boolean;
+  newsItems: StakeholderNewsItem[];
+  sources: StakeholderNewsSource[];
+  error: string | null;
+  year: number | null;
+}
 
 interface ScopeMainViewProps {
   scope?: ScopeSummary;
@@ -57,6 +69,66 @@ export function ScopeMainView({
 }: ScopeMainViewProps) {
   const dataset = pipelineRunDetail?.dataset ?? result?.dataset;
   const { personaCount, interviewCount } = getDatasetSummary(dataset);
+
+  // Stakeholder news state
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [stakeholderNews, setStakeholderNews] = useState<StakeholderNewsState>({
+    isLoading: false,
+    newsItems: [],
+    sources: [],
+    error: null,
+    year: null,
+  });
+  const [hasSearchedNews, setHasSearchedNews] = useState(false);
+
+  const handleFetchStakeholderNews = useCallback(async () => {
+    if (!scope?.businessContext) return;
+
+    setStakeholderNews({
+      isLoading: true,
+      newsItems: [],
+      sources: [],
+      error: null,
+      year: selectedYear,
+    });
+
+    try {
+      const result = await pipelineService.searchStakeholderNews({
+        industry: scope.businessContext.industry,
+        location: scope.businessContext.location,
+        year: selectedYear,
+        max_items: 5,
+      });
+
+      if (result.success) {
+        setStakeholderNews({
+          isLoading: false,
+          newsItems: result.news_items || [],
+          sources: result.sources || [],
+          error: null,
+          year: selectedYear,
+        });
+      } else {
+        setStakeholderNews({
+          isLoading: false,
+          newsItems: [],
+          sources: [],
+          error: result.error || 'Failed to fetch news',
+          year: selectedYear,
+        });
+      }
+    } catch (err) {
+      setStakeholderNews({
+        isLoading: false,
+        newsItems: [],
+        sources: [],
+        error: err instanceof Error ? err.message : 'Unknown error',
+        year: selectedYear,
+      });
+    }
+    setHasSearchedNews(true);
+  }, [scope?.businessContext, selectedYear]);
 
   const personas = Array.isArray(dataset?.personas)
     ? (dataset!.personas as Record<string, unknown>[])
@@ -235,6 +307,128 @@ export function ScopeMainView({
               <Badge variant="outline">Personas: {personaCount}</Badge>
               <Badge variant="outline">Interviews: {interviewCount}</Badge>
             </div>
+
+            {/* Stakeholder News Section */}
+            <Card className="mt-3 border-blue-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                  <Newspaper className="h-4 w-4 text-blue-600" />
+                  <span>Industry News</span>
+                  {stakeholderNews.newsItems.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {stakeholderNews.newsItems.length} items
+                    </Badge>
+                  )}
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Select
+                      value={selectedYear.toString()}
+                      onValueChange={(value) => setSelectedYear(parseInt(value))}
+                    >
+                      <SelectTrigger className="h-7 w-24 text-xs">
+                        <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 6 }, (_, i) => currentYear - i).map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleFetchStakeholderNews}
+                      disabled={stakeholderNews.isLoading}
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${stakeholderNews.isLoading ? 'animate-spin' : ''}`} />
+                      {hasSearchedNews ? 'Refresh' : 'Fetch News'}
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {/* Loading state */}
+                {stakeholderNews.isLoading && (
+                  <div className="text-sm text-muted-foreground py-4 text-center">
+                    <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    Searching for {scope.businessContext.industry} news in {scope.businessContext.location} ({selectedYear})...
+                  </div>
+                )}
+
+                {/* Error state */}
+                {stakeholderNews.error && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    ⚠️ {stakeholderNews.error}
+                  </div>
+                )}
+
+                {/* News items */}
+                {!stakeholderNews.isLoading && stakeholderNews.newsItems.length > 0 && (
+                  <div className="space-y-3">
+                    {stakeholderNews.newsItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="text-sm bg-blue-50 p-3 rounded border border-blue-100"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs">
+                            {item.category}
+                          </Badge>
+                          {item.date && (
+                            <span className="text-xs text-muted-foreground">{item.date}</span>
+                          )}
+                        </div>
+                        <p className="font-medium">{item.headline}</p>
+                        <p className="text-muted-foreground text-xs mt-1">{item.details}</p>
+                      </div>
+                    ))}
+
+                    {/* Sources */}
+                    {stakeholderNews.sources.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground mb-1">Sources:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {stakeholderNews.sources.slice(0, 5).map((source, idx) =>
+                            source.url ? (
+                              <a
+                                key={idx}
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                {source.title}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              <span key={idx} className="text-xs text-muted-foreground">
+                                {source.title}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Empty state (not yet fetched) */}
+                {!stakeholderNews.isLoading && !hasSearchedNews && (
+                  <p className="text-sm text-muted-foreground py-2">
+                    Click "Fetch News" to get {scope.businessContext.industry} industry news from {scope.businessContext.location} for the selected year.
+                  </p>
+                )}
+
+                {/* No results state */}
+                {!stakeholderNews.isLoading && hasSearchedNews && stakeholderNews.newsItems.length === 0 && !stakeholderNews.error && (
+                  <p className="text-sm text-muted-foreground py-2">
+                    No news found for {scope.businessContext.industry} in {scope.businessContext.location} ({stakeholderNews.year}). Try a different year.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             <div className="mt-2 flex-1 min-h-0 overflow-hidden">
               <ScrollArea className="h-full">

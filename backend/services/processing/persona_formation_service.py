@@ -19,7 +19,8 @@ import re
 
 # MIGRATION TO PYDANTICAI: Replace Instructor with PydanticAI
 from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 from backend.models.enhanced_persona_models import EnhancedPersona as PersonaModel
 from backend.domain.models.persona_schema import StructuredDemographics, AttributedField
 

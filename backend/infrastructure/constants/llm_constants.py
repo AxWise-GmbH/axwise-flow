@@ -10,8 +10,8 @@ and should be referenced by all services that need LLM parameters.
 """
 
 # Gemini model constants
-# Updated to use stable gemini-2.5-flash model instead of preview version
-GEMINI_MODEL_NAME = "models/gemini-2.5-flash"
+# Updated to use Gemini 2.5 Pro for best quality
+GEMINI_MODEL_NAME = "models/gemini-2.5-pro"
 GEMINI_TEMPERATURE = 0.0
 GEMINI_MAX_TOKENS = 65536
 GEMINI_CONTEXT_WINDOW = 1048576

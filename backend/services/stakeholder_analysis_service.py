@@ -42,7 +42,8 @@ from backend.utils.pydantic_ai_retry import (
 
 # PydanticAI Integration for Cross-Stakeholder Analysis
 from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 logger = logging.getLogger(__name__)
 
@@ -118,9 +119,9 @@ class StakeholderAnalysisService:
                     "Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set"
                 )
 
-            # QUALITY OPTIMIZATION: Use full Gemini 2.5 Flash for high-quality stakeholder analysis
-            # Full Flash model provides better quality and detail for stakeholder intelligence
-            gemini_model = GeminiModel("gemini-2.5-flash")
+            # QUALITY OPTIMIZATION: Use Gemini 2.5 Flash for speed and quality balance
+            provider = GoogleProvider(api_key=api_key)
+            gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
             logger.info(
                 "[QUALITY] Initialized Gemini 2.5 Flash for high-quality stakeholder analysis"
             )
