@@ -126,10 +126,12 @@ export async function getOrGeneratePersonaImage(
   name: string,
   role: string,
   communicationStyle?: string,
-  companyContext?: string
+  companyContext?: string,
+  timePeriod?: string,
+  historicalContext?: string
 ): Promise<{ imageUri: string | null; error: string | null; fromCache: boolean }> {
   const personaKey = getPersonaKey(name, role);
-  
+
   // Check cache first
   const cached = getCachedImage(personaKey);
   if (cached) {
@@ -138,7 +140,14 @@ export async function getOrGeneratePersonaImage(
 
   // Generate new image
   try {
-    const result = await generatePersonaImage(name, role, communicationStyle, companyContext);
+    const result = await generatePersonaImage(
+      name,
+      role,
+      communicationStyle,
+      companyContext,
+      timePeriod,
+      historicalContext
+    );
     if (result.success && result.image_data_uri) {
       setCachedImage(personaKey, result.image_data_uri);
       return { imageUri: result.image_data_uri, error: null, fromCache: false };

@@ -3,7 +3,8 @@ import logging
 from typing import List, Dict, Any
 
 from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 # Schema types used by Agents
 from backend.schemas import (
@@ -29,9 +30,10 @@ class StakeholderAgentFactory:
         if not api_key:
             raise ValueError("Missing GEMINI_API_KEY or GOOGLE_API_KEY")
 
-        # Prefer gemini-2.5-flash per quality preferences
+        # Prefer gemini-2.5-flash for speed and quality balance
         model_name = os.getenv("STAKEHOLDER_GEMINI_MODEL", "gemini-2.5-flash")
-        self.gemini_model = GeminiModel(model_name)
+        provider = GoogleProvider(api_key=api_key)
+        self.gemini_model = GoogleModel(model_name, provider=provider)
         self._agent_cache: Dict[str, Agent] = {}
         logger.info(
             f"[AGENT_FACTORY] Initialized StakeholderAgentFactory with model {model_name}"

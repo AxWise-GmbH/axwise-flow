@@ -11,8 +11,9 @@ import json
 import re
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, ModelSettings
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai import Agent
+from pydantic_ai.settings import ModelSettings
+from pydantic_ai.models.google import GoogleModel
 
 from backend.schemas import (
     DetailedAnalysisResult,
@@ -131,7 +132,7 @@ class ConversationalAnalysisAgent:
     to generate structured analysis results matching DetailedAnalysisResult schema.
     """
 
-    def __init__(self, gemini_model: GeminiModel):
+    def __init__(self, gemini_model: GoogleModel):
         self.model = gemini_model
         # Stage-specific typed agents (PydanticAI v1)
         self.themes_agent = Agent(

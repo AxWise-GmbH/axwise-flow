@@ -178,8 +178,15 @@ def extract_keywords_with_pydantic_ai(texts: List[str]) -> List[Dict[str, Any]]:
         return []
 
     try:
+        import os
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
+
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.warning("No GEMINI_API_KEY found - keyword extraction unavailable")
+            return []
 
         # Combine texts for analysis
         combined_text = "\n\n".join(
@@ -187,7 +194,8 @@ def extract_keywords_with_pydantic_ai(texts: List[str]) -> List[Dict[str, Any]]:
         )
 
         # Create PydanticAI agent for keyword extraction
-        gemini_model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         keyword_agent = Agent(
             model=gemini_model,
             output_type=KeywordExtractionResult,
@@ -252,10 +260,17 @@ def extract_trait_keywords_for_highlighting(
         return []
 
     try:
+        import os
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
         from pydantic import BaseModel, Field
         from typing import List as TypingList
+
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.warning("No GEMINI_API_KEY found - trait keyword extraction unavailable")
+            return []
 
         class TraitKeywords(BaseModel):
             """Keywords extracted from persona trait for quote highlighting."""
@@ -270,7 +285,8 @@ def extract_trait_keywords_for_highlighting(
             analysis_text += "Supporting Evidence:\n" + "\n".join(trait_evidence)
 
         # Create PydanticAI agent for trait keyword extraction
-        gemini_model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         trait_keyword_agent = Agent(
             model=gemini_model,
             output_type=TraitKeywords,

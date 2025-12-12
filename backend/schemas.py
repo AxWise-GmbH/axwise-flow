@@ -70,7 +70,7 @@ class PersonaGenerationRequest(BaseModel):
         "enhanced_gemini", description="LLM provider to use for persona generation"
     )
     llm_model: Optional[str] = Field(
-        "models/gemini-2.5-flash", description="Specific LLM model to use"
+        "models/gemini-2.5-pro", description="Specific LLM model to use"
     )
     filename: Optional[str] = Field(
         None, description="Optional filename of the source file (for special handling)"
@@ -81,7 +81,7 @@ class PersonaGenerationRequest(BaseModel):
             "example": {
                 "text": "I'm a frontend developer working on web applications. I typically use React, TypeScript, and sometimes Angular. My biggest challenge is dealing with legacy code that's poorly documented.",
                 "llm_provider": "gemini",
-                "llm_model": "models/gemini-2.5-flash",
+                "llm_model": "models/gemini-2.5-pro",
                 "filename": "Interview_SoftwareTech_Demo.txt",
             }
         }

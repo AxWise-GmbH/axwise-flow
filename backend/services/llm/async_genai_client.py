@@ -36,13 +36,13 @@ class AsyncGenAIClient:
     asynchronously, with proper error handling, retry logic, and response parsing.
     """
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-pro"):
         """
         Initialize the AsyncGenAIClient.
 
         Args:
             api_key: Google API key
-            model: Model name to use (default: gemini-2.5-flash)
+            model: Model name to use (default: gemini-2.5-pro)
         """
         self.api_key = api_key
         self.default_model = model
@@ -347,7 +347,7 @@ class AsyncGenAIClient:
 
         # Optional fallback model for overload scenarios
         fallback_model = os.getenv(
-            "GEMINI_FALLBACK_MODEL", "models/gemini-2.5-flash-latest"
+            "GEMINI_FALLBACK_MODEL", "models/gemini-2.5-pro-latest"
         )
         use_fallback_next = False
 
@@ -449,7 +449,7 @@ class AsyncGenAIClient:
 
         # Optional fallback model for overload scenarios
         fallback_model = os.getenv(
-            "GEMINI_FALLBACK_MODEL", "models/gemini-2.5-flash-latest"
+            "GEMINI_FALLBACK_MODEL", "models/gemini-2.5-pro-latest"
         )
         use_fallback_next = False
 

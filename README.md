@@ -327,16 +327,20 @@ Expected success response (example):
 - API tokens are never persisted; they are used only for the export call
 - All Jira requests are HTTPS; credentials sent via Authorization header (Basic auth)
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Use Cases
 
-### How AxWise Flow Actually Works
+AxWise Flow provides **three distinct workflows** for different use cases:
 
-AxWise Flow implements a **two-path architecture** that supports both conversational research and direct data upload:
+---
 
-#### **Path 1: Research Chat → Simulation → Analysis**
+### 🔬 Use Case 1: Standard Analysis Workflow (Research → PRD)
+
+**For**: Product teams conducting user research and generating requirements
+
+The core workflow with conversational research, simulation, and analysis:
 
 ```
-User Chat → Context Extraction → Stakeholder Questions → Synthetic Interviews → Analysis → PRD
+Research Chat → Context Extraction → Stakeholder Questions → Synthetic Interviews → Analysis → PRD
 ```
 
 1. **Research Chat** (`/api/research/conversation-routines/chat`)
@@ -361,25 +365,101 @@ User Chat → Context Extraction → Stakeholder Questions → Synthetic Intervi
    - Synthesizes user stories and acceptance criteria
    - Every requirement links back to themes → quotes → interviews
 
-#### **Path 2: Upload → Analysis → PRD**
+**Alternative: Upload → Analysis → PRD**
 
 ```
 Upload Transcripts → Theme Extraction → Pattern Recognition → Persona Formation → PRD
 ```
 
-1. **Upload** (`/api/upload`)
-   - User uploads interview transcripts (TXT, DOCX, PDF)
-   - System parses and stores raw interview data
+- **Upload** (`/api/upload`) - Upload real interview transcripts (TXT, DOCX, PDF)
+- **Analysis** (`/api/analyze`) - Same 6-stage analysis pipeline
+- **PRD Generation** (`/api/prd/{result_id}`) - Evidence-linked requirements
 
-2. **Analysis** (`/api/analyze`)
-   - Theme extraction with stakeholder attribution
-   - Pattern recognition across interviews
-   - Persona formation from transcript evidence
-   - Insight synthesis
+---
 
-3. **PRD Generation** (`/api/prd/{result_id}`)
-   - Same PRD agent as Path 1
-   - Uses themes, patterns, insights, personas as input
+### 🎭 Use Case 2: AxPersona Dataset Creation
+
+**For**: Teams building downstream applications (CV matching, recommenders, marketing, training data)
+
+A complete pipeline that generates canonical synthetic persona datasets:
+
+```
+Business Context → Questionnaire → Simulation → Analysis → Persona Dataset Export
+```
+
+**API Endpoints**:
+- `POST /api/axpersona/v1/pipeline/start` - Start dataset generation pipeline
+- `GET /api/axpersona/v1/pipeline/status/{job_id}` - Check pipeline progress
+- `GET /api/axpersona/v1/pipeline/result/{job_id}` - Get completed dataset
+- `POST /api/axpersona/v1/export-persona-dataset` - Export dataset from analysis
+
+**What it produces**:
+- **Personas**: Synthetic personas with demographics, archetypes, and evidence-linked traits
+- **Interviews**: Simulated interview transcripts for each persona
+- **Analysis**: Full theme/pattern/insight analysis
+- **Quality Metrics**: Interview count, stakeholder coverage, persona confidence scores
+
+**Example Request**:
+```bash
+curl -X POST "http://localhost:8000/api/axpersona/v1/pipeline/start" \
+  -H "Authorization: Bearer dev_test_token_local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "business_idea": "AI-powered meal planning app",
+    "target_customer": "Busy professionals who want healthy eating",
+    "problem": "No time to plan meals and grocery shop",
+    "industry": "Health & Wellness",
+    "location": "Berlin, Germany"
+  }'
+```
+
+**Frontend Access**: Navigate to `/axpersona/scopes` to manage persona datasets through the UI.
+
+---
+
+### 📞 Use Case 3: Precall Intelligence
+
+**For**: Sales professionals preparing for customer calls
+
+Generates comprehensive call intelligence from prospect data (CRM exports, meeting notes, or AxPersona output):
+
+```
+Prospect Data → Intelligence Agent → Call Guide + Personas + Objections + Coaching
+```
+
+**API Endpoints**:
+- `POST /api/precall/v1/generate` - Generate call intelligence from prospect data
+- `POST /api/precall/v1/coach` - Get real-time coaching responses
+- `POST /api/precall/v1/generate-persona-image` - Generate persona avatar
+- `POST /api/precall/v1/search-local-news` - Search location-specific news for rapport building
+
+**What it produces**:
+- **Key Insights**: Top 5 actionable insights for the call
+- **Call Guide**: Opening line, discovery questions, value proposition, closing strategy
+- **Stakeholder Personas**: Detailed profiles with communication tips
+- **Objection Handling**: Potential objections with prepared rebuttals
+- **Visualizations**: AI-generated mind map and org chart
+
+**Example Request**:
+```bash
+curl -X POST "http://localhost:8000/api/precall/v1/generate" \
+  -H "Authorization: Bearer dev_test_token_local" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prospect_data": {
+      "company_name": "Acme Corp",
+      "industry": "Manufacturing",
+      "stakeholders": [
+        {"name": "John Smith", "role": "CFO", "concerns": ["ROI", "budget approval"]}
+      ],
+      "pain_points": ["Manual processes", "Lack of visibility"]
+    }
+  }'
+```
+
+**Coaching Chat**: After generating intelligence, use `/api/precall/v1/coach` to get real-time guidance based on the prospect context.
+
+**Frontend Access**: Navigate to `/precall` to use the Precall Intelligence dashboard.
 
 ---
 
@@ -445,6 +525,8 @@ axwise-flow-oss/
 ├── backend/              # FastAPI backend
 │   ├── api/             # API routes and endpoints
 │   │   ├── research/    # Research chat + simulation bridge
+│   │   ├── axpersona/   # AxPersona dataset creation pipeline
+│   │   ├── precall/     # Precall intelligence generation
 │   │   ├── upload/      # File upload endpoints
 │   │   ├── analyze/     # Analysis endpoints
 │   │   └── prd/         # PRD generation endpoints
@@ -456,6 +538,8 @@ axwise-flow-oss/
 │   └── .env.oss        # OSS environment configuration
 ├── frontend/            # Next.js frontend
 │   ├── app/            # Next.js app directory
+│   │   ├── axpersona/  # AxPersona scopes UI
+│   │   └── precall/    # Precall intelligence dashboard
 │   ├── components/     # React components
 │   └── lib/            # Utilities and helpers
 └── scripts/
@@ -486,7 +570,9 @@ axwise-flow-oss/
 - **Persona Generation**: Automatically generate user personas from interview data
 - **Multi-Stakeholder Analysis**: Analyze perspectives from different stakeholder groups
 - **Evidence Linking**: Connect insights to source material with traceability
-- **Export Capabilities**: Export results in various formats
+- **AxPersona Dataset Creation**: Generate canonical synthetic persona datasets for downstream applications
+- **Precall Intelligence**: AI-powered call preparation with coaching and objection handling
+- **Export Capabilities**: Export results in various formats (JSON, PRD, persona datasets)
 
 ## 🛠️ Technology Stack
 

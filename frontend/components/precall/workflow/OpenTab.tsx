@@ -5,6 +5,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   MessageSquare,
   MapPin,
@@ -14,6 +17,7 @@ import {
   Newspaper,
   RefreshCw,
   ExternalLink,
+  Calendar,
 } from 'lucide-react';
 import type { CallIntelligence, LocalIntelligence, NewsItem, NewsSource } from '@/lib/precall/types';
 import { searchLocalNews } from '@/lib/precall/coachService';
@@ -48,13 +52,35 @@ export function OpenTab({ intelligence, localIntelligence }: OpenTabProps) {
   });
   const [hasFetched, setHasFetched] = useState(false);
 
+  // Historical news toggle and year inputs
+  const [isHistoricalMode, setIsHistoricalMode] = useState(false);
+  const [startYear, setStartYear] = useState<string>('1943');
+  const [endYear, setEndYear] = useState<string>('1945');
+
   const handleFetchNews = useCallback(async () => {
     if (!local?.location) return;
 
     setLiveNews({ isLoading: true, newsItems: [], sources: [], error: null });
 
     try {
-      const result = await searchLocalNews(local.location, 7, 5);
+      let result;
+      if (isHistoricalMode) {
+        const startYearNum = parseInt(startYear);
+        const endYearNum = parseInt(endYear);
+        if (isNaN(startYearNum) || isNaN(endYearNum)) {
+          setLiveNews({
+            isLoading: false,
+            newsItems: [],
+            sources: [],
+            error: 'Please enter valid years',
+          });
+          setHasFetched(true);
+          return;
+        }
+        result = await searchLocalNews(local.location, 7, 5, startYearNum, endYearNum);
+      } else {
+        result = await searchLocalNews(local.location, 7, 5);
+      }
 
       if (result.success) {
         setLiveNews({
@@ -80,7 +106,7 @@ export function OpenTab({ intelligence, localIntelligence }: OpenTabProps) {
       });
     }
     setHasFetched(true);
-  }, [local?.location]);
+  }, [local?.location, isHistoricalMode, startYear, endYear]);
 
   return (
     <ScrollArea className="h-full">
@@ -131,7 +157,7 @@ export function OpenTab({ intelligence, localIntelligence }: OpenTabProps) {
         {local?.location && (
           <Card className="border-l-4 border-l-orange-400">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
                 <MapPin className="h-4 w-4 text-orange-600" />
                 <span>{local.location}</span>
                 <Newspaper className="h-4 w-4 text-orange-600 ml-2" />
@@ -140,24 +166,63 @@ export function OpenTab({ intelligence, localIntelligence }: OpenTabProps) {
                     {liveNews.newsItems.length} news
                   </Badge>
                 )}
+              </CardTitle>
+              {/* Historical mode toggle and controls */}
+              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="historical-mode"
+                    checked={isHistoricalMode}
+                    onCheckedChange={setIsHistoricalMode}
+                  />
+                  <Label htmlFor="historical-mode" className="text-xs cursor-pointer">
+                    <Calendar className="h-3 w-3 inline mr-1" />
+                    Historical
+                  </Label>
+                </div>
+                {isHistoricalMode && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={startYear}
+                      onChange={(e) => setStartYear(e.target.value)}
+                      className="w-20 h-7 text-xs"
+                      placeholder="From"
+                      min={1800}
+                      max={2100}
+                    />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <Input
+                      type="number"
+                      value={endYear}
+                      onChange={(e) => setEndYear(e.target.value)}
+                      className="w-20 h-7 text-xs"
+                      placeholder="To"
+                      min={1800}
+                      max={2100}
+                    />
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="ml-auto h-7 text-xs"
+                  className="h-7 text-xs"
                   onClick={handleFetchNews}
                   disabled={liveNews.isLoading}
                 >
                   <RefreshCw className={`h-3 w-3 mr-1 ${liveNews.isLoading ? 'animate-spin' : ''}`} />
-                  {hasFetched ? 'Refresh' : 'Fetch Live News'}
+                  {hasFetched ? 'Refresh' : isHistoricalMode ? 'Fetch Historical' : 'Fetch Live News'}
                 </Button>
-              </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               {/* Loading state */}
               {liveNews.isLoading && (
                 <div className="text-sm text-muted-foreground py-4 text-center">
                   <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
-                  Searching for news in {local.location}...
+                  {isHistoricalMode
+                    ? `Searching for historical news in ${local.location} (${startYear}-${endYear})...`
+                    : `Searching for news in ${local.location}...`}
                 </div>
               )}
 
@@ -225,14 +290,18 @@ export function OpenTab({ intelligence, localIntelligence }: OpenTabProps) {
               {/* Empty state (not yet fetched) */}
               {!liveNews.isLoading && !hasFetched && (
                 <p className="text-sm text-muted-foreground py-2">
-                  Click "Fetch Live News" to get recent news from {local.location} for ice-breakers.
+                  {isHistoricalMode
+                    ? `Toggle "Historical" on and set years, then click "Fetch Historical" to get historical news from ${local.location}.`
+                    : `Click "Fetch Live News" to get recent news from ${local.location} for ice-breakers.`}
                 </p>
               )}
 
               {/* No results state */}
               {!liveNews.isLoading && hasFetched && liveNews.newsItems.length === 0 && !liveNews.error && (
                 <p className="text-sm text-muted-foreground py-2">
-                  No recent news found for {local.location}. Try again later.
+                  {isHistoricalMode
+                    ? `No historical news found for ${local.location} (${startYear}-${endYear}). Try different years.`
+                    : `No recent news found for ${local.location}. Try again later.`}
                 </p>
               )}
             </CardContent>

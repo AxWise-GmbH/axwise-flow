@@ -61,6 +61,39 @@ export default function PrecallPage() {
     setChatHistory(messages);
   }, []);
 
+  // Extract historical context from prospectData for period-appropriate avatar generation
+  const extractHistoricalContext = useCallback((): { timePeriod?: string; historicalContext?: string } => {
+    if (!prospectData) return {};
+
+    // Check for business_context with historical information
+    const bc = prospectData.business_context as Record<string, unknown> | undefined;
+    const industry = (bc?.industry || prospectData.industry) as string | undefined;
+
+    // Look for year ranges or historical keywords
+    let timePeriod: string | undefined;
+    let historicalContext: string | undefined;
+
+    // Check industry field for time period clues
+    if (industry) {
+      // Look for year patterns like "1943-1945" or "(1943-1945)"
+      const yearRangeMatch = industry.match(/\b(1[89]\d{2})\s*[-–]\s*(1[89]\d{2}|20\d{2})\b/);
+      if (yearRangeMatch) {
+        timePeriod = `${yearRangeMatch[1]}-${yearRangeMatch[2]}`;
+      }
+
+      // Check for historical keywords
+      const historicalKeywords = ['World War', 'WWII', 'WW2', 'WWI', 'WW1', 'Victorian', 'Medieval',
+        'Renaissance', 'Cold War', 'Civil War', 'Revolution', 'Colonial', 'Military Intelligence'];
+      if (historicalKeywords.some(kw => industry.toLowerCase().includes(kw.toLowerCase()))) {
+        historicalContext = industry;
+      }
+    }
+
+    return { timePeriod, historicalContext };
+  }, [prospectData]);
+
+  const { timePeriod, historicalContext } = extractHistoricalContext();
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <PrecallHeader
@@ -116,6 +149,8 @@ export default function PrecallPage() {
               activeStep={workflowStep}
               onStepChange={setWorkflowStep}
               companyContext={prospectData?.company_name as string | undefined}
+              timePeriod={timePeriod}
+              historicalContext={historicalContext}
             />
           ) : (
             <div className="h-full flex items-center justify-center">

@@ -142,3 +142,41 @@ export interface PersonaDatasetSummary {
   jobId: string;
 }
 
+
+// ============================================================================
+// Stakeholder News Search Types
+// ============================================================================
+
+export interface StakeholderNewsRequest {
+  industry: string;
+  location: string;
+  year: number;
+  stakeholder_type?: string;
+  max_items?: number;
+}
+
+export interface StakeholderNewsItem {
+  category: string;
+  headline: string;
+  details: string;
+  date?: string;
+  source_hint?: string;
+}
+
+export interface StakeholderNewsSource {
+  title: string;
+  url?: string;
+}
+
+export interface StakeholderNewsResponse {
+  success: boolean;
+  industry: string;
+  location: string;
+  year: number;
+  news_items: StakeholderNewsItem[];
+  raw_response?: string;
+  search_queries: string[];
+  sources: StakeholderNewsSource[];
+  error?: string;
+}
+

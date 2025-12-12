@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 from pydantic import BaseModel
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
 
 from backend.schemas import DetailedAnalysisResult
 from backend.database import SessionLocal, engine
@@ -48,7 +48,7 @@ class SimulationFileProcessor:
     and storing results in the database using existing infrastructure.
     """
 
-    def __init__(self, gemini_model: GeminiModel):
+    def __init__(self, gemini_model: GoogleModel):
         self.gemini_model = gemini_model
         self.analysis_agent = ConversationalAnalysisAgent(gemini_model)
 
@@ -331,7 +331,7 @@ class SimulationFileProcessor:
                     completed_at=datetime.utcnow(),
                     results=json.dumps(analysis_data),
                     llm_provider="gemini",
-                    llm_model="gemini-2.0-flash-exp",
+                    llm_model="gemini-2.5-pro",
                     status=analysis_result.status,
                     error_message=analysis_result.error,
                 )

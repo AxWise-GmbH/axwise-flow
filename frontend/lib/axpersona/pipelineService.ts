@@ -1,18 +1,14 @@
 import { getAuthToken } from '@/lib/api';
 import type {
   BusinessContext,
-  PipelineExecutionResult,
   PipelineJobResult,
+  StakeholderNewsRequest,
+  StakeholderNewsResponse,
 } from './types';
 
 // Use Next.js API proxy route to avoid CORS issues
 // The proxy route handles authentication and forwards to the backend
 const PIPELINE_API_URL = '/api/axpersona/pipeline/run-async';
-
-// The Next.js proxy route implements job creation + server-side polling against
-// the backend job endpoints, so from the frontend's perspective this function
-// can continue to behave as a single long-running call that returns the final
-// PipelineExecutionResult.
 
 async function buildAuthHeaders(): Promise<HeadersInit> {
   const token = await getAuthToken();
@@ -27,10 +23,23 @@ async function buildAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+/**
+ * Response from starting a pipeline job
+ */
+export interface StartPipelineResponse {
+  job_id: string;
+  status: string;
+  message?: string;
+}
+
 export const pipelineService = {
-  async runPipeline(
+  /**
+   * Start a pipeline job. Returns immediately with the job_id.
+   * Use usePipelineRunDetail() hook to poll for job completion.
+   */
+  async startPipeline(
     context: BusinessContext,
-  ): Promise<PipelineExecutionResult> {
+  ): Promise<StartPipelineResponse> {
     const headers = await buildAuthHeaders();
 
     const response = await fetch(PIPELINE_API_URL, {
@@ -40,10 +49,10 @@ export const pipelineService = {
     });
 
     if (!response.ok) {
-      let message = 'AxPersona pipeline run failed';
+      let message = 'Failed to start AxPersona pipeline';
       try {
         const errorData = await response.json();
-        const detail = (errorData as any)?.detail;
+        const detail = (errorData as any)?.detail || (errorData as any)?.error;
         if (detail) {
           if (Array.isArray(detail)) {
             message = detail
@@ -59,8 +68,39 @@ export const pipelineService = {
       throw new Error(message);
     }
 
-    const data = (await response.json()) as PipelineExecutionResult;
-    return data;
+    return await response.json();
+  },
+
+  /**
+   * Search for stakeholder/industry news for a specific year.
+   * Uses Gemini's Google Search grounding for real-time information.
+   */
+  async searchStakeholderNews(
+    request: StakeholderNewsRequest,
+  ): Promise<StakeholderNewsResponse> {
+    const headers = await buildAuthHeaders();
+
+    const response = await fetch('/api/axpersona/search-stakeholder-news', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      let message = 'Failed to search stakeholder news';
+      try {
+        const errorData = await response.json();
+        const detail = (errorData as any)?.detail || (errorData as any)?.error;
+        if (detail) {
+          message = String(detail);
+        }
+      } catch {
+        // ignore JSON parse errors
+      }
+      throw new Error(message);
+    }
+
+    return await response.json();
   },
 };
 

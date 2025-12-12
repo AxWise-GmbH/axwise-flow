@@ -7,7 +7,8 @@ import asyncio
 import os
 import json
 from datetime import datetime
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 from services.conversational_analysis_agent import ConversationalAnalysisAgent
 from services.file_processor import SimulationFileProcessor, FileProcessingRequest
@@ -20,9 +21,9 @@ async def test_conversational_analysis():
     print("=" * 50)
 
     # Initialize components
-    gemini_model = GeminiModel(
-        model="gemini-2.0-flash-exp", api_key=os.getenv("GEMINI_API_KEY")
-    )
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    provider = GoogleProvider(api_key=api_key)
+    gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
 
     analysis_agent = ConversationalAnalysisAgent(gemini_model)
     file_processor = SimulationFileProcessor(gemini_model)

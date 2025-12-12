@@ -16,6 +16,10 @@ interface PersonaAvatarProps {
   role: string;
   communicationStyle?: string;
   companyContext?: string;
+  /** Time period for historical context (e.g., '1943-1945') */
+  timePeriod?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historicalContext?: string;
   size?: 'sm' | 'md' | 'lg';
   /** Render as div instead of button (use when inside another button like AccordionTrigger) */
   asDiv?: boolean;
@@ -37,6 +41,8 @@ export function PersonaAvatar({
   role,
   communicationStyle,
   companyContext,
+  timePeriod,
+  historicalContext,
   size = 'md',
   asDiv = false,
 }: PersonaAvatarProps) {
@@ -67,7 +73,9 @@ export function PersonaAvatar({
         name,
         role,
         communicationStyle,
-        companyContext
+        companyContext,
+        timePeriod,
+        historicalContext
       );
 
       if (cancelled) return;
@@ -85,7 +93,7 @@ export function PersonaAvatar({
     return () => {
       cancelled = true;
     };
-  }, [name, role, communicationStyle, companyContext]);
+  }, [name, role, communicationStyle, companyContext, timePeriod, historicalContext]);
 
   const sizeClass = sizeClasses[size];
 

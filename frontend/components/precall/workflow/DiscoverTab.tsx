@@ -16,9 +16,23 @@ import { PersonaAvatar } from './PersonaAvatar';
 interface DiscoverTabProps {
   intelligence: CallIntelligence;
   companyContext?: string;
+  /** Time period for historical context (e.g., '1943-1945') */
+  timePeriod?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historicalContext?: string;
 }
 
-function PersonaQuestionsCard({ persona, companyContext }: { persona: PersonaDetail; companyContext?: string }) {
+function PersonaQuestionsCard({
+  persona,
+  companyContext,
+  timePeriod,
+  historicalContext,
+}: {
+  persona: PersonaDetail;
+  companyContext?: string;
+  timePeriod?: string;
+  historicalContext?: string;
+}) {
   const hasQuestions = persona.likely_questions && persona.likely_questions.length > 0;
   const hasConcerns = persona.decision_factors && persona.decision_factors.length > 0;
 
@@ -33,6 +47,8 @@ function PersonaQuestionsCard({ persona, companyContext }: { persona: PersonaDet
             role={persona.role}
             communicationStyle={persona.communication_style}
             companyContext={companyContext}
+            timePeriod={timePeriod}
+            historicalContext={historicalContext}
             size="sm"
           />
           <span>{persona.name}</span>
@@ -96,7 +112,7 @@ function PersonaQuestionsCard({ persona, companyContext }: { persona: PersonaDet
  *
  * Displays: Discovery Questions, Persona Likely Questions, Concerns to Probe
  */
-export function DiscoverTab({ intelligence, companyContext }: DiscoverTabProps) {
+export function DiscoverTab({ intelligence, companyContext, timePeriod, historicalContext }: DiscoverTabProps) {
   const { callGuide, personas } = intelligence;
   const discoveryQuestions = callGuide?.discovery_questions || [];
 
@@ -158,7 +174,13 @@ export function DiscoverTab({ intelligence, companyContext }: DiscoverTabProps) 
             </h3>
             <div className="space-y-4">
               {personasWithContent.map((persona, idx) => (
-                <PersonaQuestionsCard key={idx} persona={persona} companyContext={companyContext} />
+                <PersonaQuestionsCard
+                  key={idx}
+                  persona={persona}
+                  companyContext={companyContext}
+                  timePeriod={timePeriod}
+                  historicalContext={historicalContext}
+                />
               ))}
             </div>
           </div>

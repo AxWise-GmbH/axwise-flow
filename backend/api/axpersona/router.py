@@ -269,7 +269,7 @@ async def _save_analysis_result(
                 completed_at=datetime.utcnow(),
                 results=json.dumps(analysis_data),
                 llm_provider="gemini",
-                llm_model="gemini-2.0-flash-exp",
+                llm_model="gemini-2.5-pro",
                 status=analysis_result.status,
                 error_message=analysis_result.error,
             )
@@ -520,6 +520,9 @@ class PipelineRunListResponse(BaseModel):
 # In-memory job registry for OSS / local setups. For production, this could be
 # backed by a database or external job queue (e.g. Celery, Redis, etc.).
 _pipeline_jobs: Dict[str, PipelineJobStatus] = {}
+
+# Keep references to background tasks to prevent garbage collection
+_background_tasks: set = set()
 
 
 @router.post("/questionnaires", response_model=QuestionnaireResponse)
@@ -1354,7 +1357,12 @@ async def create_pipeline_job(context: BusinessContext) -> PipelineJobStatus:
                 await uow.commit()
 
     # Fire-and-forget background task; in production consider a proper job queue.
-    asyncio.create_task(run_job())
+    # Keep a reference to prevent garbage collection
+    task = asyncio.create_task(run_job())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
+    logger.info("[AxPersona Pipeline] Created background task for job %s", job_id)
 
     return job
 
@@ -1545,4 +1553,136 @@ async def get_pipeline_run_detail(job_id: str) -> PipelineRunDetail:
             persona_count=db_run.persona_count,
             interview_count=db_run.interview_count,
             error=db_run.error,
+        )
+
+
+# ============================================================================
+# Stakeholder News Search (Grounded Search)
+# ============================================================================
+
+class StakeholderNewsRequest(BaseModel):
+    """Request for searching stakeholder/industry news for a specific year."""
+    industry: str = Field(..., description="Industry to search news for (e.g., 'FinTech', 'Healthcare')")
+    location: str = Field(..., description="Location/region to focus on (e.g., 'Germany', 'Berlin')")
+    year: int = Field(..., ge=2020, le=2030, description="Year to search news for")
+    stakeholder_type: Optional[str] = Field(None, description="Optional stakeholder type for targeted search")
+    max_items: int = Field(default=5, ge=1, le=10, description="Maximum news items to return")
+
+
+class StakeholderNewsItem(BaseModel):
+    """Individual news item from stakeholder news search."""
+    category: str = Field(description="News category (Industry Trends, Regulatory, Market, etc.)")
+    headline: str = Field(description="News headline")
+    details: str = Field(description="Full details with specific facts")
+    date: Optional[str] = Field(None, description="Date/month of event if known")
+    source_hint: Optional[str] = Field(None, description="Hint about source")
+
+
+class StakeholderNewsSource(BaseModel):
+    """Source information for news item."""
+    title: str = Field(description="Source title")
+    url: Optional[str] = Field(None, description="Source URL if available")
+
+
+class StakeholderNewsResponse(BaseModel):
+    """Response containing stakeholder/industry news search results."""
+    success: bool = True
+    industry: str = ""
+    location: str = ""
+    year: int = 0
+    news_items: list[StakeholderNewsItem] = Field(default_factory=list, description="Structured news items")
+    raw_response: Optional[str] = Field(None, description="Raw AI response (fallback)")
+    search_queries: list[str] = Field(default_factory=list, description="Search queries used")
+    sources: list[StakeholderNewsSource] = Field(default_factory=list, description="News sources")
+    error: Optional[str] = None
+
+
+@router.post("/search-stakeholder-news", response_model=StakeholderNewsResponse)
+async def search_stakeholder_news(request: StakeholderNewsRequest) -> StakeholderNewsResponse:
+    """
+    Search for industry/stakeholder news for a specific year using Gemini's Google Search.
+
+    This endpoint uses Gemini 2.5's built-in Google Search tool to fetch
+    historical news and events relevant to stakeholders in a specific industry.
+
+    Returns:
+        StakeholderNewsResponse with news items, industry context, and source metadata
+    """
+    import os
+    from backend.services.generative.gemini_search_service import GeminiSearchService
+
+    try:
+        logger.info(f"Searching stakeholder news for: {request.industry} in {request.location} ({request.year})")
+
+        # Initialize Gemini search service
+        search_service = GeminiSearchService()
+        if not search_service.is_available():
+            return StakeholderNewsResponse(
+                success=False,
+                industry=request.industry,
+                location=request.location,
+                year=request.year,
+                error="Gemini search service not available"
+            )
+
+        # Perform the search
+        result = search_service.search_stakeholder_news(
+            industry=request.industry,
+            location=request.location,
+            year=request.year,
+            stakeholder_type=request.stakeholder_type,
+            max_items=request.max_items,
+        )
+
+        if not result.get("search_performed"):
+            return StakeholderNewsResponse(
+                success=False,
+                industry=request.industry,
+                location=request.location,
+                year=request.year,
+                error=result.get("error", "Search failed")
+            )
+
+        logger.info(
+            f"Stakeholder news search completed for {request.industry} in {request.location} ({request.year}): "
+            f"{len(result.get('sources', []))} sources"
+        )
+
+        # Convert source dicts to StakeholderNewsSource objects
+        sources = [
+            StakeholderNewsSource(title=s.get("title", ""), url=s.get("url"))
+            for s in result.get("sources", [])
+        ]
+
+        # Convert news_items dicts to StakeholderNewsItem objects
+        news_items = [
+            StakeholderNewsItem(
+                category=item.get("category", "News"),
+                headline=item.get("headline", ""),
+                details=item.get("details", ""),
+                date=item.get("date"),
+                source_hint=item.get("source_hint"),
+            )
+            for item in result.get("news_items", [])
+        ]
+
+        return StakeholderNewsResponse(
+            success=True,
+            industry=result.get("industry", request.industry),
+            location=result.get("location", request.location),
+            year=result.get("year", request.year),
+            news_items=news_items,
+            raw_response=result.get("raw_response"),
+            search_queries=result.get("search_queries", []),
+            sources=sources,
+        )
+
+    except Exception as e:
+        logger.error(f"Stakeholder news search failed: {str(e)}")
+        return StakeholderNewsResponse(
+            success=False,
+            industry=request.industry,
+            location=request.location,
+            year=request.year,
+            error=str(e)
         )

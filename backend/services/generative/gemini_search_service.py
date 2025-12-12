@@ -231,7 +231,7 @@ CRITICAL - Include SPECIFIC details:
 Do NOT use vague language. Include actual facts from search results."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-flash"),
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -274,6 +274,226 @@ Do NOT use vague language. Include actual facts from search results."""
 
         except Exception as e:
             logger.error(f"Search failed for {location}: {e}")
+            return {
+                "news_items": [],
+                "search_performed": False,
+                "error": str(e)
+            }
+
+    def search_historical_news(
+        self,
+        location: str,
+        start_year: int,
+        end_year: int,
+        max_items: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Search for historical news and events for a specific location and year range.
+        Useful for understanding historical context and significant events.
+
+        Args:
+            location: City, region, or country to search for
+            start_year: Start year of the search range (e.g., 1943)
+            end_year: End year of the search range (e.g., 1945)
+            max_items: Maximum number of news items to return (default: 5)
+
+        Returns:
+            Dict with structured news items and search metadata
+        """
+        if not self._client:
+            logger.warning("Gemini client not available for historical news search")
+            return {"news_items": [], "search_performed": False}
+
+        try:
+            from google.genai import types
+
+            # Build year range description
+            year_range = f"{start_year}" if start_year == end_year else f"{start_year} to {end_year}"
+
+            prompt = f"""Search for the most significant historical news, events, and developments in {location} from {year_range}.
+
+Return EXACTLY {max_items} historical events in this EXACT format:
+
+*   **Category (Month/Year): Headline**
+    Detailed paragraph with SPECIFIC historical facts...
+
+Categories must be one of: Political, Military, Economic, Cultural, Scientific, Social
+
+Example format:
+*   **Military (June 1944): D-Day Landings Begin Allied Liberation of Europe**
+    On June 6, 1944, Allied forces launched Operation Overlord, the largest amphibious invasion in history. Over 156,000 American, British, and Canadian troops landed on five beaches in Normandy, France. The operation marked the beginning of the end for Nazi Germany.
+
+*   **Political (February 1945): Yalta Conference Shapes Post-War Europe**
+    Winston Churchill, Franklin D. Roosevelt, and Joseph Stalin met at Yalta in Crimea to discuss the reorganization of Europe after World War II. Key decisions included the division of Germany into occupation zones and the establishment of the United Nations.
+
+CRITICAL - Include SPECIFIC historical details:
+- Political: Leaders' names, policies, treaties, election results
+- Military: Battle names, dates, casualties, strategic outcomes
+- Economic: Trade agreements, industrial developments, financial crises
+- Cultural: Artists, movements, significant works, festivals
+- Scientific: Discoveries, inventions, researchers, institutions
+- Social: Demographics, migrations, social movements, notable figures
+
+Do NOT use vague language. Include actual historical facts about {location} during {year_range}."""
+
+            response = self._client.models.generate_content(
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.2,
+                ),
+            )
+
+            # Extract grounding metadata
+            search_queries = []
+            grounding_sources = []
+            if response.candidates and response.candidates[0].grounding_metadata:
+                metadata = response.candidates[0].grounding_metadata
+                search_queries = list(metadata.web_search_queries or [])
+                if metadata.grounding_chunks:
+                    for chunk in metadata.grounding_chunks:
+                        if hasattr(chunk, 'web') and chunk.web:
+                            source_info = {
+                                "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
+                                "url": chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                            }
+                            grounding_sources.append(source_info)
+
+            # Parse markdown response
+            raw_text = response.text
+            news_items = parse_news_markdown(raw_text)
+
+            logger.info(
+                f"Historical news search completed for {location} ({year_range}): "
+                f"{len(news_items)} events parsed from {len(grounding_sources)} sources"
+            )
+
+            return {
+                "news_items": news_items,
+                "raw_response": raw_text,
+                "search_queries": search_queries,
+                "sources": grounding_sources[:10],
+                "search_performed": True,
+                "location": location,
+                "start_year": start_year,
+                "end_year": end_year,
+            }
+
+        except Exception as e:
+            logger.error(f"Historical news search failed for {location} ({start_year}-{end_year}): {e}")
+            return {
+                "news_items": [],
+                "search_performed": False,
+                "error": str(e)
+            }
+
+    def search_stakeholder_news(
+        self,
+        industry: str,
+        location: str,
+        year: int,
+        stakeholder_type: Optional[str] = None,
+        max_items: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Search for industry/stakeholder-related news for a specific year.
+        Useful for understanding market context and stakeholder concerns.
+
+        Args:
+            industry: Industry to search news for (e.g., "FinTech", "Healthcare")
+            location: Location/region to focus on (e.g., "Germany", "Berlin")
+            year: Year to search news for (e.g., 2024, 2023)
+            stakeholder_type: Optional stakeholder type for more targeted search
+            max_items: Maximum number of news items to return (default: 5)
+
+        Returns:
+            Dict with structured news items and search metadata
+        """
+        if not self._client:
+            logger.warning("Gemini client not available for stakeholder news search")
+            return {"news_items": [], "search_performed": False}
+
+        try:
+            from google.genai import types
+
+            # Build targeted search query
+            stakeholder_context = ""
+            if stakeholder_type:
+                stakeholder_context = f" Focus on news relevant to {stakeholder_type} stakeholders."
+
+            prompt = f"""Search for the most important {industry} industry news and developments in {location} from the year {year}.{stakeholder_context}
+
+Return EXACTLY {max_items} news items in this EXACT format:
+
+*   **Category (Month {year}): Headline**
+    Detailed paragraph with SPECIFIC facts...
+
+Categories must be one of: Industry Trends, Regulatory, Market, Innovation, Investment, Personnel
+
+Example format:
+*   **Regulatory (March {year}): New Data Protection Rules Impact FinTech Sector**
+    The European Union introduced new regulations affecting how financial technology companies handle customer data. The rules, effective from Q3 {year}, require companies to implement enhanced encryption standards and annual compliance audits.
+
+*   **Investment (June {year}): Major Funding Round for Berlin-based AI Startup**
+    TechVenture GmbH secured €50 million in Series B funding, led by Sequoia Capital. The investment will fund expansion into new European markets and development of their enterprise AI platform.
+
+CRITICAL - Include SPECIFIC details:
+- Industry Trends: Company names, market share changes, technology shifts
+- Regulatory: Law names, effective dates, compliance requirements
+- Market: Revenue figures, growth percentages, competitive dynamics
+- Innovation: Product launches, technology breakthroughs, patents
+- Investment: Funding amounts, investor names, valuations
+- Personnel: Executive names, company transitions, organizational changes
+
+Do NOT use vague language. Include actual facts from search results about {industry} in {location} during {year}."""
+
+            response = self._client.models.generate_content(
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.2,
+                ),
+            )
+
+            # Extract grounding metadata
+            search_queries = []
+            grounding_sources = []
+            if response.candidates and response.candidates[0].grounding_metadata:
+                metadata = response.candidates[0].grounding_metadata
+                search_queries = list(metadata.web_search_queries or [])
+                if metadata.grounding_chunks:
+                    for chunk in metadata.grounding_chunks:
+                        if hasattr(chunk, 'web') and chunk.web:
+                            source_info = {
+                                "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
+                                "url": chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                            }
+                            grounding_sources.append(source_info)
+
+            # Parse markdown response
+            raw_text = response.text
+            news_items = parse_news_markdown(raw_text)
+
+            logger.info(
+                f"Stakeholder news search completed for {industry} in {location} ({year}): "
+                f"{len(news_items)} news items parsed from {len(grounding_sources)} sources"
+            )
+
+            return {
+                "news_items": news_items,
+                "raw_response": raw_text,
+                "search_queries": search_queries,
+                "sources": grounding_sources[:10],
+                "search_performed": True,
+                "industry": industry,
+                "location": location,
+                "year": year,
+            }
+
+        except Exception as e:
+            logger.error(f"Stakeholder news search failed for {industry} in {location} ({year}): {e}")
             return {
                 "news_items": [],
                 "search_performed": False,

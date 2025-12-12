@@ -11,7 +11,8 @@ from datetime import datetime
 
 import os
 from pydantic_ai.models import Model
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 from ..models import (
     SimulationRequest,
@@ -41,13 +42,19 @@ class SimulationOrchestrator:
     """Orchestrates the complete simulation process."""
 
     def __init__(self, use_parallel: bool = True, max_concurrent: int = 2):
-        # Initialize Gemini model for PydanticAI.
-        # NOTE: GeminiModel will read GEMINI_API_KEY from the environment when used.
+        # Initialize Google model for PydanticAI.
+        # NOTE: GoogleModel requires GEMINI_API_KEY from the environment when used.
         # We intentionally do not enforce the presence of the key here so that tests
         # and offline tooling can import this module without requiring configuration.
-        # QUALITY OPTIMIZATION: Use full gemini-2.5-flash for high-quality simulation tasks
-        # Full Flash model provides better quality and detail for interview simulation
-        self.model = GeminiModel("gemini-2.5-flash")
+        # QUALITY OPTIMIZATION: Use gemini-2.5-flash for speed and quality balance
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if api_key:
+            provider = GoogleProvider(api_key=api_key)
+            self.model = GoogleModel("gemini-2.5-flash", provider=provider)
+        else:
+            # Fallback for tests/offline - will fail at runtime if actually used
+            self.model = None
+            logger.warning("No GEMINI_API_KEY found - model will fail at runtime")
         self.persona_generator = PersonaGenerator(self.model)
         self.interview_simulator = InterviewSimulator(self.model)
         self.parallel_interview_simulator = (

@@ -209,6 +209,10 @@ export interface PersonaImageRequest {
   persona_role: string;
   communication_style?: string;
   company_context?: string;
+  /** Time period for historical context (e.g., '1943-1945', '1920s') */
+  time_period?: string;
+  /** Additional historical context (e.g., 'World War II Military Intelligence') */
+  historical_context?: string;
 }
 
 /**
@@ -225,12 +229,16 @@ export interface PersonaImageResponse {
 // ============================================================================
 
 /**
- * Request body for local news search
+ * Request body for local news search.
+ * Supports both recent news (days_back) and historical search (start_year, end_year).
  */
 export interface LocalNewsRequest {
   location: string;
   days_back?: number;
   max_items?: number;
+  // Historical search parameters (if set, days_back is ignored)
+  start_year?: number;
+  end_year?: number;
 }
 
 /**

@@ -46,8 +46,16 @@ class StakeholderReportAssembler:
     def _initialize_summary_agent(self):
         """Initialize PydanticAI agent for multi-stakeholder summary generation."""
         try:
+            import os
             # Import Agent first; ModelSettings may not exist in older versions
             from pydantic_ai import Agent
+            from pydantic_ai.models.google import GoogleModel
+            from pydantic_ai.providers.google import GoogleProvider
+
+            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                logger.warning("No GEMINI_API_KEY found - summary agent unavailable")
+                return
 
             try:
                 from pydantic_ai import ModelSettings  # type: ignore
@@ -57,11 +65,11 @@ class StakeholderReportAssembler:
             except Exception:
                 model_settings = None
                 extra_kwargs = {}
-            from pydantic_ai.models.gemini import GeminiModel
 
+            provider = GoogleProvider(api_key=api_key)
             # Create multi-stakeholder summary agent
             self.summary_agent = Agent(
-                model=GeminiModel("gemini-2.5-flash"),
+                model=GoogleModel("gemini-2.5-flash", provider=provider),
                 output_type=SummaryLLMOutput,
                 system_prompt=self._get_summary_generation_prompt(),
                 **extra_kwargs,
