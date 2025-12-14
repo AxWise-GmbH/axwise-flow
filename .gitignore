@@ -48,3 +48,4 @@ bfg.jar
 # OS files
 .DS_Store
 Thumbs.db
+backend/.env.oss

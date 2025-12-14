@@ -42,7 +42,7 @@ def upgrade():
                 batch_op.drop_constraint(
                     "analysis_results_data_id_fkey", type_="foreignkey"
                 )
-            except:
+            except Exception:
                 # Constraint might not exist or have a different name in SQLite
                 pass
 
@@ -77,7 +77,7 @@ def downgrade():
                 batch_op.drop_constraint(
                     "analysis_results_data_id_fkey", type_="foreignkey"
                 )
-            except:
+            except Exception:
                 # Constraint might not exist or have a different name in SQLite
                 pass
 

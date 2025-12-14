@@ -198,7 +198,7 @@ FORMAT YOUR RESPONSE AS JSON:
                 # Parse JSON response
                 try:
                     industry_data = json.loads(llm_response)
-                except:
+                except (json.JSONDecodeError, TypeError, ValueError):
                     # Fallback to default
                     industry_data = {"industry": "Technology", "confidence": 0.5}
 
@@ -270,7 +270,7 @@ FORMAT YOUR RESPONSE AS JSON:
                 try:
                     parsed_data = json.loads(llm_response)
                     tools_data = parsed_data.get("tools", [])
-                except:
+                except (json.JSONDecodeError, TypeError, ValueError):
                     # Fallback to empty list
                     tools_data = []
 
@@ -371,7 +371,7 @@ FORMAT YOUR RESPONSE AS JSON:
                 try:
                     parsed_data = json.loads(llm_response)
                     identified_tools = parsed_data.get("identified_tools", [])
-                except:
+                except (json.JSONDecodeError, TypeError, ValueError):
                     # Fallback to empty list
                     identified_tools = []
 

@@ -297,7 +297,7 @@ You may want to try re-running the analysis or contact support if the problem pe
                 sections_included.append("✅ Product Requirements Document (PRD)")
             else:
                 sections_missing.append("❌ Product Requirements Document (PRD)")
-        except:
+        except Exception:
             sections_missing.append("❌ Product Requirements Document (PRD)")
 
         # Add included sections

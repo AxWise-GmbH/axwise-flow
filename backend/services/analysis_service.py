@@ -238,9 +238,9 @@ class AnalysisService:
                 if not isinstance(data, str):
                     try:
                         data = json.dumps(data)
-                    except:
+                    except (TypeError, ValueError) as e:
                         logger.warning(
-                            "Could not convert data to string, using empty string"
+                            f"Could not convert data to string: {e}, using empty string"
                         )
                         data = ""
 
@@ -560,7 +560,7 @@ class AnalysisService:
                         f.write(
                             f"[{datetime.now()}] DETECTED multi-stakeholder test data for result_id: {result_id}\n"
                         )
-                except:
+                except (IOError, OSError):
                     pass
 
                 # Create a basic result structure for LLM-only analysis

@@ -3255,7 +3255,7 @@ Please analyze these patterns and generate a comprehensive persona based on the 
                         "[DYNAMIC_DOMAIN] 🔍 Detecting research domain from persona evidence..."
                     )
                     domain_info = (
-                        keyword_highlighter.detect_research_domain_and_keywords(
+                        await keyword_highlighter.detect_research_domain_and_keywords(
                             sample_content
                         )
                     )
