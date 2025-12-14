@@ -392,7 +392,7 @@ class UsageTrackingService:
             # Return current count or 0 if we can't determine it
             try:
                 return self.user.usage_data["usage"][current_month]["analyses_count"]
-            except:
+            except (KeyError, TypeError):
                 return 0
 
     async def track_prd_generation(self, result_id: int) -> int:
@@ -492,5 +492,5 @@ class UsageTrackingService:
                 return self.user.usage_data["usage"][current_month][
                     "prd_generations_count"
                 ]
-            except:
+            except (KeyError, TypeError):
                 return 0

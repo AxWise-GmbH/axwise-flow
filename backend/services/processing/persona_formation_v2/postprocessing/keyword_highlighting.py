@@ -45,7 +45,7 @@ class PersonaKeywordHighlighter:
 
         # Detect domain keywords (fails open)
         try:
-            _ = highlighter.detect_research_domain_and_keywords(sample_content)
+            _ = await highlighter.detect_research_domain_and_keywords(sample_content)
         except Exception:
             pass
 

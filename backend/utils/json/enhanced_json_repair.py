@@ -577,7 +577,7 @@ class EnhancedJSONRepair:
                                     f"Alternative comma insertion at position {try_pos} succeeded"
                                 )
                                 return alternative
-                            except:
+                            except json.JSONDecodeError:
                                 pass
 
                     # Try removing characters that might be causing issues
@@ -598,7 +598,7 @@ class EnhancedJSONRepair:
                                         f"Removed extra '{char_at_pos}' at position {try_pos}"
                                     )
                                     return alternative
-                                except:
+                                except json.JSONDecodeError:
                                     pass
 
                     # If all alternatives fail, return the original repair attempt
@@ -622,7 +622,7 @@ class EnhancedJSONRepair:
                         logger.info(
                             f"Added closing quote before colon at position {colon_pos}"
                         )
-                except:
+                except (json.JSONDecodeError, IndexError, ValueError):
                     pass
 
                 return repaired
@@ -689,7 +689,7 @@ class EnhancedJSONRepair:
                             json.loads(repaired)
                             logger.info("Line-by-line repair succeeded")
                             return repaired
-                        except:
+                        except json.JSONDecodeError:
                             logger.warning("Line-by-line repair failed validation")
             except Exception as e:
                 logger.warning(f"Line-by-line repair failed: {str(e)}")
@@ -738,7 +738,7 @@ class EnhancedJSONRepair:
                 json.loads(repaired)
                 logger.info("Aggressive general repair succeeded")
                 return repaired
-            except:
+            except json.JSONDecodeError:
                 logger.warning("Aggressive general repair failed validation")
         except Exception as e:
             logger.warning(f"Aggressive general repair failed: {str(e)}")
@@ -758,7 +758,7 @@ class EnhancedJSONRepair:
                 json.loads(candidate)
                 logger.info(f"Found valid JSON fragment: {candidate[:50]}...")
                 return candidate  # Return the first valid JSON
-            except:
+            except json.JSONDecodeError:
                 continue
 
         # If all else fails, return an empty object

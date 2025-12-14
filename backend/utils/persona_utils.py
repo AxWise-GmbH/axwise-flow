@@ -259,7 +259,7 @@ def merge_persona_data(
         # Return base persona as fallback
         try:
             return normalize_persona_to_dict(base_persona)
-        except:
+        except Exception:
             return {
                 "name": "Unknown Persona",
                 "description": "Merge failed",

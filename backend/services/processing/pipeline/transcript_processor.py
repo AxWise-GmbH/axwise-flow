@@ -361,7 +361,7 @@ class TranscriptProcessor(BaseProcessor):
             if isinstance(response, str):
                 try:
                     response = json.loads(response)
-                except:
+                except json.JSONDecodeError:
                     pass
 
             # If response is a dict, look for any list that might contain segments
@@ -414,7 +414,7 @@ class TranscriptProcessor(BaseProcessor):
                         return self._validate_and_fix_segments(parsed["segments"])
                     elif isinstance(parsed, list):
                         return self._validate_and_fix_segments(parsed)
-                except:
+                except (json.JSONDecodeError, ValueError, IndexError):
                     continue
 
             # If no JSON-like structures found, fall back to manual extraction

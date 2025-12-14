@@ -121,7 +121,7 @@ class AnalysisResult(Base):
 
             try:
                 self.results = json.loads(value)
-            except:
+            except (json.JSONDecodeError, TypeError, ValueError):
                 self.results = {"raw_text": value}
 
     llm_provider = Column(String)

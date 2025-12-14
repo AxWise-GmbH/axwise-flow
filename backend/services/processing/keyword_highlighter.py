@@ -243,7 +243,7 @@ class ContextAwareKeywordHighlighter:
         # Initialize DOMAIN_KEYWORDS for compatibility
         self.DOMAIN_KEYWORDS = self.BASE_DOMAIN_KEYWORDS.copy()
 
-    def detect_research_domain_and_keywords(
+    async def detect_research_domain_and_keywords(
         self, sample_content: str
     ) -> Dict[str, Any]:
         """
@@ -302,31 +302,11 @@ Return terms in lowercase for consistency.""",
         )
 
         try:
-            import asyncio
-            import concurrent.futures
-            import threading
-
-            # Handle async PydanticAI call properly using the recommended approach
-            # for calling async code from sync context in FastAPI
-            def run_agent():
-                """Run the PydanticAI agent in a separate thread with its own event loop"""
-                new_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(new_loop)
-                try:
-                    # Use the direct async call without context manager
-                    async def _run_agent():
-                        return await domain_agent.run(
-                            f"Analyze this research content and identify the domain and relevant keywords:\n\n{sample_content[:2000]}"
-                        )
-
-                    return new_loop.run_until_complete(_run_agent())
-                finally:
-                    new_loop.close()
-
-            # Always use ThreadPoolExecutor to avoid event loop conflicts
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(run_agent)
-                result = future.result(timeout=30)  # 30 second timeout
+            # Properly await the async agent call - no need for thread pools
+            # since this method is now async
+            result = await domain_agent.run(
+                f"Analyze this research content and identify the domain and relevant keywords:\n\n{sample_content[:2000]}"
+            )
 
             domain_data = result.data
 
