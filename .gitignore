@@ -4,7 +4,6 @@ venv/
 venv_*/
 backend/venv/
 backend/.venv/
-backend/.env.oss
 
 __pycache__/
 
@@ -22,7 +21,7 @@ frontend/node_modules/
 .env.local
 .env.*.local
 .env.oss
-
+backend/.env.oss
 
 # Security/cleanup artifacts
 repomix-output.xml
@@ -37,14 +36,8 @@ frontend/.env.production
 
 # Build metadata
 *.tsbuildinfo
-backend/.env.oss
 axwise-corrected-arch
 HACKATHON_SUBMISSION_ANALYSIS.md
 PERPETUAL_PERSONAS_IMPROVEMENTS.md
 
 backend/.env
-backend/.env.oss
-backend/.env.oss
-backend/.env.oss
-backend/.env.oss
-backend/.env.oss
