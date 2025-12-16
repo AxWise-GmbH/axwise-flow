@@ -49,7 +49,7 @@ async def test_gemini_direct():
         logger.info("Testing direct Gemini API connection for persona generation")
 
         # Load environment variables or config
-        GEMINI_API_KEY=***REMOVED***"GEMINI_API_KEY")
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
         if not gemini_api_key:
             logger.error("GEMINI_API_KEY environment variable not set")
             return False

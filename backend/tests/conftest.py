@@ -24,7 +24,7 @@ def _enable_stakeholder_features_for_tests():
 
 
 # Test database URL
-SQLALCHEMY_TEST_DATABASE_URL=***REDACTED***
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
 
 # Create test database engine
 engine = create_engine(

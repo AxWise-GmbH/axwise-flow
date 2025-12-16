@@ -129,6 +129,50 @@ class NLPProcessor:
             )
             return qa_pairs
 
+        # Check for timestamp-based interview format BEFORE paragraph fallback
+        # This handles formats like [09:10] Interviewer: ... [09:12] Interviewee: ...
+        if re.search(r"\[\d+:\d+\]", text) and "Interviewee:" in text:
+            logger.info("Detected timestamp-based interview format (early check)")
+            qa_pairs = []
+
+            # More flexible pattern that captures Interviewer/Researcher and Interviewee dialogue
+            timestamp_dialogue_pattern = re.compile(
+                r"\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewer|Researcher):\s*(.*?)\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*Interviewee:\s*(.*?)(?=\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewer|Researcher):|\Z)",
+                re.DOTALL | re.IGNORECASE,
+            )
+            dialogue_matches = timestamp_dialogue_pattern.findall(text)
+
+            if dialogue_matches:
+                for question, answer in dialogue_matches:
+                    question = question.strip()
+                    answer = answer.strip()
+                    answer = re.sub(r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL)
+                    if question and answer:
+                        qa_pairs.append({"question": question, "answer": answer})
+
+                if qa_pairs:
+                    logger.info(f"🎯 Extracted {len(qa_pairs)} Q/A pairs from timestamp-based interview format")
+                    return qa_pairs
+
+            # Fallback: extract just interviewee responses if no interviewer found
+            interviewee_pattern = re.compile(
+                r"\[[\d:]+(?:\s*(?:AM|PM))?\]\s*Interviewee:\s*(.*?)(?=\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewee|Interviewer|Researcher):|\Z)",
+                re.DOTALL | re.IGNORECASE,
+            )
+            interviewee_matches = interviewee_pattern.findall(text)
+
+            if interviewee_matches:
+                logger.info(f"🎯 Extracted {len(interviewee_matches)} interviewee responses from timestamp format")
+                for i, answer in enumerate(interviewee_matches):
+                    answer = answer.strip()
+                    answer = re.sub(r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL)
+                    if answer:
+                        qa_pairs.append({"question": f"Interview response {i+1}", "answer": answer})
+
+                if qa_pairs:
+                    logger.info(f"🎯 Created {len(qa_pairs)} Q/A pairs from interviewee-only timestamp format")
+                    return qa_pairs
+
         # If still no patterns found, split by paragraphs and use alternating Q/A assignment
         paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
 
@@ -522,6 +566,7 @@ class NLPProcessor:
                 )
 
             # Create enhanced theme analysis payload with filename if available
+            logger.info(f"🔍 [THEME_DEBUG] answer_only_text length: {len(answer_only_text)}, preview: {answer_only_text[:300] if answer_only_text else 'EMPTY'}...")
             enhanced_theme_payload = {
                 "task": "theme_analysis_enhanced",
                 "text": answer_only_text,  # Use answer-only text for themes
@@ -530,6 +575,7 @@ class NLPProcessor:
                     "industry"
                 ),  # Pass industry context if available
             }
+            logger.info(f"🔍 [THEME_DEBUG] Enhanced theme payload created with task: {enhanced_theme_payload['task']}, text length: {len(enhanced_theme_payload['text'])}")
 
             # Add filename to payload if available
             if filename:
@@ -546,9 +592,40 @@ class NLPProcessor:
             # Get enhanced themes directly
             logger.info("🎯 [PIPELINE_DEBUG] Awaiting enhanced themes task...")
             enhanced_themes_result = await enhanced_themes_task
+
+            # CRITICAL DEBUG: Print to stdout to ensure we see it
+            print(f"\n{'='*60}")
+            print(f"🔥 [THEME_CRITICAL] Enhanced themes task completed.")
+            print(f"🔥 [THEME_CRITICAL] Result type: {type(enhanced_themes_result)}")
+            print(f"{'='*60}\n")
+
             logger.info(
                 f"🎯 [PIPELINE_DEBUG] Enhanced themes task completed. Result type: {type(enhanced_themes_result)}"
             )
+
+            # Log full result for debugging
+            if isinstance(enhanced_themes_result, dict):
+                if "error" in enhanced_themes_result:
+                    print(f"🚨 [THEME_ERROR] LLM returned error: {enhanced_themes_result.get('error')}")
+                    logger.error(f"🚨 [THEME_ERROR] LLM returned error: {enhanced_themes_result.get('error')}")
+                print(f"🔥 [THEME_CRITICAL] Result keys: {list(enhanced_themes_result.keys())}")
+                logger.info(f"🎯 [PIPELINE_DEBUG] Enhanced themes result keys: {list(enhanced_themes_result.keys())}")
+                if "enhanced_themes" in enhanced_themes_result:
+                    themes_count = len(enhanced_themes_result.get("enhanced_themes", []))
+                    print(f"✅ [THEME_SUCCESS] Found {themes_count} enhanced themes in result")
+                    logger.info(f"🎯 [PIPELINE_DEBUG] Found {themes_count} enhanced themes in result")
+                    if themes_count > 0:
+                        first_theme_name = enhanced_themes_result["enhanced_themes"][0].get("name", "No name")
+                        print(f"✅ [THEME_SUCCESS] First theme name: {first_theme_name}")
+                        logger.info(f"🎯 [PIPELINE_DEBUG] First theme name: {first_theme_name}")
+                elif "themes" in enhanced_themes_result:
+                    themes_count = len(enhanced_themes_result.get("themes", []))
+                    print(f"⚠️ [THEME_FALLBACK] Found {themes_count} themes (not enhanced) in result")
+                    logger.info(f"🎯 [PIPELINE_DEBUG] Found {themes_count} themes (not enhanced) in result")
+                else:
+                    print(f"❌ [THEME_MISSING] No themes or enhanced_themes key found in result!")
+                    print(f"❌ [THEME_MISSING] Full result (first 500 chars): {str(enhanced_themes_result)[:500]}")
+                    logger.warning(f"🚨 [THEME_WARNING] No themes or enhanced_themes key found in result!")
 
             # Update progress: Theme analysis completed
             await update_progress(
@@ -642,137 +719,18 @@ class NLPProcessor:
                 logger.warning("Created empty enhanced_themes structure due to error")
 
             # Solution 3: Improve the fallback mechanism
-            # Create default enhanced themes if enhanced themes are missing or empty
+            # If enhanced themes are missing or empty, log and proceed with an empty list
             if not enhanced_themes_result or not enhanced_themes_result.get(
-                "enhanced_themes", []
+                "enhanced_themes"
             ):
-                logger.info(
-                    "Enhanced themes not available or empty, creating default enhanced themes"
+                logger.warning(
+                    "Enhanced themes not available or empty, proceeding with no themes instead of creating synthetic defaults"
                 )
-                try:
-                    # Create default enhanced themes
-                    enhanced_themes = []
-
-                    # Create a minimal default theme
-                    logger.info("Creating a minimal default theme")
-
-                    # Create a default theme
-                    enhanced_theme = {
-                        "type": "theme",
-                        "name": "General Theme",
-                        "definition": "A general theme extracted from the interview",
-                        "keywords": ["general", "theme", "interview"],
-                        "statements": [],
-                        "frequency": 0.5,
-                        "sentiment": 0.0,
-                        "reliability": 0.5,
-                        "process": "enhanced",
-                    }
-
-                    # Add reliability metrics
-                    reliability = enhanced_theme.get("reliability", 0.5)
-                    enhanced_theme["reliability_metrics"] = {
-                        "cohen_kappa": round(reliability * 0.9, 2),
-                        "percent_agreement": round(reliability, 2),
-                        "confidence_interval": [
-                            round(max(0, reliability - 0.15), 2),
-                            round(min(1, reliability + 0.15), 2),
-                        ],
-                    }
-
-                    # Add sentiment distribution
-                    sentiment = enhanced_theme.get("sentiment", 0)
-                    enhanced_theme["sentiment_distribution"] = {
-                        "positive": round(max(0, (sentiment + 1) / 2), 2),
-                        "neutral": round(max(0, 1 - abs(sentiment)), 2),
-                        "negative": round(max(0, (1 - sentiment) / 2), 2),
-                    }
-
-                    # Add codes
-                    enhanced_theme["codes"] = ["GENERAL_THEME"]
-
-                    # Add hierarchical codes
-                    enhanced_theme["hierarchical_codes"] = [
-                        {
-                            "code": "GENERAL_THEME",
-                            "definition": "Code representing general theme",
-                            "frequency": 0.5,
-                            "sub_codes": [
-                                {
-                                    "code": "GENERAL_THEME_INTERVIEW",
-                                    "definition": "Sub-aspect related to interview content",
-                                    "frequency": 0.4,
-                                }
-                            ],
-                        }
-                    ]
-
-                    # Add relationships
-                    enhanced_theme["relationships"] = []
-
-                    # Add the theme to the list
-                    enhanced_themes.append(enhanced_theme)
-                    logger.info("Created a minimal default theme as fallback")
-
-                    # Store the enhanced themes in the result
-                    if enhanced_themes_result is None:
-                        enhanced_themes_result = {}
-
-                    # Always store in enhanced_themes key for consistency
-                    enhanced_themes_result["enhanced_themes"] = enhanced_themes
-                    logger.info(
-                        f"Created {len(enhanced_themes)} enhanced themes from basic themes"
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error creating enhanced themes from basic themes: {str(e)}"
-                    )
-                    # Create a minimal fallback enhanced themes result
-                    if enhanced_themes_result is None:
-                        enhanced_themes_result = {}
-
-                    enhanced_themes_result["enhanced_themes"] = [
-                        {
-                            "type": "theme",
-                            "name": "Fallback Theme",
-                            "definition": "A fallback theme created due to processing error",
-                            "keywords": ["fallback", "error", "recovery"],
-                            "statements": [],
-                            "frequency": 0.5,
-                            "sentiment": 0.0,
-                            "reliability": 0.5,
-                            "process": "enhanced",
-                            "codes": ["ERROR_RECOVERY"],
-                            "sentiment_distribution": {
-                                "positive": 0.2,
-                                "neutral": 0.6,
-                                "negative": 0.2,
-                            },
-                            "hierarchical_codes": [
-                                {
-                                    "code": "ERROR_RECOVERY",
-                                    "definition": "Code representing error recovery",
-                                    "frequency": 0.5,
-                                    "sub_codes": [
-                                        {
-                                            "code": "ERROR_RECOVERY_FALLBACK",
-                                            "definition": "Sub-aspect related to fallback mechanisms",
-                                            "frequency": 0.4,
-                                        }
-                                    ],
-                                }
-                            ],
-                            "reliability_metrics": {
-                                "cohen_kappa": 0.45,
-                                "percent_agreement": 0.5,  # Keep between 0 and 1
-                                "confidence_interval": [0.3, 0.6],
-                            },
-                            "relationships": [],
-                        }
-                    ]
-                    logger.warning(
-                        "Created fallback theme due to error in enhanced theme creation"
-                    )
+                # Ensure we always have a consistent structure for downstream code
+                if not enhanced_themes_result:
+                    enhanced_themes_result = {"enhanced_themes": []}
+                elif "enhanced_themes" not in enhanced_themes_result:
+                    enhanced_themes_result["enhanced_themes"] = []
 
             # Detect industry from the text
             industry = await self._detect_industry(combined_text, llm_service)
@@ -974,11 +932,30 @@ class NLPProcessor:
                 "INSIGHT_GENERATION", 0.7, "Starting insight generation"
             )
 
+            # Get themes for insight generation - prefer themes_result but fall back to enhanced_themes
+            themes_for_insights = themes_result.get("themes", [])
+            if not themes_for_insights or len(themes_for_insights) == 0:
+                # Fall back to enhanced themes if themes_result is empty
+                if enhanced_themes_result and "enhanced_themes" in enhanced_themes_result:
+                    themes_for_insights = enhanced_themes_result.get("enhanced_themes", [])
+                    logger.info(f"Using enhanced themes for insight generation: {len(themes_for_insights)} themes")
+                elif enhanced_themes_result and "themes" in enhanced_themes_result:
+                    themes_for_insights = enhanced_themes_result.get("themes", [])
+                    logger.info(f"Using themes from enhanced_themes_result for insight generation: {len(themes_for_insights)} themes")
+
+            # Log what we're using for insight generation
+            logger.info(f"[INSIGHT_PREP] themes_for_insights count: {len(themes_for_insights)}")
+            if themes_for_insights:
+                theme_names = [t.get('name', 'Unnamed') for t in themes_for_insights[:3]]
+                logger.info(f"[INSIGHT_PREP] First theme names: {theme_names}")
+                total_statements = sum(len(t.get('statements', [])) for t in themes_for_insights)
+                logger.info(f"[INSIGHT_PREP] Total statements across themes: {total_statements}")
+
             # Create insight generation payload with filename if available
             insight_payload = {
                 "task": "insight_generation",
                 "text": combined_text,
-                "themes": themes_result.get("themes", []),
+                "themes": themes_for_insights,
                 "patterns": patterns_result.get("patterns", []),
                 "sentiment": processed_sentiment,
             }
@@ -1038,50 +1015,12 @@ class NLPProcessor:
                     f"Created {len(enhanced_themes)} enhanced themes from basic themes"
                 )
 
-            # If we still have no enhanced themes, create a minimal default theme
+            # If we still have no enhanced themes, just return an empty list
             if not enhanced_themes:
                 logger.warning(
-                    "No themes available at all, creating minimal default theme"
+                    "No themes available at all after analysis; returning empty enhanced_themes list"
                 )
-                enhanced_themes = [
-                    {
-                        "type": "theme",
-                        "name": "General Theme",
-                        "definition": "A general theme extracted from the interview",
-                        "keywords": ["general", "theme", "interview"],
-                        "statements": [],
-                        "frequency": 0.5,
-                        "sentiment": 0.0,
-                        "reliability": 0.5,
-                        "process": "enhanced",
-                        "codes": ["GENERAL_THEME"],
-                        "sentiment_distribution": {
-                            "positive": 0.33,
-                            "neutral": 0.34,
-                            "negative": 0.33,
-                        },
-                        "hierarchical_codes": [
-                            {
-                                "code": "GENERAL_THEME",
-                                "definition": "Code representing general theme",
-                                "frequency": 0.5,
-                                "sub_codes": [
-                                    {
-                                        "code": "GENERAL_THEME_INTERVIEW",
-                                        "definition": "Sub-aspect related to interview content",
-                                        "frequency": 0.4,
-                                    }
-                                ],
-                            }
-                        ],
-                        "reliability_metrics": {
-                            "cohen_kappa": 0.45,
-                            "percent_agreement": 0.5,  # Keep between 0 and 1
-                            "confidence_interval": [0.3, 0.6],
-                        },
-                        "relationships": [],
-                    }
-                ]
+                enhanced_themes = []
 
             # Enrich themes with statements_detailed by attributing quotes to source interviews
             try:

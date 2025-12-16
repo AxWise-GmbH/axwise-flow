@@ -1,9 +1,21 @@
 """
 Gemini LLM service implementation.
+
+.. deprecated::
+    This module is deprecated. Use the unified provider system instead:
+
+    from backend.services.llm import UnifiedClient
+    client = UnifiedClient.from_config("gemini")
+
+    Or use the provider directly:
+
+    from backend.services.llm.providers import GeminiProvider
+    provider = GeminiProvider(config)
 """
 
 import logging
 import json
+import warnings
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 from backend.domain.interfaces.llm_unified import ILLMService
@@ -19,6 +31,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
     Gemini LLM service implementation.
 
     This class implements the ILLMService interface using the Gemini API.
+
+    .. deprecated::
+        Use GeminiProvider or UnifiedClient instead.
     """
 
     def __init__(self, config: Dict[str, Any]):
@@ -61,7 +76,10 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         # The 'text' and 'task' are passed directly.
         # The 'request' dictionary (which is request_data_for_provider from BaseLLMService)
         # is passed as the 'data' argument to GeminiService.analyze, containing additional parameters.
-        return await self.service.analyze(text=text, task=task, data=request)
+        # Use dict payload format for GeminiService.analyze
+        payload = {"task": task, "text": text}
+        payload.update(request or {})
+        return await self.service.analyze(payload)
 
     def _parse_llm_response(self, response: Any, task: str) -> Dict[str, Any]:
         """
@@ -139,9 +157,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         Returns:
             The generated text
         """
-        result = await self.service.analyze(
-            text=prompt, task="text_generation", data=kwargs
-        )
+        payload = {"task": "text_generation", "text": prompt}
+        payload.update(kwargs or {})
+        result = await self.service.analyze(payload)
 
         if isinstance(result, dict) and "text" in result:
             return result["text"]
@@ -188,12 +206,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
                 f"Using industry-specific guidance for theme analysis: {industry}"
             )
 
-        # Call the Gemini service
-        result = await self.service.analyze(
-            text=interview_text,
-            task=task,
-            data={"industry": industry} if industry else {},
-        )
+        # Call the Gemini service using dict payload format
+        payload = {"task": task, "text": interview_text}
+        if industry:
+            payload["industry"] = industry
+        result = await self.service.analyze(payload)
 
         # Add the industry to the result if provided
         if industry:
@@ -230,12 +247,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
                 f"Using industry-specific guidance for pattern recognition: {industry}"
             )
 
-        # Call the Gemini service
-        result = await self.service.analyze(
-            text=interview_text,
-            task="pattern_recognition",
-            data={"industry": industry} if industry else {},
-        )
+        # Call the Gemini service using dict payload format
+        payload = {"task": "pattern_recognition", "text": interview_text}
+        if industry:
+            payload["industry"] = industry
+        result = await self.service.analyze(payload)
 
         # Add the industry to the result if provided
         if industry:
@@ -273,12 +289,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
                     f"Using industry-specific guidance for sentiment analysis: {industry}"
                 )
 
-            # Call the Gemini service
-            result = await self.service.analyze(
-                text=interview_text,
-                task="sentiment_analysis",
-                data={"industry": industry} if industry else {},
-            )
+            # Call the Gemini service using dict payload format
+            payload = {"task": "sentiment_analysis", "text": interview_text}
+            if industry:
+                payload["industry"] = industry
+            result = await self.service.analyze(payload)
 
             # Add the industry to the result if provided
             if industry:
@@ -318,12 +333,11 @@ class GeminiLLMService(BaseLLMService, ILLMService):
                 f"Using industry-specific guidance for persona formation: {industry}"
             )
 
-        # Call the Gemini service
-        result = await self.service.analyze(
-            text=interview_text,
-            task="persona_formation",
-            data={"industry": industry} if industry else {},
-        )
+        # Call the Gemini service using dict payload format
+        payload = {"task": "persona_formation", "text": interview_text}
+        if industry:
+            payload["industry"] = industry
+        result = await self.service.analyze(payload)
 
         # Add the industry to the result if provided
         if industry:
@@ -398,11 +412,9 @@ class GeminiLLMService(BaseLLMService, ILLMService):
         try:
             # Use the underlying GeminiService for structured generation
             # The GeminiService should handle Pydantic model-based structured output
-            result = await self.service.analyze(
-                text=prompt,
-                task="structured_generation",
-                data={"response_model": response_model, **kwargs},
-            )
+            payload = {"task": "structured_generation", "text": prompt, "response_model": response_model}
+            payload.update(kwargs or {})
+            result = await self.service.analyze(payload)
 
             # If the result is already an instance of the response_model, return it
             if isinstance(result, response_model):

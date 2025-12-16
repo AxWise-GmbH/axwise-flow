@@ -68,14 +68,11 @@ def test_database_url_construction(monkeypatch):
 
     settings = Settings()
     
-    # The actual password might not be in the URL if not specified for the user in some DBs, 
+    # The actual password might not be in the URL if not specified for the user in some DBs,
     # but settings.database_url property includes it if self.DB_PASSWORD is set.
     # For this test, we mainly care it starts with postgresql:// and contains other components.
-    expected_url_start = f"postgresql://USER:PASS@HOST:PORT/DB
     assert settings.database_url.startswith("postgresql://")
-    assert settings.db_user in settings.database_url # User should be in the URL
+    assert settings.db_user in settings.database_url  # User should be in the URL
     assert settings.db_host in settings.database_url
     assert str(settings.db_port) in settings.database_url
     assert settings.db_name in settings.database_url
-    # Check the full constructed URL for a more robust test, assuming password is included
-    assert settings.DATABASE_URL=***REDACTED*** f"postgresql://USER:PASS@HOST:PORT/DB

@@ -757,9 +757,28 @@ class GeminiService:
             return await self.analyze(task, data)
 
     async def analyze(
-        self, text: str, task: str, data: Optional[Dict[str, Any]] = None
+        self, text_or_payload: Union[str, Dict[str, Any]], task: Optional[str] = None, data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        data = data or {}
+        # Handle both call patterns:
+        # 1. analyze({"task": ..., "text": ...}) - used by processor.py
+        # 2. analyze(text, task, data) - original signature
+        if isinstance(text_or_payload, dict):
+            # Extract from dictionary payload
+            payload = text_or_payload
+            text = payload.get("text", "")
+            task = payload.get("task", task or "")
+            # Merge any additional payload data into data dict
+            data = data or {}
+            for key in payload:
+                if key not in ("text", "task"):
+                    data[key] = payload[key]
+            logger.info(f"[ANALYZE_DEBUG] Dict payload received - task: {task}, text length: {len(text)}, text preview: {text[:200] if text else 'EMPTY'}...")
+        else:
+            text = text_or_payload
+            task = task or ""
+            data = data or {}
+            logger.info(f"[ANALYZE_DEBUG] Separate args received - task: {task}, text length: {len(text) if text else 0}")
+
         system_message_content = self._get_system_message(task, data)
         user_message_content = text
 
@@ -994,6 +1013,152 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                             "Added persona schema to guide JSON response format"
                         )
 
+            # Add specific instructions for theme_analysis_enhanced to ensure proper JSON formatting
+            if task == "theme_analysis_enhanced":
+                logger.info(
+                    "Adding special JSON formatting instructions for enhanced theme analysis"
+                )
+                # Note: The prompt is in system_message_content, not data["prompt"]
+                # We'll add the JSON instructions to the system message instead
+                json_formatting_instructions = """
+
+CRITICAL JSON FORMATTING RULES:
+1. Your response MUST be valid JSON - no markdown, no code blocks
+2. Always include commas between array elements: [item1, item2, item3]
+3. Always include commas between object properties: {"prop1": value1, "prop2": value2}
+4. Never include a comma after the last element in an array or object
+5. All property names must be in double quotes
+6. String values must be in double quotes
+7. Numbers should NOT be quoted
+8. Your response must be a JSON object with an "enhanced_themes" array
+
+Double-check your JSON for missing commas before responding.
+"""
+                system_message_content += json_formatting_instructions
+                logger.info("Added JSON formatting instructions to system message for theme_analysis_enhanced")
+
+                # Add a JSON schema to guide the response format
+                if not response_schema:
+                    # Define an enhanced theme schema
+                    enhanced_theme_schema = {
+                        "type": "object",
+                        "properties": {
+                            "enhanced_themes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": {"type": "string"},
+                                        "name": {"type": "string"},
+                                        "definition": {"type": "string"},
+                                        "keywords": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                        "frequency": {"type": "number"},
+                                        "sentiment": {"type": "number"},
+                                        "statements": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                        "codes": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                        "reliability": {"type": "number"},
+                                        "process": {"type": "string"},
+                                        "sentiment_distribution": {
+                                            "type": "object",
+                                            "properties": {
+                                                "positive": {"type": "number"},
+                                                "neutral": {"type": "number"},
+                                                "negative": {"type": "number"},
+                                            },
+                                        },
+                                    },
+                                    "required": ["name", "definition", "statements"],
+                                },
+                            },
+                        },
+                        "required": ["enhanced_themes"],
+                    }
+
+                    # Add the schema to both data and the local variable
+                    data["response_schema"] = enhanced_theme_schema
+                    response_schema = enhanced_theme_schema  # Update the local variable too!
+                    logger.info(
+                        "Added enhanced theme schema to guide JSON response format"
+                    )
+
+            # Add specific instructions for insight_generation to ensure proper JSON formatting
+            if task == "insight_generation":
+                logger.info(
+                    "Adding special JSON formatting instructions for insight generation"
+                )
+                # Add the JSON instructions to the system message
+                json_formatting_instructions = """
+
+CRITICAL JSON FORMATTING RULES:
+1. Your response MUST be valid JSON - no markdown, no code blocks
+2. Always include commas between array elements: [item1, item2, item3]
+3. Always include commas between object properties: {"prop1": value1, "prop2": value2}
+4. Never include a comma after the last element in an array or object
+5. All property names must be in double quotes
+6. String values must be in double quotes
+7. Numbers should NOT be quoted
+8. Your response must be a JSON object with an "insights" array
+9. Generate at least 3-5 actionable insights based on the themes and patterns provided
+
+Double-check your JSON for missing commas before responding.
+"""
+                system_message_content += json_formatting_instructions
+                logger.info("Added JSON formatting instructions to system message for insight_generation")
+
+                # Add a JSON schema to guide the response format
+                if not response_schema:
+                    # Define an insight schema
+                    insight_schema = {
+                        "type": "object",
+                        "properties": {
+                            "insights": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "topic": {"type": "string"},
+                                        "observation": {"type": "string"},
+                                        "evidence": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
+                                        "implication": {"type": "string"},
+                                        "recommendation": {"type": "string"},
+                                        "priority": {
+                                            "type": "string",
+                                            "enum": ["High", "Medium", "Low"],
+                                        },
+                                    },
+                                    "required": ["topic", "observation", "evidence"],
+                                },
+                            },
+                            "metadata": {
+                                "type": "object",
+                                "properties": {
+                                    "quality_score": {"type": "number"},
+                                    "confidence_scores": {"type": "object"},
+                                },
+                            },
+                        },
+                        "required": ["insights"],
+                    }
+
+                    # Add the schema to both data and the local variable
+                    data["response_schema"] = insight_schema
+                    response_schema = insight_schema  # Update the local variable too!
+                    logger.info(
+                        "Added insight schema to guide JSON response format"
+                    )
+
             # Note: We're using both response_mime_type="application/json" and response_schema
             # to enforce structured output, along with our JSON repair functions as a fallback
 
@@ -1128,8 +1293,8 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                         logger.error(f"Safety ratings: {candidate.safety_ratings}")
                 return {"error": f"Gemini response text is None for task {task}"}
 
-            # For persona_formation, also log the end of the response to check for truncation
-            if task == "persona_formation" and text_response is not None:
+            # For persona_formation and theme_analysis_enhanced, also log the end of the response to check for truncation
+            if task in ("persona_formation", "theme_analysis_enhanced") and text_response is not None:
                 logger.info(
                     f"Raw response for task '{task}' (last 500 chars): {text_response[-500:]}"
                 )
@@ -1214,15 +1379,16 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
 
             if response_mime_type == "application/json":
                 try:
-                    # For persona_formation, bypass all repair logic and try direct parsing
-                    if task == "persona_formation":
+                    # For persona_formation and theme_analysis_enhanced, save debug output and try direct parsing
+                    if task in ("persona_formation", "theme_analysis_enhanced"):
                         logger.info(
                             f"[{task}] Attempting direct JSON parsing (bypassing all repair logic)"
                         )
 
                         # Always save the full JSON for debugging (not just on error)
                         try:
-                            debug_file = f"/tmp/persona_json_{int(time.time())}.json"
+                            prefix = "persona" if task == "persona_formation" else "theme"
+                            debug_file = f"/tmp/{prefix}_json_{int(time.time())}.json"
                             with open(debug_file, "w") as f:
                                 f.write(text_response)
                             logger.info(
@@ -1884,9 +2050,43 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                     result.get(themes_key, []) if isinstance(result, dict) else []
                 )
 
+                logger.info(f"[THEME_VALIDATION] Starting validation for {len(themes_to_validate)} themes (key: {themes_key})")
+
                 if isinstance(themes_to_validate, list):
-                    for theme_data in themes_to_validate:
+                    for idx, theme_data in enumerate(themes_to_validate):
                         try:
+                            # Log raw theme data before validation for debugging
+                            logger.debug(f"[THEME_VALIDATION] Theme {idx} raw data: name='{theme_data.get('name', 'NO_NAME')}', frequency={theme_data.get('frequency')}, sentiment={theme_data.get('sentiment')}, reliability={theme_data.get('reliability')}")
+
+                            # Pre-process to ensure numeric fields are within bounds
+                            # This provides more resilience against LLM returning out-of-range values
+                            if "frequency" in theme_data and theme_data["frequency"] is not None:
+                                freq = float(theme_data["frequency"])
+                                if freq < 0.0:
+                                    theme_data["frequency"] = 0.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped negative frequency {freq} to 0.0 for theme '{theme_data.get('name')}'")
+                                elif freq > 1.0:
+                                    theme_data["frequency"] = 1.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped frequency {freq} to 1.0 for theme '{theme_data.get('name')}'")
+
+                            if "sentiment" in theme_data and theme_data["sentiment"] is not None:
+                                sent = float(theme_data["sentiment"])
+                                if sent < -1.0:
+                                    theme_data["sentiment"] = -1.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped sentiment {sent} to -1.0 for theme '{theme_data.get('name')}'")
+                                elif sent > 1.0:
+                                    theme_data["sentiment"] = 1.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped sentiment {sent} to 1.0 for theme '{theme_data.get('name')}'")
+
+                            if "reliability" in theme_data and theme_data["reliability"] is not None:
+                                rel = float(theme_data["reliability"])
+                                if rel < 0.0:
+                                    theme_data["reliability"] = 0.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped negative reliability {rel} to 0.0 for theme '{theme_data.get('name')}'")
+                                elif rel > 1.0:
+                                    theme_data["reliability"] = 1.0
+                                    logger.warning(f"[THEME_VALIDATION] Clamped reliability {rel} to 1.0 for theme '{theme_data.get('name')}'")
+
                             # Validate each theme dictionary against the Pydantic model
                             validated_theme = Theme(**theme_data)
                             # Append the validated data (as dict) to the list
@@ -1898,11 +2098,25 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                             )
                         except ValidationError as e:
                             logger.warning(
-                                "Theme validation failed for theme '{}': {}. Skipping this theme.".format(
+                                "[THEME_VALIDATION] Theme validation failed for theme '{}': {}. Attempting recovery...".format(
                                     theme_data.get("name", "Unnamed"), e
                                 )
                             )
-                            # Invalid themes are skipped to ensure data integrity downstream
+                            # Attempt recovery: create a minimal valid theme with safe defaults
+                            try:
+                                minimal_theme = Theme(
+                                    name=theme_data.get("name", f"Theme {idx + 1}"),
+                                    frequency=0.5,
+                                    sentiment=0.0,
+                                    statements=theme_data.get("statements", []) if isinstance(theme_data.get("statements"), list) else [],
+                                    definition=theme_data.get("definition", ""),
+                                    keywords=theme_data.get("keywords", []) if isinstance(theme_data.get("keywords"), list) else [],
+                                    reliability=0.5
+                                )
+                                validated_themes_list.append(minimal_theme.model_dump())
+                                logger.info(f"[THEME_VALIDATION] Recovered theme '{theme_data.get('name', 'Unnamed')}' with safe defaults")
+                            except Exception as recovery_error:
+                                logger.error(f"[THEME_VALIDATION] Recovery failed for theme '{theme_data.get('name', 'Unnamed')}': {recovery_error}")
                         except Exception as general_e:
                             logger.error(
                                 "Unexpected error during theme validation for '{}': {}".format(
@@ -1915,8 +2129,8 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                     # Replace the original themes list with the validated list
                     result[themes_key] = validated_themes_list
                     logger.info(
-                        "Validated {} themes successfully for task: {}".format(
-                            len(validated_themes_list), task
+                        "[THEME_VALIDATION] Validated {} themes successfully for task: {} (from {} original themes)".format(
+                            len(validated_themes_list), task, len(themes_to_validate)
                         )
                     )
                     logger.debug(
@@ -1932,6 +2146,21 @@ IMPORTANT: Double-check your JSON for missing commas before responding.
                     )
                     # Return empty list if structure is wrong
                     result = {themes_key: []}
+
+            # CRITICAL DEBUG: Print what we're returning for theme tasks
+            if task in ("theme_analysis", "theme_analysis_enhanced"):
+                print(f"\n{'='*60}")
+                print(f"🔥 [GEMINI_SERVICE] Returning result for task: {task}")
+                if isinstance(result, dict):
+                    print(f"🔥 [GEMINI_SERVICE] Result keys: {list(result.keys())}")
+                    themes_key_final = "enhanced_themes" if task == "theme_analysis_enhanced" else "themes"
+                    theme_count = len(result.get(themes_key_final, []))
+                    print(f"🔥 [GEMINI_SERVICE] Theme count ({themes_key_final}): {theme_count}")
+                    if theme_count > 0:
+                        print(f"🔥 [GEMINI_SERVICE] First theme: {result.get(themes_key_final, [])[0].get('name', 'NO NAME')}")
+                else:
+                    print(f"🔥 [GEMINI_SERVICE] Result type: {type(result)}")
+                print(f"{'='*60}\n")
 
             return result
 

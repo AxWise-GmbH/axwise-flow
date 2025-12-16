@@ -25,15 +25,19 @@ from backend.services.external.secure_env import secure_env
 # Import proven LLM patterns from V1/V2
 from backend.services.llm.base_llm_service import BaseLLMService
 
+# Import pydantic for type hints (required for TypeVar bound)
+from pydantic import BaseModel, ValidationError
+
 # Import Gemini and Instructor for enhanced capabilities
 try:
     import google.generativeai as genai
     import instructor
-    from pydantic import BaseModel, ValidationError
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Enhanced features not available: {e}")
     ENHANCED_FEATURES_AVAILABLE = False
+    genai = None  # type: ignore
+    instructor = None  # type: ignore
 
 from backend.infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,

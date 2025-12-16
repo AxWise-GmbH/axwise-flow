@@ -443,6 +443,12 @@ class ResultsService:
                     sentiment_overview_default=DEFAULT_SENTIMENT_OVERVIEW,
                 )
 
+                # DEBUG: Log themes in results_dict and flattened
+                logger.info(f"🎯 [THEMES_DEBUG] results_dict themes count: {len(results_dict.get('themes', []))}")
+                logger.info(f"🎯 [THEMES_DEBUG] results_dict enhanced_themes count: {len(results_dict.get('enhanced_themes', []))}")
+                logger.info(f"🎯 [THEMES_DEBUG] flattened themes count: {len(flattened.get('themes', []))}")
+                logger.info(f"🎯 [THEMES_DEBUG] flattened enhanced_themes count: {len(flattened.get('enhanced_themes', []))}")
+
                 # Enrich theme statements with inferred document_id for prevalence robustness
                 try:
                     if isinstance(flattened.get("themes"), list):
