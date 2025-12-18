@@ -107,6 +107,10 @@ class InsightModel(BaseModel):
     implication: str
     recommendation: str
     priority: Literal["High", "Medium", "Low"]
+    # NEW optional fields for cross-referencing (additive, backward-compatible)
+    related_patterns: Optional[List[str]] = None
+    affected_personas: Optional[List[str]] = None
+    theme_connections: Optional[List[str]] = None
 
 
 class InsightResponse(BaseModel):

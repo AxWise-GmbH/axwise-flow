@@ -35,6 +35,11 @@ class StakeholderDetector:
                 llm_service, context_analysis, messages
             )
 
+            # If step 1 returned empty, log and return early with error info
+            if not stakeholder_data.get('primary') and not stakeholder_data.get('secondary'):
+                logger.warning("👥 Stakeholder generation returned empty - no stakeholders generated")
+                return stakeholder_data  # Return as-is, may contain _error info
+
             # Step 2: Generate unique questions for each stakeholder
             enhanced_stakeholders = await self._generate_questions_for_stakeholders(
                 llm_service,
@@ -51,8 +56,10 @@ class StakeholderDetector:
             return enhanced_stakeholders
 
         except Exception as e:
+            import traceback
             logger.error(f"Dynamic stakeholder generation failed: {e}")
-            return {"primary": [], "secondary": []}
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return {"primary": [], "secondary": [], "_error": str(e), "_traceback": traceback.format_exc()}
 
     async def _generate_stakeholder_names_and_descriptions(
         self, llm_service, context_analysis: Dict[str, Any], messages: List[Any]
@@ -123,11 +130,13 @@ Return as JSON:
 
 Make stakeholder names specific to this business context and consistent with these location guidelines."""
 
-            response_data = await llm_service.analyze(
-                text=prompt,
-                task="text_generation",
-                data={"temperature": 0.6, "max_tokens": 600},
-            )
+            # Use dictionary format for analyze() call - required by BaseLLMService
+            response_data = await llm_service.analyze({
+                "text": prompt,
+                "task": "text_generation",
+                "temperature": 0.6,
+                "max_tokens": 600,
+            })
             response = response_data.get("text", "")
 
             # Parse JSON response (handle markdown code blocks)
@@ -152,13 +161,15 @@ Make stakeholder names specific to this business context and consistent with the
 
                 stakeholder_data = json.loads(cleaned_response)
                 return stakeholder_data
-            except json.JSONDecodeError:
-                logger.warning("Failed to parse stakeholder names response as JSON")
-                return {"primary": [], "secondary": []}
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse stakeholder names response as JSON: {e}")
+                return {"primary": [], "secondary": [], "_error": f"JSON parse error: {e}", "_raw_response": response[:500] if response else "EMPTY"}
 
         except Exception as e:
+            import traceback
             logger.error(f"Stakeholder name generation failed: {e}")
-            return {"primary": [], "secondary": []}
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return {"primary": [], "secondary": [], "_error": str(e), "_traceback": traceback.format_exc()}
 
     async def _generate_questions_for_stakeholders(
         self,
@@ -395,11 +406,13 @@ Return in this exact JSON format:
   "followUp": ["Follow-up question 1?", ...]
 }}"""
 
-            response_data = await llm_service.analyze(
-                text=prompt,
-                task="text_generation",
-                data={"temperature": 0.7, "max_tokens": 600},
-            )
+            # Use dictionary format for analyze() call - required by BaseLLMService
+            response_data = await llm_service.analyze({
+                "text": prompt,
+                "task": "text_generation",
+                "temperature": 0.7,
+                "max_tokens": 600,
+            })
             response = response_data.get("text", "")
 
             # Parse JSON response (handle markdown code blocks)

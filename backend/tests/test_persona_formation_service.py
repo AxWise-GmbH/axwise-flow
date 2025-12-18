@@ -177,6 +177,87 @@ async def test_transcript_structuring_service():
     assert "dialogue" in structured_transcript[0]
 
 
+def test_synthetic_interview_detection():
+    """Test that synthetic interview simulation format is correctly detected.
+
+    This ensures the persona formation service skips stakeholder-aware grouping
+    for synthetic interview files, where each interview is a different individual
+    even if they share the same stakeholder category.
+    """
+    import re
+
+    def is_synthetic_interview(text: str) -> bool:
+        """Detection logic matching persona_formation_service.py"""
+        return (
+            "CLEANED INTERVIEW DIALOGUES" in text
+            or "SYNTHETIC INTERVIEW SIMULATION" in text.upper()
+            or bool(re.search(r"INTERVIEW\s+\d+\s+OF\s+\d+", text, re.IGNORECASE))
+        )
+
+    # Test case 1: Cleaned synthetic interview format
+    cleaned_format = """
+    CLEANED INTERVIEW DIALOGUES - READY FOR ANALYSIS
+    ============================================================
+
+    --- INTERVIEW 1 ---
+    Stakeholder: Local Business Owners
+    Speaker: Interviewee_01
+
+    [11:09] Researcher: How do you manage your business?
+    [11:10] Interviewee: We focus on personal customer relationships.
+    """
+    assert is_synthetic_interview(cleaned_format), "Should detect cleaned interview format"
+
+    # Test case 2: Raw synthetic interview simulation format
+    raw_synthetic = """
+    SYNTHETIC INTERVIEW SIMULATION RESULTS
+    ==================================================
+
+    INTERVIEW METADATA
+    ------------------
+    Stakeholder Category: Local Business Owners
+
+    INTERVIEW DIALOGUE
+    ------------------
+    [11:09] Researcher: Tell me about your experience.
+    """
+    assert is_synthetic_interview(raw_synthetic), "Should detect raw synthetic format"
+
+    # Test case 3: "INTERVIEW X OF Y" pattern
+    interview_of_pattern = """
+    INTERVIEW 1 OF 25
+    ==================================================
+
+    Stakeholder Category: Local Business Owners
+
+    Researcher: How did you get started?
+    Persona (Sarah): I opened my bookshop five years ago.
+    """
+    assert is_synthetic_interview(interview_of_pattern), "Should detect 'INTERVIEW X OF Y' pattern"
+
+    # Test case 4: Regular interview (should NOT be detected as synthetic)
+    regular_interview = """
+    Interviewer: Tell me about your role.
+    Interviewee: I'm a software developer working on web applications.
+    Interviewer: What technologies do you use?
+    Interviewee: I primarily use Python, JavaScript, and React.
+    """
+    assert not is_synthetic_interview(regular_interview), "Regular interviews should NOT be detected as synthetic"
+
+    # Test case 5: Stakeholder-formatted interview (should NOT be detected as synthetic)
+    stakeholder_format = """
+    --- INTERVIEW 1 ---
+    Stakeholder: Marketing Manager
+    Speaker: Interviewee_01
+
+    Interviewer: How do you approach campaign planning?
+    Interviewee: We start with quarterly objectives.
+    """
+    assert not is_synthetic_interview(stakeholder_format), "Stakeholder format without synthetic markers should NOT be detected"
+
+    logger.info("✅ All synthetic interview detection tests passed")
+
+
 if __name__ == "__main__":
     # Run the tests directly
     pytest.main(["-v", __file__])

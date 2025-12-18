@@ -1334,62 +1334,84 @@ Generate a complete DirectPersona object with all required traits populated base
                     "No structured format detected, checking for stakeholder-aware content structure"
                 )
 
-                # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
-                try:
-                    # Import the stakeholder-aware transcript processor
-                    from backend.services.processing.pipeline.stakeholder_aware_transcript_processor import (
-                        StakeholderAwareTranscriptProcessor,
+                # Skip stakeholder-aware processing for synthetic interview simulation files.
+                # These files contain multiple unique interviewees that share the same
+                # "Stakeholder Category" (e.g., "Local Business Owners") but are different
+                # individuals. The transcript structuring service handles these correctly
+                # by creating unique speaker IDs per interview block.
+                import re
+
+                is_synthetic_interview = (
+                    "CLEANED INTERVIEW DIALOGUES" in text
+                    or "SYNTHETIC INTERVIEW SIMULATION" in text.upper()
+                    or bool(
+                        re.search(r"INTERVIEW\s+\d+\s+OF\s+\d+", text, re.IGNORECASE)
                     )
+                )
 
-                    # Create a temporary processor instance
-                    processor = StakeholderAwareTranscriptProcessor()
-
-                    # Try to parse stakeholder sections
-                    stakeholder_segments = processor._parse_stakeholder_sections(text)
-
-                    if stakeholder_segments and len(stakeholder_segments) > 0:
-                        logger.info(
-                            f"[STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
-                        )
-                        logger.info(
-                            f"[STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
-                        )
-
-                        # Convert to the format expected by form_personas_by_stakeholder
-                        formatted_segments = {}
-                        for category, interviews in stakeholder_segments.items():
-                            # Create mock segments for each interview
-                            segments = []
-                            for i, interview_text in enumerate(interviews):
-                                segments.append(
-                                    {
-                                        "text": interview_text,
-                                        "speaker": f"Interviewee_{i+1}",
-                                        "role": "Interviewee",
-                                        "stakeholder_category": category,
-                                    }
-                                )
-
-                            formatted_segments[category] = {
-                                "segments": segments,
-                                "interview_count": len(interviews),
-                                "content_info": {"type": "stakeholder_interview"},
-                            }
-
-                        # Use stakeholder-aware persona formation
-                        personas_list = await self.form_personas_by_stakeholder(
-                            formatted_segments, context=context
-                        )
-                        logger.info(
-                            f"[STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
-                        )
-                        return personas_list
-
-                except Exception as e:
-                    logger.error(
-                        f"[STAKEHOLDER_PERSONA] Error in stakeholder-aware processing: {str(e)}"
+                if is_synthetic_interview:
+                    logger.info(
+                        "[STAKEHOLDER_PERSONA] Detected synthetic interview simulation format - "
+                        "skipping stakeholder-aware grouping to preserve unique interviewee identities"
                     )
-                    # Continue with standard processing
+                    # Fall through to standard transcript structuring
+                else:
+                    # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
+                    try:
+                        # Import the stakeholder-aware transcript processor
+                        from backend.services.processing.pipeline.stakeholder_aware_transcript_processor import (
+                            StakeholderAwareTranscriptProcessor,
+                        )
+
+                        # Create a temporary processor instance
+                        processor = StakeholderAwareTranscriptProcessor()
+
+                        # Try to parse stakeholder sections
+                        stakeholder_segments = processor._parse_stakeholder_sections(text)
+
+                        if stakeholder_segments and len(stakeholder_segments) > 0:
+                            logger.info(
+                                f"[STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
+                            )
+                            logger.info(
+                                f"[STAKEHOLDER_PERSONA] Categories: {list(stakeholder_segments.keys())}"
+                            )
+
+                            # Convert to the format expected by form_personas_by_stakeholder
+                            formatted_segments = {}
+                            for category, interviews in stakeholder_segments.items():
+                                # Create mock segments for each interview
+                                segments = []
+                                for i, interview_text in enumerate(interviews):
+                                    segments.append(
+                                        {
+                                            "text": interview_text,
+                                            "speaker": f"Interviewee_{i+1}",
+                                            "role": "Interviewee",
+                                            "stakeholder_category": category,
+                                        }
+                                    )
+
+                                formatted_segments[category] = {
+                                    "segments": segments,
+                                    "interview_count": len(interviews),
+                                    "content_info": {"type": "stakeholder_interview"},
+                                }
+
+                            # Use stakeholder-aware persona formation
+                            personas_list = await self.form_personas_by_stakeholder(
+                                formatted_segments, context=context
+                            )
+                            logger.info(
+                                f"[STAKEHOLDER_PERSONA] Generated {len(personas_list)} stakeholder-aware personas"
+                            )
+                            return personas_list
+
+                    except Exception as e:
+                        logger.error(
+                            f"[STAKEHOLDER_PERSONA] Error in stakeholder-aware processing: {str(e)}"
+                        )
+                        # Continue with standard processing
 
                 logger.info(
                     "No stakeholder structure detected, using LLM-powered transcript structuring"
@@ -1565,16 +1587,23 @@ Generate a complete DirectPersona object with all required traits populated base
         Returns:
             List of persona dictionaries
         """
-        # Enforce MAX_PERSONAS across all persona formation paths
+        # Enforce MAX_PERSONAS across all persona formation paths and filter low-confidence personas
         def _limit_personas_list(personas_list: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             try:
                 from os import getenv
                 max_p = int(getenv("MAX_PERSONAS", "5"))
+                min_conf = float(getenv("MIN_PERSONA_CONFIDENCE", "0.4"))
             except Exception:
                 max_p = 5
+                min_conf = 0.4
             if not isinstance(personas_list, list):
                 return personas_list
             try:
+                # Filter out low-confidence/empty personas (e.g., "No Data Available" clusters)
+                personas_list = [
+                    p for p in personas_list
+                    if p and float((p or {}).get("overall_confidence", 0) or 0.0) >= min_conf
+                ]
                 personas_list = sorted(
                     personas_list,
                     key=lambda p: float((p or {}).get("overall_confidence", 0) or 0.0),

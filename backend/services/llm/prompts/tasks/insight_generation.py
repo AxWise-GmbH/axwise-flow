@@ -29,6 +29,7 @@ class InsightGenerationPrompts:
         patterns = data.get("patterns", [])
         sentiment = data.get("sentiment", {})
         existing_insights = data.get("existing_insights", [])
+        personas = data.get("personas", [])  # NEW: Include personas for cross-referencing
 
         # Create context string from additional data
         context = "Based on the following analysis:\n"
@@ -48,6 +49,23 @@ class InsightGenerationPrompts:
                 if "evidence" in pattern:
                     for evidence in pattern.get("evidence", []):
                         context += f"  * {evidence}\n"
+
+        # NEW: Include personas context for cross-referencing
+        if personas:
+            context += "\nPersonas (User Types):\n"
+            for persona in personas:
+                persona_name = persona.get('name', 'Unknown')
+                persona_desc = persona.get('description', 'No description')
+                context += f"- {persona_name}: {persona_desc}\n"
+                # Include key characteristics if available
+                if "goals" in persona:
+                    goals = persona.get("goals", [])
+                    if isinstance(goals, list) and goals:
+                        context += f"  Goals: {', '.join(goals[:3])}\n"
+                if "pain_points" in persona:
+                    pain_points = persona.get("pain_points", [])
+                    if isinstance(pain_points, list) and pain_points:
+                        context += f"  Pain Points: {', '.join(pain_points[:3])}\n"
 
         if sentiment:
             context += "\nSentiment:\n"
@@ -104,25 +122,32 @@ class InsightGenerationPrompts:
         Analyze the provided text and generate insights that go beyond the surface level, focusing on aspects particularly relevant to the """ + industry_upper + """ industry.
         For each insight, provide:
         1. A topic that captures the key area of insight
-        2. A detailed observation that provides actionable information
+        2. A detailed observation that provides actionable information (reference specific personas when applicable)
         3. Supporting evidence from the text (direct quotes or paraphrases)
         4. Implication - explain the "so what?" or consequence of this insight for """ + industry_upper + """ organizations
         5. Recommendation - suggest a concrete next step or action that is appropriate for the """ + industry_upper + """ industry
         6. Priority - indicate urgency/importance as "High", "Medium", or "Low"
+        7. Cross-references (optional but encouraged):
+           - related_patterns: Names of patterns from the analysis that relate to this insight
+           - affected_personas: Names of personas/user types that are affected by this insight
+           - theme_connections: Names of themes that connect to this insight
 
         Return your analysis in the following JSON format:
         {{
             "insights": [
                 {{
                     "topic": "Navigation Complexity",
-                    "observation": "Users consistently struggle to find key features in the application interface",
+                    "observation": "Power Users and Casual Users both struggle with navigation, but Power Users develop workarounds while Casual Users abandon tasks",
                     "evidence": [
                         "I spent 5 minutes looking for the export button",
                         "The settings menu is buried too deep in the interface"
                     ],
                     "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
-                    "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
-                    "priority": "High"
+                    "recommendation": "Add quick-access toolbar for Power Users; simplify main nav for Casual Users",
+                    "priority": "High",
+                    "related_patterns": ["Search Workaround", "Task Abandonment"],
+                    "affected_personas": ["Power User", "Casual User"],
+                    "theme_connections": ["UI Complexity", "Feature Discoverability"]
                 }}
             ],
             "metadata": {{
@@ -136,6 +161,7 @@ class InsightGenerationPrompts:
         }}
 
         IMPORTANT GUIDELINES:
+        - CROSS-REFERENCE: When personas, patterns, or themes are provided, reference them by EXACT NAME in the cross-reference fields
         - AVOID REDUNDANCY: Ensure each insight covers a distinct topic with no overlap or duplication between insights
         - DISTINCT TOPICS: Each insight must focus on a completely different aspect of user experience or need
         - BALANCED PRIORITIES: Distribute priorities evenly - approximately 20% High, 50% Medium, and 30% Low
@@ -151,17 +177,17 @@ class InsightGenerationPrompts:
         - Ensure 100% of your response is in valid JSON format
 
         EXTREMELY IMPORTANT: Your response MUST be a valid JSON object with an "insights" array, even if you only identify one insight. If you cannot identify any insights, return an empty array like this:
-        {
+        {{
           "insights": [],
-          "metadata": {
+          "metadata": {{
             "quality_score": 0.0,
-            "confidence_scores": {
+            "confidence_scores": {{
               "themes": 0.0,
               "patterns": 0.0,
               "sentiment": 0.0
-            }
-          }
-        }
+            }}
+          }}
+        }}
         """
 
         return prompt
@@ -183,25 +209,32 @@ class InsightGenerationPrompts:
         Analyze the provided text and generate insights that go beyond the surface level.
         For each insight, provide:
         1. A topic that captures the key area of insight
-        2. A detailed observation that provides actionable information
+        2. A detailed observation that provides actionable information (reference specific personas when applicable)
         3. Supporting evidence from the text (direct quotes or paraphrases)
         4. Implication - explain the "so what?" or consequence of this insight
         5. Recommendation - suggest a concrete next step or action
         6. Priority - indicate urgency/importance as "High", "Medium", or "Low"
+        7. Cross-references (optional but encouraged):
+           - related_patterns: Names of patterns from the analysis that relate to this insight
+           - affected_personas: Names of personas/user types that are affected by this insight
+           - theme_connections: Names of themes that connect to this insight
 
         Return your analysis in the following JSON format:
         {
             "insights": [
                 {
                     "topic": "Navigation Complexity",
-                    "observation": "Users consistently struggle to find key features in the application interface",
+                    "observation": "Power Users and Casual Users both struggle with navigation, but Power Users develop workarounds while Casual Users abandon tasks",
                     "evidence": [
                         "I spent 5 minutes looking for the export button",
                         "The settings menu is buried too deep in the interface"
                     ],
                     "implication": "This leads to increased time-on-task and user frustration, potentially causing users to abandon tasks",
-                    "recommendation": "Redesign the main navigation menu with a focus on discoverability of key features",
-                    "priority": "High"
+                    "recommendation": "Add quick-access toolbar for Power Users; simplify main nav for Casual Users",
+                    "priority": "High",
+                    "related_patterns": ["Search Workaround", "Task Abandonment"],
+                    "affected_personas": ["Power User", "Casual User"],
+                    "theme_connections": ["UI Complexity", "Feature Discoverability"]
                 }
             ],
             "metadata": {
@@ -215,6 +248,7 @@ class InsightGenerationPrompts:
         }
 
         IMPORTANT GUIDELINES:
+        - CROSS-REFERENCE: When personas, patterns, or themes are provided, reference them by EXACT NAME in the cross-reference fields
         - AVOID REDUNDANCY: Ensure each insight covers a distinct topic with no overlap or duplication between insights
         - DISTINCT TOPICS: Each insight must focus on a completely different aspect of user experience or need
         - BALANCED PRIORITIES: Distribute priorities evenly - approximately 20% High, 50% Medium, and 30% Low

@@ -55,106 +55,249 @@ class PRDGenerationPrompts:
         return PRDGenerationPrompts.standard_prompt(context, prd_type)
 
     @staticmethod
+    def _extract_field_value(field_data) -> str:
+        """Extract value from various field formats (AttributedField, dict, string)."""
+        if field_data is None:
+            return ""
+        if isinstance(field_data, str):
+            return field_data
+        if isinstance(field_data, dict):
+            # AttributedField format: {"value": "...", "evidence": [...]}
+            if "value" in field_data:
+                return str(field_data["value"])
+            # Sometimes just a plain dict with content
+            return str(field_data)
+        return str(field_data)
+
+    @staticmethod
+    def _extract_evidence(field_data) -> list:
+        """Extract evidence/quotes from field data as plain strings."""
+        if field_data is None:
+            return []
+        if isinstance(field_data, dict):
+            if "evidence" in field_data and isinstance(field_data["evidence"], list):
+                quotes = []
+                for item in field_data["evidence"]:
+                    if isinstance(item, dict):
+                        # Extract the quote text from evidence object
+                        quote_text = item.get("quote", item.get("text", ""))
+                        if quote_text:
+                            quotes.append(quote_text)
+                    elif isinstance(item, str):
+                        quotes.append(item)
+                return quotes
+        return []
+
+    @staticmethod
     def _create_context(
         text: str, personas: list, patterns: list, insights: list, themes: list
     ) -> str:
         """
-        Create context for PRD generation.
+        Create comprehensive context for PRD generation using ALL analysis data.
 
         Args:
             text: Interview text
-            personas: List of personas
-            patterns: List of patterns
-            insights: List of insights
-            themes: List of themes
+            personas: List of personas (ALL personas from analysis)
+            patterns: List of patterns (ALL patterns from analysis)
+            insights: List of insights (ALL insights from analysis)
+            themes: List of themes (ALL themes from analysis)
 
         Returns:
-            Context string
+            Context string with full analysis data
         """
         context = ""
 
-        # Add personas summary
+        # Add ALL personas with complete details
         if personas:
-            context += "\n## PERSONAS\n"
-            for i, persona in enumerate(
-                personas[:2]
-            ):  # Limit to 2 personas for context
+            context += "\n## PERSONAS (ALL STAKEHOLDERS FROM ANALYSIS)\n"
+            for i, persona in enumerate(personas):  # Include ALL personas
                 # Handle both dictionary and Pydantic object formats
-                if hasattr(persona, "dict") and callable(getattr(persona, "dict")):
-                    # It's a Pydantic model
+                if hasattr(persona, "model_dump") and callable(getattr(persona, "model_dump")):
+                    persona_dict = persona.model_dump()
+                elif hasattr(persona, "dict") and callable(getattr(persona, "dict")):
                     persona_dict = persona.dict()
-                    name = persona_dict.get("name", "Unnamed")
-                    description = persona_dict.get("description", "No description")
                 elif isinstance(persona, dict):
-                    # It's a dictionary
                     persona_dict = persona
-                    name = persona.get("name", "Unnamed")
-                    description = persona.get("description", "No description")
                 else:
-                    # It's some other object, try to get attributes directly
-                    name = getattr(persona, "name", "Unnamed")
-                    description = getattr(persona, "description", "No description")
-                    # Create a dictionary representation for consistent access below
+                    # Convert object attributes to dict
                     persona_dict = {}
-                    for field in [
-                        "challenges_and_frustrations",
-                        "needs_and_desires",
-                        "pain_points",
-                        "patterns",
-                    ]:
+                    for field in ["name", "description", "archetype", "demographics",
+                                  "goals_and_motivations", "challenges_and_frustrations",
+                                  "needs_and_desires", "pain_points", "patterns",
+                                  "key_quotes", "supporting_evidence_summary",
+                                  "overall_confidence"]:
                         if hasattr(persona, field):
                             persona_dict[field] = getattr(persona, field)
 
-                context += f"\nPersona {i+1}: {name}\n"
+                name = persona_dict.get("name", "Unnamed")
+                description = persona_dict.get("description", "No description")
+                archetype = persona_dict.get("archetype", "")
+
+                context += f"\n### Persona {i+1}: {name}\n"
+                if archetype:
+                    context += f"Archetype: {archetype}\n"
                 context += f"Description: {description}\n"
 
-                # Add key fields
-                for field in [
-                    "challenges_and_frustrations",
-                    "needs_and_desires",
-                    "pain_points",
-                ]:
-                    if field in persona_dict:
-                        field_data = persona_dict[field]
-                        if isinstance(field_data, dict) and "value" in field_data:
-                            context += f"{field.replace('_', ' ').title()}: {field_data['value']}\n"
+                # Demographics
+                demographics = persona_dict.get("demographics")
+                if demographics:
+                    demo_value = PRDGenerationPrompts._extract_field_value(demographics)
+                    if demo_value:
+                        context += f"Demographics: {demo_value}\n"
 
-                # Add patterns if available
-                if "patterns" in persona_dict and isinstance(
-                    persona_dict["patterns"], list
-                ):
-                    context += "Key Patterns:\n"
-                    for pattern in persona_dict["patterns"][:5]:  # Limit to 5 patterns
-                        context += f"- {pattern}\n"
+                # Goals and Motivations
+                goals = persona_dict.get("goals_and_motivations")
+                if goals:
+                    goals_value = PRDGenerationPrompts._extract_field_value(goals)
+                    if goals_value:
+                        context += f"Goals & Motivations: {goals_value}\n"
+                    goals_evidence = PRDGenerationPrompts._extract_evidence(goals)
+                    if goals_evidence:
+                        context += "  Supporting Quotes:\n"
+                        for quote in goals_evidence[:3]:
+                            context += f"    - \"{quote}\"\n"
 
-        # Add patterns summary
+                # Challenges and Frustrations
+                challenges = persona_dict.get("challenges_and_frustrations")
+                if challenges:
+                    challenges_value = PRDGenerationPrompts._extract_field_value(challenges)
+                    if challenges_value:
+                        context += f"Challenges & Frustrations: {challenges_value}\n"
+                    challenges_evidence = PRDGenerationPrompts._extract_evidence(challenges)
+                    if challenges_evidence:
+                        context += "  Supporting Quotes:\n"
+                        for quote in challenges_evidence[:3]:
+                            context += f"    - \"{quote}\"\n"
+
+                # Needs and Desires
+                needs = persona_dict.get("needs_and_desires")
+                if needs:
+                    needs_value = PRDGenerationPrompts._extract_field_value(needs)
+                    if needs_value:
+                        context += f"Needs & Desires: {needs_value}\n"
+                    needs_evidence = PRDGenerationPrompts._extract_evidence(needs)
+                    if needs_evidence:
+                        context += "  Supporting Quotes:\n"
+                        for quote in needs_evidence[:3]:
+                            context += f"    - \"{quote}\"\n"
+
+                # Pain Points
+                pain_points = persona_dict.get("pain_points")
+                if pain_points:
+                    pain_value = PRDGenerationPrompts._extract_field_value(pain_points)
+                    if pain_value:
+                        context += f"Pain Points: {pain_value}\n"
+
+                # Key Quotes
+                key_quotes = persona_dict.get("key_quotes")
+                if key_quotes:
+                    quotes_value = PRDGenerationPrompts._extract_field_value(key_quotes)
+                    if quotes_value:
+                        context += f"Key Quotes: {quotes_value}\n"
+
+                # Behavioral Patterns for this persona
+                persona_patterns = persona_dict.get("patterns")
+                if persona_patterns and isinstance(persona_patterns, list):
+                    context += "Behavioral Patterns:\n"
+                    for pattern in persona_patterns:
+                        context += f"  - {pattern}\n"
+
+                # Supporting Evidence Summary
+                evidence_summary = persona_dict.get("supporting_evidence_summary")
+                if evidence_summary and isinstance(evidence_summary, list):
+                    context += "Key Evidence:\n"
+                    for evidence in evidence_summary[:5]:
+                        context += f"  - \"{evidence}\"\n"
+
+                # Confidence score
+                confidence = persona_dict.get("overall_confidence")
+                if confidence is not None:
+                    context += f"Confidence Score: {confidence}\n"
+
+        # Add ALL patterns with complete details
         if patterns:
-            context += "\n## PATTERNS\n"
-            for pattern in patterns[:10]:  # Limit to 10 patterns
+            context += "\n## PATTERNS (ALL BEHAVIORAL PATTERNS FROM ANALYSIS)\n"
+            for i, pattern in enumerate(patterns):  # Include ALL patterns
                 if isinstance(pattern, dict):
-                    context += f"- {pattern.get('pattern', pattern.get('name', 'Unnamed pattern'))}\n"
+                    name = pattern.get("name", pattern.get("pattern", "Unnamed pattern"))
+                    category = pattern.get("category", "")
+                    description = pattern.get("description", "")
+                    frequency = pattern.get("frequency", "")
+                    impact = pattern.get("impact", "")
+                    evidence = pattern.get("evidence", [])
+                    suggested_actions = pattern.get("suggested_actions", [])
+
+                    context += f"\n### Pattern {i+1}: {name}\n"
+                    if category:
+                        context += f"Category: {category}\n"
+                    if description:
+                        context += f"Description: {description}\n"
+                    if frequency:
+                        context += f"Frequency: {frequency}\n"
+                    if impact:
+                        context += f"Impact: {impact}\n"
+                    if evidence and isinstance(evidence, list):
+                        context += "Evidence:\n"
+                        for quote in evidence[:3]:
+                            context += f"  - \"{quote}\"\n"
+                    if suggested_actions and isinstance(suggested_actions, list):
+                        context += "Suggested Actions:\n"
+                        for action in suggested_actions:
+                            context += f"  - {action}\n"
                 elif isinstance(pattern, str):
                     context += f"- {pattern}\n"
 
-        # Add insights summary
+        # Add ALL insights with complete details
         if insights:
-            context += "\n## INSIGHTS\n"
-            for insight in insights[:10]:  # Limit to 10 insights
+            context += "\n## INSIGHTS (ALL INSIGHTS FROM ANALYSIS)\n"
+            for i, insight in enumerate(insights):  # Include ALL insights
                 if isinstance(insight, dict):
-                    context += f"- {insight.get('topic', 'Unnamed')}: {insight.get('observation', '')}\n"
-                    if "implication" in insight:
-                        context += f"  Implication: {insight['implication']}\n"
-                    if "recommendation" in insight:
-                        context += f"  Recommendation: {insight['recommendation']}\n"
-                    if "priority" in insight:
-                        context += f"  Priority: {insight['priority']}\n"
+                    topic = insight.get("topic", "Unnamed")
+                    observation = insight.get("observation", "")
+                    implication = insight.get("implication", "")
+                    recommendation = insight.get("recommendation", "")
+                    priority = insight.get("priority", "")
+                    evidence = insight.get("evidence", [])
 
-        # Add themes summary
+                    context += f"\n### Insight {i+1}: {topic}\n"
+                    if observation:
+                        context += f"Observation: {observation}\n"
+                    if implication:
+                        context += f"Implication: {implication}\n"
+                    if recommendation:
+                        context += f"Recommendation: {recommendation}\n"
+                    if priority:
+                        context += f"Priority: {priority}\n"
+                    if evidence and isinstance(evidence, list):
+                        context += "Evidence:\n"
+                        for quote in evidence[:3]:
+                            context += f"  - \"{quote}\"\n"
+
+        # Add ALL themes with complete details
         if themes:
-            context += "\n## THEMES\n"
-            for theme in themes[:10]:  # Limit to 10 themes
+            context += "\n## THEMES (ALL THEMES FROM ANALYSIS)\n"
+            for i, theme in enumerate(themes):  # Include ALL themes
                 if isinstance(theme, dict):
-                    context += f"- {theme.get('name', 'Unnamed')}: {theme.get('definition', '')}\n"
+                    name = theme.get("name", "Unnamed")
+                    definition = theme.get("definition", "")
+                    frequency = theme.get("frequency", "")
+                    sentiment = theme.get("sentiment", "")
+                    statements = theme.get("statements", [])
+                    keywords = theme.get("keywords", [])
+
+                    context += f"\n### Theme {i+1}: {name}\n"
+                    if definition:
+                        context += f"Definition: {definition}\n"
+                    if frequency:
+                        context += f"Frequency: {frequency}\n"
+                    if sentiment is not None and sentiment != "":
+                        context += f"Sentiment: {sentiment}\n"
+                    if keywords and isinstance(keywords, list):
+                        context += f"Keywords: {', '.join(keywords)}\n"
+                    if statements and isinstance(statements, list):
+                        context += "Supporting Statements:\n"
+                        for statement in statements[:5]:
+                            context += f"  - \"{statement}\"\n"
 
         return context
 
@@ -214,13 +357,16 @@ class PRDGenerationPrompts:
 
         PHASE 1: STRATEGIC ANALYSIS & SYNTHESIS
         1) Thematic Analysis:
-           - Identify core themes with BOTH a Frequency score (0.0–1.0) AND an Impact Score (Low | Medium | High).
+           - Use ALL themes provided in the analysis context. Include their Frequency score (0.0–1.0) AND Impact Score (Low | Medium | High).
              A 'High' Impact Score means direct and significant loss of revenue, client trust, operational capacity, or brand value.
+           - Reference the supporting statements and keywords from each theme as evidence.
         2) Stakeholder Synthesis:
-           - Synthesize 2–4 stakeholder personas (from provided data), with concise goals and primary frustrations.
+           - Use ALL stakeholder personas provided in the analysis context (not just 2-4, but every persona that was identified).
+           - For each persona, leverage their goals, frustrations, pain points, behavioral patterns, and key quotes.
+           - Create scenarios for EACH persona, ensuring complete coverage of all stakeholder needs.
         3) Needs Assessment:
            - Split into two categories:
-             a) Solution Requirements: what the solution must do or be
+             a) Solution Requirements: what the solution must do or be (derived from ALL personas' needs and pain points)
              b) Relationship Requirements: how we must communicate, train, support, and build trust while delivering
 
         PHASE 2: PROJECT DEFINITION DOCUMENT GENERATION
@@ -251,11 +397,14 @@ class PRDGenerationPrompts:
              scope, complexity, and likely investment.
 
         IMPORTANT CONSTRAINTS
+        - USE ALL CONTEXT: You MUST use ALL personas, themes, patterns, and insights provided. Do not skip or summarize them.
+          Create stakeholder scenarios for EVERY persona. Reference ALL themes in the justifications.
         - Preserve explicit traceability: Every scenario must include a Justification linking back to specific high-impact
-          themes or persona pain points. Specifications must reference the scenarios they satisfy.
+          themes or persona pain points. Use the exact evidence quotes provided in the analysis.
+        - Specifications must reference the scenarios they satisfy.
         - Prioritization must be driven by Impact × Frequency (include the numeric frequency and categorical impact used).
         - Keep language domain-agnostic (no software-only jargon) while remaining concrete and actionable.
-        - Only include content supportable by the provided analysis context.
+        - Include verbatim quotes from the analysis as evidence_quotes in justifications.
         """
 
         # Tailor instructions by PRD type without changing the overall JSON shape
@@ -267,11 +416,29 @@ class PRDGenerationPrompts:
             base_prompt += """
             Generate a Technical PRD emphasizing Implementation Blueprint details (structure, components, tasks, QA),
             while still summarizing BRD objectives/scope to maintain traceability. Include all PHASES and constraints.
+
+            TECHNICAL PRD REQUIREMENTS:
+            - Include 2-4 distinct technical objectives
+            - Define 3-6 system components with technology stack recommendations
+            - Specify 4-8 implementation requirements with effort estimates
+            - Include API specifications for key endpoints
+            - Define 3-5 test types (unit, integration, E2E, performance, security)
+            - Include non-functional requirements (performance, scalability, reliability, security)
+            - Define 2-4 measurable technical success metrics
             """
         else:
             base_prompt += """
             Generate BOTH Operational and Technical PRDs, ensuring consistency and shared traceability across parts.
             Include all PHASES and constraints.
+
+            TECHNICAL PRD REQUIREMENTS (for technical_prd section):
+            - Include 2-4 distinct technical objectives
+            - Define 3-6 system components with technology stack recommendations
+            - Specify 4-8 implementation requirements with effort estimates
+            - Include API specifications for key endpoints
+            - Define 3-5 test types (unit, integration, E2E, performance, security)
+            - Include non-functional requirements (performance, scalability, reliability, security)
+            - Define 2-4 measurable technical success metrics
             """
 
         # Strict JSON formatting with schema that preserves existing consumers and adds BRD/Blueprint containers
@@ -287,6 +454,9 @@ class PRDGenerationPrompts:
               "stakeholder_scenarios": [
                 {
                   "scenario": "As a [persona], I need [goal], so that [benefit]",
+                  "what": "The specific feature, capability, or solution element that addresses this need",
+                  "why": "The business value, user benefit, or problem being solved",
+                  "how": "High-level implementation approach or mechanism",
                   "acceptance_criteria": ["Given ...", "When ...", "Then ..."],
                   "justification": {
                     "linked_theme": "Name of high-impact theme or persona pain point",
@@ -365,18 +535,41 @@ class PRDGenerationPrompts:
           },
 
           "technical_prd": { // include if prd_type is "technical" or "both"
-            "objectives": [ { "title": "...", "description": "..." } ],
+            "objectives": [ // MUST include 2-4 technical objectives
+              { "title": "...", "description": "..." }
+            ],
             "scope": { "included": ["..."], "excluded": ["..."] },
             "architecture": {
               "overview": "High-level architecture/structure",
-              "components": [ { "name": "...", "purpose": "...", "interactions": ["..."] } ],
-              "data_flow": "..."
+              "components": [ // MUST include 3-6 components covering: data layer, business logic, integration, UI, security
+                { "name": "...", "purpose": "...", "interactions": ["..."], "technology_stack": "suggested technologies" }
+              ],
+              "data_flow": "Detailed description of how data flows through the system",
+              "security_considerations": "Authentication, authorization, encryption requirements"
             },
-            "implementation_requirements": [
-              { "id": "TECH-001", "title": "...", "description": "...", "priority": "High|Medium|Low", "dependencies": ["..."] }
+            "implementation_requirements": [ // MUST include 4-8 technical requirements
+              {
+                "id": "TECH-001",
+                "title": "...",
+                "description": "Detailed technical requirement",
+                "priority": "High|Medium|Low",
+                "dependencies": ["..."],
+                "effort_estimate": "Small|Medium|Large",
+                "technical_notes": "Implementation guidance or considerations"
+              }
             ],
-            "testing_validation": [ { "test_type": "...", "description": "...", "success_criteria": "..." } ],
-            "success_metrics": [ { "metric": "...", "target": "...", "measurement_method": "..." } ]
+            "api_specifications": [ // Include key API endpoints if applicable
+              { "endpoint": "/api/...", "method": "GET|POST|PUT|DELETE", "purpose": "...", "request_body": "...", "response": "..." }
+            ],
+            "testing_validation": [ // MUST include 3-5 test types
+              { "test_type": "Unit|Integration|E2E|Performance|Security", "description": "...", "success_criteria": "...", "coverage_target": "percentage or scope" }
+            ],
+            "non_functional_requirements": [ // Include NFRs
+              { "category": "Performance|Scalability|Reliability|Security", "requirement": "...", "target": "...", "measurement": "..." }
+            ],
+            "success_metrics": [ // MUST include 2-4 technical metrics
+              { "metric": "...", "target": "...", "measurement_method": "..." }
+            ]
           }
         }
 

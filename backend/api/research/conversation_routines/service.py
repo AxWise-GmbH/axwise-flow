@@ -37,8 +37,10 @@ class ConversationRoutineService:
 
     def __init__(self):
         # Initialize GeminiService with default config
+        # Use GEMINI_MODEL from environment if available, otherwise default to gemini-3.0-flash-preview
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.0-flash-preview")
         llm_config = {
-            "model": "gemini-2.5-flash",  # Use consistent model name without "models/" prefix
+            "model": model_name,
             "temperature": 0.7,
             "max_tokens": 16000,
         }
@@ -58,7 +60,7 @@ class ConversationRoutineService:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("gemini-2.5-flash", provider=provider)
+        model = GoogleModel("gemini-3.0-flash-preview", provider=provider)
         logger.info("[CONVERSATION_ROUTINES] Initialized GoogleModel for PydanticAI agent")
         return model
 
@@ -225,7 +227,7 @@ class ConversationRoutineService:
                 """
 
                 response_data = await self.llm_service.analyze(
-                    text=extraction_prompt,
+                    extraction_prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={"temperature": 0.1, "max_tokens": 500},
                 )
@@ -302,7 +304,7 @@ Return ONLY a JSON array of 3 strings.
 JSON array:
 """
             response_data = await self.llm_service.analyze(
-                text=prompt,
+                prompt,  # positional argument (text_or_payload)
                 task="text_generation",
                 data={"temperature": 0.0, "max_tokens": 180},
             )
@@ -404,7 +406,6 @@ JSON array:
             logger.info(
                 f"✅ Generated questions for {len(stakeholder_data.get('primary', []))} primary + {len(stakeholder_data.get('secondary', []))} secondary stakeholders"
             )
-            logger.info(f"🔍 Returning questions data: {list(result.keys())}")
             return result
 
         except Exception as e:
@@ -448,7 +449,7 @@ JSON array:
             """
 
             response_data = await self.llm_service.analyze(
-                text=extraction_prompt,
+                extraction_prompt,  # positional argument (text_or_payload)
                 task="text_generation",
                 data={"temperature": 0.1, "max_tokens": 500},
             )
@@ -630,7 +631,7 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                 logger.error(f"🔴 Agent execution failed: {e}")
                 # Fallback to direct LLM call
                 response_data = await self.llm_service.analyze(
-                    text=full_prompt,
+                    full_prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={"temperature": 0.7, "max_tokens": 1000},
                 )
@@ -682,7 +683,7 @@ Current business idea (if any): {context.business_idea or 'N/A'}
 Question:
 """
                     repair = await self.llm_service.analyze(
-                        text=repair_prompt,
+                        repair_prompt,  # positional argument (text_or_payload)
                         task="text_generation",
                         data={"temperature": 0.2, "max_tokens": 60},
                     )
@@ -763,13 +764,13 @@ Question:
             if (
                 user_wants_questions or should_auto_generate or response_has_questions
             ) and not questions_generated:
-                logger.info("🎯 User explicitly requested questions - generating...")
+                logger.info("🎯 Entering question generation block")
                 # Only generate if the agent didn't already handle it
                 questions_generated = True
                 extracted_context = await self._extract_conversation_context_tool(
                     conversation_history
                 )
-                logger.info(f"📋 Extracted context: {extracted_context}")
+                logger.info(f"📋 Extracted context for question generation: {list(extracted_context.keys())}")
 
                 if (
                     extracted_context.get("business_idea")
@@ -786,9 +787,6 @@ Question:
                             problem=extracted_context["problem"],
                             location=extracted_context.get("location"),
                         )
-                    )
-                    logger.info(
-                        f"🎯 Generated questions result: {type(generated_questions)} - {list(generated_questions.keys()) if generated_questions else 'None'}"
                     )
 
                     # Validate V3 Enhanced format to avoid frontend processing errors
@@ -860,7 +858,7 @@ Business idea: {context.business_idea or 'N/A'}
 Question:
 """
                         fu = await self.llm_service.analyze(
-                            text=followup_prompt,
+                            followup_prompt,  # positional argument (text_or_payload)
                             task="text_generation",
                             data={"temperature": 0.2, "max_tokens": 60},
                         )
@@ -912,6 +910,15 @@ Question:
                     "exchange_count": context.exchange_count,
                     "fatigue_signals": context.user_fatigue_signals,
                     "full_prompt": full_prompt,
+                    # Add extracted_context for frontend Research Progress panel
+                    "extracted_context": {
+                        "business_idea": context.business_idea,
+                        "target_customer": context.target_customer,
+                        "problem": context.problem,
+                        "industry": context.industry,
+                        "location": getattr(context, "location", None),
+                        "questions_generated": questions_generated,
+                    },
                 },
                 session_id=request.session_id,
             )
@@ -919,8 +926,6 @@ Question:
             logger.info(
                 f"✅ Conversation routine completed - Questions generated: {questions_generated}"
             )
-            logger.info(f"🔍 Generated questions data: {generated_questions}")
-            logger.info(f"📋 Response questions field: {response.questions}")
             return response
 
         except Exception as e:
@@ -1147,7 +1152,7 @@ Return only a JSON array of 3 strings, each 5-10 words max. Make them specific u
 JSON array:"""
 
             response_data = await self.llm_service.analyze(
-                text=prompt,
+                prompt,  # positional argument (text_or_payload)
                 task="text_generation",
                 data={"temperature": 0.3, "max_tokens": 150},
             )
@@ -1209,7 +1214,7 @@ Context: {conversation_context}
 JSON array:"""
 
                 response_data = await self.llm_service.analyze(
-                    text=prompt,
+                    prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={"temperature": 0, "max_tokens": 150},
                 )
@@ -1247,7 +1252,7 @@ Business: {context.business_idea}
 JSON array:"""
 
                 response_data = await self.llm_service.analyze(
-                    text=prompt,
+                    prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={"temperature": 0.3, "max_tokens": 150},
                 )
@@ -1288,7 +1293,7 @@ Return ONLY a valid JSON array of 3 strings. Each string should be 5-12 words de
 
 JSON array:"""
                 response_data = await self.llm_service.analyze(
-                    text=prompt,
+                    prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={
                         "temperature": 0.3,
@@ -1362,7 +1367,7 @@ Format them as short user responses (2-5 words), like examples:
 Return ONLY a JSON array of 3 strings.
 JSON array:"""
                 response_data = await self.llm_service.analyze(
-                    text=prompt,
+                    prompt,  # positional argument (text_or_payload)
                     task="text_generation",
                     data={"temperature": 0.2, "max_tokens": 120},
                 )
@@ -1378,50 +1383,6 @@ JSON array:"""
                     except json.JSONDecodeError:
                         pass
                 return ["Location: Germany", "Market: DACH region", "City: Berlin"]
-
-                response_text = response_data.get("text", "")
-                logger.info(f"🔍 Problem suggestions raw response: {response_text}")
-
-                # Try multiple JSON extraction methods
-                suggestions = []
-
-                # Method 1: Direct JSON array extraction
-                json_match = re.search(r"\[.*?\]", response_text, re.DOTALL)
-                if json_match:
-                    try:
-                        suggestions = json.loads(json_match.group())
-                        logger.info(
-                            f"✅ Generated problem suggestions (method 1): {suggestions}"
-                        )
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"⚠️ JSON parsing failed (method 1): {e}")
-
-                # Method 2: Extract from markdown code blocks
-                if not suggestions:
-                    code_block_match = re.search(
-                        r"```(?:json)?\s*(\[.*?\])\s*```", response_text, re.DOTALL
-                    )
-                    if code_block_match:
-                        try:
-                            suggestions = json.loads(code_block_match.group(1))
-                            logger.info(
-                                f"✅ Generated problem suggestions (method 2): {suggestions}"
-                            )
-                        except json.JSONDecodeError as e:
-                            logger.warning(f"⚠️ JSON parsing failed (method 2): {e}")
-
-                # Method 3: Fallback to manual extraction
-                if not suggestions:
-                    logger.warning(
-                        "⚠️ JSON extraction failed, using fallback problem suggestions"
-                    )
-                    suggestions = [
-                        f"Challenges with {context.target_customer} needs",
-                        f"Pain points in {context.business_idea} area",
-                        f"Problems {context.target_customer} currently face",
-                    ]
-
-                return suggestions[:3]
 
             else:
                 # All context gathered - validation stage suggestions
@@ -1472,7 +1433,7 @@ JSON array:"""
                 ]
 
             response_data = await self.llm_service.analyze(
-                text=fallback_prompt,
+                fallback_prompt,  # positional argument (text_or_payload)
                 task="text_generation",
                 data={"temperature": 0.3, "max_tokens": 100},
             )

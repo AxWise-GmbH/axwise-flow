@@ -227,7 +227,7 @@ USER Messages:
 Return only valid JSON, no other text:"""
 
             response_data = await llm_service.analyze(
-                text=extraction_prompt,
+                extraction_prompt,  # positional argument (text_or_payload)
                 task="text_generation",
                 data={"temperature": 0.1, "max_tokens": 200},
             )
@@ -256,7 +256,13 @@ Return only valid JSON, no other text:"""
                     f"🔍 Context extraction result: business_idea='{context.business_idea}', target_customer='{context.target_customer}', problem='{context.problem}', industry='{context.industry}', location='{context.location}'"
                 )
 
-        except Exception:
+        except Exception as e:
+            # Log the error for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"🔴 Context extraction failed: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"🔴 Traceback: {traceback.format_exc()}")
             # Fallback: just count exchanges
             pass
 

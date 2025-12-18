@@ -121,7 +121,7 @@ class StakeholderAnalysisService:
 
             # QUALITY OPTIMIZATION: Use Gemini 2.5 Flash for speed and quality balance
             provider = GoogleProvider(api_key=api_key)
-            gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
+            gemini_model = GoogleModel("gemini-3.0-flash-preview", provider=provider)
             logger.info(
                 "[QUALITY] Initialized Gemini 2.5 Flash for high-quality stakeholder analysis"
             )

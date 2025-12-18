@@ -69,7 +69,7 @@ class StakeholderReportAssembler:
             provider = GoogleProvider(api_key=api_key)
             # Create multi-stakeholder summary agent
             self.summary_agent = Agent(
-                model=GoogleModel("gemini-2.5-flash", provider=provider),
+                model=GoogleModel("gemini-3.0-flash-preview", provider=provider),
                 output_type=SummaryLLMOutput,
                 system_prompt=self._get_summary_generation_prompt(),
                 **extra_kwargs,

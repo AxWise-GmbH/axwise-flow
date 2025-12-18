@@ -229,7 +229,7 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
               Product Requirements Document
             </CardTitle>
             <CardDescription>
-              AI-generated PRD from analysis of {prdData.prd_data.metadata?.generated_from.themes_count || 0} themes, {prdData.prd_data.metadata?.generated_from.patterns_count || 0} patterns, and {prdData.prd_data.metadata?.generated_from.insights_count || 0} insights
+              AI-generated PRD from analysis of {prdData.prd_data.metadata?.generated_from.themes_count || 0} themes, {prdData.prd_data.metadata?.generated_from.patterns_count || 0} patterns, {prdData.prd_data.metadata?.generated_from.insights_count || 0} insights, and {prdData.prd_data.metadata?.generated_from.personas_count || 0} personas
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -242,6 +242,9 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
               </Badge>
               <Badge variant="outline" className="bg-primary/10">
                 {prdData.prd_data.metadata?.generated_from.insights_count || 0} Insights
+              </Badge>
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                {prdData.prd_data.metadata?.generated_from.personas_count || 0} Personas
               </Badge>
             </div>
             <div className="flex gap-2">
@@ -387,8 +390,84 @@ function OperationalPRDContent({ prd, getPriorityColorClass }: { prd: Operationa
         </div>
       )}
 
-      {/* User Stories (What/Why/How + Justification) */}
-      {enrichedUserStories && enrichedUserStories.length > 0 && (
+      {/* Stakeholder Scenarios (primary user stories from BRD) */}
+      {stakeholderScenarios && stakeholderScenarios.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Stakeholder Scenarios
+          </h3>
+          <Accordion type="single" collapsible className="w-full">
+            {stakeholderScenarios.map((scenario: any, index: number) => (
+              <AccordionItem key={index} value={`scenario-${index}`}>
+                <AccordionTrigger className="text-left">
+                  {scenario.scenario}
+                </AccordionTrigger>
+                <AccordionContent>
+                  {/* What / Why / How */}
+                  {(scenario.what || scenario.why || scenario.how) && (
+                    <div className="grid md:grid-cols-3 gap-3 text-sm pb-3">
+                      <div>
+                        <span className="font-medium">What:</span> {scenario.what || '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Why:</span> {scenario.why || '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">How:</span> {scenario.how || '—'}
+                      </div>
+                    </div>
+                  )}
+
+                  {Array.isArray(scenario.acceptance_criteria) && scenario.acceptance_criteria.length > 0 && (
+                    <div className="pt-1 pb-3">
+                      <h4 className="font-medium mb-1">Acceptance Criteria</h4>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {scenario.acceptance_criteria.map((ac: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{ac}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {scenario.justification && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
+                      <div>
+                        <h4 className="font-medium mb-1 mt-2">Linked Theme</h4>
+                        <p className="text-sm text-muted-foreground">{scenario.justification.linked_theme}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-1 mt-2">Impact</h4>
+                        <Badge variant="outline" className={getPriorityColorClass(scenario.justification.impact_score)}>
+                          {scenario.justification.impact_score}
+                        </Badge>
+                        {scenario.justification.frequency && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            Frequency: {typeof scenario.justification.frequency === 'number'
+                              ? (scenario.justification.frequency * 100).toFixed(0) + '%'
+                              : scenario.justification.frequency}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-1 mt-2">Evidence</h4>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {(scenario.justification.evidence_quotes || []).map((q: string, qi: number) => (
+                            <li key={qi} className="text-sm text-muted-foreground italic">&quot;{q}&quot;</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      )}
+
+      {/* User Stories (summary - shown if no stakeholder scenarios or as supplement) */}
+      {enrichedUserStories && enrichedUserStories.length > 0 && (!stakeholderScenarios || stakeholderScenarios.length === 0) && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -528,15 +607,15 @@ function OperationalPRDContent({ prd, getPriorityColorClass }: { prd: Operationa
         )
       )}
 
-      {/* Success Metrics */}
-      {prd.success_metrics && prd.success_metrics.length > 0 && (
+      {/* Success Metrics - prefer BRD metrics which are richer */}
+      {successMetrics && successMetrics.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Lightbulb className="h-5 w-5" />
             Success Metrics
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
-            {prd.success_metrics.map((metric, index) => (
+            {successMetrics.map((metric: any, index: number) => (
               <div key={index} className="border rounded-lg p-4 bg-muted/30 dark:bg-slate-800/50">
                 <h4 className="font-medium mb-1">{metric.metric}</h4>
                 <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">{metric.target}</p>
@@ -630,11 +709,17 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
                   <div key={index} className="border rounded-lg p-4">
                     <h5 className="font-medium mb-2">{component.name}</h5>
                     <p className="text-sm text-muted-foreground mb-2">{component.purpose}</p>
+                    {(component as { technology_stack?: string }).technology_stack && (
+                      <div className="mb-2">
+                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Tech Stack: </span>
+                        <span className="text-xs text-muted-foreground">{(component as { technology_stack?: string }).technology_stack}</span>
+                      </div>
+                    )}
                     {component.interactions && component.interactions.length > 0 && (
                       <div>
                         <span className="text-xs font-medium text-muted-foreground">Interactions:</span>
                         <ul className="text-xs text-muted-foreground mt-1">
-                          {component.interactions.map((interaction, i) => (
+                          {component.interactions.map((interaction: string, i: number) => (
                             <li key={i}>• {interaction}</li>
                           ))}
                         </ul>
@@ -643,6 +728,16 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Security Considerations */}
+          {(prd.architecture as { security_considerations?: string }).security_considerations && (
+            <div className="border rounded-lg p-4 mt-4 bg-amber-50/50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <span className="text-amber-600 dark:text-amber-400">🔒</span> Security Considerations
+              </h4>
+              <p className="text-sm text-muted-foreground">{(prd.architecture as { security_considerations?: string }).security_considerations}</p>
             </div>
           )}
 
@@ -660,25 +755,94 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
         <div>
           <h3 className="text-lg font-semibold mb-3">Implementation Requirements</h3>
           <div className="space-y-3">
-            {prd.implementation_requirements.map((req, index) => (
+            {prd.implementation_requirements.map((req: { id: string; title: string; description: string; priority: string; dependencies?: string[]; effort_estimate?: string; technical_notes?: string }, index: number) => (
               <div key={index} className={`border rounded-lg p-4 ${getPriorityColorClass(req.priority)}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-mono text-sm">{req.id}</span>
-                  <Badge variant="outline" className="bg-white dark:bg-slate-800 dark:border-slate-700">
-                    {req.priority} Priority
-                  </Badge>
+                  <div className="flex gap-2">
+                    {req.effort_estimate && (
+                      <Badge variant="secondary" className="text-xs">
+                        {req.effort_estimate} Effort
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="bg-white dark:bg-slate-800 dark:border-slate-700">
+                      {req.priority} Priority
+                    </Badge>
+                  </div>
                 </div>
                 <h4 className="font-medium mb-2">{req.title}</h4>
                 <p className="text-sm text-muted-foreground mb-2">{req.description}</p>
+                {req.technical_notes && (
+                  <div className="bg-blue-50/50 dark:bg-blue-900/20 rounded p-2 mb-2">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Technical Notes: </span>
+                    <span className="text-xs text-muted-foreground">{req.technical_notes}</span>
+                  </div>
+                )}
                 {req.dependencies && req.dependencies.length > 0 && (
                   <div>
                     <span className="text-xs font-medium text-muted-foreground">Dependencies:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {req.dependencies.map((dep, i) => (
+                      {req.dependencies.map((dep: string, i: number) => (
                         <Badge key={i} variant="secondary" className="text-xs">{dep}</Badge>
                       ))}
                     </div>
                   </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* API Specifications */}
+      {(prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications &&
+       (prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            API Specifications
+          </h3>
+          <div className="space-y-3">
+            {(prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.map((api, index: number) => (
+              <div key={index} className="border rounded-lg p-4 font-mono text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant={api.method === 'GET' ? 'secondary' : api.method === 'POST' ? 'default' : 'outline'} className="text-xs">
+                    {api.method}
+                  </Badge>
+                  <span className="font-medium">{api.endpoint}</span>
+                </div>
+                <p className="text-xs text-muted-foreground font-sans mb-2">{api.purpose}</p>
+                {api.request_body && (
+                  <div className="bg-muted/30 dark:bg-slate-800/50 rounded p-2 mb-1">
+                    <span className="text-xs font-sans font-medium">Request: </span>
+                    <span className="text-xs">{api.request_body}</span>
+                  </div>
+                )}
+                {api.response && (
+                  <div className="bg-green-50/50 dark:bg-green-900/20 rounded p-2">
+                    <span className="text-xs font-sans font-medium text-green-700 dark:text-green-300">Response: </span>
+                    <span className="text-xs">{api.response}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Non-Functional Requirements */}
+      {(prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements &&
+       (prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Non-Functional Requirements</h3>
+          <div className="grid md:grid-cols-2 gap-3">
+            {(prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.map((nfr, index: number) => (
+              <div key={index} className="border rounded-lg p-4">
+                <Badge variant="outline" className="mb-2 text-xs">{nfr.category}</Badge>
+                <p className="text-sm font-medium mb-1">{nfr.requirement}</p>
+                <p className="text-xs text-green-700 dark:text-green-300">Target: {nfr.target}</p>
+                {nfr.measurement && (
+                  <p className="text-xs text-muted-foreground mt-1">Measurement: {nfr.measurement}</p>
                 )}
               </div>
             ))}
@@ -691,9 +855,14 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
         <div>
           <h3 className="text-lg font-semibold mb-3">Testing & Validation</h3>
           <div className="space-y-3">
-            {prd.testing_validation.map((test, index) => (
+            {prd.testing_validation.map((test: { test_type: string; description: string; success_criteria: string; coverage_target?: string }, index: number) => (
               <div key={index} className="border rounded-lg p-4">
-                <h4 className="font-medium mb-2">{test.test_type}</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium">{test.test_type}</h4>
+                  {test.coverage_target && (
+                    <Badge variant="secondary" className="text-xs">Coverage: {test.coverage_target}</Badge>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground mb-2">{test.description}</p>
                 <div className="bg-muted/30 dark:bg-slate-800/50 rounded p-2">
                   <span className="text-xs font-medium">Success Criteria:</span>
@@ -713,7 +882,7 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
             Technical Success Metrics
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
-            {prd.success_metrics.map((metric, index) => (
+            {prd.success_metrics.map((metric: { metric: string; target: string; measurement_method: string }, index: number) => (
               <div key={index} className="border rounded-lg p-4 bg-muted/30 dark:bg-slate-800/50">
                 <h4 className="font-medium mb-1">{metric.metric}</h4>
                 <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">{metric.target}</p>

@@ -924,7 +924,27 @@ class NLPProcessor:
                 # This allows the pipeline to proceed even if there's an error in the completeness check
                 logger.info("Continuing despite error in completeness check")
 
-            # Generate insights using the results from parallel analysis
+            # ========================================================================
+            # PERSONA GENERATION - Generate personas BEFORE insights so insights can
+            # reference them. This enables cross-referencing between insights and personas.
+            # ========================================================================
+            logger.info("👥 [PIPELINE] Starting persona generation (before insights)")
+
+            personas_result = await self._generate_personas(
+                combined_text=combined_text,
+                industry=industry,
+                llm_service=llm_service,
+                progress_callback=progress_callback,
+            )
+
+            logger.info(f"👥 [PIPELINE] Persona generation complete: {len(personas_result)} personas")
+            if personas_result:
+                persona_names = [p.get('name', 'Unnamed') for p in personas_result]
+                logger.info(f"👥 [PIPELINE] Persona names: {persona_names}")
+
+            # ========================================================================
+            # INSIGHT GENERATION - Now with access to themes, patterns, AND personas
+            # ========================================================================
             insight_start_time = asyncio.get_event_loop().time()
 
             # Update progress: Starting insight generation
@@ -951,13 +971,15 @@ class NLPProcessor:
                 total_statements = sum(len(t.get('statements', [])) for t in themes_for_insights)
                 logger.info(f"[INSIGHT_PREP] Total statements across themes: {total_statements}")
 
-            # Create insight generation payload with filename if available
+            # Create insight generation payload with ALL available context
+            # Now includes personas for cross-referencing
             insight_payload = {
                 "task": "insight_generation",
                 "text": combined_text,
                 "themes": themes_for_insights,
                 "patterns": patterns_result.get("patterns", []),
                 "sentiment": processed_sentiment,
+                "personas": personas_result,  # NEW: Include personas for cross-referencing
             }
 
             # Add filename to payload if available
@@ -966,6 +988,8 @@ class NLPProcessor:
                 logger.info(
                     f"Adding filename to insight generation payload: {filename}"
                 )
+
+            logger.info(f"[INSIGHT_PREP] Insight payload includes {len(personas_result)} personas for cross-referencing")
 
             insights_result = await llm_service.analyze(insight_payload)
 
@@ -1094,12 +1118,14 @@ class NLPProcessor:
                 logger.warning(f"[THEME_DOC_ATTR] Failed to attribute theme statements to documents: {_e}")
 
             # Combine results with enhanced themes as the primary themes
+            # NOTE: personas_result was generated BEFORE insights, so insights can cross-reference them
             results = {
                 "themes": enhanced_themes,  # Use enhanced themes as the primary themes
                 "enhanced_themes": enhanced_themes,  # Also include enhanced_themes for backward compatibility
                 "patterns": patterns_result.get("patterns", []),
                 "sentiment": processed_sentiment,
                 "insights": insights_result.get("insights", []),
+                "personas": personas_result,  # Include personas generated earlier in the pipeline
                 "validation": {"valid": True, "confidence": 0.9, "details": None},
                 "original_text": combined_text,  # Store original text for later use
                 "industry": industry,  # Add detected industry to the result
@@ -1810,6 +1836,191 @@ class NLPProcessor:
             # Catch any unexpected errors to prevent 500 responses
             logger.error(f"Unexpected error processing sentiment results: {str(e)}")
             return {"positive": [], "neutral": [], "negative": []}
+
+
+    async def _generate_personas(
+        self,
+        combined_text: str,
+        industry: str,
+        llm_service,
+        progress_callback=None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate personas from interview text.
+
+        This is extracted as a separate method to allow personas to be generated
+        BEFORE insight generation, so insights can reference personas.
+
+        Args:
+            combined_text: The combined interview text
+            industry: Detected industry
+            llm_service: LLM service for generation
+            progress_callback: Optional progress callback
+
+        Returns:
+            List of persona dictionaries
+        """
+        # Helper for progress updates
+        async def update_progress(stage: str, progress: float, message: str):
+            if progress_callback:
+                try:
+                    await progress_callback(stage, progress, message)
+                except Exception as e:
+                    logger.warning(f"Error updating progress: {str(e)}")
+
+        try:
+            await update_progress(
+                "PERSONA_FORMATION", 0.65, "Starting persona formation"
+            )
+
+            logger.info("👥 [PERSONA_GEN] Starting persona generation")
+
+            # Import the enhanced persona formation service
+            from backend.services.processing.persona_formation_service import (
+                PersonaFormationService,
+            )
+
+            # Create a minimal config for the persona service
+            class MinimalConfig:
+                def __init__(self):
+                    self.validation = type(
+                        "obj", (object,), {"min_confidence": 0.4}
+                    )
+                    self.llm = type("obj", (object,), {"api_key": None})
+
+            # Create persona service with proper constructor
+            config = MinimalConfig()
+            persona_service = PersonaFormationService(config, llm_service)
+
+            # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
+            logger.info(
+                "👥 [PERSONA_GEN] Checking for stakeholder-aware content structure"
+            )
+
+            # Try to detect stakeholder structure in the raw text
+            stakeholder_segments = self._detect_stakeholder_structure(combined_text)
+            logger.info(
+                f"👥 [PERSONA_GEN] Stakeholder detection result: {stakeholder_segments is not None}"
+            )
+
+            enable_ms = (
+                os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
+            )
+
+            if stakeholder_segments and enable_ms:
+                logger.info(
+                    f"👥 [PERSONA_GEN] Detected {len(stakeholder_segments)} stakeholder categories"
+                )
+                logger.info(
+                    f"👥 [PERSONA_GEN] Categories: {list(stakeholder_segments.keys())}"
+                )
+
+                # Use stakeholder-aware persona formation
+                logger.info(
+                    "👥 [PERSONA_GEN] Starting stakeholder-aware persona formation..."
+                )
+                personas_list = (
+                    await persona_service.form_personas_by_stakeholder(
+                        stakeholder_segments,
+                        context={
+                            "industry": industry,
+                            "original_text": combined_text,
+                            "processing_method": "stakeholder_aware",
+                        },
+                    )
+                )
+                logger.info(
+                    f"👥 [PERSONA_GEN] Generated {len(personas_list)} stakeholder-aware personas"
+                )
+            else:
+                # ENHANCED PERSONA FORMATION: Use improved pipeline with built-in quality validation
+                logger.info(
+                    "👥 [PERSONA_GEN] No stakeholder structure detected, using standard persona formation"
+                )
+
+                # Use the full persona service with transcript structuring
+                logger.info(
+                    "👥 [PERSONA_GEN] Starting standard persona formation..."
+                )
+                personas_list = (
+                    await persona_service.generate_persona_from_text(
+                        text=combined_text,
+                        context={
+                            "industry": industry,
+                            "original_text": combined_text,
+                        },
+                    )
+                )
+                logger.info(
+                    f"👥 [PERSONA_GEN] Standard persona formation completed: {len(personas_list)} personas"
+                )
+
+            # Process the result
+            if personas_list and isinstance(personas_list, list):
+                personas = personas_list
+                logger.info(
+                    f"👥 [PERSONA_GEN] Successfully generated {len(personas)} personas: {[p.get('name', 'Unnamed') for p in personas]}"
+                )
+            else:
+                logger.warning(
+                    f"👥 [PERSONA_GEN] Unexpected personas_list result: {type(personas_list)}"
+                )
+                personas = []
+
+            # Validate personas
+            if personas and isinstance(personas, list) and len(personas) > 0:
+                logger.info(f"👥 [PERSONA_GEN] Validating {len(personas)} personas")
+
+                # Check structure of first persona
+                first_persona = personas[0]
+                if isinstance(first_persona, dict):
+                    logger.info(
+                        f"👥 [PERSONA_GEN] First persona keys: {list(first_persona.keys())}"
+                    )
+
+                    # Make sure it has the required fields
+                    required_fields = ["name", "description"]
+                    missing_fields = [
+                        field
+                        for field in required_fields
+                        if field not in first_persona
+                    ]
+                    if missing_fields:
+                        logger.warning(
+                            f"👥 [PERSONA_GEN] Persona missing required fields: {missing_fields}"
+                        )
+                        # Fill in missing fields
+                        for field in missing_fields:
+                            first_persona[field] = {
+                                "value": f"Unknown {field.replace('_', ' ')}",
+                                "confidence": 0.5,
+                                "evidence": [
+                                    "Generated as fallback due to missing field"
+                                ],
+                            }
+                else:
+                    logger.warning(
+                        f"👥 [PERSONA_GEN] First persona is not a dictionary: {type(first_persona)}"
+                    )
+            else:
+                logger.warning("👥 [PERSONA_GEN] Generated personas list is empty or invalid")
+                personas = []
+
+            await update_progress(
+                "PERSONA_FORMATION", 0.68, f"Generated {len(personas)} personas"
+            )
+
+            logger.info(f"👥 [PERSONA_GEN] Returning {len(personas)} personas")
+            return personas
+
+        except Exception as e:
+            logger.error(f"👥 [PERSONA_GEN] Error generating personas: {str(e)}")
+            await update_progress(
+                "PERSONA_FORMATION",
+                0.68,
+                "Error generating personas, continuing with empty list",
+            )
+            return []
 
     def _preprocess_transcript_for_sentiment(self, text):
         """Preprocess transcript to make Q&A pairs more identifiable"""

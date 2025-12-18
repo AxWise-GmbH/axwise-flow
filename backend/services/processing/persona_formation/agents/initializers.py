@@ -20,8 +20,8 @@ def initialize_pydantic_ai_agent() -> tuple[Any, bool]:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
-        logger.info("[QUALITY] Initialized Gemini 2.5 Flash model for high-quality persona generation")
+        gemini_model = GoogleModel("models/gemini-3.0-flash-preview", provider=provider)
+        logger.info("[QUALITY] Initialized Gemini 3 Flash Preview model for high-quality persona generation")
 
         # Import here to avoid import cycles
         from backend.models.enhanced_persona_models import SimplifiedPersonaModel
@@ -65,8 +65,8 @@ def initialize_production_persona_agent() -> tuple[Any, bool]:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
-        logger.info("[PRODUCTION_PERSONA] Initialized Gemini 2.5 Flash model")
+        gemini_model = GoogleModel("models/gemini-3.0-flash-preview", provider=provider)
+        logger.info("[PRODUCTION_PERSONA] Initialized Gemini 3 Flash Preview model")
 
         from backend.domain.models.production_persona import ProductionPersona
 
@@ -114,8 +114,8 @@ def initialize_direct_persona_agent() -> tuple[Any, bool]:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
-        logger.info("[DIRECT_PERSONA] Initialized Gemini 2.5 Flash model")
+        gemini_model = GoogleModel("models/gemini-3.0-flash-preview", provider=provider)
+        logger.info("[DIRECT_PERSONA] Initialized Gemini 3 Flash Preview model")
 
         from backend.models.enhanced_persona_models import DirectPersona
 

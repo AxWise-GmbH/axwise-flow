@@ -156,7 +156,7 @@ app = FastAPI(
 
     Available LLM providers and models:
     - OpenAI: gpt-4o-2024-08-06
-    - Google: models/gemini-2.5-flash-preview-04-17 (Gemini 2.5 Flash)
+    - Google: models/gemini-3.0-flash-preview-preview-04-17 (Gemini 2.5 Flash)
 
     Authentication:
     - All endpoints (except /health) require Bearer token authentication

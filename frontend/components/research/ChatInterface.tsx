@@ -82,22 +82,41 @@ export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfa
     if (!shouldPrefetch) return;
 
     const controller = new AbortController();
-    const fallback = [
-      'Venture studios in the UK using AI to speed up discovery for partners burdened by weeks of manual research',
-      'Research automation for B2B SaaS product teams in the DACH region struggling with stakeholder mapping',
-      'Questionnaire generator for fintech founders in Berlin to accelerate interview planning'
+    // Error suggestions that inform the user about the issue
+    const errorSuggestions = [
+      '⚠️ Backend service unavailable - check if the server is running',
+      '🔧 Check your API key configuration in .env file',
+      '📡 Verify network connection to localhost:8000'
     ];
 
     (async () => {
       try {
         const res = await fetch('/api/research/conversation-routines/suggestions?prefer_regions=UK,DACH,EU', { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('[Suggestions] API error:', res.status, errorData?.message || res.statusText);
+          // Show error suggestions that inform the user
+          actions.setCurrentSuggestions(errorSuggestions);
+          return;
+        }
         const data = await res.json();
-        const suggestions = Array.isArray(data?.suggestions) && data.suggestions.length > 0 ? data.suggestions.slice(0,3) : fallback;
-        actions.setCurrentSuggestions(suggestions);
-      } catch (e) {
-        console.warn('[Suggestions] Prefetch failed, using fallback', e);
-        actions.setCurrentSuggestions(fallback);
+        if (Array.isArray(data?.suggestions) && data.suggestions.length > 0) {
+          actions.setCurrentSuggestions(data.suggestions.slice(0, 3));
+        } else if (data?.error || data?.message) {
+          // Backend returned error in response body
+          console.error('[Suggestions] Backend error:', data.message || data.error);
+          actions.setCurrentSuggestions(errorSuggestions);
+        } else {
+          // Empty suggestions from backend - this is unexpected
+          console.warn('[Suggestions] Backend returned empty suggestions');
+          actions.setCurrentSuggestions(['Type your business idea to get started...']);
+        }
+      } catch (e: any) {
+        const isAbort = e?.name === 'AbortError';
+        if (!isAbort) {
+          console.error('[Suggestions] Prefetch failed:', e?.message || e);
+          actions.setCurrentSuggestions(errorSuggestions);
+        }
       }
     })();
 
