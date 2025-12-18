@@ -27,7 +27,7 @@ from backend.api.precall.models import (
 logger = logging.getLogger(__name__)
 
 # Default model for PRECALL agents - Using Gemini 2.5 Flash for speed and quality
-DEFAULT_MODEL = "gemini-3.0-flash-preview"
+DEFAULT_MODEL = "gemini-3-flash-preview"
 
 
 def get_gemini_model() -> GoogleModel:

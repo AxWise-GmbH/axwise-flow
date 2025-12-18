@@ -2182,9 +2182,9 @@ Double-check your JSON for missing commas before responding.
 
     def get_pydantic_ai_model(self) -> str:
         """Get PydanticAI compatible model string for Google Gemini"""
-        # PydanticAI now supports gemini-3.0-flash-preview directly, no mapping needed
+        # PydanticAI now supports gemini-3-flash-preview directly, no mapping needed
         # Based on PydanticAI docs: https://ai.pydantic.dev/api/models/gemini/
-        # LatestGeminiModelNames includes "gemini-3.0-flash-preview" natively
+        # LatestGeminiModelNames includes "gemini-3-flash-preview" natively
 
         # Return the model name as-is since PydanticAI supports it directly
         return self.default_model_name

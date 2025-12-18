@@ -37,8 +37,8 @@ class ConversationRoutineService:
 
     def __init__(self):
         # Initialize GeminiService with default config
-        # Use GEMINI_MODEL from environment if available, otherwise default to gemini-3.0-flash-preview
-        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.0-flash-preview")
+        # Use GEMINI_MODEL from environment if available, otherwise default to gemini-3-flash-preview
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3-flash-preview")
         llm_config = {
             "model": model_name,
             "temperature": 0.7,
@@ -60,7 +60,7 @@ class ConversationRoutineService:
             raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
 
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("gemini-3.0-flash-preview", provider=provider)
+        model = GoogleModel("gemini-3-flash-preview", provider=provider)
         logger.info("[CONVERSATION_ROUTINES] Initialized GoogleModel for PydanticAI agent")
         return model
 
