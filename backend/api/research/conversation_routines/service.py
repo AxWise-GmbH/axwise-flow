@@ -636,8 +636,9 @@ If you determine that questions should be generated, include "GENERATE_QUESTIONS
                     data={"temperature": 0.7, "max_tokens": 1000},
                 )
                 response_content = response_data.get("text", "")
-
-            # Questions variables are now initialized in the try block above
+                # Initialize questions variables for fallback path
+                questions_generated = False
+                generated_questions = None
 
             # Intercept premature validation prompts from the LLM when required fields are missing
             try:
@@ -706,6 +707,7 @@ Question:
                 "perfect",
                 "absolutely",
                 "yes that's correct",
+                "yes, that's correct",  # With comma (button text)
             ]
 
             is_validation_confirmation = (
@@ -744,15 +746,30 @@ Question:
             )
 
             # 2. User confirms validation and context is ready (explicit confirmation required)
+            # IMPORTANT: When user explicitly confirms validation, we should proceed even if
+            # context extraction didn't get all fields - the AI already validated the context
+            # and displayed a summary that the user confirmed
             should_auto_generate = (
                 is_validation_confirmation
                 and context.should_transition_to_questions()
                 and not user_wants_to_expand
-                and bool(getattr(context, "location", None))
             )
 
+            # ADDITIONAL: If user confirms but strict validation fails, still try to generate
+            # This handles cases where LLM extraction missed some fields but the AI's summary was correct
+            user_confirmed_should_generate = (
+                is_validation_confirmation
+                and not user_wants_to_expand
+                and context.business_idea  # At minimum, need business idea
+            )
+
+            # Log for debugging
+            has_location = bool(getattr(context, "location", None))
             logger.info(
-                f"🔍 Question generation check: user_wants_questions={user_wants_questions}, should_auto_generate={should_auto_generate}, is_validation_confirmation={is_validation_confirmation}, questions_generated={questions_generated}"
+                f"🔍 Question generation check: user_wants_questions={user_wants_questions}, should_auto_generate={should_auto_generate}, user_confirmed_should_generate={user_confirmed_should_generate}, is_validation_confirmation={is_validation_confirmation}, questions_generated={questions_generated}, has_location={has_location}"
+            )
+            logger.info(
+                f"🔍 Context state: business_idea={bool(context.business_idea)}, target_customer={bool(context.target_customer)}, problem={bool(context.problem)}, should_transition={context.should_transition_to_questions()}"
             )
 
             # Also check if the response content indicates questions were generated
@@ -761,16 +778,49 @@ Question:
             )
 
             # Check if we should generate questions - ONLY with explicit user signals
+            # Include user_confirmed_should_generate to handle cases where strict validation fails
+            # but user explicitly confirmed the AI's summary
             if (
-                user_wants_questions or should_auto_generate or response_has_questions
+                user_wants_questions or should_auto_generate or user_confirmed_should_generate or response_has_questions
             ) and not questions_generated:
                 logger.info("🎯 Entering question generation block")
                 # Only generate if the agent didn't already handle it
                 questions_generated = True
-                extracted_context = await self._extract_conversation_context_tool(
-                    conversation_history
-                )
-                logger.info(f"📋 Extracted context for question generation: {list(extracted_context.keys())}")
+
+                # IMPORTANT: When user confirms validation, use the already-extracted context
+                # instead of re-extracting (which may fail to get all fields)
+                # The context was already validated when the AI asked "Is this correct?"
+                if is_validation_confirmation:
+                    logger.info("✅ User confirmed validation - using already extracted context")
+                    extracted_context = {
+                        "business_idea": context.business_idea,
+                        "target_customer": context.target_customer,
+                        "problem": context.problem,
+                        "industry": context.industry,
+                        "location": getattr(context, "location", None),
+                    }
+
+                    # If any required field is missing, try to extract from full conversation
+                    # (including assistant messages which contain the validated summary)
+                    if not all([extracted_context.get("business_idea"),
+                               extracted_context.get("target_customer"),
+                               extracted_context.get("problem")]):
+                        logger.info("⚠️ Some context fields missing after validation - re-extracting from full conversation")
+                        # Re-extract but this time the conversation_history includes the AI's validated summary
+                        fallback_context = await self._extract_conversation_context_tool(
+                            conversation_history
+                        )
+                        # Merge: prefer already-extracted values, fall back to new extraction
+                        for key in ["business_idea", "target_customer", "problem", "industry", "location"]:
+                            if not extracted_context.get(key) and fallback_context.get(key):
+                                extracted_context[key] = fallback_context[key]
+                                logger.info(f"  📝 Filled {key} from fallback: {fallback_context[key][:50] if fallback_context[key] else 'None'}...")
+                else:
+                    # For other triggers (explicit request, etc.), re-extract from messages
+                    extracted_context = await self._extract_conversation_context_tool(
+                        conversation_history
+                    )
+                logger.info(f"📋 Context for question generation: {extracted_context}")
 
                 if (
                     extracted_context.get("business_idea")

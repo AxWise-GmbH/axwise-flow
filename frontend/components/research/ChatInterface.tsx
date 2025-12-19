@@ -394,14 +394,18 @@ Ready for simulation bridge and interview analysis`;
   };
 
   // Session loading with unified system
+  // Track if fresh chat initialization has been done to prevent infinite loop
+  const freshChatInitRef = React.useRef(false);
+
   React.useEffect(() => {
     if (loadSessionId && !unifiedState.sessionLoading &&
         (!unifiedState.currentSession || unifiedState.currentSession.session_id !== loadSessionId)) {
       console.log('Loading session with unified system:', loadSessionId);
       unifiedActions.loadSession(loadSessionId);
-    } else if (!loadSessionId && !unifiedState.currentSession) {
+      freshChatInitRef.current = false; // Reset when loading a session
+    } else if (!loadSessionId && !unifiedState.currentSession && !freshChatInitRef.current) {
       console.log('No session to load, starting fresh chat');
-      // Ensure we have initial message for fresh chat
+      // Ensure we have initial message for fresh chat (only once)
       if (state.messages.length === 0 && unifiedState.messages.length === 0) {
         const { createInitialMessage } = require('./chat-utils');
         const initialMessage = createInitialMessage();
@@ -412,14 +416,27 @@ Ready for simulation bridge and interview analysis`;
           timestamp: initialMessage.timestamp.toISOString()
         }]);
       }
+      freshChatInitRef.current = true; // Mark as initialized
     }
-  }, [loadSessionId, unifiedState.sessionLoading, unifiedState.currentSession, unifiedActions, state.messages.length, actions]);
+    // Intentionally omit unifiedActions and actions from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSessionId, unifiedState.sessionLoading, unifiedState.currentSession?.session_id, state.messages.length]);
 
   // One-time sync when session loads (no infinite loop)
+  // Track synced session to prevent duplicate syncs
+  const syncedSessionRef = React.useRef<string | null>(null);
+
   React.useEffect(() => {
     if (unifiedState.currentSession && unifiedState.messages.length > 0) {
+      const sessionId = unifiedState.currentSession.session_id;
+
+      // Skip if we already synced this session
+      if (syncedSessionRef.current === sessionId) {
+        return;
+      }
+
       console.log('Syncing loaded session messages to chat state:', {
-        sessionId: unifiedState.currentSession.session_id,
+        sessionId,
         unifiedMessagesCount: unifiedState.messages.length,
         currentStateMessagesCount: state.messages.length
       });
@@ -437,12 +454,14 @@ Ready for simulation bridge and interview analysis`;
         }));
         actions.setMessages(convertedMessages);
         actions.setConversationStarted(true);
+        syncedSessionRef.current = sessionId;
         console.log('✅ Messages synced successfully');
       } else {
+        syncedSessionRef.current = sessionId;
         console.log('📋 Messages already synced, skipping');
       }
-    } else if (!unifiedState.currentSession && !loadSessionId) {
-      // No session to load, ensure we have the initial message
+    } else if (!unifiedState.currentSession && !loadSessionId && !freshChatInitRef.current) {
+      // No session to load, ensure we have the initial message (only if not already done)
       console.log('No session to load, ensuring initial message is present');
       if (state.messages.length === 0 && unifiedState.messages.length === 0) {
         const { createInitialMessage } = require('./chat-utils');
@@ -453,9 +472,12 @@ Ready for simulation bridge and interview analysis`;
           ...initialMessage,
           timestamp: initialMessage.timestamp.toISOString()
         }]);
+        freshChatInitRef.current = true;
       }
     }
-  }, [unifiedState.currentSession?.session_id, unifiedState.messages.length, loadSessionId]); // Depend on session ID, message count, and loadSessionId
+    // Intentionally omit actions and unifiedActions from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unifiedState.currentSession?.session_id, unifiedState.messages.length, loadSessionId]);
 
   // Ensure ChatState.sessionId follows the loaded/current session
   React.useEffect(() => {

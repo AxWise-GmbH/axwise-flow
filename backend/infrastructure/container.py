@@ -244,36 +244,19 @@ class Container:
                 from backend.services.processing.persona_formation_service import (
                     PersonaFormationService,
                 )
-                from backend.services.processing.persona_formation_v2.facade import (
-                    PersonaFormationFacade,
-                )
 
                 # Get LLM service dependency (enhanced Gemini by default)
                 llm_service = self.get_llm_service("enhanced_gemini")
 
-                use_v2 = os.getenv("PERSONA_FORMATION_V2", "false").lower() in (
-                    "1",
-                    "true",
-                    "yes",
-                    "on",
-                )
-                if use_v2:
-                    service_inst = PersonaFormationFacade(llm_service)
-                    logger.info(
-                        "Using PersonaFormation V2 facade (feature flag enabled)"
-                    )
-                else:
-                    # Create simple config (can be enhanced later)
-                    class SimpleConfig:
-                        class Validation:
-                            min_confidence = 0.3
+                # Create simple config for backward compatibility
+                class SimpleConfig:
+                    class Validation:
+                        min_confidence = 0.3
 
-                        validation = Validation()
+                    validation = Validation()
 
-                    service_inst = PersonaFormationService(SimpleConfig(), llm_service)
-                    logger.info(
-                        "Using PersonaFormation V1 service (feature flag disabled)"
-                    )
+                service_inst = PersonaFormationService(SimpleConfig(), llm_service)
+                logger.info("Initialized PersonaFormationService (delegates to V2 facade)")
 
                 self.register_service(service_name, service_inst)
             except Exception as e:
