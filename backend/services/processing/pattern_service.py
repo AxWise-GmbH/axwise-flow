@@ -26,34 +26,45 @@ class PatternService:
         logger.info("Initialized PatternService")
     
     async def generate_patterns(
-        self, 
-        text: str, 
+        self,
+        text: str,
         industry: Optional[str] = None,
-        themes: Optional[List[Dict[str, Any]]] = None
+        themes: Optional[List[Dict[str, Any]]] = None,
+        stakeholders: Optional[List[Dict[str, Any]]] = None,
+        stakeholder_context: Optional[Dict[str, Any]] = None
     ) -> PatternResponse:
         """
-        Generate patterns from text data.
-        
+        Generate patterns from text data with optional stakeholder awareness.
+
         Args:
             text: Text to analyze
             industry: Optional industry context
             themes: Optional themes to use for pattern generation
-            
+            stakeholders: Optional list of detected stakeholders for attribution
+            stakeholder_context: Optional additional stakeholder context
+
         Returns:
             PatternResponse object containing the generated patterns
         """
-        logger.info(f"Generating patterns with industry={industry}, themes={len(themes) if themes else 0}")
-        
+        stakeholder_info = ""
+        if stakeholders:
+            stakeholder_info = f", stakeholders={len(stakeholders)}"
+        logger.info(f"Generating patterns with industry={industry}, themes={len(themes) if themes else 0}{stakeholder_info}")
+
         # Prepare context
         context = {}
         if industry:
             context["industry"] = industry
         if themes:
             context["themes"] = themes
-        
+        if stakeholders:
+            context["stakeholders"] = stakeholders
+        if stakeholder_context:
+            context["stakeholder_context"] = stakeholder_context
+
         # Process the text to generate patterns
         patterns = await self._processor.process(text, context)
-        
+
         logger.info(f"Generated {len(patterns.patterns)} patterns")
         return patterns
     

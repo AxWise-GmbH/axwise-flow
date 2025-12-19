@@ -107,13 +107,17 @@ class PatternProcessor(IProcessor):
 
         Args:
             data: The input data (text or dict with text)
-            context: Optional context information
+            context: Optional context information including:
+                - industry: Industry context for domain-specific patterns
+                - themes: Existing themes to inform pattern generation
+                - stakeholders: List of detected stakeholder dicts
+                - stakeholder_context: Additional stakeholder context dict
 
         Returns:
             PatternResponse object containing the generated patterns
         """
         context = context or {}
-        logger.info(f"Processing data for pattern generation with context: {context}")
+        logger.info(f"Processing data for pattern generation with context keys: {list(context.keys())}")
 
         # Extract text from data
         text = self._extract_text(data)
@@ -124,11 +128,22 @@ class PatternProcessor(IProcessor):
         # Extract industry from context or data
         industry = context.get("industry") or self._extract_industry(data)
 
+        # Extract stakeholder context
+        stakeholders = context.get("stakeholders")
+        stakeholder_context = context.get("stakeholder_context")
+
+        if stakeholders or stakeholder_context:
+            logger.info(f"Stakeholder-aware pattern generation enabled")
+
         # Generate patterns using PydanticAI
         if self.pydantic_ai_available:
             try:
                 patterns = await self._generate_patterns_with_pydantic_ai(
-                    text, industry, context.get("themes")
+                    text=text,
+                    industry=industry,
+                    themes=context.get("themes"),
+                    stakeholders=stakeholders,
+                    stakeholder_context=stakeholder_context
                 )
                 logger.info(
                     f"Generated {len(patterns.patterns)} patterns using PydanticAI"
@@ -272,14 +287,18 @@ class PatternProcessor(IProcessor):
         text: str,
         industry: Optional[str] = None,
         themes: Optional[List[Dict[str, Any]]] = None,
+        stakeholders: Optional[List[Dict[str, Any]]] = None,
+        stakeholder_context: Optional[Dict[str, Any]] = None,
     ) -> PatternResponse:
         """
-        Generate patterns using PydanticAI.
+        Generate patterns using PydanticAI with optional stakeholder awareness.
 
         Args:
             text: The text to analyze
             industry: Optional industry context
             themes: Optional themes to inform pattern generation
+            stakeholders: Optional list of detected stakeholder dicts
+            stakeholder_context: Optional additional stakeholder context
 
         Returns:
             PatternResponse object containing the generated patterns
@@ -289,7 +308,15 @@ class PatternProcessor(IProcessor):
         if industry:
             prompt_data["industry"] = industry
 
-        # Get the appropriate prompt
+        # Add stakeholder context to prompt data for stakeholder-aware extraction
+        if stakeholders:
+            prompt_data["stakeholders"] = stakeholders
+            logger.info(f"Adding {len(stakeholders)} stakeholders to pattern extraction context")
+        if stakeholder_context:
+            prompt_data["stakeholder_context"] = stakeholder_context
+            logger.info("Adding stakeholder context to pattern extraction")
+
+        # Get the appropriate prompt (will use stakeholder-aware prompt if stakeholders provided)
         prompt = PatternRecognitionPrompts.get_prompt(prompt_data)
 
         # Add themes context if available
@@ -419,8 +446,30 @@ class PatternProcessor(IProcessor):
         combined_text = f"{name} {description} {' '.join(statements)}"
         combined_text = combined_text.lower()
 
-        # Define category keywords
+        # Define category keywords (including stakeholder-aware categories)
         category_keywords = {
+            # Stakeholder-aware categories (check first for priority)
+            "Stakeholder Conflict": [
+                "conflict", "disagree", "tension", "opposing", "versus",
+                "different view", "clash", "friction"
+            ],
+            "Role-Specific Behavior": [
+                "role-specific", "only managers", "only customers", "unique to",
+                "decision maker", "specific role", "role specific"
+            ],
+            "Cross-Role Collaboration": [
+                "cross-role", "cross-functional", "between teams",
+                "stakeholder collaboration", "inter-team", "cross team"
+            ],
+            # Behavioral categories
+            "Information Seeking": [
+                "research", "search", "find information", "look up", "investigate",
+                "gather data", "validate information"
+            ],
+            "Trust Verification": [
+                "trust", "verify", "validate", "check references", "due diligence",
+                "credibility", "reliability check"
+            ],
             "Workflow": ["workflow", "process", "steps", "sequence", "procedure"],
             "Coping Strategy": ["cope", "deal with", "manage", "handle", "strategy"],
             "Decision Process": ["decision", "choose", "select", "evaluate", "assess"],
