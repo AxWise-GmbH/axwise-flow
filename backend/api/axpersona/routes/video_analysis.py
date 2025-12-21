@@ -262,12 +262,156 @@ Return ONLY the JSON array, no other text."""
 
         return self._parse_annotations(text)
 
+    async def _analyze_technical_segment(
+        self,
+        video_url: str,
+        start_offset: int,
+        end_offset: int,
+        segment_num: int,
+        total_segments: int,
+        total_duration: str
+    ) -> List[Dict[str, Any]]:
+        """Analyze a specific segment of a video for technical metrics.
+
+        Args:
+            video_url: YouTube URL or other video URL
+            start_offset: Start time in seconds
+            end_offset: End time in seconds
+            segment_num: Current segment number (1-based)
+            total_segments: Total number of segments
+            total_duration: Total video duration string
+
+        Returns:
+            List of technical annotations for this segment
+        """
+        from google.genai import types
+
+        start_ts = self._seconds_to_timestamp(start_offset)
+        end_ts = self._seconds_to_timestamp(end_offset)
+
+        # Build segment-specific technical prompt
+        segment_prompt = f"""You are analyzing segment {segment_num} of {total_segments} of a video for TECHNICAL METRICS.
+This segment covers {start_ts} to {end_ts} (total video is {total_duration}).
+
+IMPORTANT: All timestamps should be ABSOLUTE (relative to the start of the full video, not this segment).
+So timestamps should range from {start_ts} to {end_ts}.
+
+**TIMESTAMP ACCURACY IS CRITICAL:**
+- VERIFY the exact timestamp by checking the video timecode before recording any annotation
+- The visual content you describe MUST actually appear at the timestamp you specify
+- Do NOT estimate timestamps - verify each one is accurate
+
+**1. SIGNAGE & WAYFINDING ANALYSIS:**
+For EVERY sign visible in this segment, capture:
+- sign_text: Exact text on the sign
+- sign_type: "directional" | "informational" | "retail" | "safety" | "wayfinding" | "digital"
+- visibility_score: 1-10 (how visible/clear)
+- readability: "clear" | "moderate" | "poor"
+- location_description: Where the sign is
+- issues: Any problems (obstructed, too small, poor contrast, wrong height, etc.)
+
+**2. VELOCITY & TRAJECTORY ANALYSIS:**
+Estimate crowd behavior metrics:
+- agent_count: Total people visible
+- static_spectators: People with velocity < 0.5 m/s (standing, taking photos)
+- transit_passengers: People moving quickly > 1.2 m/s (rushing to gates)
+- avg_velocity: "static" | "slow" | "moderate" | "fast"
+- dominant_gaze_target: What most people are looking at (waterfall, shops, signs, phones)
+- awe_struck_count: People looking UP at attractions for extended time
+- conversion_opportunities: People looking at shop windows
+
+**3. OBJECT DETECTION:**
+Count objects that affect navigation and attention:
+- luggage_trolleys: Number of luggage carts
+- smartphones_cameras: People in "capture mode"
+- strollers: Baby strollers
+- wheelchairs: Mobility aids
+- shopping_bags: Shoppers with bags
+
+**4. DERIVED SCORES:**
+Calculate these aggregate scores (0-100):
+- navigational_stress_score: Based on crowd density vs velocity, sign clarity
+- purchase_intent_score: Based on gaze dwell time on retail zones
+- attention_availability: % of people NOT on phones/cameras who could see ads
+
+**REQUIRED JSON FORMAT:**
+{{
+  "timestamp_start": "MM:SS",
+  "timestamp_end": "MM:SS",
+  "signs_detected": [
+    {{
+      "sign_text": "Terminal 1 / Gates A1-A20",
+      "sign_type": "directional",
+      "visibility_score": 8,
+      "readability": "clear",
+      "location_description": "Overhead near escalator",
+      "issues": []
+    }}
+  ],
+  "agent_behavior": {{
+    "agent_count": 45,
+    "static_spectators": 15,
+    "transit_passengers": 20,
+    "avg_velocity": "moderate",
+    "dominant_gaze_target": "Rain Vortex waterfall",
+    "awe_struck_count": 12,
+    "conversion_opportunities": 5
+  }},
+  "objects": {{
+    "luggage_trolleys": 8,
+    "smartphones_cameras": 18,
+    "strollers": 2,
+    "wheelchairs": 0,
+    "shopping_bags": 6
+  }},
+  "navigational_stress_score": 35,
+  "purchase_intent_score": 25,
+  "attention_availability": 60,
+  "summary": "Technical summary for this segment"
+}}
+
+Create technical annotations every 30-60 seconds throughout this segment.
+Return ONLY a valid JSON array. No additional text."""
+
+        # Create content with video_metadata for segment clipping
+        parts = [
+            types.Part(
+                file_data=types.FileData(file_uri=video_url),
+                video_metadata=types.VideoMetadata(
+                    start_offset=f"{start_offset}s",
+                    end_offset=f"{end_offset}s"
+                )
+            ),
+            types.Part(text=segment_prompt)
+        ]
+
+        content = types.Content(parts=parts)
+        config = types.GenerateContentConfig(
+            temperature=0.2,
+            max_output_tokens=16000,
+            response_mime_type="application/json",
+        )
+
+        model_name = os.getenv("GEMINI_VIDEO_MODEL", "models/gemini-3-flash-preview")
+        logger.info(f"[GeminiVideoAnalyzer] Technical segment {segment_num}/{total_segments}: {start_ts} - {end_ts}")
+
+        response = await self._client.aio.models.generate_content(
+            model=model_name,
+            contents=content,
+            config=config,
+        )
+
+        return self._parse_annotations(response.text)
+
     async def analyze_technical(
         self,
         video_url: str,
         video_duration_seconds: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Analyze video for technical metrics (signs, navigation, behavior).
+
+        For long videos (>10 minutes), this uses chunked analysis with video_metadata
+        to ensure full coverage.
 
         Args:
             video_url: YouTube URL or other video URL
@@ -281,7 +425,37 @@ Return ONLY the JSON array, no other text."""
 
         from google.genai import types
 
-        # Use the technical analysis prompt
+        # Segment size in seconds (10 minutes per segment)
+        SEGMENT_SIZE = 600
+
+        # If duration is provided and video is long, use chunked analysis
+        if video_duration_seconds and video_duration_seconds > SEGMENT_SIZE:
+            logger.info(f"[GeminiVideoAnalyzer] Using chunked technical analysis for {video_duration_seconds}s video")
+
+            total_duration = self._seconds_to_timestamp(video_duration_seconds)
+            all_annotations = []
+
+            # Calculate segments
+            num_segments = (video_duration_seconds + SEGMENT_SIZE - 1) // SEGMENT_SIZE
+
+            for i in range(num_segments):
+                start_offset = i * SEGMENT_SIZE
+                end_offset = min((i + 1) * SEGMENT_SIZE, video_duration_seconds)
+
+                segment_annotations = await self._analyze_technical_segment(
+                    video_url=video_url,
+                    start_offset=start_offset,
+                    end_offset=end_offset,
+                    segment_num=i + 1,
+                    total_segments=num_segments,
+                    total_duration=total_duration
+                )
+                all_annotations.extend(segment_annotations)
+
+            logger.info(f"[GeminiVideoAnalyzer] Total technical annotations from {num_segments} segments: {len(all_annotations)}")
+            return all_annotations
+
+        # For shorter videos or unknown duration, use single-pass analysis
         prompt = TECHNICAL_ANALYSIS_PROMPT
 
         parts = [
@@ -787,6 +961,131 @@ DEMO_ANNOTATIONS = [
 # ============================================================================
 # API Endpoints
 # ============================================================================
+
+class VideoMetadataRequest(BaseModel):
+    """Request to get video metadata."""
+    video_url: str = Field(..., description="URL of the video (YouTube, etc.)")
+
+
+class VideoMetadataResponse(BaseModel):
+    """Response with video metadata."""
+    success: bool
+    video_url: str
+    video_id: Optional[str] = None
+    title: Optional[str] = None
+    duration_seconds: Optional[int] = None
+    duration_formatted: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    channel: Optional[str] = None
+    error: Optional[str] = None
+
+
+@router.post("/video-metadata", response_model=VideoMetadataResponse)
+async def get_video_metadata(request: VideoMetadataRequest) -> VideoMetadataResponse:
+    """Fetch video metadata (title, duration, etc.) from a video URL.
+
+    Uses yt-dlp to extract metadata from YouTube and other video platforms.
+    This is useful for auto-populating the duration field before analysis.
+
+    **Input**
+    - ``video_url``: URL of the video (YouTube, Vimeo, etc.)
+
+    **Output**
+    - ``VideoMetadataResponse`` with title, duration, thumbnail, etc.
+    """
+    import subprocess
+    import json as json_module
+
+    logger.info(f"[Video Metadata] Fetching metadata for: {request.video_url}")
+
+    # Extract video ID if it's a YouTube URL
+    video_id = None
+    if "youtube.com" in request.video_url or "youtu.be" in request.video_url:
+        if "v=" in request.video_url:
+            video_id = request.video_url.split("v=")[1].split("&")[0]
+        elif "youtu.be/" in request.video_url:
+            video_id = request.video_url.split("youtu.be/")[1].split("?")[0]
+
+    try:
+        # Use yt-dlp to extract metadata (no download)
+        cmd = [
+            "yt-dlp",
+            "--dump-json",
+            "--no-download",
+            "--no-warnings",
+            request.video_url
+        ]
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode != 0:
+            logger.error(f"[Video Metadata] yt-dlp error: {result.stderr}")
+            return VideoMetadataResponse(
+                success=False,
+                video_url=request.video_url,
+                video_id=video_id,
+                error=f"Failed to fetch metadata: {result.stderr[:200]}"
+            )
+
+        # Parse JSON output
+        metadata = json_module.loads(result.stdout)
+
+        # Extract duration
+        duration_seconds = metadata.get("duration")
+        duration_formatted = None
+        if duration_seconds:
+            duration_seconds = int(duration_seconds)
+            if duration_seconds >= 3600:
+                hours = duration_seconds // 3600
+                minutes = (duration_seconds % 3600) // 60
+                seconds = duration_seconds % 60
+                duration_formatted = f"{hours}:{minutes:02d}:{seconds:02d}"
+            else:
+                minutes = duration_seconds // 60
+                seconds = duration_seconds % 60
+                duration_formatted = f"{minutes}:{seconds:02d}"
+
+        return VideoMetadataResponse(
+            success=True,
+            video_url=request.video_url,
+            video_id=video_id or metadata.get("id"),
+            title=metadata.get("title"),
+            duration_seconds=duration_seconds,
+            duration_formatted=duration_formatted,
+            thumbnail_url=metadata.get("thumbnail"),
+            channel=metadata.get("channel") or metadata.get("uploader"),
+        )
+
+    except subprocess.TimeoutExpired:
+        logger.error("[Video Metadata] yt-dlp timeout")
+        return VideoMetadataResponse(
+            success=False,
+            video_url=request.video_url,
+            video_id=video_id,
+            error="Timeout fetching video metadata"
+        )
+    except FileNotFoundError:
+        logger.error("[Video Metadata] yt-dlp not installed")
+        return VideoMetadataResponse(
+            success=False,
+            video_url=request.video_url,
+            video_id=video_id,
+            error="yt-dlp not installed. Install with: pip install yt-dlp"
+        )
+    except Exception as e:
+        logger.exception(f"[Video Metadata] Error: {e}")
+        return VideoMetadataResponse(
+            success=False,
+            video_url=request.video_url,
+            video_id=video_id,
+            error=str(e)
+        )
+
 
 @router.post("/video-analysis", response_model=VideoAnalysisResponse)
 async def analyze_video(request: VideoAnalysisRequest) -> VideoAnalysisResponse:

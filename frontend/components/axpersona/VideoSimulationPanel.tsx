@@ -103,6 +103,8 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [useDemoMode, setUseDemoMode] = useState(false);
   const [feedTab, setFeedTab] = useState<AnnotationsFeedTab>('findings');
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
 
   // Parse duration input (MM:SS or HH:MM:SS) to seconds
   const parseDurationToSeconds = (input: string): number | null => {
@@ -156,6 +158,54 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
 
   // Get video ID for display
   const youtubeVideoId = analysisResult?.video_id || extractYouTubeVideoId(videoUrl);
+
+  // Auto-fetch video metadata (duration) when URL changes
+  useEffect(() => {
+    const fetchVideoMetadata = async (url: string) => {
+      if (!url.trim() || !isYouTubeUrl(url)) {
+        return;
+      }
+
+      // Only fetch if duration field is empty
+      if (videoDurationInput.trim()) {
+        return;
+      }
+
+      setIsFetchingMetadata(true);
+      try {
+        const response = await fetch('/api/axpersona/video-metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ video_url: url }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.duration_formatted) {
+            setVideoDurationInput(result.duration_formatted);
+            if (result.title) {
+              setVideoTitle(result.title);
+            }
+            console.log(`Auto-detected video duration: ${result.duration_formatted}`);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch video metadata:', err);
+      } finally {
+        setIsFetchingMetadata(false);
+      }
+    };
+
+    // Debounce the metadata fetch
+    const timeoutId = setTimeout(() => {
+      if (videoUrl.trim() && isYouTubeUrl(videoUrl)) {
+        fetchVideoMetadata(videoUrl);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl]); // Only trigger on URL change, not on duration change
 
   // Update active annotations based on current time
   useEffect(() => {
@@ -413,13 +463,19 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
             onChange={(e) => setVideoUrl(e.target.value)}
             className="flex-1 text-xs h-8"
           />
-          <Input
-            placeholder="Duration (MM:SS)"
-            value={videoDurationInput}
-            onChange={(e) => setVideoDurationInput(e.target.value)}
-            className="w-24 text-xs h-8"
-            title="Video duration for long videos (>10min). E.g., 50:39 or 1:30:00"
-          />
+          <div className="relative w-28">
+            <Input
+              placeholder={isFetchingMetadata ? "Loading..." : "Duration (MM:SS)"}
+              value={videoDurationInput}
+              onChange={(e) => setVideoDurationInput(e.target.value)}
+              className={`w-full text-xs h-8 ${isFetchingMetadata ? 'pr-6' : ''}`}
+              title={videoTitle || "Video duration for long videos (>10min). E.g., 50:39 or 1:30:00"}
+              disabled={isFetchingMetadata}
+            />
+            {isFetchingMetadata && (
+              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <Button
             size="sm"
             onClick={handleAnalyzeVideo}
