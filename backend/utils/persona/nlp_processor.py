@@ -195,7 +195,7 @@ def extract_keywords_with_pydantic_ai(texts: List[str]) -> List[Dict[str, Any]]:
 
         # Create PydanticAI agent for keyword extraction
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("gemini-3-flash-preview", provider=provider)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         keyword_agent = Agent(
             model=gemini_model,
             output_type=KeywordExtractionResult,
@@ -286,7 +286,7 @@ def extract_trait_keywords_for_highlighting(
 
         # Create PydanticAI agent for trait keyword extraction
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("gemini-3-flash-preview", provider=provider)
+        gemini_model = GoogleModel("gemini-2.5-flash", provider=provider)
         trait_keyword_agent = Agent(
             model=gemini_model,
             output_type=TraitKeywords,

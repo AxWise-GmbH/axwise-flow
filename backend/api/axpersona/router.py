@@ -34,9 +34,8 @@ from backend.api.research.simulation_bridge.models import (
     SimulationResponse,
     Stakeholder,
 )
-from backend.api.research.simulation_bridge.services.conversational_analysis_agent import (
-    ConversationalAnalysisAgent,
-)
+# ConversationalAnalysisAgent import removed - using NLPProcessor pipeline instead
+from datetime import timezone
 from backend.api.research.simulation_bridge.services.orchestrator import (
     SimulationOrchestrator,
 )
@@ -124,6 +123,14 @@ def _build_simulation_text(simulation: SimulationResponse) -> str:
     payload. We first try to reuse that text to stay aligned with the
     Simulation Bridge analysis pipeline, and fall back to a simple interview
     concatenation if it is missing.
+
+    NOTE: The output format uses the stakeholder-aware interview format:
+        --- INTERVIEW N ---
+        Stakeholder: <stakeholder_type>
+        Speaker: <persona_name>
+
+    This format is recognized by StakeholderAwareTranscriptProcessor._parse_stakeholder_sections
+    and enables per-stakeholder persona generation from simulation data.
     """
 
     # Preferred path: reuse the analysis-ready text produced by the
@@ -133,13 +140,15 @@ def _build_simulation_text(simulation: SimulationResponse) -> str:
     if isinstance(analysis_ready_text, str) and analysis_ready_text.strip():
         return analysis_ready_text
 
-    # Fallback: build a simple, but still traceable, interview transcript.
+    # Fallback: build a stakeholder-aware interview transcript.
+    # Uses the format expected by _parse_stakeholder_sections for proper
+    # per-interview persona generation.
     interviews = simulation.interviews or []
-    personas = simulation.personas or []
+    personas = simulation.personas or simulation.people or []
 
     parts: List[str] = []
 
-    for interview in interviews:
+    for interview_num, interview in enumerate(interviews, 1):
         persona_name = "Unknown"
         if hasattr(interview, "persona_id"):
             persona_id = interview.persona_id
@@ -153,9 +162,10 @@ def _build_simulation_text(simulation: SimulationResponse) -> str:
 
         stakeholder_type = getattr(interview, "stakeholder_type", "Unknown")
 
-        parts.append(
-            f"=== Interview with {persona_name} ({stakeholder_type}) ==="
-        )
+        # Use stakeholder-aware format recognized by _parse_stakeholder_sections
+        parts.append(f"--- INTERVIEW {interview_num} ---")
+        parts.append(f"Stakeholder: {stakeholder_type}")
+        parts.append(f"Speaker: {persona_name}")
         parts.append(
             f"Overall Sentiment: {getattr(interview, 'overall_sentiment', 'unknown')}"
         )
@@ -365,7 +375,144 @@ async def _load_analysis(analysis_id: str) -> Dict[str, Any]:
 
 # Reuse the same orchestrator configuration as the Simulation Bridge router.
 orchestrator = SimulationOrchestrator(use_parallel=True, max_concurrent=12)
-analysis_agent = ConversationalAnalysisAgent(orchestrator.model)
+
+
+def _simulation_to_nlp_format(simulation: SimulationResponse) -> Dict[str, Any]:
+    """Convert SimulationResponse to the format expected by NLPProcessor.
+
+    The NLPProcessor expects the 'enhanced simulation format':
+    {
+        "interviews": [
+            {
+                "responses": [
+                    {"question": "...", "response": "..."},
+                    ...
+                ]
+            },
+            ...
+        ],
+        "metadata": {...},
+        "analysis_ready_text": "..."  # Stakeholder-aware formatted text for persona generation
+    }
+    """
+    interviews_data = []
+
+    simulation_interviews = simulation.interviews or []
+    simulation_people = simulation.people or simulation.personas or []
+
+    for interview in simulation_interviews:
+        # Get person info for this interview
+        person_id = getattr(interview, "person_id", None) or getattr(interview, "persona_id", None)
+        person_name = "Unknown"
+        for person in simulation_people:
+            if getattr(person, "id", None) == person_id:
+                person_name = getattr(person, "name", "Unknown")
+                break
+
+        stakeholder_type = getattr(interview, "stakeholder_type", "Unknown")
+
+        # Convert responses
+        responses_data = []
+        for resp in getattr(interview, "responses", []) or []:
+            responses_data.append({
+                "question": getattr(resp, "question", ""),
+                "response": getattr(resp, "response", ""),
+                "answer": getattr(resp, "response", ""),  # NLPProcessor also checks 'answer'
+            })
+
+        interviews_data.append({
+            "person_id": person_id,
+            "person_name": person_name,
+            "stakeholder_type": stakeholder_type,
+            "responses": responses_data,
+            "overall_sentiment": getattr(interview, "overall_sentiment", "neutral"),
+            "key_themes": getattr(interview, "key_themes", []) or [],
+        })
+
+    # Generate stakeholder-aware analysis_ready_text for persona generation
+    # This format is recognized by StakeholderAwareTranscriptProcessor._parse_stakeholder_sections
+    analysis_ready_text = _build_simulation_text(simulation)
+
+    return {
+        "interviews": interviews_data,
+        "metadata": {
+            "simulation_id": simulation.simulation_id,
+            "total_interviews": len(interviews_data),
+            "source": "axpersona_simulation",
+        },
+        "analysis_ready_text": analysis_ready_text,
+    }
+
+
+def _transform_personas_to_schema(raw_personas: List[Dict[str, Any]]) -> List[Any]:
+    """Transform raw persona dicts to proper Persona schema objects.
+
+    The NLP processor may return personas with demographics in the legacy
+    {value, confidence, evidence} format, but the DetailedAnalysisResult
+    expects StructuredDemographics with proper AttributedField structure.
+
+    This function uses map_json_to_persona_schema to handle the conversion.
+    """
+    from backend.services.results.persona_transformers import map_json_to_persona_schema
+
+    if not raw_personas:
+        return []
+
+    transformed = []
+    for p_data in raw_personas:
+        if not isinstance(p_data, dict):
+            # Already a Pydantic model or other type, try to use as-is
+            transformed.append(p_data)
+            continue
+
+        try:
+            persona = map_json_to_persona_schema(p_data)
+            transformed.append(persona)
+        except Exception as e:
+            logger.warning(f"Failed to transform persona '{p_data.get('name', 'Unknown')}': {e}")
+            # Skip this persona rather than fail the entire analysis
+            continue
+
+    logger.info(f"Transformed {len(transformed)}/{len(raw_personas)} personas to schema")
+    return transformed
+
+
+def _nlp_result_to_detailed_analysis(
+    nlp_result: Dict[str, Any],
+    simulation_id: str,
+) -> DetailedAnalysisResult:
+    """Convert NLPProcessor result to DetailedAnalysisResult schema."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # Transform personas to proper schema format
+    raw_personas = nlp_result.get("personas", [])
+    raw_enhanced_personas = nlp_result.get("enhanced_personas", [])
+
+    transformed_personas = _transform_personas_to_schema(raw_personas)
+    transformed_enhanced_personas = _transform_personas_to_schema(raw_enhanced_personas)
+
+    return DetailedAnalysisResult(
+        id=simulation_id,
+        status="completed",
+        createdAt=now_iso,
+        fileName="simulation_analysis.txt",
+        fileSize=0,
+        themes=nlp_result.get("themes", []),
+        enhanced_themes=nlp_result.get("enhanced_themes", []),
+        patterns=nlp_result.get("patterns", []),
+        enhanced_patterns=nlp_result.get("enhanced_patterns", []),
+        sentimentOverview=nlp_result.get("sentimentOverview", {
+            "positive": 0.33,
+            "neutral": 0.34,
+            "negative": 0.33,
+        }),
+        sentiment=nlp_result.get("sentiment", []),
+        personas=transformed_personas,
+        enhanced_personas=transformed_enhanced_personas,
+        insights=nlp_result.get("insights", []),
+        enhanced_insights=nlp_result.get("enhanced_insights", []),
+        error=None,
+    )
 
 
 class QuestionnaireRequest(BaseModel):
@@ -429,6 +576,7 @@ class PipelineExecutionResult(BaseModel):
     dataset: Optional[AxPersonaDataset] = None
     execution_trace: List[PipelineStageTrace]
     total_duration_seconds: float
+    status: str = "pending"  # pending, running, completed, partial, failed
 
 
 class PipelineJobStatus(BaseModel):
@@ -651,7 +799,7 @@ async def run_simulation(request: SimulationRequest) -> SimulationResponse:
 
 @router.post("/analysis", response_model=DetailedAnalysisResult)
 async def run_analysis(simulation_id: str) -> DetailedAnalysisResult:
-    """Run conversational analysis for a completed simulation.
+    """Run analysis for a completed simulation using the proven NLPProcessor pipeline.
 
     **Input**
     - ``simulation_id``: identifier returned by :func:`run_simulation`.
@@ -660,12 +808,8 @@ async def run_analysis(simulation_id: str) -> DetailedAnalysisResult:
     - Resolves the simulation via :func:`_resolve_simulation`, first checking
       the in-memory ``SimulationOrchestrator`` cache and then falling back to
       the ``SimulationRepository`` + ``UnitOfWork`` persistence layer.
-    - Builds a single analysis string with :func:`_build_simulation_text`,
-      preserving interview order and full Q/A content for evidence
-      traceability.
-    - Calls ``ConversationalAnalysisAgent.process_simulation_data`` to produce
-      a :class:`DetailedAnalysisResult` that uses the golden
-      ``EvidenceItem`` / ``AttributedField`` persona schema.
+    - Converts simulation data to NLPProcessor format.
+    - Runs analysis through the proven NLPProcessor pipeline (same as Excel upload).
     - Persists the analysis via :func:`_save_analysis_result`, which stores a
       JSON envelope in ``AnalysisResult.results`` and returns a stable
       numeric ``analysis_id`` via ``result.id``.
@@ -689,33 +833,78 @@ async def run_analysis(simulation_id: str) -> DetailedAnalysisResult:
           "stakeholder_intelligence": { ... }
         }
     """
+    from backend.core.processing_pipeline import process_data
+    from backend.services.nlp.processor import NLPProcessor
+    from backend.services.llm.gemini_service import GeminiService
 
-    # 1) Resolve simulation and build full analysis text
+    logger.info(f"[AxPersona Analysis] Starting analysis for simulation: {simulation_id}")
+
+    # 1) Resolve simulation
     simulation = await _resolve_simulation(simulation_id)
-    simulation_text = _build_simulation_text(simulation)
 
-    if not simulation_text.strip():
+    # Check we have interview content
+    if not simulation.interviews:
         raise HTTPException(
             status_code=400,
             detail="Simulation contains no interview content to analyse",
         )
 
-    # 2) Run conversational analysis using the shared agent
-    result = await analysis_agent.process_simulation_data(
-        simulation_text=simulation_text,
-        simulation_id=simulation_id,
-        file_name="simulation_analysis.txt",
+    logger.info(f"[AxPersona Analysis] Found {len(simulation.interviews)} interviews")
+
+    # 2) Convert simulation to NLPProcessor format
+    nlp_data = _simulation_to_nlp_format(simulation)
+
+    logger.info(
+        f"[AxPersona Analysis] Converted to NLP format: "
+        f"{len(nlp_data['interviews'])} interviews"
     )
 
-    if result.error:
-        # Propagate the analysis error but still include the structured payload
-        raise HTTPException(
-            status_code=502,
-            detail=f"Analysis failed: {result.error}",
+    # 3) Run through proven NLPProcessor pipeline
+    try:
+        nlp_processor = NLPProcessor()
+        # GeminiService requires a config dict with model settings
+        gemini_config = {
+            "model": "models/gemini-3-flash-preview",
+            "temperature": 0.7,
+            "max_tokens": 16000,
+        }
+        llm_service = GeminiService(gemini_config)
+
+        config = {
+            "use_enhanced_theme_analysis": True,
+            "use_reliability_check": True,
+            "industry": simulation.metadata.get("industry") if simulation.metadata else None,
+        }
+
+        nlp_result = await process_data(
+            nlp_processor=nlp_processor,
+            llm_service=llm_service,
+            data=nlp_data,
+            config=config,
+            progress_callback=None,
         )
 
-    # 3) Persist analysis and expose numeric analysis_id to callers
+        logger.info(
+            f"[AxPersona Analysis] NLPProcessor completed: "
+            f"{len(nlp_result.get('themes', []))} themes, "
+            f"{len(nlp_result.get('patterns', []))} patterns, "
+            f"{len(nlp_result.get('personas', []))} personas"
+        )
+
+    except Exception as e:
+        logger.exception(f"[AxPersona Analysis] Pipeline failed: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Analysis pipeline failed: {str(e)}",
+        )
+
+    # 4) Convert to DetailedAnalysisResult
+    result = _nlp_result_to_detailed_analysis(nlp_result, simulation_id)
+
+    # 5) Persist analysis
     result = await _save_analysis_result(result, simulation_id=simulation_id)
+
+    logger.info(f"[AxPersona Analysis] Analysis saved with id: {result.id}")
 
     return result
 
@@ -1686,3 +1875,14 @@ async def search_stakeholder_news(request: StakeholderNewsRequest) -> Stakeholde
             year=request.year,
             error=str(e)
         )
+
+
+# ============================================================================
+# Video Analysis Route (imported from routes module)
+# ============================================================================
+from backend.api.axpersona.routes.video_analysis import (
+    router as video_analysis_router,
+)
+
+# Include video analysis routes
+router.include_router(video_analysis_router, tags=["Video Analysis"])

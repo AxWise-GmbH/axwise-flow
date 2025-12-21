@@ -46,9 +46,25 @@ def get_generators():
     return generators
 
 
+def get_data_extraction():
+    """Get the data extraction module."""
+    from . import data_extraction
+
+    return data_extraction
+
+
+def get_helpers():
+    """Get the helpers module."""
+    from . import helpers
+
+    return helpers
+
+
 __all__ = [
     "get_nlp_processor",
     "get_parsers",
     "get_analyzers",
     "get_generators",
+    "get_data_extraction",
+    "get_helpers",
 ]

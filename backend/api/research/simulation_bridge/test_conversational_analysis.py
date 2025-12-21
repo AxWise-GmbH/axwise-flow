@@ -23,7 +23,7 @@ async def test_conversational_analysis():
     # Initialize components
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     provider = GoogleProvider(api_key=api_key)
-    gemini_model = GoogleModel("gemini-3-flash-preview", provider=provider)
+    gemini_model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
 
     analysis_agent = ConversationalAnalysisAgent(gemini_model)
     file_processor = SimulationFileProcessor(gemini_model)

@@ -259,3 +259,53 @@ class PipelineRunRepository(BaseRepository[PipelineRun]):
             logger.error(f"Error counting pipeline runs: {str(e)}")
             raise
 
+    async def mark_stale_runs_as_failed(
+        self,
+        stale_threshold_minutes: int = 30
+    ) -> int:
+        """
+        Mark stale 'running' or 'pending' pipeline runs as failed.
+
+        This should be called on server startup to clean up jobs that were
+        interrupted when the server restarted. In-memory asyncio tasks don't
+        survive restarts, so any 'running' jobs in the DB are orphaned.
+
+        Args:
+            stale_threshold_minutes: Jobs running longer than this are considered stale
+
+        Returns:
+            Number of jobs marked as failed
+        """
+        try:
+            from datetime import timedelta
+
+            cutoff_time = datetime.utcnow() - timedelta(minutes=stale_threshold_minutes)
+
+            # Find stale jobs: status is 'running' or 'pending' AND
+            # (started_at is old OR created_at is old for pending jobs)
+            stale_runs = self.session.query(PipelineRun).filter(
+                PipelineRun.status.in_(["running", "pending"]),
+                # Either started_at is before cutoff, or created_at for pending jobs
+                (
+                    (PipelineRun.started_at.isnot(None) & (PipelineRun.started_at < cutoff_time)) |
+                    (PipelineRun.started_at.is_(None) & (PipelineRun.created_at < cutoff_time))
+                )
+            ).all()
+
+            count = 0
+            for run in stale_runs:
+                run.status = "failed"
+                run.completed_at = datetime.utcnow()
+                run.error = f"Job interrupted - server restarted while job was {run.status}"
+                count += 1
+                logger.info(f"Marked stale pipeline run as failed: {run.job_id}")
+
+            if count > 0:
+                self.session.flush()
+                logger.info(f"Recovered {count} stale pipeline runs (marked as failed)")
+
+            return count
+
+        except SQLAlchemyError as e:
+            logger.error(f"Error marking stale runs as failed: {str(e)}")
+            raise

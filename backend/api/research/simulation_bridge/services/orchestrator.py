@@ -46,11 +46,11 @@ class SimulationOrchestrator:
         # NOTE: GoogleModel requires GEMINI_API_KEY from the environment when used.
         # We intentionally do not enforce the presence of the key here so that tests
         # and offline tooling can import this module without requiring configuration.
-        # QUALITY OPTIMIZATION: Use gemini-3-flash-preview for speed and quality balance
+        # QUALITY OPTIMIZATION: Use models/gemini-3-flash-preview for speed and quality balance
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if api_key:
             provider = GoogleProvider(api_key=api_key)
-            self.model = GoogleModel("gemini-3-flash-preview", provider=provider)
+            self.model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
         else:
             # Fallback for tests/offline - will fail at runtime if actually used
             self.model = None

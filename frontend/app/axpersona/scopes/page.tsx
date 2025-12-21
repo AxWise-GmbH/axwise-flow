@@ -6,8 +6,10 @@ import { ScopeSelector } from '@/components/axpersona/ScopeSelector';
 import { ScopeCreationForm } from '@/components/axpersona/ScopeCreationForm';
 import { ScopeMainView } from '@/components/axpersona/ScopeMainView';
 import { AnalysisPanel } from '@/components/axpersona/AnalysisPanel';
+import { Button } from '@/components/ui/button';
 import { useStartPipeline, usePipelineRunDetail } from '@/lib/axpersona/hooks';
 import { useToast } from '@/components/providers/toast-provider';
+import { PanelRightOpen, PanelRightClose } from 'lucide-react';
 import type {
   BusinessContext,
   ScopeSummary,
@@ -20,6 +22,7 @@ function ScopeDetailPage() {
   const [formError, setFormError] = useState<string | undefined>();
   const [selectedRunJobId, setSelectedRunJobId] = useState<string | null>(null);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
+  const [isAnalysisPanelVisible, setIsAnalysisPanelVisible] = useState(false);
 
   const queryClient = useQueryClient();
   const startPipeline = useStartPipeline();
@@ -119,13 +122,34 @@ function ScopeDetailPage() {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] flex-col gap-4">
-      <div className="space-y-1">
-        <h1 className="text-lg font-semibold tracking-tight">
-          Persona Datasets
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Canonical synthetic personas for downstream applications (CV matching, recommenders, marketing).
-        </p>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold tracking-tight">
+            Persona Datasets
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Canonical synthetic personas for downstream applications (CV matching, recommenders, marketing).
+          </p>
+        </div>
+        {/* Toggle button for Analysis Panel */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsAnalysisPanelVisible(!isAnalysisPanelVisible)}
+          className="flex items-center gap-2"
+        >
+          {isAnalysisPanelVisible ? (
+            <>
+              <PanelRightClose className="h-4 w-4" />
+              <span className="hidden sm:inline">Hide Panel</span>
+            </>
+          ) : (
+            <>
+              <PanelRightOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Show Panel</span>
+            </>
+          )}
+        </Button>
       </div>
       <div className="flex flex-1 gap-4 min-h-0">
         <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
@@ -144,12 +168,15 @@ function ScopeDetailPage() {
             isLoading={isLoading}
           />
         </div>
-        <div className="w-96 flex-shrink-0">
-          <AnalysisPanel
-            result={displayResult}
-            isLoading={isLoading}
-          />
-        </div>
+        {/* Collapsible Analysis Panel */}
+        {isAnalysisPanelVisible && (
+          <div className="w-96 flex-shrink-0 transition-all duration-300">
+            <AnalysisPanel
+              result={displayResult}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
       </div>
       <ScopeCreationForm
         open={isCreationOpen}

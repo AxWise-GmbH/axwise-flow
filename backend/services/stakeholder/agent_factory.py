@@ -30,8 +30,8 @@ class StakeholderAgentFactory:
         if not api_key:
             raise ValueError("Missing GEMINI_API_KEY or GOOGLE_API_KEY")
 
-        # Prefer gemini-3-flash-preview for speed and quality balance
-        model_name = os.getenv("STAKEHOLDER_GEMINI_MODEL", "gemini-3-flash-preview")
+        # Prefer models/gemini-3-flash-preview for speed and quality balance
+        model_name = os.getenv("STAKEHOLDER_GEMINI_MODEL", "models/gemini-3-flash-preview")
         provider = GoogleProvider(api_key=api_key)
         self.gemini_model = GoogleModel(model_name, provider=provider)
         self._agent_cache: Dict[str, Agent] = {}
