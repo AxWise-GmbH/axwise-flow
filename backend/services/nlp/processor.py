@@ -11,6 +11,20 @@ from typing import Dict, Any, List, Tuple, Optional
 from backend.services.llm.base_llm_service import BaseLLMService as ILLMService
 
 from backend.schemas import DetailedAnalysisResult
+from backend.services.nlp.data_extraction import (
+    combine_transcript_text,
+    parse_free_text,
+    extract_texts_from_data,
+)
+from backend.services.nlp.helpers import (
+    determine_pattern_category,
+    generate_detailed_description,
+    generate_specific_impact,
+    generate_actionable_recommendations,
+    process_sentiment_results,
+    validate_results as validate_results_helper,
+    create_minimal_sentiment_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,217 +50,12 @@ class NLPProcessor:
             logger.info("Using legacy extract_patterns implementation")
 
     def _combine_transcript_text(self, transcript):
-        """
-        Combine transcript text from various formats into a single string.
-
-        Args:
-            transcript: Transcript data in various formats
-
-        Returns:
-            Combined text string
-        """
-        if not transcript:
-            return ""
-
-        texts = []
-
-        if isinstance(transcript, str):
-            return transcript
-        elif isinstance(transcript, list):
-            for item in transcript:
-                if isinstance(item, dict):
-                    if "text" in item:
-                        texts.append(item["text"])
-                    elif "question" in item and "answer" in item:
-                        texts.append(f"Q: {item['question']}\nA: {item['answer']}")
-                elif isinstance(item, str):
-                    texts.append(item)
-        elif isinstance(transcript, dict):
-            if "text" in transcript:
-                texts.append(transcript["text"])
-            elif "question" in transcript and "answer" in transcript:
-                texts.append(f"Q: {transcript['question']}\nA: {transcript['answer']}")
-
-        return "\n\n".join(filter(None, texts))
+        """Combine transcript text from various formats into a single string."""
+        return combine_transcript_text(transcript)
 
     async def parse_free_text(self, text: str) -> List[Dict[str, str]]:
-        """
-        Parse free-text interview transcripts to extract question-answer pairs.
-
-        This method attempts to identify question-answer patterns in free text using
-        common patterns like "Q:", "A:", or standard interview question formats.
-
-        Args:
-            text (str): The free-text interview transcript
-
-        Returns:
-            List[Dict[str, str]]: List of extracted question-answer pairs
-        """
-        logger.info("Parsing free-text format input")
-
-        # Check if the text already uses Q/A format
-        qa_pattern = re.compile(
-            r"(?:^|\n)(?:Q|Question)[:.\s]+(.*?)(?:\n)(?:A|Answer)[:.\s]+(.*?)(?=(?:\n)(?:Q|Question)|$)",
-            re.DOTALL,
-        )
-        qa_matches = qa_pattern.findall(text)
-
-        if qa_matches:
-            logger.info(f"Found {len(qa_matches)} explicit Q/A pairs in the text")
-            qa_pairs = []
-            for q, a in qa_matches:
-                qa_pairs.append({"question": q.strip(), "answer": a.strip()})
-            return qa_pairs
-
-        # If no explicit Q/A format, try to identify question-answer patterns
-        # Common patterns: questions end with ? and often start with interrogative words
-        question_pattern = re.compile(
-            r"(?:^|\n)((What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?)(.*?)(?=(?:^|\n)(?:What|How|Why|When|Where|Who|Could you|Can you|Tell me about|Describe|Explain|In your opinion|Do you).*?\?|$)",
-            re.DOTALL | re.IGNORECASE,
-        )
-        qa_matches = question_pattern.findall(text)
-
-        if qa_matches:
-            logger.info(
-                f"Extracted {len(qa_matches)} implicit Q/A pairs using question patterns"
-            )
-            logger.debug(f"🔍 qa_matches sample: {qa_matches[:2]}")  # Debug logging
-            qa_pairs = []
-
-            # Fix: The regex pattern captures (full_question, question_start, answer_content)
-            # qa_matches contains tuples of (full_question, question_start, answer_content)
-            for full_question, question_start, answer_content in qa_matches:
-                question = full_question.strip()
-                answer = answer_content.strip()
-                if question and answer:
-                    qa_pairs.append({"question": question, "answer": answer})
-                    logger.debug(
-                        f"✅ Extracted Q&A: {question[:50]}... -> {answer[:50]}..."
-                    )
-
-            logger.info(
-                f"🎯 Successfully created {len(qa_pairs)} Q/A pairs from implicit patterns"
-            )
-            return qa_pairs
-
-        # Check for timestamp-based interview format BEFORE paragraph fallback
-        # This handles formats like [09:10] Interviewer: ... [09:12] Interviewee: ...
-        if re.search(r"\[\d+:\d+\]", text) and "Interviewee:" in text:
-            logger.info("Detected timestamp-based interview format (early check)")
-            qa_pairs = []
-
-            # More flexible pattern that captures Interviewer/Researcher and Interviewee dialogue
-            timestamp_dialogue_pattern = re.compile(
-                r"\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewer|Researcher):\s*(.*?)\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*Interviewee:\s*(.*?)(?=\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewer|Researcher):|\Z)",
-                re.DOTALL | re.IGNORECASE,
-            )
-            dialogue_matches = timestamp_dialogue_pattern.findall(text)
-
-            if dialogue_matches:
-                for question, answer in dialogue_matches:
-                    question = question.strip()
-                    answer = answer.strip()
-                    answer = re.sub(r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL)
-                    if question and answer:
-                        qa_pairs.append({"question": question, "answer": answer})
-
-                if qa_pairs:
-                    logger.info(f"🎯 Extracted {len(qa_pairs)} Q/A pairs from timestamp-based interview format")
-                    return qa_pairs
-
-            # Fallback: extract just interviewee responses if no interviewer found
-            interviewee_pattern = re.compile(
-                r"\[[\d:]+(?:\s*(?:AM|PM))?\]\s*Interviewee:\s*(.*?)(?=\n+\[[\d:]+(?:\s*(?:AM|PM))?\]\s*(?:Interviewee|Interviewer|Researcher):|\Z)",
-                re.DOTALL | re.IGNORECASE,
-            )
-            interviewee_matches = interviewee_pattern.findall(text)
-
-            if interviewee_matches:
-                logger.info(f"🎯 Extracted {len(interviewee_matches)} interviewee responses from timestamp format")
-                for i, answer in enumerate(interviewee_matches):
-                    answer = answer.strip()
-                    answer = re.sub(r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL)
-                    if answer:
-                        qa_pairs.append({"question": f"Interview response {i+1}", "answer": answer})
-
-                if qa_pairs:
-                    logger.info(f"🎯 Created {len(qa_pairs)} Q/A pairs from interviewee-only timestamp format")
-                    return qa_pairs
-
-        # If still no patterns found, split by paragraphs and use alternating Q/A assignment
-        paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-
-        if paragraphs:
-            logger.info(
-                f"No clear Q/A structure found. Using paragraph-based splitting with {len(paragraphs)} paragraphs"
-            )
-            qa_pairs = []
-
-            # Attempt to determine if first paragraph is context or introduction
-            is_intro = len(paragraphs[0].split()) > 50 or not any(
-                w in paragraphs[0].lower()
-                for w in ["?", "who", "what", "when", "where", "why", "how"]
-            )
-
-            start_idx = 1 if is_intro else 0
-            for i in range(start_idx, len(paragraphs), 2):
-                if i + 1 < len(paragraphs):
-                    qa_pairs.append(
-                        {
-                            "question": paragraphs[i].strip(),
-                            "answer": paragraphs[i + 1].strip(),
-                        }
-                    )
-
-            if qa_pairs:
-                logger.info(
-                    f"Created {len(qa_pairs)} Q/A pairs using paragraph alternation"
-                )
-                return qa_pairs
-
-        # Check for enhanced simulation format with interview dialogue
-        if (
-            "INTERVIEW DIALOGUE" in text
-            and "Researcher:" in text
-            and "Interviewee:" in text
-        ):
-            logger.info("Detected enhanced simulation interview format")
-            qa_pairs = []
-
-            # Extract interview dialogue sections
-            dialogue_pattern = re.compile(
-                r"\[[\d:]+\]\s*Researcher:\s*(.*?)\n\n\[[\d:]+\]\s*Interviewee:\s*(.*?)(?=\n\n\[[\d:]+\]\s*Researcher:|\n\n=|$)",
-                re.DOTALL,
-            )
-            dialogue_matches = dialogue_pattern.findall(text)
-
-            for question, answer in dialogue_matches:
-                question = question.strip()
-                answer = answer.strip()
-                # Remove any "💡 Key Insights:" sections from answers
-                answer = re.sub(
-                    r"\n\n\s*💡 Key Insights:.*$", "", answer, flags=re.DOTALL
-                )
-
-                if question and answer:
-                    qa_pairs.append({"question": question, "answer": answer})
-
-            if qa_pairs:
-                logger.info(
-                    f"🎯 Extracted {len(qa_pairs)} Q/A pairs from enhanced simulation format"
-                )
-                return qa_pairs
-
-        # Last resort: treat the entire text as a single answer with a generic question
-        logger.warning(
-            "Could not extract structured Q/A pairs. Treating as single response."
-        )
-        return [
-            {
-                "question": "Please share your thoughts and opinions on the topic:",
-                "answer": text.strip(),
-            }
-        ]
+        """Parse free-text interview transcripts to extract question-answer pairs."""
+        return await parse_free_text(text)
 
     async def process_interview_data(
         self,
@@ -289,6 +98,7 @@ class NLPProcessor:
             # Extract text content
             texts = []
             answer_texts = []  # Explicitly track answer-only content for theme analysis
+            stakeholder_aware_text = None  # Stakeholder-aware text for persona generation
 
             # Extract metadata if available
             metadata = {}
@@ -400,6 +210,16 @@ class NLPProcessor:
                 # Handle enhanced simulation format (new format from simulation bridge)
                 if "interviews" in data and "metadata" in data:
                     logger.info("✅ Processing enhanced simulation format data")
+
+                    # Check for stakeholder-aware analysis_ready_text for persona generation
+                    # This text contains the proper "--- INTERVIEW N ---\nStakeholder:" format
+                    # that enables per-stakeholder persona generation
+                    stakeholder_aware_text = data.get("analysis_ready_text")
+                    if stakeholder_aware_text:
+                        logger.info(
+                            f"📋 Found stakeholder-aware analysis_ready_text ({len(stakeholder_aware_text)} chars)"
+                        )
+
                     interview_count = 0
                     response_count = 0
                     for interview in data["interviews"]:
@@ -930,8 +750,16 @@ class NLPProcessor:
             # ========================================================================
             logger.info("👥 [PIPELINE] Starting persona generation (before insights)")
 
+            # Use stakeholder-aware text for persona generation if available
+            # This enables proper per-stakeholder persona generation from simulation data
+            persona_text = stakeholder_aware_text if stakeholder_aware_text else combined_text
+            if stakeholder_aware_text:
+                logger.info(
+                    f"👥 [PIPELINE] Using stakeholder-aware text for persona generation ({len(stakeholder_aware_text)} chars)"
+                )
+
             personas_result = await self._generate_personas(
-                combined_text=combined_text,
+                combined_text=persona_text,
                 industry=industry,
                 llm_service=llm_service,
                 progress_callback=progress_callback,
@@ -1244,123 +1072,8 @@ class NLPProcessor:
             return None
 
     async def validate_results(self, results: Dict[str, Any]) -> Tuple[bool, List[str]]:
-        """
-        Validate analysis results to ensure they contain required fields.
-
-        Args:
-            results: Analysis results dictionary
-
-        Returns:
-            Tuple of (is_valid, missing_fields)
-        """
-        try:
-            # No strict requirements - make all fields optional
-            required_fields = []
-
-            # Fields that are nice to have but not required
-            optional_fields = [
-                "patterns",
-                "sentiment",
-                "original_text",
-                "themes",
-                "enhanced_themes",
-                "insights",
-                "personas",
-            ]
-
-            # Check for missing required fields (none in this case)
-            missing_fields = [
-                field for field in required_fields if field not in results
-            ]
-
-            # Log missing optional fields but don't fail validation
-            missing_optional = [
-                field for field in optional_fields if field not in results
-            ]
-            if missing_optional:
-                logger.warning(
-                    f"Missing optional fields in results: {missing_optional}"
-                )
-
-            # Initialize missing fields with empty values
-            for field in missing_optional:
-                if field in [
-                    "patterns",
-                    "themes",
-                    "enhanced_themes",
-                    "insights",
-                    "personas",
-                ]:
-                    results[field] = []
-                elif field == "sentiment":
-                    results[field] = {"positive": [], "neutral": [], "negative": []}
-                elif field == "original_text":
-                    results[field] = ""
-
-            # Check data types and fix if needed
-            if "patterns" in results and not isinstance(results["patterns"], list):
-                logger.warning("Patterns field is not a list, converting to empty list")
-                results["patterns"] = []
-
-            if "themes" in results and not isinstance(results["themes"], list):
-                logger.warning("Themes field is not a list, converting to empty list")
-                results["themes"] = []
-
-            if "enhanced_themes" in results and not isinstance(
-                results["enhanced_themes"], list
-            ):
-                logger.warning(
-                    "Enhanced themes field is not a list, converting to empty list"
-                )
-                results["enhanced_themes"] = []
-
-            if "insights" in results and not isinstance(results["insights"], list):
-                logger.warning("Insights field is not a list, converting to empty list")
-                results["insights"] = []
-
-            # SCHEMA FIX: Ensure sentiment field matches DetailedAnalysisResult schema (List[Dict[str, Any]])
-            if "sentiment" in results:
-                if isinstance(results["sentiment"], dict):
-                    # Convert dictionary format to list format for schema compliance
-                    logger.info(
-                        "Converting sentiment dictionary to list format for schema compliance"
-                    )
-                    results["sentiment"] = [results["sentiment"]]
-                elif not isinstance(results["sentiment"], list):
-                    logger.warning(
-                        "Sentiment field is not a list, initializing empty sentiment list"
-                    )
-                    results["sentiment"] = []
-            else:
-                # Initialize as empty list to match schema
-                results["sentiment"] = []
-
-            if "personas" in results and not isinstance(results["personas"], list):
-                logger.warning("Personas field is not a list, converting to empty list")
-                results["personas"] = []
-
-            # Ensure we have at least some useful data
-            has_some_data = (
-                ("patterns" in results and len(results["patterns"]) > 0)
-                or ("themes" in results and len(results["themes"]) > 0)
-                or (
-                    "enhanced_themes" in results and len(results["enhanced_themes"]) > 0
-                )
-                or ("insights" in results and len(results["insights"]) > 0)
-                or ("personas" in results and len(results["personas"]) > 0)
-            )
-
-            if not has_some_data:
-                logger.warning("No useful data found in results")
-                return False, ["No useful data found"]
-
-            # If we got here, validation passed
-            logger.info("Validation passed with available data")
-            return True, []
-
-        except Exception as e:
-            logger.error(f"Error validating results: {str(e)}")
-            return False, [str(e)]
+        """Validate analysis results to ensure they contain required fields."""
+        return await validate_results_helper(results)
 
     async def extract_insights(
         self, results: Dict[str, Any], llm_service: ILLMService, config=None
@@ -1535,9 +1248,18 @@ class NLPProcessor:
                         f"👥 [PIPELINE_DEBUG] Stakeholder detection result: {stakeholder_segments is not None}"
                     )
 
+                    # Check for ENABLE_MULTI_STAKEHOLDER env var, or auto-detect simulation format
+                    is_simulation_format = bool(
+                        re.search(r"--- INTERVIEW \d+ ---\s*\nStakeholder:", raw_text)
+                    )
                     enable_ms = (
                         os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
+                        or is_simulation_format
                     )
+                    if is_simulation_format:
+                        logger.info(
+                            "👥 [PIPELINE_DEBUG] Auto-enabled multi-stakeholder for simulation format data"
+                        )
                     if stakeholder_segments and enable_ms:
                         logger.info(
                             f"👥 [PIPELINE_DEBUG] [STAKEHOLDER_PERSONA] Detected {len(stakeholder_segments)} stakeholder categories"
@@ -1688,156 +1410,6 @@ class NLPProcessor:
             # Return partial results if available
             return results if isinstance(results, dict) else {}
 
-    def _process_sentiment_results(self, sentiment_result):
-        """Process and validate sentiment results to ensure quality"""
-        try:
-            if not sentiment_result or not isinstance(sentiment_result, dict):
-                logger.warning("Invalid sentiment result format")
-                return {"positive": [], "neutral": [], "negative": []}
-
-            # Extract statements - handle different response formats safely
-            if "sentimentStatements" in sentiment_result:
-                # Preferred format (direct statements)
-                statements = sentiment_result.get("sentimentStatements", {})
-                positive = statements.get("positive", [])
-                neutral = statements.get("neutral", [])
-                negative = statements.get("negative", [])
-            elif "supporting_statements" in sentiment_result:
-                # Alternative format
-                statements = sentiment_result.get("supporting_statements", {})
-                positive = statements.get("positive", [])
-                neutral = statements.get("neutral", [])
-                negative = statements.get("negative", [])
-            elif "positive" in sentiment_result and "negative" in sentiment_result:
-                # Direct format
-                positive = sentiment_result.get("positive", [])
-                neutral = sentiment_result.get("neutral", [])
-                negative = sentiment_result.get("negative", [])
-            elif "sentiment" in sentiment_result and isinstance(
-                sentiment_result["sentiment"], dict
-            ):
-                # Nested format
-                sentiment_data = sentiment_result["sentiment"]
-                if "supporting_statements" in sentiment_data:
-                    statements = sentiment_data.get("supporting_statements", {})
-                    positive = statements.get("positive", [])
-                    neutral = statements.get("neutral", [])
-                    negative = statements.get("negative", [])
-                else:
-                    positive = sentiment_data.get("positive", [])
-                    neutral = sentiment_data.get("neutral", [])
-                    negative = sentiment_data.get("negative", [])
-            else:
-                # Unknown format - log and use empty lists
-                logger.warning(
-                    f"Unknown sentiment result format: {type(sentiment_result)}"
-                )
-                positive = []
-                neutral = []
-                negative = []
-
-            # Type checking to prevent errors
-            if not isinstance(positive, list):
-                logger.warning(f"Positive sentiment is not a list: {type(positive)}")
-                positive = []
-            if not isinstance(neutral, list):
-                logger.warning(f"Neutral sentiment is not a list: {type(neutral)}")
-                neutral = []
-            if not isinstance(negative, list):
-                logger.warning(f"Negative sentiment is not a list: {type(negative)}")
-                negative = []
-
-            # Log the initial sentiment counts
-            logger.info(
-                f"Initial sentiment counts - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}"
-            )
-
-            # Extract from themes if available and needed - but with higher thresholds
-            # Only extract from themes if we have very few statements (less than 10 in any category)
-            if (
-                len(positive) < 10 or len(neutral) < 10 or len(negative) < 10
-            ) and "themes" in sentiment_result:
-                logger.info(
-                    "Extracting additional sentiment statements from themes due to insufficient direct statements"
-                )
-                themes = sentiment_result.get("themes", [])
-
-                # Collect statements from themes based on their sentiment scores
-                for theme in themes:
-                    statements = theme.get("statements", []) or theme.get(
-                        "examples", []
-                    )
-                    sentiment_score = theme.get("sentiment", 0)
-
-                    # Skip themes without statements
-                    if not statements:
-                        continue
-
-                    # Add statements to the appropriate category based on theme sentiment
-                    for statement in statements:
-                        if isinstance(statement, str) and statement.strip():
-                            # Only add if the statement is substantial (more than 20 chars)
-                            if len(statement.strip()) < 20:
-                                continue
-
-                            if (
-                                sentiment_score > 0.2 and len(positive) < 20
-                            ):  # Positive theme
-                                if statement not in positive:
-                                    positive.append(statement)
-                            elif (
-                                sentiment_score < -0.2 and len(negative) < 20
-                            ):  # Negative theme
-                                if statement not in negative:
-                                    negative.append(statement)
-                            elif len(neutral) < 20:  # Neutral theme
-                                if statement not in neutral:
-                                    neutral.append(statement)
-
-                logger.info(
-                    f"After theme extraction - positive: {len(positive)}, neutral: {len(neutral)}, negative: {len(negative)}"
-                )
-
-            # Filter out low-quality statements
-            def filter_low_quality(statements):
-                if not statements:
-                    return []
-                try:
-                    return [
-                        s
-                        for s in statements
-                        if isinstance(s, str)
-                        and len(s) > 20
-                        and not s.startswith("Product Designer Interview")
-                    ]
-                except Exception as e:
-                    logger.error(f"Error filtering statements: {str(e)}")
-                    return []
-
-            # Process each list safely
-            processed_positive = filter_low_quality(positive)
-            processed_neutral = filter_low_quality(neutral)
-            processed_negative = filter_low_quality(negative)
-
-            # Log sample statements for debugging
-            if processed_positive and len(processed_positive) > 0:
-                logger.info(f"Sample positive statement: {processed_positive[0][:100]}")
-            if processed_neutral and len(processed_neutral) > 0:
-                logger.info(f"Sample neutral statement: {processed_neutral[0][:100]}")
-            if processed_negative and len(processed_negative) > 0:
-                logger.info(f"Sample negative statement: {processed_negative[0][:100]}")
-
-            return {
-                "positive": processed_positive,
-                "neutral": processed_neutral,
-                "negative": processed_negative,
-            }
-        except Exception as e:
-            # Catch any unexpected errors to prevent 500 responses
-            logger.error(f"Unexpected error processing sentiment results: {str(e)}")
-            return {"positive": [], "neutral": [], "negative": []}
-
-
     async def _generate_personas(
         self,
         combined_text: str,
@@ -1903,9 +1475,19 @@ class NLPProcessor:
                 f"👥 [PERSONA_GEN] Stakeholder detection result: {stakeholder_segments is not None}"
             )
 
+            # Check for ENABLE_MULTI_STAKEHOLDER env var, or auto-detect simulation format
+            # The simulation format uses "--- INTERVIEW N ---\nStakeholder:" pattern
+            is_simulation_format = bool(
+                re.search(r"--- INTERVIEW \d+ ---\s*\nStakeholder:", combined_text)
+            )
             enable_ms = (
                 os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
+                or is_simulation_format
             )
+            if is_simulation_format:
+                logger.info(
+                    "👥 [PERSONA_GEN] Auto-enabled multi-stakeholder for simulation format data"
+                )
 
             if stakeholder_segments and enable_ms:
                 logger.info(
@@ -2022,297 +1604,11 @@ class NLPProcessor:
             )
             return []
 
-    def _preprocess_transcript_for_sentiment(self, text):
-        """Preprocess transcript to make Q&A pairs more identifiable"""
-        try:
-            if not text:
-                return text
-
-            logger.info("Preprocessing transcript for sentiment analysis")
-
-            # Split text into lines for processing
-            lines = text.split("\n")
-            processed_lines = []
-
-            # Track the current speaker and whether they're asking a question
-            current_speaker = None
-            is_question = False
-            current_qa_pair = []
-
-            for line in lines:
-                # Skip empty lines
-                if not line.strip():
-                    continue
-
-                # Check if this is a new speaker
-                speaker_match = re.search(r"^([^:]+):\s*(.*)", line)
-
-                if speaker_match:
-                    speaker = speaker_match.group(1).strip()
-                    content = speaker_match.group(2).strip()
-
-                    # If we were building a Q&A pair and now have a new speaker, save the previous one
-                    if (
-                        current_speaker
-                        and current_speaker != speaker
-                        and current_qa_pair
-                    ):
-                        processed_lines.append(" ".join(current_qa_pair))
-                        current_qa_pair = []
-
-                    # Determine if this is likely a question (contains ? or starts with question words)
-                    question_words = [
-                        "what",
-                        "how",
-                        "why",
-                        "when",
-                        "where",
-                        "who",
-                        "which",
-                        "can",
-                        "could",
-                        "would",
-                        "do",
-                        "does",
-                    ]
-                    is_question = "?" in content or any(
-                        content.lower().startswith(word) for word in question_words
-                    )
-
-                    # Format as Q or A with the content
-                    prefix = "Q: " if is_question else "A: "
-
-                    # Start a new Q&A pair or continue the current one
-                    if is_question or not current_qa_pair:
-                        current_qa_pair.append(f"{prefix}{content}")
-                    else:
-                        current_qa_pair.append(f"{prefix}{content}")
-
-                    current_speaker = speaker
-                else:
-                    # If no speaker detected, add as continuation of the current speaker
-                    if current_qa_pair:
-                        current_qa_pair[-1] += " " + line.strip()
-                    else:
-                        processed_lines.append(line)
-
-            # Add any remaining Q&A pair
-            if current_qa_pair:
-                processed_lines.append(" ".join(current_qa_pair))
-
-            processed_text = "\n".join(processed_lines)
-
-            # Log a sample of the processed text
-            sample_length = min(200, len(processed_text))
-            logger.info(
-                f"Processed transcript sample: {processed_text[:sample_length]}..."
-            )
-
-            return processed_text
-        except Exception as e:
-            # If preprocessing fails, return the original text instead of causing an error
-            logger.error(f"Error preprocessing transcript: {str(e)}")
-            return text
-
     def _process_sentiment_results(
         self, sentiment_result: Dict[str, Any]
     ) -> Dict[str, List[str]]:
-        """Process sentiment results to extract supporting statements"""
-        try:
-            # Check if the response is a string wrapped in markdown code blocks
-            if isinstance(sentiment_result, str):
-                logger.warning(
-                    "Sentiment result is a string, attempting to parse as JSON"
-                )
-
-                # Check for markdown code blocks
-                if sentiment_result.startswith("```json") and sentiment_result.endswith(
-                    "```"
-                ):
-                    logger.info(
-                        "Detected markdown code blocks in sentiment result, extracting JSON content"
-                    )
-                    # Extract JSON content
-                    json_content = sentiment_result[7:-3].strip()
-                    try:
-                        sentiment_result = json.loads(json_content)
-                        logger.info(
-                            "Successfully parsed JSON from markdown code blocks"
-                        )
-                    except json.JSONDecodeError as e:
-                        logger.error(
-                            f"Failed to parse JSON from markdown code blocks: {e}"
-                        )
-                else:
-                    # Try to parse as JSON directly
-                    try:
-                        sentiment_result = json.loads(sentiment_result)
-                        logger.info("Successfully parsed JSON from string")
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Failed to parse JSON from string: {e}")
-
-            # Extract sentiment statements from the result
-            if (
-                "sentiment" in sentiment_result
-                and "supporting_statements" in sentiment_result["sentiment"]
-            ):
-                return sentiment_result["sentiment"]["supporting_statements"]
-            elif "supporting_statements" in sentiment_result:
-                return sentiment_result["supporting_statements"]
-            elif "sentimentStatements" in sentiment_result:
-                return sentiment_result["sentimentStatements"]
-            else:
-                logger.warning("No sentiment statements found in result")
-
-                # Check if sentimentOverview exists to detect hardcoded values
-                if "sentimentOverview" in sentiment_result:
-                    overview = sentiment_result["sentimentOverview"]
-                    positive_score = overview.get("positive", 0)
-                    neutral_score = overview.get("neutral", 0)
-                    negative_score = overview.get("negative", 0)
-
-                    # Check if scores are suspiciously close to 0.33 each (hardcoded fallback values)
-                    if (
-                        abs(positive_score - 0.33) < 0.01
-                        and abs(neutral_score - 0.34) < 0.01
-                        and abs(negative_score - 0.33) < 0.01
-                    ):
-                        logger.warning(
-                            "Detected hardcoded sentiment scores (0.33, 0.34, 0.33). This may indicate a parsing issue."
-                        )
-
-                return {"positive": [], "neutral": [], "negative": []}
-        except Exception as e:
-            logger.error(f"Error processing sentiment results: {str(e)}")
-            return {"positive": [], "neutral": [], "negative": []}
-
-    async def _generate_fallback_patterns(
-        self, text: str, themes: List[Dict[str, Any]], llm_service
-    ) -> List[Dict[str, Any]]:
-        """
-        Generate fallback patterns when pattern recognition fails.
-
-        Args:
-            text: The interview text
-            themes: List of themes extracted from the text
-            llm_service: LLM service to use for pattern generation
-
-        Returns:
-            List of generated patterns
-        """
-        logger.info("Generating fallback patterns")
-
-        # If we have no text, return a minimal default pattern with improved structure
-        if not text or len(text.strip()) < 10:
-            logger.warning("Text is too short or empty for fallback pattern generation")
-            return [
-                {
-                    "name": "Limited Content",
-                    "category": "Workflow",
-                    "description": "Users provided minimal information during the interview process, making it difficult to identify specific behavioral patterns or interaction methods.",
-                    "frequency": 0.5,
-                    "sentiment": 0.0,
-                    "evidence": [
-                        "Limited interview content",
-                        "Insufficient behavioral data",
-                    ],
-                    "impact": "This pattern of limited information sharing affects the ability to draw meaningful conclusions about user behaviors and needs, potentially leading to incomplete understanding of user requirements.",
-                    "suggested_actions": [
-                        "Conduct follow-up interviews with more specific behavioral questions",
-                        "Implement observational research methods to directly observe user behaviors",
-                        "Use contextual inquiry techniques to gather richer behavioral data in users' natural environments",
-                    ],
-                }
-            ]
-
-        # If we have themes, convert them to patterns
-        if themes and len(themes) > 0:
-            logger.info(f"Generating patterns from {len(themes)} themes")
-            patterns = []
-
-            for theme in themes:
-                # Extract theme data
-                name = theme.get("name", "Unknown Theme")
-                description = theme.get("description", "No description available.")
-                statements = theme.get("statements", []) or theme.get("examples", [])
-                sentiment = theme.get("sentiment", 0.0)
-
-                # Create a pattern from the theme with detailed descriptions
-                pattern = {
-                    "name": name,
-                    "category": self._determine_pattern_category(
-                        name, description, statements
-                    ),
-                    "description": self._generate_detailed_description(
-                        name, description, statements
-                    ),
-                    "frequency": theme.get("frequency", 0.5),
-                    "sentiment": sentiment,
-                    "evidence": (
-                        statements[:5] if statements else ["Based on theme analysis"]
-                    ),
-                    "impact": self._generate_specific_impact(
-                        name, description, sentiment, statements
-                    ),
-                    "suggested_actions": self._generate_actionable_recommendations(
-                        name, description, sentiment
-                    ),
-                }
-
-                patterns.append(pattern)
-
-            if patterns:
-                logger.info(f"Generated {len(patterns)} patterns from themes")
-                return patterns
-
-        # If we have no themes or couldn't generate patterns from themes, try direct generation
-        try:
-            # Use a simple prompt to generate patterns
-            sample_text = text[:3000] + ("..." if len(text) > 3000 else "")
-
-            # Call LLM to generate patterns
-            logger.info("Calling LLM for direct pattern generation")
-            response = await llm_service.analyze(
-                {
-                    "task": "pattern_recognition",
-                    "text": sample_text,
-                    "enforce_json": True,
-                }
-            )
-
-            # Extract patterns from response
-            if (
-                isinstance(response, dict)
-                and "patterns" in response
-                and isinstance(response["patterns"], list)
-            ):
-                patterns = response["patterns"]
-                if patterns:
-                    logger.info(
-                        f"Successfully generated {len(patterns)} patterns directly"
-                    )
-                    return patterns
-        except Exception as e:
-            logger.error(f"Error in direct pattern generation: {str(e)}")
-
-        # Last resort: return a generic pattern with improved details
-        logger.warning("Falling back to generic pattern")
-        return [
-            {
-                "name": "General Observation",
-                "category": "Workflow",
-                "description": "Users demonstrate specific interaction patterns when engaging with the system, including navigating interfaces, processing information, and completing tasks in a structured manner.",
-                "frequency": 0.7,
-                "sentiment": 0.0,
-                "evidence": ["Interview content indicates consistent user behaviors"],
-                "impact": "This pattern affects task completion efficiency and user satisfaction, creating opportunities for workflow optimization and interface improvements.",
-                "suggested_actions": [
-                    "Conduct targeted user research to identify specific workflow patterns",
-                    "Analyze task completion paths to identify optimization opportunities",
-                    "Implement user journey mapping to visualize and improve common interaction patterns",
-                ],
-            }
-        ]
+        """Process sentiment results to extract supporting statements."""
+        return process_sentiment_results(sentiment_result)
 
     async def _generate_fallback_patterns(
         self, text: str, themes: list, llm_service
@@ -2534,391 +1830,27 @@ class NLPProcessor:
     def _determine_pattern_category(
         self, name: str, description: str, statements: List[str]
     ) -> str:
-        """
-        Determine the appropriate category for a pattern based on its content.
-
-        Args:
-            name: Pattern name
-            description: Pattern description
-            statements: Supporting statements/evidence
-
-        Returns:
-            Category string from the predefined list
-        """
-        # Combine text for analysis
-        combined_text = f"{name} {description} {' '.join(statements)}".lower()
-
-        # Define category keywords
-        category_keywords = {
-            "Workflow": [
-                "workflow",
-                "process",
-                "step",
-                "sequence",
-                "procedure",
-                "routine",
-                "method",
-            ],
-            "Coping Strategy": [
-                "cope",
-                "strategy",
-                "deal with",
-                "manage",
-                "handle",
-                "overcome",
-                "mitigate",
-            ],
-            "Decision Process": [
-                "decision",
-                "choose",
-                "select",
-                "evaluate",
-                "assess",
-                "judge",
-                "determine",
-            ],
-            "Workaround": [
-                "workaround",
-                "alternative",
-                "bypass",
-                "circumvent",
-                "hack",
-                "shortcut",
-            ],
-            "Habit": [
-                "habit",
-                "regular",
-                "consistently",
-                "always",
-                "frequently",
-                "tend to",
-                "typically",
-            ],
-            "Collaboration": [
-                "collaborate",
-                "team",
-                "share",
-                "together",
-                "group",
-                "collective",
-                "joint",
-            ],
-            "Communication": [
-                "communicate",
-                "discuss",
-                "talk",
-                "message",
-                "inform",
-                "express",
-                "convey",
-            ],
-        }
-
-        # Score each category
-        scores = {}
-        for category, keywords in category_keywords.items():
-            score = sum(1 for keyword in keywords if keyword in combined_text)
-            scores[category] = score
-
-        # Return the highest scoring category, or "Workflow" as default
-        if any(scores.values()):
-            return max(scores.items(), key=lambda x: x[1])[0]
-
-        return "Workflow"  # Default category
+        """Determine the appropriate category for a pattern based on its content."""
+        return determine_pattern_category(name, description, statements)
 
     def _generate_detailed_description(
         self, name: str, description: str, statements: List[str]
     ) -> str:
-        """
-        Generate a detailed behavioral description for a pattern.
-
-        Args:
-            name: Pattern name
-            description: Original description
-            statements: Supporting statements/evidence
-
-        Returns:
-            Detailed description focusing on behaviors and actions
-        """
-        # If the original description is already detailed, use it
-        if (
-            description
-            and description != "No description available."
-            and len(description) > 50
-        ):
-            return description
-
-        # Skip verb extraction and use a generic but specific description based on the pattern name
-        return f"Users demonstrate specific behaviors related to {name.lower()}, showing consistent patterns in how they interact with the system. These behaviors reflect how users approach and engage with this aspect of the experience."
+        """Generate a detailed behavioral description for a pattern."""
+        return generate_detailed_description(name, description, statements)
 
     def _generate_specific_impact(
         self, name: str, description: str, sentiment: float, statements: List[str]
     ) -> str:
-        """
-        Generate a specific impact statement for a pattern.
-
-        Args:
-            name: Pattern name
-            description: Pattern description
-            sentiment: Sentiment score (-1 to 1)
-            statements: Supporting statements/evidence
-
-        Returns:
-            Specific impact statement
-        """
-        # Determine impact type based on sentiment
-        if sentiment > 0.3:
-            impact_type = "positive"
-            consequences = [
-                "increases user satisfaction and engagement",
-                "enhances productivity and efficiency",
-                "improves the overall user experience",
-                "strengthens user confidence in the system",
-                "facilitates more effective task completion",
-            ]
-        elif sentiment < -0.3:
-            impact_type = "negative"
-            consequences = [
-                "creates friction and frustration for users",
-                "slows down task completion and reduces efficiency",
-                "diminishes user confidence in the system",
-                "leads to workarounds that may introduce errors",
-                "increases cognitive load and user effort",
-            ]
-        else:
-            impact_type = "mixed"
-            consequences = [
-                "has both positive and negative effects on user experience",
-                "creates trade-offs between efficiency and thoroughness",
-                "varies in impact depending on user expertise and context",
-                "affects different user groups in different ways",
-                "presents both opportunities and challenges for design",
-            ]
-
-        # Select consequences based on pattern name
-        name_words = set(name.lower().split())
-        selected_consequences = []
-
-        for consequence in consequences:
-            for word in name_words:
-                if (
-                    len(word) > 4 and word in consequence
-                ):  # Only match significant words
-                    selected_consequences.append(consequence)
-                    break
-
-        # If no specific matches, take the first two general consequences
-        if not selected_consequences:
-            selected_consequences = consequences[:2]
-        else:
-            selected_consequences = selected_consequences[:2]  # Limit to 2
-
-        # Construct impact statement
-        impact_statement = f"This pattern {selected_consequences[0]}"
-        if len(selected_consequences) > 1:
-            impact_statement += f" and {selected_consequences[1]}"
-
-        impact_statement += f", resulting in a {impact_type} effect on overall system usability and user satisfaction."
-
-        return impact_statement
+        """Generate a specific impact statement for a pattern."""
+        return generate_specific_impact(name, description, sentiment, statements)
 
     def _generate_actionable_recommendations(
         self, name: str, description: str, sentiment: float
     ) -> List[str]:
-        """
-        Generate specific, actionable recommendations based on the pattern.
-
-        Args:
-            name: Pattern name
-            description: Pattern description
-            sentiment: Sentiment score (-1 to 1)
-
-        Returns:
-            List of actionable recommendations
-        """
-        # Base recommendations on sentiment
-        if sentiment < -0.3:
-            # Negative patterns need improvement
-            recommendations = [
-                f"Conduct targeted usability testing focused on the {name.lower()} aspect of the experience",
-                f"Redesign the interface elements related to {name.lower()} to reduce friction and improve clarity",
-                f"Develop clear documentation and tooltips to help users navigate the {name.lower()} process more effectively",
-            ]
-        elif sentiment > 0.3:
-            # Positive patterns should be enhanced
-            recommendations = [
-                f"Expand the {name.lower()} functionality to cover more use cases and scenarios",
-                f"Highlight the {name.lower()} feature in onboarding materials to increase awareness",
-                f"Gather additional user feedback on {name.lower()} to identify further enhancement opportunities",
-            ]
-        else:
-            # Neutral patterns need investigation
-            recommendations = [
-                f"Conduct further research to better understand user needs related to {name.lower()}",
-                f"Prototype alternative approaches to {name.lower()} and test with users",
-                f"Analyze usage data to identify patterns and opportunities for improving {name.lower()}",
-            ]
-
-        return recommendations
-
-    def _calculate_sentiment_distribution(
-        self, statements: List[str], sentiment_data: Dict[str, List[str]]
-    ) -> Dict[str, float]:
-        """Calculate sentiment distribution for a list of statements"""
-        sentiment_distribution = {"positive": 0, "neutral": 0, "negative": 0}
-
-        # If we have sentiment data for individual statements, use it
-        if sentiment_data and statements:
-            positive_statements = set(sentiment_data.get("positive", []))
-            neutral_statements = set(sentiment_data.get("neutral", []))
-            negative_statements = set(sentiment_data.get("negative", []))
-
-            # Count statements in each sentiment category
-            for statement in statements:
-                if statement in positive_statements:
-                    sentiment_distribution["positive"] += 1
-                elif statement in negative_statements:
-                    sentiment_distribution["negative"] += 1
-                elif statement in neutral_statements:
-                    sentiment_distribution["neutral"] += 1
-                else:
-                    # If not found in any category, default to neutral
-                    sentiment_distribution["neutral"] += 1
-        else:
-            # Default distribution if no sentiment data is available
-            total = len(statements)
-            sentiment_distribution["positive"] = total // 3
-            sentiment_distribution["neutral"] = total // 3
-            sentiment_distribution["negative"] = total - (
-                sentiment_distribution["positive"] + sentiment_distribution["neutral"]
-            )
-
-        # Convert to percentages
-        total_statements = sum(sentiment_distribution.values())
-        if total_statements > 0:
-            for key in sentiment_distribution:
-                sentiment_distribution[key] = round(
-                    sentiment_distribution[key] / total_statements, 2
-                )
-
-        return sentiment_distribution
+        """Generate specific, actionable recommendations based on the pattern."""
+        return generate_actionable_recommendations(name, description, sentiment)
 
     async def _create_minimal_sentiment_result(self) -> Dict[str, Any]:
-        """
-        Create a minimal sentiment result for schema compatibility when sentiment analysis is disabled.
-
-        Returns:
-            Dictionary containing minimal sentiment analysis results for schema compliance
-        """
-        logger.info("Creating minimal sentiment result (sentiment analysis disabled)")
-
-        # Return minimal sentiment data that satisfies the schema requirements
-        return {
-            "sentiment_overview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33},
-            "sentiment_details": [],
-            "sentiment_statements": {"positive": [], "neutral": [], "negative": []},
-            "disabled": True,
-            "analysis_method": "disabled_for_performance",
-        }
-
-    async def _create_fallback_sentiment_result(self, text: str) -> Dict[str, Any]:
-        """
-        Create a fallback sentiment result when the main sentiment analysis fails or times out.
-
-        Args:
-            text: The text to analyze
-
-        Returns:
-            Dictionary containing basic sentiment analysis results
-        """
-        logger.info("Creating fallback sentiment result")
-
-        # Simple keyword-based sentiment analysis as fallback
-        positive_keywords = [
-            "good",
-            "great",
-            "excellent",
-            "love",
-            "like",
-            "happy",
-            "satisfied",
-            "pleased",
-            "excited",
-            "amazing",
-            "wonderful",
-            "fantastic",
-            "perfect",
-            "efficient",
-            "helpful",
-            "useful",
-            "valuable",
-            "benefit",
-            "advantage",
-        ]
-
-        negative_keywords = [
-            "bad",
-            "terrible",
-            "awful",
-            "hate",
-            "dislike",
-            "frustrated",
-            "annoying",
-            "difficult",
-            "problem",
-            "issue",
-            "concern",
-            "worry",
-            "pain",
-            "struggle",
-            "slow",
-            "inefficient",
-            "useless",
-            "waste",
-            "expensive",
-            "costly",
-        ]
-
-        # Count keyword occurrences
-        text_lower = text.lower()
-        positive_count = sum(1 for word in positive_keywords if word in text_lower)
-        negative_count = sum(1 for word in negative_keywords if word in text_lower)
-
-        # Calculate basic sentiment distribution
-        total_sentiment = positive_count + negative_count
-        if total_sentiment == 0:
-            # Default neutral sentiment
-            sentiment_overview = {"positive": 0.3, "neutral": 0.5, "negative": 0.2}
-        else:
-            positive_ratio = positive_count / total_sentiment
-            negative_ratio = negative_count / total_sentiment
-            neutral_ratio = max(
-                0.1, 1.0 - positive_ratio - negative_ratio
-            )  # At least 10% neutral
-
-            # Normalize to sum to 1.0
-            total = positive_ratio + negative_ratio + neutral_ratio
-            sentiment_overview = {
-                "positive": round(positive_ratio / total, 2),
-                "neutral": round(neutral_ratio / total, 2),
-                "negative": round(negative_ratio / total, 2),
-            }
-
-        # Create basic sentiment details
-        sentiment_details = [
-            {
-                "category": "Overall Sentiment",
-                "score": sentiment_overview["positive"]
-                - sentiment_overview["negative"],
-                "statements": [
-                    "Fallback sentiment analysis - detailed analysis unavailable"
-                ],
-            }
-        ]
-
-        return {
-            "sentiment_overview": sentiment_overview,
-            "sentiment_details": sentiment_details,
-            "fallback_used": True,
-            "analysis_method": "keyword_based_fallback",
-        }
+        """Create a minimal sentiment result for schema compatibility."""
+        return await create_minimal_sentiment_result()

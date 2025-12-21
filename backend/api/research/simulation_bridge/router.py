@@ -843,7 +843,7 @@ async def test_persona_generation(
 
         from pydantic_ai.providers.google import GoogleProvider
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("gemini-3-flash-preview", provider=provider)
+        model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
         generator = PersonaGenerator(model)
         personas = await generator.generate_personas(
             stakeholder, business_ctx, sim_config
@@ -888,7 +888,7 @@ async def test_interview_simulation(
 
         from pydantic_ai.providers.google import GoogleProvider
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("gemini-3-flash-preview", provider=provider)
+        model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
         simulator = InterviewSimulator(model)
         interview = await simulator.simulate_interview(
             persona, stakeholder, business_ctx, sim_config
@@ -934,7 +934,7 @@ def get_gemini_model():
     if not api_key:
         raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
     provider = GoogleProvider(api_key=api_key)
-    return GoogleModel("gemini-3-flash-preview", provider=provider)
+    return GoogleModel("models/gemini-3-flash-preview", provider=provider)
 
 
 def get_file_processor():

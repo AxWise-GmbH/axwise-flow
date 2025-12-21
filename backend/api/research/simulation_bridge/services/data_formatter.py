@@ -124,7 +124,16 @@ class DataFormatter:
         interviews: List[SimulatedInterview],
         business_context: BusinessContext,
     ) -> str:
-        """Create a consolidated text for analysis pipeline."""
+        """Create a consolidated text for analysis pipeline.
+
+        NOTE: The output format uses the stakeholder-aware interview format:
+            --- INTERVIEW N ---
+            Stakeholder: <stakeholder_type>
+            Speaker: <persona_name>
+
+        This format is recognized by StakeholderAwareTranscriptProcessor._parse_stakeholder_sections
+        and enables per-stakeholder persona generation from simulation data.
+        """
         text_parts = []
 
         primary_location = getattr(business_context, "location", None)
@@ -140,7 +149,7 @@ class DataFormatter:
             )
             text_parts.append("")
 
-        for interview in interviews:
+        for interview_num, interview in enumerate(interviews, 1):
             # Find the persona name for this interview
             persona_name = "Unknown"
             for persona in self.personas if hasattr(self, "personas") else []:
@@ -148,9 +157,10 @@ class DataFormatter:
                     persona_name = persona.name
                     break
 
-            text_parts.append(
-                f"=== Interview with {persona_name} ({interview.stakeholder_type}) ==="
-            )
+            # Use stakeholder-aware format recognized by _parse_stakeholder_sections
+            text_parts.append(f"--- INTERVIEW {interview_num} ---")
+            text_parts.append(f"Stakeholder: {interview.stakeholder_type}")
+            text_parts.append(f"Speaker: {persona_name}")
             text_parts.append(f"Overall Sentiment: {interview.overall_sentiment}")
             text_parts.append(f"Key Themes: {', '.join(interview.key_themes)}")
             text_parts.append("")
