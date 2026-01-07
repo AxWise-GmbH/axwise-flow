@@ -66,6 +66,7 @@ class TraitFormattingService:
         Returns:
             Attributes with formatted trait values
         """
+        import asyncio
         logger.info("Formatting trait values")
 
         # List of trait fields to format
@@ -80,44 +81,72 @@ class TraitFormattingService:
         # Create a new dictionary to store the formatted attributes
         formatted_attributes = attributes.copy()
 
-        # Process each trait field
-        for field in trait_fields:
-            if field in attributes:
+        # Helper function to process a single field
+        semaphore = asyncio.Semaphore(5)  # Limit concurrency per persona
+
+        async def _process_field(field_name: str):
+            async with semaphore:
                 try:
                     # Handle both simple string values and nested dict structures
-                    trait_value = ""
+                    trait_val = ""
 
-                    if isinstance(attributes[field], dict) and "value" in attributes[field]:
+                    if isinstance(attributes[field_name], dict) and "value" in attributes[field_name]:
                         # Nested structure
-                        trait_value = attributes[field]["value"]
-                    elif isinstance(attributes[field], str):
+                        trait_val = attributes[field_name]["value"]
+                    elif isinstance(attributes[field_name], str):
                         # Simple string value
-                        trait_value = attributes[field]
+                        trait_val = attributes[field_name]
 
                     # Skip if the trait value is empty or default
-                    if not trait_value or trait_value.startswith("Unknown") or trait_value.startswith("Default"):
-                        continue
+                    if not trait_val or trait_val.startswith("Unknown") or trait_val.startswith("Default"):
+                        return None, None
 
                     # Format the trait value
                     if self.use_llm:
                         # Use LLM for advanced formatting
-                        formatted_value = await self._format_with_llm(field, trait_value)
+                        fmt_val = await self._format_with_llm(field_name, trait_val)
                     else:
                         # Use string processing for basic formatting
-                        formatted_value = self._format_with_string_processing(field, trait_value)
+                        fmt_val = self._format_with_string_processing(field_name, trait_val)
 
-                    # Update the trait value if formatting was successful
-                    if formatted_value and formatted_value != trait_value:
-                        # If the attribute is already a dict with value field, update it
-                        if isinstance(formatted_attributes[field], dict) and "value" in formatted_attributes[field]:
-                            formatted_attributes[field]["value"] = formatted_value
+                    return field_name, fmt_val
+                except Exception as ex:
+                    logger.error(f"Error formatting trait value for {field_name}: {str(ex)}", exc_info=True)
+                    return None, None
+
+        # Create tasks for each trait field
+        import asyncio
+        tasks = []
+        for field in trait_fields:
+            if field in attributes:
+                tasks.append(_process_field(field))
+
+        # Run tasks in parallel
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            
+            # Apply results
+            for f_name, f_val in results:
+                if f_name and f_val:
+                    # Check original value to compare
+                    orig_val = ""
+                    if isinstance(attributes[f_name], dict) and "value" in attributes[f_name]:
+                        orig_val = attributes[f_name]["value"]
+                    elif isinstance(attributes[f_name], str):
+                        orig_val = attributes[f_name]
+
+                    # Update only if changed
+                    if f_val != orig_val:
+                         # If the attribute is already a dict with value field, update it
+                        if isinstance(formatted_attributes[f_name], dict) and "value" in formatted_attributes[f_name]:
+                            formatted_attributes[f_name]["value"] = f_val
                         else:
                             # For simple string values, just update the string
-                            formatted_attributes[field] = formatted_value
+                            formatted_attributes[f_name] = f_val
+                        
+                        logger.info(f"Formatted trait value for {f_name}")
 
-                        logger.info(f"Formatted trait value for {field}")
-                except Exception as e:
-                    logger.error(f"Error formatting trait value for {field}: {str(e)}", exc_info=True)
+        return formatted_attributes
 
         return formatted_attributes
 

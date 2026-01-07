@@ -37,9 +37,13 @@ class ModelType(Enum):
 
 # Supported models with their capabilities
 MODEL_CAPABILITIES = {
+    # OpenAI models
     "gpt-4o-2024-08-06": ModelCapability(128000, 16384),
     "gpt-4o-mini-2024-07-18": ModelCapability(128000, 16384),
     "gpt-4o-2024-05-13": ModelCapability(128000, 4096),
+    # Gemini models
+    "models/gemini-3-flash-preview": ModelCapability(1048576, 65536),
+    "gemini-3-flash-preview": ModelCapability(1048576, 65536),
 }
 
 @dataclass

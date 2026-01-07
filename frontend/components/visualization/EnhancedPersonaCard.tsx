@@ -202,100 +202,115 @@ export function EnhancedPersonaCard({
               Stakeholder Intelligence
             </h4>
 
-            {/* Influence Metrics */}
-            <div className="space-y-3">
-              <h5 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Influence Metrics</h5>
+            {/* Influence Metrics - Only show if has meaningful data */}
+            {(() => {
+              const metrics = stakeholderIntelligence?.influence_metrics;
+              if (!metrics || (
+                (metrics.decision_power || 0) === 0 &&
+                (metrics.technical_influence || 0) === 0 &&
+                (metrics.budget_influence || 0) === 0
+              )) {
+                return null;
+              }
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Crown className="h-3 w-3 text-purple-600" />
-                    <span className="text-xs">Decision Power</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Progress
-                      value={toPercent(stakeholderIntelligence?.influence_metrics?.decision_power)}
-                      className="w-16 h-2"
-                    />
-                    <span className="text-xs font-medium">
-                      {toPercent(stakeholderIntelligence?.influence_metrics?.decision_power)}%
-                    </span>
+              return (
+                <div className="space-y-3">
+                  <h5 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Influence Metrics</h5>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Crown className="h-3 w-3 text-purple-600" />
+                        <span className="text-xs">Decision Power</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Progress
+                          value={toPercent(metrics.decision_power)}
+                          className="w-16 h-2"
+                        />
+                        <span className="text-xs font-medium">
+                          {toPercent(metrics.decision_power)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Zap className="h-3 w-3 text-blue-600" />
+                        <span className="text-xs">Technical Influence</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Progress
+                          value={toPercent(metrics.technical_influence)}
+                          className="w-16 h-2"
+                        />
+                        <span className="text-xs font-medium">
+                          {toPercent(metrics.technical_influence)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <DollarSign className="h-3 w-3 text-green-600" />
+                        <span className="text-xs">Budget Influence</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Progress
+                          value={toPercent(metrics.budget_influence)}
+                          className="w-16 h-2"
+                        />
+                        <span className="text-xs font-medium">
+                          {toPercent(metrics.budget_influence)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Zap className="h-3 w-3 text-blue-600" />
-                    <span className="text-xs">Technical Influence</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Progress
-                      value={toPercent(stakeholderIntelligence?.influence_metrics?.technical_influence)}
-                      className="w-16 h-2"
-                    />
-                    <span className="text-xs font-medium">
-                      {toPercent(stakeholderIntelligence?.influence_metrics?.technical_influence)}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="h-3 w-3 text-green-600" />
-                    <span className="text-xs">Budget Influence</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Progress
-                      value={toPercent(stakeholderIntelligence?.influence_metrics?.budget_influence)}
-                      className="w-16 h-2"
-                    />
-                    <span className="text-xs font-medium">
-                      {toPercent(stakeholderIntelligence?.influence_metrics?.budget_influence)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Relationships */}
-            {hasStakeholderFeatures && Array.isArray(stakeholderIntelligence?.relationships) && stakeholderIntelligence!.relationships.length > 0 && (
-              <div className="space-y-2">
-                <h5 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Relationships</h5>
-                <div className="space-y-1">
-                  {stakeholderIntelligence!.relationships.slice(0, 3).map((relationship, index) => {
-                    const relationshipInfo = getRelationshipTypeInfo(relationship.relationship_type);
-                    return (
-                      <TooltipProvider key={index}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded">
-                              <div className="flex items-center space-x-2">
-                                {React.createElement(relationshipInfo.icon, {
-                                  className: `h-3 w-3 ${relationshipInfo.color}`
-                                })}
-                                <span>{relationshipInfo.label}</span>
-                                <span className="text-gray-600">{relationship.target_persona_id}</span>
+            {
+              hasStakeholderFeatures && Array.isArray(stakeholderIntelligence?.relationships) && stakeholderIntelligence!.relationships.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-medium text-gray-600 uppercase tracking-wide">Relationships</h5>
+                  <div className="space-y-1">
+                    {stakeholderIntelligence!.relationships.slice(0, 3).map((relationship, index) => {
+                      const relationshipInfo = getRelationshipTypeInfo(relationship.relationship_type);
+                      return (
+                        <TooltipProvider key={index}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded">
+                                <div className="flex items-center space-x-2">
+                                  {React.createElement(relationshipInfo.icon, {
+                                    className: `h-3 w-3 ${relationshipInfo.color}`
+                                  })}
+                                  <span>{relationshipInfo.label}</span>
+                                  <span className="text-gray-600">{relationship.target_persona_id}</span>
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {Math.round((relationship.strength ?? 0) * 100)}%
+                                </Badge>
                               </div>
-                              <Badge variant="outline" className="text-xs">
-                                {Math.round((relationship.strength ?? 0) * 100)}%
-                              </Badge>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{relationship.description}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    );
-                  })}
-                  {stakeholderIntelligence!.relationships.length > 3 && (
-                    <p className="text-xs text-gray-500 text-center">
-                      +{stakeholderIntelligence!.relationships.length - 3} more relationships
-                    </p>
-                  )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{relationship.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })}
+                    {stakeholderIntelligence!.relationships.length > 3 && (
+                      <p className="text-xs text-gray-500 text-center">
+                        +{stakeholderIntelligence!.relationships.length - 3} more relationships
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            }
 
             {/* Conflicts and Consensus Indicators */}
             <div className="flex space-x-4">
@@ -303,10 +318,10 @@ export function EnhancedPersonaCard({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center space-x-1 text-xs text-red-600">
+                      <Badge variant="outline" className="flex items-center space-x-1 text-red-600 bg-red-50 border-red-200 cursor-help">
                         <AlertTriangle className="h-3 w-3" />
                         <span>{stakeholderIntelligence!.conflict_indicators.length} conflicts</span>
-                      </div>
+                      </Badge>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="space-y-1">
@@ -323,10 +338,10 @@ export function EnhancedPersonaCard({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex items-center space-x-1 text-xs text-green-600">
+                      <Badge variant="outline" className="flex items-center space-x-1 text-green-600 bg-green-50 border-green-200 cursor-help">
                         <CheckCircle className="h-3 w-3" />
                         <span>{stakeholderIntelligence!.consensus_levels.length} consensus</span>
-                      </div>
+                      </Badge>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="space-y-1">
@@ -549,24 +564,6 @@ export function EnhancedPersonaCard({
             </AccordionItem>
           )}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
           {persona.key_quotes && (
             <AccordionItem value="key_quotes">
               <AccordionTrigger className="text-sm">Key Quotes</AccordionTrigger>
@@ -619,6 +616,6 @@ export function EnhancedPersonaCard({
           )}
         </Accordion>
       </CardContent>
-    </Card>
+    </Card >
   );
 }

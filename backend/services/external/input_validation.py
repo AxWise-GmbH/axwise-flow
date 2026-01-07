@@ -216,7 +216,8 @@ def configure_input_validation(app):
             or path.startswith("/api/debug")
             or path.startswith("/api/axpersona")
             or path.startswith("/api/precall")
-        ):  # Skip validation for research, debug, AxPersona, and PRECALL endpoints
+            or path == "/api/generate-persona"
+        ):  # Skip validation for research, debug, AxPersona, PRECALL, and persona generation endpoints
             logger.info(f"Skipping input validation for path: {path}")
             return await call_next(request)
 

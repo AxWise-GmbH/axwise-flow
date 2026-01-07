@@ -279,7 +279,7 @@ async def _save_analysis_result(
                 completed_at=datetime.utcnow(),
                 results=json.dumps(analysis_data),
                 llm_provider="gemini",
-                llm_model="gemini-2.5-pro",
+                llm_model="gemini-3-flash-preview",
                 status=analysis_result.status,
                 error_message=analysis_result.error,
             )

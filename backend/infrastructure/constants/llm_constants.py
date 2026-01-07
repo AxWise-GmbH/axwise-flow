@@ -11,7 +11,7 @@ and should be referenced by all services that need LLM parameters.
 
 # Gemini model constants
 # Updated to use Gemini 2.5 Pro for best quality
-GEMINI_MODEL_NAME = "models/gemini-2.5-pro"
+GEMINI_MODEL_NAME = "models/gemini-3-flash-preview"
 GEMINI_TEMPERATURE = 0.0
 GEMINI_MAX_TOKENS = 65536
 GEMINI_CONTEXT_WINDOW = 1048576
@@ -29,6 +29,11 @@ DEFAULT_TEMPERATURE = 0.0  # Default temperature for all models
 DEFAULT_TOP_P = 0.95  # Default top_p for all models
 DEFAULT_TOP_K = 1  # Default top_k for all models
 
+# Timeout constants - Preview models can be slower, use generous defaults
+# Default timeout increased to 300 seconds (5 min) for preview models
+GEMINI_DEFAULT_TIMEOUT = 300  # seconds
+GEMINI_LARGE_REQUEST_TIMEOUT = 900  # 15 minutes for large requests (>10k tokens)
+
 # Environment variable names
 ENV_GEMINI_API_KEY = "GEMINI_API_KEY"
 ENV_GEMINI_MODEL = "GEMINI_MODEL"
@@ -37,6 +42,7 @@ ENV_GEMINI_MAX_TOKENS = "GEMINI_MAX_TOKENS"
 ENV_GEMINI_CONTEXT_WINDOW = "GEMINI_CONTEXT_WINDOW"
 ENV_GEMINI_TOP_P = "GEMINI_TOP_P"
 ENV_GEMINI_TOP_K = "GEMINI_TOP_K"
+ENV_GEMINI_API_TIMEOUT = "GEMINI_API_TIMEOUT"  # Override default timeout in seconds
 
 ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
 ENV_OPENAI_MODEL = "OPENAI_MODEL"

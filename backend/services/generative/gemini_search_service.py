@@ -231,7 +231,7 @@ CRITICAL - Include SPECIFIC details:
 Do NOT use vague language. Include actual facts from search results."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3-flash-preview"),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -337,7 +337,7 @@ CRITICAL - Include SPECIFIC historical details:
 Do NOT use vague language. Include actual historical facts about {location} during {year_range}."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3-flash-preview"),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
@@ -449,7 +449,7 @@ CRITICAL - Include SPECIFIC details:
 Do NOT use vague language. Include actual facts from search results about {industry} in {location} during {year}."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-2.5-pro"),
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3-flash-preview"),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],

@@ -124,51 +124,17 @@ class DemographicsExtractor(BaseExtractor):
         """
         Best-effort LLM-based age extraction. Returns normalized age bucket or empty string.
         Never raises; on any failure returns "" so we can fall back to regex heuristics.
+        
+        NOTE: This function is called from a synchronous context (from_attributes).
+        Attempting to call async LLM services here with run_until_complete() fails
+        when already inside an event loop (RuntimeWarning: coroutine was never awaited).
+        
+        FIX: Skip LLM call entirely and rely on robust regex-based age extraction.
+        This avoids blocking the pipeline with unawaitable coroutines.
         """
-        try:
-            # Lazy import to avoid test-time overheads and circulars
-            from backend.infrastructure.container import Container  # type: ignore
-        except Exception:
-            return ""
-        try:
-            llm = Container().get_llm_service("enhanced_gemini")
-        except Exception:
-            return ""
-        try:
-            prompt = (
-                "Extract the participant's AGE RANGE from the quotes below. "
-                "Consider first-person speaker context. Output exactly one token from this set: "
-                '["18-24", "25-34", "35-44", "45-54", "55-64", "65+", "unknown"]. '
-                'If uncertain, output "unknown".'
-            )
-            resp = llm.analyze(
-                {
-                    "task": "age_extraction",
-                    "text": context_text[:16000],
-                    "prompt": prompt,
-                    "enforce_json": False,
-                    "temperature": 0.0,
-                    "timeout": 20,
-                }
-            )
-            # Support both sync/async llm implementations
-            if hasattr(resp, "__await__"):
-                import asyncio
-
-                resp = asyncio.get_event_loop().run_until_complete(resp)  # type: ignore
-            if isinstance(resp, dict):
-                candidate = str(
-                    resp.get("age_range") or resp.get("age") or resp.get("value") or ""
-                )
-            else:
-                candidate = str(resp or "")
-            candidate = candidate.strip().strip('"').strip("'")
-            if candidate.lower() == "unknown":
-                return ""
-            # Normalize with bucketing to keep consistency
-            return self._bucket_age_range(candidate)
-        except Exception:
-            return ""
+        # Skip LLM-based extraction to avoid async/sync issues
+        # The regex-based fallback (_bucket_age_range) is already quite robust
+        return ""
 
     def from_attributes(self, attributes: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -182,6 +148,11 @@ class DemographicsExtractor(BaseExtractor):
         - Confidence default/float coercion
         - If age bucket inferred, surface it in value to aid downstream structured extraction
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        raw_val = attributes.get("demographics")
+        logger.info(f"[EXTRACTOR_DEBUG] DemographicsExtractor input: type={type(raw_val)}, val={str(raw_val)[:100]}")
+
         base = super().from_attributes(attributes)
         # Normalize value
         val = base.get("value")

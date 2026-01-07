@@ -54,6 +54,7 @@ nltk>=3.8.1
 fpdf>=1.7.2
 
 # Utilities
+rapidfuzz>=3.6.1  # Fast fuzzy string matching for evidence mapping
 tenacity>=8.2.3
 python-dateutil>=2.8.2
 pytz>=2023.3

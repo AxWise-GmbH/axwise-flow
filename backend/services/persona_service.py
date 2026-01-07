@@ -11,7 +11,7 @@ from backend.services.processing.persona_formation_service import (
 from backend.infrastructure.config.settings import settings
 
 # Configuration values
-ENABLE_CLERK_VALIDATION = settings.get("enable_clerk_validation", False)
+ENABLE_CLERK_VALIDATION = getattr(settings, "enable_clerk_validation", False)
 
 # Configure logging
 logger = logging.getLogger(__name__)

@@ -12,6 +12,7 @@ import logging
 import re
 import json
 import os
+import asyncio
 
 try:
     # Try to import from backend structure
@@ -221,16 +222,22 @@ class EvidenceLinkingService:
                 text_to_analyze = full_text[:text_length_limit]
 
             # Call LLM to find relevant quotes with timeout
-            llm_response = await self.llm_service.analyze(
-                {
-                    "task": "evidence_linking",
-                    "text": text_to_analyze,
-                    "prompt": prompt,
-                    "enforce_json": True,
-                    "temperature": 0.0,  # Use deterministic output for consistent results
-                    "timeout": 30,  # 30 second timeout
-                }
-            )
+            try:
+                llm_response = await asyncio.wait_for(
+                    self.llm_service.analyze(
+                        {
+                            "task": "evidence_linking",
+                            "text": text_to_analyze,
+                            "prompt": prompt,
+                            "enforce_json": True,
+                            "temperature": 0.0,  # Use deterministic output for consistent results
+                        }
+                    ),
+                    timeout=30.0  # 30 second timeout enforced at asyncio level
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"LLM call timed out for {field}, falling back to regex")
+                return self._find_quotes_with_regex(trait_value, full_text)
 
             # Parse the response
             quotes = self._parse_llm_response(llm_response)
@@ -884,14 +891,16 @@ class EvidenceLinkingService:
                 'Respond with JSON: {"approved_indices": [<int>, ...]} only.'
             )
 
-            resp = await self.llm_service.analyze(
-                {
-                    "task": "classification",
-                    "prompt": system_rules + "\n\n" + prompt,
-                    "enforce_json": True,
-                    "temperature": 0.0,
-                    "timeout": 30,
-                }
+            resp = await asyncio.wait_for(
+                self.llm_service.analyze(
+                    {
+                        "task": "classification",
+                        "prompt": system_rules + "\n\n" + prompt,
+                        "enforce_json": True,
+                        "temperature": 0.0,
+                    }
+                ),
+                timeout=30.0  # 30 second timeout enforced at asyncio level
             )
             data = {}
             if isinstance(resp, dict):
@@ -917,7 +926,7 @@ class EvidenceLinkingService:
         self,
         scoped_text: str,
         scope_meta: Optional[Dict[str, Any]] = None,
-        max_chars: int = 12000,
+        max_chars: int = 50000,  # Increased from 12k to 50k for large transcripts
     ) -> str:
         """
         LLM-based cleaner to keep only participant-verbatim lines from scoped_text.
@@ -958,24 +967,26 @@ class EvidenceLinkingService:
                 'Respond with JSON: {"approved_indices": [<int>, ...]} only.'
             )
 
-            resp = await self.llm_service.analyze(
-                {
-                    "task": "classification",
-                    "system": system_rules,
-                    "prompt": prompt,
-                    "enforce_json": True,
-                    "temperature": 0.0,
-                    "timeout": 45,
-                    "response_schema": {
-                        "type": "object",
-                        "properties": {
-                            "approved_indices": {
-                                "type": "array",
-                                "items": {"type": "integer"},
-                            }
+            resp = await asyncio.wait_for(
+                self.llm_service.analyze(
+                    {
+                        "task": "classification",
+                        "system": system_rules,
+                        "prompt": prompt,
+                        "enforce_json": True,
+                        "temperature": 0.0,
+                        "response_schema": {
+                            "type": "object",
+                            "properties": {
+                                "approved_indices": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                }
+                            },
                         },
-                    },
-                }
+                    }
+                ),
+                timeout=45.0  # 45 second timeout enforced at asyncio level
             )
             try:
                 data = resp if isinstance(resp, dict) else json.loads(str(resp))

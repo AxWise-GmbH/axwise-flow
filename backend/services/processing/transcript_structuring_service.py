@@ -117,6 +117,7 @@ class TranscriptStructuringService:
             r"Interview\s+\d+:",  # "Interview 1:"
             r"INTERVIEW\s+#?\d+",  # "INTERVIEW #1" or "INTERVIEW 1"
             r"===.*INTERVIEW.*===",  # "=== INTERVIEW 1 ==="
+            r"---\s*START OF FILE\s+.+?\s*---",  # "--- START OF FILE {name} ---" (multi-interview format)
         ]
 
         interview_markers = []
@@ -207,11 +208,13 @@ class TranscriptStructuringService:
                 )
                 prompt = (
                     prompt
-                    + f"\n\nCRITICAL: This file contains {content_info['interview_count']} SEPARATE INTERVIEWS. Each interview has its own unique participants. "
-                    + "You MUST create unique speaker_id values for each interview to avoid merging different people. "
-                    + "For example, use 'Interviewee_1', 'Interviewee_2', 'Researcher_1', 'Researcher_2', etc. "
-                    + "DO NOT use generic names like 'Interviewee' or 'Researcher' that would merge different people together. "
-                    + "Each interview represents a different person with unique characteristics and responses."
+                    + f"\n\nCRITICAL: This file contains {content_info['interview_count']} SEPARATE INTERVIEWS. "
+                    + "Each interview section starts with a '--- START OF FILE ... ---' marker that contains the interviewee's name in parentheses. "
+                    + "For example: '--- START OF FILE Research Session (John) - 2025_01_15 ---' means the interviewee is 'John'. "
+                    + "You MUST extract the actual name from these markers and use it as the speaker_id for all dialogue in that section. "
+                    + "The interviewer/researcher should be labeled as 'Researcher' or their actual name from the transcript. "
+                    + "DO NOT use generic labels like 'Interviewee' or archetype names like 'Operational_Account_Managers'. "
+                    + "Each individual person should have their ACTUAL NAME as the speaker_id."
                 )
 
             # Create a response schema using the TranscriptSegment model
@@ -290,10 +293,70 @@ class TranscriptStructuringService:
                     "Role normalization failed; continuing with original roles"
                 )
 
+            # Post-process: Assign document_ids based on "--- START OF FILE ---" markers in raw_text
+            # This ensures per-interview scoping even when LLM structuring doesn't preserve it
+            try:
+                structured_transcript = self._assign_document_ids_from_markers(
+                    structured_transcript, raw_text
+                )
+            except Exception as e:
+                logger.warning(f"Document ID assignment failed: {e}")
+
             if structured_transcript:
                 logger.info(
                     f"Successfully structured transcript with {len(structured_transcript)} segments"
                 )
+                # Log dialogue length statistics to detect truncation issues
+                dialogue_lengths = [len(seg.get("dialogue", "")) for seg in structured_transcript]
+                total_dialogue_chars = sum(dialogue_lengths)
+                avg_dialogue_len = total_dialogue_chars / len(dialogue_lengths) if dialogue_lengths else 0
+                min_dialogue_len = min(dialogue_lengths) if dialogue_lengths else 0
+                max_dialogue_len = max(dialogue_lengths) if dialogue_lengths else 0
+                logger.info(
+                    f"Dialogue stats: total={total_dialogue_chars} chars, avg={avg_dialogue_len:.1f}, min={min_dialogue_len}, max={max_dialogue_len}"
+                )
+
+                # Check for LLM output quality issues that warrant fallback to manual extraction
+                # If average dialogue is < 50 chars AND raw_text is substantial, LLM likely produced garbage
+                raw_text_len = len(raw_text.strip()) if raw_text else 0
+                should_fallback = False
+
+                if avg_dialogue_len < 50 and raw_text_len > 500:
+                    logger.warning(
+                        f"⚠️ POTENTIAL TRUNCATION: Average dialogue length is only {avg_dialogue_len:.1f} chars "
+                        f"but raw text is {raw_text_len} chars. Falling back to manual extraction."
+                    )
+                    should_fallback = True
+
+                # Also check if dialogues contain mostly timestamp-like content (a known LLM failure mode)
+                timestamp_pattern = re.compile(r'^\d{2}:\d{2}(:\d{2})?$')
+                timestamp_dialogues = sum(
+                    1 for seg in structured_transcript
+                    if timestamp_pattern.match(seg.get("dialogue", "").strip())
+                )
+                if timestamp_dialogues > len(structured_transcript) * 0.3:  # >30% are timestamp-only
+                    logger.warning(
+                        f"⚠️ TIMESTAMP CONTAMINATION: {timestamp_dialogues}/{len(structured_transcript)} segments "
+                        "have timestamp-only dialogue. Falling back to manual extraction."
+                    )
+                    should_fallback = True
+
+                if should_fallback:
+                    fallback_result = self._extract_transcript_manually(raw_text)
+                    if fallback_result:
+                        # Validate fallback produced better results
+                        fallback_dialogue_lens = [len(s.get("dialogue", "")) for s in fallback_result]
+                        fallback_avg = sum(fallback_dialogue_lens) / len(fallback_dialogue_lens) if fallback_dialogue_lens else 0
+                        if fallback_avg > avg_dialogue_len:
+                            logger.info(
+                                f"✅ Manual extraction fallback improved avg dialogue: {avg_dialogue_len:.1f} → {fallback_avg:.1f} chars"
+                            )
+                            structured_transcript = fallback_result
+                        else:
+                            logger.info(
+                                f"Manual extraction didn't improve results (avg {fallback_avg:.1f}), keeping LLM output"
+                            )
+
                 # Log a sample of the structured transcript
                 if structured_transcript:
                     logger.info(f"Sample segment: {structured_transcript[0]}")
@@ -352,6 +415,112 @@ class TranscriptStructuringService:
                 return True
 
         return False
+
+    def _assign_document_ids_from_markers(
+        self,
+        segments: List[Dict[str, Any]],
+        raw_text: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Assign document_id to segments based on "--- START OF FILE ---" markers.
+
+        This handles multi-interview files where each interview is delimited by
+        a "--- START OF FILE {session_name} ---" marker. Segments are matched
+        to their source interview by finding their dialogue in the raw text.
+
+        Args:
+            segments: List of structured transcript segments
+            raw_text: Original raw text containing the markers
+
+        Returns:
+            Segments with document_id assigned based on interview markers
+        """
+        if not segments or not raw_text:
+            return segments
+
+        # Try multiple patterns for different file formats
+        marker_patterns = [
+            # Pattern 1: "--- START OF FILE {session_name} ---"
+            (re.compile(r"---\s*START\s+OF\s+FILE\s+(.*?)\s*---", re.IGNORECASE), 1),
+            # Pattern 2: "INTERVIEW N OF M" with metadata block
+            (re.compile(r"INTERVIEW\s+(\d+)\s+OF\s+\d+\s*\n=+", re.IGNORECASE), 1),
+        ]
+
+        # Find all markers and their positions
+        markers = []
+        for pattern, group_idx in marker_patterns:
+            for m in pattern.finditer(raw_text):
+                session_name = m.group(group_idx).strip()
+                # For "INTERVIEW N OF M", create a more descriptive name
+                if "INTERVIEW" in pattern.pattern.upper():
+                    # Try to extract stakeholder category from metadata
+                    metadata_section = raw_text[m.end():m.end()+1000]
+                    cat_match = re.search(r"Stakeholder Category:\s*(.+?)(?:\n|$)", metadata_section)
+                    if cat_match:
+                        session_name = f"Interview {session_name} - {cat_match.group(1).strip()}"
+                    else:
+                        session_name = f"Interview {session_name}"
+                markers.append({
+                    "session_name": session_name,
+                    "start_pos": m.end(),  # Content starts after marker
+                })
+            if markers:
+                break  # Use first pattern that matches
+
+        if not markers:
+            logger.debug("No interview markers found in raw text")
+            return segments
+
+        logger.info(f"Found {len(markers)} interview session markers")
+
+        # Sort markers by position
+        markers.sort(key=lambda x: x["start_pos"])
+
+        # Calculate end positions (start of next marker or end of text)
+        for i, marker in enumerate(markers):
+            if i + 1 < len(markers):
+                marker["end_pos"] = markers[i + 1]["start_pos"]
+            else:
+                marker["end_pos"] = len(raw_text)
+
+        # For each segment, find which interview block it belongs to
+        # by searching for its dialogue in the raw text
+        assigned_count = 0
+        for seg in segments:
+            dialogue = seg.get("dialogue", "")
+            if not dialogue:
+                continue
+
+            # Skip if document_id already set
+            if seg.get("document_id"):
+                continue
+
+            # Use first 100 chars of dialogue as search key (to avoid matching issues)
+            search_key = dialogue[:100].strip()
+            if len(search_key) < 20:
+                search_key = dialogue.strip()
+
+            # Find this dialogue in raw text
+            pos = raw_text.find(search_key)
+            if pos == -1:
+                # Try with normalized whitespace
+                normalized_key = " ".join(search_key.split())
+                normalized_text = " ".join(raw_text.split())
+                normalized_pos = normalized_text.find(normalized_key)
+                if normalized_pos == -1:
+                    continue
+                # Approximate position in original text
+                pos = normalized_pos
+
+            # Find which marker block this position falls into
+            for marker in markers:
+                if marker["start_pos"] <= pos < marker["end_pos"]:
+                    seg["document_id"] = marker["session_name"]
+                    assigned_count += 1
+                    break
+
+        logger.info(f"Assigned document_id to {assigned_count}/{len(segments)} segments")
+        return segments
 
     def _parse_llm_response(
         self, llm_response: Union[str, Dict[str, Any], List[Dict[str, Any]]]
@@ -933,8 +1102,13 @@ class TranscriptStructuringService:
             else:
                 content_text = "\n".join(content_lines)
 
-            # Split by interview blocks if present (e.g., "INTERVIEW 6 OF 25")
-            blocks: list[tuple[int, str]] = []
+            # Split by interview blocks if present
+            # Support multiple formats:
+            # 1. "INTERVIEW 6 OF 25" format
+            # 2. "--- START OF FILE Account Manager Research Session (Name) ---" format
+            blocks: list[tuple[int, str, str]] = []  # (block_id, block_text, session_name)
+
+            # Try format 1: "INTERVIEW X OF Y"
             block_indices = [
                 (m.start(), m.group(0))
                 for m in re.finditer(
@@ -947,12 +1121,31 @@ class TranscriptStructuringService:
                 for i in range(len(block_indices)):
                     start_pos = positions[i]
                     end_pos = positions[i + 1]
-                    blocks.append((i + 1, content_text[start_pos:end_pos]))
+                    blocks.append((i + 1, content_text[start_pos:end_pos], ""))
             else:
-                blocks.append((1, content_text))
+                # Try format 2: "--- START OF FILE {session_name} ---" (multi-interview format)
+                # Pattern matches lines like: "--- START OF FILE Research Session (John) - 2025_01_15 10_28 CET - Notes.txt ---"
+                start_of_file_pattern = re.compile(
+                    r"={10,}\s*\n---\s*START OF FILE\s+(.+?)\s*---\s*\n={10,}",
+                    re.IGNORECASE
+                )
+                file_matches = list(start_of_file_pattern.finditer(content_text))
+
+                if file_matches:
+                    logger.info(f"Found {len(file_matches)} interview files using START OF FILE pattern")
+                    positions = [m.start() for m in file_matches] + [len(content_text)]
+                    for i, match in enumerate(file_matches):
+                        start_pos = positions[i]
+                        end_pos = positions[i + 1]
+                        session_name = match.group(1).strip()
+                        blocks.append((i + 1, content_text[start_pos:end_pos], session_name))
+                        logger.info(f"  Block {i+1}: session_name='{session_name}'")
+                else:
+                    # No multi-interview pattern found, treat as single block
+                    blocks.append((1, content_text, ""))
 
             total_turns = 0
-            for block_id, block_text in blocks:
+            for block_id, block_text, session_name in blocks:
                 # Try different regex patterns for speaker extraction within the block
                 # Strictly anchor to line starts to avoid capturing headers
                 pattern1 = re.compile(
@@ -1010,27 +1203,43 @@ class TranscriptStructuringService:
                 ]
                 interviewer = explicit[0] if explicit else None
 
-                # Else by question ratio
-                if not interviewer:
-                    best_spk, best_ratio = None, -1.0
-                    for spk, d in speakers.items():
-                        ratio = (
-                            (d["question_marks"] / d["count"]) if d["count"] else 0.0
-                        )
-                        if ratio > best_ratio:
-                            best_ratio = ratio
-                            best_spk = spk
-                    interviewer = best_spk
+                # CRITICAL FIX: If there's only ONE unique speaker in this block, do NOT
+                # mark them as interviewer. This handles "merged dialogue" transcripts where
+                # the transcription tool (e.g., "Notes by Gemini") combined both interviewer
+                # questions and interviewee answers under a single speaker label.
+                # In such cases, the single speaker is clearly the interviewee (subject of the
+                # interview session), not the interviewer.
+                if len(speakers) == 1 and not interviewer:
+                    # Single speaker block with no explicit interviewer label
+                    # Treat them as the interviewee, not the interviewer
+                    logger.info(
+                        f"Block {block_id}: Single speaker '{list(speakers.keys())[0]}' detected - "
+                        f"treating as Interviewee (merged dialogue format)"
+                    )
+                    interviewer = None  # No interviewer in this block
+                else:
+                    # Multiple speakers - use heuristics to identify interviewer
+                    # Else by question ratio
+                    if not interviewer:
+                        best_spk, best_ratio = None, -1.0
+                        for spk, d in speakers.items():
+                            ratio = (
+                                (d["question_marks"] / d["count"]) if d["count"] else 0.0
+                            )
+                            if ratio > best_ratio:
+                                best_ratio = ratio
+                                best_spk = spk
+                        interviewer = best_spk
 
-                # Else shortest average length
-                if not interviewer and speakers:
-                    interviewer = min(
-                        speakers.items(), key=lambda kv: kv[1]["avg_length"]
-                    )[0]
+                    # Else shortest average length
+                    if not interviewer and speakers:
+                        interviewer = min(
+                            speakers.items(), key=lambda kv: kv[1]["avg_length"]
+                        )[0]
 
-                logger.info(
-                    f"Block {block_id}: identified '{interviewer}' as likely interviewer"
-                )
+                    logger.info(
+                        f"Block {block_id}: identified '{interviewer}' as likely interviewer"
+                    )
 
                 for speaker, dialogue in matches:
                     speaker_id = speaker.strip()
@@ -1050,12 +1259,30 @@ class TranscriptStructuringService:
 
                     # Ensure uniqueness across blocks
                     unique_speaker_id = f"I{block_id}|{spk_norm}"
+
+                    # Use session_name as document_id if available (e.g., "Research Session (John)")
+                    # This preserves the interviewee name for downstream persona name extraction
+                    doc_id = session_name if session_name else f"interview_{block_id}"
+
+                    # Skip timestamp-only segments (e.g., "00" with dialogue "00:00")
+                    # These are artifacts of parsing timestamp lines like "00:00:00"
+                    if re.match(r'^\d+$', spk_norm):
+                        # Speaker is just digits (e.g., "00" from "00:00:00")
+                        continue
+                    if re.match(r'^\d{2}:\d{2}(:\d{2})?$', dialogue_text.strip()):
+                        # Dialogue is just a timestamp fragment
+                        continue
+
+                    # Skip very short dialogues that are likely parsing artifacts
+                    if len(dialogue_text.strip()) < 10:
+                        continue
+
                     segment_data = {
                         "speaker_id": unique_speaker_id,
                         "role": role,
                         "dialogue": dialogue_text,
-                        # Assign per-interview document id based on detected block
-                        "document_id": f"interview_{block_id}",
+                        # Assign per-interview document id - preserves session name for name extraction
+                        "document_id": doc_id,
                     }
                     try:
                         validated_segment = TranscriptSegment(**segment_data)

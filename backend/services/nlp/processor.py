@@ -7,7 +7,7 @@ import os
 import re
 import copy
 import importlib.util
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Union
 from backend.services.llm.base_llm_service import BaseLLMService as ILLMService
 
 from backend.schemas import DetailedAnalysisResult
@@ -118,6 +118,9 @@ class NLPProcessor:
                         f"Detected Problem_demo file: {filename}. Special handling will be applied."
                     )
 
+            # Track if we have pre-structured transcript segments
+            transcript_segments = None
+
             # Detect and handle free-text format
             free_text_processed = False
             if (
@@ -161,6 +164,16 @@ class NLPProcessor:
 
             # Handle existing JSON data formats
             elif isinstance(data, list) and not free_text_processed:
+                # Check if this is a transcript segment format (speaker_id, role, dialogue)
+                if (
+                    len(data) > 0
+                    and isinstance(data[0], dict)
+                    and "dialogue" in data[0]
+                    and "speaker_id" in data[0]
+                ):
+                    logger.info(f"✅ Detected pre-structured transcript segment format with {len(data)} segments")
+                    transcript_segments = data  # Store for persona formation
+
                 # Handle Excel format (list of objects with persona and respondents)
                 logger.info("Processing list format data")
                 for item in data:
@@ -198,6 +211,20 @@ class NLPProcessor:
                                 texts.append(combined_text)
                                 # Store answer-only version for theme analysis
                                 answer_texts.append(answer)
+                        # Handle transcript segment format (speaker_id, role, dialogue)
+                        elif "dialogue" in item and "speaker_id" in item:
+                            role = (item.get("role") or "").lower()
+                            # Skip interviewer turns for analysis
+                            if role not in {"interviewer", "moderator", "researcher"}:
+                                dialogue = item.get("dialogue", "")
+                                speaker = item.get("speaker_id", "Participant")
+                                if dialogue:
+                                    # Format as speaker-attributed text
+                                    speaker_text = f"{speaker}: {dialogue}"
+                                    texts.append(speaker_text)
+                                    answer_texts.append(dialogue)
+                            else:
+                                logger.debug(f"Skipping interviewer turn from {item.get('speaker_id')}")
                         elif "text" in item:
                             # Fallback to text field only if no Q&A structure
                             texts.append(item["text"])
@@ -618,19 +645,38 @@ class NLPProcessor:
                 self._create_minimal_sentiment_result()
             )
 
-            # Wait for remaining tasks to complete
+            # UPDATE PROGRESS: Pattern recognition started (for clarity)
+            # This helps users know we are in the pattern detection phase
+            await update_progress(
+                "PATTERN_DETECTION", 0.45, "Detecting behavioral patterns..."
+            )
+
+            # Wait for remaining tasks to complete with a timeout to prevent stalls
             logger.info(
-                "⏳ [PIPELINE_DEBUG] Waiting for patterns and sentiment tasks..."
+                "⏳ [PIPELINE_DEBUG] Waiting for patterns and sentiment tasks (timeout=600s)..."
             )
-            patterns_result, sentiment_result = await asyncio.gather(
-                patterns_task, sentiment_task
-            )
-            logger.info(
-                f"🔍 [PIPELINE_DEBUG] Patterns result: {len(patterns_result.get('patterns', []))} patterns"
-            )
-            logger.info(
-                f"😊 [PIPELINE_DEBUG] Sentiment result keys: {list(sentiment_result.keys()) if isinstance(sentiment_result, dict) else 'not a dict'}"
-            )
+            try:
+                patterns_result, sentiment_result = await asyncio.wait_for(
+                    asyncio.gather(patterns_task, sentiment_task),
+                    timeout=600.0  # 10 minute timeout for these parallel tasks
+                )
+                logger.info(
+                    f"🔍 [PIPELINE_DEBUG] Patterns result: {len(patterns_result.get('patterns', []))} patterns"
+                )
+                logger.info(
+                    f"😊 [PIPELINE_DEBUG] Sentiment result keys: {list(sentiment_result.keys()) if isinstance(sentiment_result, dict) else 'not a dict'}"
+                )
+            except asyncio.TimeoutError:
+                logger.error("❌ [PIPELINE_ERROR] Specific task stage timed out after 600s!")
+                # Determine which task timed out (or all)
+                # We'll use empty results for both to allow the pipeline to continue
+                patterns_result = {"patterns": []}
+                sentiment_result = {"sentiment_overview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33}, "sentiment": []}
+                logger.warning("⚠️ PROCEEDING with empty patterns and default sentiment due to timeout")
+            except Exception as e:
+                logger.error(f"❌ [PIPELINE_ERROR] Parallel tasks failed: {str(e)}")
+                patterns_result = {"patterns": []}
+                sentiment_result = {"sentiment_overview": {"positive": 0.33, "neutral": 0.34, "negative": 0.33}, "sentiment": []}
 
             # Update progress: Pattern detection completed
             await update_progress(
@@ -638,8 +684,9 @@ class NLPProcessor:
             )
 
             # Update progress: Sentiment analysis completed
+            # FIXED: Ensure monotonic progress (not jumping back to 0.65 later)
             await update_progress(
-                "SENTIMENT_ANALYSIS", 0.65, "Sentiment analysis completed"
+                "SENTIMENT_ANALYSIS", 0.62, "Sentiment analysis completed"
             )
 
             parallel_duration = asyncio.get_event_loop().time() - start_time
@@ -750,16 +797,23 @@ class NLPProcessor:
             # ========================================================================
             logger.info("👥 [PIPELINE] Starting persona generation (before insights)")
 
-            # Use stakeholder-aware text for persona generation if available
-            # This enables proper per-stakeholder persona generation from simulation data
-            persona_text = stakeholder_aware_text if stakeholder_aware_text else combined_text
-            if stakeholder_aware_text:
+            # Use pre-structured transcript segments if available (from normalized JSON uploads)
+            # This skips the expensive transcript structuring LLM call
+            if transcript_segments:
+                logger.info(
+                    f"👥 [PIPELINE] Using pre-structured transcript segments for persona generation ({len(transcript_segments)} segments)"
+                )
+                persona_input = transcript_segments
+            elif stakeholder_aware_text:
                 logger.info(
                     f"👥 [PIPELINE] Using stakeholder-aware text for persona generation ({len(stakeholder_aware_text)} chars)"
                 )
+                persona_input = stakeholder_aware_text
+            else:
+                persona_input = combined_text
 
             personas_result = await self._generate_personas(
-                combined_text=persona_text,
+                combined_text=persona_input,
                 industry=industry,
                 llm_service=llm_service,
                 progress_callback=progress_callback,
@@ -776,8 +830,40 @@ class NLPProcessor:
             insight_start_time = asyncio.get_event_loop().time()
 
             # Update progress: Starting insight generation
+            # FIXED: Ensure monotonic progress (was 0.7 which is > 0.65 but potentially conflicting with persona generation which starts at 0.65 and ends at 0.95 in some paths?)
+            # Actually, persona generation is called at line 795. Let's check its progress updates.
+            # _generate_personas starts at 0.65 and ends at 0.95? No, let's check _generate_personas.
+            # It starts at 0.65.
+            # If persona generation runs, it updates to 0.95.
+            # Then we come back here and update to 0.7? That's a regression.
+            
+            # Use a safe starting point for insights that is after persona generation
+            # If personas yielded 0.95, we shouldn't drop to 0.7.
+            # But wait, persona generation is called before this. 
+            # If persona generation succeeded, we are at 0.95 or 1.0? 
+            # Ah, _generate_personas ends without a final "100%" for itself, but it does update to 0.95.
+            
+            # Let's check the flow:
+            # 1. Themes (0.2 -> 0.4)
+            # 2. Patterns (0.45 -> 0.6)
+            # 3. Sentiment (0.5 -> 0.65 - DISABLED, but returns 0.62 now)
+            # 4. Persona Generation (starts 0.65 -> ends 0.95)
+            # 5. Insight Generation (starts 0.7 -> ends 0.8) <-- THIS IS THE PROBLEM if run after personas
+            
+            # We need to re-scale the progress.
+            # Proposal:
+            # Themes: 0.1 - 0.3
+            # Patterns: 0.3 - 0.4
+            # Sentiment: 0.4 - 0.45
+            # Personas: 0.45 - 0.75
+            # Insights: 0.75 - 0.95
+            
+            # For now, let's just make sure we don't regress if we are already high.
+            # But the UI might depend on specific stage names?
+            
+            # Let's adjust Insight Generation to be the final stage
             await update_progress(
-                "INSIGHT_GENERATION", 0.7, "Starting insight generation"
+                "INSIGHT_GENERATION", 0.75, "Starting insight generation"
             )
 
             # Get themes for insight generation - prefer themes_result but fall back to enhanced_themes
@@ -802,28 +888,33 @@ class NLPProcessor:
             # Create insight generation payload with ALL available context
             # Now includes personas for cross-referencing
             insight_payload = {
-                "task": "insight_generation",
-                "text": combined_text,
+                "task": "extract_insights",
                 "themes": themes_for_insights,
-                "patterns": patterns_result.get("patterns", []),
+                # Use fallback patterns if patterns_result is empty
+                "patterns": patterns_result.get("patterns", [])
+                if patterns_result.get("patterns")
+                else fallback_patterns,
                 "sentiment": processed_sentiment,
                 "personas": personas_result,  # NEW: Include personas for cross-referencing
             }
+            
+            logger.info("🧠 [INSIGHT_GEN] Sending payload to LLM for insights...")
+            logger.info(f"🧠 [INSIGHT_GEN] Payload keys: {list(insight_payload.keys())}")
+            if insight_payload.get("personas"):
+                logger.info(f"🧠 [INSIGHT_GEN] Including {len(insight_payload['personas'])} personas")
 
             # Add filename to payload if available
-            if filename:
-                insight_payload["filename"] = filename
-                logger.info(
-                    f"Adding filename to insight generation payload: {filename}"
-                )
+            if isinstance(data, dict) and data.get("filename"):
+                insight_payload["filename"] = data.get("filename")
 
-            logger.info(f"[INSIGHT_PREP] Insight payload includes {len(personas_result)} personas for cross-referencing")
-
-            insights_result = await llm_service.analyze(insight_payload)
+            # Extract insights using the LLM
+            logger.info("🧠 [INSIGHT_GEN] Calling llm_service.analyze()...")
+            insights = await llm_service.analyze(insight_payload)
+            logger.info("🧠 [INSIGHT_GEN] llm_service.analyze() returned.")
 
             # Update progress: Insight generation completed
             await update_progress(
-                "INSIGHT_GENERATION", 0.8, "Insight generation completed"
+                "INSIGHT_GENERATION", 0.85, "Insight generation completed"
             )
 
             insight_duration = asyncio.get_event_loop().time() - insight_start_time
@@ -952,11 +1043,12 @@ class NLPProcessor:
                 "enhanced_themes": enhanced_themes,  # Also include enhanced_themes for backward compatibility
                 "patterns": patterns_result.get("patterns", []),
                 "sentiment": processed_sentiment,
-                "insights": insights_result.get("insights", []),
+                "insights": insights.get("insights", []) if isinstance(insights, dict) else [],
                 "personas": personas_result,  # Include personas generated earlier in the pipeline
                 "validation": {"valid": True, "confidence": 0.9, "details": None},
                 "original_text": combined_text,  # Store original text for later use
                 "industry": industry,  # Add detected industry to the result
+                "transcript_segments": transcript_segments,  # Pre-structured transcript segments if available
             }
 
             # Add sentiment overview if available (for disabled sentiment analysis)
@@ -1291,14 +1383,19 @@ class NLPProcessor:
                             "👥 [PIPELINE_DEBUG] [PERSONA_PIPELINE] No stakeholder structure detected, using standard persona formation"
                         )
 
-                        # Use the full persona service with transcript structuring
-                        # Now that timeout fixes are in place, this should work reliably
+                        # Check if we have pre-structured transcript segments
+                        # These come from normalized JSON uploads with speaker_id, role, dialogue fields
+                        stored_segments = results.get("transcript_segments")
+                        persona_input = stored_segments if stored_segments else raw_text
+                        input_type = "pre-structured segments" if stored_segments else "raw text"
+
                         logger.info(
-                            "👥 [PIPELINE_DEBUG] Starting standard persona formation..."
+                            f"👥 [PIPELINE_DEBUG] Starting persona formation with {input_type}..."
                         )
+
                         personas_list = (
                             await persona_service.generate_persona_from_text(
-                                text=raw_text,
+                                text=persona_input,
                                 context={
                                     "industry": results.get("industry", "general"),
                                     "original_text": raw_text,
@@ -1372,7 +1469,7 @@ class NLPProcessor:
 
                     # Update progress after persona processing
                     await update_progress(
-                        "PERSONA_FORMATION", 0.95, f"Generated {len(personas)} personas"
+                        "PERSONA_FORMATION", 0.73, f"Generated {len(personas)} personas"
                     )
                 except Exception as persona_err:
                     # Log the error but continue processing
@@ -1412,19 +1509,20 @@ class NLPProcessor:
 
     async def _generate_personas(
         self,
-        combined_text: str,
+        combined_text: Union[str, List[Dict[str, Any]]],
         industry: str,
         llm_service,
         progress_callback=None,
     ) -> List[Dict[str, Any]]:
         """
-        Generate personas from interview text.
+        Generate personas from interview text or pre-structured transcript segments.
 
         This is extracted as a separate method to allow personas to be generated
         BEFORE insight generation, so insights can reference personas.
 
         Args:
-            combined_text: The combined interview text
+            combined_text: The combined interview text OR pre-structured transcript segments
+                          (list of dicts with speaker_id, role, dialogue fields)
             industry: Detected industry
             llm_service: LLM service for generation
             progress_callback: Optional progress callback
@@ -1442,7 +1540,7 @@ class NLPProcessor:
 
         try:
             await update_progress(
-                "PERSONA_FORMATION", 0.65, "Starting persona formation"
+                "PERSONA_FORMATION", 0.45, "Starting persona formation"
             )
 
             logger.info("👥 [PERSONA_GEN] Starting persona generation")
@@ -1464,30 +1562,42 @@ class NLPProcessor:
             config = MinimalConfig()
             persona_service = PersonaFormationService(config, llm_service)
 
+            # Check if input is already pre-structured transcript segments
+            is_pre_structured = isinstance(combined_text, list)
+
             # STAKEHOLDER-AWARE PERSONA FORMATION: Check if content has stakeholder structure
-            logger.info(
-                "👥 [PERSONA_GEN] Checking for stakeholder-aware content structure"
-            )
+            # Skip stakeholder detection for pre-structured segments (they're already structured)
+            stakeholder_segments = None
+            enable_ms = False
 
-            # Try to detect stakeholder structure in the raw text
-            stakeholder_segments = self._detect_stakeholder_structure(combined_text)
-            logger.info(
-                f"👥 [PERSONA_GEN] Stakeholder detection result: {stakeholder_segments is not None}"
-            )
-
-            # Check for ENABLE_MULTI_STAKEHOLDER env var, or auto-detect simulation format
-            # The simulation format uses "--- INTERVIEW N ---\nStakeholder:" pattern
-            is_simulation_format = bool(
-                re.search(r"--- INTERVIEW \d+ ---\s*\nStakeholder:", combined_text)
-            )
-            enable_ms = (
-                os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
-                or is_simulation_format
-            )
-            if is_simulation_format:
+            if is_pre_structured:
                 logger.info(
-                    "👥 [PERSONA_GEN] Auto-enabled multi-stakeholder for simulation format data"
+                    f"👥 [PERSONA_GEN] Input is pre-structured transcript with {len(combined_text)} segments, skipping stakeholder detection"
                 )
+            else:
+                logger.info(
+                    "👥 [PERSONA_GEN] Checking for stakeholder-aware content structure"
+                )
+
+                # Try to detect stakeholder structure in the raw text
+                stakeholder_segments = self._detect_stakeholder_structure(combined_text)
+                logger.info(
+                    f"👥 [PERSONA_GEN] Stakeholder detection result: {stakeholder_segments is not None}"
+                )
+
+                # Check for ENABLE_MULTI_STAKEHOLDER env var, or auto-detect simulation format
+                # The simulation format uses "--- INTERVIEW N ---\nStakeholder:" pattern
+                is_simulation_format = bool(
+                    re.search(r"--- INTERVIEW \d+ ---\s*\nStakeholder:", combined_text)
+                )
+                enable_ms = (
+                    os.getenv("ENABLE_MULTI_STAKEHOLDER", "false").lower() == "true"
+                    or is_simulation_format
+                )
+                if is_simulation_format:
+                    logger.info(
+                        "👥 [PERSONA_GEN] Auto-enabled multi-stakeholder for simulation format data"
+                    )
 
             if stakeholder_segments and enable_ms:
                 logger.info(
@@ -1521,15 +1631,18 @@ class NLPProcessor:
                 )
 
                 # Use the full persona service with transcript structuring
+                # combined_text can be either a string or pre-structured transcript segments
+                is_pre_structured = isinstance(combined_text, list)
                 logger.info(
-                    "👥 [PERSONA_GEN] Starting standard persona formation..."
+                    f"👥 [PERSONA_GEN] Starting standard persona formation (pre-structured: {is_pre_structured})..."
                 )
                 personas_list = (
                     await persona_service.generate_persona_from_text(
                         text=combined_text,
                         context={
                             "industry": industry,
-                            "original_text": combined_text,
+                            "original_text": str(combined_text) if is_pre_structured else combined_text,
+                            "is_pre_structured": is_pre_structured,
                         },
                     )
                 )

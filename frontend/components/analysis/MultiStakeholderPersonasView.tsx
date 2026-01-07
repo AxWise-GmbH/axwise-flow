@@ -93,7 +93,13 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
     const insights = stakeholder.individual_insights || {};
 
     // Create contextual mapping based on role, type, and concerns
-    const mappedEvidence = {
+    const mappedEvidence: {
+      demographics: string[];
+      goals: string[];
+      painPoints: string[];
+      quotes: string[];
+      [key: string]: string[];
+    } = {
       demographics: [],
       goals: [],
       painPoints: [],
@@ -187,9 +193,9 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
     Object.keys(mappedEvidence).forEach(key => {
       if (mappedEvidence[key].length === 0) {
         const sourceArray = key === 'demographics' ? authenticQuotes.demographicsAll :
-                           key === 'goals' ? authenticQuotes.goalsAll :
-                           key === 'painPoints' ? authenticQuotes.painPointsAll :
-                           authenticQuotes.quotesAll;
+          key === 'goals' ? authenticQuotes.goalsAll :
+            key === 'painPoints' ? authenticQuotes.painPointsAll :
+              authenticQuotes.quotesAll;
         mappedEvidence[key] = sourceArray.slice(0, 3);
       }
     });
@@ -245,7 +251,7 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
         return {
           name: stakeholder.stakeholder_id?.replace(/_/g, ' ') || `Stakeholder ${index + 1}`,
           description: insights.primary_concern || insights.key_motivation ||
-                      `${stakeholder.stakeholder_type?.replace(/_/g, ' ')} stakeholder with specific insights and perspectives on the analysis.`,
+            `${stakeholder.stakeholder_type?.replace(/_/g, ' ')} stakeholder with specific insights and perspectives on the analysis.`,
           stakeholder_type: stakeholder.stakeholder_type,
           confidence_score: stakeholder.confidence_score || 0.85,
           archetype: demo.role || `${stakeholder.stakeholder_type?.replace(/_/g, ' ')}`.split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
@@ -288,24 +294,7 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
             ]
           } : undefined,
 
-          // Add additional rich content fields
-          workflow_and_environment: insights.workflow_preferences ? {
-            value: insights.workflow_preferences,
-            confidence: 0.75,
-            evidence: ['Derived from stakeholder behavioral patterns']
-          } : undefined,
 
-          technology_and_tools: insights.technology_concerns ? {
-            value: insights.technology_concerns,
-            confidence: 0.75,
-            evidence: ['Based on technology-related concerns and preferences']
-          } : undefined,
-
-          collaboration_style: insights.collaboration_preferences ? {
-            value: insights.collaboration_preferences,
-            confidence: 0.7,
-            evidence: ['Inferred from stakeholder interaction patterns']
-          } : undefined,
 
           // Add key quotes with authentic evidence mapping
           key_quotes: insights.representative_quotes || insights.key_statements ? {
@@ -430,34 +419,34 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
   const getConfidenceTooltip = (confidence?: number) => {
     if (!confidence) return 'Confidence level not available';
     if (confidence >= 0.9) return 'High confidence: Based on direct statements from the interview';
-  // Heuristic parser for Python-like dict string in demographics.value
-  const tryParseDemographicsPyDict = (s: string): Array<{ key: string; value: string }> => {
-    if (typeof s !== 'string') return [];
-    const text = s.trim();
-    if (!text.startsWith('{') || !text.includes("'value':")) return [];
-    const res: Array<{ key: string; value: string }> = [];
-    // Match: 'key': { ... 'value': '...' or "..." }
-    const re = /'([a-z_]+)'\s*:\s*\{[^}]*?'value'\s*:\s*("|')([\s\S]*?)\2/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      const key = m[1];
-      const value = (m[3] || '').trim();
-      res.push({ key, value });
-    }
-    return res;
-  };
-
-  const labelForDemoKey = (k: string): string => {
-    const map: Record<string, string> = {
-      experience_level: 'Experience Level',
-      industry: 'Industry',
-      location: 'Location',
-      professional_context: 'Professional Context',
-      roles: 'Roles',
-      age_range: 'Age Range',
+    // Heuristic parser for Python-like dict string in demographics.value
+    const tryParseDemographicsPyDict = (s: string): Array<{ key: string; value: string }> => {
+      if (typeof s !== 'string') return [];
+      const text = s.trim();
+      if (!text.startsWith('{') || !text.includes("'value':")) return [];
+      const res: Array<{ key: string; value: string }> = [];
+      // Match: 'key': { ... 'value': '...' or "..." }
+      const re = /'([a-z_]+)'\s*:\s*\{[^}]*?'value'\s*:\s*("|')([\s\S]*?)\2/gi;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        const key = m[1];
+        const value = (m[3] || '').trim();
+        res.push({ key, value });
+      }
+      return res;
     };
-    return map[k] || k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  };
+
+    const labelForDemoKey = (k: string): string => {
+      const map: Record<string, string> = {
+        experience_level: 'Experience Level',
+        industry: 'Industry',
+        location: 'Location',
+        professional_context: 'Professional Context',
+        roles: 'Roles',
+        age_range: 'Age Range',
+      };
+      return map[k] || k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    };
 
     if (confidence >= 0.7) return 'Good confidence: Based on strong evidence across multiple mentions';
     if (confidence >= 0.5) return 'Moderate confidence: Based on contextual clues';
@@ -639,9 +628,8 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
     return (
       <Card
         key={index}
-        className={`cursor-pointer transition-all ${
-          selectedPersona === index ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
-        }`}
+        className={`cursor-pointer transition-all ${selectedPersona === index ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
+          }`}
         onClick={() => setSelectedPersona(index)}
       >
         <CardHeader>
@@ -656,11 +644,14 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
               </span>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             {persona.stakeholder_type && (
               <Badge className={getStakeholderTypeColor(persona.stakeholder_type)}>
                 {persona.stakeholder_type.replace('_', ' ')}
               </Badge>
+            )}
+            {persona.archetype && persona.archetype !== 'Unknown' && (
+              <Badge variant="outline">{persona.archetype}</Badge>
             )}
             {(persona as any).is_detected_stakeholder && (
               <Badge variant="outline" className="text-blue-600 border-blue-600">
@@ -671,11 +662,6 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 line-clamp-3">{persona.description}</p>
-          {persona.archetype && (
-            <div className="mt-2">
-              <Badge variant="outline">{persona.archetype}</Badge>
-            </div>
-          )}
         </CardContent>
       </Card>
     );
@@ -732,8 +718,13 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
                     <ul className="list-disc pl-5 space-y-1">
                       {(() => {
                         const v = persona.demographics.value;
+                        const labelForDemoKey = (key: string) => {
+                          // Simple Title Case formatter or mapping
+                          return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+                        };
+
                         if (typeof v === 'string' && v.trim().startsWith('{') && v.includes("'value':")) {
-                          const parsed = tryParseDemographicsPyDict(v);
+                          const parsed = parseDemographics(v);
                           if (parsed.length > 0) {
                             return parsed.map(({ key, value }, i) => (
                               <li key={i}>
@@ -879,7 +870,7 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
                         </AccordionTrigger>
                         <AccordionContent>
                           <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                            {(persona.challenges_and_frustrations || persona.pain_points)?.evidence.map((raw: any, idx: number) => {
+                            {(persona.challenges_and_frustrations || persona.pain_points)?.evidence?.map((raw: any, idx: number) => {
                               const text = typeof raw === 'string' ? raw : (raw && typeof raw === 'object' && typeof raw.quote === 'string' ? raw.quote : null);
                               if (!text) return null;
                               return <li key={idx}>{text}</li>;
@@ -983,21 +974,19 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
         <div className="flex space-x-2">
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-3 py-2 rounded-md text-sm ${
-              viewMode === 'grid'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-3 py-2 rounded-md text-sm ${viewMode === 'grid'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
           >
             Grid View
           </button>
           <button
             onClick={() => setViewMode('detailed')}
-            className={`px-3 py-2 rounded-md text-sm ${
-              viewMode === 'detailed'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+            className={`px-3 py-2 rounded-md text-sm ${viewMode === 'detailed'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
           >
             Detailed View
           </button>
@@ -1016,11 +1005,10 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
               <button
                 key={index}
                 onClick={() => setSelectedPersona(index)}
-                className={`px-4 py-2 rounded-md text-sm whitespace-nowrap ${
-                  selectedPersona === index
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm whitespace-nowrap ${selectedPersona === index
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 {persona.name}
               </button>

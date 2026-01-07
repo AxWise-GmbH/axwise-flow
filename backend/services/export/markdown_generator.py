@@ -237,6 +237,14 @@ You may want to try re-running the analysis or contact support if the problem pe
         # Add a summary of what was included in the report
         self._add_report_summary_md(md, data, result)
 
+        # Append full raw JSON data
+        md.append("\n---\n")
+        md.append("## Raw Analysis Data\n")
+        md.append("```json\n")
+        # Ensure we can serialize everything including datetimes
+        md.append(json.dumps(data, indent=2, default=str))
+        md.append("\n```\n")
+
         # Join all lines and return
         return "\n".join(md)
 

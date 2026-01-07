@@ -47,6 +47,9 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_TOP_P,
     GEMINI_TOP_K,
     ENV_GEMINI_API_KEY,
+    ENV_GEMINI_API_TIMEOUT,
+    GEMINI_DEFAULT_TIMEOUT,
+    GEMINI_LARGE_REQUEST_TIMEOUT,
     GEMINI_SAFETY_SETTINGS_BLOCK_NONE,  # Assuming this constant exists for safety settings
 )
 
@@ -187,6 +190,7 @@ class GeminiService:
         system_instruction_text: Optional[str] = None,
     ) -> genai.types.GenerateContentResponse:
         """Makes the actual asynchronous API call to Gemini using client.aio.models.generate_content()."""
+        print(f"🔥🔥🔥 [GEMINI] _call_llm_api ENTERED for model: {model_name}", flush=True)
         logger.info(f"Attempting to call Gemini API with model: {model_name}")
 
         # Process the main content
@@ -350,21 +354,39 @@ class GeminiService:
             logger.info(f"Making API call with config={config}")
 
             # Add timeout protection with reasonable defaults
-            # Use 60 seconds for normal requests, 300 seconds (5 min) for very large requests
-            # This prevents indefinite hangs while allowing complex analysis to complete
-            timeout_seconds = 60  # Default 60 seconds for normal requests
-            if input_tokens > 50000:
-                timeout_seconds = 300  # 5 minutes for very large requests
+            # Gemini 3 with thinking mode can take longer, so use generous timeouts
+            # Allow override via environment variable GEMINI_API_TIMEOUT
+            env_timeout = os.getenv(ENV_GEMINI_API_TIMEOUT)
+            if env_timeout:
+                try:
+                    timeout_seconds = int(env_timeout)
+                    logger.info(f"Using environment-configured timeout: {timeout_seconds}s")
+                except ValueError:
+                    logger.warning(f"Invalid GEMINI_API_TIMEOUT value '{env_timeout}', using default")
+                    timeout_seconds = GEMINI_DEFAULT_TIMEOUT
+            else:
+                timeout_seconds = GEMINI_DEFAULT_TIMEOUT  # 300 seconds default
+
+            # For large requests (>10k tokens), use extended timeout
+            if input_tokens > 10000:
+                timeout_seconds = max(timeout_seconds, GEMINI_LARGE_REQUEST_TIMEOUT)
                 logger.info(
                     f"Large request detected ({input_tokens:.0f} tokens), using {timeout_seconds}s timeout"
                 )
 
+            import time
+            _api_start = time.time()
+            print(f"🔥🔥🔥 [GEMINI] About to call API for {model_name}, timeout={timeout_seconds}s", flush=True)
+            logger.info(f"🚀 [GEMINI_API] Starting API call to {model_name} with timeout={timeout_seconds}s, input_tokens~{input_tokens:.0f}")
             response = await asyncio.wait_for(
                 self.client.aio.models.generate_content(
                     model=model_name, contents=final_contents, config=config
                 ),
                 timeout=timeout_seconds,
             )
+            _api_elapsed = time.time() - _api_start
+            print(f"🔥🔥🔥 [GEMINI] API call for {model_name} COMPLETED in {_api_elapsed:.2f}s", flush=True)
+            logger.info(f"✅ [GEMINI_API] API call to {model_name} completed in {_api_elapsed:.2f}s")
             return response
         except asyncio.TimeoutError:
             logger.error(

@@ -23,7 +23,7 @@ class PersonaValidation:
 
         # Ensure required fields exist
         for f in self.REQUIRED_FIELDS:
-            if f not in p:
+            if f not in p or p[f] is None:
                 if f == "name":
                     p[f] = "Participant"
                 else:
@@ -47,19 +47,42 @@ class PersonaValidation:
         demo = p.get("demographics")
         if isinstance(demo, dict) and "value" in demo:
             # Convert simple PersonaTrait demographics into structured container
-            # Keep original evidence as best effort under professional_context
-            p["demographics"] = {
-                "experience_level": {"value": "", "evidence": []},
-                "industry": {"value": "", "evidence": []},
-                "location": {"value": "", "evidence": []},
-                "professional_context": {
-                    "value": demo.get("value", ""),
-                    "evidence": demo.get("evidence", []),
-                },
-                "roles": {"value": "", "evidence": []},
-                "age_range": {"value": "", "evidence": []},
-                "confidence": float(demo.get("confidence", 0.7) or 0.7),
-            }
+            # Use the proper demographics parser to extract fields
+            from backend.services.processing.persona_builder import PersonaBuilder
+            from backend.domain.models.persona_schema import PersonaTrait
+
+            try:
+                demographics_trait = PersonaTrait(
+                    value=demo.get("value", ""),
+                    confidence=demo.get("confidence", 0.7),
+                    evidence=demo.get("evidence", []),
+                )
+                builder = PersonaBuilder()
+                structured = builder._convert_demographics_to_structured(demographics_trait)
+                # Convert to dict format
+                p["demographics"] = {
+                    "experience_level": {"value": structured.experience_level.value if structured.experience_level else "", "evidence": structured.experience_level.evidence if structured.experience_level else []},
+                    "industry": {"value": structured.industry.value if structured.industry else "", "evidence": structured.industry.evidence if structured.industry else []},
+                    "location": {"value": structured.location.value if structured.location else "", "evidence": structured.location.evidence if structured.location else []},
+                    "professional_context": {"value": structured.professional_context.value if structured.professional_context else "", "evidence": structured.professional_context.evidence if structured.professional_context else []},
+                    "roles": {"value": structured.roles.value if structured.roles else "", "evidence": structured.roles.evidence if structured.roles else []},
+                    "age_range": {"value": structured.age_range.value if structured.age_range else "", "evidence": structured.age_range.evidence if structured.age_range else []},
+                    "confidence": structured.confidence,
+                }
+            except Exception:
+                # Fallback to simple conversion if parsing fails
+                p["demographics"] = {
+                    "experience_level": {"value": "", "evidence": []},
+                    "industry": {"value": "", "evidence": []},
+                    "location": {"value": "", "evidence": []},
+                    "professional_context": {
+                        "value": demo.get("value", ""),
+                        "evidence": demo.get("evidence", []),
+                    },
+                    "roles": {"value": "", "evidence": []},
+                    "age_range": {"value": "", "evidence": []},
+                    "confidence": float(demo.get("confidence", 0.7) or 0.7),
+                }
         elif isinstance(demo, dict) and "confidence" not in demo:
             # Add a confidence for structured demographics
             demo["confidence"] = 0.7

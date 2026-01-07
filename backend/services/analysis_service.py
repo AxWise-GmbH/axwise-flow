@@ -5,7 +5,7 @@ import logging
 import asyncio
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, TYPE_CHECKING
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 
 # Import SQLAlchemy models directly from models.py to avoid dynamic import issues
 import backend.models as models_module
@@ -18,6 +18,30 @@ from backend.utils.timezone_utils import utc_now
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+
+def make_json_serializable(obj: Any) -> Any:
+    """
+    Recursively convert Pydantic models and other non-serializable objects to JSON-serializable form.
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, BaseModel):
+        return obj.model_dump()
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [make_json_serializable(item) for item in obj]
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    # Fallback: try to convert to string
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return str(obj)
 
 # We'll import stakeholder analysis service dynamically to avoid circular imports
 StakeholderAnalysisService = None
@@ -105,6 +129,7 @@ class AnalysisService:
 
             # Get interview data with user authorization check
             try:
+                logger.info(f"🔍 [ANALYSIS_SERVICE] Looking up data_id={data_id} for user_id={self.user.user_id}")
                 interview_data = (
                     self.db.query(models_module.InterviewData)
                     .filter(
@@ -113,6 +138,7 @@ class AnalysisService:
                     )
                     .first()
                 )
+                logger.info(f"🔍 [ANALYSIS_SERVICE] Query result: {interview_data is not None}")
             except Exception as e:
                 # Roll back any pending transaction
                 self.db.rollback()
@@ -721,8 +747,9 @@ class AnalysisService:
                     f"[STAKEHOLDER_DEBUG] Available result keys: {list(current_results.keys())}"
                 )
 
-            # Save the merged results
-            task_result.results = json.dumps(current_results)
+            # Save the merged results - ensure all Pydantic models are serialized
+            serializable_results = make_json_serializable(current_results)
+            task_result.results = json.dumps(serializable_results)
             task_result.completed_at = datetime.now(timezone.utc)
 
             # Commit the results first
@@ -789,8 +816,9 @@ class AnalysisService:
                     for key, value in error_info.items():
                         current_results[key] = value
 
-                    # Update database record with error
-                    task_result.results = json.dumps(current_results)
+                    # Update database record with error - ensure serializable
+                    serializable_results = make_json_serializable(current_results)
+                    task_result.results = json.dumps(serializable_results)
                     task_result.status = "failed"
                     task_result.completed_at = datetime.now(timezone.utc)
                     async_db.commit()

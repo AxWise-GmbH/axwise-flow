@@ -215,10 +215,10 @@ async def restart_analysis_endpoint(
         if not llm_model:
             try:
                 llm_model = settings.llm_providers.get("gemini", {}).get(
-                    "model", "models/gemini-2.5-pro"
+                    "model", "models/gemini-3-flash-preview"
                 )
             except (KeyError, AttributeError):
-                llm_model = "models/gemini-2.5-pro"
+                llm_model = "models/gemini-3-flash-preview"
 
         # Kick off a new analysis
         from backend.services.analysis_service import AnalysisService

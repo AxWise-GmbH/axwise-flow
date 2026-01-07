@@ -93,9 +93,11 @@ def persona_to_dict(persona: Any) -> Dict[str, Any]:
     Returns:
         Dictionary representation of the persona
     """
+    
+    logger = logging.getLogger(__name__)
+    
     # Check if persona is None
     if persona is None:
-        logger = logging.getLogger(__name__)
         logger.warning("Received None persona in persona_to_dict, returning empty dict")
         return {
             "name": "Unknown",
@@ -112,20 +114,15 @@ def persona_to_dict(persona: Any) -> Dict[str, Any]:
     # Try to convert using dataclasses.asdict for dataclass objects
     try:
         persona_dict = asdict(persona)
-
+        
         # Rename metadata field for backward compatibility
         if "persona_metadata" in persona_dict:
             persona_dict["metadata"] = persona_dict.pop("persona_metadata")
-
-        # Add aliases for backward compatibility
-        persona_dict["overall_confidence"] = persona_dict["confidence"]
-        persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
-
-        return persona_dict
+            
     except (TypeError, AttributeError):
         # Handle database model objects or other object types
         logger = logging.getLogger(__name__)
-        logger.info(f"Converting non-dataclass persona object to dict: {type(persona)}")
+        logger.debug(f"Converting non-dataclass persona object to dict: {type(persona)}")
 
         # Extract attributes manually for database objects
         persona_dict = {}
@@ -176,103 +173,105 @@ def persona_to_dict(persona: Any) -> Dict[str, Any]:
         persona_dict["patterns"] = getattr(persona, "patterns", [])
         persona_dict["metadata"] = getattr(persona, "metadata", {})
 
-        # Generate structured_demographics from demographics field if available
-        demographics_field = persona_dict.get("demographics")
-        if demographics_field:
-            try:
-                # Handle different types of demographics data
-                structured_demographics = None
-
-                # Case 1: Already a StructuredDemographics object
-                if hasattr(demographics_field, "model_dump"):
-                    structured_demographics = demographics_field.model_dump()
-                    logger.info(
-                        f"Found existing StructuredDemographics object for persona: {persona_dict.get('name', 'Unknown')}"
-                    )
-
-                # Case 2: Dictionary that might contain StructuredDemographics fields
-                elif isinstance(demographics_field, dict):
-                    # Check if it has StructuredDemographics structure (nested fields with value/evidence)
-                    structured_fields = [
-                        "experience_level",
-                        "industry",
-                        "location",
-                        "professional_context",
-                        "roles",
-                        "age_range",
-                    ]
-                    if any(
-                        field in demographics_field
-                        and isinstance(demographics_field[field], dict)
-                        and "value" in demographics_field[field]
-                        for field in structured_fields
-                    ):
-                        # It's already in StructuredDemographics format
-                        structured_demographics = demographics_field
-                        logger.info(
-                            f"Found StructuredDemographics format in dict for persona: {persona_dict.get('name', 'Unknown')}"
-                        )
-                    else:
-                        # Try to convert PersonaTrait format to StructuredDemographics
-                        if demographics_field.get("value") or demographics_field.get(
-                            "evidence"
-                        ):
-                            # Create a PersonaBuilder instance to use the conversion method
-                            builder = PersonaBuilder()
-
-                            # Convert the demographics dict to PersonaTrait first
-                            from backend.domain.models.persona_schema import (
-                                PersonaTrait,
-                            )
-
-                            demographics_trait = PersonaTrait(
-                                value=demographics_field.get("value", ""),
-                                confidence=demographics_field.get("confidence", 0.7),
-                                evidence=demographics_field.get("evidence", []),
-                            )
-
-                            # Convert to StructuredDemographics
-                            structured_demo_obj = (
-                                builder._convert_demographics_to_structured(
-                                    demographics_trait
-                                )
-                            )
-                            structured_demographics = structured_demo_obj.model_dump()
-                            logger.info(
-                                f"Converted PersonaTrait to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
-                            )
-
-                # Case 3: String that might be a serialized StructuredDemographics
-                elif isinstance(demographics_field, str):
-                    try:
-                        # Try to parse as JSON first
-                        parsed_demo = json.loads(demographics_field)
-                        if isinstance(parsed_demo, dict):
-                            structured_demographics = parsed_demo
-                            logger.info(
-                                f"Parsed JSON string to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
-                            )
-                    except json.JSONDecodeError:
-                        logger.warning(
-                            f"Failed to parse demographics string as JSON for persona: {persona_dict.get('name', 'Unknown')}"
-                        )
-
-                # Add structured_demographics if we successfully created it
-                if structured_demographics:
-                    persona_dict["structured_demographics"] = structured_demographics
-                    logger.info(
-                        f"Successfully added structured_demographics for persona: {persona_dict.get('name', 'Unknown')}"
-                    )
-
-            except Exception as e:
-                logger.warning(f"Failed to generate structured_demographics: {e}")
-                # Don't add structured_demographics if conversion fails
-
-        # Add aliases for backward compatibility
+    # Common post-processing for both paths:
+    
+    # Add aliases for backward compatibility (ensure they exist)
+    if "confidence" in persona_dict:
         persona_dict["overall_confidence"] = persona_dict["confidence"]
+    if "evidence" in persona_dict:
         persona_dict["supporting_evidence_summary"] = persona_dict["evidence"]
 
-        return persona_dict
+    # Generate structured_demographics from demographics field if available
+    demographics_field = persona_dict.get("demographics")
+    if demographics_field:
+        try:
+            # Handle different types of demographics data
+            structured_demographics = None
+
+            # Case 1: Already a StructuredDemographics object
+            if hasattr(demographics_field, "model_dump"):
+                structured_demographics = demographics_field.model_dump()
+                logger.debug(
+                    f"Found existing StructuredDemographics object for persona: {persona_dict.get('name', 'Unknown')}"
+                )
+
+            # Case 2: Dictionary that might contain StructuredDemographics fields
+            elif isinstance(demographics_field, dict):
+                # Check if it has StructuredDemographics structure (nested fields with value/evidence)
+                structured_fields = [
+                    "experience_level",
+                    "industry",
+                    "location",
+                    "professional_context",
+                    "roles",
+                    "age_range",
+                ]
+                if any(
+                    field in demographics_field
+                    and isinstance(demographics_field[field], dict)
+                    and "value" in demographics_field[field]
+                    for field in structured_fields
+                ):
+                    # It's already in StructuredDemographics format
+                    structured_demographics = demographics_field
+                    logger.debug(
+                        f"Found StructuredDemographics format in dict for persona: {persona_dict.get('name', 'Unknown')}"
+                    )
+                else:
+                    # Try to convert PersonaTrait format to StructuredDemographics
+                    if demographics_field.get("value") or demographics_field.get(
+                        "evidence"
+                    ):
+                        # Create a PersonaBuilder instance to use the conversion method
+                        builder = PersonaBuilder()
+
+                        # Convert the demographics dict to PersonaTrait first
+                        from backend.domain.models.persona_schema import (
+                            PersonaTrait,
+                        )
+
+                        demographics_trait = PersonaTrait(
+                            value=demographics_field.get("value", ""),
+                            confidence=demographics_field.get("confidence", 0.7),
+                            evidence=demographics_field.get("evidence", []),
+                        )
+
+                        # Convert to StructuredDemographics
+                        structured_demo_obj = (
+                            builder._convert_demographics_to_structured(
+                                demographics_trait
+                            )
+                        )
+                        structured_demographics = structured_demo_obj.model_dump()
+                        logger.debug(
+                            f"Converted PersonaTrait to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
+                        )
+
+            # Case 3: String that might be a serialized StructuredDemographics
+            elif isinstance(demographics_field, str):
+                try:
+                    # Try to parse as JSON first
+                    parsed_demo = json.loads(demographics_field)
+                    if isinstance(parsed_demo, dict):
+                        structured_demographics = parsed_demo
+                        logger.debug(
+                            f"Parsed JSON string to StructuredDemographics for persona: {persona_dict.get('name', 'Unknown')}"
+                        )
+                except json.JSONDecodeError:
+                    pass
+
+            # Add structured_demographics if we successfully created it
+            if structured_demographics:
+                persona_dict["structured_demographics"] = structured_demographics
+                logger.debug(
+                    f"Successfully added structured_demographics for persona: {persona_dict.get('name', 'Unknown')}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to generate structured_demographics: {e}")
+            # Don't add structured_demographics if conversion fails
+
+    return persona_dict
 
 
 class PersonaBuilder:
@@ -514,8 +513,16 @@ class PersonaBuilder:
                             f"Preserving existing evidence for {field_name}: {evidence_count} items"
                         )
                         if evidence_count > 0:
+                            first_evidence = processed_trait['evidence'][0]
+                            # Handle both string and dict evidence formats
+                            if isinstance(first_evidence, str):
+                                sample = first_evidence[:100]
+                            elif isinstance(first_evidence, dict):
+                                sample = str(first_evidence.get('quote', first_evidence.get('text', str(first_evidence))))[:100]
+                            else:
+                                sample = str(first_evidence)[:100]
                             logger.debug(
-                                f"Sample evidence for {field_name}: {processed_trait['evidence'][0][:100]}..."
+                                f"Sample evidence for {field_name}: {sample}..."
                             )
 
                     # Special processing for demographics field
@@ -529,12 +536,17 @@ class PersonaBuilder:
                             ):
                                 all_evidence.extend(other_data.get("evidence", []))
 
-                        # Use the demographic extractor to enhance the demographics field
-                        processed_trait = (
-                            self.demographic_extractor.extract_demographics(
-                                processed_trait, all_evidence
-                            )
-                        )
+                        # SKIP DESTRUCTIVE EXTRACTION:
+                        # The user requested to keep the raw LLM output and avoid "rescue" logic that might accidentally wipe data.
+                        # The `demographic_extractor` reformats the string into bullet points, but if it fails to match keywords,
+                        # it might return an empty string or partial data.
+                        # We preserve the original `processed_trait` (which contains the raw LLM string) instead.
+                        
+                        # processed_trait = (
+                        #     self.demographic_extractor.extract_demographics(
+                        #         processed_trait, all_evidence
+                        #     )
+                        # )
 
                     processed_traits[field_name] = processed_trait
                     logger.debug(f"Field {field_name} already in trait format")
@@ -717,7 +729,15 @@ class PersonaBuilder:
             confidence = max(0.0, min(1.0, confidence))
 
             # Create Persona object
-            persona = Persona(
+            import sys
+            print(f"🔍🔍 [PERSONA_BUILDER_DEBUG] About to create Persona for name={name}", file=sys.stderr, flush=True)
+            print(f"🔍🔍 [PERSONA_BUILDER_DEBUG] processed_traits keys: {list(processed_traits.keys())}", file=sys.stderr, flush=True)
+            for _pt_name in ['demographics', 'goals_and_motivations', 'challenges_and_frustrations', 'key_quotes']:
+                _pt_data = processed_traits.get(_pt_name, {})
+                _pt_preview = str(_pt_data.get('value', ''))[:60] if isinstance(_pt_data, dict) else str(_pt_data)[:60]
+                print(f"🔍🔍 [PERSONA_BUILDER_DEBUG] {_pt_name}.value: {_pt_preview}", file=sys.stderr, flush=True)
+            try:
+                persona = Persona(
                 name=name,
                 description=self._get_string_value(attributes.get("description"), ""),
                 archetype=self._get_string_value(attributes.get("archetype"), ""),
@@ -748,12 +768,14 @@ class PersonaBuilder:
                     "",
                 ),
                 # Core PydanticAI fields
-                demographics=self._convert_demographics_to_structured(
-                    self._validate_and_create_persona_trait(
-                        processed_traits["demographics"],
-                        "demographics",
-                        "",
-                    )
+                # FIX: Do not convert to structured demographics here.
+                # Use the standard PersonaTrait to preserve the raw string value (e.g. "Campaign Manager...").
+                # The `structured_demographics` field is generated separately in `persona_to_dict` 
+                # without overwriting this primary field.
+                demographics=self._validate_and_create_persona_trait(
+                    processed_traits["demographics"],
+                    "demographics",
+                    "",
                 ),
                 goals_and_motivations=self._validate_and_create_persona_trait(
                     processed_traits["goals_and_motivations"],
@@ -817,6 +839,12 @@ class PersonaBuilder:
                 persona_metadata=self._create_metadata(attributes, role),
                 role_in_interview=role,
             )
+            except Exception as _persona_create_err:
+                import sys
+                import traceback
+                print(f"🚨🚨 [PERSONA_BUILDER_DEBUG] Persona() constructor failed: {type(_persona_create_err).__name__}: {_persona_create_err}", file=sys.stderr, flush=True)
+                traceback.print_exc(file=sys.stderr)
+                raise
 
             # For simplified format, use the overall_confidence_score directly if available
             if "overall_confidence_score" in attributes and isinstance(
@@ -1152,8 +1180,9 @@ class PersonaBuilder:
 
         except Exception as e:
             logger.error(
-                f"Error building persona from attributes: {str(e)}", exc_info=True
+                f"🚨 [PERSONA_BUILDER] Error building persona from attributes: {str(e)}", exc_info=True
             )
+            logger.error(f"🚨 [PERSONA_BUILDER] Attribute keys that failed: {list(attributes.keys()) if attributes else 'None'}")
             return self.create_fallback_persona(role, name_override)
 
     def create_fallback_persona(
@@ -1469,75 +1498,99 @@ class PersonaBuilder:
             ]
 
             # Try to extract structured information from the value
-            # This is a simple approach - ideally the LLM would generate structured data directly
+            # Handle semicolon-separated format: "Experience Level: Senior; Industry: Tech; Age Range: 30-40"
 
-            # Parse common demographic patterns
-            experience_level = "Professional level"
-            industry = "Not specified"
-            location = "Not specified"
-            age_range = "Not specified"
-            professional_context = value
-            roles = "Professional role"
+            # Initialize with defaults
+            experience_level = ""
+            industry = ""
+            location = ""
+            age_range = ""
+            professional_context = ""
+            roles = ""
 
-            # Simple keyword-based extraction
+            # First, try to parse structured semicolon-separated format from LLM
+            import re
+
+            # Parse key-value pairs like "Experience Level: Senior" or "Age Range: N/A"
+            def extract_field(text: str, field_names: list) -> str:
+                """Extract value for a field from semicolon-separated text."""
+                for name in field_names:
+                    # Look for patterns like "Field Name: Value" or "Field: Value"
+                    pattern = rf'{re.escape(name)}\s*:\s*([^;]+?)(?:;|$)'
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    if match:
+                        val = match.group(1).strip()
+                        # Filter out N/A, Not mentioned, etc.
+                        if val.lower() not in ('n/a', 'not mentioned', 'not specified', 'unknown', ''):
+                            return val
+                return ""
+
+            # Extract each structured field
+            experience_level = extract_field(value, ['Experience Level', 'Experience', 'Seniority'])
+            industry = extract_field(value, ['Industry', 'Sector', 'Field'])
+            location = extract_field(value, ['Location', 'Region', 'Based in', 'Based In', 'Country'])
+            age_range = extract_field(value, ['Age Range', 'Age', 'Age Group'])
+            professional_context = extract_field(value, ['Professional Context', 'Context', 'Background'])
+            roles = extract_field(value, ['Roles', 'Role', 'Position', 'Title', 'Job Title'])
+
+            # Fallback: If semicolon parsing didn't find fields, use keyword-based extraction
             value_lower = value.lower()
 
-            # Extract experience level
-            if "senior" in value_lower or "experienced" in value_lower:
-                experience_level = "Senior level"
-            elif "junior" in value_lower or "entry" in value_lower:
-                experience_level = "Junior level"
-            elif "mid" in value_lower or "intermediate" in value_lower:
-                experience_level = "Mid level"
-            elif "executive" in value_lower or "leader" in value_lower:
-                experience_level = "Executive level"
+            if not experience_level:
+                if "senior" in value_lower or "experienced" in value_lower:
+                    experience_level = "Senior level"
+                elif "junior" in value_lower or "entry" in value_lower:
+                    experience_level = "Junior level"
+                elif "mid" in value_lower or "intermediate" in value_lower:
+                    experience_level = "Mid level"
+                elif "executive" in value_lower or "leader" in value_lower:
+                    experience_level = "Executive level"
 
-            # Extract industry keywords
-            industry_keywords = [
-                "tech",
-                "technology",
-                "software",
-                "healthcare",
-                "finance",
-                "education",
-                "retail",
-                "manufacturing",
-            ]
-            for keyword in industry_keywords:
-                if keyword in value_lower:
-                    industry = keyword.title()
-                    break
+            # Extract industry keywords if not found via parsing
+            if not industry:
+                industry_keywords = [
+                    "tech", "technology", "software", "healthcare", "finance",
+                    "education", "retail", "manufacturing", "venture capital",
+                    "consulting", "media", "gaming", "mobile gaming"
+                ]
+                for keyword in industry_keywords:
+                    if keyword in value_lower:
+                        industry = keyword.title()
+                        break
 
-            # Extract location keywords
-            location_keywords = [
-                "berlin",
-                "munich",
-                "hamburg",
-                "cologne",
-                "frankfurt",
-                "germany",
-                "europe",
-            ]
-            for keyword in location_keywords:
-                if keyword in value_lower:
-                    location = keyword.title()
-                    break
+            # Extract location keywords if not found via parsing
+            if not location:
+                # Look for DACH region mentions
+                if "dach" in value_lower:
+                    location = "DACH Region"
+                else:
+                    location_keywords = [
+                        "berlin", "munich", "hamburg", "cologne", "frankfurt",
+                        "germany", "europe", "austria", "switzerland", "usa", "uk"
+                    ]
+                    for keyword in location_keywords:
+                        if keyword in value_lower:
+                            location = keyword.title()
+                            break
 
-            # Extract role information
-            role_keywords = [
-                "manager",
-                "developer",
-                "analyst",
-                "designer",
-                "researcher",
-                "consultant",
-                "director",
-                "lead",
-            ]
-            for keyword in role_keywords:
-                if keyword in value_lower:
-                    roles = keyword.title()
-                    break
+            # Extract role information if not found via parsing
+            if not roles:
+                role_keywords = [
+                    "manager", "developer", "analyst", "designer", "researcher",
+                    "consultant", "director", "lead", "partner", "founder",
+                    "account manager", "discovery lead", "venture partner"
+                ]
+                for keyword in role_keywords:
+                    if keyword in value_lower:
+                        roles = keyword.title()
+                        break
+
+            # Use the original value as professional_context if we couldn't extract it
+            if not professional_context:
+                professional_context = value
+
+            # Log what we extracted
+            logger.debug(f"Demographics parsing: experience={experience_level}, industry={industry}, location={location}, age={age_range}, roles={roles}")
 
             # Create StructuredDemographics with distributed evidence
             return StructuredDemographics(
