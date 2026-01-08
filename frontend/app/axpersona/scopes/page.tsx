@@ -9,7 +9,7 @@ import { AnalysisPanel } from '@/components/axpersona/AnalysisPanel';
 import { Button } from '@/components/ui/button';
 import { useStartPipeline, usePipelineRunDetail } from '@/lib/axpersona/hooks';
 import { useToast } from '@/components/providers/toast-provider';
-import { PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { PanelRightOpen, PanelRightClose, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import type {
   BusinessContext,
   ScopeSummary,
@@ -23,6 +23,7 @@ function ScopeDetailPage() {
   const [selectedRunJobId, setSelectedRunJobId] = useState<string | null>(null);
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
   const [isAnalysisPanelVisible, setIsAnalysisPanelVisible] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const queryClient = useQueryClient();
   const startPipeline = useStartPipeline();
@@ -57,8 +58,8 @@ function ScopeDetailPage() {
       status: pipelineRunDetail.status === 'completed'
         ? 'completed'
         : pipelineRunDetail.status === 'failed'
-        ? 'failed'
-        : 'partial',
+          ? 'failed'
+          : 'partial',
     };
   }, [pipelineRunDetail]);
 
@@ -73,10 +74,10 @@ function ScopeDetailPage() {
       status: pipelineRunDetail.status === 'completed'
         ? 'completed'
         : pipelineRunDetail.status === 'running'
-        ? 'running'
-        : pipelineRunDetail.status === 'failed'
-        ? 'failed'
-        : 'partial',
+          ? 'running'
+          : pipelineRunDetail.status === 'failed'
+            ? 'failed'
+            : 'partial',
       createdAt: pipelineRunDetail.created_at,
       lastRunAt: pipelineRunDetail.completed_at || pipelineRunDetail.started_at,
       businessContext: pipelineRunDetail.business_context,
@@ -121,7 +122,7 @@ function ScopeDetailPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col gap-4">
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col gap-4">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold tracking-tight">
@@ -152,14 +153,40 @@ function ScopeDetailPage() {
         </Button>
       </div>
       <div className="flex flex-1 gap-4 min-h-0">
-        <div className="w-72 flex-shrink-0 flex flex-col min-h-0">
-          <ScopeSelector
-            onCreateScope={() => setIsCreationOpen(true)}
-            isCreating={startPipeline.isPending || pendingJobId !== null}
-            onSelectDataset={handleSelectDataset}
-            selectedJobId={selectedRunJobId}
-          />
-        </div>
+        {/* Collapsible Left Sidebar */}
+        {isSidebarVisible ? (
+          <div className="w-72 flex-shrink-0 flex flex-col min-h-0 relative">
+            {/* Collapse button in sidebar header */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSidebarVisible(false)}
+              className="absolute -right-3 top-3 z-10 h-7 w-7 p-0 rounded-full bg-background border shadow-sm hover:bg-muted"
+              title="Hide sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+            <ScopeSelector
+              onCreateScope={() => setIsCreationOpen(true)}
+              isCreating={startPipeline.isPending || pendingJobId !== null}
+              onSelectDataset={handleSelectDataset}
+              selectedJobId={selectedRunJobId}
+            />
+          </div>
+        ) : (
+          /* Collapsed sidebar - just a toggle button */
+          <div className="flex-shrink-0 flex flex-col pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSidebarVisible(true)}
+              className="h-9 w-9 p-0"
+              title="Show Persona Datasets sidebar"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <ScopeMainView
             scope={displayScope}

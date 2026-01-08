@@ -204,7 +204,7 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl]); // Only trigger on URL change, not on duration change
 
   // Update active annotations based on current time
@@ -413,9 +413,8 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     return (
       <div
         key={annotation.id}
-        className={`absolute pointer-events-none transition-all duration-300 ${
-          style.animation === 'pulse' ? 'animate-pulse' : ''
-        }`}
+        className={`absolute pointer-events-none transition-all duration-300 ${style.animation === 'pulse' ? 'animate-pulse' : ''
+          }`}
         style={{
           left: `${x}%`,
           top: `${y}%`,
@@ -447,14 +446,14 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
   };
 
   return (
-    <Card className={`flex flex-col h-full ${className || ''}`}>
+    <Card className={`flex flex-col ${className || ''}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">
           <Video className="h-4 w-4" />
           Video Simulation Analysis
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4 min-h-0">
+      <CardContent className="flex flex-col gap-4">
         {/* URL Input Section */}
         <div className="flex gap-2">
           <Input
@@ -534,16 +533,16 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
         )}
 
         {/* Video Player with Annotations - Side by Side Layout */}
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 overflow-auto">
-          {/* Video Container - 16:9 aspect ratio */}
-          <div className="relative bg-black rounded-lg overflow-hidden w-full lg:w-2/3 flex-shrink-0 aspect-video">
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+          {/* Video Container */}
+          <div className="relative bg-black rounded-lg overflow-hidden w-full lg:w-3/5 flex-shrink-0">
             {/* Show YouTube player if we have a valid YouTube URL (even before analysis) */}
             {youtubeVideoId && isYouTubeUrl(videoUrl) ? (
               <>
                 {/* YouTube Video Player */}
                 <iframe
                   ref={iframeRef}
-                  className="absolute inset-0 w-full h-full"
+                  className="w-full aspect-video"
                   src={getYouTubeEmbedUrl(youtubeVideoId)}
                   title="YouTube video player"
                   frameBorder="0"
@@ -614,35 +613,34 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
 
           {/* Annotations Timeline / List - Right Side Panel */}
           {annotations.length > 0 && (
-            <div className="lg:w-1/3 flex-shrink-0 flex flex-col min-h-0">
+            <div className="lg:w-2/5 flex-shrink-0 flex flex-col max-h-[600px]">
               {/* Tab Header */}
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as AnnotationsFeedTab)}>
-                  <TabsList className="h-7">
-                    <TabsTrigger value="findings" className="text-[10px] px-2 h-6">
-                      <Eye className="h-3 w-3 mr-1" />
+                  <TabsList className="h-8">
+                    <TabsTrigger value="findings" className="text-xs px-3 h-7">
+                      <Eye className="h-3.5 w-3.5 mr-1.5" />
                       Findings ({annotations.length})
                     </TabsTrigger>
-                    <TabsTrigger value="technical" className="text-[10px] px-2 h-6">
-                      <Navigation className="h-3 w-3 mr-1" />
+                    <TabsTrigger value="technical" className="text-xs px-3 h-7">
+                      <Navigation className="h-3.5 w-3.5 mr-1.5" />
                       Signs & Nav ({technicalAnnotations.length})
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
 
-              <ScrollArea className="flex-1 min-h-0 max-h-[400px] lg:max-h-none">
+              <div className="flex-1 overflow-y-auto">
                 {/* High-Level Findings Tab */}
                 {feedTab === 'findings' && (
                   <div className="space-y-2 pr-2">
                     {annotations.map((ann) => (
                       <div
                         key={ann.id}
-                        className={`p-2 rounded border text-xs transition-all cursor-pointer hover:bg-muted/50 ${
-                          activeAnnotations.some((a) => a.id === ann.id)
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border'
-                        }`}
+                        className={`p-2 rounded border text-xs transition-all cursor-pointer hover:bg-muted/50 ${activeAnnotations.some((a) => a.id === ann.id)
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border'
+                          }`}
                         onClick={() => {
                           const startTime = parseTimestamp(ann.timestamp_start);
                           setCurrentTime(startTime);
@@ -688,67 +686,66 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
                       technicalAnnotations.map((tech) => (
                         <div
                           key={tech.id}
-                          className={`p-3 rounded border text-xs transition-all ${
-                            activeTechnicalAnnotations.some((a) => a.id === tech.id)
-                              ? 'border-cyan-500 bg-cyan-500/10'
-                              : 'border-border'
-                          }`}
+                          className={`p-4 rounded-lg border text-sm transition-all ${activeTechnicalAnnotations.some((a) => a.id === tech.id)
+                            ? 'border-cyan-500 bg-cyan-500/10'
+                            : 'border-border'
+                            }`}
                         >
                           {/* Timestamp and Summary */}
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-[10px] text-muted-foreground">
+                            <span className="font-mono text-xs text-muted-foreground">
                               {tech.timestamp_start} - {tech.timestamp_end}
                             </span>
                           </div>
-                          <p className="text-muted-foreground mb-2">{tech.summary}</p>
+                          <p className="text-muted-foreground mb-3 text-sm leading-relaxed">{tech.summary}</p>
 
                           {/* Score Bars */}
-                          <div className="space-y-1.5 mb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] w-20 text-muted-foreground">Nav Stress</span>
-                              <Progress value={tech.navigational_stress_score} className="h-1.5 flex-1" />
-                              <span className="text-[9px] w-8 text-right">{tech.navigational_stress_score}%</span>
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs w-24 text-muted-foreground">Nav Stress</span>
+                              <Progress value={tech.navigational_stress_score} className="h-2 flex-1" />
+                              <span className="text-xs w-10 text-right font-medium">{tech.navigational_stress_score}%</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] w-20 text-muted-foreground">Purchase Intent</span>
-                              <Progress value={tech.purchase_intent_score} className="h-1.5 flex-1" />
-                              <span className="text-[9px] w-8 text-right">{tech.purchase_intent_score}%</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs w-24 text-muted-foreground">Purchase Intent</span>
+                              <Progress value={tech.purchase_intent_score} className="h-2 flex-1" />
+                              <span className="text-xs w-10 text-right font-medium">{tech.purchase_intent_score}%</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[9px] w-20 text-muted-foreground">Ad Attention</span>
-                              <Progress value={tech.attention_availability} className="h-1.5 flex-1" />
-                              <span className="text-[9px] w-8 text-right">{tech.attention_availability}%</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs w-24 text-muted-foreground">Ad Attention</span>
+                              <Progress value={tech.attention_availability} className="h-2 flex-1" />
+                              <span className="text-xs w-10 text-right font-medium">{tech.attention_availability}%</span>
                             </div>
                           </div>
 
                           {/* Agent Behavior */}
                           {tech.agent_behavior && (
-                            <div className="mb-2">
-                              <div className="text-[9px] font-medium text-cyan-400 flex items-center gap-1 mb-1">
-                                <Users className="h-3 w-3" />
+                            <div className="mb-3">
+                              <div className="text-xs font-medium text-cyan-400 flex items-center gap-1.5 mb-2">
+                                <Users className="h-3.5 w-3.5" />
                                 Crowd Behavior
                               </div>
-                              <div className="grid grid-cols-2 gap-1 text-[9px]">
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Total</span>
-                                  <span>{tech.agent_behavior.agent_count}</span>
+                                  <span className="font-medium">{tech.agent_behavior.agent_count}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Static</span>
-                                  <span>{tech.agent_behavior.static_spectators}</span>
+                                  <span className="font-medium">{tech.agent_behavior.static_spectators}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Transit</span>
-                                  <span>{tech.agent_behavior.transit_passengers}</span>
+                                  <span className="font-medium">{tech.agent_behavior.transit_passengers}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Awe-Struck</span>
-                                  <span>{tech.agent_behavior.awe_struck_count}</span>
+                                  <span className="font-medium">{tech.agent_behavior.awe_struck_count}</span>
                                 </div>
                                 {tech.agent_behavior.dominant_gaze_target && (
                                   <div className="col-span-2 flex justify-between">
                                     <span className="text-muted-foreground">Looking at</span>
-                                    <span className="text-cyan-300 truncate max-w-[100px]">
+                                    <span className="text-cyan-300 truncate max-w-[180px] font-medium">
                                       {tech.agent_behavior.dominant_gaze_target}
                                     </span>
                                   </div>
@@ -759,29 +756,29 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
 
                           {/* Objects Detected */}
                           {tech.objects && (
-                            <div className="mb-2">
-                              <div className="text-[9px] font-medium text-orange-400 flex items-center gap-1 mb-1">
-                                <Luggage className="h-3 w-3" />
+                            <div className="mb-3">
+                              <div className="text-xs font-medium text-orange-400 flex items-center gap-1.5 mb-2">
+                                <Luggage className="h-3.5 w-3.5" />
                                 Objects Detected
                               </div>
-                              <div className="flex flex-wrap gap-1">
+                              <div className="flex flex-wrap gap-1.5">
                                 {tech.objects.luggage_trolleys > 0 && (
-                                  <Badge className="text-[8px] bg-orange-500/20 text-orange-300">
+                                  <Badge className="text-[10px] py-1 px-2 bg-orange-500/20 text-orange-300">
                                     🧳 {tech.objects.luggage_trolleys} luggage
                                   </Badge>
                                 )}
                                 {tech.objects.smartphones_cameras > 0 && (
-                                  <Badge className="text-[8px] bg-blue-500/20 text-blue-300">
+                                  <Badge className="text-[10px] py-1 px-2 bg-blue-500/20 text-blue-300">
                                     📱 {tech.objects.smartphones_cameras} phones
                                   </Badge>
                                 )}
                                 {tech.objects.shopping_bags > 0 && (
-                                  <Badge className="text-[8px] bg-purple-500/20 text-purple-300">
+                                  <Badge className="text-[10px] py-1 px-2 bg-purple-500/20 text-purple-300">
                                     🛍 {tech.objects.shopping_bags} bags
                                   </Badge>
                                 )}
                                 {tech.objects.strollers > 0 && (
-                                  <Badge className="text-[8px] bg-green-500/20 text-green-300">
+                                  <Badge className="text-[10px] py-1 px-2 bg-green-500/20 text-green-300">
                                     👶 {tech.objects.strollers} strollers
                                   </Badge>
                                 )}
@@ -792,35 +789,34 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
                           {/* Signs Detected */}
                           {tech.signs_detected.length > 0 && (
                             <div>
-                              <div className="text-[9px] font-medium text-green-400 flex items-center gap-1 mb-1">
-                                <Signpost className="h-3 w-3" />
+                              <div className="text-xs font-medium text-green-400 flex items-center gap-1.5 mb-2">
+                                <Signpost className="h-3.5 w-3.5" />
                                 Signs ({tech.signs_detected.length})
                               </div>
-                              <div className="space-y-1">
+                              <div className="space-y-2">
                                 {tech.signs_detected.slice(0, 3).map((sign, idx) => (
-                                  <div key={idx} className="p-1.5 bg-muted/30 rounded text-[9px]">
-                                    <div className="flex items-center justify-between mb-0.5">
-                                      <span className="font-medium truncate max-w-[150px]">{sign.sign_text}</span>
-                                      <Badge className={`text-[7px] ${
-                                        sign.readability === 'clear' ? 'bg-green-500/20 text-green-300' :
+                                  <div key={idx} className="p-2.5 bg-muted/30 rounded-md text-xs">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-semibold truncate max-w-[200px]">{sign.sign_text}</span>
+                                      <Badge className={`text-[9px] py-0.5 px-1.5 ${sign.readability === 'clear' ? 'bg-green-500/20 text-green-300' :
                                         sign.readability === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
-                                        'bg-red-500/20 text-red-300'
-                                      }`}>
+                                          'bg-red-500/20 text-red-300'
+                                        }`}>
                                         {sign.visibility_score}/10
                                       </Badge>
                                     </div>
-                                    <div className="text-muted-foreground">
+                                    <div className="text-muted-foreground text-[11px]">
                                       {sign.sign_type} • {sign.location_description}
                                     </div>
                                     {sign.issues && sign.issues.length > 0 && (
-                                      <div className="text-red-400 mt-0.5">
+                                      <div className="text-red-400 mt-1 text-[11px]">
                                         ⚠️ {sign.issues.join(', ')}
                                       </div>
                                     )}
                                   </div>
                                 ))}
                                 {tech.signs_detected.length > 3 && (
-                                  <div className="text-[9px] text-muted-foreground text-center">
+                                  <div className="text-xs text-muted-foreground text-center py-1">
                                     +{tech.signs_detected.length - 3} more signs
                                   </div>
                                 )}
@@ -832,7 +828,7 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
                     )}
                   </div>
                 )}
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>
