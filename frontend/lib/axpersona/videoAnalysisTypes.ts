@@ -99,6 +99,12 @@ export interface VideoAnalysisRequest {
   video_url: string;
   analysis_prompt?: string;
   video_duration_seconds?: number; // Required for videos >10 min to enable chunked analysis
+  personas?: Array<{
+    name: string;
+    role: string;
+    description: string;
+    age?: number;
+  }>;
 }
 
 export interface VideoAnalysisResponse {
@@ -213,7 +219,8 @@ export const videoAnalysisService = {
    */
   async analyzeVideo(
     videoUrl: string,
-    analysisPrompt?: string
+    analysisPrompt?: string,
+    personas?: VideoAnalysisRequest['personas']
   ): Promise<VideoAnalysisResponse> {
     const response = await fetch('/api/axpersona/video-analysis', {
       method: 'POST',
@@ -221,6 +228,7 @@ export const videoAnalysisService = {
       body: JSON.stringify({
         video_url: videoUrl,
         analysis_prompt: analysisPrompt,
+        personas: personas,
       }),
     });
 

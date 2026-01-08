@@ -84,7 +84,8 @@ class GeminiVideoAnalyzer:
         end_offset: int,
         segment_num: int,
         total_segments: int,
-        total_duration: str
+        total_duration: str,
+        personas: Optional[List['PersonaProfile']] = None
     ) -> List[Dict[str, Any]]:
         """Analyze a specific segment of a video.
 
@@ -95,6 +96,7 @@ class GeminiVideoAnalyzer:
             segment_num: Current segment number (1-based)
             total_segments: Total number of segments
             total_duration: Total video duration string
+            personas: Optional list of personas to simulate
 
         Returns:
             List of annotations for this segment
@@ -105,7 +107,41 @@ class GeminiVideoAnalyzer:
         end_ts = self._seconds_to_timestamp(end_offset)
 
         # Build segment-specific prompt
-        segment_prompt = f"""You are analyzing segment {segment_num} of {total_segments} of a video.
+        if personas:
+            persona_descriptions = "\\n".join([f"- {p.name}: {p.description}" for p in personas])
+            # Determine mapping instructions based on number of personas
+            mapping_instr = ""
+            if len(personas) >= 1:
+                mapping_instr += f"- Use 'security' object for {personas[0].name}'s perspective\\n"
+            if len(personas) >= 2:
+                mapping_instr += f"- Use 'marketing' object for {personas[1].name}'s perspective\\n"
+            if len(personas) >= 3:
+                mapping_instr += f"- Use 'operations' object for {personas[2].name}'s perspective\\n"
+            
+            segment_prompt = f"""You are analyzing segment {segment_num} of {total_segments} of a video.
+This segment covers {start_ts} to {end_ts} (total video is {total_duration}).
+
+ACT AS THE FOLLOWING PERSONAS simultaneously:
+{persona_descriptions}
+
+Analyze this video segment and return timestamped annotations describing their reactions.
+IMPORTANT: All timestamps should be ABSOLUTE (relative to the start of the full video, not this segment).
+
+{mapping_instr}
+
+**JSON OUTPUT FORMAT:**
+Return a JSON array of annotations. Each annotation must have:
+- "timestamp_start": "MM:SS" (absolute time)
+- "timestamp_end": "MM:SS" (absolute time)
+- "description": Description of the event
+- "departments": {{
+    "security": {{ "status": "Green", "label": "{personas[0].name if len(personas) > 0 else 'Unknown'}", "detail": "Reactions/Thoughts of {personas[0].name if len(personas) > 0 else 'Unknown'}" }},
+    "marketing": {{ "sentiment": "Neutral", "label": "{personas[1].name if len(personas) > 1 else 'N/A'}", "detail": "Reactions/Thoughts of {personas[1].name if len(personas) > 1 else 'N/A'}" }},
+    "operations": {{ "flow_rate": "Fast", "label": "{personas[2].name if len(personas) > 2 else 'N/A'}", "detail": "Reactions/Thoughts of {personas[2].name if len(personas) > 2 else 'N/A'}" }}
+}}
+"""
+        else:
+            segment_prompt = f"""You are analyzing segment {segment_num} of {total_segments} of a video.
 This segment covers {start_ts} to {end_ts} (total video is {total_duration}).
 
 Analyze this video segment and return timestamped annotations in JSON format.
@@ -173,7 +209,8 @@ Return ONLY the JSON array, no other text."""
         self,
         video_url: str,
         custom_prompt: Optional[str] = None,
-        video_duration_seconds: Optional[int] = None
+        video_duration_seconds: Optional[int] = None,
+        personas: Optional[List['PersonaProfile']] = None
     ) -> Dict[str, Any]:
         """Analyze a video URL using Gemini multimodal.
 
@@ -184,17 +221,15 @@ Return ONLY the JSON array, no other text."""
             video_url: YouTube URL or other video URL
             custom_prompt: Optional custom analysis prompt
             video_duration_seconds: Optional known video duration in seconds
+            personas: Optional list of personas to simulate
 
         Returns:
             Dict with annotations array
         """
-        if not self._available:
-            raise RuntimeError("Gemini client not available")
-
         from google.genai import types
 
-        # Segment size in seconds (10 minutes per segment)
-        SEGMENT_SIZE = 600
+        # Segment size in seconds (5 minutes per segment)
+        SEGMENT_SIZE = 300
 
         # If duration is provided or video is known to be long, use chunked analysis
         if video_duration_seconds and video_duration_seconds > SEGMENT_SIZE:
@@ -216,7 +251,8 @@ Return ONLY the JSON array, no other text."""
                     end_offset=end_offset,
                     segment_num=i + 1,
                     total_segments=num_segments,
-                    total_duration=total_duration
+                    total_duration=total_duration,
+                    personas=personas
                 )
                 all_annotations.extend(segment_annotations)
 
@@ -225,6 +261,39 @@ Return ONLY the JSON array, no other text."""
 
         # For shorter videos or unknown duration, use single-pass analysis
         prompt = custom_prompt or VIDEO_ANALYSIS_PROMPT_FULL
+        
+        if personas:
+            persona_descriptions = "\\n".join([f"- {p.name}: {p.description}" for p in personas])
+            # Determine mapping instructions based on number of personas
+            mapping_instr = ""
+            if len(personas) >= 1:
+                mapping_instr += f"- Use 'security' object for {personas[0].name}'s perspective\\n"
+            if len(personas) >= 2:
+                mapping_instr += f"- Use 'marketing' object for {personas[1].name}'s perspective\\n"
+            if len(personas) >= 3:
+                mapping_instr += f"- Use 'operations' object for {personas[2].name}'s perspective\\n"
+            
+            prompt = f"""You are an expert video analyst simulating user perspectives.
+
+ACT AS THE FOLLOWING PERSONAS simultaneously:
+{persona_descriptions}
+
+Task: Watch the ENTIRE video and record significant events from the perspective of each persona.
+Identify moments that would specifically trigger their pain points, motivations, or interest.
+
+{mapping_instr}
+
+**JSON OUTPUT FORMAT:**
+Return a JSON array of annotations. Each annotation must have:
+- "timestamp_start": "MM:SS" (absolute time)
+- "timestamp_end": "MM:SS" (absolute time)
+- "description": Description of the event
+- "departments": {{
+    "security": {{ "status": "Green", "label": "{personas[0].name if len(personas) > 0 else 'Unknown'}", "detail": "Reactions/Thoughts of {personas[0].name if len(personas) > 0 else 'Unknown'}" }},
+    "marketing": {{ "sentiment": "Neutral", "label": "{personas[1].name if len(personas) > 1 else 'N/A'}", "detail": "Reactions/Thoughts of {personas[1].name if len(personas) > 1 else 'N/A'}" }},
+    "operations": {{ "flow_rate": "Fast", "label": "{personas[2].name if len(personas) > 2 else 'N/A'}", "detail": "Reactions/Thoughts of {personas[2].name if len(personas) > 2 else 'N/A'}" }}
+}}
+"""
 
         # Create content parts - YouTube URLs can be passed directly
         parts = [
@@ -642,6 +711,14 @@ class VideoAnnotation(BaseModel):
     departments: DepartmentAnalyses
 
 
+class PersonaProfile(BaseModel):
+    """Profile of a persona to simulate."""
+    name: str = Field(..., description="Name of the persona")
+    role: str = Field(..., description="Role or Archetype (e.g. 'Busy Mom')")
+    description: str = Field(..., description="Key traits, pain points, and motivations")
+    age: Optional[int] = None
+
+
 class VideoAnalysisRequest(BaseModel):
     """Request to analyze a video for department-specific insights."""
     video_url: str = Field(..., description="URL of the video to analyze (YouTube, MP4, etc.)")
@@ -657,6 +734,10 @@ class VideoAnalysisRequest(BaseModel):
         False,
         description="Use demo annotations instead of real analysis (for testing)"
     )
+    personas: Optional[List[PersonaProfile]] = Field(
+        None,
+        description="List of specific personas to simulate reactions for (max 3). If provided, overrides default departments."
+    )
 
 
 class AnalysisMetadata(BaseModel):
@@ -665,6 +746,7 @@ class AnalysisMetadata(BaseModel):
     duration_analyzed: Optional[str] = None
     model_used: Optional[str] = None
     processed_at: str
+    simulated_personas: Optional[List[str]] = None  # Names of personas simulated
 
 
 class VideoAnalysisResponse(BaseModel):
@@ -1147,7 +1229,8 @@ async def analyze_video(request: VideoAnalysisRequest) -> VideoAnalysisResponse:
         raw_annotations = await analyzer.analyze_video(
             video_url=request.video_url,
             custom_prompt=request.analysis_prompt,
-            video_duration_seconds=request.video_duration_seconds
+            video_duration_seconds=request.video_duration_seconds,
+            personas=request.personas
         )
 
         # Convert raw annotations to typed models
@@ -1282,6 +1365,7 @@ async def analyze_video(request: VideoAnalysisRequest) -> VideoAnalysisResponse:
                 duration_analyzed=duration_analyzed,
                 model_used=os.getenv("GEMINI_VIDEO_MODEL", "gemini-3-flash-preview"),
                 processed_at=datetime.now(timezone.utc).isoformat(),
+                simulated_personas=[p.name for p in request.personas] if request.personas else None,
             ),
         )
 

@@ -656,7 +656,14 @@ export function ScopeMainView({
 
               {/* Video Simulation Tab */}
               <TabsContent value="video" className="flex-1 min-h-0 overflow-auto mt-2">
-                <VideoSimulationPanel />
+                <VideoSimulationPanel
+                  availablePersonas={personas.map((p: any, idx) => ({
+                    name: p.name || `Persona ${idx + 1}`,
+                    role: p.archetype || p.role || 'User',
+                    description: p.description || '',
+                    age: typeof p.age === 'number' ? p.age : undefined
+                  }))}
+                />
               </TabsContent>
 
               {/* Industry News Tab */}

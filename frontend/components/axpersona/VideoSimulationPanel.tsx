@@ -1,19 +1,20 @@
 'use client';
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import {
   Loader2,
   Play,
   Shield,
   DollarSign,
-  Settings,
   Eye,
   EyeOff,
   AlertTriangle,
@@ -24,6 +25,8 @@ import {
   Users,
   Luggage,
   Navigation,
+  UserCircle2,
+  ChevronDown,
 } from 'lucide-react';
 import type {
   VideoAnnotation,
@@ -33,6 +36,7 @@ import type {
   SecurityStatus,
   MarketingSentiment,
   OperationsFlowRate,
+  VideoAnalysisRequest,
 } from '@/lib/axpersona/videoAnalysisTypes';
 import {
   parseTimestamp,
@@ -44,51 +48,17 @@ import {
 // Type for annotations feed tab
 type AnnotationsFeedTab = 'findings' | 'technical';
 
-// Demo annotations for testing without API
-const DEMO_ANNOTATIONS: VideoAnnotation[] = [
-  {
-    id: 'ann-1',
-    timestamp_start: '00:05',
-    timestamp_end: '00:15',
-    coordinates: [30, 40, 25, 35],
-    description: 'Family with luggage trolley stops in narrow corridor.',
-    departments: {
-      security: { status: 'Yellow', label: 'Egress Obstruction', detail: 'Path reduced by 40%' },
-      marketing: { sentiment: 'Negative', label: 'Engagement Failed', detail: 'Too stressed to browse' },
-      operations: { flow_rate: 'Stagnant', label: 'Friction Point', detail: 'Velocity 0 m/s' },
-    },
-  },
-  {
-    id: 'ann-2',
-    timestamp_start: '00:20',
-    timestamp_end: '00:35',
-    coordinates: [60, 30, 20, 25],
-    description: 'Crowd forming near gate entrance.',
-    departments: {
-      security: { status: 'Red', label: 'Crowd Density Alert', detail: 'Exceeds threshold' },
-      marketing: { sentiment: 'Positive', label: 'High Footfall Zone', detail: 'Potential ad placement' },
-      operations: { flow_rate: 'Slow', label: 'Queue Forming', detail: 'Wait time increasing' },
-    },
-  },
-  {
-    id: 'ann-3',
-    timestamp_start: '00:40',
-    timestamp_end: '00:55',
-    coordinates: [15, 60, 30, 20],
-    description: 'Person stopping to check phone near retail area.',
-    departments: {
-      security: { status: 'Green', label: 'Normal Activity', detail: 'No concerns' },
-      marketing: { sentiment: 'Positive', label: 'Browsing Behavior', detail: 'Dwell time opportunity' },
-      operations: { flow_rate: 'Fast', label: 'Normal Flow', detail: 'Optimal throughput' },
-    },
-  },
-];
-
 interface VideoSimulationPanelProps {
   className?: string;
+  availablePersonas?: Array<{
+    name: string;
+    role: string;
+    description: string;
+    age?: number;
+  }>;
 }
 
-export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
+export function VideoSimulationPanel({ className, availablePersonas = [] }: VideoSimulationPanelProps) {
   // State
   const [videoUrl, setVideoUrl] = useState('');
   const [videoDurationInput, setVideoDurationInput] = useState(''); // MM:SS or HH:MM:SS format
@@ -98,80 +68,54 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AnnotationsFeedTab>('findings');
   const [activeAnnotations, setActiveAnnotations] = useState<VideoAnnotation[]>([]);
   const [activeTechnicalAnnotations, setActiveTechnicalAnnotations] = useState<TechnicalAnnotation[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [useDemoMode, setUseDemoMode] = useState(false);
-  const [feedTab, setFeedTab] = useState<AnnotationsFeedTab>('findings');
-  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
-  const [videoTitle, setVideoTitle] = useState<string | null>(null);
 
-  // Parse duration input (MM:SS or HH:MM:SS) to seconds
-  const parseDurationToSeconds = (input: string): number | null => {
-    if (!input.trim()) return null;
-    const parts = input.trim().split(':').map(Number);
-    if (parts.some(isNaN)) return null;
-    if (parts.length === 2) {
-      return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    return null;
-  };
+  // Persona Selection State
+  const [selectedPersonas, setSelectedPersonas] = useState<string[]>([]);
+  const [isPersonaSelectorOpen, setIsPersonaSelectorOpen] = useState(false);
 
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
 
-  // Extract YouTube video ID from URL
-  const extractYouTubeVideoId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/v\/([^&\n?#]+)/,
-    ];
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) return match[1];
-    }
-    return null;
+  // Derived state for annotations
+  const annotations = useMemo(() => analysisResult?.annotations || [], [analysisResult]);
+  const technicalAnnotations = useMemo(() => analysisResult?.technical_annotations || [], [analysisResult]);
+
+  // Handle Persona Selection
+  const handlePersonaToggle = (personaName: string) => {
+    setSelectedPersonas(prev => {
+      if (prev.includes(personaName)) {
+        return prev.filter(p => p !== personaName);
+      }
+      if (prev.length >= 3) {
+        // limit to 3
+        return prev;
+      }
+      return [...prev, personaName];
+    });
   };
 
-  // Check if URL is a YouTube video
-  const isYouTubeUrl = (url: string): boolean => {
-    return url.includes('youtube.com') || url.includes('youtu.be');
+  const getActivePersonaObjects = useCallback(() => {
+    if (!availablePersonas) return [];
+    return availablePersonas.filter(p => selectedPersonas.includes(p.name));
+  }, [availablePersonas, selectedPersonas]);
+
+  // Helper to extract YouTube ID
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
   };
 
-  // Get the YouTube embed URL
-  const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}&rel=0`;
-  };
+  const isYouTubeUrl = (url: string) => !!getYouTubeId(url);
 
-  // Get annotations - either from API result or demo
-  // Memoize to avoid creating new array references on every render
-  const annotations = useMemo(() => {
-    return useDemoMode ? DEMO_ANNOTATIONS : (analysisResult?.annotations || []);
-  }, [useDemoMode, analysisResult?.annotations]);
-
-  const technicalAnnotations = useMemo(() => {
-    return analysisResult?.technical_annotations || [];
-  }, [analysisResult?.technical_annotations]);
-
-  // Get video ID for display
-  const youtubeVideoId = analysisResult?.video_id || extractYouTubeVideoId(videoUrl);
-
-  // Auto-fetch video metadata (duration) when URL changes
+  // Fetch video metadata when URL changes
   useEffect(() => {
     const fetchVideoMetadata = async (url: string) => {
-      if (!url.trim() || !isYouTubeUrl(url)) {
-        return;
-      }
-
-      // Only fetch if duration field is empty
-      if (videoDurationInput.trim()) {
-        return;
-      }
-
-      setIsFetchingMetadata(true);
       try {
         const response = await fetch('/api/axpersona/video-metadata', {
           method: 'POST',
@@ -180,23 +124,16 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
         });
 
         if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.duration_formatted) {
-            setVideoDurationInput(result.duration_formatted);
-            if (result.title) {
-              setVideoTitle(result.title);
-            }
-            console.log(`Auto-detected video duration: ${result.duration_formatted}`);
+          const data = await response.json();
+          if (data.success && data.duration_formatted) {
+            setVideoDurationInput(data.duration_formatted);
           }
         }
       } catch (err) {
-        console.warn('Failed to fetch video metadata:', err);
-      } finally {
-        setIsFetchingMetadata(false);
+        console.error('Failed to fetch video metadata', err);
       }
     };
 
-    // Debounce the metadata fetch
     const timeoutId = setTimeout(() => {
       if (videoUrl.trim() && isYouTubeUrl(videoUrl)) {
         fetchVideoMetadata(videoUrl);
@@ -245,7 +182,16 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     }
   }, [isPlaying]);
 
-  // Analyze video with LLM - calls backend API with demo fallback
+  // Helper to convert MM:SS to seconds
+  const parseDurationToSeconds = (durationStr: string): number | undefined => {
+    if (!durationStr) return undefined;
+    const parts = durationStr.split(':').map(Number);
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return undefined;
+  };
+
+  // Analyze video with LLM - calls backend API
   const handleAnalyzeVideo = useCallback(async () => {
     if (!videoUrl.trim()) {
       setError('Please enter a video URL');
@@ -260,9 +206,15 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
       const durationSeconds = parseDurationToSeconds(videoDurationInput);
 
       // Build request body
-      const requestBody: Record<string, unknown> = { video_url: videoUrl };
+      const requestBody: VideoAnalysisRequest = { video_url: videoUrl };
       if (durationSeconds && durationSeconds > 0) {
         requestBody.video_duration_seconds = durationSeconds;
+      }
+
+      // Add personas if selected
+      const activePersonas = getActivePersonaObjects();
+      if (activePersonas.length > 0) {
+        requestBody.personas = activePersonas;
       }
 
       // Try to call the backend API
@@ -274,43 +226,26 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
 
       if (response.ok) {
         const result = await response.json();
-        setUseDemoMode(false);
         setAnalysisResult(result);
+
+        // If we have simulated personas, default to showing "all" so we see the avatars
+        if (result.analysis_metadata?.simulated_personas) {
+          setActiveDepartment('all');
+        } else {
+          // Default to showing all departments
+          setActiveDepartment('all');
+        }
+
       } else {
-        // Fallback to demo mode if API fails
-        console.warn('Video analysis API failed, using demo mode');
-        setUseDemoMode(true);
-        setAnalysisResult({
-          success: true,
-          video_url: videoUrl,
-          annotations: DEMO_ANNOTATIONS,
-          analysis_metadata: {
-            total_annotations: DEMO_ANNOTATIONS.length,
-            duration_analyzed: '1:00',
-            model_used: 'demo-mode (API unavailable)',
-            processed_at: new Date().toISOString(),
-          },
-        });
+        throw new Error('Analysis failed');
       }
     } catch (err) {
-      // Fallback to demo mode on error
-      console.warn('Video analysis error, using demo mode:', err);
-      setUseDemoMode(true);
-      setAnalysisResult({
-        success: true,
-        video_url: videoUrl,
-        annotations: DEMO_ANNOTATIONS,
-        analysis_metadata: {
-          total_annotations: DEMO_ANNOTATIONS.length,
-          duration_analyzed: '1:00',
-          model_used: 'demo-mode (offline)',
-          processed_at: new Date().toISOString(),
-        },
-      });
+      console.error('Video analysis error:', err);
+      setError('Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
-  }, [videoUrl, videoDurationInput]);
+  }, [videoUrl, videoDurationInput, getActivePersonaObjects]);
 
   // Get status color for security
   const getSecurityColor = (status: SecurityStatus) => {
@@ -342,10 +277,20 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     }
   };
 
+  // Helper to get display name
+  const getPersonaDisplayName = (fullName: string) => {
+    // Split by comma to handle "Name, the Role" format
+    return fullName.split(',')[0].trim();
+  };
+
   // Render overlay annotation
   const renderAnnotation = (annotation: VideoAnnotation, index: number) => {
     const [x, y, width, height] = annotation.coordinates;
     const style = DEPARTMENT_STYLES[activeDepartment];
+
+    // Check if we are in dynamic persona mode
+    const isDynamicMode = selectedPersonas.length > 0;
+    const activePersonas = getActivePersonaObjects();
 
     if (activeDepartment === 'none') return null;
 
@@ -354,29 +299,62 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     let statusBadge: React.ReactNode = null;
 
     if (activeDepartment === 'security') {
-      statusBadge = (
-        <Badge className={`text-[9px] ${getSecurityColor(dept.security.status)}`}>
-          <Shield className="h-2.5 w-2.5 mr-0.5" />
-          {dept.security.label}
-        </Badge>
-      );
-      content = dept.security.detail;
+      // In dynamic mode, 'security' maps to Persona 1
+      if (isDynamicMode && activePersonas[0]) {
+        content = dept.security.detail;
+        statusBadge = (
+          <Badge className="text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white flex items-center gap-1.5 px-2 py-0.5 shadow-sm border border-indigo-400/50">
+            <UserCircle2 className="h-3 w-3" />
+            <span className="font-semibold">{getPersonaDisplayName(activePersonas[0].name)}</span>
+          </Badge>
+        );
+      } else {
+        statusBadge = (
+          <Badge className={`text-[9px] ${getSecurityColor(dept.security.status)}`}>
+            <Shield className="h-2.5 w-2.5 mr-0.5" />
+            {dept.security.label}
+          </Badge>
+        );
+        content = dept.security.detail;
+      }
     } else if (activeDepartment === 'marketing') {
-      statusBadge = (
-        <Badge className="text-[9px] bg-purple-500 text-white">
-          <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-          {getSentimentEmoji(dept.marketing.sentiment)} {dept.marketing.label}
-        </Badge>
-      );
-      content = dept.marketing.detail;
+      // In dynamic mode, 'marketing' maps to Persona 2
+      if (isDynamicMode && activePersonas[1]) {
+        content = dept.marketing.detail;
+        statusBadge = (
+          <Badge className="text-[10px] bg-pink-500 hover:bg-pink-600 text-white flex items-center gap-1.5 px-2 py-0.5 shadow-sm border border-pink-400/50">
+            <UserCircle2 className="h-3 w-3" />
+            <span className="font-semibold">{getPersonaDisplayName(activePersonas[1].name)}</span>
+          </Badge>
+        );
+      } else {
+        statusBadge = (
+          <Badge className="text-[9px] bg-purple-500 text-white">
+            <DollarSign className="h-2.5 w-2.5 mr-0.5" />
+            {getSentimentEmoji(dept.marketing.sentiment)} {dept.marketing.label}
+          </Badge>
+        );
+        content = dept.marketing.detail;
+      }
     } else if (activeDepartment === 'operations') {
-      statusBadge = (
-        <Badge className="text-[9px] bg-blue-500 text-white">
-          {getFlowIcon(dept.operations.flow_rate)}
-          <span className="ml-0.5">{dept.operations.label}</span>
-        </Badge>
-      );
-      content = dept.operations.detail;
+      // In dynamic mode, 'operations' maps to Persona 3
+      if (isDynamicMode && activePersonas[2]) {
+        content = dept.operations.detail;
+        statusBadge = (
+          <Badge className="text-[10px] bg-teal-500 hover:bg-teal-600 text-white flex items-center gap-1.5 px-2 py-0.5 shadow-sm border border-teal-400/50">
+            <UserCircle2 className="h-3 w-3" />
+            <span className="font-semibold">{getPersonaDisplayName(activePersonas[2].name)}</span>
+          </Badge>
+        );
+      } else {
+        statusBadge = (
+          <Badge className="text-[9px] bg-blue-500 text-white">
+            {getFlowIcon(dept.operations.flow_rate)}
+            <span className="ml-0.5">{dept.operations.label}</span>
+          </Badge>
+        );
+        content = dept.operations.detail;
+      }
     } else if (activeDepartment === 'all') {
       // Show all departments
       return (
@@ -391,20 +369,46 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
           }}
         >
           <div className="absolute -top-8 left-0 flex gap-1 flex-wrap">
-            <Badge className={`text-[8px] ${getSecurityColor(dept.security.status)}`}>
-              <Shield className="h-2 w-2 mr-0.5" />
-              {dept.security.status}
-            </Badge>
-            <Badge className="text-[8px] bg-purple-500 text-white">
-              {getSentimentEmoji(dept.marketing.sentiment)}
-            </Badge>
-            <Badge className="text-[8px] bg-blue-500 text-white">
-              {getFlowIcon(dept.operations.flow_rate)}
-            </Badge>
+            {isDynamicMode ? (
+              <>
+                {activePersonas[0] && (
+                  <Badge className="text-[9px] bg-indigo-500/90 text-white flex items-center gap-1 backdrop-blur-sm border border-indigo-400/30">
+                    <span className="font-medium">{getPersonaDisplayName(activePersonas[0].name)}</span>
+                  </Badge>
+                )}
+                {activePersonas[1] && (
+                  <Badge className="text-[9px] bg-pink-500/90 text-white flex items-center gap-1 backdrop-blur-sm border border-pink-400/30">
+                    <span className="font-medium">{getPersonaDisplayName(activePersonas[1].name)}</span>
+                  </Badge>
+                )}
+                {activePersonas[2] && (
+                  <Badge className="text-[9px] bg-teal-500/90 text-white flex items-center gap-1 backdrop-blur-sm border border-teal-400/30">
+                    <span className="font-medium">{getPersonaDisplayName(activePersonas[2].name)}</span>
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <>
+                <Badge className={`text-[8px] ${getSecurityColor(dept.security.status)}`}>
+                  <Shield className="h-2 w-2 mr-0.5" />
+                  {dept.security.status}
+                </Badge>
+                <Badge className="text-[8px] bg-purple-500 text-white">
+                  {getSentimentEmoji(dept.marketing.sentiment)}
+                </Badge>
+                <Badge className="text-[8px] bg-blue-500 text-white">
+                  {getFlowIcon(dept.operations.flow_rate)}
+                </Badge>
+              </>
+            )}
           </div>
           <div
-            className="w-full h-full border-2 border-white/50 rounded"
-            style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+            className={`w-full h-full border-2 rounded ${isPlaying ? 'opacity-30' : 'opacity-80'
+              }`}
+            style={{
+              borderColor: style.borderColor,
+              backgroundColor: style.backgroundColor,
+            }}
           />
         </div>
       );
@@ -413,8 +417,7 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
     return (
       <div
         key={annotation.id}
-        className={`absolute pointer-events-none transition-all duration-300 ${style.animation === 'pulse' ? 'animate-pulse' : ''
-          }`}
+        className="absolute transition-all duration-300 pointer-events-none"
         style={{
           left: `${x}%`,
           top: `${y}%`,
@@ -422,418 +425,467 @@ export function VideoSimulationPanel({ className }: VideoSimulationPanelProps) {
           height: `${height}%`,
         }}
       >
-        <div className="absolute -top-6 left-0">{statusBadge}</div>
         <div
-          className="w-full h-full border-2 rounded"
+          className={`w-full h-full border-2 rounded relative ${style.animation === 'pulse' ? 'animate-pulse' : ''
+            }`}
           style={{
             borderColor: style.borderColor,
             backgroundColor: style.backgroundColor,
           }}
-        />
-        {content && (
-          <div
-            className="absolute -bottom-5 left-0 text-[9px] px-1 rounded"
-            style={{
-              color: style.textColor,
-              backgroundColor: 'rgba(0,0,0,0.7)',
-            }}
-          >
-            {content}
+        >
+          <div className="absolute -top-8 left-0 min-w-[200px]">
+            {statusBadge}
+            {!isPlaying && (
+              <div className="bg-black/80 text-white text-[10px] p-2 rounded mt-1 shadow-lg backdrop-blur-sm border border-white/10">
+                {content}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderVideoPlayer = () => {
+    // If it's a YouTube URL, we need to embed it via iframe or use a specialized player
+    // For simplicity in this demo, we'll assume standard video formats or YouTube embed logic
+    const ytId = getYouTubeId(videoUrl);
+
+    if (ytId) {
+      return (
+        <div className="relative w-full h-full bg-black flex items-center justify-center">
+          {/* 
+               In a real app, use 'react-youtube' or similar to get currentTime access.
+               Since generic iframes don't expose currentTime easily without postMessage API,
+               we will simulate the playback for this UI demo if needed, 
+               or just show a placeholder that we can't sync overlays perfectly with standard iframe.
+               
+               However, to make the 'Simulation' feel real, we'll overlay a transparent div 
+               to capture interactions if needed.
+            */}
+          <iframe
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=${isPlaying ? 1 : 0}`}
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+
+          {/* Overlays Layer */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {annotations.map((ann, i) => renderAnnotation(ann, i))}
+          </div>
+        </div>
+      );
+    }
+
+    // Default HTML5 Video
+    return (
+      <div className="relative w-full h-full bg-black flex items-center justify-center group" ref={playerContainerRef}>
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="w-full h-full object-contain"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+        />
+
+        {/* Play/Pause Overlay */}
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          onClick={togglePlayPause}
+        >
+          {!isPlaying && <Play className="h-12 w-12 text-white opacity-80" fill="currentColor" />}
+        </div>
+
+        {/* Annotations Layer */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {activeAnnotations.map((ann, i) => renderAnnotation(ann, i))}
+        </div>
       </div>
     );
   };
 
   return (
-    <Card className={`flex flex-col ${className || ''}`}>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Video className="h-4 w-4" />
-          Video Simulation Analysis
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {/* URL Input Section */}
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter video URL (YouTube, MP4, etc.)"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            className="flex-1 text-xs h-8"
-          />
-          <div className="relative w-28">
-            <Input
-              placeholder={isFetchingMetadata ? "Loading..." : "Duration (MM:SS)"}
-              value={videoDurationInput}
-              onChange={(e) => setVideoDurationInput(e.target.value)}
-              className={`w-full text-xs h-8 ${isFetchingMetadata ? 'pr-6' : ''}`}
-              title={videoTitle || "Video duration for long videos (>10min). E.g., 50:39 or 1:30:00"}
-              disabled={isFetchingMetadata}
-            />
-            {isFetchingMetadata && (
-              <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />
-            )}
-          </div>
-          <Button
-            size="sm"
-            onClick={handleAnalyzeVideo}
-            disabled={isAnalyzing || !videoUrl.trim()}
-            className="h-8"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Analyzing...
-              </>
+    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto min-h-[600px] items-start ${className}`}>
+      {/* Main Video Area */}
+      <div className="lg:col-span-2 flex flex-col gap-4">
+        <Card className="flex-1 flex flex-col min-h-0 bg-slate-950 border-slate-800 text-slate-200 overflow-hidden">
+          <CardContent className="p-0 relative bg-black aspect-video flex items-center justify-center">
+            {videoUrl ? (
+              renderVideoPlayer()
             ) : (
-              'Analyze'
-            )}
-          </Button>
-        </div>
-
-        {error && (
-          <div className="text-xs text-red-500 flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" />
-            {error}
-          </div>
-        )}
-
-        {/* Department Toggle Controls */}
-        {annotations.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">View:</span>
-            <Tabs
-              value={activeDepartment}
-              onValueChange={(v) => setActiveDepartment(v as DepartmentView)}
-            >
-              <TabsList className="h-7">
-                <TabsTrigger value="none" className="text-[10px] px-2 h-6">
-                  <EyeOff className="h-3 w-3" />
-                </TabsTrigger>
-                <TabsTrigger value="security" className="text-[10px] px-2 h-6">
-                  <Shield className="h-3 w-3 mr-1" />
-                  Security
-                </TabsTrigger>
-                <TabsTrigger value="marketing" className="text-[10px] px-2 h-6">
-                  <DollarSign className="h-3 w-3 mr-1" />
-                  Marketing
-                </TabsTrigger>
-                <TabsTrigger value="operations" className="text-[10px] px-2 h-6">
-                  <Settings className="h-3 w-3 mr-1" />
-                  Operations
-                </TabsTrigger>
-                <TabsTrigger value="all" className="text-[10px] px-2 h-6">
-                  <Eye className="h-3 w-3 mr-1" />
-                  All
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Video Player with Annotations - Side by Side Layout */}
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-          {/* Video Container */}
-          <div className="relative bg-black rounded-lg overflow-hidden w-full lg:w-3/5 flex-shrink-0">
-            {/* Show YouTube player if we have a valid YouTube URL (even before analysis) */}
-            {youtubeVideoId && isYouTubeUrl(videoUrl) ? (
-              <>
-                {/* YouTube Video Player */}
-                <iframe
-                  ref={iframeRef}
-                  className="w-full aspect-video"
-                  src={getYouTubeEmbedUrl(youtubeVideoId)}
-                  title="YouTube video player"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-
-                {/* Overlay Layer - shows annotations on top of video */}
-                {annotations.length > 0 && (
-                  <div
-                    ref={overlayRef}
-                    className="absolute inset-0 pointer-events-none z-10"
-                  >
-                    {activeAnnotations.map((ann, idx) => renderAnnotation(ann, idx))}
-                  </div>
-                )}
-
-                {/* Analysis Summary Bar - only show when we have analysis results */}
-                {analysisResult && (
-                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/60 to-transparent p-2 z-20">
-                    <div className="flex items-center justify-between text-white text-xs">
-                      <span className="flex items-center gap-1">
-                        <Video className="h-3 w-3" />
-                        {annotations.length} annotations
-                      </span>
-                      {analysisResult.analysis_metadata?.duration_analyzed && (
-                        <span className="opacity-70">
-                          Analyzed: {analysisResult.analysis_metadata.duration_analyzed}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Loading overlay during analysis */}
-                {isAnalyzing && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-30">
-                    <div className="text-center text-white">
-                      <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
-                      <p className="text-sm">Analyzing video...</p>
-                      <p className="text-xs opacity-70">This may take a few minutes for long videos</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : !analysisResult && !useDemoMode ? (
-              /* Placeholder when no video URL */
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
-                <Video className="h-12 w-12 mb-2 opacity-30" />
-                <p className="text-xs">Enter a YouTube URL and click &quot;Analyze&quot;</p>
-                <p className="text-[10px] mt-1 opacity-60">
-                  The AI will identify events and generate department-specific overlays
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-12 text-center bg-slate-900/50">
+                <Video className="h-12 w-12 mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
+                <p className="text-sm max-w-md">
+                  Enter a YouTube URL above to start the multimodal analysis.
+                  Gemini 3 will simulate viewer reactions and identify facility metrics.
                 </p>
               </div>
-            ) : (
-              /* Demo/fallback placeholder for non-YouTube videos */
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <Play className="h-16 w-16 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{useDemoMode ? 'Demo Mode Active' : 'Video Ready'}</p>
-                  <p className="text-xs opacity-60">
-                    {annotations.length} events detected
-                  </p>
-                </div>
-              </div>
             )}
-          </div>
 
-          {/* Annotations Timeline / List - Right Side Panel */}
-          {annotations.length > 0 && (
-            <div className="lg:w-2/5 flex-shrink-0 flex flex-col max-h-[600px]">
-              {/* Tab Header */}
-              <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                <Tabs value={feedTab} onValueChange={(v) => setFeedTab(v as AnnotationsFeedTab)}>
-                  <TabsList className="h-8">
-                    <TabsTrigger value="findings" className="text-xs px-3 h-7">
-                      <Eye className="h-3.5 w-3.5 mr-1.5" />
-                      Findings ({annotations.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="technical" className="text-xs px-3 h-7">
-                      <Navigation className="h-3.5 w-3.5 mr-1.5" />
-                      Signs & Nav ({technicalAnnotations.length})
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                {/* High-Level Findings Tab */}
-                {feedTab === 'findings' && (
-                  <div className="space-y-2 pr-2">
-                    {annotations.map((ann) => (
-                      <div
-                        key={ann.id}
-                        className={`p-2 rounded border text-xs transition-all cursor-pointer hover:bg-muted/50 ${activeAnnotations.some((a) => a.id === ann.id)
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border'
-                          }`}
-                        onClick={() => {
-                          const startTime = parseTimestamp(ann.timestamp_start);
-                          setCurrentTime(startTime);
-                          if (videoRef.current) {
-                            videoRef.current.currentTime = startTime;
-                          }
-                        }}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            {ann.timestamp_start} - {ann.timestamp_end}
-                          </span>
-                          <div className="flex gap-1">
-                            <Badge className={`text-[8px] px-1 ${getSecurityColor(ann.departments.security.status)}`}>
-                              {ann.departments.security.status}
-                            </Badge>
-                            <Badge className="text-[8px] px-1 bg-purple-500 text-white">
-                              {getSentimentEmoji(ann.departments.marketing.sentiment)}
-                            </Badge>
-                            <Badge className="text-[8px] px-1 bg-blue-500 text-white">
-                              {ann.departments.operations.flow_rate.charAt(0)}
-                            </Badge>
-                          </div>
-                        </div>
-                        <p className="text-muted-foreground">{ann.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Technical Analysis Tab - Signs & Navigation */}
-                {feedTab === 'technical' && (
-                  <div className="space-y-3 pr-2">
-                    {technicalAnnotations.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-8">
-                        <Navigation className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-xs">No technical analysis available</p>
-                        <p className="text-[10px] mt-1 opacity-60">
-                          Technical analysis runs automatically with video analysis
-                        </p>
-                      </div>
-                    ) : (
-                      technicalAnnotations.map((tech) => (
-                        <div
-                          key={tech.id}
-                          className={`p-4 rounded-lg border text-sm transition-all ${activeTechnicalAnnotations.some((a) => a.id === tech.id)
-                            ? 'border-cyan-500 bg-cyan-500/10'
-                            : 'border-border'
-                            }`}
-                        >
-                          {/* Timestamp and Summary */}
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {tech.timestamp_start} - {tech.timestamp_end}
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground mb-3 text-sm leading-relaxed">{tech.summary}</p>
-
-                          {/* Score Bars */}
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs w-24 text-muted-foreground">Nav Stress</span>
-                              <Progress value={tech.navigational_stress_score} className="h-2 flex-1" />
-                              <span className="text-xs w-10 text-right font-medium">{tech.navigational_stress_score}%</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs w-24 text-muted-foreground">Purchase Intent</span>
-                              <Progress value={tech.purchase_intent_score} className="h-2 flex-1" />
-                              <span className="text-xs w-10 text-right font-medium">{tech.purchase_intent_score}%</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs w-24 text-muted-foreground">Ad Attention</span>
-                              <Progress value={tech.attention_availability} className="h-2 flex-1" />
-                              <span className="text-xs w-10 text-right font-medium">{tech.attention_availability}%</span>
-                            </div>
-                          </div>
-
-                          {/* Agent Behavior */}
-                          {tech.agent_behavior && (
-                            <div className="mb-3">
-                              <div className="text-xs font-medium text-cyan-400 flex items-center gap-1.5 mb-2">
-                                <Users className="h-3.5 w-3.5" />
-                                Crowd Behavior
-                              </div>
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Total</span>
-                                  <span className="font-medium">{tech.agent_behavior.agent_count}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Static</span>
-                                  <span className="font-medium">{tech.agent_behavior.static_spectators}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Transit</span>
-                                  <span className="font-medium">{tech.agent_behavior.transit_passengers}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Awe-Struck</span>
-                                  <span className="font-medium">{tech.agent_behavior.awe_struck_count}</span>
-                                </div>
-                                {tech.agent_behavior.dominant_gaze_target && (
-                                  <div className="col-span-2 flex justify-between">
-                                    <span className="text-muted-foreground">Looking at</span>
-                                    <span className="text-cyan-300 truncate max-w-[180px] font-medium">
-                                      {tech.agent_behavior.dominant_gaze_target}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Objects Detected */}
-                          {tech.objects && (
-                            <div className="mb-3">
-                              <div className="text-xs font-medium text-orange-400 flex items-center gap-1.5 mb-2">
-                                <Luggage className="h-3.5 w-3.5" />
-                                Objects Detected
-                              </div>
-                              <div className="flex flex-wrap gap-1.5">
-                                {tech.objects.luggage_trolleys > 0 && (
-                                  <Badge className="text-[10px] py-1 px-2 bg-orange-500/20 text-orange-300">
-                                    🧳 {tech.objects.luggage_trolleys} luggage
-                                  </Badge>
-                                )}
-                                {tech.objects.smartphones_cameras > 0 && (
-                                  <Badge className="text-[10px] py-1 px-2 bg-blue-500/20 text-blue-300">
-                                    📱 {tech.objects.smartphones_cameras} phones
-                                  </Badge>
-                                )}
-                                {tech.objects.shopping_bags > 0 && (
-                                  <Badge className="text-[10px] py-1 px-2 bg-purple-500/20 text-purple-300">
-                                    🛍 {tech.objects.shopping_bags} bags
-                                  </Badge>
-                                )}
-                                {tech.objects.strollers > 0 && (
-                                  <Badge className="text-[10px] py-1 px-2 bg-green-500/20 text-green-300">
-                                    👶 {tech.objects.strollers} strollers
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Signs Detected */}
-                          {tech.signs_detected.length > 0 && (
-                            <div>
-                              <div className="text-xs font-medium text-green-400 flex items-center gap-1.5 mb-2">
-                                <Signpost className="h-3.5 w-3.5" />
-                                Signs ({tech.signs_detected.length})
-                              </div>
-                              <div className="space-y-2">
-                                {tech.signs_detected.slice(0, 3).map((sign, idx) => (
-                                  <div key={idx} className="p-2.5 bg-muted/30 rounded-md text-xs">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="font-semibold truncate max-w-[200px]">{sign.sign_text}</span>
-                                      <Badge className={`text-[9px] py-0.5 px-1.5 ${sign.readability === 'clear' ? 'bg-green-500/20 text-green-300' :
-                                        sign.readability === 'moderate' ? 'bg-yellow-500/20 text-yellow-300' :
-                                          'bg-red-500/20 text-red-300'
-                                        }`}>
-                                        {sign.visibility_score}/10
-                                      </Badge>
-                                    </div>
-                                    <div className="text-muted-foreground text-[11px]">
-                                      {sign.sign_type} • {sign.location_description}
-                                    </div>
-                                    {sign.issues && sign.issues.length > 0 && (
-                                      <div className="text-red-400 mt-1 text-[11px]">
-                                        ⚠️ {sign.issues.join(', ')}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                                {tech.signs_detected.length > 3 && (
-                                  <div className="text-xs text-muted-foreground text-center py-1">
-                                    +{tech.signs_detected.length - 3} more signs
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
+            {/* HUD Controls */}
+            <div className="absolute top-4 right-4 flex flex-col gap-2">
+              <div className="bg-black/60 backdrop-blur-md p-1 rounded-lg border border-white/10 flex flex-col gap-1">
+                <Button
+                  variant={activeDepartment === 'all' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setActiveDepartment('all')}
+                  title="Show All"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeDepartment === 'security' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-950/50"
+                  onClick={() => setActiveDepartment('security')}
+                  title="Security View"
+                >
+                  <Shield className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeDepartment === 'marketing' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8 text-purple-400 hover:text-purple-300 hover:bg-purple-950/50"
+                  onClick={() => setActiveDepartment('marketing')}
+                  title="Marketing View"
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeDepartment === 'operations' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-950/50"
+                  onClick={() => setActiveDepartment('operations')}
+                  title="Operations View"
+                >
+                  <Activity className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={activeDepartment === 'none' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setActiveDepartment('none')}
+                  title="Hide Overlays"
+                >
+                  <EyeOff className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
+
+        {/* Input Controls */}
+        <Card>
+          <CardContent className="p-4 flex gap-3 items-center">
+            <Input
+              placeholder="Paste YouTube URL here..."
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Input
+              placeholder="Length (10:00)"
+              value={videoDurationInput}
+              onChange={(e) => setVideoDurationInput(e.target.value)}
+              className="w-24 text-center font-mono"
+              title="Video Duration (MM:SS)"
+            />
+
+            {/* Persona Selector */}
+            {availablePersonas.length > 0 && (
+              <Popover open={isPersonaSelectorOpen} onOpenChange={setIsPersonaSelectorOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2 relative">
+                    <Users className="h-4 w-4" />
+                    {selectedPersonas.length > 0 ? (
+                      <Badge variant="secondary" className="px-1 h-5 text-[10px] ml-1">
+                        {selectedPersonas.length}
+                      </Badge>
+                    ) : (
+                      <span>Simulate...</span>
+                    )}
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-3 border-b bg-muted/50">
+                    <h4 className="font-medium text-sm">Simulate Client Perspectives</h4>
+                    <p className="text-xs text-muted-foreground">Select up to 3 personas to react to this video.</p>
+                  </div>
+                  <ScrollArea className="h-[200px] p-2">
+                    <div className="space-y-1">
+                      {availablePersonas.map(persona => (
+                        <div
+                          key={persona.name}
+                          className="flex items-start gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                          onClick={() => handlePersonaToggle(persona.name)}
+                        >
+                          <Checkbox
+                            id={`p-${persona.name}`}
+                            checked={selectedPersonas.includes(persona.name)}
+                            disabled={!selectedPersonas.includes(persona.name) && selectedPersonas.length >= 3}
+                            onCheckedChange={() => handlePersonaToggle(persona.name)}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium leading-none mb-1 flex items-center justify-between">
+                              {persona.name}
+                              {persona.age && <span className="text-xs text-muted-foreground">{persona.age}y</span>}
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{persona.role}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            <Button
+              onClick={handleAnalyzeVideo}
+              disabled={isAnalyzing || !videoUrl}
+              className="w-32"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Run Sim
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analysis Output Panel */}
+      <div className="flex flex-col gap-4 h-full">
+        <Tabs defaultValue="findings" className="flex-1 flex flex-col h-full bg-background rounded-lg border">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold mb-1">Analysis Results</h3>
+            <p className="text-xs text-muted-foreground">
+              {analysisResult
+                ? `Found ${analysisResult.analysis_metadata.total_annotations} events in ${analysisResult.analysis_metadata.duration_analyzed || 'video'}`
+                : 'Wating for analysis...'}
+            </p>
+          </div>
+
+          <TabsList className="w-full justify-start rounded-none border-b px-4 h-11 bg-transparent">
+            <TabsTrigger
+              value="findings"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              onClick={() => setActiveTab('findings')}
+            >
+              Simulation
+            </TabsTrigger>
+            <TabsTrigger
+              value="technical"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-none border-b-2 border-transparent data-[state=active]:border-primary"
+              onClick={() => setActiveTab('technical')}
+            >
+              Technical Data
+            </TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-4 max-h-[600px]">
+              {activeTab === 'findings' ? (
+                // Findings Feed
+                <>
+                  {annotations.length === 0 && (
+                    <div className="text-center text-muted-foreground py-10 text-sm">
+                      No events detected yet.
+                    </div>
+                  )}
+                  {annotations.map((ann, i) => (
+                    <div key={ann.id} className="border rounded-lg p-3 text-sm hover:border-primary/50 transition-colors bg-card/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="outline" className="font-mono text-xs text-muted-foreground">
+                          {ann.timestamp_start} - {ann.timestamp_end}
+                        </Badge>
+                      </div>
+                      <p className="mb-3 text-sm font-medium leading-relaxed">{ann.description}</p>
+
+                      <div className="space-y-2">
+                        {/* Security / Persona 1 */}
+                        <div className="flex items-start gap-3 bg-red-50/50 dark:bg-red-950/20 p-2.5 rounded-md text-xs border border-red-100 dark:border-red-900/50">
+                          {selectedPersonas.length > 0 && availablePersonas.find(p => p.name === selectedPersonas[0]) ? (
+                            <Badge className="bg-indigo-500 hover:bg-indigo-600 text-white shrink-0 w-20 justify-center h-5">
+                              {getPersonaDisplayName(selectedPersonas[0])}
+                            </Badge>
+                          ) : (
+                            <Badge className={`${getSecurityColor(ann.departments.security.status)} shrink-0 w-16 justify-center h-5`}>
+                              Security
+                            </Badge>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold mb-0.5 text-foreground/90">{ann.departments.security.label}</div>
+                            <div className="text-muted-foreground leading-snug">{ann.departments.security.detail}</div>
+                          </div>
+                        </div>
+
+                        {/* Marketing / Persona 2 */}
+                        {(selectedPersonas.length === 0 || selectedPersonas.length >= 2) && (
+                          <div className="flex items-start gap-3 bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-md text-xs border border-purple-100 dark:border-purple-900/50">
+                            {selectedPersonas.length >= 2 && availablePersonas.find(p => p.name === selectedPersonas[1]) ? (
+                              <Badge className="bg-pink-500 hover:bg-pink-600 text-white shrink-0 w-20 justify-center h-5">
+                                {getPersonaDisplayName(selectedPersonas[1])}
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-purple-500 text-white shrink-0 w-16 justify-center h-5">
+                                Marketing
+                              </Badge>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold mb-0.5 text-foreground/90">{ann.departments.marketing.label}</div>
+                              <div className="text-muted-foreground leading-snug">{ann.departments.marketing.detail}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Operations / Persona 3 */}
+                        {(selectedPersonas.length === 0 || selectedPersonas.length >= 3) && (
+                          <div className="flex items-start gap-3 bg-blue-50/50 dark:bg-blue-950/20 p-2.5 rounded-md text-xs border border-blue-100 dark:border-blue-900/50">
+                            {selectedPersonas.length >= 3 && availablePersonas.find(p => p.name === selectedPersonas[2]) ? (
+                              <Badge className="bg-teal-500 hover:bg-teal-600 text-white shrink-0 w-20 justify-center h-5">
+                                {getPersonaDisplayName(selectedPersonas[2])}
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-blue-500 text-white shrink-0 w-16 justify-center h-5">
+                                Operations
+                              </Badge>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold mb-0.5 text-foreground/90">{ann.departments.operations.label}</div>
+                              <div className="text-muted-foreground leading-snug">{ann.departments.operations.detail}</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                // Technical Feed
+                <>
+                  {technicalAnnotations.length === 0 && (
+                    <div className="text-center text-muted-foreground py-10 text-sm">
+                      No technical data available.
+                    </div>
+                  )}
+                  {technicalAnnotations.map((tech, i) => (
+                    <div key={tech.id} className="border rounded-lg p-3 text-sm space-y-3 bg-card/50">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          {tech.timestamp_start}
+                        </Badge>
+                        <div className="flex gap-2">
+                          <Badge variant="outline" className="text-[10px] bg-background">
+                            Stress: {tech.navigational_stress_score}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] bg-background">
+                            Intent: {tech.purchase_intent_score}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Summary */}
+                      <p className="text-xs text-muted-foreground italic pl-2 border-l-2 border-primary/20">
+                        {tech.summary}
+                      </p>
+
+                      {/* Signs */}
+                      {tech.signs_detected && tech.signs_detected.length > 0 && (
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
+                          <div className="text-[10px] font-semibold uppercase text-slate-500 mb-2 flex items-center gap-1.5">
+                            <Signpost className="h-3.5 w-3.5 text-primary/70" />
+                            Signs & Wayfinding
+                          </div>
+                          <div className="space-y-1.5">
+                            {tech.signs_detected.map((sign, idx) => (
+                              <div key={idx} className="flex justify-between items-center text-xs bg-background p-1.5 rounded border border-border/50">
+                                <span className="font-medium truncate max-w-[180px]">"{sign.sign_text}"</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${sign.readability === 'clear' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                                  sign.readability === 'moderate' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                  }`}>
+                                  {sign.readability}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Crowd Metrics */}
+                      {tech.agent_behavior && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
+                            <div className="text-[10px] font-semibold uppercase text-slate-500 mb-2 flex items-center gap-1.5">
+                              <Users className="h-3.5 w-3.5 text-blue-500/70" />
+                              Crowd Flow
+                            </div>
+                            <div className="text-xs space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Count</span>
+                                <span className="font-mono">{tech.agent_behavior.agent_count}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Velocity</span>
+                                <span className="font-mono">{tech.agent_behavior.avg_velocity}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-md border border-slate-100 dark:border-slate-800">
+                            <div className="text-[10px] font-semibold uppercase text-slate-500 mb-2 flex items-center gap-1.5">
+                              <Luggage className="h-3.5 w-3.5 text-orange-500/70" />
+                              Objects
+                            </div>
+                            <div className="text-xs space-y-1">
+                              {tech.objects?.luggage_trolleys ? (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Trolleys</span>
+                                  <span className="font-mono">{tech.objects.luggage_trolleys}</span>
+                                </div>
+                              ) : null}
+                              {tech.objects?.smartphones_cameras ? (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Phones</span>
+                                  <span className="font-mono">{tech.objects.smartphones_cameras}</span>
+                                </div>
+                              ) : null}
+                              {(!tech.objects?.luggage_trolleys && !tech.objects?.smartphones_cameras) && (
+                                <span className="text-muted-foreground italic text-[10px]">None detected</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </Tabs>
+      </div>
+
+      {error && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="block sm:inline">{error}</span>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
-
