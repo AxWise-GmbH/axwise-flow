@@ -95,7 +95,7 @@ export default function PrecallPage() {
   const { timePeriod, historicalContext } = extractHistoricalContext();
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50/50 via-white to-cyan-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <PrecallHeader
         companyName={prospectData?.company_name as string | undefined}
         hasIntelligence={!!intelligence}
@@ -103,19 +103,19 @@ export default function PrecallPage() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Tabbed: Prospect Data / Live Coach */}
-        <div className="w-96 border-r flex flex-col overflow-hidden">
+        <div className="w-96 border-r border-border/50 flex flex-col overflow-hidden bg-white/30 dark:bg-slate-950/30 backdrop-blur-md">
           <Tabs value={sidebarTab} onValueChange={(v) => setSidebarTab(v as 'data' | 'coach')} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b bg-muted/30 p-0 h-auto">
+            <TabsList className="w-full justify-start rounded-none border-b border-border/50 bg-transparent p-0 h-auto">
               <TabsTrigger
                 value="data"
-                className="flex-1 gap-2 py-3 rounded-none data-[state=active]:bg-background data-[state=active]:border-b-2 data-[state=active]:border-b-primary"
+                className="flex-1 gap-2 py-3 rounded-none data-[state=active]:bg-white/40 dark:data-[state=active]:bg-slate-800/40 data-[state=active]:backdrop-blur-sm data-[state=active]:border-b-2 data-[state=active]:border-b-primary transition-all duration-300"
               >
                 <FileUp className="h-4 w-4" />
                 Prospect Data
               </TabsTrigger>
               <TabsTrigger
                 value="coach"
-                className="flex-1 gap-2 py-3 rounded-none data-[state=active]:bg-background data-[state=active]:border-b-2 data-[state=active]:border-b-green-600"
+                className="flex-1 gap-2 py-3 rounded-none data-[state=active]:bg-white/40 dark:data-[state=active]:bg-slate-800/40 data-[state=active]:backdrop-blur-sm data-[state=active]:border-b-2 data-[state=active]:border-b-green-500 transition-all duration-300"
               >
                 <Bot className="h-4 w-4" />
                 Live Coach
@@ -153,16 +153,16 @@ export default function PrecallPage() {
               historicalContext={historicalContext}
             />
           ) : (
-            <div className="h-full flex items-center justify-center">
-              <Card className="max-w-md">
-                <CardContent className="pt-6 text-center">
-                  <div className="h-16 w-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-                    <MessageCircle className="h-8 w-8 text-muted-foreground" />
+            <div className="h-full flex items-center justify-center p-6">
+              <Card className="max-w-md bg-white/40 dark:bg-slate-950/40 backdrop-blur-md border-border/50 shadow-xl">
+                <CardContent className="pt-8 pb-8 text-center">
+                  <div className="h-20 w-20 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center shadow-inner">
+                    <MessageCircle className="h-10 w-10 text-primary" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">
+                  <h3 className="text-xl font-bold mb-3 tracking-tight">
                     No Intelligence Generated
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground leading-relaxed">
                     Upload or paste prospect data in the left panel, then click
                     "Generate Call Intelligence" to get started.
                   </p>

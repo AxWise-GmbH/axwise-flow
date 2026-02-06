@@ -105,22 +105,24 @@ export function LiveChatCoach({
   const isDisabled = !prospectData;
 
   return (
-    <Card className="h-full flex flex-col border-0 rounded-none">
-      <CardHeader className="py-2 px-3 flex-shrink-0 border-b">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-green-600" />
+    <Card className="h-full flex flex-col border-0 rounded-none bg-transparent shadow-none">
+      <CardHeader className="py-2 px-3 flex-shrink-0 border-b border-border/50">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-green-600 dark:text-green-500" />
           Live Coach
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-2 overflow-hidden p-3">
         {/* Chat Messages */}
         <ScrollArea className="flex-1" ref={scrollRef}>
-          <div className="space-y-3 pr-2">
+          <div className="space-y-4 pr-2">
             {chatHistory.length === 0 && (
-              <div className="text-center py-6">
-                <Bot className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {isDisabled 
+              <div className="text-center py-8">
+                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
+                  <Bot className="h-6 w-6 text-green-600 dark:text-green-500" />
+                </div>
+                <p className="text-sm text-muted-foreground font-medium">
+                  {isDisabled
                     ? 'Upload prospect data to start coaching'
                     : 'Ask me anything about your upcoming call!'}
                 </p>
@@ -129,19 +131,18 @@ export function LiveChatCoach({
             {chatHistory.map((msg, i) => (
               <div
                 key={i}
-                className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="h-3.5 w-3.5 text-green-600" />
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-200/50 dark:border-green-800/50 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                    <Bot className="h-4 w-4 text-green-700 dark:text-green-400" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-tr-none'
+                      : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-border/50 rounded-tl-none'
+                    }`}
                 >
                   {msg.role === 'assistant' ? (
                     <ReactMarkdown
@@ -151,7 +152,7 @@ export function LiveChatCoach({
                         h2: ({ children }) => <h2 className="text-sm font-bold mb-1.5">{children}</h2>,
                         h3: ({ children }) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
                         // Paragraphs with proper spacing
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                         // Lists with chat-friendly styling
                         ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
                         ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
@@ -161,11 +162,11 @@ export function LiveChatCoach({
                         em: ({ children }) => <em className="italic">{children}</em>,
                         // Code blocks
                         code: ({ children }) => (
-                          <code className="bg-background/50 px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+                          <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono border border-border/50">{children}</code>
                         ),
                         // Blockquotes for emphasis
                         blockquote: ({ children }) => (
-                          <blockquote className="border-l-2 border-green-500 pl-2 my-2 italic text-muted-foreground">
+                          <blockquote className="border-l-2 border-green-500 pl-3 my-2 italic text-muted-foreground bg-green-50/50 dark:bg-green-900/10 py-1 pr-2 rounded-r">
                             {children}
                           </blockquote>
                         ),
@@ -178,18 +179,18 @@ export function LiveChatCoach({
                   )}
                 </div>
                 {msg.role === 'user' && (
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <User className="h-3.5 w-3.5 text-primary" />
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                    <User className="h-4 w-4 text-primary" />
                   </div>
                 )}
               </div>
             ))}
             {coachMutation.isPending && (
-              <div className="flex gap-2 justify-start">
-                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <Loader2 className="h-3.5 w-3.5 text-green-600 animate-spin" />
+              <div className="flex gap-3 justify-start">
+                <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 text-green-600 dark:text-green-500 animate-spin" />
                 </div>
-                <div className="bg-muted rounded-lg px-3 py-2 text-sm text-muted-foreground">
+                <div className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-lg px-4 py-3 text-sm text-muted-foreground border border-border/50">
                   Thinking...
                 </div>
               </div>
@@ -199,15 +200,15 @@ export function LiveChatCoach({
 
         {/* Starter Suggestions - shown when chat is empty */}
         {chatHistory.length === 0 && !isDisabled && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2 justify-center">
             {starterSuggestions.map((suggestion, i) => (
               <Badge
                 key={i}
                 variant="outline"
-                className="cursor-pointer hover:bg-muted text-xs"
+                className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 hover:border-green-200 dark:hover:border-green-800 text-xs py-1.5 px-3 transition-all bg-white/50 dark:bg-slate-950/50 border-border/50"
                 onClick={() => handleSend(suggestion)}
               >
-                <Sparkles className="h-3 w-3 mr-1" />
+                <Sparkles className="h-3 w-3 mr-1.5 text-green-600 dark:text-green-500" />
                 {suggestion}
               </Badge>
             ))}
@@ -216,15 +217,15 @@ export function LiveChatCoach({
 
         {/* Follow-up Suggestions - shown after assistant response */}
         {chatHistory.length > 0 && followUpSuggestions.length > 0 && !coachMutation.isPending && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-2 pt-2 pb-1">
             {followUpSuggestions.map((suggestion, i) => (
               <Badge
                 key={i}
                 variant="outline"
-                className="cursor-pointer hover:bg-green-100 hover:border-green-300 text-xs transition-colors"
+                className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300 hover:border-green-200 dark:hover:border-green-800 text-xs py-1 px-2.5 transition-all bg-white/50 dark:bg-slate-950/50 border-border/50"
                 onClick={() => handleSend(suggestion)}
               >
-                <Sparkles className="h-3 w-3 mr-1 text-green-600" />
+                <Sparkles className="h-3 w-3 mr-1.5 text-green-600 dark:text-green-500" />
                 {suggestion}
               </Badge>
             ))}
@@ -232,7 +233,7 @@ export function LiveChatCoach({
         )}
 
         {/* Input */}
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex gap-2 flex-shrink-0 bg-white/30 dark:bg-slate-950/30 backdrop-blur-sm p-1 rounded-lg border border-border/50">
           <Input
             ref={inputRef}
             value={input}
@@ -240,12 +241,13 @@ export function LiveChatCoach({
             onKeyDown={handleKeyDown}
             placeholder={isDisabled ? 'Upload prospect data first...' : 'Ask your coach...'}
             disabled={isDisabled || coachMutation.isPending}
-            className="text-sm"
+            className="text-sm border-0 bg-transparent focus-visible:ring-0 shadow-none"
           />
           <Button
             size="icon"
             onClick={() => handleSend(input)}
             disabled={isDisabled || !input.trim() || coachMutation.isPending}
+            className="h-9 w-9 shadow-sm"
           >
             <Send className="h-4 w-4" />
           </Button>

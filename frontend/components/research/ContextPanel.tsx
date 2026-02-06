@@ -89,13 +89,13 @@ export function ContextPanel({
       {/* Executive Summary (LLM-generated) */}
       {context.narrative && (
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <FileText className="h-4 w-4 text-primary" />
               Executive summary
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <p className="text-sm text-muted-foreground leading-relaxed">{context.narrative}</p>
           </CardContent>
         </Card>
@@ -103,102 +103,102 @@ export function ContextPanel({
 
       {/* Progress Card */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2 p-4">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+            <Target className="h-4 w-4 text-primary" />
             Research Progress
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Completion</span>
               <span className="text-sm font-medium">{completionPercentage}%</span>
             </div>
-            <Progress value={completionPercentage} className="h-2" />
+            <Progress value={completionPercentage} className="h-1.5" />
 
-            <div className="space-y-3 mt-4">
+            <div className="space-y-2.5 mt-4">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${context.businessIdea ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${context.businessIdea ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${context.businessIdea ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Business idea defined
                   </span>
                 </div>
                 {context.businessIdea && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeBusinessIdea(context.businessIdea)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeBusinessIdea(context.businessIdea)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${context.targetCustomer ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${context.targetCustomer ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${context.targetCustomer ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Target customer identified
                   </span>
                 </div>
                 {context.targetCustomer && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeTargetCustomer(context.targetCustomer)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeTargetCustomer(context.targetCustomer)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${context.problem ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${context.problem ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${context.problem ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Problem understood
                   </span>
                 </div>
                 {context.problem && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeProblem(context.problem)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeProblem(context.problem)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${(context.industry && context.industry !== 'general') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${(context.industry && context.industry !== 'general') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${(context.industry && context.industry !== 'general') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Industry
                   </span>
                 </div>
                 {(context.industry && context.industry !== 'general') && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeIndustry(context.industry)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeIndustry(context.industry)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${context.location ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${context.location ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${context.location ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Location/Region
                   </span>
                 </div>
                 {context.location && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeLocation(context.location)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeLocation(context.location)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${(context.stage && context.stage !== 'initial') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${(context.stage && context.stage !== 'initial') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${(context.stage && context.stage !== 'initial') ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Research stage
                   </span>
                 </div>
                 {(context.stage && context.stage !== 'initial') && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">{describeStage(context.stage)}</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">{describeStage(context.stage)}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className={`h-4 w-4 ${context.questionsGenerated ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className={`h-3.5 w-3.5 ${context.questionsGenerated ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                   <span className={`text-sm ${context.questionsGenerated ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
                     Questions generated
                   </span>
                 </div>
                 {context.questionsGenerated && (
-                  <p className="text-xs text-muted-foreground ml-6 bg-muted/50 p-2 rounded">Research questions have been generated and confirmed in chat</p>
+                  <p className="text-xs text-muted-foreground ml-5 bg-muted/50 p-1.5 rounded leading-snug">Research questions have been generated and confirmed in chat</p>
                 )}
               </div>
             </div>
@@ -210,29 +210,29 @@ export function ContextPanel({
       {/* Questions Summary */}
       {questions && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2 p-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
               Generated Questions
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 pt-0">
             <div className="grid gap-3">
               <div>
-                <Badge variant="outline" className="mb-2">Problem Discovery</Badge>
+                <Badge variant="outline" className="mb-1 text-xs h-5">Problem Discovery</Badge>
                 <p className="text-sm text-muted-foreground">
                   {questions.problemDiscovery?.length || 0} questions to understand current challenges
                 </p>
               </div>
 
               <div>
-                <Badge variant="outline" className="mb-2">Solution Validation</Badge>
+                <Badge variant="outline" className="mb-1 text-xs h-5">Solution Validation</Badge>
                 <p className="text-sm text-muted-foreground">
                   {questions.solutionValidation?.length || 0} questions to validate your solution approach
                 </p>
               </div>
               <div>
-                <Badge variant="outline" className="mb-2">Follow-up</Badge>
+                <Badge variant="outline" className="mb-1 text-xs h-5">Follow-up</Badge>
                 <p className="text-sm text-muted-foreground">
                   {questions.followUp?.length || 0} questions for deeper insights
                 </p>
@@ -241,14 +241,14 @@ export function ContextPanel({
 
             <div className="flex gap-2 pt-2">
               {onExport && (
-                <Button variant="outline" size="sm" onClick={onExport} className="flex-1">
-                  <Download className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={onExport} className="flex-1 h-8 text-xs">
+                  <Download className="h-3.5 w-3.5 mr-2" />
                   Export
                 </Button>
               )}
               {onContinueToAnalysis && (
-                <Button size="sm" onClick={onContinueToAnalysis} className="flex-1">
-                  <ArrowRight className="h-4 w-4 mr-2" />
+                <Button size="sm" onClick={onContinueToAnalysis} className="flex-1 h-8 text-xs">
+                  <ArrowRight className="h-3.5 w-3.5 mr-2" />
                   Continue
                 </Button>
               )}
@@ -259,16 +259,16 @@ export function ContextPanel({
       {/* Original LLM Prompt (Debug) */}
       {debugPrompt && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-muted-foreground" />
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
               Original prompt (debug)
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <details>
-              <summary className="text-sm text-muted-foreground cursor-pointer">Show prompt</summary>
-              <pre className="mt-2 max-h-64 overflow-auto text-xs whitespace-pre-wrap">{debugPrompt}</pre>
+              <summary className="text-xs text-muted-foreground cursor-pointer">Show prompt</summary>
+              <pre className="mt-2 max-h-64 overflow-auto text-[10px] whitespace-pre-wrap">{debugPrompt}</pre>
             </details>
           </CardContent>
         </Card>

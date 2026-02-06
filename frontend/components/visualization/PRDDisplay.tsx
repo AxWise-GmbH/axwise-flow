@@ -49,7 +49,7 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
       const url = new URL(window.location.href);
       url.searchParams.set('timestamp', Date.now().toString());
       window.history.replaceState({}, '', url.toString());
-    } catch {}
+    } catch { }
   };
 
   // Function for initial generation (fallback for client-side)
@@ -139,7 +139,7 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
         url.searchParams.delete('regeneratePRD');
         url.searchParams.delete('timestamp');
         window.history.replaceState({}, '', url.toString());
-      } catch {}
+      } catch { }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, analysis?.status, analysis?.id]);
@@ -220,12 +220,12 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
   });
 
   return (
-    <Card>
+    <Card className="bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm border-border/50">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+              <FileText className="h-5 w-5 text-foreground" />
               Product Requirements Document
             </CardTitle>
             <CardDescription>
@@ -796,59 +796,59 @@ function TechnicalPRDContent({ prd, getPriorityColorClass }: { prd: TechnicalPRD
 
       {/* API Specifications */}
       {(prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications &&
-       (prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            API Specifications
-          </h3>
-          <div className="space-y-3">
-            {(prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.map((api, index: number) => (
-              <div key={index} className="border rounded-lg p-4 font-mono text-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant={api.method === 'GET' ? 'secondary' : api.method === 'POST' ? 'default' : 'outline'} className="text-xs">
-                    {api.method}
-                  </Badge>
-                  <span className="font-medium">{api.endpoint}</span>
+        (prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              API Specifications
+            </h3>
+            <div className="space-y-3">
+              {(prd as { api_specifications?: Array<{ endpoint: string; method: string; purpose: string; request_body?: string; response?: string }> }).api_specifications!.map((api, index: number) => (
+                <div key={index} className="border rounded-lg p-4 font-mono text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant={api.method === 'GET' ? 'secondary' : api.method === 'POST' ? 'default' : 'outline'} className="text-xs">
+                      {api.method}
+                    </Badge>
+                    <span className="font-medium">{api.endpoint}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-sans mb-2">{api.purpose}</p>
+                  {api.request_body && (
+                    <div className="bg-muted/30 dark:bg-slate-800/50 rounded p-2 mb-1">
+                      <span className="text-xs font-sans font-medium">Request: </span>
+                      <span className="text-xs">{api.request_body}</span>
+                    </div>
+                  )}
+                  {api.response && (
+                    <div className="bg-green-50/50 dark:bg-green-900/20 rounded p-2">
+                      <span className="text-xs font-sans font-medium text-green-700 dark:text-green-300">Response: </span>
+                      <span className="text-xs">{api.response}</span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground font-sans mb-2">{api.purpose}</p>
-                {api.request_body && (
-                  <div className="bg-muted/30 dark:bg-slate-800/50 rounded p-2 mb-1">
-                    <span className="text-xs font-sans font-medium">Request: </span>
-                    <span className="text-xs">{api.request_body}</span>
-                  </div>
-                )}
-                {api.response && (
-                  <div className="bg-green-50/50 dark:bg-green-900/20 rounded p-2">
-                    <span className="text-xs font-sans font-medium text-green-700 dark:text-green-300">Response: </span>
-                    <span className="text-xs">{api.response}</span>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Non-Functional Requirements */}
       {(prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements &&
-       (prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Non-Functional Requirements</h3>
-          <div className="grid md:grid-cols-2 gap-3">
-            {(prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.map((nfr, index: number) => (
-              <div key={index} className="border rounded-lg p-4">
-                <Badge variant="outline" className="mb-2 text-xs">{nfr.category}</Badge>
-                <p className="text-sm font-medium mb-1">{nfr.requirement}</p>
-                <p className="text-xs text-green-700 dark:text-green-300">Target: {nfr.target}</p>
-                {nfr.measurement && (
-                  <p className="text-xs text-muted-foreground mt-1">Measurement: {nfr.measurement}</p>
-                )}
-              </div>
-            ))}
+        (prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Non-Functional Requirements</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {(prd as { non_functional_requirements?: Array<{ category: string; requirement: string; target: string; measurement?: string }> }).non_functional_requirements!.map((nfr, index: number) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <Badge variant="outline" className="mb-2 text-xs">{nfr.category}</Badge>
+                  <p className="text-sm font-medium mb-1">{nfr.requirement}</p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Target: {nfr.target}</p>
+                  {nfr.measurement && (
+                    <p className="text-xs text-muted-foreground mt-1">Measurement: {nfr.measurement}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Testing & Validation */}
       {prd.testing_validation && prd.testing_validation.length > 0 && (

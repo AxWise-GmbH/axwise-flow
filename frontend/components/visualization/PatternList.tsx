@@ -28,10 +28,10 @@ const PATTERN_CATEGORIES = {
 };
 
 export function PatternList({ patterns, className, stakeholderIntelligence }: PatternListProps) {
- // Removed unused onPatternClick
+  // Removed unused onPatternClick
   const [searchTerm, setSearchTerm] = useState('');
   // const [selectedPattern, setSelectedPattern] = useState<Pattern | null>(null);
- // Unused state
+  // Unused state
 
   // Extract conflict zones as pattern-like items
   const getConflictPatterns = (): Pattern[] => {
@@ -44,8 +44,8 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
       name: conflict.topic,
       description: `Stakeholder Conflict: ${conflict.business_risk || 'Area of disagreement between stakeholders'}`,
       frequency: conflict.conflict_severity === 'critical' ? 0.9 :
-                 conflict.conflict_severity === 'high' ? 0.7 :
-                 conflict.conflict_severity === 'medium' ? 0.5 : 0.3,
+        conflict.conflict_severity === 'high' ? 0.7 :
+          conflict.conflict_severity === 'medium' ? 0.5 : 0.3,
       category: 'Stakeholder Conflict',
       evidence: conflict.potential_resolutions || [],
       sentiment: -0.3, // Negative sentiment for conflicts
@@ -125,13 +125,13 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
   };
 
   // const handlePatternSelect = (pattern: Pattern) => {
- // Removed unused function
+  // Removed unused function
   //   if (onPatternClick) {
   //     onPatternClick(pattern);
   //   } else {
   //     setSelectedPattern(pattern === selectedPattern ? null : pattern);
   //   }
- //  };
+  //  };
 
   return (
     <div className={`w-full ${className}`}>
@@ -141,12 +141,12 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
             placeholder="Search patterns..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
+            className="w-full bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 focus-visible:ring-primary/20"
           />
         </div>
       </div>
 
-      <Card>
+      <Card className="bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Identified Patterns</CardTitle>
           <CardDescription>
@@ -168,7 +168,7 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
                             className="cursor-default"
                           >
                             {PATTERN_CATEGORIES[category as keyof typeof PATTERN_CATEGORIES] ||
-                             PATTERN_CATEGORIES['Uncategorized']}
+                              PATTERN_CATEGORIES['Uncategorized']}
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent
@@ -180,7 +180,7 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
                             <h4 className="font-semibold">Pattern Category</h4>
                             <p className="text-sm text-muted-foreground">
                               {PATTERN_CATEGORIES[category as keyof typeof PATTERN_CATEGORIES] ||
-                               PATTERN_CATEGORIES['Uncategorized']}
+                                PATTERN_CATEGORIES['Uncategorized']}
                             </p>
                           </div>
                         </TooltipContent>
@@ -193,7 +193,7 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
                       const patternKey = `pattern-${category}-${categoryIndex}-${pattern.id || pattern.name}`;
                       return (
                         <div key={patternKey} id={`pattern-${pattern.id}`} data-testid={`pattern-card-${pattern.id}`} className="border-b pb-6 last:border-0 last:pb-0">
- {/* Add testid */}
+                          {/* Add testid */}
                           {pattern.description && (
                             <div className="mb-5 p-1.5 relative">
                               <div className={`border ${getPatternColors(pattern.sentiment).border} ${getPatternColors(pattern.sentiment).bg} rounded-lg p-4 relative`}>
@@ -268,7 +268,7 @@ export function PatternList({ patterns, className, stakeholderIntelligence }: Pa
                             </div>
                           )}
 
-{/* Supporting evidence */}
+                          {/* Supporting evidence */}
                           {pattern.evidence && pattern.evidence.length > 0 && (
 
                             <div className="mt-3">

@@ -113,7 +113,7 @@ export function ScopeSelector({
 
   const renderStatusBadge = (status: 'draft' | 'validated' | 'live') => {
     let variant: 'default' | 'secondary' | 'outline' | 'destructive' = 'secondary';
-    let label = status;
+    let label: string = status;
 
     if (status === 'draft') {
       variant = 'secondary';
@@ -156,8 +156,8 @@ export function ScopeSelector({
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col bg-transparent border-0 shadow-none">
+      <CardHeader className="pb-3 px-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base">Persona Datasets</CardTitle>
           <div className="flex gap-1">
@@ -196,8 +196,8 @@ export function ScopeSelector({
         <div className="relative">
           <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search datasets (market, industry, location...)"
-            className="pl-8 h-8 text-xs"
+            placeholder="Search datasets..."
+            className="pl-8 h-8 text-xs bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 focus-visible:ring-primary/20"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -208,7 +208,7 @@ export function ScopeSelector({
           setStatusFilter(value);
           setCurrentPage(0); // Reset to first page when filter changes
         }}>
-          <SelectTrigger className="h-8 text-xs">
+          <SelectTrigger className="h-8 text-xs bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -239,69 +239,68 @@ export function ScopeSelector({
                     key={dataset.datasetId}
                     type="button"
                     onClick={() => onSelectDataset?.(dataset)}
-                    className={`w-full rounded-md border px-3 py-2 text-left text-xs transition-colors overflow-hidden ${
-                      isSelected
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:bg-muted'
-                    }`}
+                    className={`w-full rounded-md border px-3 py-2 text-left text-xs transition-colors overflow-hidden ${isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted'
+                      }`}
                   >
-                  {/* Title and Status */}
-                  <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
-                    <span className="font-medium text-[11px] leading-snug flex-1 min-w-0 line-clamp-2 break-words">
-                      {dataset.title}
-                    </span>
-                    <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-                      {renderStatusBadge(dataset.status)}
-                      <Badge variant="outline" className="text-[9px] px-1 py-0">
-                        {dataset.version}
-                      </Badge>
+                    {/* Title and Status */}
+                    <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+                      <span className="font-medium text-[11px] leading-snug flex-1 min-w-0 line-clamp-2 break-words">
+                        {dataset.title}
+                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0 ml-1">
+                        {renderStatusBadge(dataset.status)}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">
+                          {dataset.version}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Subtitle */}
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 mb-1.5">
-                    {dataset.subtitle}
-                  </p>
+                    {/* Subtitle */}
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 mb-1.5">
+                      {dataset.subtitle}
+                    </p>
 
-                  {/* Tags */}
-                  {dataset.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      {dataset.tags.slice(0, 5).map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded"
-                        >
-                          {tag}
+                    {/* Tags */}
+                    {dataset.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {dataset.tags.slice(0, 5).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Metrics */}
+                    <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
+                      {dataset.personasCount > 0 && (
+                        <span className="bg-muted px-1.5 py-0.5 rounded">
+                          {dataset.personasCount} personas
                         </span>
-                      ))}
+                      )}
+                      {dataset.interviewsCount > 0 && (
+                        <span className="bg-muted px-1.5 py-0.5 rounded">
+                          {dataset.interviewsCount} interviews
+                        </span>
+                      )}
+                      {dataset.qualityScore !== undefined && (
+                        <span className="bg-muted px-1.5 py-0.5 rounded">
+                          Quality: {dataset.qualityScore.toFixed(2)}
+                        </span>
+                      )}
                     </div>
-                  )}
 
-                  {/* Metrics */}
-                  <div className="flex items-center gap-2 flex-wrap text-[10px] text-muted-foreground">
-                    {dataset.personasCount > 0 && (
-                      <span className="bg-muted px-1.5 py-0.5 rounded">
-                        {dataset.personasCount} personas
-                      </span>
-                    )}
-                    {dataset.interviewsCount > 0 && (
-                      <span className="bg-muted px-1.5 py-0.5 rounded">
-                        {dataset.interviewsCount} interviews
-                      </span>
-                    )}
-                    {dataset.qualityScore !== undefined && (
-                      <span className="bg-muted px-1.5 py-0.5 rounded">
-                        Quality: {dataset.qualityScore.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Timestamp */}
-                  <p className="text-[9px] text-muted-foreground mt-1">
-                    {formatTimestamp(dataset.createdAt)}
-                  </p>
-                </button>
-              );
+                    {/* Timestamp */}
+                    <p className="text-[9px] text-muted-foreground mt-1">
+                      {formatTimestamp(dataset.createdAt)}
+                    </p>
+                  </button>
+                );
               })
             )}
           </div>

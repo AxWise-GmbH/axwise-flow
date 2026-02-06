@@ -24,6 +24,7 @@ BACKEND_DIR="$REPO_ROOT/backend"
 echo -e "${GREEN}Repository root:${NC} $REPO_ROOT"
 echo -e "${GREEN}Backend directory:${NC} $BACKEND_DIR"
 echo ""
+
 # Ensure axwise venv and env are loaded
 echo -e "${GREEN}Ensuring axwise environment (venv + .env) is loaded...${NC}"
 set +e  # Temporarily disable exit on error
@@ -43,6 +44,11 @@ if [ ! -f "$BACKEND_DIR/.env.oss" ]; then
     echo "  GEMINI_API_KEY=your_api_key_here"
     exit 1
 fi
+
+# Explicitly load .env.oss to ensure variables are set in this shell
+set -a
+source "$BACKEND_DIR/.env.oss"
+set +a
 
 # Environment should now be loaded by activate_env.sh; just verify required vars
 if [ -z "${OSS_MODE:-}" ]; then
@@ -128,7 +134,7 @@ if [ -z "${VIRTUAL_ENV:-}" ]; then
     echo -e "${YELLOW}    source \"$REPO_ROOT/scripts/oss/activate_env.sh\"${NC}"
     echo ""
 else
-    echo -e "${GREEN} Using venv:${NC} $VIRTUAL_ENV"
+    echo -e "${GREEN}  Using venv:${NC} $VIRTUAL_ENV"
 fi
 
 # Change to backend directory
@@ -187,4 +193,3 @@ python3.11 -m uvicorn backend.api.app:app \
     --port "${UVICORN_PORT:-8000}" \
     --log-level "$UVICORN_LOG_LEVEL_LOWER" \
     --reload
-

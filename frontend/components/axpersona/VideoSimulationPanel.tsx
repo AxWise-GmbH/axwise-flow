@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import {
   Loader2,
@@ -596,55 +597,50 @@ export function VideoSimulationPanel({ className, availablePersonas = [] }: Vide
               title="Video Duration (MM:SS)"
             />
 
-            {/* Persona Selector */}
-            {availablePersonas.length > 0 && (
-              <Popover open={isPersonaSelectorOpen} onOpenChange={setIsPersonaSelectorOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 relative">
-                    <Users className="h-4 w-4" />
-                    {selectedPersonas.length > 0 ? (
-                      <Badge variant="secondary" className="px-1 h-5 text-[10px] ml-1">
-                        {selectedPersonas.length}
-                      </Badge>
-                    ) : (
-                      <span>Simulate...</span>
-                    )}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="end">
-                  <div className="p-3 border-b bg-muted/50">
-                    <h4 className="font-medium text-sm">Simulate Client Perspectives</h4>
-                    <p className="text-xs text-muted-foreground">Select up to 3 personas to react to this video.</p>
-                  </div>
-                  <ScrollArea className="h-[200px] p-2">
-                    <div className="space-y-1">
-                      {availablePersonas.map(persona => (
-                        <div
-                          key={persona.name}
-                          className="flex items-start gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
-                          onClick={() => handlePersonaToggle(persona.name)}
-                        >
-                          <Checkbox
-                            id={`p-${persona.name}`}
-                            checked={selectedPersonas.includes(persona.name)}
-                            disabled={!selectedPersonas.includes(persona.name) && selectedPersonas.length >= 3}
-                            onCheckedChange={() => handlePersonaToggle(persona.name)}
-                          />
-                          <div className="flex-1">
-                            <div className="text-sm font-medium leading-none mb-1 flex items-center justify-between">
-                              {persona.name}
-                              {persona.age && <span className="text-xs text-muted-foreground">{persona.age}y</span>}
-                            </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{persona.role}</p>
+            <Popover onOpenChange={(open) => console.log('Popover open state changed:', open)}>
+              <PopoverTrigger className={cn(buttonVariants({ variant: "outline" }), "gap-2 relative")}>
+                <Users className="h-4 w-4" />
+                {selectedPersonas.length > 0 ? (
+                  <Badge variant="secondary" className="px-1 h-5 text-[10px] ml-1">
+                    {selectedPersonas.length}
+                  </Badge>
+                ) : (
+                  <span>Simulate...</span>
+                )}
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b bg-muted/50">
+                  <h4 className="font-medium text-sm">Simulate Client Perspectives</h4>
+                  <p className="text-xs text-muted-foreground">Select up to 3 personas to react to this video.</p>
+                </div>
+                <ScrollArea className="h-[200px] p-2">
+                  <div className="space-y-1">
+                    {availablePersonas.map(persona => (
+                      <div
+                        key={persona.name}
+                        className="flex items-start gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                        onClick={() => handlePersonaToggle(persona.name)}
+                      >
+                        <Checkbox
+                          id={`p-${persona.name}`}
+                          checked={selectedPersonas.includes(persona.name)}
+                          disabled={!selectedPersonas.includes(persona.name) && selectedPersonas.length >= 3}
+                          onCheckedChange={() => handlePersonaToggle(persona.name)}
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium leading-none mb-1 flex items-center justify-between">
+                            {persona.name}
+                            {persona.age && <span className="text-xs text-muted-foreground">{persona.age}y</span>}
                           </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{persona.role}</p>
                         </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
 
             <Button
               onClick={handleAnalyzeVideo}
@@ -675,7 +671,7 @@ export function VideoSimulationPanel({ className, availablePersonas = [] }: Vide
             <p className="text-xs text-muted-foreground">
               {analysisResult
                 ? `Found ${analysisResult.analysis_metadata.total_annotations} events in ${analysisResult.analysis_metadata.duration_analyzed || 'video'}`
-                : 'Wating for analysis...'}
+                : 'Waiting for analysis...'}
             </p>
           </div>
 

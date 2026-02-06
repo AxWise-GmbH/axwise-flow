@@ -27,6 +27,7 @@ export async function GET(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
       },
+      cache: 'no-store', // Prevent Next.js from caching this response
     });
 
     if (!response.ok) {
@@ -39,7 +40,13 @@ export async function GET(
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // Return with no-cache headers to prevent browser caching
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    });
   } catch (error) {
     console.error('Error proxying pipeline run detail request:', error);
     return NextResponse.json(

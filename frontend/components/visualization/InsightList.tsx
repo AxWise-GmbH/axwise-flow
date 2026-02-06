@@ -23,7 +23,7 @@ export function InsightList({ insights, className }: InsightListProps) {
   }
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm border-border/50", className)}>
       <CardHeader>
         <CardTitle>Analysis Insights</CardTitle>
         <CardDescription>
@@ -41,7 +41,7 @@ export function InsightList({ insights, className }: InsightListProps) {
                   {insight.priority && (
                     <Badge
                       variant={insight.priority === 'High' ? 'destructive' :
-                              insight.priority === 'Medium' ? 'default' : 'outline'}
+                        insight.priority === 'Medium' ? 'default' : 'outline'}
                       className="ml-2"
                     >
                       {insight.priority} Priority

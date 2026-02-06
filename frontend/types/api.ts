@@ -477,10 +477,10 @@ export interface PriorityInsightsResponse {
 export interface DetectedStakeholder {
   stakeholder_id: string;
   stakeholder_type:
-    | "primary_customer"
-    | "secondary_user"
-    | "decision_maker"
-    | "influencer";
+  | "primary_customer"
+  | "secondary_user"
+  | "decision_maker"
+  | "influencer";
   confidence_score: number;
   demographic_profile?: Record<string, any>;
   individual_insights: Record<string, any>;
@@ -552,9 +552,83 @@ export interface StakeholderIntelligence {
 }
 
 /**
- * PRD Response interface (for compatibility)
+ * PRD Response interface
  */
 export interface PRDResponse {
-  prd: string;
+  success?: boolean;
+  error?: string;
+  prd_data?: {
+    operational_prd?: OperationalPRD;
+    technical_prd?: TechnicalPRD;
+    metadata?: {
+      generated_from: {
+        themes_count: number;
+        patterns_count: number;
+        insights_count: number;
+        personas_count: number;
+      };
+      generation_time: number;
+    };
+  };
+  // Legacy compatibility
+  prd?: string;
   metadata?: Record<string, any>;
+}
+
+/**
+ * Operational Product Requirements Document
+ */
+export interface OperationalPRD {
+  objectives: Array<{ title: string; description: string }>;
+  scope: {
+    included: string[];
+    excluded: string[];
+  };
+  user_stories?: Array<any>;
+  stakeholder_scenarios?: Array<any>;
+  requirements?: Array<any>;
+  core_specifications?: Array<any>;
+  success_metrics?: Array<{ metric: string; target: string; measurement_method: string }>;
+  brd?: any;
+  implementation_blueprint?: any;
+}
+
+/**
+ * Technical Product Requirements Document
+ */
+export interface TechnicalPRD {
+  objectives?: Array<{ title: string; description: string }>;
+  scope?: {
+    included: string[];
+    excluded: string[];
+  };
+  architecture?: {
+    overview?: string;
+    components?: Array<{
+      name: string;
+      purpose: string;
+      technology_stack?: string;
+      interactions?: string[];
+    }>;
+    security_considerations?: string;
+    data_flow?: string;
+  };
+  implementation_requirements?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    priority: string;
+    dependencies?: string[];
+    effort_estimate?: string;
+    technical_notes?: string;
+  }>;
+  api_specifications?: Array<{
+    endpoint: string;
+    method: string;
+    purpose: string;
+    request_body?: string;
+    response?: string;
+  }>;
+  testing_validation?: Array<any>;
+  success_metrics?: Array<{ metric: string; target: string; measurement_method: string }>;
 }

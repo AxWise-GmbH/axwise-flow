@@ -76,10 +76,12 @@ export function ScopeCreationForm({
         }
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-border/50 shadow-2xl">
         <DialogHeader>
-          <DialogTitle>Create AxPersona scope</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            Create AxPersona scope
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground/80">
             Describe your business context. The AxPersona pipeline will use this
             to generate synthetic interviews and personas for this scope.
           </DialogDescription>
@@ -94,6 +96,7 @@ export function ScopeCreationForm({
               placeholder="Short description of the product or service."
               rows={3}
               required
+              className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 focus-visible:ring-primary/20 transition-all"
             />
           </div>
           <div className="space-y-2">

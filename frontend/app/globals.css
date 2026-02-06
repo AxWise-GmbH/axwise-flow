@@ -13,6 +13,100 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* New Design Tokens */
+    --color-green-400: oklch(.792 .209 151.711);
+    --color-gray-50: oklch(.985 .002 247.839);
+    --color-gray-100: oklch(.967 .003 264.542);
+    --color-gray-200: oklch(.928 .006 264.531);
+    --color-gray-300: oklch(.872 .01 258.338);
+    --color-gray-400: oklch(.707 .022 261.325);
+    --color-gray-500: oklch(.551 .027 264.364);
+    --color-gray-600: oklch(.446 .03 256.802);
+    --color-gray-700: oklch(.373 .034 259.733);
+    --color-gray-800: oklch(.278 .033 256.848);
+    --color-gray-900: oklch(.21 .034 264.665);
+    --color-black: #000;
+    --color-white: #fff;
+
+    --font-heading: var(--font-sans);
+    --font-body: var(--font-sans);
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
@@ -85,6 +179,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -148,6 +243,7 @@
   from {
     transform: translateX(100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -157,6 +253,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(100%);
   }
@@ -184,6 +281,7 @@
     opacity: 0;
     transform: translateY(2px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -277,6 +375,7 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -286,17 +385,14 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 /* Mobile Chat Interface Optimizations */
 
 /* Desktop default - maintain existing behavior */
+/* Removed fixed height constraint to allow h-full to work */
 .chat-container {
-  height: calc(100vh - 120px); /* Even more space for input field + help text */
+  /* height: calc(100vh - 120px); - Removed to fix layout */
   overflow: hidden;
 }
 
 /* Ensure proper flex layout for chat card */
-.chat-container .lg\\:col-span-2 {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
+/* Legacy rule for lg:col-span-2 removed */
 
 /* Ensure ScrollArea doesn't take all space */
 .chat-container [data-radix-scroll-area-viewport] {
@@ -310,7 +406,8 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
     position: relative;
     background: transparent;
     backdrop-filter: none;
-    flex-shrink: 0; /* Prevent input from being compressed */
+    flex-shrink: 0;
+    /* Prevent input from being compressed */
   }
 }
 
@@ -318,7 +415,8 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 @media screen and (max-width: 768px) {
   .chat-container {
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for modern browsers */
+    height: 100dvh;
+    /* Dynamic viewport height for modern browsers */
   }
 
   /* iOS specific styles */
@@ -332,6 +430,7 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 
 /* Mobile-only input optimizations */
 @media screen and (max-width: 768px) {
+
   /* Prevent zoom on input focus (iOS) */
   .chat-input {
     font-size: 16px !important;
@@ -342,6 +441,7 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 
 /* Mobile keyboard handling */
 @media screen and (max-width: 768px) {
+
   /* Ensure input stays visible when keyboard appears */
   .chat-input-container {
     position: sticky;
@@ -363,6 +463,7 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 
 /* Mobile-specific styles */
 @media screen and (max-width: 768px) {
+
   /* Adjust scroll area for mobile */
   .chat-messages-area {
     padding-bottom: 20px;
@@ -371,8 +472,10 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 
   /* Mobile-specific input styling */
   .chat-input {
-    min-height: 44px; /* iOS touch target minimum */
-    font-size: 16px; /* Prevents zoom */
+    min-height: 44px;
+    /* iOS touch target minimum */
+    font-size: 16px;
+    /* Prevents zoom */
   }
 
   /* Mobile send button */
@@ -408,6 +511,7 @@ h1 span.bg-gradient-to-r.from-primary.to-accent.bg-clip-text.text-transparent {
 
 /* Mobile-specific optimizations */
 @media screen and (max-width: 768px) {
+
   /* Prevent horizontal scroll on mobile */
   .chat-container,
   .chat-messages-area {

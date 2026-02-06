@@ -60,17 +60,17 @@ export function PersonaList({ personas, className }: PersonaListProps) {
 
   // Filter persona fields to only show populated, high-confidence design thinking fields
   const getPopulatedFields = (persona: Persona) => {
-    const populatedFields: Array<{field: string, trait: any, title: string}> = [];
+    const populatedFields: Array<{ field: string, trait: any, title: string }> = [];
 
     DESIGN_THINKING_FIELDS.forEach(field => {
       const trait = persona[field as keyof Persona];
       if (trait &&
-          typeof trait === 'object' &&
-          'value' in trait &&
-          trait.value &&
-          typeof trait.value === 'string' &&
-          trait.value.length >= MIN_CONTENT_LENGTH &&
-          trait.confidence >= CONFIDENCE_THRESHOLD) {
+        typeof trait === 'object' &&
+        'value' in trait &&
+        trait.value &&
+        typeof trait.value === 'string' &&
+        trait.value.length >= MIN_CONTENT_LENGTH &&
+        trait.confidence >= CONFIDENCE_THRESHOLD) {
 
         const titles: Record<string, string> = {
           'demographics': 'Demographics',
@@ -206,7 +206,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     } else if (Array.isArray(quotes)) {
       quoteList = quotes
         .map(toText)
-        .filter((q): q is string => typeof q === 'string' && q.trim().length > 0);
+        .filter((q: any): q is string => typeof q === 'string' && q.trim().length > 0);
     } else if (typeof quotes === 'object' && quotes.evidence) {
       // Handle evidence format (array or single item)
       const arr = Array.isArray(quotes.evidence) ? quotes.evidence : [quotes.evidence];
@@ -328,9 +328,9 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     // Extract values with fallbacks
     const value = trait.value || trait.Value || '';
     const confidence = typeof trait.confidence === 'number' ? trait.confidence :
-                      typeof trait.Confidence === 'number' ? trait.Confidence : 0.3;
+      typeof trait.Confidence === 'number' ? trait.Confidence : 0.3;
     const evidence = Array.isArray(trait.evidence) ? trait.evidence :
-                    Array.isArray(trait.Evidence) ? trait.Evidence : [];
+      Array.isArray(trait.Evidence) ? trait.Evidence : [];
 
     // Return null if value is empty or invalid
     if (!value || (typeof value === 'string' && value.trim() === '')) {
@@ -365,11 +365,10 @@ export function PersonaList({ personas, className }: PersonaListProps) {
     const { value, confidence, evidence } = validatedTrait;
 
     return (
-      <div className={`mb-4 border rounded-lg p-4 ${
-        confidence >= 0.9 ? 'border-green-200 bg-green-50/30' :
+      <div className={`mb-4 border rounded-lg p-4 ${confidence >= 0.9 ? 'border-green-200 bg-green-50/30' :
         confidence >= 0.7 ? 'border-yellow-200 bg-yellow-50/30' :
-        'border-red-200 bg-red-50/30'
-      }`}>
+          'border-red-200 bg-red-50/30'
+        }`}>
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-sm font-medium">{label}</h3>
           <div className="flex items-center space-x-2">
@@ -425,7 +424,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
   };
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm border-border/50", className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -524,171 +523,171 @@ export function PersonaList({ personas, className }: PersonaListProps) {
               ))}
             </TabsList>
 
-          {validPersonas.map((persona, index) => (
-            <TabsContent key={`persona-content-${index}`} value={persona.name} className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-bold">{persona.name}</h2>
-                  <p className="text-muted-foreground">{persona.description}</p>
-                </div>
-                <div className="flex-shrink-0 self-start space-y-2">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge className={getConfidenceColor(persona.confidence)}>
-                          {getConfidenceLevel(persona.confidence)} ({Math.round(persona.confidence * 100)}%)
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{getConfidenceTooltip(persona.confidence)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+            {validPersonas.map((persona, index) => (
+              <TabsContent key={`persona-content-${index}`} value={persona.name} className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-xl font-bold">{persona.name}</h2>
+                    <p className="text-muted-foreground">{persona.description}</p>
+                  </div>
+                  <div className="flex-shrink-0 self-start space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge className={getConfidenceColor(persona.confidence)}>
+                            {getConfidenceLevel(persona.confidence)} ({Math.round(persona.confidence * 100)}%)
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{getConfidenceTooltip(persona.confidence)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                  {/* Quality indicators */}
-                  <div className="text-xs text-muted-foreground text-right">
+                    {/* Quality indicators */}
+                    <div className="text-xs text-muted-foreground text-right">
+                      {(() => {
+                        const populatedFields = getPopulatedFields(persona);
+                        const totalEvidence = populatedFields.reduce((sum, field) =>
+                          sum + (field.trait.evidence?.length || 0), 0
+                        );
+                        return (
+                          <>
+                            <div>📊 {populatedFields.length} quality traits</div>
+                            <div>📝 {totalEvidence} evidence items</div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patterns Section (Always Visible) */}
+                {persona.patterns && persona.patterns.length > 0 && (
+                  <div className="mt-3 mb-2">
+                    <h4 className="text-xs font-medium mb-1">Associated Patterns</h4>
+                    {renderGroupedPatterns(persona.patterns)}
+                  </div>
+                )}
+
+                {/* Evidence Section (Collapsible) */}
+                {persona.evidence && persona.evidence.length > 0 && (
+                  <div className="mt-1">
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="evidence">
+                        <AccordionTrigger className="text-xs text-muted-foreground">
+                          Supporting Evidence
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                            {persona.evidence.map((item: any, i: number) => {
+                              const text = typeof item === 'string'
+                                ? item
+                                : (item && typeof item === 'object' && typeof item.quote === 'string')
+                                  ? item.quote
+                                  : String(item);
+                              return <li key={i}>{text}</li>;
+                            })}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {persona.archetype && (
+                    <Badge variant="outline" className="text-sm">
+                      {persona.archetype}
+                    </Badge>
+                  )}
+                  {persona.role_in_interview && (
+                    <Badge variant="secondary" className="text-sm">
+                      {persona.role_in_interview}
+                    </Badge>
+                  )}
+                  {persona.metadata?.speaker && (
+                    <Badge variant="outline" className="text-sm bg-blue-50">
+                      Speaker: {persona.metadata.speaker}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Tabs for different persona aspects */}
+                <Tabs defaultValue="detailed" className="w-full mt-4">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="detailed">Detailed Profile</TabsTrigger>
+                    <TabsTrigger value="quotes">Key Quotes</TabsTrigger>
+                  </TabsList>
+
+                  {/* Detailed Profile Tab - Now with smart filtering */}
+                  <TabsContent value="detailed" className="space-y-4">
                     {(() => {
                       const populatedFields = getPopulatedFields(persona);
-                      const totalEvidence = populatedFields.reduce((sum, field) =>
-                        sum + (field.trait.evidence?.length || 0), 0
-                      );
+
+                      if (populatedFields.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <p className="text-muted-foreground">
+                              No high-confidence traits available for design thinking analysis.
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Traits need 70%+ confidence and sufficient content to be displayed.
+                            </p>
+                          </div>
+                        );
+                      }
+
                       return (
                         <>
-                          <div>📊 {populatedFields.length} quality traits</div>
-                          <div>📝 {totalEvidence} evidence items</div>
+                          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-800">
+                              🎯 <strong>Design Thinking Optimized:</strong> Showing {populatedFields.length} high-quality traits
+                              (70%+ confidence) from {DESIGN_THINKING_FIELDS.length} core design thinking fields.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {populatedFields.map(({ field, trait, title }) =>
+                              renderTraitCard(title, trait, field)
+                            )}
+                          </div>
                         </>
                       );
                     })()}
-                  </div>
-                </div>
-              </div>
+                  </TabsContent>
 
-              {/* Patterns Section (Always Visible) */}
-              {persona.patterns && persona.patterns.length > 0 && (
-                <div className="mt-3 mb-2">
-                  <h4 className="text-xs font-medium mb-1">Associated Patterns</h4>
-                  {renderGroupedPatterns(persona.patterns)}
-                </div>
-              )}
-
-              {/* Evidence Section (Collapsible) */}
-              {persona.evidence && persona.evidence.length > 0 && (
-                <div className="mt-1">
-                  <Accordion type="single" collapsible>
-                    <AccordionItem value="evidence">
-                      <AccordionTrigger className="text-xs text-muted-foreground">
-                        Supporting Evidence
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                          {persona.evidence.map((item: any, i: number) => {
-                            const text = typeof item === 'string'
-                              ? item
-                              : (item && typeof item === 'object' && typeof item.quote === 'string')
-                                ? item.quote
-                                : String(item);
-                            return <li key={i}>{text}</li>;
-                          })}
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </div>
-              )}
-
-              {/* Basic Information */}
-              <div className="mb-4 flex flex-wrap gap-2">
-                {persona.archetype && (
-                  <Badge variant="outline" className="text-sm">
-                    {persona.archetype}
-                  </Badge>
-                )}
-                {persona.role_in_interview && (
-                  <Badge variant="secondary" className="text-sm">
-                    {persona.role_in_interview}
-                  </Badge>
-                )}
-                {persona.metadata?.speaker && (
-                  <Badge variant="outline" className="text-sm bg-blue-50">
-                    Speaker: {persona.metadata.speaker}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Tabs for different persona aspects */}
-              <Tabs defaultValue="detailed" className="w-full mt-4">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="detailed">Detailed Profile</TabsTrigger>
-                  <TabsTrigger value="quotes">Key Quotes</TabsTrigger>
-                </TabsList>
-
-                {/* Detailed Profile Tab - Now with smart filtering */}
-                <TabsContent value="detailed" className="space-y-4">
-                  {(() => {
-                    const populatedFields = getPopulatedFields(persona);
-
-                    if (populatedFields.length === 0) {
-                      return (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground">
-                            No high-confidence traits available for design thinking analysis.
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Traits need 70%+ confidence and sufficient content to be displayed.
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <>
-                        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm text-blue-800">
-                            🎯 <strong>Design Thinking Optimized:</strong> Showing {populatedFields.length} high-quality traits
-                            (70%+ confidence) from {DESIGN_THINKING_FIELDS.length} core design thinking fields.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {populatedFields.map(({ field, trait, title }) =>
-                            renderTraitCard(title, trait, field)
-                          )}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </TabsContent>
-
-                {/* Key Quotes Tab */}
-                <TabsContent value="quotes" className="space-y-4">
-                  <div className="border rounded-lg p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">Key Quotes</h3>
-                      <Badge variant="outline" className="text-sm">
-                        Authentic Voice
-                      </Badge>
+                  {/* Key Quotes Tab */}
+                  <TabsContent value="quotes" className="space-y-4">
+                    <div className="border rounded-lg p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">Key Quotes</h3>
+                        <Badge variant="outline" className="text-sm">
+                          Authentic Voice
+                        </Badge>
+                      </div>
+                      <div className="mt-4">
+                        {renderExpandedQuotes(persona)}
+                      </div>
                     </div>
-                    <div className="mt-4">
-                      {renderExpandedQuotes(persona)}
-                    </div>
+                  </TabsContent>
+
+
+                </Tabs>
+
+                {/* Metadata */}
+                {persona.metadata && (
+                  <div className="mt-4 text-xs text-muted-foreground">
+                    {persona.metadata.sample_size && (
+                      <p>Sample size: {persona.metadata.sample_size}</p>
+                    )}
+                    {persona.metadata.timestamp && (
+                      <p>Generated: {new Date(persona.metadata.timestamp).toLocaleString()}</p>
+                    )}
                   </div>
-                </TabsContent>
-
-
-              </Tabs>
-
-              {/* Metadata */}
-              {persona.metadata && (
-                <div className="mt-4 text-xs text-muted-foreground">
-                  {persona.metadata.sample_size && (
-                    <p>Sample size: {persona.metadata.sample_size}</p>
-                  )}
-                  {persona.metadata.timestamp && (
-                    <p>Generated: {new Date(persona.metadata.timestamp).toLocaleString()}</p>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-          ))}
+                )}
+              </TabsContent>
+            ))}
           </Tabs>
         )}
       </CardContent>

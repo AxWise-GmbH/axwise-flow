@@ -122,10 +122,10 @@ function ScopeDetailPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col gap-4">
-      <div className="flex items-start justify-between">
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col gap-4 bg-gradient-to-br from-indigo-50/50 via-white to-cyan-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+      <div className="flex items-start justify-between mb-2">
         <div className="space-y-1">
-          <h1 className="text-lg font-semibold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
             Persona Datasets
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ function ScopeDetailPage() {
           variant="outline"
           size="sm"
           onClick={() => setIsAnalysisPanelVisible(!isAnalysisPanelVisible)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 hover:bg-white/80 dark:hover:bg-slate-950/80 transition-all duration-300"
         >
           {isAnalysisPanelVisible ? (
             <>
@@ -152,10 +152,10 @@ function ScopeDetailPage() {
           )}
         </Button>
       </div>
-      <div className="flex flex-1 gap-4 min-h-0">
+      <div className="flex flex-1 gap-6 min-h-0">
         {/* Collapsible Left Sidebar */}
         {isSidebarVisible ? (
-          <div className="w-72 flex-shrink-0 flex flex-col min-h-0 relative">
+          <div className="w-80 flex-shrink-0 flex flex-col min-h-0 relative bg-white/30 dark:bg-slate-950/30 backdrop-blur-md rounded-xl border border-border/50 shadow-sm overflow-hidden transition-all duration-300">
             {/* Collapse button in sidebar header */}
             <Button
               variant="ghost"
@@ -180,14 +180,14 @@ function ScopeDetailPage() {
               variant="outline"
               size="sm"
               onClick={() => setIsSidebarVisible(true)}
-              className="h-9 w-9 p-0"
+              className="h-9 w-9 p-0 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50"
               title="Show Persona Datasets sidebar"
             >
               <PanelLeftOpen className="h-4 w-4" />
             </Button>
           </div>
         )}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 bg-white/30 dark:bg-slate-950/30 backdrop-blur-md rounded-xl border border-border/50 shadow-sm overflow-hidden p-6 transition-all duration-300">
           <ScopeMainView
             scope={displayScope}
             result={displayResult}
@@ -197,7 +197,7 @@ function ScopeDetailPage() {
         </div>
         {/* Collapsible Analysis Panel */}
         {isAnalysisPanelVisible && (
-          <div className="w-96 flex-shrink-0 transition-all duration-300">
+          <div className="w-96 flex-shrink-0 transition-all duration-300 bg-white/30 dark:bg-slate-950/30 backdrop-blur-md rounded-xl border border-border/50 shadow-sm overflow-hidden">
             <AnalysisPanel
               result={displayResult}
               isLoading={isLoading}

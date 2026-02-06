@@ -314,10 +314,10 @@ export default function VisualizationTabsRefactored({
   }, [activeTabFromUrl, showStakeholderDynamics, router, searchParams, setActiveTabSafe]);
 
   return (
-    <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="w-full bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40">
         <div>
-          <CardTitle>Analysis Results: {analysis?.fileName}</CardTitle>
+          <CardTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Analysis Results: {analysis?.fileName}</CardTitle>
           <CardDescription>
             Created {analysis?.createdAt ? new Date(analysis.createdAt).toLocaleString() : 'Date unavailable'} • {analysis?.llmProvider || 'AI'} Analysis
             {/* NEW: Multi-stakeholder indicator - moved outside CardDescription to avoid div in p */}
@@ -356,8 +356,8 @@ export default function VisualizationTabsRefactored({
         {!loading && !fetchError && analysis && ( // Ensure analysis data exists
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             {/* Enhanced TabsList - conditionally show 7th tab */}
-            <TabsList className={`w-full ${showStakeholderDynamics ? 'grid-cols-7' : 'grid-cols-6'} grid`}>
-              <TabsTrigger value="themes">
+            <TabsList className={`w-full ${showStakeholderDynamics ? 'grid-cols-7' : 'grid-cols-6'} grid bg-muted/20 p-1`}>
+              <TabsTrigger value="themes" className="data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all duration-300">
                 Themes
                 {showStakeholderDynamics && <Badge variant="outline" className="ml-1 text-xs">Multi</Badge>}
               </TabsTrigger>
@@ -430,7 +430,7 @@ export default function VisualizationTabsRefactored({
                   <p className="text-red-600">There was an error rendering the personas visualization.</p>
                 </div>
               }
-                /* eslint-disable @typescript-eslint/no-explicit-any */
+            /* eslint-disable @typescript-eslint/no-explicit-any */
             >
               <TabsContent value="personas" className="mt-6">
                 {analysis?.personas?.length || (isMultiStakeholder && stakeholderIntelligence?.detected_stakeholders?.length) ? (
@@ -445,7 +445,7 @@ export default function VisualizationTabsRefactored({
                     validationStatus={(analysis as any)?.validation_status || null}
                     confidenceComponents={(analysis as any)?.confidence_components || null}
                     sourceInfo={(analysis as any)?.source || {}}
-                /* eslint-enable @typescript-eslint/no-explicit-any */
+                  /* eslint-enable @typescript-eslint/no-explicit-any */
                   />
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
@@ -579,7 +579,7 @@ export default function VisualizationTabsRefactored({
               <p><strong>Theme Count:</strong> {analysis?.themes?.length || 0}</p>
               <p><strong>Has Sentiment Statements:</strong> {
                 (analysis?.sentimentStatements ||
-                (analysis?.sentiment?.sentimentStatements)) ? 'Yes' : 'No'
+                  (analysis?.sentiment?.sentimentStatements)) ? 'Yes' : 'No'
               }</p>
               <p><strong>Has Results Property:</strong> {analysis?.results ? 'Yes' : 'No'}</p>
               <p><strong>Server Data:</strong> {serverAnalysisData ? 'Yes' : 'No'}</p>

@@ -219,146 +219,152 @@ export default function DashboardOverview() {
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-3">
-            {/* Research Chats Card */}
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/unified-dashboard/research-chat')}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Research Chats</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.researchChats.total}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.researchChats.withQuestionnaires} with questionnaires
-                </p>
-                <div className="flex items-center pt-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Last: {stats.researchChats.recentActivity}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Research Chats Card */}
+        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 group" onClick={() => router.push('/unified-dashboard/research-chat')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">Research Chats</CardTitle>
+            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+              <MessageSquare className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold tracking-tight">{stats.researchChats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.researchChats.withQuestionnaires} with questionnaires
+            </p>
+            <div className="flex items-center pt-4 text-xs font-medium text-muted-foreground/80">
+              <Calendar className="h-3 w-3 mr-1.5" />
+              Last: {stats.researchChats.recentActivity}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Simulations Card */}
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/unified-dashboard/simulation-history')}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Simulations</CardTitle>
-                <FlaskConical className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.simulations.total}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.simulations.totalInterviews} total interviews
-                </p>
-                <div className="flex items-center pt-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Last: {stats.simulations.recentActivity}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Simulations Card */}
+        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 group" onClick={() => router.push('/unified-dashboard/simulation-history')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">Simulations</CardTitle>
+            <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+              <FlaskConical className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold tracking-tight">{stats.simulations.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.simulations.totalInterviews} total interviews
+            </p>
+            <div className="flex items-center pt-4 text-xs font-medium text-muted-foreground/80">
+              <Calendar className="h-3 w-3 mr-1.5" />
+              Last: {stats.simulations.recentActivity}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Analyses Card */}
-            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/unified-dashboard/analysis-history')}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">File Analyses</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.analyses.total}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.analyses.totalFiles} files processed
-                </p>
-                <div className="flex items-center pt-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Last: {stats.analyses.recentActivity}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Analyses Card */}
+        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 group" onClick={() => router.push('/unified-dashboard/analysis-history')}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">File Analyses</CardTitle>
+            <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
+              <Users className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold tracking-tight">{stats.analyses.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.analyses.totalFiles} files processed
+            </p>
+            <div className="flex items-center pt-4 text-xs font-medium text-muted-foreground/80">
+              <Calendar className="h-3 w-3 mr-1.5" />
+              Last: {stats.analyses.recentActivity}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions - Full width section */}
       <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Quick Actions
-              </CardTitle>
-              <CardDescription>
-                Start new research activities or continue existing work
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Research Chat */}
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4"
-                    onClick={() => router.push('/customer-research')}
-                  >
-                    <div className="text-left flex-1">
-                      <div className="font-medium">💬 Start Research Chat</div>
-                      <div className="text-xs text-muted-foreground">Generate questionnaires</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                  <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
-                    Without clear questions, you get vague feedback that doesn't validate or invalidate your hypotheses. Identify problem and generate your tailored questionnaire now!
-                  </div>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Quick Actions
+          </CardTitle>
+          <CardDescription>
+            Start new research activities or continue existing work
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Research Chat */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start h-auto p-4"
+                onClick={() => router.push('/customer-research')}
+              >
+                <div className="text-left flex-1">
+                  <div className="font-medium">💬 Start Research Chat</div>
+                  <div className="text-xs text-muted-foreground">Generate questionnaires</div>
                 </div>
-
-                {/* Simulation */}
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4"
-                    onClick={() => router.push('/unified-dashboard/research')}
-                  >
-                    <div className="text-left flex-1">
-                      <div className="font-medium">🎭 Run Simulation</div>
-                      <div className="text-xs text-muted-foreground">AI persona interviews</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                  <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
-                    You won't need to coordinate schedules, provide incentives, and manage multiple stakeholder groups. Get your questionnaire answered now!
-                  </div>
-                </div>
-
-                {/* Upload Files */}
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4"
-                    onClick={() => router.push('/unified-dashboard/upload')}
-                  >
-                    <div className="text-left flex-1">
-                      <div className="font-medium">📤 Upload Files</div>
-                      <div className="text-xs text-muted-foreground">Analyze interview data</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                  <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
-                    AI analysis removes human bias to uncover breakthrough opportunities hiding in existing user feedback, and does it 100x faster.
-                  </div>
-                </div>
-
-                {/* View Results */}
-                <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4"
-                    onClick={() => router.push('/unified-dashboard/analysis-history')}
-                  >
-                    <div className="text-left flex-1">
-                      <div className="font-medium">📈 View Results</div>
-                      <div className="text-xs text-muted-foreground">Explore insights</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                  <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
-                    Visualization transforms research into organizational alignment and coordinated product strategy.
-                  </div>
-                </div>
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
+                Without clear questions, you get vague feedback that doesn't validate or invalidate your hypotheses. Identify problem and generate your tailored questionnaire now!
               </div>
+            </div>
+
+            {/* Simulation */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start h-auto p-4"
+                onClick={() => router.push('/unified-dashboard/research')}
+              >
+                <div className="text-left flex-1">
+                  <div className="font-medium">🎭 Run Simulation</div>
+                  <div className="text-xs text-muted-foreground">AI persona interviews</div>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
+                You won't need to coordinate schedules, provide incentives, and manage multiple stakeholder groups. Get your questionnaire answered now!
+              </div>
+            </div>
+
+            {/* Upload Files */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start h-auto p-4"
+                onClick={() => router.push('/unified-dashboard/upload')}
+              >
+                <div className="text-left flex-1">
+                  <div className="font-medium">📤 Upload Files</div>
+                  <div className="text-xs text-muted-foreground">Analyze interview data</div>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
+                AI analysis removes human bias to uncover breakthrough opportunities hiding in existing user feedback, and does it 100x faster.
+              </div>
+            </div>
+
+            {/* View Results */}
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start h-auto p-4"
+                onClick={() => router.push('/unified-dashboard/analysis-history')}
+              >
+                <div className="text-left flex-1">
+                  <div className="font-medium">📈 View Results</div>
+                  <div className="text-xs text-muted-foreground">Explore insights</div>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <div className="text-xs text-muted-foreground pl-4 border-l-2 border-muted">
+                Visualization transforms research into organizational alignment and coordinated product strategy.
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

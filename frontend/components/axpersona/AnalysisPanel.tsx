@@ -20,14 +20,14 @@ export function AnalysisPanel({ result, isLoading }: AnalysisPanelProps) {
 
   return (
     <Tabs defaultValue="trace" className="flex flex-col">
-      <TabsList className="grid grid-cols-3 w-full">
-        <TabsTrigger value="trace" className="text-xs">
+      <TabsList className="grid grid-cols-3 w-full bg-muted/20 p-1 rounded-lg">
+        <TabsTrigger value="trace" className="text-xs data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all">
           Execution
         </TabsTrigger>
-        <TabsTrigger value="analysis" className="text-xs">
+        <TabsTrigger value="analysis" className="text-xs data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all">
           Analysis
         </TabsTrigger>
-        <TabsTrigger value="quality" className="text-xs">
+        <TabsTrigger value="quality" className="text-xs data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all">
           Quality
         </TabsTrigger>
       </TabsList>
@@ -40,11 +40,11 @@ export function AnalysisPanel({ result, isLoading }: AnalysisPanelProps) {
       </TabsContent>
       <TabsContent
         value="analysis"
-        className="mt-2"
+        className="mt-3"
       >
-        <Card className="flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Analysis summary</CardTitle>
+        <Card className="flex flex-col bg-transparent border-0 shadow-none">
+          <CardHeader className="pb-2 px-0 border-b border-border/50">
+            <CardTitle className="text-sm font-semibold">Analysis summary</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {!analysis ? (
@@ -92,11 +92,11 @@ export function AnalysisPanel({ result, isLoading }: AnalysisPanelProps) {
       </TabsContent>
       <TabsContent
         value="quality"
-        className="mt-2"
+        className="mt-3"
       >
-        <Card className="flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Data quality</CardTitle>
+        <Card className="flex flex-col bg-transparent border-0 shadow-none">
+          <CardHeader className="pb-2 px-0 border-b border-border/50">
+            <CardTitle className="text-sm font-semibold">Data quality</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             {!quality || Object.keys(quality).length === 0 ? (
@@ -117,8 +117,8 @@ export function AnalysisPanel({ result, isLoading }: AnalysisPanelProps) {
                       {typeof value === 'number'
                         ? value.toFixed(2)
                         : typeof value === 'string'
-                        ? value
-                        : JSON.stringify(value).slice(0, 50)}
+                          ? value
+                          : JSON.stringify(value).slice(0, 50)}
                     </span>
                   </div>
                 ))}

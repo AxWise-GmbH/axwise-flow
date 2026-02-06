@@ -122,41 +122,46 @@ export function SalesWorkflowView({
       className="h-full flex flex-col"
     >
       {/* Horizontal Tab Navigation */}
-      <div className="border-b px-4 bg-muted/30">
-        <TabsList className="h-14 w-full justify-between bg-transparent p-0">
+      <div className="border-b border-border/50 bg-white/30 dark:bg-slate-950/30 backdrop-blur-md px-4 sticker top-0 z-40">
+        <TabsList className="h-16 w-full justify-between bg-transparent p-0">
           {/* Sales Workflow Tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-2 items-end h-full">
             {workflowTabs.map((tab, index) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
                 className={`
-                  gap-2 px-4 py-2 rounded-t-lg border-b-2 border-transparent
-                  data-[state=active]:border-b-current data-[state=active]:shadow-none
+                  gap-2 px-5 py-3 rounded-t-xl border-b-2 border-transparent transition-all duration-300
+                  data-[state=active]:bg-white/60 dark:data-[state=active]:bg-slate-800/60 
+                  data-[state=active]:backdrop-blur-sm data-[state=active]:border-b-current 
+                  data-[state=active]:shadow-sm data-[state=active]:translate-y-[1px]
+                  hover:bg-white/40 dark:hover:bg-slate-800/40
                   ${tab.bgColor}
                 `}
               >
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-bold">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white/50 dark:bg-slate-900/50 text-[10px] font-bold shadow-sm">
                   {index + 1}
                 </span>
                 <tab.icon className={`h-4 w-4 ${tab.color}`} />
-                <span className="font-medium">{tab.label}</span>
+                <span className="font-semibold tracking-tight">{tab.label}</span>
               </TabsTrigger>
             ))}
           </div>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-border mx-2 self-center" />
+          <div className="h-8 w-px bg-border/50 mx-4 self-center" />
 
           {/* Insight Tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
             {insightTabs.map((tab) => (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
                 className={`
-                  gap-2 px-3 py-2 rounded-t-lg border-b-2 border-transparent
-                  data-[state=active]:border-b-current data-[state=active]:shadow-none
+                  gap-2 px-3 py-2 rounded-md transition-all duration-300
+                  data-[state=active]:bg-white/80 dark:data-[state=active]:bg-slate-800/80 
+                  data-[state=active]:shadow-sm data-[state=active]:text-foreground
+                  hover:bg-white/40 dark:hover:bg-slate-800/40 text-muted-foreground
                   ${tab.bgColor}
                 `}
               >

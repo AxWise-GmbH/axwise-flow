@@ -26,9 +26,9 @@ export default function ResearchChatPage(): JSX.Element {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] relative">
+    <div className="h-full w-full relative overflow-hidden bg-background/50 backdrop-blur-sm flex flex-col">
       {/* Floating History Button */}
-      <div className="fixed top-4 right-4 z-50">
+      <div className="absolute top-4 right-4 z-50">
         <Button
           variant="outline"
           size="sm"
@@ -40,14 +40,16 @@ export default function ResearchChatPage(): JSX.Element {
         </Button>
       </div>
 
-      <ChatInterface
-        onComplete={handleQuestionsGenerated}
-        onBack={() => {
-          // Navigate to research chat history instead of reloading
-          window.location.href = '/unified-dashboard/research-chat-history';
-        }}
-        loadSessionId={currentSessionId || undefined}
-      />
+      <div className="absolute inset-0 w-full h-full">
+        <ChatInterface
+          onComplete={handleQuestionsGenerated}
+          onBack={() => {
+            // Navigate to research chat history instead of reloading
+            window.location.href = '/unified-dashboard/research-chat-history';
+          }}
+          loadSessionId={currentSessionId || undefined}
+        />
+      </div>
     </div>
   );
 }

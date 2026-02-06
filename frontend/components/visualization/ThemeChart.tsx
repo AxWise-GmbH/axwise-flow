@@ -87,7 +87,7 @@ export function ThemeChart({ themes, stakeholderIntelligence }: ThemeChartProps)
             placeholder="Search themes or keywords..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-80"
+            className="w-full sm:w-80 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 focus-visible:ring-primary/20"
           />
           {searchTerm && (
             <Button
@@ -103,7 +103,7 @@ export function ThemeChart({ themes, stakeholderIntelligence }: ThemeChartProps)
       </div>
 
       {/* Theme List */}
-      <Card>
+      <Card className="bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Identified Themes</CardTitle>
           <CardDescription>
@@ -123,56 +123,55 @@ export function ThemeChart({ themes, stakeholderIntelligence }: ThemeChartProps)
                       <div className="flex items-center gap-2">
                         {/* Multi-stakeholder indicator - show for all themes with stakeholder context */}
                         {(((theme as any).is_enhanced && (theme as any).source_stakeholders?.length > 0) ||
-                         (theme as any).stakeholder_context?.source_stakeholders?.length > 0) && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs cursor-help ${
-                                    (theme as any).multi_stakeholder_type === 'consensus'
+                          (theme as any).stakeholder_context?.source_stakeholders?.length > 0) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs cursor-help ${(theme as any).multi_stakeholder_type === 'consensus'
                                       ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300'
                                       : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                                  }`}
-                                >
-                                  {(theme as any).multi_stakeholder_type === 'consensus' ? '🤝 ' : '👥 '}
-                                  {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length} Stakeholder{((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length !== 1 ? 's' : ''}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div className="max-w-xs">
-                                  <h4 className="font-semibold text-sm">
-                                    {(theme as any).multi_stakeholder_type === 'consensus' ? 'Consensus Area' : 'Multi-Stakeholder Theme'}
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground">
-                                    {(theme as any).multi_stakeholder_type === 'consensus'
-                                      ? 'Area of stakeholder agreement and shared understanding.'
-                                      : 'This theme was identified across multiple stakeholder perspectives.'
-                                    }
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Stakeholders: {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).join(', ')}
-                                  </p>
-                                  {((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level) && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Consensus Level: {Math.round(((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level || 0) * 100)}%
+                                      }`}
+                                  >
+                                    {(theme as any).multi_stakeholder_type === 'consensus' ? '🤝 ' : '👥 '}
+                                    {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length} Stakeholder{((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).length !== 1 ? 's' : ''}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="max-w-xs">
+                                    <h4 className="font-semibold text-sm">
+                                      {(theme as any).multi_stakeholder_type === 'consensus' ? 'Consensus Area' : 'Multi-Stakeholder Theme'}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {(theme as any).multi_stakeholder_type === 'consensus'
+                                        ? 'Area of stakeholder agreement and shared understanding.'
+                                        : 'This theme was identified across multiple stakeholder perspectives.'
+                                      }
                                     </p>
-                                  )}
-                                  {((theme as any).business_impact || (theme as any).stakeholder_context?.business_impact) && (
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      Impact: {(theme as any).business_impact || (theme as any).stakeholder_context?.business_impact}
+                                      Stakeholders: {((theme as any).source_stakeholders || (theme as any).stakeholder_context?.source_stakeholders || []).join(', ')}
                                     </p>
-                                  )}
-                                  {(theme as any).stakeholder_context?.dominant_stakeholder && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Primary Champion: {(theme as any).stakeholder_context.dominant_stakeholder.replace(/_/g, ' ')}
-                                    </p>
-                                  )}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                                    {((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level) && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Consensus Level: {Math.round(((theme as any).agreement_level || (theme as any).stakeholder_context?.theme_consensus_level || 0) * 100)}%
+                                      </p>
+                                    )}
+                                    {((theme as any).business_impact || (theme as any).stakeholder_context?.business_impact) && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Impact: {(theme as any).business_impact || (theme as any).stakeholder_context?.business_impact}
+                                      </p>
+                                    )}
+                                    {(theme as any).stakeholder_context?.dominant_stakeholder && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Primary Champion: {(theme as any).stakeholder_context.dominant_stakeholder.replace(/_/g, ' ')}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         <Badge variant="secondary" className="text-xs">
                           {Math.round((theme.frequency || 0) * 100)}%
                         </Badge>

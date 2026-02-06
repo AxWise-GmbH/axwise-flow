@@ -127,12 +127,12 @@ export function EnhancedPersonaCard({
   const hasStakeholderFeatures = Boolean(showStakeholderFeatures && stakeholderIntelligence);
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border-border/50 shadow-sm transition-all hover:bg-white/70 dark:hover:bg-slate-950/70 hover:shadow-md", className)}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-blue-100 text-blue-800 font-semibold">
+            <Avatar className="h-12 w-12 border-2 border-white/50 dark:border-slate-800/50 shadow-sm">
+              <AvatarFallback className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-700 dark:text-blue-300 font-bold">
                 {getInitials(persona?.name || "?")}
               </AvatarFallback>
             </Avatar>

@@ -35,16 +35,23 @@ interface ScopeMainViewProps {
   isLoading?: boolean;
 }
 
-function getDatasetSummary(dataset: AxPersonaDataset | undefined) {
-  if (!dataset) {
-    return {
-      personaCount: 0,
-      interviewCount: 0,
-    };
-  }
+function getDatasetSummary(dataset: AxPersonaDataset | undefined, pipelineRunDetail?: PipelineRunDetail) {
+  // Try to get counts from dataset arrays first
+  const datasetPersonaCount = Array.isArray(dataset?.personas) ? dataset.personas.length : 0;
+  const datasetInterviewCount = Array.isArray(dataset?.interviews) ? dataset.interviews.length : 0;
+
+  // If dataset arrays are empty but pipelineRunDetail has counts, use those
+  // This handles cases where dataset deserialization produces empty arrays
+  const personaCount = datasetPersonaCount > 0
+    ? datasetPersonaCount
+    : (pipelineRunDetail?.persona_count ?? 0);
+  const interviewCount = datasetInterviewCount > 0
+    ? datasetInterviewCount
+    : (pipelineRunDetail?.interview_count ?? 0);
+
   return {
-    personaCount: dataset.personas.length,
-    interviewCount: dataset.interviews.length,
+    personaCount,
+    interviewCount,
   };
 }
 
@@ -70,7 +77,10 @@ export function ScopeMainView({
   isLoading,
 }: ScopeMainViewProps) {
   const dataset = pipelineRunDetail?.dataset ?? result?.dataset;
-  const { personaCount, interviewCount } = getDatasetSummary(dataset);
+  // Pass pipelineRunDetail to getDatasetSummary for proper fallback when arrays are empty
+  const datasetSummary = getDatasetSummary(dataset, pipelineRunDetail);
+  const personaCount = datasetSummary.personaCount;
+  const interviewCount = datasetSummary.interviewCount;
 
   // Stakeholder news state
   const currentYear = new Date().getFullYear();
@@ -244,8 +254,8 @@ export function ScopeMainView({
 
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="flex flex-col h-full bg-transparent border-0 shadow-none">
+      <CardHeader className="pb-4 px-0 border-b border-border/50 mb-4">
         <div className="flex items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base">
@@ -310,17 +320,26 @@ export function ScopeMainView({
               <Badge variant="outline">Interviews: {interviewCount}</Badge>
             </div>
 
-            <Tabs defaultValue="dataset" className="flex flex-col mt-3">
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="dataset" className="text-xs flex items-center gap-1.5">
+            <Tabs defaultValue="dataset" className="flex flex-col mt-4">
+              <TabsList className="grid grid-cols-3 w-full bg-muted/20 p-1 rounded-lg">
+                <TabsTrigger
+                  value="dataset"
+                  className="text-xs flex items-center gap-1.5 data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all"
+                >
                   <Users className="h-3.5 w-3.5" />
                   Dataset
                 </TabsTrigger>
-                <TabsTrigger value="video" className="text-xs flex items-center gap-1.5">
+                <TabsTrigger
+                  value="video"
+                  className="text-xs flex items-center gap-1.5 data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all"
+                >
                   <Video className="h-3.5 w-3.5" />
                   Video Simulation
                 </TabsTrigger>
-                <TabsTrigger value="news" className="text-xs flex items-center gap-1.5">
+                <TabsTrigger
+                  value="news"
+                  className="text-xs flex items-center gap-1.5 data-[state=active]:bg-background/80 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm transition-all"
+                >
                   <Newspaper className="h-3.5 w-3.5" />
                   Industry News
                   {stakeholderNews.newsItems.length > 0 && (
@@ -340,7 +359,7 @@ export function ScopeMainView({
                         No personas generated yet for this scope.
                       </p>
                     ) : (
-                      <Accordion type='single' collapsible className='w-full'>
+                      <Accordion type='single' collapsible className='w-full space-y-2'>
                         {personaSections.map(
                           ({ persona, index, name, stakeholderType, interviewsForPersona, simulationProfilesForPersona }) => {
                             const personaKey = `${dataset?.scope_id ?? 'scope'}-persona-${index}`;
@@ -387,12 +406,18 @@ export function ScopeMainView({
                             const stakeholderLabel = getStakeholderRoleLabel(stakeholderType);
 
                             return (
-                              <AccordionItem key={personaKey} value={personaKey}>
-                                <AccordionTrigger className='px-2'>
-                                  <div className='flex flex-col items-start gap-1'>
+                              <AccordionItem
+                                key={personaKey}
+                                value={personaKey}
+                                className='border border-border/50 rounded-lg bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm px-2'
+                              >
+                                <AccordionTrigger className='px-2 hover:no-underline'>
+                                  <div className='flex flex-col items-start gap-1 text-left'>
                                     <div className='flex items-center gap-2'>
-                                      <UserCircle2 className='h-4 w-4 text-muted-foreground' />
-                                      <span className='text-sm font-medium'>{name}</span>
+                                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center">
+                                        <UserCircle2 className='h-4 w-4 text-indigo-600 dark:text-indigo-400' />
+                                      </div>
+                                      <span className='text-sm font-semibold'>{name}</span>
                                     </div>
                                     <div className='flex flex-wrap gap-1 text-[10px] text-muted-foreground'>
                                       <span>{stakeholderLabel}</span>

@@ -3,7 +3,7 @@
 import { type PropsWithChildren, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from './Header';
-import Footer from './Footer';
+import { Footer } from './Footer';
 import { initializeAuth } from '@/lib/authUtils';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsentBanner from '@/components/cookie-consent';
@@ -43,13 +43,19 @@ export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Ele
     );
   }
 
+  // Check if this is a dashboard page
+  const isDashboardPage = pathname?.startsWith('/unified-dashboard') || pathname?.startsWith('/customer-research') || pathname?.startsWith('/axpersona') || pathname?.startsWith('/prototypes');
+
+  // Check if this is the B2B marketing page
+  const isB2BPage = pathname === '/b2b' || pathname?.startsWith('/b2b/');
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className={`flex-grow ${isMarketingPage ? '' : 'container mx-auto px-4 py-8'} ${className}`}>
+      {!isMarketingPage && !isDashboardPage && !isB2BPage && <Header />}
+      <main className={`flex-grow ${isMarketingPage || isDashboardPage || isB2BPage ? '' : 'container mx-auto px-4 py-8'} ${className}`}>
         {children}
       </main>
-      <Footer />
+      {!isMarketingPage && !isDashboardPage && !isB2BPage && <Footer />}
       <Toaster />
       <CookieConsentBanner />
       <AuthStatus />

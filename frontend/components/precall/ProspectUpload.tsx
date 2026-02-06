@@ -86,10 +86,10 @@ export function ProspectUpload({
   const isValid = prospectData !== null && !parseError;
 
   return (
-    <Card className="h-full flex flex-col border-0 rounded-none">
+    <Card className="h-full flex flex-col border-0 rounded-none bg-transparent shadow-none">
       <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-base flex items-center gap-2">
-          <FileJson className="h-4 w-4 text-blue-600" />
+        <CardTitle className="text-base flex items-center gap-2 font-semibold">
+          <FileJson className="h-4 w-4 text-primary" />
           Prospect Data
         </CardTitle>
         <CardDescription className="text-xs">
@@ -102,9 +102,9 @@ export function ProspectUpload({
             variant="outline"
             size="sm"
             onClick={handleLoadExample}
-            className="text-xs h-7"
+            className="text-xs h-7 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-950/80 border-border/50"
           >
-            <Sparkles className="h-3 w-3 mr-1" />
+            <Sparkles className="h-3 w-3 mr-1 text-primary" />
             Example
           </Button>
           <label>
@@ -114,7 +114,7 @@ export function ProspectUpload({
               onChange={handleFileUpload}
               className="hidden"
             />
-            <Button variant="outline" size="sm" className="text-xs h-7" asChild>
+            <Button variant="outline" size="sm" className="text-xs h-7 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-950/80 border-border/50" asChild>
               <span>
                 <Upload className="h-3 w-3 mr-1" />
                 Upload
@@ -127,18 +127,18 @@ export function ProspectUpload({
           placeholder='Paste any JSON data here...'
           value={jsonInput}
           onChange={(e) => handleJsonChange(e.target.value)}
-          className="flex-1 font-mono text-xs min-h-[100px] resize-none"
+          className="flex-1 font-mono text-xs min-h-[100px] resize-none bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-border/50 focus-visible:ring-primary/20"
         />
 
         {parseError && (
-          <Alert variant="destructive" className="py-2 flex-shrink-0">
+          <Alert variant="destructive" className="py-2 flex-shrink-0 bg-red-50/50 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/50 backdrop-blur-sm">
             <AlertCircle className="h-3 w-3" />
             <AlertDescription className="text-xs">{parseError}</AlertDescription>
           </Alert>
         )}
 
         {isValid && (
-          <div className="flex items-center gap-1 text-xs text-green-600 flex-shrink-0">
+          <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 flex-shrink-0 font-medium">
             <CheckCircle className="h-3 w-3" />
             <span>Valid JSON loaded</span>
           </div>
@@ -147,7 +147,7 @@ export function ProspectUpload({
         <Button
           onClick={onGenerate}
           disabled={!isValid || isGenerating}
-          className="w-full flex-shrink-0"
+          className="w-full flex-shrink-0 shadow-md transition-all duration-300"
           size="sm"
         >
           {isGenerating ? (

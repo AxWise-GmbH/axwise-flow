@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import uuid
+import subprocess
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
@@ -76,6 +77,33 @@ class GeminiVideoAnalyzer:
             minutes = seconds // 60
             secs = seconds % 60
             return f"{minutes:02d}:{secs:02d}"
+
+    def _resolve_video_duration(self, video_url: str) -> Optional[int]:
+        """Resolve video duration using yt-dlp if possible."""
+        try:
+            cmd = [
+                "yt-dlp",
+                "--dump-json",
+                "--no-download",
+                "--no-warnings",
+                video_url
+            ]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode == 0:
+                metadata = json.loads(result.stdout)
+                duration = metadata.get("duration")
+                if duration:
+                    return int(duration)
+        except Exception as e:
+            logger.warning(f"[GeminiVideoAnalyzer] Failed to resolve duration for {video_url}: {e}")
+        return None
+
 
     async def _analyze_video_segment(
         self,
@@ -228,6 +256,15 @@ Return ONLY the JSON array, no other text."""
         """
         from google.genai import types
 
+        # Validate/Resolve video duration
+        if not video_duration_seconds:
+            logger.info("[GeminiVideoAnalyzer] Duration not provided, attempting to resolve...")
+            video_duration_seconds = self._resolve_video_duration(video_url)
+            if video_duration_seconds:
+                logger.info(f"[GeminiVideoAnalyzer] Resolved duration: {video_duration_seconds}s")
+            else:
+                logger.warning("[GeminiVideoAnalyzer] Could not resolve duration, defaulting to single-pass")
+
         # Segment size in seconds (5 minutes per segment)
         SEGMENT_SIZE = 300
 
@@ -280,6 +317,12 @@ ACT AS THE FOLLOWING PERSONAS simultaneously:
 
 Task: Watch the ENTIRE video and record significant events from the perspective of each persona.
 Identify moments that would specifically trigger their pain points, motivations, or interest.
+
+**TIMELINE COVERAGE (CRITICAL):**
+- You MUST generate annotations densely throughout the ENTIRE video duration (e.g. every 15-30 seconds).
+- Ensure you cover events from the beginning, middle, AND end of the video.
+- Do not stop analyzing until the video ends.
+
 
 {mapping_instr}
 
@@ -1040,6 +1083,132 @@ DEMO_ANNOTATIONS = [
 ]
 
 
+# Demo Technical Annotations for the Technical Data tab
+DEMO_TECHNICAL_ANNOTATIONS = [
+    TechnicalAnnotation(
+        id="tech-demo-1",
+        timestamp_start="00:05",
+        timestamp_end="00:20",
+        signs_detected=[
+            SignageAnalysis(
+                sign_text="Terminal 1 / Gates A1-A20",
+                sign_type="directional",
+                visibility_score=8,
+                readability="clear",
+                location_description="Overhead near main corridor",
+                issues=[]
+            ),
+            SignageAnalysis(
+                sign_text="Baggage Claim",
+                sign_type="wayfinding",
+                visibility_score=7,
+                readability="clear",
+                location_description="Wall mounted at junction",
+                issues=["Partially obstructed by crowd"]
+            )
+        ],
+        agent_behavior=AgentBehaviorAnalysis(
+            agent_count=45,
+            static_spectators=12,
+            transit_passengers=28,
+            avg_velocity="moderate",
+            dominant_gaze_target="Directional signage",
+            awe_struck_count=3,
+            conversion_opportunities=5
+        ),
+        objects=ObjectDetection(
+            luggage_trolleys=8,
+            smartphones_cameras=15,
+            strollers=2,
+            wheelchairs=1,
+            shopping_bags=6
+        ),
+        navigational_stress_score=35,
+        purchase_intent_score=25,
+        attention_availability=65,
+        summary="Moderate crowd density with good wayfinding visibility. Some congestion near baggage claim signage."
+    ),
+    TechnicalAnnotation(
+        id="tech-demo-2",
+        timestamp_start="00:25",
+        timestamp_end="00:45",
+        signs_detected=[
+            SignageAnalysis(
+                sign_text="Duty Free Shopping",
+                sign_type="retail",
+                visibility_score=9,
+                readability="clear",
+                location_description="Large illuminated sign above store entrance",
+                issues=[]
+            ),
+            SignageAnalysis(
+                sign_text="Information Desk →",
+                sign_type="directional",
+                visibility_score=6,
+                readability="moderate",
+                location_description="Floor standing sign",
+                issues=["Font size too small", "Competing visual clutter"]
+            )
+        ],
+        agent_behavior=AgentBehaviorAnalysis(
+            agent_count=62,
+            static_spectators=25,
+            transit_passengers=22,
+            avg_velocity="slow",
+            dominant_gaze_target="Retail displays",
+            awe_struck_count=8,
+            conversion_opportunities=18
+        ),
+        objects=ObjectDetection(
+            luggage_trolleys=12,
+            smartphones_cameras=28,
+            strollers=4,
+            wheelchairs=0,
+            shopping_bags=15
+        ),
+        navigational_stress_score=55,
+        purchase_intent_score=72,
+        attention_availability=45,
+        summary="High retail engagement zone. Many shoppers pausing at displays. Navigation stress elevated due to congestion."
+    ),
+    TechnicalAnnotation(
+        id="tech-demo-3",
+        timestamp_start="00:50",
+        timestamp_end="01:00",
+        signs_detected=[
+            SignageAnalysis(
+                sign_text="Exit / Ground Transportation",
+                sign_type="wayfinding",
+                visibility_score=8,
+                readability="clear",
+                location_description="Ceiling mounted with backlight",
+                issues=[]
+            )
+        ],
+        agent_behavior=AgentBehaviorAnalysis(
+            agent_count=30,
+            static_spectators=5,
+            transit_passengers=23,
+            avg_velocity="fast",
+            dominant_gaze_target="Exit signage",
+            awe_struck_count=0,
+            conversion_opportunities=2
+        ),
+        objects=ObjectDetection(
+            luggage_trolleys=18,
+            smartphones_cameras=8,
+            strollers=1,
+            wheelchairs=2,
+            shopping_bags=3
+        ),
+        navigational_stress_score=20,
+        purchase_intent_score=8,
+        attention_availability=80,
+        summary="Clear exit flow. Low stress navigation with most passengers focused on departure."
+    ),
+]
+
+
 # ============================================================================
 # API Endpoints
 # ============================================================================
@@ -1212,6 +1381,7 @@ async def analyze_video(request: VideoAnalysisRequest) -> VideoAnalysisResponse:
             video_url=request.video_url,
             video_id=video_id,
             annotations=DEMO_ANNOTATIONS,
+            technical_annotations=DEMO_TECHNICAL_ANNOTATIONS,
             analysis_metadata=AnalysisMetadata(
                 total_annotations=len(DEMO_ANNOTATIONS),
                 duration_analyzed="1:00",
@@ -1380,6 +1550,7 @@ async def analyze_video(request: VideoAnalysisRequest) -> VideoAnalysisResponse:
             video_url=request.video_url,
             video_id=video_id,
             annotations=DEMO_ANNOTATIONS,
+            technical_annotations=DEMO_TECHNICAL_ANNOTATIONS,
             analysis_metadata=AnalysisMetadata(
                 total_annotations=len(DEMO_ANNOTATIONS),
                 duration_analyzed="1:00",

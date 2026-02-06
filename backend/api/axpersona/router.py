@@ -543,8 +543,8 @@ class AxPersonaDataset(BaseModel):
     scope_name: str
     description: str
     personas: List[Dict[str, Any]]
-    interviews: List[Dict[str, Any]]
-    analysis: DetailedAnalysisResult
+    interviews: List[Dict[str, Any]] = Field(default_factory=list)
+    analysis: Optional[DetailedAnalysisResult] = None
     quality: Dict[str, Any]
     # Optional: raw simulation people (SimulatedPerson) for richer demographic display
     simulation_people: List[Dict[str, Any]] = Field(default_factory=list)
@@ -1703,46 +1703,66 @@ async def get_pipeline_run_detail(job_id: str) -> PipelineRunDetail:
         GET /api/axpersona/v1/pipeline/runs/502255cd-59ef-40b1-a0bb-68e4a0226fa0
     """
 
-    async with UnitOfWork(SessionLocal) as uow:
-        repo = PipelineRunRepository(uow.session)
-        db_run = await repo.get_by_job_id(job_id)
+    try:
+        async with UnitOfWork(SessionLocal) as uow:
+            repo = PipelineRunRepository(uow.session)
+            db_run = await repo.get_by_job_id(job_id)
 
-        if not db_run:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Pipeline run {job_id} not found"
+            if not db_run:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Pipeline run {job_id} not found"
+                )
+
+            # Convert execution trace
+            execution_trace = []
+            if db_run.execution_trace:
+                execution_trace = [
+                    PipelineStageTrace(**stage) for stage in db_run.execution_trace
+                ]
+
+            # Convert dataset
+            dataset = None
+            if db_run.dataset:
+                try:
+                    dataset = AxPersonaDataset(**db_run.dataset)
+                except Exception as e:
+                    logger.warning(f"Failed to parse dataset for run {job_id}, trying without analysis: {e}")
+                    # Try to parse without the analysis field which may be malformed
+                    try:
+                        dataset_dict = dict(db_run.dataset)
+                        # Remove the problematic analysis field and let it default to None
+                        dataset_dict.pop('analysis', None)
+                        dataset = AxPersonaDataset(**dataset_dict)
+                        logger.info(f"Successfully parsed dataset for run {job_id} without analysis field")
+                    except Exception as e2:
+                        logger.error(f"Failed to parse dataset even without analysis for run {job_id}: {e2}")
+                        # Don't fail the entire request - just return None for dataset
+                        # The frontend will use fallback counts from pipelineRunDetail
+
+            return PipelineRunDetail(
+                job_id=db_run.job_id,
+                status=db_run.status,
+                created_at=db_run.created_at.isoformat(),
+                started_at=db_run.started_at.isoformat() if db_run.started_at else None,
+                completed_at=db_run.completed_at.isoformat() if db_run.completed_at else None,
+                duration_seconds=db_run.duration_seconds,
+                business_context=db_run.business_context,
+                execution_trace=execution_trace,
+                total_duration_seconds=db_run.total_duration_seconds,
+                dataset=dataset,
+                questionnaire_stakeholder_count=db_run.questionnaire_stakeholder_count,
+                simulation_id=db_run.simulation_id,
+                analysis_id=db_run.analysis_id,
+                persona_count=db_run.persona_count,
+                interview_count=db_run.interview_count,
+                error=db_run.error,
             )
-
-        # Convert execution trace
-        execution_trace = []
-        if db_run.execution_trace:
-            execution_trace = [
-                PipelineStageTrace(**stage) for stage in db_run.execution_trace
-            ]
-
-        # Convert dataset
-        dataset = None
-        if db_run.dataset:
-            dataset = AxPersonaDataset(**db_run.dataset)
-
-        return PipelineRunDetail(
-            job_id=db_run.job_id,
-            status=db_run.status,
-            created_at=db_run.created_at.isoformat(),
-            started_at=db_run.started_at.isoformat() if db_run.started_at else None,
-            completed_at=db_run.completed_at.isoformat() if db_run.completed_at else None,
-            duration_seconds=db_run.duration_seconds,
-            business_context=db_run.business_context,
-            execution_trace=execution_trace,
-            total_duration_seconds=db_run.total_duration_seconds,
-            dataset=dataset,
-            questionnaire_stakeholder_count=db_run.questionnaire_stakeholder_count,
-            simulation_id=db_run.simulation_id,
-            analysis_id=db_run.analysis_id,
-            persona_count=db_run.persona_count,
-            interview_count=db_run.interview_count,
-            error=db_run.error,
-        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error getting pipeline run {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
 
 
 # ============================================================================
