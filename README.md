@@ -8,18 +8,18 @@
 [![Contributors](https://contrib.rocks/image?repo=AxWise-GmbH/axwise-flow)](https://github.com/AxWise-GmbH/axwise-flow/graphs/contributors)
 
 
-**Your AI co‑pilot from raw customer input to actionable product plans.**
+**Your automated design thinking engine for generating sophisticated synthetic persona datasets.**
 
-AxWise Flow transforms user interviews and customer feedback into **evidence‑linked Product Requirements Documents (PRDs)** through a context‑engineered workflow. Every insight, persona, and requirement traces back to verbatim quotes, interviews, speakers, and timestamps.
+AxWise Flow transforms raw customer input, video analysis, and automated research simulations into **evidence-linked synthetic personas and behavioral datasets** through a context-engineered workflow. Every insight, persona, and demographic trait traces back to verbatim quotes, real-time interviews, speakers, and timestamps.
 
 ## 🎯 What Makes AxWise Flow Different
 
 ### Context Engineering 2.0: Active Understanding, Not Passive Retrieval
 
-Most tools dump all your data into an LLM and hope for the best. AxWise Flow **actively assembles, compresses, and evolves context** across a multi‑agent pipeline:
+Most tools dump all your data into an LLM and hope for the best. AxWise Flow **actively assembles, compresses, and evolves context** across a multi‑agent pipeline to generate robust datasets:
 
 ```
-Research Scope → Synthetic Interviews → Analysis → Themes → Patterns → Personas → Insights → PRD
+Research Scope & Video Data → Synthetic Interviews → Analysis → Themes → Patterns → Personas → Insights & Datasets
 ```
 
 **Every step maintains complete evidence traceability:**
@@ -77,22 +77,22 @@ The **PRD Agent** synthesizes requirements with complete evidence chains:
 ## 🚀 What You Get
 
 ### For Product Teams
-- ✅ **Evidence-Linked PRDs**: Every requirement traces to customer quotes
-- ✅ **Synthetic Scenarios**: Explore edge cases and gaps in your research
-- ✅ **Stakeholder Personas**: Built only from self-identified claims, not assumptions
-- ✅ **Audit Trails**: Defend decisions with complete evidence chains
+- ✅ **Evidence-Linked Personas**: Every persona generated traces directly to customer quotes and real data.
+- ✅ **Synthetic Datasets**: Generate reliable, compliant synthetic datasets on demand in your own lakehouse.
+- ✅ **Stakeholder Simulation**: Explore edge cases and test ideas against self-identified persona claims.
+- ✅ **Evidence Intelligence**: An advanced validation sub-engine that verifies every claim against the source material.
 
 ### For Researchers
-- ✅ **Automated Theme Extraction**: Hierarchical themes across all interviews
-- ✅ **Pattern Recognition**: Surface cross-interview insights automatically
-- ✅ **Sentiment Analysis**: Track emotional signals across transcripts
-- ✅ **Multi-Stakeholder Analysis**: Analyze different perspectives simultaneously
+- ✅ **Live Research & Simulation**: Conduct active, live customer research sessions through conversational routines dynamically.
+- ✅ **Multimodal Video Analysis**: Ingest long videos (up to 60+ mins) to extract technical annotations and visual behaviors.
+- ✅ **Hyper-Local Demographics**: Automatically generate localized traits (matching local food, dietary tags, and typical cafe orders).
+- ✅ **Pattern & Theme Recognition**: Surface cross-interview insights automatically across both audio/text and video data.
 
 ### For Developers
-- ✅ **REST API First**: Interactive docs at `/docs`—integrate without the UI
-- ✅ **Self-Hosted**: PostgreSQL + FastAPI + optional Next.js frontend
-- ✅ **OSS Mode**: No auth required for local development
-- ✅ **Production Ready**: Enable Clerk auth for production deployments
+- ✅ **REST API First**: Interactive docs at `/docs`—integrate without the UI.
+- ✅ **Self-Hosted Data Privacy**: PostgreSQL + FastAPI + Next.js frontend, ensuring zero data leakage.
+- ✅ **OSS Mode**: No auth required for local development.
+- ✅ **Production Ready**: Enable Clerk auth for production deployments.
 
 ---
 
@@ -100,11 +100,13 @@ The **PRD Agent** synthesizes requirements with complete evidence chains:
 
 | Feature | Description |
 |---------|-------------|
-| **Evidence Traceability** | Every insight links back to interview + speaker + timestamp |
+| **Evidence Traceability** | Every insight links back to interview + speaker + timestamp via the **Evidence Intelligence** validation engine. |
 | **Context Engineering** | LLM-based context extraction + progressive compression pipeline |
 | **Unified Analysis Agent** | Single PydanticAI agent with 6 typed stages (themes → patterns → stakeholders → sentiment → personas → insights) |
-| **Synthetic Interviews** | AI-generated personas and interviews that fill research gaps |
-| **Evidence Chain** | PRD → Insights → Personas → Patterns → Themes → Quotes → Interviews |
+| **Live Research & Synthetic Interviews** | AI-generated personas and conversational routines that fill research gaps dynamically. |
+| **Multimodal Video Processing** | Long-form video ingestion producing technical and navigational behavior analysis. |
+| **Evidence Chain** | Synthetic Datasets → Insights → Personas → Patterns → Themes → Quotes → Sources |
+| **Hyper-Local Demographics** | Specialized AI models that inject hyper-realistic local data (likes, food traits, behaviors) into personas. |
 | **API-First Design** | FastAPI backend with interactive `/docs` |
 | **Self-Hosted** | PostgreSQL + Python 3.11 + Node.js 18+ |
 | **OSS Mode** | Authentication disabled for simplified local setup |
@@ -462,6 +464,26 @@ curl -X POST "http://localhost:8000/api/precall/v1/generate" \
 **Frontend Access**: Navigate to `/precall` to use the Precall Intelligence dashboard.
 
 ---
+
+### 📹 Use Case 4: Multimodal Video Analysis & Synthetic Data
+
+**For**: UX Researchers, Behavioral Analysts, and Product Designers.
+
+A powerful multimodal pipeline extending the main engine. It ingests video content (e.g., recorded behavior, usability tests, or video interviews) and uses Gemini's multimodal capabilities to chunk, analyze, and map behavioral blueprints.
+
+```
+Long-Form Video Upload → Technical/Navigational Chunking → Multimodal Analysis → Behavioral Personas & Annotations
+```
+
+**API Endpoints**:
+- `POST /api/axpersona/video-analysis` - Triggers the automated long-running chunked Gemini job.
+
+**What it produces**:
+- **Technical Annotations**: Extracts specific user behaviors like navigation logic, sign-reading logic, or UI sticking points.
+- **Multimodal Insights**: Maps video gestures, pacing, and visual behavior.
+- **Enhanced Synthetic Datasets**: The video insights are heavily stitched directly back into the core AxPersona generation pipeline to enhance the reality of the generated personas.
+
+**Frontend Access**: The Video Simulation Panel allows you to watch the simulation run, view extracted UI/environment insights, and see the synthesis of the video data.
 
 ### Key Architectural Principles
 
