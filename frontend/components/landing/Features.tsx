@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Target, BarChart3, FileText, ArrowRight, Sparkles } from 'lucide-react';
-const flowDiagramImage = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop';
+const flowDiagramImage = 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2670&auto=format&fit=crop';
 
 function FeatureCard({ icon: Icon, title, description, badge, delay }: any) {
   return (
@@ -32,21 +32,21 @@ export function Features() {
   const features = [
     {
       icon: Target,
-      title: 'Simulates Research',
-      description: 'Conduct synthetic interviews with AI personas to test concepts instantly. No waiting, no scheduling—just immediate insights.',
-      badge: 'AI POWERED'
+      title: 'Analyze Multimodal Data',
+      description: 'Turn raw video streams, spatial interactions, and customer conversations into structured, actionable intelligence instantly.',
+      badge: 'AUTOMATED INSIGHTS'
     },
     {
       icon: BarChart3,
-      title: 'Automates Analysis',
-      description: 'Converts raw data into deep insights and user stories automatically. Transform interviews into actionable intelligence.',
-      badge: 'SMART ANALYSIS'
+      title: 'Generate Synthetic Datasets',
+      description: 'Need data yesterday? Conduct thousands of simulated, context-aware interviews to generate robust datasets on command.',
+      badge: 'INFINITE SCALING'
     },
     {
       icon: FileText,
-      title: 'Delivers Specs',
-      description: 'Generates comprehensive Product Requirement Documents (PRDs) automatically. From concept to detailed specification in minutes.',
-      badge: 'INSTANT DOCS'
+      title: 'Synthesize Personas',
+      description: 'Build highly reliable, data-backed synthetic personas by combining real insights with sophisticated AI simulations.',
+      badge: 'RELIABLE OUTPUTS'
     }
   ];
 
@@ -68,11 +68,11 @@ export function Features() {
               </div>
 
               <h2 className="text-black mb-8" style={{ fontSize: 'clamp(2.5rem, 4vw, 4rem)' }}>
-                All features in 1 platform
+                Automated Design Thinking Engine
               </h2>
 
               <p className="text-gray-600 mb-10 max-w-lg text-xl leading-relaxed">
-                AxWise is designed for efficiency, enabling product teams to validate ideas across a range of workflows—from initial concept to comprehensive PRD—while maintaining high performance and a reduced time footprint.
+                AxWise is an engine to create datasets through an automated design thinking process. We identify, simulate interviews, and analyze them—creating reliable, sophisticated synthetic personas for a particular problem in a particular area.
               </p>
 
               {/* Action Buttons */}
@@ -88,7 +88,7 @@ export function Features() {
                     boxShadow: '0 4px 14px 0 rgba(0, 0, 0, 0.25)'
                   }}
                 >
-                  Get Started
+                  Calculate Your ROI
                 </motion.a>
                 <motion.a
                   href="#ocean"
@@ -103,7 +103,7 @@ export function Features() {
                     document.getElementById('ocean')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
-                  Learn more
+                  See Enterprise Use Cases
                   <ArrowRight className="w-5 h-5" />
                 </motion.a>
               </div>

@@ -72,83 +72,147 @@ root
  |-- quote: string`
     },
     {
-        id: 'supplier',
-        label: 'Supplier',
-        title: 'Supplier consolidation & resilience',
-        filename: 'global-supply-chain-risk-sample',
+        id: 'spatial',
+        label: 'Spatial Analytics',
+        title: 'Airport Navigation & Spatial Flow Analysis',
+        filename: 'airport-terminal-flow-sample',
         content: {
-            businessIdea: "Optimize supplier base for resilience and cost efficiency across global manufacturing hubs.",
-            primaryPersona: "The Strategic Sourcing Architect - balances cost savings with supply chain robustness and ethical compliance.",
-            problem: "Fragmented supplier networks lead to 15-20% higher costs and increased vulnerability to geopolitical shocks.",
+            businessIdea: "Optimize terminal layouts and security checkpoints by simulating passenger flow and analyzing real video feeds.",
+            primaryPersona: "The Terminal Operations Architect - balances passenger throughput with security mandates and commercial revenue.",
+            problem: "Bottlenecks in security and retail zones cause 15% revenue loss and decrease passenger satisfaction scores.",
             themes: [
-                "Supply chain resilience & diversification",
-                "Cost optimization via consolidation",
-                "ESG compliance & vendor transparency"
+                "Real-time video stream ingestion & spatial mapping",
+                "Predictive bottleneck simulation",
+                "Retail conversion optimization via flow adjustments"
             ],
             stakeholders: [
-                "Chief Procurement Officer",
-                "VP of Supply Chain",
-                "Sustainability Director",
-                "Regional Operations Heads"
+                "VP of Airport Operations",
+                "Chief Commercial Officer",
+                "Head of Security",
+                "Aviation Authority Liaisons"
             ],
-            keyQuote: "We need to move from transactional relationships to strategic partnerships, but we lack the visibility to identify who our critical partners truly are.",
+            keyQuote: "If we can simulate the impact of moving the duty-free entrance based on Saturday morning's video feeds, we can recover millions in lost dwell time."
         },
-        parquetSchema: `// Parquet projection: stuttgart-supplier-consolidation-sample interview
+        parquetSchema: `// Parquet projection: airport-terminal-flow-sample
 root
  |-- dataset: string
- |-- interview_id: string
- |-- company: string
- |-- location: string
- |-- persona: struct
- |    |-- name: string
- |    |-- role: string
- |    |-- archetype: string
- |-- objective: string
- |-- constraints: struct
- |    |-- max_concentration_per_category_pct: double
- |    |-- min_geographic_regions_per_critical_part: int
- |    |-- min_dual_source_coverage_pct: double
- |-- themes: array<string>
- |    |-- element: string
- |-- current_risks: array<string>
- |    |-- element: string
+ |-- terminal_id: string
+ |-- simulation_timestamp: timestamp
+ |-- passenger_persona: struct
+ |    |-- type: string
+ |    |-- stress_tolerance_index: double
+ |    |-- dwell_time_minutes: int
+ |-- spatial_coordinates: struct
+ |    |-- x_map: double
+ |    |-- y_map: double
+ |    |-- zone_type: string
+ |-- bottleneck_probability_pct: double
+ |-- projected_retail_conversion_pct: double
  |-- quote: string`
     },
     {
-        id: 'industry',
-        label: 'Industry',
-        title: 'Industry 4.0 / IoT & predictive maintenance',
-        filename: 'smart-factory-iot-sample',
+        id: 'ecommerce',
+        label: 'E-Commerce',
+        title: 'Cart Abandonment & Dynamic Pricing',
+        filename: 'global-retail-checkout-sample',
         content: {
-            businessIdea: "Implement predictive maintenance via IoT sensors to reduce unplanned downtime in automotive manufacturing.",
-            primaryPersona: "The Digital Factory Transformation Lead - bridges the gap between OT and IT to drive operational excellence.",
-            problem: "Unplanned equipment failure costs $22k/minute in lost production; preventive maintenance is too costly and inefficient.",
+            businessIdea: "Decrease cart abandonment rates through real-time behavioral simulation and dynamic pricing triggers.",
+            primaryPersona: "The Conversion Rate Optimization Lead - obsessed with frictionless checkout and maximizing lifetime value.",
+            problem: "70% of high-intent carts are abandoned at the shipping calculation step, costing $12M annually in lost revenue.",
             themes: [
-                "IT/OT convergence challenges",
-                "Data silo integration",
-                "Workforce upskilling for digital tools"
+                "Frictionless localized checkout experiences",
+                "Price elasticity and dynamic discount triggers",
+                "Post-purchase retention engines"
             ],
             stakeholders: [
-                "Plant Manager",
-                "Head of Maintenance",
-                "IT Infrastructure Lead",
-                "Production Scheduler"
+                "VP of E-Commerce",
+                "Head of Performance Marketing",
+                "Fraud & Risk Manager",
+                "Supply Chain Director"
             ],
-            keyQuote: "The sensors are there, but the insights are trapped in proprietary systems. We need a unified view to predict failures before they stop the line.",
+            keyQuote: "We are losing customers seconds before the swipe. We need to instantly simulate thousands of checkout flows to pinpoint the exact pricing threshold that converts."
         },
-        parquetSchema: `// Parquet projection: smart-factory-iot-sample
+        parquetSchema: `// Parquet projection: global-retail-checkout-sample
 root
  |-- dataset: string
- |-- interview_id: string
- |-- factory_id: string
- |-- location: string
- |-- role: string
- |-- machine_type: string
- |-- sensor_protocol: string
- |-- downtime_cost_per_min: double
- |-- maintenance_strategy: string
- |-- challenges: array<string>
- |    |-- element: string
+ |-- session_id: string
+ |-- cart_value_usd: double
+ |-- user_segment: string
+ |-- geographic_region: string
+ |-- dropoff_step: string
+ |-- simulated_price_elasticity: double
+ |-- optimal_discount_pct: double
+ |-- conversion_probability: double
+ |-- quote: string`
+    },
+    {
+        id: 'automotive',
+        label: 'Automotive',
+        title: 'In-Cabin UX & Autonomous Trust',
+        filename: 'ev-cabin-experience-sample',
+        content: {
+            businessIdea: "Design intuitive in-cabin software interfaces that build driver trust in Level 3 and 4 autonomous systems.",
+            primaryPersona: "The Human-Machine Interface (HMI) Designer - focuses on cognitive load and seamless driver-to-vehicle handoffs.",
+            problem: "Drivers disengage autonomous features due to confusing UI alerts and lack of transparency regarding the system's intent.",
+            themes: [
+                "Cognitive load during autonomous handoffs",
+                "Gaze tracking and driver attention metrics",
+                "Auditory vs. visual alert effectiveness"
+            ],
+            stakeholders: [
+                "Head of Autonomous Driving",
+                "VP of User Experience Design",
+                "Safety & Compliance Officer",
+                "Chief Software Engineer"
+            ],
+            keyQuote: "If the car needs the driver to take the wheel at 70mph, the screen can't just beep. We need to simulate the cognitive panic and design a UX that builds instant system trust."
+        },
+        parquetSchema: `// Parquet projection: ev-cabin-experience-sample
+root
+ |-- dataset: string
+ |-- simulation_id: string
+ |-- autonomy_level: string
+ |-- event_type: string
+ |-- driver_gaze_zone: string
+ |-- cognitive_load_index: double
+ |-- handoff_reaction_time_ms: int
+ |-- ui_alert_modality: string
+ |-- system_trust_score: double
+ |-- quote: string`
+    },
+    {
+        id: 'adtech',
+        label: 'AdTech',
+        title: 'Privacy-First Ad Bidding Simulation',
+        filename: 'cookieless-bidding-algorithm-sample',
+        content: {
+            businessIdea: "Optimize real-time bidding algorithms using synthetic consumer cohorts in a cookieless, privacy-first ecosystem.",
+            primaryPersona: "The Programmatic Yield Optimizer - balances publisher revenue with strict multi-region privacy compliance.",
+            problem: "The deprecation of third-party cookies is degrading targeting accuracy, leading to a 25% drop in ROAS (Return on Ad Spend) for major brands.",
+            themes: [
+                "Synthetic cohort generation & clean rooms",
+                "Zero-party data utilization",
+                "Algorithmic bid pacing and yield management"
+            ],
+            stakeholders: [
+                "Chief Revenue Officer",
+                "Head of Programmatic Media",
+                "Data Privacy Officer",
+                "Brand Agency Partner"
+            ],
+            keyQuote: "Without tracking pixels, we're flying blind. We must deploy synthetic cohorts that perfectly mimic our target segments so we can train our bidding models without touching PII."
+        },
+        parquetSchema: `// Parquet projection: cookieless-bidding-algorithm-sample
+root
+ |-- dataset: string
+ |-- bid_request_id: string
+ |-- synthetic_cohort_id: string
+ |-- simulated_intent_score: double
+ |-- context_category: string
+ |-- privacy_framework: string
+ |-- predicted_ctr: double
+ |-- optimal_cpm_bid: double
+ |-- conversion_likelihood: double
  |-- quote: string`
     }
 ];
@@ -252,7 +316,7 @@ export function CodeCarousel() {
                         <div className="p-6 overflow-x-auto min-h-[400px] max-h-[600px] custom-scrollbar">
                             <AnimatePresence mode="wait">
                                 <motion.div
-                                    key={`${activeData.id}-${format}`}
+                                    key={`${activeData.id} - ${format}`}
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}

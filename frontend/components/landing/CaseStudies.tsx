@@ -9,45 +9,48 @@ export function CaseStudies() {
   const projects = [
     {
       id: 1,
-      category: 'SaaS',
-      title: 'ERP Implementation Stakeholder Analysis',
-      company: 'Enterprise Software Company',
-      challenge: 'Multiple business units (IT, Finance, Operations) with conflicting priorities on a $2M ERP modernization.',
-      researchTime: '4 hours',
-      vsTime: '3 weeks',
-      keyInsight: '8 critical conflict areas',
-      quote: 'The consensus scoring revealed that Operations had risk concerns Finance completely missed - insights that would have taken us 3 months and 50 interviews to uncover. Instead, we had it in an afternoon.',
-      attribution: 'Senior Product Manager',
-      attributionCompany: 'Enterprise Software Company',
-      image: 'https://images.unsplash.com/photo-1709715357520-5e1047a2b691?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHRlYW0lMjBtZWV0aW5nfGVufDF8fHx8MTc2NDk1NTg2OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+      category: 'E-Commerce',
+      title: 'Global Retail Checkout Optimization',
+      company: 'Enterprise E-Commerce Platform',
+      challenge: 'High-intent cart abandonment at shipping calculation costing $12M annually.',
+      researchTime: '2 hours',
+      vsTime: '6 weeks',
+      keyInsight: 'Identified exact price elasticity threshold',
+      quote: 'We simulated thousands of checkout flows instantly and pinpointed the exact pricing threshold that converts. We recovered millions in lost revenue without writing a single line of survey code.',
+      attribution: 'VP of E-Commerce',
+      attributionCompany: 'Retail Leader',
+      // high quality ecommerce checkout or shopping image
+      image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlY29tbWVyY2V8ZW58MHx8fHwxNzY1MDU0MTU3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
     },
     {
       id: 2,
-      category: 'Professional Services',
-      title: 'Pan-European Market Expansion',
-      company: 'Fortune 500 Consulting Firm',
-      challenge: 'Need to understand 12 diverse European market segments before launching go-to-market strategy.',
-      researchTime: '6 hours',
-      vsTime: '14 weeks',
-      keyInsight: '96% demographic match to census',
-      quote: 'We identified 12 previously unknown objection patterns across segments. This shaped our entire go-to-market strategy and saved 8 weeks of field research.',
-      attribution: 'VP of Market Research',
-      attributionCompany: 'Fortune 500 Consulting',
-      image: 'https://images.unsplash.com/photo-1764726354539-96228698dc45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnbG9iYWwlMjBidXNpbmVzcyUyMHN0cmF0ZWd5fGVufDF8fHx8MTc2NTA2MDkwMXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+      category: 'Automotive',
+      title: 'Autonomous Vehicle Trust & In-Cabin UX',
+      company: 'Global EV Manufacturer',
+      challenge: 'Drivers disengaging Level 3 autonomous features due to confusing UI alerts and lack of system trust.',
+      researchTime: '5 hours',
+      vsTime: '12 weeks',
+      keyInsight: 'Modeled cognitive load during handoffs',
+      quote: 'Instead of expensive and dangerous physical driving simulations, we modeled the cognitive panic of a 70mph handoff synthetically. It shaped our entire in-cabin auditory alert system.',
+      attribution: 'Head of Autonomous Driving',
+      attributionCompany: 'Global EV Manufacturer',
+      // car interior UI or autonomous driving image
+      image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhdXRvbW90aXZlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzY1MDU0MjEyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
     },
     {
       id: 3,
-      category: 'Manufacturing/Supply Chain',
-      title: 'Supply Chain Optimization Study',
-      company: 'Mid-Market Manufacturing',
-      challenge: 'Evaluating vendor consolidation impact across procurement, logistics, and finance teams.',
-      researchTime: '4 hours',
-      vsTime: '9 weeks',
-      keyInsight: 'Modeled all stakeholder concerns',
-      quote: 'Instead of guessing which consolidation approach would work, we modeled all stakeholder concerns. Consensus scoring showed us the sweet spot between cost savings and operational risk.',
-      attribution: 'Chief Procurement Officer',
-      attributionCompany: 'Mid-Market Manufacturing',
-      image: 'https://images.unsplash.com/photo-1573209680076-bd7ec7007616?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXBwbHklMjBjaGFpbiUyMGxvZ2lzdGljc3xlbnwxfHx8fDE3NjUwNjA5MDF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
+      category: 'AdTech',
+      title: 'Privacy-First Bidding Algorithms',
+      company: 'Programmatic Advertising Network',
+      challenge: 'Deprecation of third-party cookies leading to degraded targeting and 25% drop in Return on Ad Spend.',
+      researchTime: '8 hours',
+      vsTime: '4 months',
+      keyInsight: 'Generated 50k privacy-safe profiles',
+      quote: 'We deployed synthetic cohorts that perfectly mimicked our target segments. We trained our new bidding models without touching a single piece of PII, completely de-risking our privacy compliance.',
+      attribution: 'Chief Revenue Officer',
+      attributionCompany: 'Programmatic AdTech',
+      // data, analytics, tech abstraction image 
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkYXRhJTIwYW5hbHl0aWNzfGVufDB8fHx8MTc2NTA1NDI4Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral'
     }
   ];
 
@@ -112,7 +115,7 @@ export function CaseStudies() {
                 boxShadow: activeTab === index ? '0 4px 14px 0 rgba(0, 0, 0, 0.25)' : 'none'
               }}
             >
-              PROJECT {project.id}
+              {project.category}
             </motion.button>
           ))}
         </div>
