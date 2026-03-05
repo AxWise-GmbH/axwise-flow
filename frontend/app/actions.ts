@@ -10,7 +10,7 @@
 import { apiClient } from '@/lib/apiClient';
 import { generatePRD } from '@/lib/api/prd';
 import type { DetailedAnalysisResult, UploadResponse, AnalysisResponse, PRDResponse } from '@/types/api';
- // Rem-addd UploadResponse, AnalysisResponse
+// Rem-addd UploadResponse, AnalysisResponse
 import { cookies } from 'next/headers';
 
 /**
@@ -55,9 +55,32 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
       // FileReader is a browser-only API and cannot be used in server actions
     }
 
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    // Set the token on the API client
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    // Check if we're using Clerk validation
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        // Dynamically import auth to prevent breaking OSS builds where Clerk might be missing
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+          console.log('Successfully retrieved Clerk auth token for upload');
+        } else {
+          console.warn('Clerk is enabled but no auth token was found');
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
+
+    // Set the token on the API client (though we'll use direct fetch below)
     apiClient.setAuthToken(authToken);
 
     // Create a new FormData to send to the API
@@ -144,7 +167,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
             }
           };
 
-          xhr.onload = function() {
+          xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
               console.log('XHR upload successful');
 
@@ -174,12 +197,12 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
             }
           };
 
-          xhr.onerror = function() {
+          xhr.onerror = function () {
             console.error('XHR upload failed with network error');
             reject(new Error('Network error during file upload'));
           };
 
-          xhr.onabort = function() {
+          xhr.onabort = function () {
             console.error('XHR upload aborted');
             reject(new Error('File upload was aborted'));
           };
@@ -342,7 +365,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
           } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
             // Handle FastAPI validation error format
             errorMessage = errorData.detail.map((err: any) =>
-              `${err.loc ? err.loc.join('.'): ''}: ${err.msg || 'Unknown error'}`
+              `${err.loc ? err.loc.join('.') : ''}: ${err.msg || 'Unknown error'}`
             ).join(', ');
           } else if (typeof errorData.message === 'string') {
             errorMessage = errorData.message;
@@ -443,8 +466,26 @@ export async function analyzeAction(
   llmProvider: 'openai' | 'gemini' = 'gemini'
 ): Promise<{ success: true; analysisResponse: AnalysisResponse } | { success: false; error: string }> {
   try {
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    // Check if we're using Clerk validation
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
 
     // Call backend directly instead of going through frontend API route
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -509,14 +550,31 @@ export async function getRedirectUrl(analysisId: string): Promise<string> {
  */
 export async function getServerSideAnalysis(analysisId: string): Promise<DetailedAnalysisResult | null> {
   if (!analysisId) {
-      console.log("[getServerSideAnalysis] Received null or empty analysisId."); // DEBUG LOG
-      return null;
+    console.log("[getServerSideAnalysis] Received null or empty analysisId."); // DEBUG LOG
+    return null;
   }
   console.log(`[getServerSideAnalysis] Received analysisId: ${analysisId}`); // DEBUG LOG
 
   try {
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
 
@@ -537,8 +595,25 @@ export async function getServerSideAnalysis(analysisId: string): Promise<Detaile
  */
 export async function getLatestCompletedAnalysis(): Promise<DetailedAnalysisResult | null> {
   try {
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
 
@@ -602,8 +677,25 @@ export async function getLatestCompletedAnalysis(): Promise<DetailedAnalysisResu
  */
 export async function fetchAnalysisHistory(page: number = 1, pageSize: number = 10) {
   try {
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
 
     // Set the token on the API client
     apiClient.setAuthToken(authToken);
@@ -642,8 +734,25 @@ export async function getServerSidePRD(analysisId: string, forceRegenerate: bool
   try {
     console.log(`[getServerSidePRD] Generating PRD for analysis ID: ${analysisId}, forceRegenerate: ${forceRegenerate}`);
 
-    // Use development token (Clerk removed)
-    const authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get auth token from Clerk in production, fallback to dev token if disabled
+    let authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+
+    const useClerk = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true' ||
+      process.env.NODE_ENV === 'production';
+
+    if (useClerk) {
+      try {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authCtx = await auth();
+        const { getToken } = authCtx;
+        const clerkToken = await getToken();
+        if (clerkToken) {
+          authToken = clerkToken;
+        }
+      } catch (e) {
+        console.warn('Failed to get Clerk auth token:', e);
+      }
+    }
 
     // Set the token on the API client
     apiClient.setAuthToken(authToken);

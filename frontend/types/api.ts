@@ -567,7 +567,9 @@ export interface PRDResponse {
         insights_count: number;
         personas_count: number;
       };
-      generation_time: number;
+      generation_time?: number;
+      prd_type?: string;
+      industry?: string;
     };
   };
   // Legacy compatibility

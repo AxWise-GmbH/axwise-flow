@@ -1,11 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string | null> {
-  // OSS mode: return development token
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  try {
+    // Get the authentication context from Clerk
+    const authResult = await auth();
+    const { userId } = authResult;
+
+    if (!userId) {
+      console.log('No authenticated user found');
+      return null;
+    }
+
+    // Get the JWT token from Clerk
+    const token = await authResult.getToken();
+
+    if (!token) {
+      console.log('No JWT token available from Clerk');
+      return null;
+    }
+
+    return token;
+  } catch (error) {
+    console.error('Error getting Clerk token:', error);
+    return null;
+  }
 }
 
 export async function GET(

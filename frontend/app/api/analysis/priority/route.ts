@@ -4,7 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string> {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  // In development mode, use a development token
+  if (process.env.NODE_ENV === 'development') {
+    return 'vitalijs_axwise_de';
+  }
+
+  // In production, this would get the actual Clerk JWT token
+  // For now, return development token
+  return 'vitalijs_axwise_de';
 }
 
 export async function GET(request: NextRequest) {

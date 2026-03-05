@@ -14,6 +14,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { FileText, BarChart3, MessageSquare, Users, FlaskConical, BookOpen, Upload, Clock, TrendingUp, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UserProfile } from '@/components/user-profile';
 
 import type { ReactNode } from 'react';
 
@@ -170,15 +171,9 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
           })}
         </nav>
 
-        {/* Sidebar Footer / User Profile snippet could go here */}
-        <div className="p-4 border-t border-border/40 bg-muted/10">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 border border-border/50" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">User Account</p>
-              <p className="text-xs text-muted-foreground truncate">Pro Plan</p>
-            </div>
-          </div>
+        {/* Sidebar Footer / User Profile */}
+        <div className="p-4 border-t border-border/40 bg-muted/10 flex items-center justify-center">
+          <UserProfile />
         </div>
       </div>
 
