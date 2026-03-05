@@ -1,0 +1,44 @@
+steps:
+  # Debug: show the backend Dockerfile and requirements shipped to Cloud Build
+  - name: "bash"
+    entrypoint: "bash"
+    args:
+      - -lc
+      - |
+        echo '--- BEGIN backend/requirements.txt (submitted) ---'
+        sed -n '1,120p' backend/requirements.txt || true
+        echo '--- END backend/requirements.txt ---'
+        echo
+        echo '--- BEGIN backend/Dockerfile (submitted) ---'
+        sed -n '1,120p' backend/Dockerfile || true
+        echo '--- END backend/Dockerfile ---'
+
+  # Build the Docker image (use backend/ as build context)
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "--no-cache",
+        "-t",
+        "$_IMAGE_NAME",
+        "-f",
+        "backend/Dockerfile",
+        "backend",
+      ]
+
+  # Push the image to Artifact Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "$_IMAGE_NAME"]
+
+# Substitutions for the build
+substitutions:
+  _IMAGE_NAME: "europe-west4-docker.pkg.dev/axwise-73425/axwise-backend-repo/axwise-backend"
+
+# Images to be pushed to Artifact Registry
+images:
+  - "$_IMAGE_NAME"
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: "E2_HIGHCPU_8"

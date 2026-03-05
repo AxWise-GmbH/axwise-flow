@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { auth } from '@clerk/nextjs/server';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -13,13 +11,43 @@ export async function GET(
     const simulationId = params.id;
     console.log('Proxying simulation progress request for ID:', simulationId);
 
-    // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    console.log('Simulation Progress API: Using development token (OSS mode)');
+    // Get authentication token
+    let authToken: string;
+
+    try {
+      const { userId, getToken } = await auth();
+
+      if (userId) {
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Simulation Progress API: Using Clerk JWT token for authenticated user:', userId);
+        } else {
+          throw new Error('No token available');
+        }
+      } else {
+        throw new Error('No user ID available');
+      }
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+
+      // In development, use a development token when Clerk auth fails
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const clerkValidationDisabled = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'false';
+
+      if (isDevelopment && clerkValidationDisabled) {
+        authToken = 'dev_token_for_testing';
+        console.log('Simulation Progress API: Using development token due to disabled Clerk validation');
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required to access simulation progress' },
+          { status: 401 }
+        );
+      }
+    }
 
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/simulate/${simulationId}/progress`, {
       method: 'GET',
-      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,

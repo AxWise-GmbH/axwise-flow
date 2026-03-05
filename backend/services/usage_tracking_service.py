@@ -199,9 +199,10 @@ class UsageTrackingService:
                 "prd_generations_per_month": 0,  # 0 means unlimited PRDs
             }
 
-        # Default to free tier limits for production
+        # For production environment, provide hardcoded generous community limits (e.g. 10/month)
+        # without referencing the legacy Stripe tiered subscriptions.
         limits = {
-            "analyses_per_month": 3,  # Free users get 3 analyses
+            "analyses_per_month": 10,  # Free/Community users get 10 analyses
             "prd_generations_per_month": 0,  # 0 means unlimited PRDs
         }
 
@@ -212,49 +213,11 @@ class UsageTrackingService:
                     f"User {self.user.user_id} has invalid or missing usage_data. Using default limits."
                 )
                 return limits
-
-            # Get subscription info
-            subscription_info = self.user.usage_data.get("subscription", {})
-            if not isinstance(subscription_info, dict):
-                logger.warning(
-                    f"User {self.user.user_id} has invalid subscription_info type: {type(subscription_info)}. Using default limits."
-                )
-                return limits
-
-            tier = subscription_info.get("tier", "free")
-            status = subscription_info.get("status", "inactive")
-
-            # Fallback: if subscription_info is empty but user has subscription_status, use that
-            if not subscription_info and self.user.subscription_status:
-                status = self.user.subscription_status
-                # If user has trialing status, assume Pro tier
-                if status == "trialing":
-                    tier = "pro"
-                logger.info(
-                    f"Using fallback subscription data for user {self.user.user_id}: tier={tier}, status={status}"
-                )
-
+            
             # Debug logging
             logger.info(
-                f"Usage limits calculation - tier: {tier}, status: {status}, subscription_info: {subscription_info}"
+                f"Usage limits calculation for {self.user.user_id} - Using community flat tier: {limits}"
             )
-
-            # Set limits based on tier or trial status
-            if tier == "starter":
-                limits["analyses_per_month"] = 20
-                limits["prd_generations_per_month"] = 0  # 0 means unlimited
-            elif tier == "pro" or status == "trialing":
-                # Pro tier OR trialing users get Pro limits
-                limits["analyses_per_month"] = 100
-                limits["prd_generations_per_month"] = 0  # 0 means unlimited
-            elif tier == "enterprise":
-                # Enterprise limits are customized, get from subscription info
-                limits["analyses_per_month"] = subscription_info.get(
-                    "analyses_limit", 1000
-                )
-                limits["prd_generations_per_month"] = subscription_info.get(
-                    "prd_limit", 1000
-                )
 
             return limits
         except Exception as e:

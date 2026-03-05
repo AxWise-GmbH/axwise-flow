@@ -49,3 +49,6 @@ bfg.jar
 .DS_Store
 Thumbs.db
 backend/.env.oss
+
+# Production Scripts
+scripts/deploy-axwise-de-*.sh
