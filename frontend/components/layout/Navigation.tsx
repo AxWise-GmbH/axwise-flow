@@ -29,6 +29,7 @@ export function Navigation() {
             <a href="/b2b" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Enterprise</a>
             <a href="/#features" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Features</a>
             <a href="/#benefits" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Benefits</a>
+            <a href="/blog" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Blog</a>
             <a href="mailto:support@axwise.de" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Contact</a>
             <a href="https://api.axwise.de/redoc" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-black transition-colors text-sm font-medium">Docs &amp; SDK</a>
           </div>
@@ -52,6 +53,7 @@ export function Navigation() {
                   <a href="/b2b" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Enterprise</a>
                   <a href="/#features" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Features</a>
                   <a href="/#benefits" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Benefits</a>
+                  <a href="/blog" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Blog</a>
                   <a href="mailto:support@axwise.de" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Contact</a>
                   <a href="https://api.axwise.de/redoc" target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Docs &amp; SDK</a>
                   <div className="pt-4 flex flex-col gap-3">
