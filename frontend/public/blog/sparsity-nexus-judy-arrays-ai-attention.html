@@ -497,8 +497,13 @@
                   <div class="flow-diagram-step" data-step="1">
                     <h4 class="font-semibold">Prefill & Index (CPU)</h4>
                     <p class="text-sm text-stone-600">
-                      Key vectors from the prompt are hashed (via LSH) into
-                      integer keys and stored in a Judy array on the CPU.
+                      Key vectors from the prompt are mapped into discrete integer
+                      keys via Locality Sensitive Hashing (LSH) or
+                      <strong>Product Quantization (PQ)</strong> and stored in a
+                      Judy array on the CPU. PQ is particularly synergistic: it
+                      compresses high-dimensional vectors into a sequence of
+                      discrete bytes — the exact format a 256-ary Judy trie is
+                      mathematically optimized to consume.
                     </p>
                   </div>
                   <div class="flow-diagram-step" data-step="2">
@@ -525,8 +530,10 @@
                   </p>
                   <p>
                     <strong class="text-red-600">Challenge:</strong> CPU-GPU
-                    communication overhead and potential accuracy loss from LSH
-                    collisions.
+                    communication overhead over PCIe/CXL, potential accuracy loss from LSH
+                    collisions, and the <em>autoregressive insertion latency</em> —
+                    the overhead of updating the CPU-side Judy tree token-by-token
+                    during the generation phase.
                   </p>
                 </div>
               </article>

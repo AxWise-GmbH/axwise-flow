@@ -768,9 +768,9 @@
                   </tr>
                   <tr>
                     <td class="px-4 py-3 font-medium">Judy-Indexed KV Cache</td>
-                    <td class="px-4 py-3">CPU-side Judy array for KV cache indexing via LSH</td>
+                    <td class="px-4 py-3">CPU-side Judy array for KV cache indexing via LSH or Product Quantization (PQ). PQ compresses high-dimensional vectors into discrete bytes — the exact format a 256-ary Judy trie is optimized to consume.</td>
                     <td class="px-4 py-3">Sub-linear O(log N) lookup, long-context acceleration</td>
-                    <td class="px-4 py-3">CPU-GPU overhead, LSH accuracy, hybrid memory system</td>
+                    <td class="px-4 py-3">CPU-GPU overhead (PCIe/CXL), LSH/PQ accuracy loss, hybrid memory system, and autoregressive insertion latency during token-by-token generation</td>
                   </tr>
                   <tr>
                     <td class="px-4 py-3 font-medium">Judy-Masked Attention</td>
