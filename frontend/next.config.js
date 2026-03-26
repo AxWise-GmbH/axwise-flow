@@ -121,6 +121,20 @@ const nextConfig = {
     ];
   },
 
+  // Rewrite /blog/* to the API route that serves static HTML files
+  async rewrites() {
+    return [
+      {
+        source: '/blog',
+        destination: '/api/blog',
+      },
+      {
+        source: '/blog/:path*',
+        destination: '/api/blog/:path*',
+      },
+    ];
+  },
+
   // Add redirects to block malicious requests
   async redirects() {
     return [
