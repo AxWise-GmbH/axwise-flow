@@ -5,6 +5,7 @@ import { Button3D } from './Button3D';
 export function Footer() {
   const footerLinks = [
     { name: 'Solutions', href: '/b2b' },
+    { name: 'Blog', href: '/blog' },
     { name: 'Terms', href: '/terms-of-service' },
     { name: 'Privacy', href: '/privacy-policy' },
     { name: 'Imprint', href: '/impressum' },
