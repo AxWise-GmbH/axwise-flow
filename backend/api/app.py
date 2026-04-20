@@ -321,6 +321,10 @@ app.include_router(perpetual_personas_router)
 # AxPersona research-to-persona pipeline API
 app.include_router(axpersona_router)
 
+# Include v1 MCP Routes
+from backend.api.v1.mcp_routes import router as mcp_router
+app.include_router(mcp_router, prefix="/api/v1")
+
 # PRECALL pre-call intelligence dashboard API
 app.include_router(precall_router)
 

@@ -105,7 +105,7 @@ export function Hero() {
               </div>
 
               {/* Clean, Elegant Headline */}
-              <h1 className="text-black mb-6 tracking-tight leading-[1.15]" style={{ fontSize: 'clamp(2.5rem, 5vw, 3.75rem)' }}>
+              <h1 className="text-black mb-6 tracking-tight leading-[1.15]" style={{ fontSize: 'clamp(2rem, 8vw, 3.75rem)' }}>
                 Analyze Real Users. Generate{' '}
                 <span className="inline-block bg-black text-white px-4 py-1 rounded-lg">
                   Synthetic Datasets.
@@ -138,7 +138,7 @@ export function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex items-center gap-12 mt-12"
+              className="grid grid-cols-2 gap-6 sm:flex sm:items-center sm:gap-12 mt-12"
             >
               <div>
                 <div className="text-3xl mb-1">94%</div>

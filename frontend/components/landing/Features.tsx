@@ -67,7 +67,7 @@ export function Features() {
                 Product Discovery Automation
               </div>
 
-              <h2 className="text-black mb-8" style={{ fontSize: 'clamp(2.5rem, 4vw, 4rem)' }}>
+              <h2 className="text-black mb-8" style={{ fontSize: 'clamp(2rem, 8vw, 4rem)' }}>
                 Automated Design Thinking Engine
               </h2>
 
