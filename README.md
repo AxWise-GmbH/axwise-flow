@@ -1,5 +1,11 @@
 # AxWise Flow OSS
 
+<div align="left" style="margin-bottom: 24px;">
+  <a href="https://www.ai-nation.de/" target="_blank">
+    <img src="frontend/public/ai-nation-grant-logo-black.png" alt="Supported by AI Nation Grant" width="200"/>
+  </a>
+</div>
+
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow)
 [![arXiv](https://img.shields.io/badge/arXiv-2501.11613-b31b1b.svg)](https://arxiv.org/abs/2501.11613)
 

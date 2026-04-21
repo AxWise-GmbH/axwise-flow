@@ -5,6 +5,7 @@ import { Button3D } from './Button3D';
 export function Footer() {
   const footerLinks = [
     { name: 'Solutions', href: '/b2b' },
+    { name: 'Blog', href: '/blog' },
     { name: 'Terms', href: '/terms-of-service' },
     { name: 'Privacy', href: '/privacy-policy' },
     { name: 'Imprint', href: '/impressum' },
@@ -105,6 +106,20 @@ export function Footer() {
             <Button3D size="md" href="https://tidycal.com/team/axwise/demo">Get Started →</Button3D>
           </motion.div>
         </div>
+
+        {/* Supported By */}
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true }}
+           transition={{ duration: 0.6, delay: 0.35 }}
+           className="flex flex-col items-center justify-center mt-8 mb-4 border-t border-gray-100 pt-8"
+        >
+           <span className="text-xs text-gray-400 font-medium tracking-wider uppercase mb-4">Supported By</span>
+           <a href="https://www.ai-nation.de/" target="_blank" rel="noopener noreferrer">
+             <img src="/ai-nation-grant-logo-black.png" alt="AI Nation Grant Program" className="h-8 opacity-60 hover:opacity-100 transition-opacity" />
+           </a>
+        </motion.div>
 
         {/* Navigation Links */}
         <motion.nav
