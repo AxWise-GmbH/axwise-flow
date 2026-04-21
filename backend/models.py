@@ -34,8 +34,28 @@ class User(Base):
     subscription_status = Column(String, nullable=True)  # Phase 5
     subscription_id = Column(String, nullable=True)  # Phase 5
     usage_data = Column(JSON, nullable=True)
+    
+    # MCP Extension Fields
+    axwise_api_key = Column(String, unique=True, index=True, nullable=True)
+    mcp_injection_count = Column(Integer, default=0)
 
     interviews = relationship("InterviewData", viewonly=True)
+    digital_twin = relationship("DigitalTwin", back_populates="user", uselist=False)
+
+class DigitalTwin(Base):
+    __tablename__ = "digital_twins"
+    __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("users.user_id"), unique=True)
+    role = Column(String, nullable=True)
+    seniority = Column(String, nullable=True)
+    company_context = Column(Text, nullable=True)
+    communication_flaws = Column(Text, nullable=True)
+    active_scopes = Column(JSON, nullable=True)
+
+    user = relationship("User", back_populates="digital_twin")
 
 
 class InterviewData(Base):
