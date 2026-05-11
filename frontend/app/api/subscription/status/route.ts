@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const token = authHeaders.Authorization.replace(/^Bearer\s+/i, '');
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     const isUsingDevToken = !requireStrictAuth && token.startsWith('dev_');
     console.log(`Subscription Status API: Using ${isUsingDevToken ? 'development' : 'Clerk JWT'} token`);

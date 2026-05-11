@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const token = await getToken();
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     // Get request body
     const body = await request.json();
