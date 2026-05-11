@@ -9,9 +9,10 @@ export default function ImpressumPage() {
                 <section>
                     <h2 className="text-xl font-semibold mb-4 text-primary">Angaben gemäß § 5 TMG</h2>
                     <div className="text-muted-foreground leading-relaxed">
-                        <p className="font-medium text-foreground">Viral Buddy UG (haftungsbeschränkt)</p>
-                        <p>Kolonnenstraße</p>
-                        <p>10827 Berlin</p>
+                        <p className="font-medium text-foreground">AxWise UG (in formation)</p>
+                        <p>Franklinstraße 28</p>
+                        <p>10587 Berlin</p>
+                        <p>AI NATION</p>
                     </div>
                 </section>
 
@@ -19,15 +20,6 @@ export default function ImpressumPage() {
                     <h2 className="text-xl font-semibold mb-4 text-primary">Kontakt</h2>
                     <div className="text-muted-foreground leading-relaxed">
                         <p>E-Mail: <a href="mailto:support@axwise.de" className="text-primary hover:underline">support@axwise.de</a></p>
-                    </div>
-                </section>
-
-                <section>
-                    <h2 className="text-xl font-semibold mb-4 text-primary">Registereintrag</h2>
-                    <div className="text-muted-foreground leading-relaxed">
-                        <p className="mb-1">Eintragung im Handelsregister.</p>
-                        <p className="mb-1">Registergericht: Amtsgericht Charlottenburg (Berlin)</p>
-                        <p>Registernummer: HRB 261047 B</p>
                     </div>
                 </section>
 
