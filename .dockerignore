@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (will be installed inside containers)
+frontend/node_modules
+backend/venv
+backend/__pycache__
+backend/**/__pycache__
+
+# Build artifacts
+frontend/.next
+frontend/tsconfig.tsbuildinfo
+
+# Local databases (containers use their own PostgreSQL)
+*.db
+
+# IDE / OS
+.vscode
+.DS_Store
+.pytest_cache
+
+# Private / internal
+.axwise-flow-private
+gmailmcp
+packages
+
+# Screenshots and docs (not needed in containers)
+screenshots
+docs

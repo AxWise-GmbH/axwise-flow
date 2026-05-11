@@ -155,7 +155,7 @@ export function Footer() {
           className="text-center text-gray-500 text-sm"
         >
           <p>AXWISE © {new Date().getFullYear()}</p>
-          <p className="mt-1 text-xs">Powered by Viral Buddy Agency</p>
+          <p className="mt-1 text-xs">AxWise UG (in formation)</p>
         </motion.div>
       </div>
     </footer>

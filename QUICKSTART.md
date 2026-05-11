@@ -1,6 +1,49 @@
 # AxWise Flow OSS - Quick Start Guide
 
-Get up and running with AxWise Flow in 5 minutes!
+Get up and running with AxWise Flow in minutes!
+
+## 🐳 Quick Start with Docker (Recommended)
+
+The fastest way to get AxWise running — just Docker and a Gemini API key.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- A **Gemini API Key** — get one free at [Google AI Studio](https://aistudio.google.com/app/api_keys)
+
+### Steps
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git
+cd axwise-flow-oss
+
+# 2. Create your environment file
+cp .env.example .env
+
+# 3. Edit .env and add your Gemini API key
+#    Replace 'your_gemini_api_key_here' with your actual key
+
+# 4. Start everything
+docker compose up
+```
+
+That's it! Once the containers are running:
+
+- 🌐 **Frontend**: [http://localhost:3000](http://localhost:3000)
+- 🔌 **Backend API**: [http://localhost:8000](http://localhost:8000)
+- 📖 **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+> **Tip:** Run `docker compose up -d` to start in the background, and `docker compose logs -f` to follow logs.
+
+To stop everything: `docker compose down`
+To stop and remove all data: `docker compose down -v`
+
+---
+
+## Manual Setup (Alternative)
+
+If you prefer running without Docker, follow the steps below.
 
 ## Step 1: Prerequisites Check
 
