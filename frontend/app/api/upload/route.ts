@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const token = authHeaders.Authorization.replace(/^Bearer\s+/i, '');
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     console.log('🔄 [UPLOAD] Backend URL:', backendUrl);
     console.log('🔄 [UPLOAD] Token available:', token ? 'Yes' : 'No');

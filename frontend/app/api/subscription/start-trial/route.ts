@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     // Get request body (may be empty for start-trial)
     const body = await request.json().catch(() => ({}));

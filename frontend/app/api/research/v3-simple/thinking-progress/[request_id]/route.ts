@@ -13,7 +13,7 @@ export async function GET(
     console.log('Thinking Progress API route called for request ID:', params.request_id);
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     console.log('Proxying to backend:', `${backendUrl}/api/research/v3-rebuilt/thinking-progress/${params.request_id}`);
 

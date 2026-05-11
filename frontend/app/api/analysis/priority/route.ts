@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const token = await getToken();
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     // Get query parameters from NextRequest
     const { searchParams } = new URL(request.nextUrl);
