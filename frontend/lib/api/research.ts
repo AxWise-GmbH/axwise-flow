@@ -17,7 +17,7 @@ import {
   ValidationError
 } from '@/lib/utils/research-error-handler';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Use configuration for storage keys
 const STORAGE_KEYS = RESEARCH_CONFIG.storageKeys;

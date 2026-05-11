@@ -42,7 +42,7 @@ export async function getPriorityInsights(analysisId: string): Promise<PriorityI
 
     // Fallback to direct backend API call
     console.log('Making direct backend call for priority insights');
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const directResponse = await fetch(`${backendUrl}/api/analysis/priority?result_id=${analysisId}`, {
       method: 'GET',
       headers: {

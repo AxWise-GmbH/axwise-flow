@@ -298,7 +298,7 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
     if (isServer) {
       // Server-side: Call backend directly with development token
       console.log('getAnalysisById: Running on server, calling backend directly');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
       const response = await fetch(`${backendUrl}/api/results/${id}`, {
         method: 'GET',
@@ -345,7 +345,7 @@ export async function getAnalysisById(id: string): Promise<DetailedAnalysisResul
       } catch (routeErr) {
         clearTimeout(timeoutId);
         console.warn('getAnalysisById: API route timed out or failed, falling back to direct backend call', routeErr);
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         try {
           // In dev, backend accepts any non-empty Bearer when Clerk validation is disabled
           const devToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
