@@ -27,10 +27,20 @@ export async function POST(request: NextRequest) {
       }
     } catch (authError) {
       console.error('Authentication failed:', authError);
-      return NextResponse.json(
-        { error: 'Authentication required for test personas' },
-        { status: 401 }
-      );
+
+      // OSS / dev mode: fall back to dev token when Clerk is not configured
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+      if (!isProduction && !enableClerkValidation) {
+        authToken = 'dev_token_for_testing';
+        console.log('Test Personas API: Using development token (OSS mode)');
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required for test personas' },
+          { status: 401 }
+        );
+      }
     }
 
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/test-personas`, {

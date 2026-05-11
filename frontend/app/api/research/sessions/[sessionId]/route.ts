@@ -12,7 +12,8 @@ async function getAuthToken() {
     if (!token) throw new Error('No token');
     return token;
   }
-  return '';
+  // OSS / dev mode: use a dev fallback token
+  return 'dev_token_for_testing';
 }
 
 export async function GET(_request: NextRequest, context: { params: { sessionId: string } }) {

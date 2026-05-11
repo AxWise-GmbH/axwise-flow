@@ -15,7 +15,15 @@ async function getAuthTokenOptional() {
 
 async function getAuthTokenRequired() {
   const token = await getAuthTokenOptional();
-  if (!token) throw new Error('Authentication token required');
+  if (!token) {
+    // In OSS / dev mode, return a dev fallback token
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+    if (!isProduction && !enableClerkValidation) {
+      return 'dev_token_for_testing';
+    }
+    throw new Error('Authentication token required');
+  }
   return token;
 }
 
