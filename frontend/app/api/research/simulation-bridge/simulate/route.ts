@@ -33,10 +33,11 @@ export async function POST(request: NextRequest) {
       console.error('Authentication failed:', authError);
 
       // In development, use a development token when Clerk auth fails
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      const clerkValidationDisabled = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'false';
+      // OSS / dev mode: fall back to dev token when Clerk is not configured
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
 
-      if (isDevelopment && clerkValidationDisabled) {
+      if (!isProduction && !enableClerkValidation) {
         authToken = 'dev_token_for_testing';
         console.log('Simulation API: Using development token due to disabled Clerk validation');
       } else {
