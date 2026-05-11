@@ -141,7 +141,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
 
     // Make a direct fetch request instead of using the API client
     // This avoids serialization issues between client and server
-    console.log('Sending request to:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`);
+    console.log('Sending request to:', `${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`);
 
     // Check if we're in a browser or server environment
     console.log('Checking environment for file upload');
@@ -208,7 +208,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
           };
 
           // Open the request
-          xhr.open('POST', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, true);
+          xhr.open('POST', `${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, true);
 
           // Set headers
           xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
@@ -293,7 +293,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
 
         // Log the request details
         console.log('Making server-side fetch request with the following details:');
-        console.log('- URL:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`);
+        console.log('- URL:', `${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`);
         console.log('- Method: POST');
         console.log('- Headers:', {
           'Authorization': 'Bearer [REDACTED]',
@@ -303,7 +303,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
         console.log('- Boundary:', boundary);
 
         // Make the request with the manually constructed body
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, {
+        response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -332,7 +332,7 @@ export async function uploadAction(formData: FormData): Promise<{ success: true;
 
         // Create a simple JSON payload with file information
         // This is a fallback that will inform the user that server-side upload is not supported
-        response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, {
+        response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/data`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -488,7 +488,7 @@ export async function analyzeAction(
     }
 
     // Call backend directly instead of going through frontend API route
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     const response = await fetch(`${backendUrl}/api/analyze`, {
       method: 'POST',
@@ -619,7 +619,7 @@ export async function getLatestCompletedAnalysis(): Promise<DetailedAnalysisResu
 
     try {
       // Direct backend API call instead of using the API client
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${backendUrl}/api/analyses?offset=0&limit=1`, {
         method: 'GET',
         headers: {
