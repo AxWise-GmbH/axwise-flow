@@ -60,7 +60,7 @@ services:
 
       # LLM
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-2.0-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
 
       # Auth disabled for OSS
       ENABLE_CLERK_VALIDATION: "false"

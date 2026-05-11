@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authHeaders.Authorization) {
-      const message = requireStrictAuth
-        ? 'Authentication token required'
-        : 'Authentication token not available';
-      console.warn('🔄 [DATA] No Authorization header could be resolved', {
-        requireStrictAuth,
-      });
-      return NextResponse.json({ error: message }, { status: 401 });
+      if (requireStrictAuth) {
+        console.warn('No Authorization header resolved (strict mode)');
+        return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
+      }
+      // OSS / dev mode: use a fallback dev token so the request can proceed
+      console.log('No auth header available, using dev fallback token');
+      authHeaders = { Authorization: 'Bearer DEV_TOKEN_OSS' };
     }
 
     console.log('🔄 [DATA] User authenticated:', userId);
