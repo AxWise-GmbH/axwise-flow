@@ -5,29 +5,38 @@ import { auth } from '@clerk/nextjs/server';
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string | null> {
-  try {
-    // Get the authentication context from Clerk
-    const authResult = await auth();
-    const { userId } = authResult;
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
 
-    if (!userId) {
-      console.log('No authenticated user found');
+  if (isProduction || enableClerkValidation) {
+    try {
+      // Get the authentication context from Clerk
+      const authResult = await auth();
+      const { userId } = authResult;
+
+      if (!userId) {
+        console.log('No authenticated user found');
+        return null;
+      }
+
+      // Get the JWT token from Clerk
+      const token = await authResult.getToken();
+
+      if (!token) {
+        console.log('No JWT token available from Clerk');
+        return null;
+      }
+
+      return token;
+    } catch (error) {
+      console.error('Error getting Clerk token:', error);
       return null;
     }
-
-    // Get the JWT token from Clerk
-    const token = await authResult.getToken();
-
-    if (!token) {
-      console.log('No JWT token available from Clerk');
-      return null;
-    }
-
-    return token;
-  } catch (error) {
-    console.error('Error getting Clerk token:', error);
-    return null;
   }
+
+  // OSS / dev mode: return a dev fallback token
+  console.log('Analysis Status API: Using dev fallback token (OSS mode)');
+  return 'dev_token_for_testing';
 }
 
 export async function GET(
