@@ -205,7 +205,7 @@ export async function generatePRD(
       throw new Error('Authentication required for PRD generation');
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const directUrl = forceRegenerate
       ? `${backendUrl}/api/prd/${resultId}?prd_type=${prdType}&force_regenerate=true`
       : `${backendUrl}/api/prd/${resultId}?prd_type=${prdType}`;

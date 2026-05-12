@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function getAuthToken() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+  if (isProduction || enableClerkValidation) {
+    const { getToken } = await auth();
+    const token = await getToken({ skipCache: true });
+    if (!token) throw new Error('No token');
+    return token;
+  }
+  // OSS / dev mode: use a dev fallback token
+  return 'dev_token_for_testing';
 }
 
 export async function GET(_request: NextRequest, context: { params: { sessionId: string } }) {

@@ -72,7 +72,7 @@ export async function listAnalyses(params?: unknown): Promise<DetailedAnalysisRe
 
       // Try direct backend API call with proper authentication
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const queryParams = new URLSearchParams();
 
         // Convert params to query string
@@ -126,7 +126,7 @@ export async function listAnalyses(params?: unknown): Promise<DetailedAnalysisRe
 
     // Try direct backend API call with proper authentication
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const queryParams = new URLSearchParams();
 
       // Convert params to query string
@@ -205,7 +205,7 @@ export async function getAnalysisHistory(skip: number = 0, limit: number = 10): 
           throw new Error('Authentication required');
         }
 
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const response = await fetch(`${backendUrl}/api/analyses?offset=${skip}&limit=${limit}`, {
           method: 'GET',
           headers: {

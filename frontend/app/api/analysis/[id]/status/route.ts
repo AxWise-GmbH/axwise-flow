@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string | null> {
-  // OSS mode: return development token
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+  if (isProduction || enableClerkValidation) {
+    try {
+      // Get the authentication context from Clerk
+      const authResult = await auth();
+      const { userId } = authResult;
+
+      if (!userId) {
+        console.log('No authenticated user found');
+        return null;
+      }
+
+      // Get the JWT token from Clerk
+      const token = await authResult.getToken();
+
+      if (!token) {
+        console.log('No JWT token available from Clerk');
+        return null;
+      }
+
+      return token;
+    } catch (error) {
+      console.error('Error getting Clerk token:', error);
+      return null;
+    }
+  }
+
+  // OSS / dev mode: return a dev fallback token
+  console.log('Analysis Status API: Using dev fallback token (OSS mode)');
+  return 'dev_token_for_testing';
 }
 
 export async function GET(
@@ -27,7 +58,7 @@ export async function GET(
     }
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     console.log('Analysis Status API: Using Clerk JWT token');
     console.log('Proxying to backend:', `${backendUrl}/api/analysis/${params.id}/status`);

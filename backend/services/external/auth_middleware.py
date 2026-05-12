@@ -25,16 +25,12 @@ security = HTTPBearer(
 )
 
 
-# OSS mode: Clerk validation disabled regardless of environment
 ENABLE_CLERK_VALIDATION = os.getenv("ENABLE_CLERK_VALIDATION", "false").lower() == "true"
 IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
-logger.info("Auth middleware initialized - Clerk validation disabled (OSS mode)")
+logger.info(f"Auth middleware initialized - Clerk validation: {ENABLE_CLERK_VALIDATION}")
 
 # Development token prefix for easier identification - only used in development
 DEV_TOKEN_PREFIX = "dev_test_token_"
-
-# OSS mode note
-logger.warning("OSS mode: Clerk validation is disabled regardless of environment")
 
 
 async def get_current_user(
@@ -58,6 +54,8 @@ async def get_current_user(
     Raises:
         HTTPException: If authentication fails
     """
+    from backend.services.external.clerk_service import ClerkService
+    
     token = credentials.credentials
 
     if not token:
@@ -68,17 +66,33 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # OSS mode: derive user_id from dev token or fallback
-    if token.startswith(DEV_TOKEN_PREFIX):
-        user_id = token[len(DEV_TOKEN_PREFIX):] or "testuser123"
-        logger.info(f"Development token used with user_id: {user_id}")
-    elif token == "DEV_TOKEN_REDACTED":
-        user_id = "testuser123"
-        logger.info(f"Legacy dev token used; user_id: {user_id}")
+    # In production with Clerk enabled, strictly validate the token
+    if ENABLE_CLERK_VALIDATION:
+        logger.info("Verifying token with ClerkService...")
+        clerk_service = ClerkService()
+        is_valid, token_data = clerk_service.validate_token(token)
+
+        if not is_valid or not token_data or "sub" not in token_data:
+            logger.error("Authentication failed: Invalid Clerk token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired authentication token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        user_id = token_data["sub"]
+        logger.info(f"Clerk verification successful. User ID: {user_id}")
     else:
-        # Accept any token and use a stable default
-        user_id = "testuser123"
-        logger.info("OSS mode: Using default user_id since no dev token prefix detected")
+        # Development mode logic
+        if token.startswith(DEV_TOKEN_PREFIX):
+            user_id = token[len(DEV_TOKEN_PREFIX):] or "testuser123"
+            logger.info(f"Development token used with user_id: {user_id}")
+        elif token == "DEV_TOKEN_REDACTED":
+            user_id = "testuser123"
+            logger.info(f"Legacy dev token used; user_id: {user_id}")
+        else:
+            user_id = "testuser123"
+            logger.info("Using default user_id since Clerk is disabled")
 
     logger.info(
         f"🔍 Authentication successful for user_id: {user_id}, ENABLE_CLERK_VALIDATION: {ENABLE_CLERK_VALIDATION}, IS_PRODUCTION: {IS_PRODUCTION}"

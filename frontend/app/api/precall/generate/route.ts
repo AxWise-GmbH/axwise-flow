@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { resolveRouteAuthHeaders } from '@/lib/auth/server-route';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
  * PRECALL Intelligence Generation API route - proxies to Python backend
@@ -12,8 +13,11 @@ export async function POST(request: NextRequest) {
     console.log('Proxying PRECALL intelligence generation request to backend');
 
     // OSS mode - use development token
-    const authToken: string =
-      process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    let authToken_headers: Record<string, string> = {};
+    try {
+      authToken_headers = await resolveRouteAuthHeaders(request as any, { required: true, traceScope: 'api-patch' });
+    } catch (e) { console.error('Auth resolve error:', e); }
+    const authToken = authToken_headers.Authorization ? authToken_headers.Authorization.replace('Bearer ', '') : 'DEV_TOKEN_REDACTED';
     console.log('PRECALL Generate API: Using development token (OSS mode)');
     console.log('PRECALL Generate API: API_BASE_URL =', API_BASE_URL);
 

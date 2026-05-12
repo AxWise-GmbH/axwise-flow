@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function GET(
   request: NextRequest,
@@ -10,8 +11,32 @@ export async function GET(
     const analysisId = params.id;
     console.log(`Export API: Proxying markdown export request for analysis ${analysisId}`);
 
-    // OSS mode - use development token
-    let authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Get authentication token
+    let authToken: string;
+
+    // Check if we're in development mode
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (isDevelopment && process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION !== 'true') {
+      // Development mode - use development token
+      authToken = 'dev_test_token_vitalijs_axwise_de';
+      console.log('Export API: Using development token (Clerk validation disabled)');
+    } else {
+      // Production mode or Clerk validation enabled - use Clerk
+      const authResult = await auth();
+      const token = await authResult.getToken();
+
+      if (!token) {
+        console.error('Export API: No authentication token available');
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      authToken = token;
+      console.log('Export API: Using Clerk token');
+    }
 
     // Get auth_token from query parameters if provided (for direct URL access)
     const url = new URL(request.url);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveRouteAuthHeaders } from '@/lib/auth/server-route';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -10,28 +11,42 @@ export async function POST(request: NextRequest) {
   try {
     // Check environment
     const isProduction = process.env.NODE_ENV === 'production';
-    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
 
-    // First, try to get the Authorization header from the incoming request
-    const authHeader = request.headers.get('Authorization');
-    let token: string | null = null;
+    const requireStrictAuth = isProduction || enableClerkValidation;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      // Extract token from Authorization header
-      token = authHeader.substring(7);
-      console.log('🔄 [UPLOAD] Using token from Authorization header');
-    } else {
-      // OSS mode: use development token
-      token = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-      console.log('🔄 [UPLOAD] Using development token (OSS mode)');
+    let authHeaders: Record<string, string> = {};
+    try {
+      authHeaders = await resolveRouteAuthHeaders(request, {
+        required: requireStrictAuth,
+        traceScope: 'upload',
+      });
+    } catch (authError) {
+      console.error('🔄 [UPLOAD] Failed to resolve auth headers', authError);
+      return NextResponse.json(
+        { error: 'Authentication token not available' },
+        { status: 401 }
+      );
     }
 
+    if (!authHeaders.Authorization) {
+      if (requireStrictAuth) {
+        console.warn('No Authorization header resolved (strict mode)');
+        return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
+      }
+      // OSS / dev mode: use a fallback dev token so the request can proceed
+      console.log('No auth header available, using dev fallback token');
+      authHeaders = { Authorization: 'Bearer DEV_TOKEN_OSS' };
+    }
+
+    const token = authHeaders.Authorization.replace(/^Bearer\s+/i, '');
+
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     console.log('🔄 [UPLOAD] Backend URL:', backendUrl);
     console.log('🔄 [UPLOAD] Token available:', token ? 'Yes' : 'No');
-    console.log('🔄 [UPLOAD] Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('🔄 [UPLOAD] Token preview:', token ? token.substring(0, 8) + '...<redacted>' : 'null');
 
     // Forward the request to the Python backend
     const formData = await request.formData();
@@ -40,9 +55,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${backendUrl}/api/data`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: authHeaders,
       body: formData,
     });
 
@@ -66,7 +79,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

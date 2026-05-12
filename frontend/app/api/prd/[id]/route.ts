@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 async function getToken(): Promise<string> {
-  // OSS mode: return development token
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  try {
+    // Get the current user's auth token from Clerk
+    const authResult = await auth();
+    const token = await authResult.getToken();
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    return token;
+  } catch (error) {
+    console.error('Error getting Clerk token:', error);
+    throw new Error('Authentication failed');
+  }
 }
 
 export async function GET(
@@ -19,23 +32,11 @@ export async function GET(
     const token = await getToken();
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-    // Get and normalize query parameters; treat timestamp/regeneratePRD as force_regenerate
+    // Get query parameters
     const { searchParams } = new URL(request.url);
-    const forwardedParams = new URLSearchParams(searchParams);
-
-    const hasExplicitForce = forwardedParams.get('force_regenerate') === 'true';
-    const hasTimestamp = forwardedParams.has('timestamp');
-    const hasRegenFlag = forwardedParams.get('regeneratePRD') === 'true';
-    if (!hasExplicitForce && (hasTimestamp || hasRegenFlag)) {
-      forwardedParams.set('force_regenerate', 'true');
-    }
-    // Do not forward UI-only flags to backend
-    forwardedParams.delete('timestamp');
-    forwardedParams.delete('regeneratePRD');
-
-    const queryString = forwardedParams.toString();
+    const queryString = searchParams.toString();
 
     console.log('PRD API: Using development token (development mode only)');
     console.log('Proxying to backend:', `${backendUrl}/api/prd/${params.id}${queryString ? `?${queryString}` : ''}`);

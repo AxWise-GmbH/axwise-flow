@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { resolveRouteAuthHeaders } from '@/lib/auth/server-route';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -9,10 +11,50 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    // OSS mode: use development user (Clerk removed)
-    let userId: string | null = 'testuser123';
-    let token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    console.log('🔄 [DATA] Using development mode authentication');
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+    const requireStrictAuth = isProduction || enableClerkValidation;
+    const devUserId = process.env.NEXT_PUBLIC_DEV_TEST_USER ?? 'testuser123';
+
+    let userId: string | null = null;
+
+    if (requireStrictAuth) {
+      const clerkAuth = await auth();
+      userId = clerkAuth.userId;
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    } else {
+      userId = devUserId;
+      console.log('🔄 [DATA] Using development mode user', { userId });
+    }
+
+    let authHeaders: Record<string, string> = {};
+    try {
+      authHeaders = await resolveRouteAuthHeaders(request, {
+        required: requireStrictAuth,
+        traceScope: 'data-post',
+      });
+    } catch (authError) {
+      console.error('🔄 [DATA] Failed to resolve auth headers', authError);
+      return NextResponse.json(
+        { error: 'Authentication token not available' },
+        { status: 401 }
+      );
+    }
+
+    if (!authHeaders.Authorization) {
+      if (requireStrictAuth) {
+        console.warn('No Authorization header resolved (strict mode)');
+        return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
+      }
+      // OSS / dev mode: use a fallback dev token so the request can proceed
+      console.log('No auth header available, using dev fallback token');
+      authHeaders = { Authorization: 'Bearer DEV_TOKEN_OSS' };
+    }
 
     console.log('🔄 [DATA] User authenticated:', userId);
 
@@ -35,9 +77,7 @@ export async function POST(request: NextRequest) {
 
         const response = await fetch(`${localBackendUrl}/api/data`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: authHeaders,
           body: formData,
         });
 
@@ -95,10 +135,48 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // OSS mode: use development user (Clerk removed)
-    const userId: string | null = 'testuser123';
-    const token: string | null = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    console.log('🔄 [DATA GET] Using development mode authentication');
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+    const requireStrictAuth = isProduction || enableClerkValidation;
+    const devUserId = process.env.NEXT_PUBLIC_DEV_TEST_USER ?? 'testuser123';
+
+    let userId: string | null = null;
+
+    if (requireStrictAuth) {
+      const clerkAuth = await auth();
+      userId = clerkAuth.userId;
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    } else {
+      userId = devUserId;
+      console.log('🔄 [DATA GET] Using development mode authentication', { userId });
+    }
+
+    let authHeaders: Record<string, string> = {};
+    try {
+      authHeaders = await resolveRouteAuthHeaders(request, {
+        required: requireStrictAuth,
+        traceScope: 'data-get',
+      });
+    } catch (authError) {
+      console.error('🔄 [DATA GET] Failed to resolve auth headers', authError);
+      return NextResponse.json(
+        { error: 'Authentication token not available' },
+        { status: 401 }
+      );
+    }
+
+    if (!authHeaders.Authorization && requireStrictAuth) {
+      console.warn('🔄 [DATA GET] Authorization header missing under strict auth');
+      return NextResponse.json(
+        { error: 'Authentication token required' },
+        { status: 401 }
+      );
+    }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -142,7 +220,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

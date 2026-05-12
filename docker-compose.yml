@@ -1,0 +1,97 @@
+# AxWise Flow OSS — Docker Compose
+# 1-click local development setup
+#
+# Usage:
+#   1. cp .env.example .env
+#   2. Edit .env and add your GEMINI_API_KEY
+#   3. docker compose up
+#
+# Services:
+#   - db:       PostgreSQL 15 database
+#   - backend:  FastAPI backend (Python 3.11)
+#   - frontend: Next.js frontend (Node 20, dev mode with hot-reload)
+#
+# URLs:
+#   - Frontend: http://localhost:3000
+#   - Backend API: http://localhost:8000
+#   - API Docs: http://localhost:8000/docs
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: axwise
+    ports:
+      - "5432:5432"
+    volumes:
+      - axwise_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d axwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ── FastAPI Backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # Core
+      OSS_MODE: "true"
+      PORT: "8000"
+      LOG_LEVEL: INFO
+
+      # Database (points to the 'db' service)
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/axwise
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: axwise
+
+      # LLM
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+
+      # Auth disabled for OSS
+      ENABLE_CLERK_VALIDATION: "false"
+
+      # Processing
+      PAID_TIER_CONCURRENCY: "10"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Next.js Frontend ─────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      target: dev
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      # Browser-side requests go to localhost (host machine)
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
+      # Server-side Next.js API routes use Docker internal networking
+      API_URL: http://backend:8000
+      NEXT_PUBLIC_ENABLE_CLERK_AUTH: "false"
+      NEXT_PUBLIC_OSS_MODE: "true"
+      NEXT_PUBLIC_ENABLE_ANALYTICS: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      - backend
+
+volumes:
+  axwise_pgdata:
+    driver: local

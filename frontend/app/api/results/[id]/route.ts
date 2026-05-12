@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -13,11 +14,65 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // OSS mode: always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    console.log('Results API route called for ID:', params.id);
+
+    // Check environment
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+    let authToken: string;
+
+    if (isProduction || enableClerkValidation) {
+      // Production or Clerk validation enabled: require proper authentication
+      const { userId, getToken } = await auth();
+
+      if (!userId) {
+        console.log('Results API: No authenticated user');
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      // Get the auth token from Clerk
+      const token = await getToken();
+
+      if (!token) {
+        console.log('Results API: No auth token available');
+        return NextResponse.json(
+          { error: 'Authentication token not available' },
+          { status: 401 }
+        );
+      }
+
+      authToken = token;
+      console.log('Results API: Using Clerk JWT token for authenticated user:', userId);
+    } else {
+      // Development mode: Use Clerk JWT token to match upload/analysis authentication
+      const { userId, getToken } = await auth();
+
+      if (userId && getToken) {
+        // User is authenticated with Clerk, use their JWT token
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Results API: Using Clerk JWT token in development for user:', userId);
+        } else {
+          // Fallback to development token if JWT not available
+          authToken = 'dev_token_for_testing';
+          console.log('Results API: Using fallback development token (no JWT available)');
+        }
+      } else {
+        // No Clerk authentication, use user-specific development token
+        authToken = 'dev_vitalijs_axwise_de';
+        console.log('Results API: Using user-specific development token (no Clerk auth)');
+      }
+    }
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+    console.log('Proxying to backend:', `${backendUrl}/api/results/${params.id}`);
 
     // Forward the request to the Python backend with appropriate token
     const response = await fetch(`${backendUrl}/api/results/${params.id}`, {
@@ -38,6 +93,7 @@ export async function GET(
     }
 
     const data = await response.json();
+    console.log('Backend response successful for analysis ID:', params.id);
 
     return NextResponse.json(data, {
       headers: {

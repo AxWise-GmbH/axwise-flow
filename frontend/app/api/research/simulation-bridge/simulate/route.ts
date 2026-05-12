@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Configure route for longer execution time
 export const maxDuration = 600; // 10 minutes
@@ -11,9 +12,41 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Proxying simulation request to backend');
 
-    // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    console.log('Simulation API: Using development token (OSS mode)');
+    // Get authentication token
+    let authToken: string;
+
+    try {
+      const { userId, getToken } = await auth();
+
+      if (userId) {
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Simulation API: Using Clerk JWT token for authenticated user:', userId);
+        } else {
+          throw new Error('No token available');
+        }
+      } else {
+        throw new Error('No user ID available');
+      }
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+
+      // In development, use a development token when Clerk auth fails
+      // OSS / dev mode: fall back to dev token when Clerk is not configured
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+      if (!isProduction && !enableClerkValidation) {
+        authToken = 'dev_token_for_testing';
+        console.log('Simulation API: Using development token due to disabled Clerk validation');
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required for simulation' },
+          { status: 401 }
+        );
+      }
+    }
 
     // Create AbortController for timeout handling
     const controller = new AbortController();

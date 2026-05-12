@@ -3,7 +3,7 @@
  * Handles dashboard-specific question generation and context validation
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface DashboardQuestionRequest {
   business_idea: string;

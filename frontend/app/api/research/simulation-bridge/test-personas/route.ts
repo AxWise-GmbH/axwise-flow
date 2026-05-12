@@ -1,15 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('Proxying test personas request to backend');
 
-    // OSS mode - always use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
-    console.log('Test Personas API: Using development token (OSS mode)');
+    // Get authentication token
+    let authToken: string;
+
+    try {
+      const { userId, getToken } = await auth();
+
+      if (userId) {
+        const token = await getToken();
+        if (token) {
+          authToken = token;
+          console.log('Test Personas API: Using Clerk JWT token for authenticated user:', userId);
+        } else {
+          throw new Error('No token available');
+        }
+      } else {
+        throw new Error('No user ID available');
+      }
+    } catch (authError) {
+      console.error('Authentication failed:', authError);
+
+      // OSS / dev mode: fall back to dev token when Clerk is not configured
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+      if (!isProduction && !enableClerkValidation) {
+        authToken = 'dev_token_for_testing';
+        console.log('Test Personas API: Using development token (OSS mode)');
+      } else {
+        return NextResponse.json(
+          { error: 'Authentication required for test personas' },
+          { status: 401 }
+        );
+      }
+    }
 
     const response = await fetch(`${API_BASE_URL}/api/research/simulation-bridge/test-personas`, {
       method: 'POST',

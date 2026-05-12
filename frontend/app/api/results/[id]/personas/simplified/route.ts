@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,53 @@ export async function GET(
   try {
     console.log('Simplified Personas API route called for ID:', params.id);
 
-    // OSS mode - use development token
-    const authToken: string = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+    // Check environment
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+
+    let authToken: string;
+
+    if (isProduction || enableClerkValidation) {
+      // Production or explicit Clerk validation - require authentication
+      const { userId, getToken } = await auth();
+
+      if (!userId) {
+        console.log('Simplified Personas API: No authenticated user found');
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        );
+      }
+
+      // Get the session token from Clerk
+      try {
+        const token = await getToken();
+
+        if (!token) {
+          console.log('Simplified Personas API: No session token found');
+          return NextResponse.json(
+            { error: 'Authentication token required' },
+            { status: 401 }
+          );
+        }
+
+        authToken = token;
+        console.log('Simplified Personas API: Using Clerk JWT token');
+      } catch (tokenError) {
+        console.error('Simplified Personas API: Error getting Clerk token:', tokenError);
+        return NextResponse.json(
+          { error: 'Authentication error' },
+          { status: 401 }
+        );
+      }
+    } else {
+      // Development mode - use development token
+      authToken = 'test-token';
+      console.log('Simplified Personas API: Using development token');
+    }
 
     // Get the backend URL from environment
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const backendUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
     console.log('Proxying to backend (full results):', `${backendUrl}/api/results/${params.id}`);
 

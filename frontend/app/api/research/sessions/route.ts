@@ -1,20 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function getAuthTokenOptional() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+  if (isProduction || enableClerkValidation) {
+    const { getToken } = await auth();
+    return (await getToken({ skipCache: true })) || '';
+  }
+  return '';
 }
 
 async function getAuthTokenRequired() {
-  return process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+  const token = await getAuthTokenOptional();
+  if (!token) {
+    // In OSS / dev mode, return a dev fallback token
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
+    if (!isProduction && !enableClerkValidation) {
+      return 'dev_token_for_testing';
+    }
+    throw new Error('Authentication token required');
+  }
+  return token;
 }
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Proxying research sessions request to backend');
 
     // Auth token: required in production or when Clerk validation is explicitly enabled
-    const requireAuth = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_CLERK_AUTH === 'true';
+    const requireAuth = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
     let authToken = '';
     if (requireAuth) {
       try {
@@ -24,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Development: send a dev token so backend HTTPBearer is satisfied
-      authToken = process.env.NEXT_PUBLIC_DEV_AUTH_TOKEN || 'DEV_TOKEN_REDACTED';
+      authToken = 'dev_token_for_testing';
     }
 
     // Forward query params (limit, etc.)
@@ -39,8 +57,14 @@ export async function GET(request: NextRequest) {
       headers,
     });
 
+    console.log('Backend response status:', response.status);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Backend responded with ${response.status}: ${response.statusText}`, errorText);
+
       if (response.status === 404) {
+        console.log('Backend sessions endpoint not found, returning empty array');
         return NextResponse.json([], {
           headers: {
             'Access-Control-Allow-Origin': '*',
@@ -110,14 +134,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    // Only log non-connection errors (ECONNREFUSED is expected when backend is down)
-    const isConnectionError = error instanceof Error &&
-      (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed'));
-
-    if (!isConnectionError) {
-      console.error('Error fetching research sessions:', error);
-    }
-
+    console.error('Error fetching research sessions:', error);
     return NextResponse.json([], {
       headers: {
         'Access-Control-Allow-Origin': '*',

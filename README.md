@@ -122,7 +122,23 @@ The **PRD Agent** synthesizes requirements with complete evidence chains:
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### 🐳 Docker (Recommended — 1 command)
+
+```bash
+git clone https://github.com/AxWise-GmbH/axwise-flow.git
+cd axwise-flow
+cp .env.example .env
+# Edit .env → add your GEMINI_API_KEY (get one free at https://aistudio.google.com/app/api_keys)
+docker compose up
+```
+
+Open [http://localhost:3000](http://localhost:3000) — that's it! 🎉
+
+> **Requires:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) and a [Gemini API Key](https://aistudio.google.com/app/api_keys)
+
+### Manual Setup (Alternative)
+
+#### Prerequisites
 
 - **Python 3.11** (not 3.13 - pandas 2.1.4 requires Python 3.11)
 - **PostgreSQL 12+** (running and accessible)
@@ -549,7 +565,7 @@ POST /api/prd/{result_id}
 ### Technical File Structure
 
 ```
-axwise-flow-oss/
+axwise-flow/
 ├── backend/              # FastAPI backend
 │   ├── api/             # API routes and endpoints
 │   │   ├── research/    # Research chat + simulation bridge

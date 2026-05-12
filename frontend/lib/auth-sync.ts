@@ -27,7 +27,9 @@ export function useFirebaseAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Listen for Firebase auth state changes only (no Clerk in OSS mode)
+  // Listen for Firebase auth state changes. 
+  // Note: Clerk authentication state is handled globally via <ClerkProvider> and 
+  // its token is retrieved via apiClient interception in authUtils.ts
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
