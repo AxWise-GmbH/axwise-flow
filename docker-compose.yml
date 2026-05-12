@@ -75,7 +75,8 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile.dev
+      dockerfile: frontend/Dockerfile
+      target: dev
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

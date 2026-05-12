@@ -57,3 +57,6 @@ scripts/deploy-axwise-de-*.sh
 gmailmcp/
 gmailmcp/client_secret_993236701053-c0k1216s1hjpi1rbephfdbo76epe1qhf.apps.googleusercontent.com.json
 .axwise-flow-private
+
+# Local scratch
+tmp/
