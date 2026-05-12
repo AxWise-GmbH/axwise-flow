@@ -125,12 +125,11 @@ class Settings:
         # Default LLM provider
         self.default_llm_provider = "enhanced_gemini"
 
-        # CORS settings - Allow Firebase App Hosting and local development
+        # CORS settings - local development by default; production deployments
+        # should override via the CORS_ORIGINS env var (comma-separated).
         default_origins = [
             "http://localhost:3000",  # Local Next.js dev
             "http://localhost:3001",  # Local Next.js dev (alternative port)
-            "https://axwise-flow--axwise-73425.europe-west4.hosted.app",  # Firebase App Hosting
-            "https://axwise.de",  # Custom domain
             "*",  # Allow all for development (remove in production)
         ]
         self.cors_origins = os.getenv("CORS_ORIGINS", ",".join(default_origins)).split(

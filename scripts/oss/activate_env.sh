@@ -5,7 +5,7 @@
 #   source scripts/oss/activate_env.sh
 #
 # Optional: run from anywhere
-#   source /Users/admin/Downloads/axwise-flow-oss/scripts/oss/activate_env.sh
+#   source /path/to/axwise-flow/scripts/oss/activate_env.sh
 
 # Don't use set -e when sourced, as it affects the parent shell
 # Instead, we'll handle errors explicitly
