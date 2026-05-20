@@ -24,6 +24,8 @@ requests>=2.32.3
 starlette-csrf>=1.4.4
 cookies>=2.2.1  # For cookie handling
 slowapi>=0.1.9  # Rate limiting for FastAPI
+openregister-sdk>=3.5.1
+
 
 # LLM Services
 openai>=1.52.0

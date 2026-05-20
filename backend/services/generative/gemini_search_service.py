@@ -500,3 +500,55 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "error": str(e)
             }
 
+    def search_web_general(self, query: str) -> Dict[str, Any]:
+        """
+        Perform a general Google search using Gemini's search grounding.
+        
+        Args:
+            query: The search query string.
+            
+        Returns:
+            Dict containing the raw text response, source titles/URLs, and search metadata.
+        """
+        if not self._client:
+            logger.warning("Gemini client not available for search_web_general")
+            return {"text": "", "sources": [], "search_performed": False}
+
+        try:
+            from google.genai import types
+
+            response = self._client.models.generate_content(
+                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3-flash-preview"),
+                contents=query,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.2,
+                ),
+            )
+
+            grounding_sources = []
+            if response.candidates and response.candidates[0].grounding_metadata:
+                metadata = response.candidates[0].grounding_metadata
+                if metadata.grounding_chunks:
+                    for chunk in metadata.grounding_chunks:
+                        if hasattr(chunk, 'web') and chunk.web:
+                            grounding_sources.append({
+                                "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
+                                "url": chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                            })
+
+            return {
+                "text": response.text or "",
+                "sources": grounding_sources[:10],
+                "search_performed": True
+            }
+        except Exception as e:
+            logger.error(f"search_web_general failed for query '{query}': {e}")
+            return {
+                "text": "",
+                "sources": [],
+                "search_performed": False,
+                "error": str(e)
+            }
+
+

@@ -12,7 +12,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { FileText, BarChart3, MessageSquare, Users, FlaskConical, BookOpen, Upload, Clock, TrendingUp, History } from 'lucide-react';
+import { FileText, BarChart3, MessageSquare, Users, FlaskConical, BookOpen, Upload, Clock, TrendingUp, History, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserProfile } from '@/components/user-profile';
 
@@ -47,6 +47,12 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
       label: 'Dashboard',
       icon: BarChart3,
       active: pathname === '/unified-dashboard'
+    },
+    {
+      href: '/unified-dashboard/regional-map',
+      label: 'Regional Market Map',
+      icon: Map,
+      active: pathname === '/unified-dashboard/regional-map'
     },
     {
       href: '/unified-dashboard/research-chat',

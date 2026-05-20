@@ -109,6 +109,8 @@ class SimulatedPerson(BaseModel):
     communication_style: str
     stakeholder_type: str
     demographic_details: DemographicDetails
+    grounding_company: Optional[str] = None
+    grounding_sources: Optional[List[str]] = None
 
 
 class PersonaTrait(BaseModel):
@@ -250,3 +252,64 @@ class SimulationProgress(BaseModel):
     @total_personas.setter
     def total_personas(self, value: int):
         self.total_people = value
+
+
+class CompanyDiscoveryItem(BaseModel):
+    """Details of a discovered local business."""
+    id: str
+    name: str
+    industry: str
+    size: str
+    location: str
+    latitude: float
+    longitude: float
+    decision_makers: List[str]
+    estimated_pain_points: List[str]
+    insights: Optional[str] = None
+    website: Optional[str] = None
+    contact_phone: Optional[str] = None
+    # New grounding fields
+    linkedin_url: Optional[str] = None
+    xing_url: Optional[str] = None
+    email: Optional[str] = None
+    register_court: Optional[str] = None
+    register_number: Optional[str] = None
+    legal_form: Optional[str] = None
+    purpose: Optional[str] = None
+    pain_point_sources: Optional[List[str]] = None
+    decision_maker_details: Optional[List[Dict[str, str]]] = None
+
+
+
+class RegionalWorkflowRequest(BaseModel):
+    """Request payload to trigger the full regional geolocated workflow."""
+    location: str
+    business_problem: str
+    target_user: str
+
+
+class RegionalWorkflowResponse(BaseModel):
+    """E2E workflow outcome containing discovered companies, generated personas, simulated interviews, and aggregated insights."""
+    success: bool
+    message: str
+    companies: List[CompanyDiscoveryItem]
+    business_context: BusinessContext
+    stakeholders: List[Stakeholder]
+    people: List[SimulatedPerson]
+    interviews: List[SimulatedInterview]
+    insights: SimulationInsights
+
+
+class PersonaChatRequest(BaseModel):
+    """Request payload for real-time persona conversation."""
+    persona_id: str
+    message: str
+    chat_history: List[Dict[str, str]] = Field(default_factory=list)
+    business_context: Optional[BusinessContext] = None
+
+
+class PersonaChatResponse(BaseModel):
+    """Response containing the persona's message and their simulated cognitive reasoning trace."""
+    persona_response: str
+    cognitive_steps: List[str]
+
