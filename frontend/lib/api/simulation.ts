@@ -59,6 +59,8 @@ export interface SimulatedPerson {
   communication_style: string;
   stakeholder_type: string;
   demographic_details: Record<string, any>;
+  grounding_company?: string;
+  grounding_sources?: string[];
 }
 
 export interface PersonaTrait {

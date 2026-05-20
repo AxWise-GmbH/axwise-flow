@@ -1250,8 +1250,7 @@ async def get_analysis_result(
         )
         raise
     except Exception as e:
-        http_status = 500
-        request_error(
+        logger.error(
             endpoint,
             start,
             user_id=user.user_id,
@@ -1260,3 +1259,87 @@ async def get_analysis_result(
             analysis_id=analysis_id,
         )
         raise HTTPException(status_code=500, detail=f"Failed to get analysis: {str(e)}")
+
+
+@router.post("/regional-map/analyze-idea")
+async def regional_map_analyze_idea(
+    request: Dict[str, str],
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Parse a business idea/product description and suggest probable bottlenecks and target groups.
+    """
+    from .services.regional_service import RegionalService
+    try:
+        idea = request.get("business_idea", "")
+        if not idea:
+            raise HTTPException(status_code=400, detail="business_idea is required")
+        service = RegionalService()
+        result = await service.analyze_business_idea(idea)
+        return {"success": True, **result}
+    except Exception as e:
+        logger.error(f"Error in regional-map/analyze-idea: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/regional-map/search")
+async def regional_map_search(
+    request: Dict[str, str],
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Discover local businesses based on location and problem space.
+    """
+    from .services.regional_service import RegionalService
+    try:
+        service = RegionalService()
+        companies = await service.discover_companies(
+            location=request.get("location", ""),
+            business_problem=request.get("business_problem", ""),
+            target_user=request.get("target_user", "")
+        )
+        return {"success": True, "companies": [c.model_dump() for c in companies]}
+    except Exception as e:
+        logger.error(f"Error in regional-map/search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/regional-map/run-workflow")
+async def regional_map_run_workflow(
+    request: Dict[str, Any],
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Execute the complete e2e regional analysis workflow.
+    """
+    from .services.regional_service import RegionalService
+    from .models import RegionalWorkflowRequest
+    try:
+        req = RegionalWorkflowRequest(**request)
+        service = RegionalService()
+        response = await service.run_regional_workflow(req, user_id=user.user_id)
+        return response.model_dump()
+    except Exception as e:
+        logger.error(f"Error in regional-map/run-workflow: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/regional-map/persona-chat")
+async def regional_map_persona_chat(
+    request: Dict[str, Any],
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Engage in simulated live conversation with a persona, retrieving their reasoning trace.
+    """
+    from .services.regional_service import RegionalService
+    from .models import PersonaChatRequest
+    try:
+        req = PersonaChatRequest(**request)
+        service = RegionalService()
+        response = await service.persona_chat(req, user_id=user.user_id)
+        return response.model_dump()
+    except Exception as e:
+        logger.error(f"Error in regional-map/persona-chat: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
