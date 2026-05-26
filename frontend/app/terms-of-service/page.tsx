@@ -11,7 +11,7 @@ export default function TermsOfServicePage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
                     <p>
-                        By accessing or using the Interview Analysis application and related services (collectively, the "Service") provided by AxWise UG (in formation) ("we", "our", or "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our Service.
+                        By accessing or using the Interview Analysis application and related services (collectively, the &quot;Service&quot;) provided by AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, please do not use our Service.
                     </p>
                 </section>
 
@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">4. User Content</h2>
                     <p>
-                        Our Service allows you to upload, submit, and share content, including interview transcripts and related data ("User Content"). You retain all rights to your User Content, but you grant us a non-exclusive, worldwide, royalty-free license to use, reproduce, modify, and display your User Content solely for the purpose of providing and improving the Service.
+                        Our Service allows you to upload, submit, and share content, including interview transcripts and related data (&quot;User Content&quot;). You retain all rights to your User Content, but you grant us a non-exclusive, worldwide, royalty-free license to use, reproduce, modify, and display your User Content solely for the purpose of providing and improving the Service.
                     </p>
                     <p>You are solely responsible for your User Content and the consequences of uploading it. You represent and warrant that:</p>
                     <ul className="list-disc pl-6 space-y-2">
@@ -81,14 +81,14 @@ export default function TermsOfServicePage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">8. Disclaimer</h2>
                     <p>
-                        Your use of the Service is at your sole risk. The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement, or course of performance.
+                        Your use of the Service is at your sole risk. The Service is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement, or course of performance.
                     </p>
                 </section>
 
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">9. Changes to Terms</h2>
                     <p>
-                        We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
+                        We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days&apos; notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
                     </p>
                 </section>
 

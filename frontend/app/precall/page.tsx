@@ -164,7 +164,7 @@ export default function PrecallPage() {
                   </h3>
                   <p className="text-muted-foreground leading-relaxed">
                     Upload or paste prospect data in the left panel, then click
-                    "Generate Call Intelligence" to get started.
+                    &quot;Generate Call Intelligence&quot; to get started.
                   </p>
                 </CardContent>
               </Card>

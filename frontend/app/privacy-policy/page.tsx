@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
                     <p>
-                        AxWise UG (in formation) ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Interview Analysis application and related services (collectively, the "Service").
+                        AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Interview Analysis application and related services (collectively, the &quot;Service&quot;).
                     </p>
                     <p>
                         Please read this Privacy Policy carefully. By accessing or using our Service, you acknowledge that you have read, understood, and agree to be bound by all the terms of this Privacy Policy.
@@ -56,7 +56,7 @@ export default function PrivacyPolicyPage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">5. Third-Party Services</h2>
                     <p>
-                        Our Service may use third-party services, such as Google's Gemini API for AI processing. These third parties have their own privacy policies addressing how they use such information.
+                        Our Service may use third-party services, such as Google&apos;s Gemini API for AI processing. These third parties have their own privacy policies addressing how they use such information.
                     </p>
                 </section>
 
@@ -79,7 +79,7 @@ export default function PrivacyPolicyPage() {
                 <section className="mb-12">
                     <h2 className="text-2xl font-semibold mb-4">7. Changes to This Privacy Policy</h2>
                     <p>
-                        We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.
+                        We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;Last Updated&quot; date.
                     </p>
                     <p>
                         You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.
