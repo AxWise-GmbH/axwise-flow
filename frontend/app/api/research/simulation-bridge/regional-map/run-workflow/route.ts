@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { Agent } from 'undici';
 
 const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 600; // 10 minutes (aligns with simulate endpoint)
+
+// Raise undici's headersTimeout (default 300s) so the proxy doesn't die
+// while the backend is still processing avatar generation + interviews.
+const fetchAgent = new Agent({
+  headersTimeout: 660_000, // 11 minutes
+  bodyTimeout: 660_000,
+  connectTimeout: 10_000,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +57,8 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${authToken}`,
       },
       body: JSON.stringify(body),
+      // @ts-ignore — Node.js undici dispatcher option (not in fetch typings)
+      dispatcher: fetchAgent,
     });
 
     if (!response.ok) {
@@ -69,3 +80,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

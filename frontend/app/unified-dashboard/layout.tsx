@@ -11,8 +11,12 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { FileText, BarChart3, MessageSquare, Users, FlaskConical, BookOpen, Upload, Clock, TrendingUp, History, Map } from 'lucide-react';
+import { Suspense, useState, useEffect } from 'react';
+import {
+  FileText, BarChart3, MessageSquare, Users, FlaskConical,
+  BookOpen, Upload, Clock, TrendingUp, History, Map,
+  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserProfile } from '@/components/user-profile';
 
@@ -36,6 +40,17 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
   // Get the current path to determine active nav item
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isRegionalMap = pathname === '/unified-dashboard/regional-map';
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Auto-collapse sidebar on regional map route
+  useEffect(() => {
+    if (isRegionalMap) {
+      setCollapsed(true);
+    } else {
+      setCollapsed(false);
+    }
+  }, [isRegionalMap]);
 
   // Get current visualization tab from URL params
   const currentTab = searchParams.get('visualizationTab');
@@ -112,49 +127,115 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
   ];
 
   return (
-    <div className="flex h-screen bg-background text-foreground font-sans selection:bg-primary/20">
-      {/* Left Sidebar - Glassmorphism Style */}
-      <div className="w-72 flex flex-col border-r border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 h-screen z-40">
-        <div className="p-6 border-b border-border/40">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+    <div className="flex h-screen bg-background text-foreground font-sans selection:bg-primary/20 relative">
+      {isRegionalMap && collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          className="fixed left-4 top-4 z-40 h-10 w-10 bg-background/80 backdrop-blur-xl border border-border/40 rounded-xl flex items-center justify-center shadow-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
+          title="Open sidebar"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </button>
+      )}
+      {/* Left Sidebar - Collapsible */}
+      <div
+        className={cn(
+          isRegionalMap
+            ? "fixed left-0 top-0 bottom-0 z-50 bg-background/95 backdrop-blur-xl border-r border-border/40 shadow-2xl flex flex-col transition-all duration-300 ease-in-out"
+            : "flex flex-col border-r border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 h-screen z-40 transition-all duration-300 ease-in-out",
+          isRegionalMap
+            ? (collapsed ? "w-0 -translate-x-full pointer-events-none" : "w-72 translate-x-0")
+            : (collapsed ? "w-[68px]" : "w-72")
+        )}
+      >
+        {/* Header */}
+        <div className={cn(
+          "border-b border-border/40 flex items-center",
+          collapsed ? "p-3 justify-center" : "p-6 justify-between"
+        )}>
+          <Link href="/" className={cn("flex items-center gap-2 group", collapsed && "justify-center")}>
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors shrink-0">
               <BarChart3 className="h-5 w-5" />
             </div>
-            <span className="font-bold text-lg tracking-tight">AxWise Flow</span>
+            {!collapsed && (
+              <span className="font-bold text-lg tracking-tight whitespace-nowrap">AxWise Flow</span>
+            )}
           </Link>
+          {!collapsed && (
+            <button
+              onClick={() => setCollapsed(true)}
+              className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-3 mt-2">
-            Platform
+        {/* Expand button when collapsed */}
+        {collapsed && (
+          <div className="px-2 py-2 border-b border-border/40">
+            <button
+              onClick={() => setCollapsed(false)}
+              className="w-full h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="Expand sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
           </div>
+        )}
+
+        <nav className={cn(
+          "flex-1 overflow-y-auto custom-scrollbar",
+          collapsed ? "p-2 space-y-1" : "p-4 space-y-1"
+        )}>
+          {!collapsed && (
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-3 mt-2">
+              Platform
+            </div>
+          )}
 
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Separate items based on loose grouping logic if needed, 
-            // but for now we render them in order.
-            // We can add logic to add headers if we want to split "Platform" vs "History" etc.
 
             return (
-              <div key={item.href} className="group">
+              <div key={item.href} className="group relative">
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    "flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                    collapsed
+                      ? "justify-center p-2.5"
+                      : "gap-3 px-3 py-2.5",
                     item.active
                       ? "bg-primary/10 text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
-                  <Icon className={cn("h-4 w-4 transition-colors", item.active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                  {item.label}
-                  {item.active && (
-                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <Icon className={cn(
+                    "h-4 w-4 transition-colors shrink-0",
+                    item.active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  )} />
+                  {!collapsed && (
+                    <>
+                      <span className="truncate">{item.label}</span>
+                      {item.active && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                      )}
+                    </>
                   )}
                 </Link>
 
-                {/* Sub-items with improved animation/indentation */}
-                {item.subItems && (item.active || item.subItems.some(sub => sub.active)) && (
+                {/* Tooltip when collapsed */}
+                {collapsed && (
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 z-50 shadow-lg">
+                    {item.label}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+                  </div>
+                )}
+
+                {/* Sub-items — only when expanded */}
+                {!collapsed && item.subItems && (item.active || item.subItems.some(sub => sub.active)) && (
                   <div className="ml-9 mt-1 space-y-0.5 border-l border-border/40 pl-2">
                     {item.subItems.map((subItem) => (
                       <Link
@@ -178,8 +259,17 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
         </nav>
 
         {/* Sidebar Footer / User Profile */}
-        <div className="p-4 border-t border-border/40 bg-muted/10 flex items-center justify-center">
-          <UserProfile />
+        <div className={cn(
+          "border-t border-border/40 bg-muted/10 flex items-center justify-center",
+          collapsed ? "p-2" : "p-4"
+        )}>
+          {collapsed ? (
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+              U
+            </div>
+          ) : (
+            <UserProfile />
+          )}
         </div>
       </div>
 
@@ -187,14 +277,16 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
       <div className="flex-1 flex flex-col overflow-hidden bg-muted/10">
         <main className={cn(
           "flex-1 relative",
-          pathname?.includes('/research-chat') ? "flex flex-col overflow-hidden p-0" : "overflow-auto p-8 lg:p-10"
+          (pathname?.includes('/research-chat') || isRegionalMap) ? "flex flex-col overflow-hidden p-0" : "overflow-auto p-8 lg:p-10"
         )}>
           {/* Subtle background decoration */}
-          <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-background to-transparent pointer-events-none -z-10" />
+          {!isRegionalMap && (
+            <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-background to-transparent pointer-events-none -z-10" />
+          )}
 
           <div className={cn(
             "animate-in fade-in slide-in-from-bottom-2 duration-500",
-            pathname?.includes('/research-chat')
+            (pathname?.includes('/research-chat') || isRegionalMap)
               ? "flex-1 h-full w-full"
               : "max-w-7xl mx-auto space-y-8"
           )}>

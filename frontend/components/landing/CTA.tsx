@@ -15,7 +15,7 @@ export function CTA() {
     // Handle form submission
     console.log('Form submitted:', action, formData);
     if (action === 'schedule') {
-      window.open('https://tidycal.com/team/axwise/demo', '_blank');
+      window.open('https://calendar.app.google/LTCGuJt8RBN7XrD47', '_blank');
     }
   };
 

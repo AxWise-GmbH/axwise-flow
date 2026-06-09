@@ -28,6 +28,7 @@ from ..models import (
     SimulationConfig,
 )
 from .persona_generator import PersonaGenerator
+from .pin_image_service import PinImageService
 from .interview_simulator import InterviewSimulator
 from backend.infrastructure.persistence.simulation_repository import SimulationRepository
 
@@ -79,30 +80,32 @@ class RegionalService:
         return lat + offset_lat, lon + offset_lon
 
     async def discover_companies(
-        self, location: str, business_problem: str, target_user: str
+        self, location: str, business_problem: str, target_user: str, data_source: str = "hybrid"
     ) -> List[CompanyDiscoveryItem]:
         """Discovers/generates local businesses and decision makers based on location."""
         if not self.model:
             raise ValueError("Model not initialized. Ensure GEMINI_API_KEY environment variable is set.")
 
         # 1. Try running B2B ingestion pipeline
+        companies = []
+        # 1. Try running B2B ingestion pipeline
         try:
             from .pipeline import B2BDataPipeline
-            pipeline = B2BDataPipeline(location, business_problem, target_user, self.model)
+            pipeline = B2BDataPipeline(location, business_problem, target_user, self.model, data_source)
             companies = await pipeline.run()
             if companies:
                 logger.info(f"Ingested {len(companies)} companies successfully from live sources.")
-                return companies
         except Exception as e:
             logger.warning(f"Live ingestion pipeline failed or not configured, falling back to LLM generation: {e}")
 
         # Fallback: Generate targets via LLM
-        lat, lon = self._get_base_coordinates(location)
+        if not companies:
+            lat, lon = self._get_base_coordinates(location)
 
-        agent = Agent(
-            model=self.model,
-            output_type=List[CompanyDiscoveryItem],
-            system_prompt=f"""You are a B2B lead generation and regional market intelligence agent.
+            agent = Agent(
+                model=self.model,
+                output_type=List[CompanyDiscoveryItem],
+                system_prompt=f"""You are a B2B lead generation and regional market intelligence agent.
 Your job is to identify or generate 5 to 7 realistic companies located in and around '{location}' that are relevant to this business problem:
 '{business_problem}' and target user: '{target_user}'.
 
@@ -115,18 +118,40 @@ For each company, generate:
 6. Exact Latitude and Longitude coordinates. They must be close to the location's coordinates (Lat: {lat}, Lon: {lon}) but scattered realistically (e.g. within +-0.04 degrees).
 7. Main B2B decision makers (2 people with titles, e.g. "CEO: Hans Mueller", "IT Director: Anna Schmidt")
 8. Estimated pain points of this company (at least 3 specific points) related to the business problem.
-9. A short paragraph of B2B insights for this company.
+9. pain_point_sentences: Exactly 3 justification sentences supporting these pain points.
+10. A short paragraph of B2B insights for this company.
 """
-        )
+            )
 
-        prompt = f"Identify 5 to 7 key companies in '{location}' that would experience pain points related to: '{business_problem}'."
-        result = await agent.run(prompt)
-        companies = result.output
+            prompt = f"Identify 5 to 7 key companies in '{location}' that would experience pain points related to: '{business_problem}'."
+            result = await agent.run(prompt)
+            companies = result.output
 
-        # Verify coordinates are present
+            # Verify coordinates are present
+            for c in companies:
+                if not c.latitude or not c.longitude:
+                    c.latitude, c.longitude = self._get_scattered_coordinates(lat, lon)
+
+        # Enrich and structure decision_maker_details from decision_makers list
         for c in companies:
-            if not c.latitude or not c.longitude:
-                c.latitude, c.longitude = self._get_scattered_coordinates(lat, lon)
+            if not c.decision_maker_details and c.decision_makers:
+                details = []
+                for dm in c.decision_makers:
+                    if ":" in dm:
+                        role, name = dm.split(":", 1)
+                        details.append({
+                            "role": role.strip(),
+                            "name": name.strip(),
+                            "type": "natural_person"
+                        })
+                    else:
+                        details.append({
+                            "role": "Management",
+                            "name": dm.strip(),
+                            "type": "natural_person"
+                        })
+                c.decision_maker_details = details
+
         return companies
 
     async def _generate_stakeholders(self, business_context: BusinessContext) -> Dict[str, List[Stakeholder]]:
@@ -210,11 +235,12 @@ For each company, generate:
 
         return stakeholders_dict
 
-    def _aggregate_insights(self, interviews: List[SimulatedInterview], business_context: BusinessContext) -> SimulationInsights:
-        """Aggregates simulated interviews into actionable B2B insights."""
+    async def _aggregate_insights(self, interviews: List[SimulatedInterview], business_context: BusinessContext) -> SimulationInsights:
+        """Aggregates simulated interviews into actionable B2B insights using LLM synthesis."""
         all_themes = []
         sentiment_counts = {"positive": 0, "negative": 0, "neutral": 0, "mixed": 0}
         stakeholder_feedback = {}
+        all_response_summaries = []
 
         for interview in interviews:
             all_themes.extend(interview.key_themes)
@@ -229,24 +255,17 @@ For each company, generate:
                 stakeholder_feedback[interview.stakeholder_type].extend(
                     response.key_insights
                 )
+                all_response_summaries.append(
+                    f"[{interview.stakeholder_type}] Q: {response.question[:80]} → {', '.join(response.key_insights[:2])}"
+                )
 
         max_sentiment = max(sentiment_counts, key=sentiment_counts.get)
         unique_themes = list(set(all_themes))[:5]
 
-        # Generate simple lists
-        risks = [
-            f"Adoption barriers for {business_context.target_customer}",
-            "Concerns around operational integration complexity"
-        ]
-        opportunities = [
-            "Strong demand for simplified automated workflows",
-            "High business ROI if onboarding friction is resolved"
-        ]
-        recommendations = [
-            "Create a proof-of-concept focusing on the core integration features",
-            "Offer structured training during the onboarding phase",
-            "Align pricing structures to value realized in the first 30 days"
-        ]
+        # Try LLM-powered aggregation for richer insights
+        risks, opportunities, recommendations = await self._generate_llm_insights(
+            all_response_summaries, business_context, unique_themes
+        )
 
         return SimulationInsights(
             overall_sentiment=max_sentiment,
@@ -257,16 +276,96 @@ For each company, generate:
             recommendations=recommendations,
         )
 
+    async def _generate_llm_insights(
+        self,
+        response_summaries: List[str],
+        business_context: BusinessContext,
+        themes: List[str],
+    ) -> tuple:
+        """Use LLM synchronously to synthesize interview responses into risks, opportunities, and recommendations."""
+        if not self.model or not response_summaries:
+            return (
+                [f"Adoption barriers for {business_context.target_customer}",
+                 "Concerns around operational integration complexity"],
+                ["Strong demand for simplified automated workflows",
+                 "High business ROI if onboarding friction is resolved"],
+                ["Create a proof-of-concept focusing on core integration features",
+                 "Offer structured training during the onboarding phase",
+                 "Align pricing structures to value realized in the first 30 days"]
+            )
+
+        try:
+            class InsightsOutput(BaseModel):
+                potential_risks: List[str]
+                opportunities: List[str]
+                recommendations: List[str]
+
+            agent = Agent(
+                model=self.model,
+                output_type=InsightsOutput,
+                system_prompt=f"""You are a B2B market strategist synthesizing stakeholder interview data.
+
+Business Problem: {business_context.problem}
+Target Customer: {business_context.target_customer}
+Key Themes from Interviews: {', '.join(themes)}
+
+Based on the interview responses below, generate:
+1. potential_risks: 3-4 specific risks, barriers, or friction points discovered from the interviews. Be concrete, not generic.
+2. opportunities: 3-4 actionable opportunities identified from stakeholder feedback. Reference specific themes.
+3. recommendations: 3-5 strategic recommendations with clear action items. Each should be a concrete next step.
+
+Make all items SPECIFIC to the business context — not generic advice. Reference actual stakeholder feedback patterns.
+"""
+            )
+
+            # Take the first 20 summaries to avoid context overflow
+            summaries_text = "\n".join(response_summaries[:20])
+            prompt = f"Synthesize these interview responses into strategic insights:\n\n{summaries_text}"
+
+            result = await agent.run(prompt)
+
+            return (
+                result.output.potential_risks,
+                result.output.opportunities,
+                result.output.recommendations,
+            )
+        except Exception as e:
+            logger.error(f"LLM insights aggregation failed: {e}", exc_info=True)
+            return (
+                [f"Adoption barriers for {business_context.target_customer}",
+                 "Concerns around operational integration complexity"],
+                ["Strong demand for simplified automated workflows",
+                 "High business ROI if onboarding friction is resolved"],
+                ["Create a proof-of-concept focusing on core integration features",
+                 "Offer structured training during onboarding",
+                 "Align pricing to value realized in the first 30 days"]
+            )
+
     async def run_regional_workflow(
         self, request: RegionalWorkflowRequest, user_id: str = "default_user"
     ) -> RegionalWorkflowResponse:
-        """Runs the complete geolocated analysis workflow."""
+        """Runs the complete geolocated analysis workflow with reliability safeguards."""
         logger.info(f"Running regional workflow for location: {request.location}")
 
-        # 1. Discover companies
-        companies = await self.discover_companies(
-            request.location, request.business_problem, request.target_user
+        simulation_id = str(uuid.uuid4())
+        people: List[SimulatedPerson] = []
+        interviews: List[SimulatedInterview] = []
+        insights = None
+        stakeholders_dict: Dict[str, List[Stakeholder]] = {"primary": [], "secondary": []}
+        config = SimulationConfig(
+            depth="quick",
+            people_per_stakeholder=2,
+            response_style="realistic"
         )
+
+        # 1. Discover companies (critical — fail if this fails)
+        if request.companies:
+            companies = request.companies
+            logger.info(f"Using {len(companies)} pre-discovered companies from request.")
+        else:
+            companies = await self.discover_companies(
+                request.location, request.business_problem, request.target_user, request.data_source
+            )
 
         # 2. Build BusinessContext
         business_context = BusinessContext(
@@ -277,32 +376,96 @@ For each company, generate:
             location=request.location,
         )
 
-        # 3. Create Stakeholders & Questions
-        stakeholders_dict = await self._generate_stakeholders(business_context)
+        # 3. Create Stakeholders & Questions (wrapped for reliability)
+        try:
+            stakeholders_dict = await self._generate_stakeholders(business_context)
+            logger.info(f"Generated {len(stakeholders_dict.get('primary', []))} primary + {len(stakeholders_dict.get('secondary', []))} secondary stakeholders")
+        except Exception as e:
+            logger.error(f"Stakeholder generation failed, using fallback: {e}", exc_info=True)
+            stakeholders_dict = {
+                "primary": [
+                    Stakeholder(
+                        id=f"fallback_primary_0_{uuid.uuid4().hex[:6]}",
+                        name=request.target_user or "Operations Manager",
+                        description=f"Primary decision maker for {request.business_problem}",
+                        questions=[
+                            f"What challenges do you face related to {request.business_problem}?",
+                            "How does this impact your daily operations?",
+                            "What would an ideal solution look like?"
+                        ],
+                    )
+                ],
+                "secondary": []
+            }
 
-        # 4. Generate Personas (using PersonaGenerator)
-        persona_gen = PersonaGenerator(self.model)
-        config = SimulationConfig(
-            depth="quick",
-            people_per_stakeholder=2,
-            response_style="realistic"
-        )
-        
-        people = await persona_gen.generate_all_people(
-            stakeholders=stakeholders_dict,
-            business_context=business_context,
-            config=config
-        )
+        # 4. Generate Personas (wrapped for reliability)
+        try:
+            persona_gen = PersonaGenerator(self.model)
+            
+            # Collect decision makers to simulate
+            decision_makers_to_simulate = []
+            for comp in companies:
+                if comp.decision_maker_details:
+                    for dm in comp.decision_maker_details:
+                        decision_makers_to_simulate.append({
+                            "name": dm.get("name"),
+                            "role": dm.get("role"),
+                            "company_name": comp.name,
+                            "company_id": comp.id
+                        })
+                else:
+                    # Add default decision makers for companies without details
+                    decision_makers_to_simulate.append({
+                        "name": f"Manager at {comp.name}",
+                        "role": request.target_user or "Operations Manager",
+                        "company_name": comp.name,
+                        "company_id": comp.id
+                    })
 
-        # Enrich personas with grounding company and sources to ensure transparency
+            # Limit total personas to prevent excessive API costs/timeouts (max 10)
+            # Group by company to ensure even representation
+            by_comp_dms = {}
+            for dm in decision_makers_to_simulate:
+                cid = dm["company_id"]
+                if cid not in by_comp_dms:
+                    by_comp_dms[cid] = []
+                by_comp_dms[cid].append(dm)
+            
+            selected_dms = []
+            max_personas = 10
+            round_idx = 0
+            while len(selected_dms) < max_personas:
+                added_any = False
+                for cid in list(by_comp_dms.keys()):
+                    dms = by_comp_dms[cid]
+                    if round_idx < len(dms):
+                        selected_dms.append(dms[round_idx])
+                        added_any = True
+                        if len(selected_dms) >= max_personas:
+                            break
+                if not added_any:
+                    break
+                round_idx += 1
+
+            logger.info(f"Generating personas for {len(selected_dms)} selected decision makers (from {len(decision_makers_to_simulate)} total)...")
+            people = await persona_gen.generate_personas_for_decision_makers(
+                decision_makers=selected_dms,
+                business_context=business_context
+            )
+            logger.info(f"Generated {len(people)} personas")
+        except Exception as e:
+            logger.error(f"Persona generation failed: {e}", exc_info=True)
+            people = []
+
+        # Enrich personas with grounding sources
         if companies and people:
-            for idx, person in enumerate(people):
-                # Distribute personas cyclically across discovered companies
-                comp = companies[idx % len(companies)]
-                person.grounding_company = comp.name
-                
+            comp_map = {c.id: c for c in companies}
+            for person in people:
+                comp = comp_map.get(person.grounding_company_id)
+                if not comp:
+                    continue
+
                 srcs = []
-                # Check where this company was fetched from
                 is_registry = (
                     (comp.insights and ("OpenRegister" in comp.insights or "Handelsregister" in comp.insights))
                     or comp.register_number
@@ -314,41 +477,84 @@ For each company, generate:
                     srcs.append(f"Handelsregister (German Company Registry) {reg_info}")
                 else:
                     srcs.append(f"Google Search Grounding for '{comp.name}' in {request.location}")
-                
+
                 if comp.website:
                     srcs.append(f"Official Company Website: {comp.website}")
                 if comp.contact_phone:
                     srcs.append(f"Registry Telephone Contact: {comp.contact_phone}")
                 if getattr(comp, 'linkedin_url', None):
                     srcs.append(f"LinkedIn: {comp.linkedin_url}")
-                
+
                 person.grounding_sources = srcs
-        else:
+        elif people:
             for person in people:
                 person.grounding_sources = [
                     f"Google Search grounding for '{request.target_user}' roles in {request.location}",
                     f"General B2B market indicators for {request.location}"
                 ]
 
-        # 5. Conduct Simulated Interviews (using InterviewSimulator)
-        interview_sim = InterviewSimulator(self.model)
-        interviews = await interview_sim.simulate_all_interviews(
-            people=people,
-            stakeholders=stakeholders_dict,
-            business_context=business_context,
-            config=config
-        )
+        # 4b. Generate flat-pin avatar images for personas in parallel (non-blocking per persona)
+        if people:
+            try:
+                api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+                pin_service = PinImageService(api_key=api_key)
+                await pin_service.generate_pins_for_personas(people)
+                generated_count = sum(1 for p in people if p.avatar_data_url)
+                logger.info(f"Generated {generated_count}/{len(people)} persona avatar pins")
+            except Exception as e:
+                logger.warning(f"Avatar pin generation failed (non-critical): {e}")
+
+        # 5. Conduct Simulated Interviews (wrapped for reliability)
+        if people:
+            try:
+                interview_sim = InterviewSimulator(self.model)
+                interviews = await interview_sim.simulate_all_interviews(
+                    personas=people,
+                    stakeholders=stakeholders_dict,
+                    business_context=business_context,
+                    config=config
+                )
+                logger.info(f"Completed {len(interviews)} interviews")
+            except Exception as e:
+                logger.error(f"Interview simulation failed: {e}", exc_info=True)
 
         # 6. Generate Simulation Insights
-        insights = self._aggregate_insights(interviews, business_context)
+        if interviews:
+            try:
+                insights = await self._aggregate_insights(interviews, business_context)
+            except Exception as e:
+                logger.error(f"Insights aggregation failed: {e}", exc_info=True)
+
+        if not insights:
+            insights = SimulationInsights(
+                overall_sentiment="neutral",
+                key_themes=["Awaiting interview data"],
+                stakeholder_priorities={},
+                potential_risks=[f"Insufficient data to assess risks for {request.business_problem}"],
+                opportunities=["Run a full simulation to discover opportunities"],
+                recommendations=["Complete the persona interview step to generate actionable insights"],
+            )
 
         # 7. Persist to DB so that persona chat works
         try:
             from backend.database import SessionLocal
             from backend.infrastructure.persistence.unit_of_work import UnitOfWork
 
-            simulation_id = str(uuid.uuid4())
             async with UnitOfWork(SessionLocal) as uow:
+                from backend.models import User
+                existing_user = uow.session.query(User).filter(User.user_id == user_id).first()
+                if not existing_user:
+                    logger.info(f"Creating mock user {user_id} in DB to prevent foreign key violation")
+                    new_user = User(
+                        user_id=user_id,
+                        email=f"{user_id}@example.com",
+                        first_name="Mock",
+                        last_name="User",
+                        usage_data={"subscription": {"tier": "free", "status": "active"}, "usage": {}}
+                    )
+                    uow.session.add(new_user)
+                    uow.session.flush()
+
                 repo = SimulationRepository(uow.session)
                 await repo.create_simulation(
                     simulation_id=simulation_id,
@@ -379,6 +585,7 @@ For each company, generate:
         return RegionalWorkflowResponse(
             success=True,
             message="Regional geolocated analysis completed successfully",
+            simulation_id=simulation_id,
             companies=companies,
             business_context=business_context,
             stakeholders=stakeholders,
@@ -392,7 +599,7 @@ For each company, generate:
         if not self.model:
             raise ValueError("Model not initialized.")
 
-        # 1. Resolve persona from DB
+        # 1. Resolve persona from DB (scoped to simulation if provided)
         persona_data = None
         try:
             from backend.database import SessionLocal
@@ -400,15 +607,29 @@ For each company, generate:
             
             async with UnitOfWork(SessionLocal) as uow:
                 repo = SimulationRepository(uow.session)
-                simulations = await repo.get_user_simulations(user_id=user_id, limit=20)
-                for sim in simulations:
-                    if sim.personas:
+
+                # Try scoped lookup first (preferred — uses current simulation only)
+                if request.simulation_id:
+                    sim = await repo.get_by_simulation_id(request.simulation_id)
+                    if sim and sim.personas:
                         for p in sim.personas:
                             if p.get("id") == request.persona_id:
                                 persona_data = p
                                 break
-                    if persona_data:
-                        break
+                        if persona_data:
+                            logger.info(f"Found persona {request.persona_id} in simulation {request.simulation_id}")
+
+                # Fallback: scan recent simulations
+                if not persona_data:
+                    simulations = await repo.get_user_simulations(user_id=user_id, limit=20)
+                    for sim in simulations:
+                        if sim.personas:
+                            for p in sim.personas:
+                                if p.get("id") == request.persona_id:
+                                    persona_data = p
+                                    break
+                        if persona_data:
+                            break
         except Exception as e:
             logger.error(f"Error loading persona {request.persona_id} from DB: {e}")
 

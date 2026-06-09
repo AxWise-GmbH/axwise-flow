@@ -233,21 +233,36 @@ Create a realistic interview that feels like a genuine conversation with this pe
             logger.info(
                 f"🎭 Processing persona '{persona.name}' with stakeholder_type '{persona.stakeholder_type}'"
             )
+            
+            stakeholder = None
             if persona.stakeholder_type in stakeholder_lookup:
                 stakeholder = stakeholder_lookup[persona.stakeholder_type]
                 logger.info(
                     f"✅ Found matching stakeholder '{stakeholder.name}' for persona '{persona.name}'"
                 )
-                interview = await self.simulate_interview(
-                    persona, stakeholder, business_context, config
+            elif stakeholders.get("primary"):
+                stakeholder = stakeholders["primary"][0]
+                logger.info(
+                    f"⚠️ No exact stakeholder match for '{persona.stakeholder_type}'. "
+                    f"Falling back to primary stakeholder '{stakeholder.name}' for persona '{persona.name}'."
                 )
-                all_interviews.append(interview)
+            elif stakeholder_lookup:
+                stakeholder = list(stakeholder_lookup.values())[0]
+                logger.info(
+                    f"⚠️ Falling back to first available stakeholder '{stakeholder.name}' for persona '{persona.name}'."
+                )
+
+            if stakeholder:
+                try:
+                    interview = await self.simulate_interview(
+                        persona, stakeholder, business_context, config
+                    )
+                    all_interviews.append(interview)
+                except Exception as e:
+                    logger.error(f"Error simulating interview for '{persona.name}': {e}", exc_info=True)
             else:
                 logger.warning(
-                    f"❌ No stakeholder found for persona '{persona.name}' with type '{persona.stakeholder_type}'"
-                )
-                logger.warning(
-                    f"Available stakeholder names: {list(stakeholder_lookup.keys())}"
+                    f"❌ No stakeholder found or available for persona '{persona.name}' with type '{persona.stakeholder_type}'"
                 )
 
         logger.info(f"Completed {len(all_interviews)} simulated interviews")

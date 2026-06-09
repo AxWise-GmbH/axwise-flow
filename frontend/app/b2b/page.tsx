@@ -65,7 +65,7 @@ export default function B2BPage() {
                             powered by the AxWise engine that turns slow qualitative research into a quantitative capability.
                         </p>
                         <div className="flex flex-wrap justify-center gap-4">
-                            <Button3D href="https://tidycal.com/team/axwise/demo" size="lg">
+                            <Button3D href="https://calendar.app.google/LTCGuJt8RBN7XrD47" size="lg">
                                 Schedule Architecture Review
                             </Button3D>
                             <Button3D variant="secondary" size="lg" href="#">

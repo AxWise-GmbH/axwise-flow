@@ -1296,7 +1296,8 @@ async def regional_map_search(
         companies = await service.discover_companies(
             location=request.get("location", ""),
             business_problem=request.get("business_problem", ""),
-            target_user=request.get("target_user", "")
+            target_user=request.get("target_user", ""),
+            data_source=request.get("data_source", "hybrid")
         )
         return {"success": True, "companies": [c.model_dump() for c in companies]}
     except Exception as e:

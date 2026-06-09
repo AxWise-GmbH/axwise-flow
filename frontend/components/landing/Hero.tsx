@@ -129,8 +129,8 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="flex flex-wrap items-center gap-4"
             >
-              <Button3D size="lg" href="https://tidycal.com/team/axwise/demo">Calculate Your ROI →</Button3D>
-              <Button3D size="lg" variant="secondary" href="https://tidycal.com/team/axwise/demo">See Enterprise Use Cases</Button3D>
+              <Button3D size="lg" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">Calculate Your ROI →</Button3D>
+              <Button3D size="lg" variant="secondary" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">See Enterprise Use Cases</Button3D>
             </motion.div>
 
             {/* Stats */}
