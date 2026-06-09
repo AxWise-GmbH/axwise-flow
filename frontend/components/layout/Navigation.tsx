@@ -37,7 +37,7 @@ export function Navigation() {
 
 
           <div className="hidden md:flex items-center gap-3">
-            <Button3D size="sm" variant="secondary" href="https://tidycal.com/team/axwise/demo">Book a Demo</Button3D>
+            <Button3D size="sm" variant="secondary" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">Book a Demo</Button3D>
             <Button3D size="sm" href="/unified-dashboard">Get Started</Button3D>
           </div>
 
@@ -59,7 +59,7 @@ export function Navigation() {
                   <a href="mailto:support@axwise.de" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Contact</a>
                   <a href="https://api.axwise.de/redoc" target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="text-lg font-medium text-gray-900">Docs &amp; SDK</a>
                   <div className="pt-4 flex flex-col gap-3">
-                    <Button3D size="md" variant="secondary" href="https://tidycal.com/team/axwise/demo">Book a Demo</Button3D>
+                    <Button3D size="md" variant="secondary" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">Book a Demo</Button3D>
                     <Button3D size="md" href="/unified-dashboard">Get Started</Button3D>
                   </div>
                 </div>

@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env_file = os.path.join(backend_dir, ".env.oss")
 if os.path.exists(env_file):
-    load_dotenv(env_file)
+    load_dotenv(env_file, override=True)
     print(f"[INFO] Loaded environment from {env_file}")
 else:
     print(f"[WARNING] .env.oss file not found at {env_file}")

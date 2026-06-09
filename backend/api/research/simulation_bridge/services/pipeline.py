@@ -45,12 +45,14 @@ class B2BDataPipeline:
         location: str, 
         business_problem: str, 
         target_user: str, 
-        model: Optional[Model] = None
+        model: Optional[Model] = None,
+        data_source: str = "hybrid"
     ):
         self.location = location
         self.business_problem = business_problem
         self.target_user = target_user
         self.model = model
+        self.data_source = data_source
         
         # Load API keys
         self.apollo_key = os.getenv("APOLLO_API_KEY")
@@ -70,7 +72,7 @@ class B2BDataPipeline:
         """Runs the E2E ingestion and enrichment pipeline."""
         
         # 1. Try OpenRegister (German commercial registry)
-        if self.openregister_key:
+        if self.data_source in ("hybrid", "registry") and self.openregister_key:
             companies = await self._fetch_from_openregister()
             if companies:
                 logger.info(f"OpenRegister returned {len(companies)} companies.")
@@ -78,14 +80,15 @@ class B2BDataPipeline:
                 enriched = await self._enrich_with_grounded_pain_points(companies)
                 return enriched
 
-        # 2. Fallback to Google Search grounding
-        logger.info("No OpenRegister results or key. Falling back to Google Search grounding.")
-        companies = await self._discover_via_web_search()
-        if companies:
-            # Enrich with real websites, people, and employee counts
-            await self._enrich_contacts_and_people(companies)
-            enriched = await self._enrich_with_grounded_pain_points(companies)
-            return enriched
+        # 2. Google Search grounding
+        if self.data_source in ("hybrid", "web"):
+            logger.info("Discovering via Google Search grounding.")
+            companies = await self._discover_via_web_search()
+            if companies:
+                # Enrich with real websites, people, and employee counts
+                await self._enrich_contacts_and_people(companies)
+                enriched = await self._enrich_with_grounded_pain_points(companies)
+                return enriched
         
         logger.warning("All discovery methods exhausted. Returning empty list.")
         return []
@@ -619,7 +622,13 @@ Return one result per company, matched by name.
                         url = src.get("url")
                         title = src.get("title", "Unknown")
                         if url:
-                            industry_sources.append(f"{title}: {url}")
+                            # Skip generic domain-only URLs (e.g. kununu.com without /de/company-slug)
+                            # Only keep URLs with meaningful paths
+                            from urllib.parse import urlparse
+                            parsed = urlparse(url)
+                            path = parsed.path.strip("/")
+                            if path and len(path) > 3:  # has a real path, not just "/"
+                                industry_sources.append(f"{title}: {url}")
             except Exception as search_err:
                 logger.error(f"Batch pain point search failed: {search_err}")
 
@@ -627,6 +636,7 @@ Return one result per company, matched by name.
         class CompanyPainPoints(BaseModel):
             company_name: str
             pain_points: List[str]
+            pain_point_sentences: List[str]
         
         class BatchPainPointsOut(BaseModel):
             results: List[CompanyPainPoints]
@@ -647,12 +657,9 @@ Return one result per company, matched by name.
 Business problem context: '{self.business_problem}'
 Target user role: '{self.target_user}'
 
-For each company, generate exactly 3 pain points that are:
-1. Specific to their industry and registered purpose
-2. Relevant to the business problem context above
-3. Realistic operational or workflow challenges
-
-If real industry evidence is provided below, reference it. Otherwise, generate realistic estimates.
+For each company, generate:
+1. pain_points: Exactly 3 concise pain points that are specific to their industry, registered purpose, and relevant to the business problem context.
+2. pain_point_sentences: Exactly 3 full sentences or quotes providing detailed operational context or justification for each corresponding pain point (e.g. "Because of their manual legacy WZ database, SPARETECH spends up to 2 days mapping parts manually for plant managers."). If real search evidence is provided below, extract matching quotes or factual sentences. If not, write realistic justification sentences based on their company profile.
 
 IMPORTANT: For each pain point, append a source tag:
 - If it's based on real search evidence: "(Source: Industry research)"
@@ -668,18 +675,25 @@ Do NOT fabricate specific metrics (like review scores) or URLs. Be honest about 
             result = await agent.run(prompt)
             
             # Map results back to companies
-            result_map = {r.company_name.lower().strip(): r.pain_points for r in result.output.results}
+            result_map = {
+                r.company_name.lower().strip(): (r.pain_points, r.pain_point_sentences)
+                for r in result.output.results
+            }
             
             for company in companies[:10]:
-                matched_pps = result_map.get(company.name.lower().strip())
-                if matched_pps:
-                    company.estimated_pain_points = matched_pps
+                match = result_map.get(company.name.lower().strip())
+                if match:
+                    company.estimated_pain_points = match[0]
+                    company.pain_point_sentences = match[1]
                     company.pain_point_sources = industry_sources[:3] if industry_sources else [
                         "Generated based on industry profile and registered business purpose"
                     ]
                 else:
                     company.estimated_pain_points = [
                         f"Operational challenges typical for {company.industry} sector (Source: Industry profile estimate)"
+                    ]
+                    company.pain_point_sentences = [
+                        f"Typically, firms in {company.industry} struggle with workflow efficiencies under {self.business_problem}."
                     ]
                     company.pain_point_sources = ["No specific public evidence found"]
         except Exception as e:
@@ -688,6 +702,9 @@ Do NOT fabricate specific metrics (like review scores) or URLs. Be honest about 
                 if not company.estimated_pain_points:
                     company.estimated_pain_points = [
                         f"Industry-typical challenges for {company.industry} (Source: Industry profile estimate)"
+                    ]
+                    company.pain_point_sentences = [
+                        f"We estimate that {company.name} encounters coordination delays typical of the {company.industry} sector."
                     ]
                     company.pain_point_sources = ["Unable to verify — batch analysis failed"]
 

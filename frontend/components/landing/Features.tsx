@@ -78,7 +78,7 @@ export function Features() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mb-16">
                 <motion.a
-                  href="https://tidycal.com/team/axwise/demo"
+                  href="https://calendar.app.google/LTCGuJt8RBN7XrD47"
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ y: -2 }}

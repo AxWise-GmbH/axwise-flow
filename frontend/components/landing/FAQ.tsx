@@ -144,7 +144,7 @@ export function FAQ() {
         >
           <h3 className="text-black mb-4">Ready to transform your product development?</h3>
           <p className="text-gray-600 mb-6">Start your journey from idea to PRD today.</p>
-          <Button3D size="lg" href="https://tidycal.com/team/axwise/demo">Get Started Free →</Button3D>
+          <Button3D size="lg" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">Get Started Free →</Button3D>
         </motion.div>
       </div>
     </section>

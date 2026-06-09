@@ -103,7 +103,7 @@ export function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <Button3D size="md" href="https://tidycal.com/team/axwise/demo">Get Started →</Button3D>
+            <Button3D size="md" href="https://calendar.app.google/LTCGuJt8RBN7XrD47">Get Started →</Button3D>
           </motion.div>
         </div>
 

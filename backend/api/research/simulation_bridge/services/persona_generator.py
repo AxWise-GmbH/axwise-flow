@@ -248,6 +248,10 @@ CRITICAL REQUIREMENTS:
 - Format: "FirstName LastName, Position/Title" (e.g., "Sarah Chen, Senior Finance Director")
 - Personas should be distinctly different from each other within this stakeholder category
 - Focus on realistic diversity within the stakeholder category
+- Each person MUST include a `physical_description` field: a concise neutral visual description
+  suitable for AI image generation (appearance, hair colour/length, rough age look, clothing style).
+  Do NOT include names, company logos, or text in the description.
+  Example: "a focused man in his mid-30s with short blond hair and light stubble, wearing a navy polo shirt"
 
 The personas should feel like real people who would genuinely interact with this business idea.{used_names_text}{used_global_text}"""
 
@@ -291,6 +295,72 @@ The personas should feel like real people who would genuinely interact with this
             f"Generated {len(all_people)} total people across all stakeholder types"
         )
         return all_people
+
+    async def generate_personas_for_decision_makers(
+        self,
+        decision_makers: List[Dict[str, Any]],
+        business_context: BusinessContext,
+    ) -> List[SimulatedPerson]:
+        """
+        Generate simulated personas directly corresponding to real decision makers.
+        Each decision_maker dict has keys: 'name', 'role', 'company_name', 'company_id'.
+        """
+        if not decision_makers:
+            return []
+
+        # Construct a structured prompt listing the real decision makers
+        dm_list_str = ""
+        for idx, dm in enumerate(decision_makers):
+            dm_list_str += f"\n{idx + 1}. Name: {dm['name']}, Role: {dm['role']}, Company: {dm['company_name']}"
+
+        prompt = f"""You are an expert persona generator for customer research simulations.
+Your task is to generate realistic simulated personas for the following real decision makers discovered in the target region:
+
+BUSINESS CONTEXT:
+- Business Idea: {business_context.business_idea}
+- Target Customer: {business_context.target_customer}
+- Problem Being Solved: {business_context.problem}
+- Primary Business Location: {business_context.location or "Not specified"}
+
+REAL DECISION MAKERS TO SIMULATE:{dm_list_str}
+
+For each of these decision makers, generate a detailed simulated persona.
+Each persona MUST match the real name, role, and company specified.
+If the name is a placeholder like 'Manager at ...' or similar, replace it with a realistic, diverse full name (first name + last name) suitable for a business professional in {business_context.location or 'Germany'}.
+
+Generate:
+1. name: Keep the real name if provided, or replace placeholder names with a realistic full name.
+2. age: a plausible age (e.g. between 30 and 65)
+3. background: their professional history matching their role and company
+4. motivations: specific business motivations relevant to the context
+5. pain_points: specific pain points relevant to the business problem
+6. communication_style: their communication preferences (e.g. direct, detail-oriented)
+7. demographic_details: company size, education, etc.
+8. physical_description: a concise visual description suitable for AI image generation (no text/logos)
+
+Return a list of AIPona/SimulatedPerson objects matching the list of decision makers in order.
+"""
+        try:
+            logger.info(f"Generating personas for {len(decision_makers)} decision makers...")
+            result = await self.agent.run(prompt, model_settings={"temperature": 0.0})
+            people = result.output
+
+            # Assign IDs and map back to companies
+            for idx, person in enumerate(people):
+                person.id = str(uuid.uuid4())
+                if idx < len(decision_makers):
+                    dm = decision_makers[idx]
+                    # If name was placeholder, let LLM name stand, otherwise use the real name
+                    if not (dm['name'].startswith("Manager at") or "at " in dm['name']):
+                        person.name = dm['name']
+                    person.stakeholder_type = dm['role']
+                    person.grounding_company = dm['company_name']
+                    person.grounding_company_id = dm['company_id']
+
+            return people
+        except Exception as e:
+            logger.error(f"Failed to generate decision maker personas: {e}", exc_info=True)
+            raise
 
     # Backward compatibility methods
     async def generate_personas(self, *args, **kwargs) -> List[AIPersona]:

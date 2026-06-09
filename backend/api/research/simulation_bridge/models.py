@@ -98,7 +98,7 @@ class QuestionsData(BaseModel):
 class SimulatedPerson(BaseModel):
     """Individual simulated person for interviews."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     id: str
     name: str
@@ -110,7 +110,11 @@ class SimulatedPerson(BaseModel):
     stakeholder_type: str
     demographic_details: DemographicDetails
     grounding_company: Optional[str] = None
+    grounding_company_id: Optional[str] = None
     grounding_sources: Optional[List[str]] = None
+    # Avatar generation fields
+    physical_description: Optional[str] = None  # e.g. "a focused woman in her 40s with short dark hair, wearing a grey blazer"
+    avatar_data_url: Optional[str] = None       # base64 "data:image/png;base64,..." populated by PinImageService
 
 
 class PersonaTrait(BaseModel):
@@ -277,6 +281,7 @@ class CompanyDiscoveryItem(BaseModel):
     legal_form: Optional[str] = None
     purpose: Optional[str] = None
     pain_point_sources: Optional[List[str]] = None
+    pain_point_sentences: Optional[List[str]] = None
     decision_maker_details: Optional[List[Dict[str, str]]] = None
 
 
@@ -286,12 +291,16 @@ class RegionalWorkflowRequest(BaseModel):
     location: str
     business_problem: str
     target_user: str
+    data_source: Optional[str] = "hybrid"
+    companies: Optional[List[CompanyDiscoveryItem]] = None
+
 
 
 class RegionalWorkflowResponse(BaseModel):
     """E2E workflow outcome containing discovered companies, generated personas, simulated interviews, and aggregated insights."""
     success: bool
     message: str
+    simulation_id: Optional[str] = None
     companies: List[CompanyDiscoveryItem]
     business_context: BusinessContext
     stakeholders: List[Stakeholder]
@@ -304,6 +313,7 @@ class PersonaChatRequest(BaseModel):
     """Request payload for real-time persona conversation."""
     persona_id: str
     message: str
+    simulation_id: Optional[str] = None
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
     business_context: Optional[BusinessContext] = None
 
