@@ -3126,9 +3126,10 @@
     #s11 { padding: 18px 40px; }
     #s11 .topbar { margin-bottom: 12px; }
     #s11 h2.sub { margin-bottom: 8px; }
-    #s11 .comp-table thead th { padding: 5px 6px; font-size: 9px; }
-    #s11 .comp-table tbody td { padding: 3px 6px; font-size: 9px; }
-    #s11 .comp-table tbody td.center { font-size: 14px; }
+    #s11 .comp-table { width: 100%; border-collapse: collapse; }
+    #s11 .comp-table thead th { padding: 4px 3px; font-size: 8px; border-bottom: 2px solid var(--hairline); }
+    #s11 .comp-table tbody td { padding: 3px 3px; font-size: 8px; border-bottom: 1px solid var(--hairline); }
+    #s11 .comp-table tbody td.center { font-size: 13px; text-align: center; }
   </style>
   <div class="topbar">
     <div class="brand"><span style="color:var(--emerald-1);">●</span> Orqaly <span style="margin: 0 8px; color: var(--ink-3);">×</span> <svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 6px; transform: translateY(-1px);"><rect width="24" height="24" rx="6" fill="#000" stroke="#333" stroke-width="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg> AxWise</div>
@@ -3136,73 +3137,81 @@
   </div>
   <div class="eyebrow">Competition</div>
   <h1 class="headline">Complete Platform Solution</h1>
-  <h2 class="sub">Orqaly + AxWise sits in the gap between closed-source enterprise stacks (Palantir), visual low-code/no-code platforms (n8n, Relevance AI), and developer frameworks (Haystack, OpenClaw, AutoGen, CrewAI).</h2>
+  <h2 class="sub">Orqaly + AxWise sits in the gap between closed-source enterprise stacks (Palantir), visual CRM and low-code platforms (Twenty, n8n, Relevance AI), and developer frameworks (Haystack, OpenClaw, AutoGen, CrewAI).</h2>
 
   <table class="comp-table">
     <thead>
       <tr>
-        <th style="vertical-align: bottom; padding-bottom: 8px;">Capability</th>
-        <th class="us center" style="line-height: 1.3; vertical-align: bottom; padding: 6px 4px;">
+        <th style="vertical-align: bottom; padding-bottom: 8px; font-size: 8.5px; font-weight: 700; width: 220px;">Capability</th>
+        <th class="us center" style="line-height: 1.3; vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">Orqaly</span>
-          <span style="display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 8px; opacity: 0.85; margin-top: 2px; font-weight: 600;"><svg width="10" height="11" viewBox="0 0 24 24" style="flex-shrink:0;"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg> AxWise</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.85; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: var(--emerald-1); font-weight: 600;">Commercial OSS</span>
+          <span style="display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 7px; opacity: 0.85; margin-top: 2px; font-weight: 600;"><svg width="9" height="10" viewBox="0 0 24 24" style="flex-shrink:0;"><rect width="24" height="24" rx="5" fill="#000"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg> AxWise</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.85; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: var(--emerald-1); font-weight: 600;">Comm. OSS</span>
             <span style="display: block;">Bootstrapped</span>
             <span style="display: block;">Alpha</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">n8n</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #d97706; font-weight: 600;">Commercial OSS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #d97706; font-weight: 600;">Comm. OSS</span>
             <span style="display: block;">$240M Raised</span>
             <span style="display: block;">$108M ARR</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">Relevance AI</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #4f46e5; font-weight: 600;">Proprietary SaaS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #4f46e5; font-weight: 600;">Prop. SaaS</span>
             <span style="display: block;">$37M Raised</span>
             <span style="display: block;">~$3M ARR</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">Palantir</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #4f46e5; font-weight: 600;">Proprietary SaaS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #4f46e5; font-weight: 600;">Prop. SaaS</span>
             <span style="display: block;">Public (PLTR)</span>
             <span style="display: block;">$2.5B+ Rev</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">Haystack</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #d97706; font-weight: 600;">Commercial OSS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #d97706; font-weight: 600;">Comm. OSS</span>
             <span style="display: block;">$46M Raised</span>
             <span style="display: block;">~$10M ARR</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
+          <span style="display: block; font-weight: 700;">Twenty.com</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #059669; font-weight: 600;">Open CRM</span>
+            <span style="display: block;">$5M Seed</span>
+            <span style="display: block;">~$3.5M ARR</span>
+          </div>
+        </th>
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">OpenClaw</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #059669; font-weight: 600;">Completely OSS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #059669; font-weight: 600;">Full OSS</span>
             <span style="display: block;">$0 (Organic)</span>
             <span style="display: block;">$0 (Free)</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">AutoGen</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #059669; font-weight: 600;">Completely OSS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #059669; font-weight: 600;">Full OSS</span>
             <span style="display: block;">Microsoft R&amp;D</span>
             <span style="display: block;">$0 (Free)</span>
           </div>
         </th>
-        <th class="center" style="vertical-align: bottom; padding: 6px 4px;">
+        <th class="center" style="vertical-align: bottom; padding: 6px 3px;">
           <span style="display: block; font-weight: 700;">CrewAI</span>
-          <div style="font-size: 8px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.2;">
-            <span style="display: block; color: #d97706; font-weight: 600;">Commercial OSS</span>
+          <div style="font-size: 7px; font-weight: 400; opacity: 0.8; margin-top: 4px; line-height: 1.25;">
+            <span style="display: block; color: #d97706; font-weight: 600;">Comm. OSS</span>
             <span style="display: block;">$24.5M Raised</span>
             <span style="display: block;">~$3.5M ARR</span>
           </div>
@@ -3211,20 +3220,10 @@
     </thead>
     <tbody>
       <tr>
-        <td>Goals to Deliverables &amp; Full Process Pipelines</td>
+        <td style="font-weight: 600;">Goals to Deliverables &amp; Full Process Pipelines</td>
         <td class="center us">●</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-partial">◐</td>
-        <td class="center cell-no">—</td>
-        <td class="center cell-no">—</td>
-        <td class="center cell-no">—</td>
-        <td class="center cell-no">—</td>
-        <td class="center cell-no">—</td>
-      </tr>
-      <tr>
-        <td>Persona-driven Digital Twins with Persona DNA</td>
-        <td class="center us">●</td>
-        <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
@@ -3233,8 +3232,21 @@
         <td class="center cell-no">—</td>
       </tr>
       <tr>
-        <td>Multi-Agent Consensus / Consilium Voting &amp; Auditing</td>
+        <td style="font-weight: 600;">Persona-driven Digital Twins with Persona DNA</td>
         <td class="center us">●</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+        <td class="center cell-no">—</td>
+      </tr>
+      <tr>
+        <td style="font-weight: 600;">Multi-Agent Consensus / Consilium Voting &amp; Auditing</td>
+        <td class="center us">●</td>
+        <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
@@ -3244,8 +3256,9 @@
         <td class="center cell-partial">◐</td>
       </tr>
       <tr>
-        <td>Messenger-Native Client Operations (Slack/WhatsApp)</td>
+        <td style="font-weight: 600;">Messenger-Native Client Operations (Slack/WhatsApp)</td>
         <td class="center us">●</td>
+        <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
@@ -3255,44 +3268,48 @@
         <td class="center cell-no">—</td>
       </tr>
       <tr>
-        <td>Security Audit Log &amp; RBAC Governance (SOC2 ready)</td>
+        <td style="font-weight: 600;">Security Audit Log &amp; RBAC Governance (SOC2 ready)</td>
         <td class="center us">●</td>
         <td class="center cell-no">—</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-yes">●</td>
+        <td class="center cell-partial">◐</td>
         <td class="center cell-no">—</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-partial">◐</td>
       </tr>
       <tr>
-        <td>Open-Core &amp; Premium Enterprise SaaS Model</td>
+        <td style="font-weight: 600;">Open-Core &amp; Premium Enterprise SaaS Model</td>
         <td class="center us">●</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
+        <td class="center cell-yes">●</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
         <td class="center cell-yes">●</td>
       </tr>
       <tr>
-        <td>No-Code for Non-Engineers (Outcomes-to-deliverables)</td>
+        <td style="font-weight: 600;">No-Code for Non-Engineers (Outcomes-to-deliverables)</td>
         <td class="center us">●</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
+        <td class="center cell-partial">◐</td>
         <td class="center cell-no">—</td>
         <td class="center cell-partial">◐</td>
         <td class="center cell-partial">◐</td>
       </tr>
       <tr>
-        <td>BYOK / Self-Hosted Infrastructure with Complete Sovereignty</td>
+        <td style="font-weight: 600;">BYOK / Self-Hosted Infrastructure with Complete Sovereignty</td>
         <td class="center us">●</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-no">—</td>
         <td class="center cell-no">—</td>
+        <td class="center cell-yes">●</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-yes">●</td>
         <td class="center cell-yes">●</td>
