@@ -132,8 +132,18 @@ const nextConfig = {
         source: '/blog/:path*',
         destination: '/api/blog/:path*',
       },
+      // Rewrite /orqaly-axwise to the API route that serves the static pitch deck
+      {
+        source: '/orqaly-axwise',
+        destination: '/api/orqaly-axwise/index.html',
+      },
+      {
+        source: '/orqaly-axwise/:path*',
+        destination: '/api/orqaly-axwise/:path*',
+      },
     ];
   },
+
 
   // Add redirects to block malicious requests
   async redirects() {

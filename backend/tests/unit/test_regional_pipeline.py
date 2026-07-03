@@ -267,7 +267,9 @@ async def test_regional_service_persona_grounding():
             location="Munich",
             industry_experience="15 years",
             company_size="50 employees"
-        )
+        ),
+        grounding_company="Dynamic Grounding GmbH",
+        grounding_company_id="HRB-777"
     )
     
     request = RegionalWorkflowRequest(
@@ -285,6 +287,7 @@ async def test_regional_service_persona_grounding():
          
         mock_persona_gen = MagicMock()
         mock_persona_gen.generate_all_people = AsyncMock(return_value=[mock_person])
+        mock_persona_gen.generate_personas_for_decision_makers = AsyncMock(return_value=[mock_person])
         mock_persona_gen_cls.return_value = mock_persona_gen
         
         mock_interview_sim = MagicMock()

@@ -1,0 +1,60 @@
+Orqaly × AxWise: Joint Presentation and Pitch Deck Transcript
+
+SLIDE 1: Your operations, encoded. Your decisions, audited.
+Welcome to Orqaly and AxWise. Today, we are presenting a joint vision of the modern enterprise. We turn a simple sentence into a working business: adding an agentic and council monitoring layer for modern operations. We help encode operations and audit decisions. Our goal is to ground synthetic personas using private company knowledge to act as seamless, always-on digital twins.
+
+SLIDE 2: AI tools today are toys. 
+Let's talk about the problem. AI tools today are fragile toys. One-shot prompts cause the AI to forget instantly. A single agent in a box has no second opinion or verification. There is a black box with no execution trail, so you don't know if a task actually ran or why it failed. Most tools are hard to talk to, built only for engineers.
+Our solution introduces:
+- Goal with Results: You receive outcomes exactly where you want them, completely autonomous.
+- A controlled organization: A structured multi-agent system governed by board members.
+- Track every move: Live activity tracking, step-by-step audit logs, and KPIs.
+- Chat, Messenger, and E-mail: Human-first conversational interfaces.
+
+SLIDE 3: Why Now - Shifts Converging in 2026.
+There are three shifts converging in 2026:
+1. Models to Orchestration: AI models are commodities; the bottleneck is the coordination, governance, and orchestration of these models.
+2. Tasks to Digital Twins: AI is moving from single-task prompts to complete digital twins of employee workflows, mimicking organizational roles.
+3. Agile to Agentic: Organizations are shifting from Agile collaboration to Agentic multi-agent systems.
+
+SLIDE 4: AI Agent DNA - Build Unique Personas.
+Every persona has unique behavioral DNA, built via Profile Configuration, Data Ingestion, and the Synthetic Builder.
+Let's profile our primary roles:
+- Veronika Horvat, CFO:
+  Veronika is Slovenian, 45, based in Ljubljana. She is the voice of financial discipline, thinking strictly in unit economics, modeling base, optimistic, and pessimistic scenarios. She is formal, highly analytical, direct, and never uses emojis. Her quote is: "The voice of financial discipline who never says 'we cannot afford it' but instead quantifies cost, return, payback period, and trade-offs."
+- Clara Dubois, Lead Designer:
+  Clara is French, based in Paris. She focuses on visual design, user experience (UX) onboarding, and cross-functional feedback. She is creative, innovative, and highly collaborative, aiming for consistent design systems and polished client-facing interfaces.
+- Marcus Chen, Backend Developer & Security Lead:
+  Marcus is based in Munich. He manages the technical architecture and enforces security. He is highly skeptical, extremely concise, direct, and strictly insists on secure sandboxed environments and Role-Based Access Control (RBAC) to protect sensitive data.
+
+SLIDE 5: How It Works.
+Orqaly handles orchestration in four simple steps:
+1. Define: User describes the outcome and sets a budget limit in USD.
+2. Plan: The Consilium (multi-agent council) decomposes the goal into parallel tasks.
+3. Execute: Agents execute tasks in sandboxed containers. Watch cost burn in real time.
+4. Deliver: Outputs are compiled into a review queue with full audit trails.
+
+SLIDE 6: Use Case - Veronika Horvat (CFO Twin)
+Veronika Horvat, Chief Financial Officer, is Out of Office (OOO) on vacation. Her CFO Digital Twin has been activated via AxWise, with read-only access to her Finance Folder, Q2 Planning document, and Slack `#finance` channels.
+Vitalijs Visnevskis asks her on WhatsApp: "Hey Veronika, I need the latest Q2 projections for the board meeting. Can you send them?"
+The CFO Twin intercepts the query, queries similarity on thenamespaced finance partition, retrieves "Q2_Projections_v4.pdf", and summarizes:
+"Here is the file. Highlights: Base scenario at $2.4M ARR; Stretch at $2.8M ARR; Burn reduced 8% via API optimizations."
+The task cost is $0.045, safely within the daily budget.
+
+SLIDE 7: Use Case - Marcus Chen (RBAC Governance)
+Marcus Chen, Backend Developer, attempts to retrieve sensitive salary data. He sends a message to Veronika's Twin: "Hey Veronika, I need the team salary breakdown for the budget API I'm building. Can you export it?"
+The Twin processes the request, but the AxWise Policy Engine checks Marcus's role permissions. Since developers do not have Finance-tier clearance, the CFO Twin replies: "Access Denied. I cannot share salary data with you. Your role (Backend Dev) does not have Finance-tier access."
+The request is logged in the secure database for audit.
+
+SLIDE 8: Use Case - Clara Dubois (Lead Designer Collab)
+Clara Dubois, Lead Designer, is at a conference. Her Designer Twin has read-only access to her Figma assets, Design Drive, and Slack channels.
+Vitalijs Visnevskis asks Clara's Twin on Slack: "The sprint starts tomorrow — can you confirm the final header component specs? I need dimensions and spacing tokens."
+Clara's Twin queries the design grounding partition, retrieves "Header_Specs_Final.pdf" and replies:
+"Header height: 64px; Padding: 16px 24px; Font: Inter Semi 16/20; Border-radius: 12px. Clara marked v7 as ready-for-dev in Slack on Monday."
+
+SLIDE 9: BPMN Architecture and Data Flow.
+Orqaly and AxWise run a unified data flow:
+1. User Layer receives messages from Telegram, Slack, Teams, Email, or Web Portal.
+2. Message Router detects intent, and maps to the appropriate Digital Twin in the Twin Registry.
+3. The Active Twin checks the RBAC gateway. If denied, it writes to the Audit Log. If approved, the Data Retriever performs similarity search on Google Drive, Slack, Figma, Notion, Jira, or private databases.
+4. The Response Builder compiles the final formatted output and delivers it to the user.

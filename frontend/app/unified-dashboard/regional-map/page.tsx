@@ -50,6 +50,15 @@ interface DemographicDetails {
   company_size?: string;
 }
 
+interface OCEANProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  occupation_code?: string;
+}
+
 interface SimulatedPerson {
   id: string;
   name: string;
@@ -65,6 +74,9 @@ interface SimulatedPerson {
   demographic_details?: DemographicDetails;
   physical_description?: string;
   avatar_data_url?: string;  // base64 data:image/png;base64,... from Imagen 4 Fast
+  ocean_profile?: OCEANProfile;
+  cognitive_grounding?: Record<string, any>;
+  tool_profile?: Record<string, any>;
 }
 
 interface InterviewResponse {

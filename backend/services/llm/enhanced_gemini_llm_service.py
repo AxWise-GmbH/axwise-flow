@@ -405,7 +405,8 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
                 task="structured_generation",
                 prompt=prompt,
                 custom_config={
-                    "response_model": response_model,
+                    "response_schema": response_model,
+                    "response_mime_type": "application/json",
                     "temperature": kwargs.get(
                         "temperature", 0.0
                     ),  # Lower temp for structured output

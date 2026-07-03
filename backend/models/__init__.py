@@ -71,6 +71,7 @@ def _get_sqlalchemy_models():
                 "SimulationData": getattr(backend_models, "SimulationData", None),
                 "PipelineRun": getattr(backend_models, "PipelineRun", None),
                 "DigitalTwin": getattr(backend_models, "DigitalTwin", None),
+                "PersonaKnowledgeChunk": getattr(backend_models, "PersonaKnowledgeChunk", None),
             }
         else:
             _models_cache = {
@@ -82,6 +83,7 @@ def _get_sqlalchemy_models():
                 "SimulationData": None,
                 "PipelineRun": None,
                 "DigitalTwin": None,
+                "PersonaKnowledgeChunk": None,
             }
 
     except Exception as e:
@@ -99,6 +101,7 @@ def _get_sqlalchemy_models():
             "SimulationData": None,
             "PipelineRun": None,
             "DigitalTwin": None,
+            "PersonaKnowledgeChunk": None,
         }
 
     return _models_cache
@@ -114,6 +117,7 @@ CachedPRD = _models["CachedPRD"]
 SimulationData = _models["SimulationData"]
 PipelineRun = _models["PipelineRun"]
 DigitalTwin = _models["DigitalTwin"]
+PersonaKnowledgeChunk = _models["PersonaKnowledgeChunk"]
 
 
 __all__ = [
@@ -145,4 +149,5 @@ __all__ = [
     "SimulationData",
     "PipelineRun",
     "DigitalTwin",
+    "PersonaKnowledgeChunk",
 ]

@@ -204,14 +204,11 @@ For each attribute field, provide:
 
 Be thorough and extract all relevant information. Use exact quotes from the transcript as evidence."""
                     
-                    # Use the instructor_client directly with ExtractedPersonaAttributes schema
-                    instructor_client = service.instructor_client
-                    
-                    result = await instructor_client.generate_with_model_async(
+                    # Use the standardized generate_structured method
+                    result = await self.llm_service.generate_structured(
                         prompt=structured_prompt,
-                        model_class=ExtractedPersonaAttributes,
+                        response_model=ExtractedPersonaAttributes,
                         temperature=0.0,
-                        max_output_tokens=65536,
                     )
                     
                     # Convert Pydantic model to dict
@@ -360,7 +357,6 @@ Be thorough and extract all relevant information. Use exact quotes from the tran
 
                     # First, identify all tools in the full transcript
                     logger.info("Identifying all tools in the full transcript")
-                    import asyncio
                     try:
                         all_identified_tools = await asyncio.wait_for(
                             self.tool_recognition_service.identify_tools_in_text(

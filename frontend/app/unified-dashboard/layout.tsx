@@ -15,7 +15,7 @@ import { Suspense, useState, useEffect } from 'react';
 import {
   FileText, BarChart3, MessageSquare, Users, FlaskConical,
   BookOpen, Upload, Clock, TrendingUp, History, Map,
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft
+  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeft, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserProfile } from '@/components/user-profile';
@@ -57,6 +57,12 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
 
   // Navigation items (following logical workflow order)
   const navItems: NavItem[] = [
+    {
+      href: '/unified-dashboard/orqaly-console',
+      label: 'Orqaly Operations Console',
+      icon: Sparkles,
+      active: pathname === '/unified-dashboard/orqaly-console'
+    },
     {
       href: '/unified-dashboard',
       label: 'Dashboard',
