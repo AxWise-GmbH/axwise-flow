@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   '/roadmap',
   '/onepager-presentation(.*)',
   '/workshop-designthinking(.*)',
+  '/orqaly-axwise(.*)',
   '/b2b(.*)', // AxWise B2B landing page (static SPA)
   '/blog(.*)', // Allow blog access
   '/customer-research(.*)', // Allow customer research feature
@@ -26,6 +27,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/results(.*)', // Allow results API routes (handles auth internally)
   '/api/analysis(.*)', // Allow analysis API routes (handles auth internally)
   '/api/blog(.*)', // Allow blog API routes
+  '/api/orqaly-axwise(.*)', // Allow orqaly-axwise pitch deck API routes
   '/api/health', // Allow health check
   '/api/protected', // Allow protected route (handles auth internally)
 ]);
@@ -70,7 +72,7 @@ export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
     // Also skip our legacy static HTML pages
-    '/((?!_next|onepager-presentation|workshop-designthinking|b2b|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|onepager-presentation|workshop-designthinking|b2b|orqaly-axwise|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

@@ -29,6 +29,8 @@ from .persona_generator import PersonaGenerator
 from .interview_simulator import InterviewSimulator
 from .parallel_interview_simulator import ParallelInterviewSimulator
 from .data_formatter import DataFormatter
+from .ocean_sampler import OCEANSampler
+from .occupation_classifier import OccupationClassifier
 from backend.infrastructure.persistence.simulation_repository import (
     SimulationRepository,
 )
@@ -55,7 +57,13 @@ class SimulationOrchestrator:
             # Fallback for tests/offline - will fail at runtime if actually used
             self.model = None
             logger.warning("No GEMINI_API_KEY found - model will fail at runtime")
-        self.persona_generator = PersonaGenerator(self.model)
+        self.ocean_sampler = OCEANSampler()
+        self.occupation_classifier = OccupationClassifier()
+        self.persona_generator = PersonaGenerator(
+            self.model,
+            ocean_sampler=self.ocean_sampler,
+            occupation_classifier=self.occupation_classifier,
+        )
         self.interview_simulator = InterviewSimulator(self.model)
         self.parallel_interview_simulator = (
             ParallelInterviewSimulator(self.model, max_concurrent)
@@ -320,7 +328,7 @@ class SimulationOrchestrator:
                     "simulation_config": request.config.model_dump(),
                     "created_at": datetime.utcnow().isoformat(),
                 },
-                personas=personas,
+                people=personas,
                 interviews=interviews,
                 simulation_insights=insights,
                 recommendations=insights.recommendations if insights else [],
@@ -537,7 +545,7 @@ class SimulationOrchestrator:
                     "stakeholder_files": stakeholder_files,
                     "stakeholders_processed": list(stakeholder_files.keys()),
                 },
-                personas=personas,
+                people=personas,
                 interviews=interviews,
                 simulation_insights=insights,
                 recommendations=insights.recommendations if insights else [],

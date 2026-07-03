@@ -289,6 +289,68 @@ Return a complete SimulatedInterview object with all responses and metadata."""
         key_data = f"{persona.id}_{stakeholder.id}_{business_context.business_idea}_{config.temperature}_{config.response_style.value}"
         return hashlib.md5(key_data.encode()).hexdigest()
 
+    def _build_ocean_modulation(self, persona: AIPersona) -> str:
+        """Generate OCEAN-based behavioral instructions for the interview prompt."""
+        ocean = persona.ocean_profile
+        if not ocean:
+            return ""
+
+        return f"""
+PERSONALITY PROFILE (govern your response style strictly by these scores):
+- Openness: {ocean.openness:.2f} → {"You are innovative, curious, and open to exploring unconventional solutions. Suggest creative alternatives." if ocean.openness > 0.6 else "You are traditional and pragmatic. Stick to proven methods and express skepticism toward novelty."}
+- Conscientiousness: {ocean.conscientiousness:.2f} → {"You are highly structured. Use detailed bullet points, numbered steps, and insist on documentation. Ask for timelines." if ocean.conscientiousness > 0.6 else "You are adaptable and value speed over format. Give loose, conversational answers."}
+- Extraversion: {ocean.extraversion:.2f} → {"You are assertive and talkative. Initiate topics, ask counter-questions, and give lengthy, energetic responses." if ocean.extraversion > 0.6 else "You are reserved and extremely concise. Speak only when necessary. Give short, direct answers."}
+- Agreeableness: {ocean.agreeableness:.2f} → {"You are collaborative and supportive. Seek common ground, acknowledge others' perspectives." if ocean.agreeableness > 0.6 else "You are highly critical and act as an adversarial auditor. Search for logical fallacies, challenge assumptions, and point out risks."}
+- Neuroticism: {ocean.neuroticism:.2f} → {"You are risk-averse. Focus on potential failures, bugs, security leaks, compliance gaps, and worst-case scenarios." if ocean.neuroticism > 0.6 else "You are calm and focus on progress. Acknowledge risks briefly but emphasize solutions."}
+
+These personality traits MUST shape your word choice, response length, emotional tone, and the specific concerns you raise.
+"""
+
+    def _build_cognitive_grounding_section(self, persona: AIPersona, questions: List[str]) -> str:
+        """Retrieve and format cognitive grounding context for the interview simulator."""
+        if not persona.cognitive_grounding or not persona.cognitive_grounding.vector_partition_id:
+            return ""
+
+        partition_id = persona.cognitive_grounding.vector_partition_id
+        from .cognitive_grounding_service import CognitiveGroundingService
+        
+        try:
+            service = CognitiveGroundingService()
+            all_chunks = []
+            seen_chunk_ids = set()
+            
+            # Retrieve relevant chunks for each question to ensure high coverage
+            for question in questions:
+                try:
+                    hits = service.query_similarity(partition_id=partition_id, query=question, limit=2)
+                    for hit in hits:
+                        if hit["id"] not in seen_chunk_ids:
+                            seen_chunk_ids.add(hit["id"])
+                            all_chunks.append(hit)
+                except Exception as q_err:
+                    logger.warning(f"Error querying grounding for question '{question}': {q_err}")
+            
+            if not all_chunks:
+                return ""
+            
+            # Format chunks nicely
+            grounding_lines = []
+            for hit in all_chunks:
+                doc_name = hit.get("document_name", "unknown")
+                chunk_idx = hit.get("chunk_index", 0)
+                content = hit.get("content", "").replace("\n", " ")
+                grounding_lines.append(f"- [Doc: {doc_name}, Chunk: {chunk_idx}]: \"{content}\"")
+                
+            return f"""
+COGNITIVE GROUNDING REFERENCES (Strict Context):
+{chr(10).join(grounding_lines)}
+
+Instructions: Formulate your response as the persona. You must prioritize facts found in the GROUNDING REFERENCES. Cite your source documents directly where relevant.
+"""
+        except Exception as e:
+            logger.error(f"Failed to build cognitive grounding section: {e}", exc_info=True)
+            return ""
+
     def _build_interview_prompt(
         self,
         persona: AIPersona,
@@ -297,6 +359,9 @@ Return a complete SimulatedInterview object with all responses and metadata."""
         config: SimulationConfig,
     ) -> str:
         """Build the prompt for interview simulation."""
+
+        ocean_modulation = self._build_ocean_modulation(persona)
+        cognitive_grounding = self._build_cognitive_grounding_section(persona, stakeholder.questions)
 
         return f"""Simulate a customer research interview with the following persona:
 
@@ -308,6 +373,8 @@ PERSONA DETAILS:
 - Pain Points: {', '.join(persona.pain_points)}
 - Communication Style: {persona.communication_style}
 - Demographics: {persona.demographic_details}
+{ocean_modulation}
+{cognitive_grounding}
 
 BUSINESS CONTEXT:
 - Business Idea: {business_context.business_idea}

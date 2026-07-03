@@ -236,6 +236,7 @@ def create_tables():
                 InterviewData,
                 AnalysisResult,
                 SimulationData,
+                PersonaKnowledgeChunk,
             )
         except ImportError:
             # Fallback: use dynamic import with the same unique module name
@@ -250,6 +251,7 @@ def create_tables():
                 InterviewData = backend_models.InterviewData
                 AnalysisResult = backend_models.AnalysisResult
                 SimulationData = backend_models.SimulationData
+                PersonaKnowledgeChunk = backend_models.PersonaKnowledgeChunk
             except Exception as e:
                 logger.warning(
                     f"Could not import SQLAlchemy models for table creation via package: {e}"

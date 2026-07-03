@@ -332,3 +332,83 @@ class PipelineRun(Base):
         if self.completed_at and self.created_at:
             return int((self.completed_at - self.created_at).total_seconds() / 60)
         return None
+
+
+import uuid
+import json
+from sqlalchemy.types import TypeDecorator, TEXT
+
+class PortableVector(TypeDecorator):
+    """
+    A portable vector type that compiles to pgvector's VECTOR type on PostgreSQL
+    and TEXT (JSON serialized list of floats) on SQLite.
+    """
+    impl = TEXT
+    cache_ok = True
+
+    def __init__(self, dimensions: int = 768):
+        super().__init__()
+        self.dimensions = dimensions
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            from sqlalchemy.types import UserDefinedType
+            class PGVector(UserDefinedType):
+                def get_col_spec(self, **kw):
+                    return f"VECTOR({self.dimensions})"
+            return dialect.type_descriptor(PGVector())
+        else:
+            return dialect.type_descriptor(TEXT())
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if dialect.name == "postgresql":
+            if isinstance(value, list):
+                return "[" + ",".join(map(str, value)) + "]"
+            return value
+        else:
+            if isinstance(value, list):
+                return json.dumps(value)
+            return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if dialect.name == "postgresql":
+            if isinstance(value, str):
+                val_str = value.strip('[]')
+                if not val_str:
+                    return []
+                return [float(x) for x in val_str.split(',')]
+            return value
+        else:
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except Exception:
+                    val_str = value.strip('[]')
+                    if not val_str:
+                        return []
+                    return [float(x) for x in val_str.split(',')]
+            return value
+
+
+class PersonaKnowledgeChunk(Base):
+    """
+    Model for storing document knowledge chunks with embeddings, supporting both
+    PostgreSQL pgvector and SQLite-based fallback.
+    """
+    __tablename__ = "persona_knowledge_chunks"
+    __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    partition_id = Column(String(100), nullable=False, index=True)
+    document_name = Column(String(255), nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    embedding = Column(PortableVector(768), nullable=False)
+    chunk_metadata = Column("metadata", JSON, nullable=True)
+    created_at = Column(DateTime, default=utc_now)
+

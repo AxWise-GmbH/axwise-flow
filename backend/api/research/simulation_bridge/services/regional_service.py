@@ -647,9 +647,56 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
             }
 
         # 2. Formulate cognitive steps
+        # Ensure persona_data is a dict for easy access
+        if not isinstance(persona_data, dict):
+            persona_data = persona_data.model_dump() if hasattr(persona_data, "model_dump") else getattr(persona_data, "__dict__", {})
+
         class PersonaChatOut(BaseModel):
             persona_response: str
             cognitive_steps: List[str]
+
+        cognitive_grounding_section = ""
+        cog_grounding = persona_data.get("cognitive_grounding")
+        if cog_grounding:
+            if not isinstance(cog_grounding, dict):
+                cog_grounding = cog_grounding.model_dump() if hasattr(cog_grounding, "model_dump") else getattr(cog_grounding, "__dict__", {})
+            partition_id = cog_grounding.get("vector_partition_id")
+            if partition_id:
+                from .cognitive_grounding_service import CognitiveGroundingService
+                try:
+                    service = CognitiveGroundingService()
+                    hits = service.query_similarity(partition_id=partition_id, query=request.message, limit=3)
+                    if hits:
+                        grounding_lines = []
+                        for hit in hits:
+                            doc_name = hit.get("document_name", "unknown")
+                            chunk_idx = hit.get("chunk_index", 0)
+                            content = hit.get("content", "").replace("\n", " ")
+                            grounding_lines.append(f"- [Doc: {doc_name}, Chunk: {chunk_idx}]: \"{content}\"")
+                        
+                        cognitive_grounding_section = f"""
+COGNITIVE GROUNDING REFERENCES (Strict Context):
+{chr(10).join(grounding_lines)}
+
+Instructions: Formulate your response as the persona. You must prioritize facts found in the GROUNDING REFERENCES. Cite your source documents directly where relevant.
+"""
+                except Exception as cg_err:
+                    logger.warning(f"Error loading grounding context for persona chat: {cg_err}")
+
+        ocean_data = persona_data.get("ocean_profile")
+        ocean_section = ""
+        if ocean_data:
+            if not isinstance(ocean_data, dict):
+                ocean_data = ocean_data.model_dump() if hasattr(ocean_data, "model_dump") else getattr(ocean_data, "__dict__", {})
+            
+            ocean_section = f"""
+PERSONALITY PROFILE (strictly govern your response style by these scores):
+- Openness: {ocean_data.get('openness', 0.5):.2f} → {"You are innovative, curious, and open to exploring unconventional solutions. Suggest creative alternatives." if ocean_data.get('openness', 0.5) > 0.6 else "You are traditional and pragmatic. Stick to proven methods and express skepticism toward novelty."}
+- Conscientiousness: {ocean_data.get('conscientiousness', 0.5):.2f} → {"You are highly structured. Use detailed bullet points, numbered steps, and insist on documentation. Ask for timelines." if ocean_data.get('conscientiousness', 0.5) > 0.6 else "You are adaptable and value speed over format. Give loose, conversational answers."}
+- Extraversion: {ocean_data.get('extraversion', 0.5):.2f} → {"You are assertive and talkative. Initiate topics, ask counter-questions, and give lengthy, energetic responses." if ocean_data.get('extraversion', 0.5) > 0.6 else "You are reserved and extremely concise. Speak only when necessary. Give short, direct answers."}
+- Agreeableness: {ocean_data.get('agreeableness', 0.5):.2f} → {"You are collaborative and supportive. Seek common ground, acknowledge others' perspectives." if ocean_data.get('agreeableness', 0.5) > 0.6 else "You are highly critical and act as an adversarial auditor. Search for logical fallacies, challenge assumptions, and point out risks."}
+- Neuroticism: {ocean_data.get('neuroticism', 0.5):.2f} → {"You are risk-averse. Focus on potential failures, bugs, security leaks, compliance gaps, and worst-case scenarios." if ocean_data.get('neuroticism', 0.5) > 0.6 else "You are calm and focus on progress. Acknowledge risks briefly but emphasize solutions."}
+"""
 
         system_prompt = f"""You are roleplaying as this specific persona:
 Name: {persona_data.get('name')}
@@ -659,12 +706,13 @@ Motivations: {', '.join(persona_data.get('motivations', []))}
 Pain Points: {', '.join(persona_data.get('pain_points', []))}
 Communication Style: {persona_data.get('communication_style')}
 Role: {persona_data.get('stakeholder_type')}
-
+{ocean_section}
+{cognitive_grounding_section}
 Your goal is to answer the user's message as this person would. Stay in character completely. Be realistic and authentic.
 Do not break character. Do not mention you are an AI.
 
 Additionally, you must output a list of 3 to 4 "cognitive reasoning steps" that reflect the internal thinking process you went through to formulate this answer.
-These steps should show how your persona's background, motivations, and pain points influenced your response.
+These steps should show how your persona's background, motivations, pain points, and personality traits influenced your response.
 Examples of steps:
 - "Recalling previous integration frustrations with legacy software..."
 - "Analyzing if this new service actually addresses the budget constraints..."

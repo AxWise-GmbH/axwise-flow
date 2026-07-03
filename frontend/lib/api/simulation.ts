@@ -49,6 +49,15 @@ export interface QuestionsData {
   };
 }
 
+export interface OCEANProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  occupation_code?: string;
+}
+
 export interface SimulatedPerson {
   id: string;
   name: string;
@@ -61,6 +70,9 @@ export interface SimulatedPerson {
   demographic_details: Record<string, any>;
   grounding_company?: string;
   grounding_sources?: string[];
+  ocean_profile?: OCEANProfile;
+  cognitive_grounding?: Record<string, any>;
+  tool_profile?: Record<string, any>;
 }
 
 export interface PersonaTrait {

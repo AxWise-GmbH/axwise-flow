@@ -95,7 +95,43 @@ class QuestionsData(BaseModel):
     timeEstimate: Optional[Dict[str, Any]] = None
 
 
+class OCEANProfile(BaseModel):
+    """Big Five personality traits, scored 0.0 to 1.0"""
+    openness: float = Field(..., ge=0.0, le=1.0, description="Intellectual curiosity and creativity")
+    conscientiousness: float = Field(..., ge=0.0, le=1.0, description="Methodical organization and structure")
+    extraversion: float = Field(..., ge=0.0, le=1.0, description="Sociability, assertiveness, and energy level")
+    agreeableness: float = Field(..., ge=0.0, le=1.0, description="Cooperativeness, empathy, and trust")
+    neuroticism: float = Field(..., ge=0.0, le=1.0, description="Sensitivity, anxiety, and risk aversion")
+    occupation_code: Optional[str] = Field(None, description="Statistical occupation baseline used for sampling")
+
+
+class CognitiveGrounding(BaseModel):
+    """Links the persona to private context databases, SOPs, or raw evidence logs. Phase 2 stub."""
+    vector_partition_id: Optional[str] = None
+    sop_references: List[str] = Field(default_factory=list)
+
+
+class ToolProfile(BaseModel):
+    """Defines tool schema endpoints and execution clearances for the persona. Phase 3 stub."""
+    allowed_tools: List[str] = Field(default_factory=list)
+    api_scopes: List[str] = Field(default_factory=list)
+    rbac_role: str = Field(default="guest")
+
+
+class PersonaGenerationItem(BaseModel):
+    """LLM output that binds generated text to a pre-assigned profile index."""
+    profile_index: int = Field(description="The index of the pre-assigned profile from the prompt (1 to N)")
+    name: str
+    background: str
+    motivations: List[str]
+    pain_points: List[str]
+    communication_style: str
+    demographic_details: DemographicDetails
+    physical_description: str
+
+
 class SimulatedPerson(BaseModel):
+
     """Individual simulated person for interviews."""
 
     model_config = ConfigDict(extra="ignore")
@@ -115,6 +151,11 @@ class SimulatedPerson(BaseModel):
     # Avatar generation fields
     physical_description: Optional[str] = None  # e.g. "a focused woman in her 40s with short dark hair, wearing a grey blazer"
     avatar_data_url: Optional[str] = None       # base64 "data:image/png;base64,..." populated by PinImageService
+
+    # Context-Grounding Layers
+    ocean_profile: Optional[OCEANProfile] = None
+    cognitive_grounding: Optional[CognitiveGrounding] = None
+    tool_profile: Optional[ToolProfile] = None
 
 
 class PersonaTrait(BaseModel):

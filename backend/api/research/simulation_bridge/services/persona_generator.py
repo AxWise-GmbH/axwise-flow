@@ -4,7 +4,8 @@ AI Persona Generator for Interview Simulation.
 
 import logging
 import uuid
-from typing import List, Dict, Any
+import random
+from typing import List, Dict, Any, Optional
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
@@ -14,7 +15,12 @@ from ..models import (
     BusinessContext,
     Stakeholder,
     SimulationConfig,
+    PersonaGenerationItem,
+    DemographicDetails,
+    OCEANProfile,
 )
+from .ocean_sampler import OCEANSampler
+from .occupation_classifier import OccupationClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +28,18 @@ logger = logging.getLogger(__name__)
 class PersonaGenerator:
     """Generates realistic AI personas for interview simulation."""
 
-    def __init__(self, model: Model):
+    def __init__(
+        self,
+        model: Model,
+        ocean_sampler: Optional[OCEANSampler] = None,
+        occupation_classifier: Optional[OccupationClassifier] = None,
+    ):
         self.model = model
+        self.ocean_sampler = ocean_sampler or OCEANSampler()
+        self.occupation_classifier = occupation_classifier or OccupationClassifier()
         self.agent = Agent(
             model=model,
-            output_type=List[AIPersona],
+            output_type=List[PersonaGenerationItem],
             system_prompt=self._get_system_prompt(),
         )
         self.used_names_by_category = {}  # Track used names per stakeholder category
@@ -47,7 +60,15 @@ Guidelines:
 
 Each persona should be detailed enough to conduct realistic interviews but concise enough to be actionable.
 
-Return a list of AIPersona objects with all required fields populated."""
+You MUST construct these personas strictly around the pre-assigned personality vectors described in the prompt.
+Each profile_index maps to a pre-assigned profile. Your generated text MUST align:
+- High Neuroticism (score > 0.6) forces the generated background to emphasize risk sensitivity, compliance requirements, and skepticism toward quick solutions.
+- High Conscientiousness (score > 0.6) forces the persona to prefer structured execution, step-by-step methodologies, and strict documentation.
+- Low Extraversion (score < 0.4) demands short, direct communication styles, avoiding conversational preambles.
+- Low Agreeableness (score < 0.4) demands critical, adversarial viewpoints, challenging assumptions and looking for logical flaws.
+- High Openness (score > 0.6) demands innovative approaches, open-mindedness, and curiosity.
+
+Return a list of PersonaGenerationItem objects with all fields populated."""
 
     async def generate_people(
         self,
@@ -62,7 +83,18 @@ Return a list of AIPersona objects with all required fields populated."""
                 f"Generating {config.people_per_stakeholder} people for stakeholder: {stakeholder.name}"
             )
 
-            prompt = self._build_person_prompt(stakeholder, business_context, config)
+            # Classify stakeholder to find the closest occupation code
+            occupation_code = self.occupation_classifier.classify(stakeholder.name)
+            logger.info(f"Classified stakeholder '{stakeholder.name}' as occupation: '{occupation_code}'")
+
+            # Pre-sample OCEAN profiles
+            sampled_profiles = []
+            for i in range(config.people_per_stakeholder):
+                age = self.ocean_sampler.sample_age(occupation_code)
+                profile = self.ocean_sampler.sample(occupation_code, age)
+                sampled_profiles.append((age, profile))
+
+            prompt = self._build_person_prompt(stakeholder, business_context, config, sampled_profiles)
             logger.info(f"Person generation prompt: {prompt[:200]}...")
 
             # Try with retry logic for Gemini API issues
@@ -89,18 +121,40 @@ Primary Business Location: {getattr(business_context, 'location', None) or 'Not 
 
 Most people should be based in or very near this primary location. Only a few should be in other clearly relevant locations (such as another office, key regional customer, or supplier site), and all locations must be plausible for this business.
 Keep responses concise and realistic."""
-                        prompt = simple_prompt
+                        # Re-attach pre-sampled profiles even for simple prompt
+                        prompt = simple_prompt + "\n\nPRE-ASSIGNED PERSONALITY PROFILES:\n" + self._format_sampled_profiles(sampled_profiles)
                         continue
                     else:
                         raise  # Re-raise if final attempt or different error
 
             logger.info(f"PydanticAI result: {result}")
-            # Use result.output (non-deprecated) - both are identical per our test
-            people = result.output  # Changed from personas to people
-            logger.info(f"Extracted people data: {people}")
-            logger.info(
-                f"People type: {type(people)}, length: {len(people) if people else 'None'}"
-            )
+            people_items = result.output
+            logger.info(f"Extracted items data: {people_items}")
+
+            # Reconstruct SimulatedPerson objects and merge pre-sampled OCEAN data
+            people = []
+            for item in people_items:
+                idx = item.profile_index - 1
+                if 0 <= idx < len(sampled_profiles):
+                    age, ocean = sampled_profiles[idx]
+                else:
+                    age = random.randint(25, 65)
+                    ocean = self.ocean_sampler.sample(occupation_code, age)
+
+                person = SimulatedPerson(
+                    id=str(uuid.uuid4()),
+                    name=item.name,
+                    age=age,
+                    background=item.background,
+                    motivations=item.motivations,
+                    pain_points=item.pain_points,
+                    communication_style=item.communication_style,
+                    stakeholder_type=stakeholder.name,
+                    demographic_details=item.demographic_details,
+                    physical_description=item.physical_description,
+                    ocean_profile=ocean,
+                )
+                people.append(person)
 
             # Ensure we have the right number of people
             if len(people) != config.people_per_stakeholder:
@@ -108,13 +162,12 @@ Keep responses concise and realistic."""
                     f"Expected {config.people_per_stakeholder} people, got {len(people)}"
                 )
 
-            # Add IDs and stakeholder type, track names for uniqueness
+            # Add stakeholder type, track names for uniqueness
             stakeholder_key = f"{stakeholder.name}_{stakeholder.description}"
             if stakeholder_key not in self.used_names_by_category:
                 self.used_names_by_category[stakeholder_key] = set()
 
             for person in people:
-                person.id = str(uuid.uuid4())
                 # Set stakeholder type to the stakeholder name for better readability
                 person.stakeholder_type = stakeholder.name
                 logger.info(
@@ -171,11 +224,26 @@ Keep responses concise and realistic."""
         candidate_base = f"{base} {suffix}"
         return f"{candidate_base}{(', ' + title) if sep and title else ''}"
 
+    def _format_sampled_profiles(self, sampled_profiles: List[tuple]) -> str:
+        profiles_desc = ""
+        for idx, (age, profile) in enumerate(sampled_profiles):
+            profiles_desc += f"""
+Profile Index {idx + 1}:
+- Target Age: {age}
+- Openness: {profile.openness:.2f} ({"high" if profile.openness > 0.6 else "low" if profile.openness < 0.4 else "moderate"})
+- Conscientiousness: {profile.conscientiousness:.2f} ({"high" if profile.conscientiousness > 0.6 else "low" if profile.conscientiousness < 0.4 else "moderate"})
+- Extraversion: {profile.extraversion:.2f} ({"high" if profile.extraversion > 0.6 else "low" if profile.extraversion < 0.4 else "moderate"})
+- Agreeableness: {profile.agreeableness:.2f} ({"high" if profile.agreeableness > 0.6 else "low" if profile.agreeableness < 0.4 else "moderate"})
+- Neuroticism: {profile.neuroticism:.2f} ({"high" if profile.neuroticism > 0.6 else "low" if profile.neuroticism < 0.4 else "moderate"})
+"""
+        return profiles_desc
+
     def _build_person_prompt(
         self,
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
+        sampled_profiles: List[tuple],
     ) -> str:
         """Build the prompt for individual person generation."""
 
@@ -199,6 +267,8 @@ Keep responses concise and realistic."""
             if getattr(business_context, "location", None)
             else ""
         )
+
+        profiles_desc = self._format_sampled_profiles(sampled_profiles)
 
         return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
@@ -224,30 +294,32 @@ STAKEHOLDER TYPE:
 
 SIMULATION STYLE: {config.response_style.value}
 
+PRE-ASSIGNED PERSONALITY PROFILES:
+You MUST align each generated person with one of the pre-assigned profiles listed below.
+The first person must correspond to Profile Index 1, the second to Profile Index 2, and so on.
+{profiles_desc}
+
 Create diverse individual people that would realistically be in this stakeholder category. Each person should:
 
-1. Have a realistic name, age, and background
-2. Include specific motivations related to this business context
+1. Have a realistic name, age, and background matching the target age and pre-assigned personality traits of their profile
+2. Include specific motivations related to this B2B business context
 3. Have authentic pain points that connect to the problem being solved
-4. Display a distinct communication style
+4. Display a communication style reflecting their personality (e.g. direct/terse for low extraversion)
 5. Include relevant demographic details (job, location, experience, etc.)
 
 Make sure the people are diverse in:
-- Age ranges (but appropriate for the stakeholder type)
 - Professional backgrounds
 - Locations within and around the primary business region, plus a few clearly relevant other locations when justified by the business context
 - Experience levels
-- Personality types
-- Communication preferences
 
 IMPORTANT: Generate individual people, not behavioral patterns. Each person should be a unique individual with their own characteristics, not a representative of a pattern or archetype.
 
 CRITICAL REQUIREMENTS:
+- Set the `profile_index` to match the target Profile Index (e.g. 1 for the first person, 2 for the second)
 - Each person must have a UNIQUE first+last name across the entire simulation (across all stakeholder categories)
 - Do NOT reuse any first+last combination listed as already used in this simulation
 - Format: "FirstName LastName, Position/Title" (e.g., "Sarah Chen, Senior Finance Director")
 - Personas should be distinctly different from each other within this stakeholder category
-- Focus on realistic diversity within the stakeholder category
 - Each person MUST include a `physical_description` field: a concise neutral visual description
   suitable for AI image generation (appearance, hair colour/length, rough age look, clothing style).
   Do NOT include names, company logos, or text in the description.
@@ -308,10 +380,27 @@ The personas should feel like real people who would genuinely interact with this
         if not decision_makers:
             return []
 
+        # Pre-sample OCEAN profiles for the decision makers
+        sampled_profiles = []
+        for dm in decision_makers:
+            role = dm.get("role", "generic")
+            occupation_code = self.occupation_classifier.classify(role)
+            age = self.ocean_sampler.sample_age(occupation_code)
+            profile = self.ocean_sampler.sample(occupation_code, age)
+            sampled_profiles.append((age, profile, occupation_code))
+
         # Construct a structured prompt listing the real decision makers
         dm_list_str = ""
         for idx, dm in enumerate(decision_makers):
-            dm_list_str += f"\n{idx + 1}. Name: {dm['name']}, Role: {dm['role']}, Company: {dm['company_name']}"
+            age, profile, _ = sampled_profiles[idx]
+            dm_list_str += f"""
+{idx + 1}. Name: {dm['name']}, Role: {dm['role']}, Company: {dm['company_name']}
+   - Profile Target Age: {age}
+   - Openness: {profile.openness:.2f}
+   - Conscientiousness: {profile.conscientiousness:.2f}
+   - Extraversion: {profile.extraversion:.2f}
+   - Agreeableness: {profile.agreeableness:.2f}
+   - Neuroticism: {profile.neuroticism:.2f}"""
 
         prompt = f"""You are an expert persona generator for customer research simulations.
 Your task is to generate realistic simulated personas for the following real decision makers discovered in the target region:
@@ -322,32 +411,55 @@ BUSINESS CONTEXT:
 - Problem Being Solved: {business_context.problem}
 - Primary Business Location: {business_context.location or "Not specified"}
 
-REAL DECISION MAKERS TO SIMULATE:{dm_list_str}
+REAL DECISION MAKERS TO SIMULATE AND THEIR PRE-ASSIGNED PERSONALITIES:
+{dm_list_str}
 
 For each of these decision makers, generate a detailed simulated persona.
-Each persona MUST match the real name, role, and company specified.
-If the name is a placeholder like 'Manager at ...' or similar, replace it with a realistic, diverse full name (first name + last name) suitable for a business professional in {business_context.location or 'Germany'}.
+Each persona MUST match the real name, role, and company specified, and must align with the target age and pre-assigned personality traits of their profile.
+If the name is a placeholder like 'Manager at ...' or similar, replace it with a realistic, diverse full name (first name + last name) suitable for a B2B professional in {business_context.location or 'Germany'}.
 
 Generate:
 1. name: Keep the real name if provided, or replace placeholder names with a realistic full name.
-2. age: a plausible age (e.g. between 30 and 65)
-3. background: their professional history matching their role and company
-4. motivations: specific business motivations relevant to the context
-5. pain_points: specific pain points relevant to the business problem
-6. communication_style: their communication preferences (e.g. direct, detail-oriented)
-7. demographic_details: company size, education, etc.
-8. physical_description: a concise visual description suitable for AI image generation (no text/logos)
+2. background: their professional history matching their role and company
+3. motivations: specific B2B motivations relevant to the context
+4. pain_points: specific pain points relevant to the business problem
+5. communication_style: their communication preferences (e.g. direct, detail-oriented) reflecting their personality
+6. demographic_details: company size, education, etc.
+7. physical_description: a concise visual description suitable for AI image generation (no text/logos)
 
-Return a list of AIPona/SimulatedPerson objects matching the list of decision makers in order.
+CRITICAL REQUIREMENT:
+- Set the `profile_index` to match the list index (1 for the first decision maker, 2 for the second, etc.)
 """
         try:
             logger.info(f"Generating personas for {len(decision_makers)} decision makers...")
             result = await self.agent.run(prompt, model_settings={"temperature": 0.0})
-            people = result.output
+            people_items = result.output
 
-            # Assign IDs and map back to companies
-            for idx, person in enumerate(people):
-                person.id = str(uuid.uuid4())
+            people = []
+            for idx, item in enumerate(people_items):
+                # Ensure we index safely
+                p_idx = item.profile_index - 1
+                if 0 <= p_idx < len(sampled_profiles):
+                    age, ocean, occ = sampled_profiles[p_idx]
+                else:
+                    age = random.randint(30, 65)
+                    ocean = self.ocean_sampler.sample("generic", age)
+                    occ = "generic"
+
+                person = SimulatedPerson(
+                    id=str(uuid.uuid4()),
+                    name=item.name,
+                    age=age,
+                    background=item.background,
+                    motivations=item.motivations,
+                    pain_points=item.pain_points,
+                    communication_style=item.communication_style,
+                    stakeholder_type="Decision Maker",
+                    demographic_details=item.demographic_details,
+                    physical_description=item.physical_description,
+                    ocean_profile=ocean,
+                )
+
                 if idx < len(decision_makers):
                     dm = decision_makers[idx]
                     # If name was placeholder, let LLM name stand, otherwise use the real name
@@ -356,6 +468,8 @@ Return a list of AIPona/SimulatedPerson objects matching the list of decision ma
                     person.stakeholder_type = dm['role']
                     person.grounding_company = dm['company_name']
                     person.grounding_company_id = dm['company_id']
+
+                people.append(person)
 
             return people
         except Exception as e:

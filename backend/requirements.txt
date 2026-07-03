@@ -54,6 +54,8 @@ nltk>=3.8.1
 
 # Document generation
 fpdf>=1.7.2
+pypdf>=4.1.0
+pdfplumber>=0.10.4
 
 # Utilities
 rapidfuzz>=3.6.1  # Fast fuzzy string matching for evidence mapping

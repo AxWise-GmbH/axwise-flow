@@ -6,9 +6,10 @@ import logging
 import os
 import time
 import uuid
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
+from typing import Dict, Any, Optional, List
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends, File, UploadFile, Form
 from fastapi.responses import JSONResponse
+
 
 from .models import (
     SimulationRequest,
@@ -1343,4 +1344,78 @@ async def regional_map_persona_chat(
     except Exception as e:
         logger.error(f"Error in regional-map/persona-chat: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/grounding/upload")
+async def upload_grounding_document(
+    file: UploadFile = File(...),
+    partition_id: str = Form(...),
+    document_name: Optional[str] = Form(None),
+    metadata_json: Optional[str] = Form(None),
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Upload a document, segment it into chunks, generate embeddings,
+    and save them into the specified partition partition_id for grounding.
+    """
+    import tempfile
+    from .services.cognitive_grounding_service import CognitiveGroundingService
+    
+    doc_name = document_name or file.filename or "unknown_document"
+    metadata = {}
+    if metadata_json:
+        try:
+            import json
+            metadata = json.loads(metadata_json)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid metadata_json format: {e}")
+
+    try:
+        suffix = os.path.splitext(doc_name)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_path = temp_file.name
+
+        try:
+            service = CognitiveGroundingService()
+            num_chunks = await service.ingest_document(
+                file_path=temp_path,
+                partition_id=partition_id,
+                document_name=doc_name,
+                metadata=metadata,
+            )
+            return {
+                "success": True,
+                "partition_id": partition_id,
+                "document_name": doc_name,
+                "chunks_ingested": num_chunks,
+            }
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+    except Exception as e:
+        logger.error(f"Error ingesting document for partition {partition_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/grounding/search")
+async def search_grounding_context(
+    partition_id: str,
+    query: str,
+    limit: int = 5,
+    user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """
+    Query semantic search results on cognitive grounding partitions.
+    """
+    from .services.cognitive_grounding_service import CognitiveGroundingService
+    try:
+        service = CognitiveGroundingService()
+        hits = service.query_similarity(partition_id=partition_id, query=query, limit=limit)
+        return {"success": True, "results": hits}
+    except Exception as e:
+        logger.error(f"Error querying grounding context for partition {partition_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
