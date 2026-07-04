@@ -1,3 +1,15 @@
+---
+type: "concept"
+title: "Exclusive LLM Evidence Intelligence - Local Development Summary"
+description: "Core concept representing Exclusive LLM Evidence Intelligence - Local Development Summary."
+tags:
+  - axwise-flow-oss
+  - knowledge-base
+  - backend
+  - services
+  - evidence_intelligence
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Exclusive LLM Evidence Intelligence - Local Development Summary
 
 ## Overview

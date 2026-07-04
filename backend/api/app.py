@@ -95,8 +95,6 @@ from backend.api.endpoints.priority_insights import router as priority_insights_
 from backend.api.export_routes import router as export_router
 from backend.api.routes.prd import router as prd_router
 from backend.api.routes.perpetual_personas import router as perpetual_personas_router
-from backend.api.axpersona.router import router as axpersona_router
-from backend.api.precall.router import router as precall_router
 
 
 DEFAULT_SENTIMENT_OVERVIEW = {"positive": 0.33, "neutral": 0.34, "negative": 0.33}
@@ -318,36 +316,11 @@ app.include_router(export_router)
 app.include_router(prd_router)
 
 app.include_router(perpetual_personas_router)
-# AxPersona research-to-persona pipeline API
-app.include_router(axpersona_router)
-
-# Include v1 MCP Routes
-from backend.api.v1.mcp_routes import router as mcp_router
-app.include_router(mcp_router, prefix="/api/v1")
-
-# PRECALL pre-call intelligence dashboard API
-app.include_router(precall_router)
-
 
 # Include debug router
 from backend.api.endpoints.debug import router as debug_router
 
 app.include_router(debug_router, prefix="/api")
-
-# Include conversation routines router (2025 framework) - ONLY customer research system
-from backend.api.research.conversation_routines.router import (
-    router as conversation_routines_router,
-)
-
-# Use conversation routines (2025 framework) - clean, efficient, single system
-app.include_router(conversation_routines_router)
-
-# Include research dashboard router - dashboard-based question generation
-from backend.api.research.dashboard.router import (
-    router as research_dashboard_router,
-)
-
-app.include_router(research_dashboard_router)
 
 # Include simulation bridge router - bridges questionnaire to analysis
 from backend.api.research.simulation_bridge.router import (
@@ -355,13 +328,6 @@ from backend.api.research.simulation_bridge.router import (
 )
 
 app.include_router(simulation_bridge_router)
-
-# Include research sessions router - manages research session CRUD operations
-from backend.api.research.sessions.router import (
-    router as research_sessions_router,
-)
-
-app.include_router(research_sessions_router)
 
 # Include analysis routes (core data/analyze/results endpoints)
 from backend.api.routes.analysis import router as analysis_router

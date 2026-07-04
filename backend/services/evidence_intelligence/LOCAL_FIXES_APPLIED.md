@@ -1,3 +1,15 @@
+---
+type: "concept"
+title: "Local Fixes Applied for Critical Defects"
+description: "Core concept representing Local Fixes Applied for Critical Defects."
+tags:
+  - axwise-flow-oss
+  - knowledge-base
+  - backend
+  - services
+  - evidence_intelligence
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Local Fixes Applied for Critical Defects
 
 ## Summary

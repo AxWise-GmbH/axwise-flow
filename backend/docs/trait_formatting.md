@@ -1,3 +1,13 @@
+---
+type: "documentation"
+title: "Trait Formatting Service Documentation"
+description: "Core documentation representing Trait Formatting Service Documentation."
+tags:
+  - axwise-flow-oss
+  - docs
+  - backend
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Trait Formatting Service Documentation
 
 ## Overview

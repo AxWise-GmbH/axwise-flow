@@ -1,3 +1,13 @@
+---
+type: "documentation"
+title: "Adaptive Tool Recognition Service Documentation"
+description: "Core documentation representing Adaptive Tool Recognition Service Documentation."
+tags:
+  - axwise-flow-oss
+  - docs
+  - backend
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Adaptive Tool Recognition Service Documentation
 
 ## Overview

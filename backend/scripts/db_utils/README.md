@@ -1,3 +1,15 @@
+---
+type: "module-readme"
+title: "Scripts"
+description: "Core module readme representing Scripts."
+tags:
+  - axwise-flow-oss
+  - db_utils-readme
+  - backend
+  - scripts
+  - db_utils
+timestamp: "2026-07-04T10:00:00Z"
+---
 ***REMOVED*** Utility Scripts
 
 This directory contains utility scripts for database management and maintenance.

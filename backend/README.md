@@ -1,3 +1,13 @@
+---
+type: "module-readme"
+title: "AxWise Flow OSS — Backend"
+description: "Core module readme representing AxWise Flow OSS — Backend."
+tags:
+  - axwise-flow-oss
+  - backend-readme
+  - backend
+timestamp: "2026-07-04T10:00:00Z"
+---
 # AxWise Flow OSS — Backend
 
 FastAPI backend that powers interview analysis, evidence-linked personas, insights, and an API-first workflow.

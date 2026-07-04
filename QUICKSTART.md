@@ -1,3 +1,14 @@
+---
+type: "guide"
+title: "AxWise Flow OSS - Quick Start Guide"
+description: "Get up and running with AxWise Flow in minutes using Docker or local python environments."
+tags:
+  - installation
+  - quickstart
+  - docker
+  - backend-setup
+timestamp: "2026-07-04T10:00:00Z"
+---
 # AxWise Flow OSS - Quick Start Guide
 
 Get up and running with AxWise Flow in minutes!

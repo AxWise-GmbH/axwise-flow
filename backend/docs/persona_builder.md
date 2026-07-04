@@ -1,3 +1,13 @@
+---
+type: "documentation"
+title: "PersonaBuilder Documentation"
+description: "Core documentation representing PersonaBuilder Documentation."
+tags:
+  - axwise-flow-oss
+  - docs
+  - backend
+timestamp: "2026-07-04T10:00:00Z"
+---
 # PersonaBuilder Documentation
 
 ## Overview
