@@ -106,6 +106,223 @@ FastAPI registers a clean OpenAPI routing table at `/docs`. The key endpoints ar
 
 ---
 
+## 💻 Developer Input/Output Examples
+
+Below are concrete, actual JSON contracts showing exactly what developers provide as input and what they retrieve as output from the server.
+
+### Example 1: Pipeline A Ingestion (Raw Transcript ──► Offset-Linked Persona)
+Submit a raw, unstructured interview transcript. The engine identifies speakers, cleans noise, extracts traits, and binds exact quotes back to character positions.
+
+#### Inbound Request (`POST /api/analysis/analyze-text`)
+```json
+{
+  "text": "Interviewer: What is your main workflow tool?\nLukas: We use manual Excel sheets to translate visual store designs in Figma into actual ordering volumes in our SAP ERP. But maintaining 45 separate spreadsheets in Excel is incredibly labor-intensive and prone to errors.",
+  "industry": "Retail Logistics",
+  "document_id": "doc_grocery_992"
+}
+```
+
+#### Outbound JSON Response (Extract of `ProductionPersona`)
+```json
+{
+  "name": "Lukas, Retail Logistics Lead",
+  "archetype": "Retail Logistics",
+  "pain_points": {
+    "value": "• Maintaining 45 separate spreadsheets in Excel is labor-intensive and prone to version-control errors.",
+    "confidence": 1.0,
+    "evidence": [
+      {
+        "quote": "maintaining 45 separate spreadsheets in Excel is incredibly labor-intensive and prone to errors",
+        "start_char": 150,
+        "end_char": 236,
+        "speaker": "Lukas",
+        "document_id": "doc_grocery_992"
+      }
+    ]
+  },
+  "technology_and_tools": {
+    "value": "• Excel • Figma • SAP ERP",
+    "confidence": 1.0,
+    "evidence": []
+  }
+}
+```
+
+---
+
+### Example 2: Pipeline B Ingestion (Product Brief ──► Simulated Agent Twin)
+Provide a business problem or product context. The engine samples psychological traits (OCEAN Big Five) matching the role's baseline, generating an agent capable of dynamic research interviews.
+
+#### Inbound Request (`POST /api/research/simulation-bridge/simulate`)
+```json
+{
+  "business_context": {
+    "business_idea": "Collaborative, real-time visual shelf allocation software synced directly to SAP.",
+    "target_customer": "Regional supermarket chains",
+    "problem": "Manual spreadsheet reconciliation takes 5 hours per layout change, leading to food waste.",
+    "industry": "Logistics & Supply Chain",
+    "location": "Berlin, Germany"
+  },
+  "questions_data": {
+    "stakeholders": [
+      {
+        "id": "grocery_ops_manager",
+        "name": "Regional Grocery Operations Manager",
+        "description": "Operations leader balancing physical shelf capacity with regional bio-customer demands.",
+        "questions": ["What is your biggest bottleneck with current tools?"]
+      }
+    ]
+  },
+  "config": {
+    "depth": "detailed",
+    "people_per_stakeholder": 1
+  }
+}
+```
+
+#### Outbound JSON Response (Extract of `SimulatedPerson` & Interview Transcripts)
+```json
+{
+  "personas": [
+    {
+      "id": "ffd6d9cb-d518-4b12-9cfa-cc1940c0c87c",
+      "name": "Lukas Weber",
+      "age": 36,
+      "background": "Lukas oversees operations for 12 regional organic supermarkets in the Berlin-Brandenburg area. He relies on structured, step-by-step processes...",
+      "ocean_profile": {
+        "openness": 0.59,
+        "conscientiousness": 0.88,
+        "extraversion": 0.58,
+        "agreeableness": 0.52,
+        "neuroticism": 0.36
+      }
+    }
+  ],
+  "interviews": [
+    {
+      "person_id": "ffd6d9cb-d518-4b12-9cfa-cc1940c0c87c",
+      "responses": [
+        {
+          "question": "What is your biggest bottleneck with current tools?",
+          "response": "The primary bottleneck is the manual reconciliation. Translating layouts from Figma into Excel, and then entering ordering volumes into SAP, takes 4 to 5 hours per change. It is incredibly labor-intensive."
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### Example 3: Closed-Loop Hybrid (Product Brief ──► Sim Twin ──► Verbatim Interview ──► Offset-Linked Persona)
+By calling `/api/research/simulation-bridge/simulate-enhanced`, developers run the entire hybrid pipeline in a single step. The engine generates the OCEAN-guided twin, conducts the interview, maps the resulting transcript into dialogue turns, and passes it through Pipeline A's empirical facade to return a fully validated, offset-linked, and audited workspace persona.
+
+#### Outbound JSON Response (Combined Hybrid Profile)
+```json
+{
+  "simulation_id": "sim_session_verification_123",
+  "empirical_personas": [
+    {
+      "name": "Lukas Weber",
+      "archetype": "Regional Grocery Operations Manager",
+      "pain_points": {
+        "value": "• Manual reconciliation takes approximately 4 to 5 hours per store layout change.",
+        "confidence": 1.0,
+        "evidence": [
+          {
+            "quote": "This manual step takes approximately 4 to 5 hours per store layout change.",
+            "start_char": 134,
+            "end_char": 209,
+            "speaker": "Lukas Weber",
+            "document_id": "sim_session_verification_123"
+          }
+        ]
+      },
+      "technology_and_tools": {
+        "value": "• Figma • Excel • SAP",
+        "confidence": 1.0,
+        "evidence": []
+      }
+    }
+  ]
+}
+```
+
+```
+
+---
+
+### Example 4: Cognitive Grounding (RAG-Backed Agents)
+Equip simulated agents with specific files (SOPs, regulatory codes, technical guidelines). The service chunks, embeds (using `text-embedding-004`), and stores passages. During the interview, the agent dynamically performs semantic similarity query lookups to ground its responses.
+
+#### 1. Ingest Grounding Document (`POST /api/research/simulation-bridge/grounding/upload`)
+Ingest a document into a dedicated workspace partition.
+```bash
+curl -X POST http://localhost:8000/api/research/simulation-bridge/grounding/upload \
+  -F "file=@SOP_Retail_Disruption.pdf" \
+  -F "partition_id=ops_partition_001"
+```
+**Output**: `{"ok": true, "chunks_ingested": 42}`
+
+#### 2. Model Injected Partition into the Persona
+Pass the `vector_partition_id` inside the `cognitive_grounding` property of the simulation config. The agent dynamically retrieves relevant chunks (such as compliance thresholds or localized business processes) during interview turns to guide its responses.
+```json
+{
+  "id": "grocery_ops_manager",
+  "cognitive_grounding": {
+    "vector_partition_id": "ops_partition_001",
+    "retrieval_limit": 3
+  }
+}
+```
+
+---
+
+### Example 5: Persona Enhancements (City Profiles & Photorealistic Avatars)
+Enrich your compiled personas with interactive visual components and contextual geographical lifestyles.
+
+#### 1. Generate Photorealistic Headshots (`POST /api/personas/{result_id}/{persona_id}/avatar`)
+Generates 85mm photorealistic headshots or falls back to deterministic gradient SVG strings.
+```bash
+curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/avatar
+```
+**Output**: 
+```json
+{
+  "ok": true,
+  "avatar_data_url": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIj4..."
+}
+```
+
+#### 2. Calculate Local Lifestyle Geographics (`POST /api/personas/{result_id}/{persona_id}/city-profile`)
+Generates localized urban profiles (typical neighborhood lifestyle, local transit patterns, coffee spots, and nearby restaurants).
+```bash
+curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/city-profile \
+  -H "Content-Type: application/json" \
+  -d '{"city": "Berlin"}'
+```
+**Output**:
+```json
+{
+  "ok": true,
+  "city_profile": {
+    "city": "Berlin",
+    "neighborhood": "Prenzlauer Berg",
+    "transit": "BVG Tram M10 / S-Bahn",
+    "coffee_spot": "The Barn",
+    "nearby_recommendations": [
+      {
+        "name": "Konnopke's Imbiss",
+        "cuisine": "Traditional German Currywurst",
+        "dish": "Classic Currywurst with fries"
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## ⚙️ Manual Setup & Execution
 
 ### Prerequisites
