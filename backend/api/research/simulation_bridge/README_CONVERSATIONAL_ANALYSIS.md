@@ -1,3 +1,15 @@
+---
+type: "concept"
+title: "Conversational Analysis System"
+description: "Core concept representing Conversational Analysis System."
+tags:
+  - axwise-flow-oss
+  - knowledge-base
+  - backend
+  - api
+  - research
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Conversational Analysis System
 
 A conversational routine-based analysis system that processes simulation text data and generates structured analysis results matching the existing `DetailedAnalysisResult` schema.

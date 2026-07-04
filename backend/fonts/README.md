@@ -1,3 +1,14 @@
+---
+type: "module-readme"
+title: "Font Files for PDF Generation"
+description: "Core module readme representing Font Files for PDF Generation."
+tags:
+  - axwise-flow-oss
+  - fonts-readme
+  - backend
+  - fonts
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Font Files for PDF Generation
 
 This directory contains font files used for PDF generation with Unicode support.

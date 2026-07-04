@@ -1,3 +1,15 @@
+---
+type: "module-readme"
+title: "services/nlp (Legacy name)"
+description: "Core module readme representing services/nlp (Legacy name)."
+tags:
+  - axwise-flow-oss
+  - nlp-readme
+  - backend
+  - services
+  - nlp
+timestamp: "2026-07-04T10:00:00Z"
+---
 # services/nlp (Legacy name)
 
 These utilities provide text parsing, transformation, and orchestration functions used across the application’s analysis pipeline.

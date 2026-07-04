@@ -579,20 +579,18 @@ class PersonaFormationFacade:
                             ),
                             timeout=300.0  # 5 minute timeout for text cleaning
                         )
-                        # If cleaning changed the text, previously computed doc_spans no longer align; drop them
-                        if doc_spans and scoped_text_cleaned != _pre_clean:
-                            doc_spans_task = []
-                        else:
-                            doc_spans_task = doc_spans
+                        # Keep doc_spans since we have original_scoped_text to remap against
+                        doc_spans_task = doc_spans if doc_spans else []
                         scoped_text = scoped_text_cleaned
                     except asyncio.TimeoutError:
                         logger.warning(f"👥 [PERSONA_V2] LLM text cleaning timed out for {speaker}, using original text")
                         doc_spans_task = doc_spans if doc_spans else []
                     except Exception:
-                        doc_spans_task = []
+                        doc_spans_task = doc_spans if doc_spans else []
                     
                     # Update scope_meta doc_spans if changed
                     scope_meta_task = scope_meta.copy()
+                    scope_meta_task["original_scoped_text"] = _pre_clean
                     if doc_spans_task:
                         scope_meta_task["doc_spans"] = doc_spans_task
                     elif "doc_spans" in scope_meta_task:

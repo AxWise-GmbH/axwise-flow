@@ -1,3 +1,15 @@
+---
+type: "guide"
+title: "Evidence Intelligence System Integration Guide"
+description: "Core guide representing Evidence Intelligence System Integration Guide."
+tags:
+  - axwise-flow-oss
+  - tutorial
+  - backend
+  - services
+  - evidence_intelligence
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Evidence Intelligence System Integration Guide
 
 ## Overview

@@ -51,6 +51,43 @@ class DataFormatter:
             logger.error(f"Failed to format simulation data: {str(e)}")
             raise
 
+    def format_as_transcript_segments(
+        self,
+        interviews: List[SimulatedInterview],
+        personas: List[AIPersona],
+        simulation_id: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Adapter that converts simulated interviews into the structured segment schema
+        expected by the empirical V2 PersonaFormationFacade.
+        """
+        segments = []
+        persona_map = {p.id: p for p in personas}
+
+        for interview in interviews:
+            persona = persona_map.get(interview.person_id)
+            speaker_name = persona.name if persona else "Participant"
+            stakeholder_role = interview.stakeholder_type
+
+            for response in interview.responses:
+                # Turn 1: Interviewer Question
+                segments.append({
+                    "speaker_id": "Interviewer",
+                    "role": "interviewer",
+                    "dialogue": response.question,
+                    "document_id": f"sim_session_{simulation_id}"
+                })
+
+                # Turn 2: Persona Verbatim Response
+                segments.append({
+                    "speaker_id": speaker_name,
+                    "role": "participant",
+                    "dialogue": response.response,
+                    "document_id": f"sim_session_{simulation_id}"
+                })
+
+        return segments
+
     def _create_metadata(
         self, business_context: BusinessContext, simulation_id: str
     ) -> Dict[str, Any]:

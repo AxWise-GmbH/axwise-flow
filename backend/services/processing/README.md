@@ -1,3 +1,15 @@
+---
+type: "module-readme"
+title: "Persona Formation System"
+description: "Core module readme representing Persona Formation System."
+tags:
+  - axwise-flow-oss
+  - processing-readme
+  - backend
+  - services
+  - processing
+timestamp: "2026-07-04T10:00:00Z"
+---
 # Persona Formation System
 
 This directory contains the refactored persona formation system, which is responsible for generating user personas from interview transcripts or analysis patterns.

@@ -751,6 +751,20 @@ class EvidenceLinkingService:
           - document_id: single-doc id
           - doc_spans: list of {document_id, start, end} covering scoped_text ranges
         """
+        # Remap s and e if original_scoped_text is available in meta
+        orig_text = meta.get("original_scoped_text")
+        if orig_text and quote:
+            clean_q = quote.strip()
+            idx = orig_text.find(clean_q)
+            if idx != -1:
+                s = idx
+                e = idx + len(clean_q)
+            else:
+                idx_lower = orig_text.lower().find(clean_q.lower())
+                if idx_lower != -1:
+                    s = idx_lower
+                    e = idx_lower + len(clean_q)
+
         doc_id = meta.get("document_id")
         ls, le = s, e
         try:

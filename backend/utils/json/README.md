@@ -1,3 +1,15 @@
+---
+type: "module-readme"
+title: "JSON Parsing Utilities"
+description: "Core module readme representing JSON Parsing Utilities."
+tags:
+  - axwise-flow-oss
+  - json-readme
+  - backend
+  - utils
+  - json
+timestamp: "2026-07-04T10:00:00Z"
+---
 # JSON Parsing Utilities
 
 This directory contains utilities for parsing and handling JSON data, with a focus on processing responses from LLMs like Gemini.

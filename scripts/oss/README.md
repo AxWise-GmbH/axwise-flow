@@ -1,3 +1,14 @@
+---
+type: "module-readme"
+title: "AxWise Flow OSS - Scripts"
+description: "Core module readme representing AxWise Flow OSS - Scripts."
+tags:
+  - axwise-flow-oss
+  - oss-readme
+  - scripts
+  - oss
+timestamp: "2026-07-04T10:00:00Z"
+---
 # AxWise Flow OSS - Scripts
 
 AxWise Flow OSS is an open-source, API-first backend with an optional Next.js UI that turns user interviews and customer feedback into evidence-linked insights and context-engineered personas. It clusters themes, surfaces sentiment, and keeps every finding traceable to source quotes. Self-hosted by default.
