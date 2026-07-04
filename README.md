@@ -14,6 +14,7 @@ timestamp: "2026-07-04T10:00:00Z"
 
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow)
 [![arXiv](https://img.shields.io/badge/arXiv-2501.11613-b31b1b.svg)](https://arxiv.org/abs/2501.11613)
+[![GitHub Star History](https://api.star-history.com/svg?repos=AxWise-GmbH/axwise-flow&type=Date)](https://star-history.com/#AxWise-GmbH/axwise-flow&Date)
 
 **An open-source, headless, context-engineered REST API for qualitative customer research, top-down interview simulation, and bottom-up empirical persona analytics.**
 
@@ -246,8 +247,6 @@ By calling `/api/research/simulation-bridge/simulate-enhanced`, developers run t
     }
   ]
 }
-```
-
 ```
 
 ---
