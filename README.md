@@ -398,3 +398,15 @@ We provide a complete, programmatic benchmarking and accuracy verification suite
 
 ## 📄 License
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+
+---
+
+## 📞 Support & Community
+* 📧 **Email**: support@axwise.de or vitalijs@axwise.de
+* 🐛 **Issues**: [GitHub Issues](https://github.com/AxWise-GmbH/axwise-flow/issues)
+* 📖 **Documentation**: [Wiki](https://github.com/AxWise-GmbH/axwise-flow/wiki)
+
+## 🙏 Acknowledgments
+Built with ❤️ by the AxWise team and contributors.
+
+*Note: This is the open-source version of AxWise Flow. For the hosted version with additional enterprise capabilities, visit [axwise.de](https://axwise.de).*
