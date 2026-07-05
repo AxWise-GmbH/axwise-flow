@@ -10,8 +10,8 @@ and should be referenced by all services that need LLM parameters.
 """
 
 # Gemini model constants
-# Updated to use Gemini 2.5 Pro for best quality
-GEMINI_MODEL_NAME = "models/gemini-3-flash-preview"
+# Updated to use Gemini 3.5 Flash for best speed/quality balance
+GEMINI_MODEL_NAME = "models/gemini-3.5-flash"
 GEMINI_TEMPERATURE = 0.0
 GEMINI_MAX_TOKENS = 65536
 GEMINI_CONTEXT_WINDOW = 1048576
@@ -19,7 +19,7 @@ GEMINI_TOP_P = 0.95
 GEMINI_TOP_K = 1
 
 # OpenAI model constants
-OPENAI_MODEL_NAME = "gpt-4o-2024-08-06"
+OPENAI_MODEL_NAME = "gpt-5"
 OPENAI_TEMPERATURE = 0.0
 OPENAI_MAX_TOKENS = 16384
 OPENAI_CONTEXT_WINDOW = 128000

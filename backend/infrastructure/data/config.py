@@ -38,17 +38,19 @@ class ModelType(Enum):
 # Supported models with their capabilities
 MODEL_CAPABILITIES = {
     # OpenAI models
+    "gpt-5": ModelCapability(128000, 16384),
     "gpt-4o-2024-08-06": ModelCapability(128000, 16384),
     "gpt-4o-mini-2024-07-18": ModelCapability(128000, 16384),
     "gpt-4o-2024-05-13": ModelCapability(128000, 4096),
     # Gemini models
+    "models/gemini-3.5-flash": ModelCapability(1048576, 65536),
     "models/gemini-3-flash-preview": ModelCapability(1048576, 65536),
-    "gemini-3-flash-preview": ModelCapability(1048576, 65536),
+    "gemini-3.5-flash": ModelCapability(1048576, 65536),
 }
 
 @dataclass
 class LLMConfig:
-    model: str = "gpt-4o-2024-08-06"
+    model: str = "gpt-5"
     temperature: float = 0.3
     max_tokens: int = 16384
     api_key: Optional[str] = None

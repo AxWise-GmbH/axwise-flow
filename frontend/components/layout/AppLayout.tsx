@@ -27,8 +27,8 @@ export function AppLayout({ children, className = '' }: AppLayoutProps): JSX.Ele
     });
   }, []);
 
-  // Check if this is the marketing landing page (homepage)
-  const isMarketingPage = pathname === '/';
+  // Check if this is the marketing landing page (homepage) or specialized premium subpage
+  const isMarketingPage = pathname === '/' || pathname === '/privacy-policy' || pathname === '/terms-of-service' || pathname === '/impressum' || pathname === '/docs' || pathname === '/customer-research';
 
   // Check if this is a full-screen page (no header/footer/container)
   const isFullScreenPage = pathname?.startsWith('/precall');
