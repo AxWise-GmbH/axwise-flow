@@ -34,8 +34,29 @@ Authorization: Bearer <PERSONAL_AXWISE_API_KEY>
 # 🚀 Phase 1: Multi-Agent Persona Simulation (E2E Generation)
 These endpoints serve as the **simulation generators and initiators**. They define the operational brief (business context, target customer profile, and stakeholder roles) and spin up multi-agent interview simulations under strict tenant isolation.
 
+You can initiate a simulation using either of two models:
+1. **Asynchronous (/simulate-async)**: 
+   - **Initial Response**: **Instant (under 1 second)** to return a `simulation_id`.
+   - **Background Generation Duration**: The simulation runs in the background and takes **15 to 40 seconds** to complete. Once finished, the completed results are ready to be fetched or are posted to your webhook callback URL.
+   - **Quality Profile**: **Synthetic/Generative Quality (Pipeline B Only)**.
+   - **Drawback**: Returns standard flat `SimulatedPerson` models containing lists of goals and pain points synthesized from scratch by the prompt. It does **NOT** contain any trace-verified, offset-linked, or audited direct quotes from the transcript (Pipeline A's remapping is skipped).
+   - **Why use it**: Ideal to prevent HTTP connection timeouts on slow external services when you only need raw transcripts and do not require trace-verified evidence mapping or Golden Schema compliance.
+2. **Synchronous (/simulate-enhanced)**: 
+   - **Response Speed**: **Slow (takes 30 to 90 seconds total)**.
+   - **Remapping Generation Duration**: The server holds your connection open while it completes the 15–40 seconds of simulations, immediately followed by 15–50 seconds of Pipeline A's empirical remapping (fuzzy quote finding and character-level offset linking). The entire response package is returned in a single transaction.
+   - **Quality Profile**: **Trace-Verified/Sovereign Quality (Closed-Loop A+B Hybrid)**.
+   - **Benefit**: Extremely high quality. The system conducts the interviews, corrects voice-to-text spelling errors (e.g., standardizing `"Mirrorboards"` to `"Miro"`), normalizes demographics into age buckets, and extracts **10+ direct, trace-verified verbatim quotes** bound with precise character offsets (`start_char`, `end_char`) back to the transcripts. It eliminates LLM hallucinations.
+   - **Drawback**: High computational latency and potential for gateway timeouts if the client's connection is configured with a timeout shorter than 90 seconds.
+   - **Why use it**: Ideal when you want to get the final remapped personas immediately in a single HTTP request without any polling or webhooks.
+
+---
+
 ## Endpoint 1: Start Asynchronous E2E Simulation (Async Starter)
-Launches a Top-Down or Hybrid (A+B) Simulation run in the background under validated tenant context and returns a unique `simulation_id` immediately. Streams real-time HTTP POST progress updates if `callback_url` is provided.
+Launches a simulation in the background and returns a tracking ID immediately.
+* **Initial Response**: **Instant (under 1 second)**.
+* **Background Duration**: Takes **15 to 40 seconds** to fully generate and save results in the background.
+* **Execution**: Runs asynchronously in the background.
+* **Purpose**: Prevents HTTP connection timeouts. It registers the session and initiates background multi-agent runs, streaming real-time status updates back to Orqaly via webhook callbacks. Once the 15–40 seconds are complete, results can be fetched.
 
 - **Method**: `POST`
 - **Path**: `/simulate-async`
@@ -87,7 +108,13 @@ Launches a Top-Down or Hybrid (A+B) Simulation run in the background under valid
 ---
 
 ## Endpoint 2: Start Flagship Closed-Loop Simulation (Synchronous Starter)
-Executes top-down simulated interviews on OCEAN twins, segments the dialogue output, links quotes back to raw source segments using RapidFuzz, and yields audited, structured, and non-hallucinated customer/employee personas in a single pass.
+Executes a complete simulation and returns trace-verified personas with character offsets directly.
+* **Response Speed**: **Slow (takes 30 to 90 seconds total)**.
+* **Quality Profile**: **Trace-Verified/Sovereign Quality (Closed-Loop A+B Hybrid)**.
+* **Benefit**: Extremely high quality. The system conducts the interviews, corrects spelling errors, normalizes age buckets, and extracts **10+ direct, trace-verified verbatim quotes** bound with character offsets (`start_char`, `end_char`) back to the transcripts. It eliminates LLM hallucinations.
+* **Drawback**: Higher computational latency and risk of connection timeouts on the client-side.
+* **Execution**: Synchronous (holds your connection open until finished).
+* **Purpose**: Best used when you want the final remapped personas immediately in a single HTTP request, eliminating the need to poll or use webhooks. It runs the simulation and automatically maps the resulting dialogue into structured, trace-verified customer profiles.
 
 - **Method**: `POST`
 - **Path**: `/simulate-enhanced`
