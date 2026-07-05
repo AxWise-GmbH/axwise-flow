@@ -249,8 +249,10 @@ Fetches the full structured output of the finished simulation (including generat
 # 🛡️ Phase 2: Sovereign Digital Twin Registry & Task Runtime
 These endpoints function as the **runtime access-control and task-execution gates**. Once your digital twins have been designed, they are registered here to secure execution environments and evaluate standalone RBAC scopes.
 
+> **💡 Architectural Note**: This registry is **completely dynamic and custom role/persona agnostic**. Orqaly is not restricted to pre-defined twins (like `cfo_veronika_horvat`). You can sync, provision, and query any custom role (e.g., `cto_marcus_chen`, `support_elena`, or `hr_director_anna`) on the fly with tailored OCEAN behavioral DNA and distinct vector database grounding resources.
+
 ## Endpoint 5: Sync / Register Digital Twin (Twin Provisioner)
-Synchronizes or updates a psychologically-grounded Digital Twin inside the AxWise registry. This step indexes the role, behavioral DNA, and sets up local containerized workspace index partitions.
+Synchronizes or updates any psychologically-grounded Digital Twin inside the AxWise registry. This step indexes the role, behavioral DNA, and sets up local containerized workspace index partitions.
 
 - **Method**: `POST`
 - **Path**: `/twins/sync`
