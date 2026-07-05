@@ -79,9 +79,9 @@ export default function DocsPage(): React.JSX.Element {
           
           <nav className="flex flex-col gap-2.5 text-sm">
             <a href="#installation" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">1. Setup &amp; Docker</a>
-            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Simulate Twin</a>
-            <a href="#parse" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Parse &amp; Trace</a>
-            <a href="#rbac" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Secured Query</a>
+            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Multi-Agent Simulation</a>
+            <a href="#orchestration" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Progress &amp; Retrieval</a>
+            <a href="#twins-registry" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Twin Registry &amp; RBAC</a>
           </nav>
 
           <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
@@ -128,13 +128,12 @@ export default function DocsPage(): React.JSX.Element {
           {/* Section 2: Simulate Twin */}
           <section id="simulate" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">2. Simulate Twin Endpoint</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/research/simulation-bridge/simulate-enhanced</p>
+              <h2 className="font-serif text-3xl text-stone-900">2. Multi-Agent Persona Simulation</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-async or /simulate-enhanced</p>
             </div>
 
-            <p className="text-stone-700 text-sm leading-relaxed">
-              Triggers a closed-loop E2E cognitive simulation. Leverages normal Gaussian distributions matching the 
-              corporate hierarchy of specific occupations to generate grounded psychographic OCEAN twin vectors.
+            <p className="text-[#1C1917] text-sm leading-relaxed">
+              Triggers a top-down psychologically-grounded user simulation. Generates individual OCEAN profiles from standard occupation baselines, simulates multi-turn research interviews, and optionally runs Pipeline A's bottom-up empirical remapping to output trace-verified personas with precise character-perfect verbatim offsets.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
@@ -143,70 +142,52 @@ export default function DocsPage(): React.JSX.Element {
                 <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
 {`import requests
 
-url = "http://localhost:8000/api/simulate-enhanced"
+url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate-enhanced"
+headers = {"Authorization": "Bearer <YOUR_KEY>"}
 payload = {
-    "occupation": "CFO",
-    "seniority_years": 15,
-    "regulatory_framework": "BaFin-MaRisk"
+    "business_context": {
+        "business_idea": "Sovereign fleet telemetry routing",
+        "target_customer": "SME Logistics dispatchers",
+        "problem": "Manual tracking takes 10+ hours/week"
+    },
+    "questions_data": {
+        "stakeholders": {
+            "primary": [
+                {
+                    "id": "dispatcher",
+                    "name": "Fleet Dispatcher",
+                    "questions": ["What is your biggest bottleneck?"]
+                }
+            ]
+        }
+    },
+    "config": {"depth": "detailed", "personas_per_stakeholder": 1}
 }
-response = requests.post(url, json=payload)`}
+response = requests.post(url, headers=headers, json=payload)`}
                 </pre>
               </div>
 
               <div className="space-y-3 font-mono text-xs">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON - Synchronous Flagship]</span>
                 <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
 {`{
-  "status": "success",
-  "evaluated_age": 45.2,
-  "traits": {
-    "Conscientiousness": 0.93,
-    "Agreeableness": 0.33
-  },
-  "compliance_flags": ["BAFIN-LOG-OK"]
-}`}
-                </pre>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 3: Parse & Trace */}
-          <section id="parse" className="space-y-6 scroll-mt-24">
-            <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">3. Parse &amp; Trace Evidence</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/research/parse-evidence</p>
-            </div>
-
-            <p className="text-stone-700 text-sm leading-relaxed">
-              Maintains deterministic evidence mappings by linking goals, workflows, and problems back to exact 
-              character index offset boundaries in raw user transcripts, fuzzy-correcting speech typos.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
-                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
-{`import requests
-
-url = "http://localhost:8000/api/parse-evidence"
-payload = {
-    "raw_transcript": "Lukas: Honestly, it's a completely manual mess. We use Excel spreadsheets..."
-}
-response = requests.post(url, json=payload)`}
-                </pre>
-              </div>
-
-              <div className="space-y-3 font-mono text-xs">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
-                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
-{`{
-  "status": "resolved",
-  "evidence_mappings": [
+  "simulation_id": "sim-session-123",
+  "empirical_personas": [
     {
-      "key": "pain_points.sheets",
-      "phrase": "maintaining 45 spreadsheets",
-      "start_char": 150,
-      "end_char": 236
+      "name": "Elena Fischer",
+      "archetype": "Traditional Dispatcher",
+      "pain_points": {
+        "value": "Manual tracking takes 10+ hours per week",
+        "confidence": 1.0,
+        "evidence": [
+          {
+            "quote": "I spend 10 hours cross-referencing GPS pings",
+            "start_char": 631,
+            "end_char": 678,
+            "speaker": "Elena Fischer"
+          }
+        ]
+      }
     }
   ]
 }`}
@@ -215,41 +196,96 @@ response = requests.post(url, json=payload)`}
             </div>
           </section>
 
-          {/* Section 4: Secured Query */}
-          <section id="rbac" className="space-y-6 scroll-mt-24">
+          {/* Section 3: Progress & Retrieval */}
+          <section id="orchestration" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">4. Secured Query Vault</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/security/query-vault</p>
+              <h2 className="font-serif text-3xl text-stone-900">3. Progress &amp; Retrieval</h2>
+              <p className="text-sm text-stone-500 mt-1">GET /api/orqaly-axwise/v1/simulate/{`{id}`}/progress or /completed/{`{id}`}</p>
             </div>
 
-            <p className="text-stone-700 text-sm leading-relaxed">
-              Validates developer identity credentials and clearance levels before injecting sensitive corporate documents 
-              to digital twins. Secures system boundaries against malicious context prompt injections.
+            <p className="text-[#1C1917] text-sm leading-relaxed">
+              If initiating asynchronously via <code>/simulate-async</code>, the simulation executes in the background. Use these endpoints to poll live progression stats (stages, tasks, metrics) or retrieve the finalized payload of OCEAN twins and raw dialogue once fully generated.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python status polling script</span>
                 <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
 {`import requests
 
-url = "http://localhost:8000/api/query-vault"
-headers = {"Authorization": "Bearer dev_token_xyz"}
+# Poll the simulation progress endpoint
+url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate/sim-123/progress"
+headers = {"Authorization": "Bearer <YOUR_KEY>"}
+response = requests.get(url, headers=headers)
+print(response.json())`}
+                </pre>
+              </div>
+
+              <div className="space-y-3 font-mono text-xs">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Progress payload [JSON]</span>
+                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
+{`{
+  "simulation_id": "sim-123",
+  "stage": "simulating_interviews",
+  "progress_percentage": 50,
+  "current_task": "Conducting simulated interviews",
+  "estimated_time_remaining": 3,
+  "completed_personas": 1,
+  "total_personas": 1,
+  "completed_interviews": 1,
+  "total_interviews": 1
+}`}
+                </pre>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 4: Sovereign Twin Registry & RBAC */}
+          <section id="twins-registry" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">4. Sovereign Twin Registry &amp; RBAC</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/twins/sync or /execute or /rbac-check</p>
+            </div>
+
+            <p className="text-[#1C1917] text-sm leading-relaxed">
+              Registers or updates psychologically-grounded Sovereign Digital Twins dynamically. Performs secure, dynamic vector index retrieval and RBAC policy evaluations before grounding queries or executing third-party tool connectors (WhatsApp, Slack, email triggers).
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python execute query script</span>
+                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
+{`import requests
+
+url = "https://api.axwise.de/api/orqaly-axwise/v1/twins/cfo_veronika/execute"
+headers = {"Authorization": "Bearer <YOUR_KEY>"}
 payload = {
-    "resource": "finance/salary_ledger_2026.xlsx"
+    "sender_name": "Vitalijs Visnevskis",
+    "sender_role": "CEO",
+    "message": "I need the latest Q2 board projections."
 }
 response = requests.post(url, headers=headers, json=payload)`}
                 </pre>
               </div>
 
               <div className="space-y-3 font-mono text-xs">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Grounded Response [JSON]</span>
                 <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
 {`{
-  "status": "denied",
-  "user": "marcus_chen_dev",
-  "error": "Insufficient privileges. Required role: CFO",
-  "audit_trail_block": "0x42f88b"
+  "success": true,
+  "twin_id": "cfo_veronika_horvat",
+  "execution_status": "approved",
+  "grounded_response": "Hi Vitalijs! Pulling from Q2 Planning: Base scenario: $2.4M ARR...",
+  "citations": [
+    {
+      "source": "📁 Finance / Q2 Planning",
+      "file_name": "Q2_Projections_v4.pdf"
+    }
+  ],
+  "telemetry": {
+    "execution_cost_usd": 0.045,
+    "time_taken_ms": 1180
+  }
 }`}
                 </pre>
               </div>
