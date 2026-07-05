@@ -10,8 +10,8 @@ from datetime import datetime
 from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
 
-from services.conversational_analysis_agent import ConversationalAnalysisAgent
-from services.file_processor import SimulationFileProcessor, FileProcessingRequest
+from backend.api.research.simulation_bridge.services.conversational_analysis_agent import ConversationalAnalysisAgent
+from backend.api.research.simulation_bridge.services.file_processor import SimulationFileProcessor, FileProcessingRequest
 
 
 async def test_conversational_analysis():

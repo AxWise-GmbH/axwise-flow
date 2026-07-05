@@ -30,7 +30,7 @@ from pydantic import BaseModel, ValidationError
 
 # Import Gemini and Instructor for enhanced capabilities
 try:
-    import google.generativeai as genai
+    from google import genai
     import instructor
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError as e:
@@ -104,23 +104,21 @@ class UnifiedLLMClient:
     def _get_basic_client(self):
         """Get or create basic Gemini client for V1/V2 operations."""
         if self._basic_client is None:
-            genai.configure(api_key=self.api_key)
-            self._basic_client = genai.GenerativeModel(model_name=self.model_name)
+            self._basic_client = genai.Client(api_key=self.api_key)
         return self._basic_client
-    
+
     def _get_enhanced_client(self):
         """Get or create enhanced client for V3 operations."""
         if not ENHANCED_FEATURES_AVAILABLE:
             raise RuntimeError("Enhanced features not available - missing dependencies")
         
         if self._enhanced_client is None:
-            genai.configure(api_key=self.api_key)
-            self._enhanced_client = genai.GenerativeModel(model_name=self.model_name)
+            self._enhanced_client = genai.Client(api_key=self.api_key)
             
-            # Create Instructor client
-            self._instructor_client = instructor.from_gemini(
+            # Create Instructor client using correct from_genai method
+            self._instructor_client = instructor.from_genai(
                 client=self._enhanced_client,
-                mode=instructor.Mode.GEMINI_JSON
+                mode=instructor.Mode.GENAI_TOOLS
             )
         
         return self._enhanced_client
@@ -137,19 +135,15 @@ class UnifiedLLMClient:
         try:
             client = self._get_basic_client()
             
-            # Prepare generation config
+            # Prepare generation config using google-genai style dictionary or types.GenerateContentConfig
             generation_config = {
                 "temperature": kwargs.get("temperature", GEMINI_TEMPERATURE),
                 "max_output_tokens": kwargs.get("max_tokens", GEMINI_MAX_TOKENS),
                 "top_p": kwargs.get("top_p", GEMINI_TOP_P),
                 "top_k": kwargs.get("top_k", GEMINI_TOP_K)
             }
-            
-            # Prepare messages
-            messages = []
             if system_instruction:
-                messages.append({"role": "system", "content": system_instruction})
-            messages.append({"role": "user", "content": prompt})
+                generation_config["system_instruction"] = system_instruction
             
             # Generate with retry logic
             last_error = None
@@ -157,9 +151,14 @@ class UnifiedLLMClient:
                 try:
                     self.current_metrics.retry_count = attempt
                     
-                    response = await client.generate_content_async(
-                        prompt,
-                        generation_config=generation_config
+                    # Use google-genai Client standard API
+                    response = await asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: client.models.generate_content(
+                            model=self.model_name,
+                            contents=prompt,
+                            config=generation_config
+                        )
                     )
                     
                     result = response.text
@@ -206,20 +205,19 @@ class UnifiedLLMClient:
             # Get enhanced client and instructor
             self._get_enhanced_client()
             
-            # Prepare generation config
-            generation_config = {
+            # Prepare generation config and parameters for Instructor + google-genai style
+            config_params = {
                 "temperature": kwargs.get("temperature", 0.0),  # Lower temperature for structured output
                 "max_output_tokens": kwargs.get("max_tokens", GEMINI_MAX_TOKENS),
                 "top_p": kwargs.get("top_p", 1.0),
                 "top_k": kwargs.get("top_k", 1),
                 "response_mime_type": "application/json"
             }
-            
-            # Prepare messages
-            messages = []
             if system_instruction:
-                messages.append({"role": "system", "content": system_instruction})
-            messages.append({"role": "user", "content": prompt})
+                config_params["system_instruction"] = system_instruction
+
+            # Prepare messages
+            messages = [{"role": "user", "content": prompt}]
             
             # Generate with retry logic
             last_error = None
@@ -227,10 +225,14 @@ class UnifiedLLMClient:
                 try:
                     self.current_metrics.retry_count = attempt
                     
-                    response = await self._instructor_client.chat.completions.create(
-                        messages=messages,
-                        response_model=model_class,
-                        generation_config=generation_config
+                    response = await asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: self._instructor_client.chat.completions.create(
+                            model=self.model_name,
+                            messages=messages,
+                            response_model=model_class,
+                            config=config_params
+                        )
                     )
                     
                     # Success

@@ -1,5 +1,10 @@
 """
-Pydantic models for the Simulation Bridge system.
+Pydantic models for the Simulation Bridge and the E2E Cognitive Simulation Pipelines.
+
+This system supports three primary core qualitative architectures:
+1. Pipeline B: Top-Down interview simulation (generates OCEAN profiles/digital twins from a business brief and simulates dialogues).
+2. Pipeline A: Bottom-Up Empirical analysis (parses raw conversations into offset-linked, audited schemas).
+3. The Closed-Loop Hybrid (A+B) Pipeline: Integrates both architectures together in a single pass.
 """
 
 from typing import Dict, List, Any, Optional
@@ -225,12 +230,19 @@ class SimulationInsights(BaseModel):
 
 
 class SimulationRequest(BaseModel):
-    """Request for simulation."""
+    """
+    Request payload for executing qualitative simulations.
+    Supports Top-Down Simulation (Pipeline B) and the Closed-Loop Hybrid (A+B) Pipeline.
+    """
 
     questions_data: Optional[QuestionsData] = None
     business_context: Optional[BusinessContext] = None
     raw_questionnaire_content: Optional[str] = None
     config: SimulationConfig
+    callback_url: Optional[str] = Field(
+        None,
+        description="Optional Webhook HTTP/S URL. If provided, progress updates and completed results will be POSTed back in real-time."
+    )
 
 
 class PersonaAnalysisResult(BaseModel):

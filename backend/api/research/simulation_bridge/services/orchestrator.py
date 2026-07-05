@@ -72,6 +72,7 @@ class SimulationOrchestrator:
         )
         self.data_formatter = DataFormatter()
         self.active_simulations: Dict[str, SimulationProgress] = {}
+        self.callbacks: Dict[str, str] = {}
         self.completed_simulations: Dict[str, SimulationResponse] = (
             {}
         )  # Keep for backward compatibility
@@ -363,6 +364,11 @@ class SimulationOrchestrator:
         Enhanced simulation with database persistence and parallel processing.
         """
         simulation_id = simulation_id or str(uuid.uuid4())
+        
+        # Register callback URL if provided
+        if getattr(request, "callback_url", None):
+            self.callbacks[simulation_id] = request.callback_url
+            logger.info(f"Registered webhook callback URL for simulation {simulation_id}: {request.callback_url}")
 
         try:
             logger.info(f"Starting enhanced simulation: {simulation_id}")
@@ -554,11 +560,29 @@ class SimulationOrchestrator:
             # Keep in memory for backward compatibility
             self.completed_simulations[simulation_id] = response
 
+            # Fire final completed response callback
+            await self._fire_callback(simulation_id, {
+                "simulation_id": simulation_id,
+                "status": "completed",
+                "progress_percentage": 100,
+                "message": "Simulation completed successfully",
+                "result": response.model_dump()
+            })
+
             logger.info(f"Enhanced simulation completed successfully: {simulation_id}")
             return response
 
         except Exception as e:
             logger.error(f"Enhanced simulation failed: {simulation_id} - {str(e)}")
+
+            # Fire failure callback
+            await self._fire_callback(simulation_id, {
+                "simulation_id": simulation_id,
+                "status": "failed",
+                "progress_percentage": 100,
+                "message": f"Simulation failed: {str(e)}",
+                "error": str(e)
+            })
 
             # Mark as failed in database
             try:
@@ -713,6 +737,26 @@ class SimulationOrchestrator:
         )
         return total_stakeholders * request.config.personas_per_stakeholder
 
+    async def _fire_callback(self, simulation_id: str, payload: Dict[str, Any]):
+        """Fire background webhook progress/result callback to external system."""
+        callback_url = self.callbacks.get(simulation_id)
+        if not callback_url:
+            return
+
+        import httpx
+        logger.info(f"📡 Firing callback update for simulation {simulation_id} to {callback_url}...")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    callback_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=10.0
+                )
+                logger.info(f"📡 Callback response status: {response.status_code}")
+        except Exception as e:
+            logger.error(f"❌ Failed to deliver webhook callback to {callback_url}: {e}")
+
     async def _update_progress(
         self, simulation_id: str, stage: str, percentage: int, task: str
     ):
@@ -725,6 +769,20 @@ class SimulationOrchestrator:
             progress.estimated_time_remaining = self._calculate_remaining_time(progress)
 
             logger.info(f"Simulation {simulation_id}: {percentage}% - {task}")
+
+            # Non-blocking callback fire
+            await self._fire_callback(simulation_id, {
+                "simulation_id": simulation_id,
+                "status": "in_progress",
+                "stage": stage,
+                "progress_percentage": percentage,
+                "current_task": task,
+                "estimated_time_remaining": progress.estimated_time_remaining,
+                "completed_people": progress.completed_people,
+                "total_people": progress.total_people,
+                "completed_interviews": progress.completed_interviews,
+                "total_interviews": progress.total_interviews,
+            })
 
     async def _update_progress_with_counts(
         self,
@@ -753,6 +811,20 @@ class SimulationOrchestrator:
             logger.info(
                 f"Simulation {simulation_id}: {percentage}% - {task} (Personas: {progress.completed_personas}/{progress.total_personas}, Interviews: {progress.completed_interviews}/{progress.total_interviews})"
             )
+
+            # Non-blocking callback fire
+            await self._fire_callback(simulation_id, {
+                "simulation_id": simulation_id,
+                "status": "in_progress",
+                "stage": stage,
+                "progress_percentage": percentage,
+                "current_task": task,
+                "estimated_time_remaining": progress.estimated_time_remaining,
+                "completed_people": progress.completed_people,
+                "total_people": progress.total_people,
+                "completed_interviews": progress.completed_interviews,
+                "total_interviews": progress.total_interviews,
+            })
 
     def _estimate_simulation_time(self, request: SimulationRequest) -> int:
         """Estimate total simulation time in minutes."""

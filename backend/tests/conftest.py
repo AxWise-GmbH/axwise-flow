@@ -5,6 +5,8 @@ PyTest configuration and fixtures.
 import pytest
 import json
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -12,7 +14,19 @@ from fastapi.testclient import TestClient
 from backend.database import Base, get_db
 from backend.models import User, InterviewData
 
-import os
+# Load .env file from the backend folder for testing
+env_path = Path(__file__).parents[1] / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
+
+# Load .env file from the backend folder for testing
+env_path = Path(__file__).parents[1] / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
 
 
 # Enable factory-based stakeholder agent and consensus service in tests (development behavior)

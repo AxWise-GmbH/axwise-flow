@@ -5,27 +5,27 @@ from backend.services.validation.persona_evidence_validator import (
 )
 
 
-def make_persona_with_evidence(quotes: List[str]) -> Dict[str, Any]:
+def make_persona_with_evidence(quotes: List[str], speaker: str = "User") -> Dict[str, Any]:
     return {
         "name": "Tester",
         "demographics": {"confidence": 0.7},
         "goals_and_motivations": {
             "value": "Goal",
-            "evidence": [{"quote": quotes[0]}] if quotes else [],
+            "evidence": [{"quote": quotes[0], "document_id": "doc_1", "speaker": speaker}] if quotes else [],
         },
         "challenges_and_frustrations": {
             "value": "Challenge",
-            "evidence": [{"quote": quotes[1]}] if len(quotes) > 1 else [],
+            "evidence": [{"quote": quotes[1], "document_id": "doc_1", "speaker": speaker}] if len(quotes) > 1 else [],
         },
         "key_quotes": {
             "value": "Quotes",
-            "evidence": [{"quote": quotes[2]}] if len(quotes) > 2 else [],
+            "evidence": [{"quote": quotes[2], "document_id": "doc_1", "speaker": speaker}] if len(quotes) > 2 else [],
         },
     }
 
 
 def test_match_evidence_with_transcript_sets_speaker_and_offsets():
-    persona = make_persona_with_evidence(["I really like coffee"])  # appears verbatim
+    persona = make_persona_with_evidence(["I really like coffee"], speaker="User")  # appears verbatim
     transcript = [
         {"speaker": "A", "dialogue": "Hello there"},
         {"speaker": "User", "dialogue": "I really like coffee and tea"},
@@ -63,7 +63,7 @@ def test_duplication_detection_across_traits_and_protection_of_key_quotes():
 
 def test_speaker_consistency_check():
     persona = make_persona_with_evidence(
-        ["I use dashboards daily"]
+        ["I use dashboards daily"], speaker="Analyst"
     )  # present in transcript
     transcript = [
         {"speaker": "Analyst", "dialogue": "I use dashboards daily for reporting"},

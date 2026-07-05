@@ -91,24 +91,26 @@ def init_genai_client():
         pass  # dotenv not installed, rely on environment
 
     try:
-        import google.generativeai as genai
+        from google import genai
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable required")
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
-        return genai.GenerativeModel(model_name)
+        return client, model_name
     except ImportError:
-        raise ImportError("google-generativeai package required. Install with: pip install google-generativeai")
+        raise ImportError("google-genai package required. Install with: pip install google-genai")
 
 
-def split_merged_block(text: str, name: str, model) -> List[Dict[str, str]]:
+def split_merged_block(text: str, name: str, client_info) -> List[Dict[str, str]]:
     """Use LLM to split a merged dialogue block."""
     prompt = SPLIT_PROMPT.format(name=name, text=text)
+    client, model_name = client_info
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config={
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config={
                 "temperature": 0.3,
                 "response_mime_type": "application/json",
             }
