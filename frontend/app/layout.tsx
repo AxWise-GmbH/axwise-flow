@@ -9,8 +9,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AxWise - Your AI Co-Pilot for Product Development',
-  description: 'Transform your raw ideas into validated, actionable plans with AxWise\'s powerful AI co-pilot',
+  title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
+  description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
