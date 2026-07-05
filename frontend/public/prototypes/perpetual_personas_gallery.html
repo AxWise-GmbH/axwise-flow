@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AxWise Flow — Perpetual Personas Gallery (Prototype)</title>
+  <style>
+    :root{--bg:#0b1120;--panel:#0f172a;--muted:#334155;--text:#e5e7eb;--accent:#22c55e;--cta:#3b82f6}
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.4 system-ui,Segoe UI,Roboto;color:var(--text);background:linear-gradient(180deg,#0a0f1f,#0b1120)}
+    .container{max-width:1200px;margin:0 auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .brand{font-weight:700;font-size:18px}
+    .nav a{color:#9ca3af;text-decoration:none;border:1px solid var(--muted);padding:6px 10px;border-radius:10px}
+    .panel{background:var(--panel);border:1px solid var(--muted);border-radius:12px;padding:12px;margin-bottom:12px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:var(--cta);border:0;color:white;padding:8px 10px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer}
+    button.secondary{background:#1f2937}
+    input[type="search"],select{background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:10px;padding:8px 10px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+    .card{background:var(--panel);border:1px solid var(--muted);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+    .media{position:relative;background:#0b1224;height:160px;display:flex;align-items:center;justify-content:center}
+    .avatar{width:100%;height:100%;object-fit:cover;display:block;border:none;opacity:0.95;cursor:pointer;transition:opacity 0.2s}
+    .avatar:hover{opacity:1}
+    .badge{position:absolute;top:10px;left:10px;background:#0e1b2d;border:1px solid var(--muted);padding:2px 8px;border-radius:999px;font-size:11px}
+    .content{padding:12px;display:flex;flex-direction:column;gap:6px}
+    .title{font-weight:700}
+    .subtitle{opacity:.8;font-size:12px}
+    .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .bubble{display:none;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;padding:8px 12px;border-radius:6px;font-size:12px;font-style:italic;color:#cbd5e1;line-height:1.5;margin:8px 12px 0 12px}
+    .bubble.show{display:block}
+
+    /* Context and Preference styles */
+    .contexts-section{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .context-group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .context-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
+    .context-item{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid}
+    .context-item.active{opacity:1}
+    .context-item.inactive{opacity:0.4}
+    .context-item.dining{background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.3);color:#a78bfa}
+    .context-item.takeaway{background:rgba(251,146,60,0.1);border-color:rgba(251,146,60,0.3);color:#fb923c}
+    .check-icon{font-size:10px;font-weight:700}
+
+    .preferences-section{margin-top:8px}
+    .pref-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .pref-label{font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;min-width:80px}
+    .pref-tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid}
+    .pref-tag{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:#4ade80}
+
+    /* Food images */
+    .food-image{width:100%;max-width:300px;height:auto;border-radius:8px;margin:6px 0 8px 12px;cursor:pointer;opacity:0.95;transition:opacity 0.2s;border:1px solid var(--muted)}
+    .food-image:hover{opacity:1}
+    .food-image-placeholder{width:100%;max-width:300px;height:180px;border-radius:8px;margin:6px 0 8px 12px;background:rgba(255,255,255,0.03);border:1px dashed var(--muted);display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:11px;cursor:pointer;transition:background 0.2s}
+    .food-image-placeholder:hover{background:rgba(255,255,255,0.05)}
+    .food-image-loading{opacity:0.5;pointer-events:none}
+
+    /* Lightbox modal for full-size images */
+    .lightbox{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+    .lightbox.show{display:flex}
+    .lightbox img{max-width:90%;max-height:90%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+    .lightbox-close{position:absolute;top:20px;right:30px;color:white;font-size:40px;font-weight:300;cursor:pointer;opacity:0.8;transition:opacity 0.2s}
+    .lightbox-close:hover{opacity:1}
+
+  </style>
+
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">AxWise Flow — Perpetual Personas (Gallery)</div>
+      <nav class="nav">
+        <a href="/prototypes/perpetual_personas.html">Back to Cards Prototype</a>
+      </nav>
+    </header>
+
+    <section class="panel toolbar">
+      <button id="gen-all-avatars">Generate avatars</button>
+      <button id="gen-all-profiles" class="secondary">Generate Berlin profiles</button>
+      <button id="gen-all-quotes" class="secondary">Extract quotes</button>
+      <span style="flex:1"></span>
+      <input id="search" type="search" placeholder="Search personas" />
+      <select id="filter">
+        <option value="all">All</option>
+        <option value="enterprise">Enterprise</option>
+        <option value="mid">Mid-market</option>
+      </select>
+      <span style="flex:1"></span>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="useBackend"> Backend</label>
+      <select id="resultSelect" style="width:280px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px"><option value="">Loading…</option></select>
+      <button id="refreshResults" class="secondary" style="padding:6px 10px">Refresh</button>
+      <input type="text" id="token" value="dev_test_token_local" style="width:220px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px">
+      <input type="text" id="server" value="http://localhost:8000" style="width:240px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px">
+
+
+    </section>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Lightbox for full-size images -->
+  <div class="lightbox" id="lightbox">
+    <span class="lightbox-close">&times;</span>
+    <img src="" alt="Full size avatar" />
+  </div>
+
+  <script>
+    const wait = ms => new Promise(r=>setTimeout(r,ms));
+    const cfg = { useBackend:false, resultId:'', token:'' };
+
+    const personas = [
+      {id:'sarah', name:'Sarah Chen', title:'VP Strategy', seg:'enterprise', quote:"Hi, I'm Sarah. My challenge is cross-department alignment."},
+      {id:'dmitri', name:'Dmitri Volkov', title:'CTO', seg:'mid', quote:'Security and ROI in the first demo are must-haves.'},
+      {id:'amira', name:'Amira Hassan', title:'Head of Procurement', seg:'enterprise', quote:'We need 18‑month ROI and compliance early.'},
+      {id:'luis', name:'Luis Ortega', title:'Product Manager', seg:'mid', quote:'Fewer handoffs; faster validation loops.'},
+      {id:'priya', name:'Priya Nair', title:'Head of Data', seg:'enterprise', quote:'Governance and lineage by default, please.'},
+      {id:'elena', name:'Elena Romano', title:'CFO', seg:'enterprise', quote:'Evidence and predictable payback matter.'},
+    ];
+    const palette=['#7c3aed','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6'];
+
+
+    const grid = document.getElementById('grid');
+    function render(list){
+      grid.innerHTML = '';
+      for(const p of list){
+        const card = document.createElement('div'); card.className='card'; card.dataset.id=p.id; card.dataset.seg=p.seg;
+        card.innerHTML = `
+          <div class="media">
+            <img class="avatar" src="https://placehold.co/800x450?text=?" alt="${p.name}" />
+            <span class="badge">${p.seg}</span>
+          </div>
+          <div class="content">
+            <div class="title">${p.name}</div>
+            <div class="subtitle">${p.title} • ${p.seg}</div>
+            <div class="actions">
+              <button data-action="avatar">Avatar</button>
+              <button data-action="profile" class="secondary">Profile</button>
+              <button data-action="quote" class="secondary">Quote</button>
+            </div>
+          </div>
+          <div class="bubble">“${p.quote}”</div>
+        `;
+        grid.appendChild(card);
+        const av=card.querySelector('.avatar'); av.style.border='none'; av.style.boxShadow='none';
+
+      }
+    }
+    render(personas);
+
+    function setLoading(btn,on,txt){ if(on){ btn.dataset.prev=btn.textContent; btn.textContent=txt; btn.disabled=true; } else { btn.textContent=btn.dataset.prev||btn.textContent; btn.disabled=false; }}
+
+    async function genAvatar(card,btn){
+      setLoading(btn,true,'Generating…');
+      const img=card.querySelector('.avatar');
+
+      let ok=false;
+      if(cfg.useBackend && cfg.resultId){
+        try{
+          const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/avatar`, {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_local')},
+            body: JSON.stringify({ style_pack:{ name:card.querySelector('.title')?.textContent, style_desc:'editorial color grade, soft key light, depth' } })
+          });
+          if(r.ok){ const data=await r.json(); if(data.avatar_data_uri||data.avatar_url){ img.src=data.avatar_data_uri||data.avatar_url; ok=true; } }
+        }catch(_e){}
+      }
+      if(!ok){ await wait(800); img.src='https://placehold.co/800x450?text=Avatar'; }
+      setLoading(btn,false);
+    }
+    async function genProfile(card,btn){
+      setLoading(btn,true,'Generating…');
+      const bubble = card.querySelector('.bubble');
+      if(!(cfg.useBackend && cfg.resultId)){ setLoading(btn,false); return; }
+      try{
+        const cityInput = document.getElementById('cityInput');
+        const city = cityInput?.value?.trim() || 'Berlin';
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/city-profile`, {
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')}, body: JSON.stringify({city: city})
+        });
+        if(r.ok){
+          const data=await r.json();
+          const bp = data.city_profile || data.berlin_profile || {};
+
+          // Build display with contexts and preferences
+          let html = `<strong>📍 ${bp.city || city}</strong>`;
+          if(bp.neighborhood) html += ` • ${bp.neighborhood}`;
+          html += `<br/>`;
+
+          // Display dining and takeaway contexts with probability filtering
+          const diningCtx = bp.dining_context || {};
+          const takeawayCtx = bp.takeaway_context || {};
+          const foodBevPrefs = bp.food_beverage_preferences || [];
+
+          const THRESHOLD = 70; // Only show options with ≥70% probability
+
+          // Filter and sort dining context options
+          const diningOptions = [
+            { name: 'Solo', value: diningCtx.solo },
+            { name: 'Social', value: diningCtx.social },
+            { name: 'Business', value: diningCtx.business }
+          ].filter(opt => opt.value >= THRESHOLD)
+           .sort((a, b) => b.value - a.value); // Sort by probability descending
+
+          // Filter and sort takeaway context options
+          const takeawayOptions = [
+            { name: 'Pickup', value: takeawayCtx.pickup },
+            { name: 'Home Delivery', value: takeawayCtx.delivery_home },
+            { name: 'Office Delivery', value: takeawayCtx.delivery_office }
+          ].filter(opt => opt.value >= THRESHOLD)
+           .sort((a, b) => b.value - a.value); // Sort by probability descending
+
+          if(diningOptions.length > 0 || takeawayOptions.length > 0 || foodBevPrefs.length > 0) {
+            html+=`<div class="contexts-section">`;
+
+            // Dining context - only show high-probability options
+            if(diningOptions.length > 0) {
+              html+=`<div class="context-group">`;
+              html+=`<span class="context-label">Dine-in:</span>`;
+
+              diningOptions.forEach(opt => {
+                html+=`<span class="context-item dining active"><span class="check-icon">✓</span> ${opt.name} (${opt.value}%)</span>`;
+              });
+              html+=`</div>`;
+            }
+
+            // Takeaway context - only show high-probability options
+            if(takeawayOptions.length > 0) {
+              html+=`<div class="context-group">`;
+              html+=`<span class="context-label">Takeaway:</span>`;
+
+              takeawayOptions.forEach(opt => {
+                html+=`<span class="context-item takeaway active"><span class="check-icon">✓</span> ${opt.name} (${opt.value}%)</span>`;
+              });
+              html+=`</div>`;
+            }
+
+            html+=`</div>`;
+          }
+
+          // Display food & beverage preferences
+          if(foodBevPrefs.length > 0) {
+            html+=`<div class="preferences-section">`;
+            html+=`<div class="pref-group">`;
+            html+=`<span class="pref-label">Preferences:</span>`;
+            foodBevPrefs.forEach(pref => {
+              html+=`<span class="pref-tag">${pref}</span>`;
+            });
+            html+=`</div>`;
+            html+=`</div>`;
+          }
+
+          bubble.innerHTML = html;
+          bubble.classList.add('show');
+        }
+      }catch(_e){ console.error('Profile error:', _e); }
+      finally{ setLoading(btn,false); }
+    }
+    async function genQuote(card,btn){
+      const b=card.querySelector('.bubble');
+      if(!(cfg.useBackend && cfg.resultId)){ b.classList.toggle('show'); return; }
+      try{
+        setLoading(btn,true,'Extracting…');
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/quote`, {
+          method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')}
+        });
+        if(r.ok){ const data=await r.json(); if(data.quote){ b.textContent=data.quote; } }
+        b.classList.toggle('show');
+      }catch(_e){ b.classList.toggle('show'); }
+      finally{ setLoading(btn,false); }
+    }
+
+    grid.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button');
+      const card = e.target.closest('.card');
+      if(!card) return;
+      if(btn?.dataset.action==='avatar') await genAvatar(card,btn);
+      if(btn?.dataset.action==='profile') await genProfile(card,btn);
+      if(btn?.dataset.action==='quote') await genQuote(card,btn);
+    });
+
+    // Batch controls
+    document.getElementById('gen-all-avatars').addEventListener('click', async ()=>{
+      for(const btn of grid.querySelectorAll('[data-action="avatar"]')){ await genAvatar(btn.closest('.card'), btn); }
+    });
+    document.getElementById('gen-all-profiles').addEventListener('click', async ()=>{
+      for(const btn of grid.querySelectorAll('[data-action="profile"]')){ await genProfile(btn.closest('.card'), btn); }
+    });
+    document.getElementById('gen-all-quotes').addEventListener('click', ()=>{
+      for(const b of grid.querySelectorAll('.bubble')) b.classList.add('show');
+    });
+
+    // Search & filter
+    const search = document.getElementById('search'); const filter = document.getElementById('filter');
+    function apply(){ const q=(search.value||'').toLowerCase(); const seg=filter.value; const list=personas.filter(p=> (seg==='all'||p.seg===seg) && (p.name.toLowerCase().includes(q)||p.title.toLowerCase().includes(q))); render(list); }
+    search.addEventListener('input', apply); filter.addEventListener('change', apply);
+
+    // Backend config
+    const use=document.getElementById('useBackend'); const sel=document.getElementById('resultSelect'); const tok=document.getElementById('token'); const srv=document.getElementById('server');
+    const applyCfg=()=>{ cfg.useBackend=!!use?.checked; cfg.resultId=(sel?.value||'').trim(); cfg.token=(tok?.value||'').trim(); cfg.baseUrl=(srv?.value||'http://localhost:8000').trim().replace(/\/+$/,''); };
+    [use,tok,srv].forEach(el=> el && el.addEventListener('input', applyCfg)); if(sel){ sel.addEventListener('change', applyCfg); }
+    async function loadResultsChoices(){ if(!sel) return; sel.innerHTML='<option value="">Loading…</option>'; try{ const r=await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/results`,{ headers:{'Authorization':'Bearer '+(tok?.value||'dev_test_token_local')} }); const data=await r.json(); const items=data.items||[]; if(items.length===0){ sel.innerHTML='<option value="">No analyses found</option>'; } else { sel.innerHTML='<option value="">Select analysis/persona pack…</option>'+ items.map(i=>`<option value="${i.result_id}">${(i.label||('Result '+i.result_id))}</option>`).join(''); } }catch(e){ sel.innerHTML='<option value="">Error loading analyses</option>'; } }
+    const refresh=document.getElementById('refreshResults'); if(refresh){ refresh.addEventListener('click', ()=> loadResultsChoices()); }
+    applyCfg(); loadResultsChoices();
+
+    // Lightbox functionality for full-size avatar viewing
+    (function(){
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = lightbox?.querySelector('img');
+      const lightboxClose = lightbox?.querySelector('.lightbox-close');
+
+      // Open lightbox when clicking any avatar or food image
+      document.addEventListener('click', (e) => {
+        const avatar = e.target.closest('.avatar');
+        const foodImage = e.target.closest('.food-image');
+
+        if((avatar || foodImage) && lightbox && lightboxImg){
+          lightboxImg.src = (avatar || foodImage).src;
+          lightbox.classList.add('show');
+        }
+      });
+
+      // Close lightbox when clicking background or close button
+      if(lightbox){
+        lightbox.addEventListener('click', (e) => {
+          if(e.target === lightbox || e.target === lightboxClose){
+            lightbox.classList.remove('show');
+          }
+        });
+      }
+
+      // Close lightbox with Escape key
+      document.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && lightbox){
+          lightbox.classList.remove('show');
+        }
+      });
+    })();
+
+  </script>
+</body>
+</html>
+

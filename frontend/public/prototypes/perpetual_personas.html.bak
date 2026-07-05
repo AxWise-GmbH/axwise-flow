@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AxWise Flow — Perpetual Personas (HTML Prototype)</title>
+  <style>
+    :root{--bg:#0b1120;--panel:#0f172a;--muted:#334155;--text:#e5e7eb;--accent:#22c55e;--cta:#3b82f6}
+    *{box-sizing:border-box} body{margin:0;font:14px/1.4 system-ui,Segoe UI,Roboto;color:var(--text);background:linear-gradient(180deg,#0a0f1f,#0b1120)}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{font-weight:700;font-size:18px;letter-spacing:.3px}
+    .note{opacity:.75;font-size:12px}
+    .panel{background:var(--panel);border:1px solid var(--muted);border-radius:12px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .pipeline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px 0;padding:0;list-style:none}
+    .chip{padding:6px 10px;border-radius:999px;border:1px solid var(--muted);background:#0b1224;font-size:12px;white-space:nowrap}
+    .chip.done{border-color:var(--accent);color:var(--accent);background:#0e1b2d}
+    .arrow{opacity:.5}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    button{background:var(--cta);border:0;color:white;padding:8px 10px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer}
+    button.secondary{background:#1f2937}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .card{background:var(--panel);border:1px solid var(--muted);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+    .head{display:flex;gap:12px;align-items:center}
+    .avatar{width:72px;height:72px;border-radius:12px;border:1px solid var(--muted);object-fit:cover;background:#0b1224}
+    .meta b{display:block;font-size:14px}
+    .meta span{font-size:12px;opacity:.8}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .video{display:none;height:120px;border-radius:10px;border:1px dashed var(--muted);align-items:center;justify-content:center;color:#9ca3af;background:repeating-linear-gradient(45deg,#0e1726,#0e1726 10px,#0d1420 10px,#0d1420 20px)}
+    .video.ready{display:flex;cursor:pointer}
+    .bubble{display:none;background:#0e1b2d;border:1px solid var(--muted);padding:10px;border-radius:10px;font-size:13px}
+    .bubble.show{display:block}
+    footer{opacity:.7;margin-top:14px;font-size:12px}
+    .progress{display:none;height:8px;background:#0b1224;border:1px solid var(--muted);border-radius:999px;overflow:hidden;margin-top:6px}
+    .progress.show{display:block}
+    .progress .bar{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#3b82f6);transition:width .4s ease}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">AxWise Flow — Perpetual Personas</div>
+      <div class="note">Static HTML prototype — simulates generation without backend</div>
+    </header>
+
+    <section class="panel">
+      <ol class="pipeline">
+        <li class="chip done">Upload Transcripts</li><span class="arrow">→</span>
+        <li class="chip done">Theme Extraction</li><span class="arrow">→</span>
+        <li class="chip done">Pattern Recognition</li><span class="arrow">→</span>
+        <li class="chip done">Persona Formation</li><span class="arrow">→</span>
+        <li class="chip">PRD</li>
+      </ol>
+      <div class="toolbar">
+        <button id="gen-all-avatars">Generate all avatars</button>
+        <button id="gen-all-profiles" class="secondary">Generate Berlin profiles</button>
+      </div>
+    </section>
+    <section class="panel" aria-label="Backend Config">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label><input type="checkbox" id="useBackend"> Use backend</label>
+        <label>Analysis <select id="resultSelect" style="width:280px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px"><option value="">Loading…</option></select></label>
+        <button id="refreshResults" class="secondary" style="padding:6px 10px">Refresh</button>
+        <label>Token <input type="text" id="token" value="dev_test_token_testuser123" style="width:220px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px"></label>
+        <label>Server <input type="text" id="server" value="http://localhost:8000" style="width:240px;background:#0b1224;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:6px 8px"></label>
+
+        <span class="note">When enabled, buttons call /api/personas/{result_id}/{persona_id}/…</span>
+      </div>
+    </section>
+
+
+    <div class="grid" id="cards">
+      <div class="card" data-id="sarah">
+        <div class="head">
+          <img class="avatar" alt="avatar" src="https://placehold.co/72x72?text=?" />
+          <div class="meta"><b>Sarah Chen</b><span>VP Strategy • Enterprise</span></div>
+        </div>
+        <div class="actions">
+          <button data-action="avatar">Generate avatar</button>
+          <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="quote" class="secondary">Extract quote</button>
+        </div>
+        <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
+        <div class="bubble">“Hi, I'm Sarah. My biggest challenge is manual cross-department alignment.”</div>
+      </div>
+
+      <div class="card" data-id="dmitri">
+        <div class="head">
+          <img class="avatar" alt="avatar" src="https://placehold.co/72x72?text=?" />
+          <div class="meta"><b>Dmitri Volkov</b><span>CTO • Mid‑market</span></div>
+        </div>
+        <div class="actions">
+          <button data-action="avatar">Generate avatar</button>
+          <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="quote" class="secondary">Extract quote</button>
+        </div>
+        <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
+        <div class="bubble">“Security and ROI in the first demo are must‑haves for us.”</div>
+      </div>
+
+      <div class="card" data-id="amira">
+        <div class="head">
+          <img class="avatar" alt="avatar" src="https://placehold.co/72x72?text=?" />
+          <div class="meta"><b>Amira Hassan</b><span>Head of Procurement • Enterprise</span></div>
+        </div>
+        <div class="actions">
+          <button data-action="avatar">Generate avatar</button>
+          <button data-action="profile" class="secondary">Berlin profile</button>
+          <button data-action="quote" class="secondary">Extract quote</button>
+        </div>
+        <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
+        <div class="bubble">“We need 18‑month ROI visibility and vendor compliance early.”</div>
+      </div>
+    </div>
+
+    <footer>Next step: Wire these buttons to backend endpoints for Gemini/Veo generation and persist results on personas.</footer>
+  </div>
+
+  <script>
+    const wait = ms => new Promise(r=>setTimeout(r,ms));
+    const cfg = { useBackend:false, resultId:'', token:'' };
+    function setLoading(btn, on, txt){ if(on){ btn.dataset.prev=btn.textContent; btn.textContent=txt; btn.disabled=true; } else { btn.textContent=btn.dataset.prev||btn.textContent; btn.disabled=false; } }
+    function getPersonaName(card){ return (card.querySelector('.meta b')?.textContent||card.dataset.id); }
+
+    // Load personas from backend when analysis is selected
+    async function loadPersonasFromBackend(resultId){
+      if(!resultId) return;
+      const cardsContainer = document.getElementById('cards');
+      cardsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af">Loading personas...</div>';
+      try{
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/results`, {
+          headers:{'Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')}
+        });
+        const data = await r.json();
+        const analysis = (data.items||[]).find(i => i.result_id == resultId);
+        if(!analysis || !analysis.personas || analysis.personas.length === 0){
+          cardsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af">No personas found for this analysis</div>';
+          return;
+        }
+        // Build persona cards
+        const palette=['#7c3aed','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6'];
+        cardsContainer.innerHTML = analysis.personas.map((p, idx) => {
+          const personaId = p.id || String(idx);
+          const personaName = p.name || `Persona ${idx}`;
+          const personaTitle = p.title || 'No title';
+          const col = palette[idx % palette.length];
+          return `
+            <div class="card" data-id="${personaId}">
+              <div class="head">
+                <img class="avatar" alt="avatar" src="https://placehold.co/72x72?text=?" style="border-color:${col};box-shadow:0 0 0 2px ${col}55" />
+                <div class="meta"><b>${personaName}</b><span>${personaTitle}</span></div>
+              </div>
+              <div class="actions">
+                <button data-action="avatar">Regenerate avatar</button>
+                <button data-action="profile" class="secondary">Berlin profile</button>
+                <button data-action="quote" class="secondary">Extract quote</button>
+              </div>
+              <div class="berlin-info" style="display:none;margin-top:12px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:13px"></div>
+              <div class="bubble">"${personaName} persona quote will appear here."</div>
+            </div>
+          `;
+        }).join('');
+      }catch(e){
+        cardsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444">Error loading personas: '+e.message+'</div>';
+      }
+    }
+
+    async function genAvatar(card, btn){
+      setLoading(btn,true,'Generating avatar…');
+      const img=card.querySelector('.avatar');
+      let ok=false;
+      if(cfg.useBackend && cfg.resultId){
+        try{
+          const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/avatar`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
+            body: JSON.stringify({ style_pack:{ name:getPersonaName(card), style_desc:'distinctive editorial color grade, rim light, depth, characterful' } })
+          });
+          if(r.ok){ const data = await r.json(); if(data.avatar_data_uri||data.avatar_url){ img.src = data.avatar_data_uri || data.avatar_url; ok=true; } }
+        }catch(_e){}
+      }
+      if(!ok){
+        await wait(900);
+        img.src='https://placehold.co/160x160?text=Avatar';
+      }
+      img.style.width='96px'; img.style.height='96px';
+      setLoading(btn,false); btn.textContent='Regenerate avatar';
+    }
+
+    // Helpers for progress UI
+    const PALETTE=['#7c3aed','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6'];
+    function accentColors(card){ const i=[...card.dataset.id].reduce((a,ch)=>a+ch.charCodeAt(0),0)%PALETTE.length; return [PALETTE[i], PALETTE[(i+2)%PALETTE.length]]; }
+    function getProgressEl(card){ let p=card.querySelector('.progress'); if(!p){ p=document.createElement('div'); p.className='progress'; p.innerHTML='<div class="bar"></div>'; card.appendChild(p);} return p; }
+    function setProgress(p, pct, c1, c2){ p.classList.add('show'); const bar=p.querySelector('.bar'); bar.style.width=`${Math.max(0,Math.min(100, pct))}%`; bar.style.background=`linear-gradient(90deg, ${c1}, ${c2})`; }
+
+    async function genVideo(card, btn){
+      const box=card.querySelector('.video');
+      const [c1,c2]=accentColors(card);
+      const p=getProgressEl(card);
+      setLoading(btn,true,'Submitting…');
+      let url=null;
+      if(cfg.useBackend && cfg.resultId){
+        try{
+          const submit = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/intro-video/jobs`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
+            body: JSON.stringify({ style_pack:{ name:getPersonaName(card), scene_desc:'8s opener, tasteful parallax, corporate ambient' } })
+          });
+          if(submit.ok){ const s=await submit.json(); const job=s.job_id; let tries=0; let done=false; while(!done && tries<120){ tries++; await wait(3000); const st=await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/intro-video/jobs/${encodeURIComponent(job)}`,{ headers:{'Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')} }); if(!st.ok) continue; const d=await st.json(); const pct = Math.floor(d.progress||0); setLoading(btn,true,`Generating (${pct}%)…`); setProgress(p,pct,c1,c2); if(d.status==='succeeded'){ url=d.intro_video_url; done=true; } if(d.status==='failed'){ done=true; }
+          }
+        }
+        }catch(_e){}
+      }
+      if(!url){ url='https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'; }
+      p.classList.remove('show');
+      box.dataset.url = url; box.classList.add('ready');
+      setLoading(btn,false); btn.textContent='Regenerate video';
+    }
+
+    async function genDialogue(card, btn){
+      const b=card.querySelector('.bubble');
+      if(!(cfg.useBackend && cfg.resultId)) { b.classList.toggle('show'); return; }
+      try{
+        setLoading(btn,true,'Simulating…');
+        const r = await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/${encodeURIComponent(cfg.resultId)}/${encodeURIComponent(card.dataset.id)}/dialogue`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+(cfg.token||'dev_test_token_testuser123')},
+          body: JSON.stringify({})
+        });
+        if(r.ok){ const data=await r.json(); if(data.video_dialogue){ b.textContent='“'+data.video_dialogue+'”'; } }
+        b.classList.toggle('show');
+      }catch(_e){ b.classList.toggle('show'); }
+      finally{ setLoading(btn,false); }
+    }
+
+    document.getElementById('cards').addEventListener('click', async (e)=>{
+      const videoBox = e.target.closest('.video.ready');
+      if(videoBox){ const u=videoBox.dataset.url; if(u) window.open(u,'_blank'); return; }
+      const btn=e.target.closest('button');
+      const card=e.target.closest('.card');
+      if(!btn || !card) return; const act=btn.dataset.action;
+      if(act==='avatar') await genAvatar(card,btn);
+      if(act==='video') await genVideo(card,btn);
+      if(act==='dialogue') await genDialogue(card,btn);
+    });
+
+    document.getElementById('gen-all-avatars').addEventListener('click', async ()=>{
+      for(const btn of document.querySelectorAll('[data-action="avatar"]')){ const card=btn.closest('.card'); await genAvatar(card,btn); }
+    });
+    document.getElementById('gen-all-videos').addEventListener('click', async ()=>{
+      for(const btn of document.querySelectorAll('[data-action="video"]')){ const card=btn.closest('.card'); await genVideo(card,btn); }
+    });
+
+    window.addEventListener('DOMContentLoaded',()=>{
+      const use=document.getElementById('useBackend'); const sel=document.getElementById('resultSelect'); const tok=document.getElementById('token'); const srv=document.getElementById('server');
+      const apply=()=>{
+        cfg.useBackend=!!use?.checked;
+        cfg.resultId=(sel?.value||'').trim();
+        cfg.token=(tok?.value||'').trim();
+        cfg.baseUrl=(srv?.value||'http://localhost:8000').trim().replace(/\/+$/,'');
+        // Load personas when analysis is selected and backend is enabled
+        if(cfg.useBackend && cfg.resultId){
+          loadPersonasFromBackend(cfg.resultId);
+        }
+      };
+      [use,tok,srv].forEach(el=> el && el.addEventListener('input', apply));
+      if(sel){ sel.addEventListener('change', apply); }
+      async function loadResultsChoices(){ if(!sel) return; sel.innerHTML='<option value="">Loading…</option>'; try{ const r=await fetch(`${(cfg.baseUrl||'http://localhost:8000').replace(/\/+$/,'')}/api/personas/results`,{ headers:{'Authorization':'Bearer '+(tok?.value||'dev_test_token_testuser123')} }); const data=await r.json(); const items=data.items||[]; if(items.length===0){ sel.innerHTML='<option value="">No analyses found</option>'; } else { sel.innerHTML='<option value="">Select analysis/persona pack…</option>'+ items.map(i=>`<option value="${i.result_id}">${(i.label||('Result '+i.result_id))}</option>`).join(''); } }catch(e){ sel.innerHTML='<option value="">Error loading analyses</option>'; } }
+      const refresh=document.getElementById('refreshResults'); if(refresh){ refresh.addEventListener('click', ()=> loadResultsChoices()); }
+      // Unique accent per persona (deterministic but distinct)
+      const palette=['#7c3aed','#06b6d4','#22c55e','#f59e0b','#ef4444','#a855f7','#14b8a6'];
+      document.querySelectorAll('.card').forEach(c=>{ const i=[...c.dataset.id].reduce((a,ch)=>a+ch.charCodeAt(0),0); const col=palette[i%palette.length]; const av=c.querySelector('.avatar'); if(av){ av.style.borderColor=col; av.style.boxShadow=`0 0 0 2px ${col}55`; }});
+      loadResultsChoices(); apply();
+    });
+  </script>
+</body>
+</html>
+
