@@ -19,6 +19,34 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     apple: '/favicon.ico',
   },
+  openGraph: {
+    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
+    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    url: 'https://axwise.de',
+    siteName: 'AxWise Flow',
+    images: [
+      {
+        url: 'https://axwise.de/og_preview.png',
+        width: 1200,
+        height: 630,
+        alt: 'AxWise Flow — Real-World Digital Twin Chats',
+      }
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
+    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    images: ['https://axwise.de/og_preview.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
+    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    images: ['https://axwise.de/orqaly-axwise/assets/simple_mode_home.png'],
+  },
 };
 
 export const viewport = {
