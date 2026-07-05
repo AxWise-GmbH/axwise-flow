@@ -17,6 +17,107 @@ import {
   Check
 } from 'lucide-react';
 
+function HighlightPython({ code }: { code: string }) {
+  const lines = code.split('\n');
+  return (
+    <code className="block font-mono text-xs text-stone-800 whitespace-pre-wrap break-all break-words leading-relaxed">
+      {lines.map((line, lineIdx) => {
+        if (line.trim().startsWith('#') || line.trim().startsWith('//')) {
+          return (
+            <div key={lineIdx} className="text-stone-400 font-mono italic">
+              {line}
+            </div>
+          );
+        }
+
+        const tokens = line.split(/(".*?"|'.*?'|\b(?:import|as|from|def|class|return|requests|print|json)\b)/g);
+        return (
+          <div key={lineIdx} className="font-mono">
+            {tokens.map((token, tokenIdx) => {
+              if (token.startsWith('"') || token.startsWith("'")) {
+                return (
+                  <span key={tokenIdx} className="text-emerald-600 font-medium whitespace-pre-wrap break-all">
+                    {token}
+                  </span>
+                );
+              }
+              if (['import', 'as', 'from', 'def', 'class', 'return'].includes(token)) {
+                return (
+                  <span key={tokenIdx} className="text-stone-900 font-bold">
+                    {token}
+                  </span>
+                );
+              }
+              if (['requests', 'print', 'json'].includes(token)) {
+                return (
+                  <span key={tokenIdx} className="text-indigo-600 font-semibold">
+                    {token}
+                  </span>
+                );
+              }
+              return <span key={tokenIdx} className="whitespace-pre-wrap break-all">{token}</span>;
+            })}
+          </div>
+        );
+      })}
+    </code>
+  );
+}
+
+function HighlightJSON({ code }: { code: string }) {
+  const lines = code.split('\n');
+  return (
+    <code className="block font-mono text-xs text-stone-300 whitespace-pre-wrap break-all break-words leading-relaxed">
+      {lines.map((line, lineIdx) => {
+        const tokens = line.split(/(".*?"(?=\s*:)|\".*?\"|\b(?:true|false|null)\b|\b\d+(?:\.\d+)?\b)/g);
+        return (
+          <div key={lineIdx} className="font-mono">
+            {tokens.map((token, tokenIdx) => {
+              if (token.startsWith('"') && token.endsWith('"')) {
+                const isKey = token.includes('"') && !line.includes('//') && line.split(token)[1]?.trim().startsWith(':');
+                if (isKey) {
+                  return (
+                    <span key={tokenIdx} className="text-[#34D399] font-medium whitespace-pre-wrap break-all">
+                      {token}
+                    </span>
+                  );
+                }
+                return (
+                  <span key={tokenIdx} className="text-stone-300 whitespace-pre-wrap break-all">
+                    {token}
+                  </span>
+                );
+              }
+              if (['true', 'false'].includes(token)) {
+                return (
+                  <span key={tokenIdx} className="text-amber-400 font-semibold">
+                    {token}
+                  </span>
+                );
+              }
+              if (token === 'null') {
+                return (
+                  <span key={tokenIdx} className="text-stone-500 font-semibold">
+                    {token}
+                  </span>
+                );
+              }
+              if (/^\d+(?:\.\d+)?$/.test(token)) {
+                return (
+                  <span key={tokenIdx} className="text-blue-400">
+                    {token}
+                  </span>
+                );
+              }
+              return <span key={tokenIdx} className="whitespace-pre-wrap break-all">{token}</span>;
+            })}
+          </div>
+        );
+      })}
+    </code>
+  );
+}
+
 export default function DocsPage(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-[#FCFAF7] text-[#1C1917] font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900">
@@ -139,8 +240,8 @@ export default function DocsPage(): React.JSX.Element {
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
-                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
-{`import requests
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`import requests
 
 url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate-enhanced"
 headers = {"Authorization": "Bearer <YOUR_KEY>"}
@@ -163,14 +264,14 @@ payload = {
     },
     "config": {"depth": "detailed", "personas_per_stakeholder": 1}
 }
-response = requests.post(url, headers=headers, json=payload)`}
-                </pre>
+response = requests.post(url, headers=headers, json=payload)`} />
+                </div>
               </div>
 
-              <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON - Synchronous Flagship]</span>
-                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
-{`{
+                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
+                  <HighlightJSON code={`{
   "simulation_id": "sim-session-123",
   "empirical_personas": [
     {
@@ -190,8 +291,8 @@ response = requests.post(url, headers=headers, json=payload)`}
       }
     }
   ]
-}`}
-                </pre>
+}`} />
+                </div>
               </div>
             </div>
           </section>
@@ -210,21 +311,21 @@ response = requests.post(url, headers=headers, json=payload)`}
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python status polling script</span>
-                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
-{`import requests
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`import requests
 
 # Poll the simulation progress endpoint
 url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate/sim-123/progress"
 headers = {"Authorization": "Bearer <YOUR_KEY>"}
 response = requests.get(url, headers=headers)
-print(response.json())`}
-                </pre>
+print(response.json())`} />
+                </div>
               </div>
 
-              <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Progress payload [JSON]</span>
-                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
-{`{
+                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
+                  <HighlightJSON code={`{
   "simulation_id": "sim-123",
   "stage": "simulating_interviews",
   "progress_percentage": 50,
@@ -234,8 +335,8 @@ print(response.json())`}
   "total_personas": 1,
   "completed_interviews": 1,
   "total_interviews": 1
-}`}
-                </pre>
+}`} />
+                </div>
               </div>
             </div>
           </section>
@@ -254,8 +355,8 @@ print(response.json())`}
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python execute query script</span>
-                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
-{`import requests
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`import requests
 
 url = "https://api.axwise.de/api/orqaly-axwise/v1/twins/cfo_veronika/execute"
 headers = {"Authorization": "Bearer <YOUR_KEY>"}
@@ -264,14 +365,14 @@ payload = {
     "sender_role": "CEO",
     "message": "I need the latest Q2 board projections."
 }
-response = requests.post(url, headers=headers, json=payload)`}
-                </pre>
+response = requests.post(url, headers=headers, json=payload)`} />
+                </div>
               </div>
 
-              <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-3">
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Grounded Response [JSON]</span>
-                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
-{`{
+                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
+                  <HighlightJSON code={`{
   "success": true,
   "twin_id": "cfo_veronika_horvat",
   "execution_status": "approved",
@@ -286,8 +387,8 @@ response = requests.post(url, headers=headers, json=payload)`}
     "execution_cost_usd": 0.045,
     "time_taken_ms": 1180
   }
-}`}
-                </pre>
+}`} />
+                </div>
               </div>
             </div>
           </section>
