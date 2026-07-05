@@ -66,22 +66,37 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # First check if this token is a registered user's personal API Key (multi-tenant B2B consumption)
+    try:
+        user_by_key = db.query(User).filter(User.axwise_api_key == token).first()
+        if user_by_key:
+            logger.info(f"🔑 Access authorized via Personal API Key for user_id: {user_by_key.user_id}")
+            return user_by_key
+    except Exception as e:
+        logger.warning(f"Database error checking personal API key: {str(e)}")
+
     # In production with Clerk enabled, strictly validate the token
     if ENABLE_CLERK_VALIDATION:
-        logger.info("Verifying token with ClerkService...")
-        clerk_service = ClerkService()
-        is_valid, token_data = clerk_service.validate_token(token)
+        # Fallback to static global api key (for Orqaly default platform stub)
+        static_api_key = os.getenv("ORQALY_API_KEY")
+        if static_api_key and token == static_api_key:
+            user_id = "orqaly_integration_user"
+            logger.info("Access authorized via static Orqaly Integration API Key")
+        else:
+            logger.info("Verifying token with ClerkService...")
+            clerk_service = ClerkService()
+            is_valid, token_data = clerk_service.validate_token(token)
 
-        if not is_valid or not token_data or "sub" not in token_data:
-            logger.error("Authentication failed: Invalid Clerk token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired authentication token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            if not is_valid or not token_data or "sub" not in token_data:
+                logger.error("Authentication failed: Invalid Clerk token")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired authentication token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
 
-        user_id = token_data["sub"]
-        logger.info(f"Clerk verification successful. User ID: {user_id}")
+            user_id = token_data["sub"]
+            logger.info(f"Clerk verification successful. User ID: {user_id}")
     else:
         # Development mode logic
         if token.startswith(DEV_TOKEN_PREFIX):

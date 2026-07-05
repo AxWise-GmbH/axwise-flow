@@ -82,7 +82,12 @@ async def debug_request(request: Request):
         return {"success": False, "error": str(e)}
 
 
-@router.post("/simulate", response_model=SimulationResponse)
+@router.post(
+    "/simulate",
+    response_model=SimulationResponse,
+    summary="Pipeline B: Synchronous Top-Down Interview Simulation",
+    description="Synchronously executes Top-Down Simulation (Pipeline B). Generates OCEAN-grounded digital twins from a product brief, conducts automated interviews, aggregates themes, and returns raw transcripts."
+)
 async def create_simulation(
     request: SimulationRequest,
     background_tasks: BackgroundTasks,
@@ -157,7 +162,11 @@ async def create_simulation(
         raise HTTPException(status_code=500, detail=f"Simulation failed: {str(e)}")
 
 
-@router.post("/simulate-async")
+@router.post(
+    "/simulate-async",
+    summary="Pipeline B: Asynchronous Top-Down Simulation with Webhook Callback Support",
+    description="Asynchronously queues a Top-Down Simulation (Pipeline B). If callback_url is included in SimulationRequest, it will continually fire POST updates as the simulation runs, allowing Orqaly Agentic OS to trace progress."
+)
 async def simulate_async(
     request: SimulationRequest,
     background_tasks: BackgroundTasks,
@@ -238,19 +247,22 @@ async def simulate_async(
         )
 
 
-@router.post("/simulate-enhanced")
+@router.post(
+    "/simulate-enhanced",
+    summary="Pipeline A+B Closed-Loop: Synchronous Hybrid Persona Simulation Engine",
+    description="The flagship Closed-Loop Hybrid (Pipeline A + Pipeline B) cognitive endpoint. Runs top-down interviews on OCEAN twins, segments the output, links character-level quotes to raw source segments using RapidFuzz, and yields audited, structured, and non-hallucinated customer/employee personas."
+)
 async def simulate_interviews_enhanced(
     request: SimulationRequest,
     user: User = Depends(get_current_user),
 ) -> SimulationResponse:
     """
-    Enhanced simulation endpoint with database persistence and parallel processing.
-
-    This endpoint provides:
-    1. Database persistence for simulation results
-    2. Parallel interview processing for better performance
-    3. Enhanced error handling and recovery
-    4. Progress tracking with detailed metrics
+    Flagship Closed-Loop Hybrid cognitive endpoint that fuses Pipeline B and Pipeline A together.
+    
+    1. Generates top-down, psychologically-grounded user personas from the business brief.
+    2. Conducts multi-turn conversational interviews in parallel.
+    3. Traces and segments dialogue structures.
+    4. Applies Pipeline A's empirical facade to build fully validated, audited, and character-verifiable workspace personas.
     """
     endpoint = "/api/research/simulation-bridge/simulate-enhanced"
     start = request_start(endpoint, user_id=user.user_id)

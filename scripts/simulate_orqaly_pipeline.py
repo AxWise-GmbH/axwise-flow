@@ -54,7 +54,7 @@ async def extract_business_and_stakeholders(project_idea: str) -> Dict[str, Any]
     prompt = f"""
 We want to analyze the following business idea:
 ---
-{project_idea_text}
+{project_idea}
 ---
 
 Identify and extract:
@@ -103,6 +103,53 @@ Return your response strictly as a JSON object with this exact structure:
         logger.error(f"Failed to parse structured JSON: {e}")
         logger.error(f"Raw response: {response.text}")
         raise
+
+
+async def generate_landing_page_concept(business_context: BusinessContext, customers: List[Any]) -> str:
+    """Uses Gemini 3.5 Flash to automatically generate a tailored, high-converting Landing Page concept and copy structure based on target customer personas."""
+    logger.info("Generating landing page concept and copywriting structure tailored to the generated customer personas...")
+    api_key = _get_api_key()
+    client = genai.Client(api_key=api_key)
+
+    personas_summary = ""
+    for idx, p in enumerate(customers):
+        personas_summary += f"\nPersona {idx+1}: {p.name} ({p.stakeholder_type})\n"
+        personas_summary += f"- Background: {p.background}\n"
+        personas_summary += f"- Motivations: {', '.join(p.motivations)}\n"
+        personas_summary += f"- Pain Points: {', '.join(p.pain_points)}\n"
+
+    prompt = f"""
+We have the following business context:
+- Business Idea: {business_context.business_idea}
+- Problem: {business_context.problem}
+- Target Customers: {business_context.target_customer}
+- Location: {business_context.location}
+
+And the following target customer personas:
+{personas_summary}
+
+Please generate a high-converting, psychologically-optimized Landing Page Concept & Copywriting Strategy for this car service campaign in Bremen.
+Structure your output beautifully in Markdown, including:
+1. **Targeting Strategy**: How the page speaks directly to both the busy private commuters (like Lukas Becker) and the methodical SME fleet operations managers (like Jens Osterkamp).
+2. **Hero Section (Above the Fold)**:
+   - Catchy, high-impact headline (incorporate the Bremen context & Autumn transition).
+   - Benefit-driven sub-headline.
+   - Primary Call-to-Action (CTA) button copy (geared towards the automated booking twin/conversational booking widget).
+3. **Double-Sided Value Proposition Layout (The "Choose Your Path" Section)**:
+   - **Path A: Individual Commuters** (Visual cue, copywriting headline, bullet points solving their exact pain points like tire reservations, zero waiting times, automated text notifications).
+   - **Path B: SME Fleet Managers** (Visual cue, copywriting headline, bullet points highlighting bulk capacity reservation, direct calendar sync/API logs, and zero double-booking SLAs).
+4. **Interactive Conversational Booking Twin Widget Preview**:
+   - Describe how the widget looks and a short simulated dialogue (e.g., user booking winter-tire service via WhatsApp/Webchat, and the digital twin of the workshop capacity instantly verifying and booking).
+5. **Trust, Social Proof, and Urgency Signals (Bremen-localized)**:
+   - Seasonal urgency headline (first frost warnings).
+   - Local trust signals (e.g., "Certified Master Mechanics of Bremen Neustadt", "Serving Weser area fleets since 2015").
+"""
+
+    response = client.models.generate_content(
+        model="gemini-3.5-flash",
+        contents=prompt
+    )
+    return response.text
 
 
 project_idea_text = """
@@ -261,6 +308,11 @@ async def main():
                 report.append(f"  - **Neuroticism**: `{ocean.neuroticism:.2f}`")
                 report.append(f"  - **Occupation Mapped Code**: `{ocean.occupation_code}`")
             report.append("\n---")
+            
+    # Generate high-converting landing page strategy
+    landing_page_concept = await generate_landing_page_concept(business_context, customers)
+    report.append("\n## III. High-Converting Landing Page Strategy (Generated)")
+    report.append(landing_page_concept)
             
     with open(output_path, "w", encoding="utf-8") as out:
         out.write("\n".join(report))

@@ -331,8 +331,10 @@ app.include_router(simulation_bridge_router)
 
 # Include analysis routes (core data/analyze/results endpoints)
 from backend.api.routes.analysis import router as analysis_router
+from backend.api.routes.orqaly_integration import router as orqaly_integration_router
 
 app.include_router(analysis_router)
+app.include_router(orqaly_integration_router)
 
 # Initialize database tables (optional for conversation routines)
 try:

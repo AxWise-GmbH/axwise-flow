@@ -91,9 +91,10 @@ AxWise Flow is built for production-grade design thinking, synthetic data genera
 FastAPI registers a clean OpenAPI routing table at `/docs`. The key endpoints are:
 
 ### Pipeline Ingestion
-* `POST /api/analysis/analyze-text`: Analyzes a raw, unstructured transcript string using Pipeline A.
-* `POST /api/research/simulation-bridge/simulate`: Executes a Pipeline B simulation (Generates OCEAN agents, conducts interviews, and returns transcripts).
-* `POST /api/research/simulation-bridge/simulate-enhanced`: **The closed-loop hybrid endpoint.** Runs the complete simulation, adapts dialogue turns into segments, maps them, and runs V2 Facade analysis to output trace-linked, audited personas in a single call.
+* `POST /api/analysis/analyze-text`: **Pipeline A (Bottom-Up Empirical)**. Analyzes a raw, unstructured transcript string, mapping exact verbatim quotes back to character index ranges.
+* `POST /api/research/simulation-bridge/simulate`: **Pipeline B (Top-Down Simulation)**. Synchronously executes a Top-Down interview simulation (Generates OCEAN agents, conducts interviews, and returns transcripts).
+* `POST /api/research/simulation-bridge/simulate-async`: **Pipeline B (Asynchronous with Webhook Callback Support)**. Asynchronously executes a Top-Down simulation. Accepts an optional `callback_url` parameter inside `SimulationRequest` to stream real-time progress events and final results back to Orqaly's Agentic OS.
+* `POST /api/research/simulation-bridge/simulate-enhanced`: **The Closed-Loop Hybrid (A+B) pass**. Executes top-down simulated interviews on OCEAN twins, segments the dialogue output, links quotes back to raw source segments using RapidFuzz, and yields audited, structured, and non-hallucinated customer/employee personas in a single pass. Supports the `callback_url` webhook parameter for real-time progress tracking.
 
 ### Simulation Orchestration
 * `GET  /api/research/simulation-bridge/simulate/{id}/progress`: Polls active simulation background progress.
@@ -146,6 +147,54 @@ Submit a raw, unstructured interview transcript. The engine identifies speakers,
     "confidence": 1.0,
     "evidence": []
   }
+}
+```
+
+---
+
+#### Inbound Request (`POST /api/research/simulation-bridge/simulate-async`)
+```json
+{
+  "business_context": {
+    "business_idea": "Collaborative, real-time visual shelf allocation software synced directly to SAP.",
+    "target_customer": "Regional supermarket chains",
+    "problem": "Manual spreadsheet reconciliation takes 5 hours per layout change, leading to food waste.",
+    "industry": "Logistics & Supply Chain",
+    "location": "Berlin, Germany"
+  },
+  "questions_data": {
+    "stakeholders": {
+      "primary": [
+        {
+          "id": "grocery_ops_manager",
+          "name": "Regional Grocery Operations Manager",
+          "description": "Operations leader balancing physical shelf capacity with regional bio-customer demands.",
+          "questions": ["What is your biggest bottleneck with current tools?"]
+        }
+      ]
+    }
+  },
+  "config": {
+    "depth": "detailed",
+    "people_per_stakeholder": 1
+  },
+  "callback_url": "https://api.orqaly.com/v1/webhooks/axwise-simulation"
+}
+```
+
+#### Webhook Update Event Sent to `callback_url` (Sample Payload)
+```json
+{
+  "simulation_id": "ffd6d9cb-d518-4b12-9cfa-cc1940c0c87c",
+  "status": "in_progress",
+  "stage": "simulating_interviews",
+  "progress_percentage": 50,
+  "current_task": "Conducting simulated interviews",
+  "estimated_time_remaining": 3,
+  "completed_people": 1,
+  "total_people": 1,
+  "completed_interviews": 1,
+  "total_interviews": 1
 }
 ```
 
