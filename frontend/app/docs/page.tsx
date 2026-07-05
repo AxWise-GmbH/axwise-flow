@@ -150,7 +150,7 @@ export default function DocsPage(): React.JSX.Element {
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/Flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -203,25 +203,23 @@ export default function DocsPage(): React.JSX.Element {
           <section id="installation" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
               <h2 className="font-serif text-3xl text-stone-900">1. Setup &amp; Docker Install</h2>
-              <p className="text-sm text-stone-500 mt-1">Spin up the headless FastAPI server locally or with our 1-click Docker setup.</p>
+              <p className="text-sm text-stone-500 mt-1">Spin up the headless FastAPI server locally or build with Docker instantly.</p>
             </div>
 
             <p className="text-stone-700 text-sm leading-relaxed">
-              AxWise Flow is built as a highly structured, self-contained Python package. Run the pip installation 
-              command to configure local SQLite/Postgres pgvector grounding databases, or use the 1-click Docker 
-              setup to deploy instantly:
+              AxWise Flow is built as a highly structured, decoupled Python package. Clone the open-source repository directly to configure local SQLite/Postgres pgvector grounding databases, or build the Docker image locally to run:
             </p>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
-                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Pip Install</div>
+                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Clone &amp; Run Local Server</div>
                 <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">pip install axwise-flow-oss &amp;&amp; python -m axwise.server</span>
+                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git &amp;&amp; cd axwise-flow-oss &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
               </div>
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
-                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Docker 1-Click Setup</div>
+                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Build &amp; Run Local Docker Container</div>
                 <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">docker run -d -p 8000:8000 axwise/flow-oss:latest</span>
+                <span className="text-stone-200">docker build -t axwise-flow -f backend/Dockerfile.production . &amp;&amp; docker run -p 8000:8000 axwise-flow</span>
               </div>
             </div>
           </section>
