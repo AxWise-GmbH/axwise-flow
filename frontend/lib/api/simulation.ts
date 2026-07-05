@@ -1,0 +1,365 @@
+/**
+ * API client for the Simulation Bridge system.
+ */
+
+// Use relative URLs to go through frontend API proxy routes (which handle authentication)
+const API_BASE_URL = "";
+
+export interface SimulationConfig {
+  depth: "quick" | "detailed" | "comprehensive";
+  people_per_stakeholder: number;  // Changed from personas_per_stakeholder
+  response_style: "realistic" | "optimistic" | "critical" | "mixed";
+  include_insights: boolean;
+  temperature: number;
+
+  // Keep old field for backward compatibility during transition
+  personas_per_stakeholder?: number;
+}
+
+export interface BusinessContext {
+  business_idea: string;
+  target_customer: string;
+  problem: string;
+  industry?: string;
+  location?: string;
+}
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  description: string;
+  questions: string[];
+}
+
+export interface QuestionsData {
+  stakeholders: {
+    primary?: Stakeholder[];
+    secondary?: Stakeholder[];
+  };
+  timeEstimate?: {
+    totalQuestions: number;
+    estimatedMinutes?: string;
+    breakdown?: {
+      baseTime?: number;
+      withBuffer?: number;
+      perQuestion: number;
+      primary?: number;
+      secondary?: number;
+    };
+  };
+}
+
+export interface OCEANProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  occupation_code?: string;
+}
+
+export interface SimulatedPerson {
+  id: string;
+  name: string;
+  age: number;
+  background: string;
+  motivations: string[];
+  pain_points: string[];
+  communication_style: string;
+  stakeholder_type: string;
+  demographic_details: Record<string, any>;
+  grounding_company?: string;
+  grounding_sources?: string[];
+  ocean_profile?: OCEANProfile;
+  cognitive_grounding?: Record<string, any>;
+  tool_profile?: Record<string, any>;
+}
+
+export interface PersonaTrait {
+  name: string;
+  description: string;
+  evidence: string[];  // Quotes or examples from interviews
+  confidence: number;  // 0.0 to 1.0
+}
+
+export interface PersonaPattern {
+  id: string;
+  name: string;  // e.g., "Cost-Conscious Manager"
+  description: string;
+  stakeholder_type: string;
+  traits: PersonaTrait[];
+  key_quotes: string[];
+  people_ids: string[];  // IDs of people who exhibit this pattern
+  confidence: number;    // 0.0 to 1.0
+  frequency: number;     // 0.0 to 1.0 - how common this pattern is
+}
+
+// Keep AIPersona as alias for backward compatibility during transition
+export type AIPersona = SimulatedPerson;
+
+export interface InterviewResponse {
+  question: string;
+  response: string;
+  sentiment: string;
+  key_insights: string[];
+  follow_up_questions?: string[];
+}
+
+export interface SimulatedInterview {
+  person_id: string;  // Changed from persona_id
+  stakeholder_type: string;
+  responses: InterviewResponse[];
+  interview_duration_minutes: number;
+  overall_sentiment: string;
+  key_themes: string[];
+
+  // Keep old field for backward compatibility during transition
+  persona_id?: string;
+}
+
+export interface SimulationInsights {
+  overall_sentiment: string;
+  key_themes: string[];
+  stakeholder_priorities: Record<string, string[]>;
+  potential_risks: string[];
+  opportunities: string[];
+  recommendations: string[];
+}
+
+export interface PersonaAnalysisResult {
+  persona_patterns: PersonaPattern[];
+  analysis_summary: string;
+  confidence_score: number;  // 0.0 to 1.0
+  people_analyzed: number;
+  patterns_discovered: number;
+}
+
+export interface SimulationResponse {
+  success: boolean;
+  message: string;
+  simulation_id?: string;
+  data?: Record<string, any>;
+  metadata?: Record<string, any>;
+  people?: SimulatedPerson[];  // Changed from personas
+  interviews?: SimulatedInterview[];
+  persona_patterns?: PersonaPattern[];  // New field for actual personas
+  persona_analysis?: PersonaAnalysisResult;  // Analysis results
+  simulation_insights?: SimulationInsights;
+  recommendations?: string[];
+
+  // Keep old field for backward compatibility during transition
+  personas?: SimulatedPerson[];
+}
+
+export interface SimulationProgress {
+  simulation_id: string;
+  stage: string;  // "generating_people", "conducting_interviews", "analyzing_patterns"
+  progress_percentage: number;
+  current_task: string;
+  estimated_time_remaining?: number;
+  completed_people: number;  // Changed from completed_personas
+  total_people: number;      // Changed from total_personas
+  completed_interviews: number;
+  total_interviews: number;
+  completed_patterns: number;  // New field for persona pattern analysis
+  total_patterns: number;      // New field for persona pattern analysis
+
+  // Keep old fields for backward compatibility during transition
+  completed_personas?: number;
+  total_personas?: number;
+}
+
+export async function createSimulation(
+  questionsDataOrRaw: QuestionsData | { raw_questionnaire_content: string },
+  businessContext: BusinessContext,
+  config: SimulationConfig
+): Promise<SimulationResponse> {
+
+  let requestData: any;
+
+  // Check if we're sending raw content or structured data
+  if ('raw_questionnaire_content' in questionsDataOrRaw) {
+    // Send raw questionnaire content for PydanticAI parsing
+    requestData = {
+      raw_questionnaire_content: questionsDataOrRaw.raw_questionnaire_content,
+      config: config,
+    };
+  } else {
+    // Transform structured frontend format to backend format
+    const backendQuestionsData = {
+      stakeholders: {
+        primary: questionsDataOrRaw.stakeholders.primary || [],
+        secondary: questionsDataOrRaw.stakeholders.secondary || []
+      },
+      timeEstimate: questionsDataOrRaw.timeEstimate
+    };
+
+    requestData = {
+      questions_data: backendQuestionsData,
+      business_context: businessContext,
+      config: config,
+    };
+  }
+
+  console.log('🔄 Sending to backend:', requestData);
+
+  const response = await fetch(
+    `/api/research/simulation-bridge/simulate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    }
+  );
+
+  if (!response.ok) {
+    let errorData: any = {};
+    try {
+      errorData = await response.json();
+    } catch (parseError) {
+      console.warn('Could not parse error response as JSON:', parseError);
+    }
+
+    console.error('❌ Simulation API Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorData: errorData,
+      requestData: requestData
+    });
+
+    // Create a detailed error message
+    let errorMessage = `Simulation failed (${response.status})`;
+    if (errorData.detail) {
+      errorMessage = errorData.detail;
+    } else if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (response.status === 422) {
+      errorMessage = `Validation error: ${response.statusText}. Check the questionnaire data format.`;
+    } else {
+      errorMessage = `${errorMessage}: ${response.statusText}`;
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+export async function getSimulationProgress(
+  simulationId: string
+): Promise<SimulationProgress> {
+  const response = await fetch(
+    `/api/research/simulation-bridge/simulate/${simulationId}/progress`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to get progress: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function cancelSimulation(simulationId: string): Promise<void> {
+  const response = await fetch(
+    `/api/research/simulation-bridge/simulate/${simulationId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Failed to cancel simulation: ${response.statusText}`);
+  }
+}
+
+export async function getDefaultConfig(): Promise<{
+  default_config: SimulationConfig;
+  available_options: Record<string, any>;
+}> {
+  const response = await fetch(
+    `/api/research/simulation-bridge/config/defaults`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to get default config: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function testPersonaGeneration(
+  businessContext: BusinessContext,
+  stakeholderInfo: Stakeholder,
+  config?: Partial<SimulationConfig>
+): Promise<{ success: boolean; personas: AIPersona[]; count: number }> {
+  const response = await fetch(
+    `/api/research/simulation-bridge/test-personas`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        business_context: businessContext,
+        stakeholder_info: stakeholderInfo,
+        config: config,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Persona test failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function testInterviewSimulation(
+  personaData: AIPersona,
+  stakeholderInfo: Stakeholder,
+  businessContext: BusinessContext,
+  config?: Partial<SimulationConfig>
+): Promise<{ success: boolean; interview: SimulatedInterview; response_count: number }> {
+  const response = await fetch(
+    `/api/research/simulation-bridge/test-interview`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        persona_data: personaData,
+        stakeholder_info: stakeholderInfo,
+        business_context: businessContext,
+        config: config,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Interview test failed: ${response.statusText}`);
+  }
+
+  return response.json();
+}

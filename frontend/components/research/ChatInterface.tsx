@@ -1,0 +1,1126 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Send, Bot, User, Download, Copy, ArrowLeft, RotateCcw } from 'lucide-react';
+import { ContextPanel } from './ContextPanel';
+import { NextStepsChatMessage } from './NextStepsChatMessage';
+
+import { ComprehensiveQuestionsComponent } from './ComprehensiveQuestionsComponent';
+
+import { EnhancedMultiStakeholderComponent } from './EnhancedMultiStakeholderComponent';
+import { StakeholderQuestionsComponent } from './StakeholderQuestionsComponent';
+
+// Client-side timestamp component to avoid hydration errors
+function ClientTimestamp({ timestamp }: { timestamp: Date }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null; // Return null instead of empty string to avoid hydration mismatch
+  }
+
+  return <span>{timestamp.toLocaleTimeString('en-GB')}</span>;
+}
+import { MultiStakeholderChatMessage } from './MultiStakeholderChatMessage';
+import { StakeholderAlert } from './StakeholderAlert';
+
+import { useUnifiedResearch } from '@/lib/context/unified-research-context';
+import { useChatMobileOptimization } from '@/hooks/useMobileViewport';
+import { usePathname } from 'next/navigation';
+
+// Import modular components
+import { ChatInterfaceProps } from './types';
+import {
+  useChatState,
+  useScrollManagement,
+  useChatClear,
+  useClipboard,
+  useLoadingTimer,
+  useSaveSession
+} from './chat-hooks';
+import {
+  handleSendMessage
+} from './chat-handlers';
+
+// Legacy conversion function removed - V3 Enhanced format only
+
+export function ChatInterface({ onComplete, onBack, loadSessionId }: ChatInterfaceProps) {
+  const { state: unifiedState, actions: unifiedActions } = useUnifiedResearch();
+
+  // Use modular hooks for state management
+  const { state, actions } = useChatState();
+
+  // Hide questions summary on unified dashboard research chat
+  const pathname = usePathname();
+  const hideQuestionsSummary = pathname?.startsWith('/unified-dashboard/research-chat');
+
+  // Ensure initial message is present when no session is loading
+  React.useEffect(() => {
+    if (!loadSessionId && state.messages.length === 0 && unifiedState.messages.length === 0) {
+      console.log('Initializing chat with welcome message');
+      const { createInitialMessage } = require('./chat-utils');
+      const initialMessage = createInitialMessage();
+      actions.setMessages([initialMessage]);
+      // Also sync to unified state
+      unifiedActions.setMessages([{
+        ...initialMessage,
+        timestamp: initialMessage.timestamp.toISOString()
+      }]);
+    }
+  }, [loadSessionId, state.messages.length, unifiedState.messages.length, actions, unifiedActions]);
+
+  // Prefetch rotating LLM suggestions on first load (turn 0)
+  useEffect(() => {
+    const shouldPrefetch = !loadSessionId && state.messages.length === 1 && state.currentSuggestions.length === 0 && !state.isLoading;
+    if (!shouldPrefetch) return;
+
+    const controller = new AbortController();
+    // Error suggestions that inform the user about the issue
+    const errorSuggestions = [
+      '⚠️ Backend service unavailable - check if the server is running',
+      '🔧 Check your API key configuration in .env file',
+      '📡 Verify network connection to localhost:8000'
+    ];
+
+    (async () => {
+      try {
+        const res = await fetch('/api/research/conversation-routines/suggestions?prefer_regions=UK,DACH,EU', { signal: controller.signal });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('[Suggestions] API error:', res.status, errorData?.message || res.statusText);
+          // Show error suggestions that inform the user
+          actions.setCurrentSuggestions(errorSuggestions);
+          return;
+        }
+        const data = await res.json();
+        if (Array.isArray(data?.suggestions) && data.suggestions.length > 0) {
+          actions.setCurrentSuggestions(data.suggestions.slice(0, 3));
+        } else if (data?.error || data?.message) {
+          // Backend returned error in response body
+          console.error('[Suggestions] Backend error:', data.message || data.error);
+          actions.setCurrentSuggestions(errorSuggestions);
+        } else {
+          // Empty suggestions from backend - this is unexpected
+          console.warn('[Suggestions] Backend returned empty suggestions');
+          actions.setCurrentSuggestions(['Type your business idea to get started...']);
+        }
+      } catch (e: any) {
+        const isAbort = e?.name === 'AbortError';
+        if (!isAbort) {
+          console.error('[Suggestions] Prefetch failed:', e?.message || e);
+          actions.setCurrentSuggestions(errorSuggestions);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [loadSessionId, state.messages.length, state.currentSuggestions.length, state.isLoading, actions]);
+
+  const { messagesEndRef } = useScrollManagement(state.messages);
+  const { copyMessage } = useClipboard();
+  const formattedElapsedTime = useLoadingTimer(state.isLoading);
+  const { saveSession } = useSaveSession(state, unifiedState.businessContext);
+
+  // Mobile optimization hooks
+  const { handleMessageSent, handleNewMessage, ensureInputVisible } = useChatMobileOptimization();
+
+  const { handleClearClick, clearChat: originalClearChat } = useChatClear(
+    state.messages,
+    actions.setMessages,
+    actions.setInput,
+    actions.setIsLoading,
+    actions.setConversationStarted,
+    actions.setCurrentSuggestions,
+    actions.setSessionId,
+    actions.setShowClearConfirm,
+    unifiedActions.updateBusinessContext
+  );
+
+  // Use original clear chat
+  const clearChat = originalClearChat;
+
+  // Simple continue to analysis function
+  const continueToAnalysis = () => {
+    window.location.href = '/unified-dashboard/research';
+  };
+
+  // Local state for questions to handle API responses directly
+  const currentQuestions = state.localQuestions || unifiedState.questionnaire;
+
+  // Derived context for the Research Progress panel (show all tracked fields)
+  const contextForPanel = React.useMemo(() => {
+    const session: any = unifiedState.currentSession;
+    const bc = unifiedState.businessContext;
+    const resolvedIndustry = (bc.industry && bc.industry !== 'general')
+      ? bc.industry
+      : (session?.industry && session.industry !== 'general')
+        ? session.industry
+        : bc.industry;
+    return {
+      ...bc,
+      questionsGenerated: unifiedState.questionnaire.generated,
+      stage: session?.stage,
+      location: session?.location,
+      industry: resolvedIndustry,
+      narrative: unifiedState.sidebarNarrative,
+    } as any;
+  }, [unifiedState.businessContext, unifiedState.questionnaire.generated, unifiedState.currentSession]);
+  // Capture the last full LLM prompt from assistant message metadata
+  const lastFullPrompt = React.useMemo(() => {
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const m = state.messages[i];
+      const fp = (m as any)?.metadata?.full_prompt || (m as any)?.metadata?.llm_prompt || (m as any)?.metadata?.fullPrompt;
+      if (typeof fp === 'string' && fp.trim()) return fp as string;
+    }
+    return undefined;
+  }, [state.messages]);
+
+
+
+  // Enhanced export function that uses comprehensive stakeholder questions
+  const exportComprehensiveQuestions = (format: 'txt' | 'json' | 'csv' = 'txt') => {
+    if (!currentQuestions) {
+      console.error('No questions available to export');
+      return;
+    }
+
+    // Find the latest message with comprehensive questions data
+    let comprehensiveData = null;
+    for (let i = state.messages.length - 1; i >= 0; i--) {
+      const message = state.messages[i];
+      if (message.metadata?.comprehensiveQuestions) {
+        comprehensiveData = message.metadata.comprehensiveQuestions;
+        break;
+      }
+    }
+
+    // Debug the actual data structure
+    console.log('🔍 [Export Debug] Found comprehensive data:', comprehensiveData);
+    console.log('🔍 [Export Debug] Primary stakeholders:', comprehensiveData?.primaryStakeholders?.length || 0);
+    console.log('🔍 [Export Debug] Secondary stakeholders:', comprehensiveData?.secondaryStakeholders?.length || 0);
+
+    try {
+      if (format === 'txt') {
+        // V3 Enhanced format only - comprehensive stakeholder structure required
+        if (!comprehensiveData || (!comprehensiveData.primaryStakeholders && !comprehensiveData.secondaryStakeholders)) {
+          throw new Error('Invalid questionnaire format - V3 Enhanced format required');
+        }
+
+        console.log('📋 Using V3 Enhanced stakeholder format');
+        const primaryStakeholders = comprehensiveData.primaryStakeholders || [];
+        const secondaryStakeholders = comprehensiveData.secondaryStakeholders || [];
+        const timeEstimate = comprehensiveData.timeEstimate || {};
+
+        const textContent = `# Customer Research Questionnaire
+Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+
+## Business Context
+**Business Idea:** ${unifiedState.businessContext.businessIdea || 'Not specified'}
+**Target Customer:** ${unifiedState.businessContext.targetCustomer || 'Not specified'}
+**Problem:** ${unifiedState.businessContext.problem || 'Not specified'}
+
+---
+
+## 📊 Questionnaire Overview
+**Primary Stakeholders:** ${primaryStakeholders.length}
+**Secondary Stakeholders:** ${secondaryStakeholders.length}
+**Total Questions:** ${timeEstimate.totalQuestions || 0}
+**Estimated Time:** ${((timeEstimate as any).estimatedMinutesDisplay || (timeEstimate as any).estimatedMinutes || '0-0')} minutes per conversation
+
+---
+
+## 🎯 PRIMARY STAKEHOLDERS
+*Focus First - Start with these ${primaryStakeholders.length} stakeholders to validate core business assumptions*
+
+${primaryStakeholders.map((stakeholder: any, index: number) => `
+### ${index + 1}. ${stakeholder.name}
+${stakeholder.description}
+
+#### 🔍 Problem Discovery Questions
+${(stakeholder.questions?.problemDiscovery || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+#### ✅ Solution Validation Questions
+${(stakeholder.questions?.solutionValidation || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+#### 💡 Follow-up Questions
+${(stakeholder.questions?.followUp || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+---`).join('\n')}
+
+## 👥 SECONDARY STAKEHOLDERS
+*Research Later - Expand to these ${secondaryStakeholders.length} stakeholders after validating primary assumptions*
+
+${secondaryStakeholders.map((stakeholder: any, index: number) => `
+### ${index + 1}. ${stakeholder.name}
+${stakeholder.description}
+
+#### 🔍 Problem Discovery Questions
+${(stakeholder.questions?.problemDiscovery || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+#### ✅ Solution Validation Questions
+${(stakeholder.questions?.solutionValidation || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+#### 💡 Follow-up Questions
+${(stakeholder.questions?.followUp || []).map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+---`).join('\n')}
+
+## 📋 RESEARCH INSTRUCTIONS
+
+### Interview Process
+1. **Start with Primary Stakeholders** - Focus on validating core assumptions first
+2. **Schedule focused conversations** - Use the time estimates provided for each stakeholder
+3. **Use questions as a guide** - Let conversation flow naturally, but ensure key topics are covered
+4. **Ask follow-up questions** - Dig deeper into interesting responses
+5. **Look for patterns** - Identify common themes across multiple interviews
+
+### After Interviews
+1. **Upload transcripts to AxWise** - For automated analysis and insights
+2. **Generate Product Requirements** - Transform insights into actionable requirements
+3. **Create user stories** - Based on validated customer needs
+4. **Iterate on your concept** - Use insights to refine your business idea
+
+---
+
+Generated by AxWise Customer Research Assistant
+Ready for simulation bridge and interview analysis`;
+
+        const blob = new Blob([textContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `research-questionnaire-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        console.log('✅ Comprehensive questionnaire exported successfully');
+        return;
+
+      }
+    } catch (error) {
+      console.error('❌ Failed to export comprehensive questions:', error);
+    }
+  };
+
+  // FIXED: Add proper handler functions for broken buttons
+  const handleContinueWithCurrent = () => {
+    // Continue with current stakeholder configuration
+    handleSendLocal("Let's proceed with the current stakeholder configuration.");
+  };
+
+  const handleViewDetailedPlan = () => {
+    // Show detailed research plan
+    handleSendLocal("Please show me a detailed research plan for these stakeholders.");
+  };
+
+  const handleViewPlan = () => {
+    // Show research plan
+    handleSendLocal("Can you show me the research plan?");
+  };
+
+  const handleDismissAlert = () => {
+    // Dismiss the stakeholder alert
+    handleSendLocal("I understand. Let's continue with the current approach.");
+  };
+
+  const handleViewMultiStakeholder = () => {
+    // View multi-stakeholder options
+    handleSendLocal("Please show me multi-stakeholder research options.");
+  };
+
+  // Create handlers using modular functions
+  const handleSendLocal = async (messageText?: string) => {
+    await handleSendMessage(
+      messageText,
+      state,
+      actions,
+      unifiedState.businessContext,
+      unifiedActions.updateBusinessContext,
+      (questionnaire: any) => {
+        console.log('📋 Updating questionnaire in unified state:', questionnaire);
+        unifiedActions.setQuestionnaire({
+          primaryStakeholders: questionnaire.primaryStakeholders || [],
+          secondaryStakeholders: questionnaire.secondaryStakeholders || [],
+          timeEstimate: questionnaire.timeEstimate || null,
+          generated: true,
+          generatedAt: new Date().toISOString()
+        });
+        unifiedActions.markQuestionnaireGenerated();
+      },
+      unifiedActions.setSidebarNarrative,
+      onComplete
+    );
+
+    // Handle mobile optimization after sending message
+    handleMessageSent();
+  };
+
+  const handleSuggestionClickLocal = (suggestion: string) => {
+    // FIXED: Removed console.log placeholder, using actual functionality
+
+    // Handle special suggestions
+    if (suggestion === "I don't know") {
+      // Send immediately to chat
+      handleSendLocal(suggestion);
+    } else if (suggestion === "All of the above") {
+      // Add all other suggestions to input field with commas (excluding special options)
+      const regularSuggestions = state.currentSuggestions.filter(s =>
+        s !== "I don't know" && s !== "All of the above"
+      );
+      const combinedText = regularSuggestions.join(', ');
+      actions.setInput(combinedText);
+    } else {
+      // Regular suggestion - send to chat
+      handleSendLocal(suggestion);
+    }
+  };
+
+
+  // Keyboard handlers
+  const handleKeyDownLocal = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendLocal();
+    }
+  };
+
+  // Session loading with unified system
+  // Track if fresh chat initialization has been done to prevent infinite loop
+  const freshChatInitRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (loadSessionId && !unifiedState.sessionLoading &&
+      (!unifiedState.currentSession || unifiedState.currentSession.session_id !== loadSessionId)) {
+      console.log('Loading session with unified system:', loadSessionId);
+      unifiedActions.loadSession(loadSessionId);
+      freshChatInitRef.current = false; // Reset when loading a session
+    } else if (!loadSessionId && !unifiedState.currentSession && !freshChatInitRef.current) {
+      console.log('No session to load, starting fresh chat');
+      // Ensure we have initial message for fresh chat (only once)
+      if (state.messages.length === 0 && unifiedState.messages.length === 0) {
+        const { createInitialMessage } = require('./chat-utils');
+        const initialMessage = createInitialMessage();
+        actions.setMessages([initialMessage]);
+        // Also sync to unified state
+        unifiedActions.setMessages([{
+          ...initialMessage,
+          timestamp: initialMessage.timestamp.toISOString()
+        }]);
+      }
+      freshChatInitRef.current = true; // Mark as initialized
+    }
+    // Intentionally omit unifiedActions and actions from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSessionId, unifiedState.sessionLoading, unifiedState.currentSession?.session_id, state.messages.length]);
+
+  // One-time sync when session loads (no infinite loop)
+  // Track synced session to prevent duplicate syncs
+  const syncedSessionRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    if (unifiedState.currentSession && unifiedState.messages.length > 0) {
+      const sessionId = unifiedState.currentSession.session_id;
+
+      // Skip if we already synced this session
+      if (syncedSessionRef.current === sessionId) {
+        return;
+      }
+
+      console.log('Syncing loaded session messages to chat state:', {
+        sessionId,
+        unifiedMessagesCount: unifiedState.messages.length,
+        currentStateMessagesCount: state.messages.length
+      });
+
+      // Only sync if we don't already have the same messages
+      const needsSync = state.messages.length <= 1 || // Allow sync if we only have initial message
+        state.messages.length !== unifiedState.messages.length ||
+        state.messages[0]?.id !== unifiedState.messages[0]?.id;
+
+      if (needsSync) {
+        // Convert unified messages to old format
+        const convertedMessages = unifiedState.messages.map(msg => ({
+          ...msg,
+          timestamp: typeof msg.timestamp === 'string' ? new Date(msg.timestamp) : msg.timestamp
+        }));
+        actions.setMessages(convertedMessages);
+        actions.setConversationStarted(true);
+        syncedSessionRef.current = sessionId;
+        console.log('✅ Messages synced successfully');
+      } else {
+        syncedSessionRef.current = sessionId;
+        console.log('📋 Messages already synced, skipping');
+      }
+    } else if (!unifiedState.currentSession && !loadSessionId && !freshChatInitRef.current) {
+      // No session to load, ensure we have the initial message (only if not already done)
+      console.log('No session to load, ensuring initial message is present');
+      if (state.messages.length === 0 && unifiedState.messages.length === 0) {
+        const { createInitialMessage } = require('./chat-utils');
+        const initialMessage = createInitialMessage();
+        actions.setMessages([initialMessage]);
+        // Also sync to unified state
+        unifiedActions.setMessages([{
+          ...initialMessage,
+          timestamp: initialMessage.timestamp.toISOString()
+        }]);
+        freshChatInitRef.current = true;
+      }
+    }
+    // Intentionally omit actions and unifiedActions from deps to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unifiedState.currentSession?.session_id, unifiedState.messages.length, loadSessionId]);
+
+  // Ensure ChatState.sessionId follows the loaded/current session
+  React.useEffect(() => {
+    const loadedId = unifiedState.currentSession?.session_id;
+    if (loadedId && state.sessionId !== loadedId) {
+      console.log('🔗 Syncing ChatState.sessionId with unified session:', loadedId);
+      actions.setSessionId(loadedId);
+    }
+  }, [unifiedState.currentSession?.session_id]);
+
+  // When ChatState.sessionId is set (e.g., after first API call), load that session into unified store
+  React.useEffect(() => {
+    if (!state.sessionId) return;
+    // Avoid thrashing while a load is already in progress
+    if (unifiedState.sessionLoading) return;
+
+    if (!unifiedState.currentSession || unifiedState.currentSession.session_id !== state.sessionId) {
+      console.log('🔗 Loading unified session from ChatState.sessionId:', state.sessionId);
+      unifiedActions.loadSession(state.sessionId);
+    }
+    // Intentionally omit unifiedActions from deps: its identity changes each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.sessionId, unifiedState.currentSession?.session_id, unifiedState.sessionLoading]);
+
+
+  // Handle new messages for mobile optimization
+  React.useEffect(() => {
+    if (state.messages.length > 0) {
+      handleNewMessage();
+    }
+  }, [state.messages.length, handleNewMessage]);
+
+  // Helper function to normalize timeEstimate for ComprehensiveQuestionsComponent
+  const normalizeTimeEstimate = React.useCallback((timeEstimate: any) => {
+    if (!timeEstimate) {
+      return {
+        totalQuestions: 0,
+        estimatedMinutes: "0-0",
+        breakdown: {
+          baseTime: 0,
+          withBuffer: 0,
+          perQuestion: 3.0  // Updated to 3 minutes per question (realistic 2-4 minute range)
+        }
+      };
+    }
+
+    // Handle new backend format: {min: 15, max: 20, totalQuestions: 13}
+    if (timeEstimate.min !== undefined && timeEstimate.max !== undefined) {
+      return {
+        totalQuestions: timeEstimate.totalQuestions || 0,
+        estimatedMinutes: `${timeEstimate.min}-${timeEstimate.max}`,
+        breakdown: {
+          baseTime: timeEstimate.min || 0,
+          withBuffer: timeEstimate.max || 0,
+          perQuestion: timeEstimate.totalQuestions > 0 ? (timeEstimate.min / timeEstimate.totalQuestions) : 3.0  // Updated to 3 minutes per question
+        }
+      };
+    }
+
+    // Handle legacy format: {estimatedMinutes: "15-20", totalQuestions: 13, breakdown: {...}}
+    return {
+      totalQuestions: timeEstimate.totalQuestions || 0,
+      estimatedMinutes: timeEstimate.estimatedMinutes || 0, // Keep as number
+      estimatedMinutesDisplay: timeEstimate.estimatedMinutesDisplay || timeEstimate.estimatedMinutes || "0-0", // String for display
+      breakdown: {
+        baseTime: timeEstimate.breakdown?.baseTime || 0,
+        withBuffer: timeEstimate.breakdown?.withBuffer || 0,
+        perQuestion: timeEstimate.breakdown?.perQuestion || 3.0  // Updated to 3 minutes per question
+      }
+    };
+  }, []);
+
+  // Helper function to normalize stakeholders for EnhancedMultiStakeholderComponent
+  const normalizeStakeholdersForEnhanced = (stakeholders: any): any[] => {
+    if (!stakeholders) return [];
+    if (Array.isArray(stakeholders)) return stakeholders;
+
+    // Handle StakeholderData format
+    const result: any[] = [];
+    if (stakeholders.primary) {
+      const primaryStakeholders = Array.isArray(stakeholders.primary)
+        ? stakeholders.primary
+        : [stakeholders.primary];
+      primaryStakeholders.forEach((s: any, index: number) => {
+        result.push({
+          name: typeof s === 'string' ? s : s.name || 'Primary Stakeholder',
+          type: 'primary',
+          description: typeof s === 'string' ? 'Primary stakeholder' : s.description || 'Primary stakeholder',
+          priority: index + 1
+        });
+      });
+    }
+    if (stakeholders.secondary) {
+      const secondaryStakeholders = Array.isArray(stakeholders.secondary)
+        ? stakeholders.secondary
+        : [stakeholders.secondary];
+      secondaryStakeholders.forEach((s: any, index: number) => {
+        result.push({
+          name: typeof s === 'string' ? s : s.name || 'Secondary Stakeholder',
+          type: 'secondary',
+          description: typeof s === 'string' ? 'Secondary stakeholder' : s.description || 'Secondary stakeholder',
+          priority: index + 1
+        });
+      });
+    }
+    return result;
+  };
+
+  // Helper function to normalize stakeholders for StakeholderQuestionsComponent
+  const normalizeStakeholdersForQuestions = (stakeholders: any): any[] => {
+    if (!stakeholders) return [];
+    if (Array.isArray(stakeholders)) return stakeholders;
+
+    // Handle StakeholderData format
+    const result: any[] = [];
+    if (stakeholders.primary) {
+      const primaryStakeholders = Array.isArray(stakeholders.primary)
+        ? stakeholders.primary
+        : [stakeholders.primary];
+      primaryStakeholders.forEach((s: any) => {
+        // Extract actual questions from backend response
+        const questions = s.questions || {};
+        result.push({
+          name: typeof s === 'string' ? s : s.name || 'Primary Stakeholder',
+          type: 'primary',
+          description: typeof s === 'string' ? 'Primary stakeholder' : s.description || 'Primary stakeholder',
+          questions: {
+            discovery: questions.problemDiscovery || ['What challenges do you currently face?', 'How do you handle this today?'],
+            validation: questions.solutionValidation || ['Would this solution help you?', 'What features are most important?'],
+            followUp: questions.followUp || ['Any other thoughts?', 'Would you recommend this?']
+          }
+        });
+      });
+    }
+    if (stakeholders.secondary) {
+      const secondaryStakeholders = Array.isArray(stakeholders.secondary)
+        ? stakeholders.secondary
+        : [stakeholders.secondary];
+      secondaryStakeholders.forEach((s: any) => {
+        // Extract actual questions from backend response
+        const questions = s.questions || {};
+        result.push({
+          name: typeof s === 'string' ? s : s.name || 'Secondary Stakeholder',
+          type: 'secondary',
+          description: typeof s === 'string' ? 'Secondary stakeholder' : s.description || 'Secondary stakeholder',
+          questions: {
+            discovery: questions.problemDiscovery || ['How does this affect you?', 'What do you see as the main challenges?'],
+            validation: questions.solutionValidation || ['Would you support this solution?', 'What concerns would you have?'],
+            followUp: questions.followUp || ['Any additional feedback?', 'What else should we know?']
+          }
+        });
+      });
+    }
+    return result;
+  };
+
+  return (
+    <div className="w-full h-full chat-container flex flex-col overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-4 flex-1 p-2 min-h-0 overflow-hidden">
+        {/* Chat Interface */}
+        <Card className="lg:col-span-3 flex flex-col h-full min-h-0 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 lg:p-4 border-b flex-shrink-0">
+            <div className="flex items-center gap-2">
+              {onBack && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onBack}
+                  className="mr-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <Bot className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-base lg:text-lg">Customer Research Assistant</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearClick}
+                title="Clear chat and start over"
+              >
+                <RotateCcw className="h-4 w-4 mr-1 lg:mr-2" />
+                <span className="hidden sm:inline">Clear</span>
+              </Button>
+              {currentQuestions && ((currentQuestions as any)?.generated || (currentQuestions as any)?.timeEstimate?.totalQuestions > 0) && (
+                <Button variant="outline" size="sm" onClick={() => exportComprehensiveQuestions('txt')}>
+                  <Download className="h-4 w-4 mr-1 lg:mr-2" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 p-3 lg:p-4 overflow-y-auto chat-messages-area">
+            <div className="space-y-4 pb-4">
+              {state.messages.map((message, index) => (
+                <div key={message.id}>
+                  <div
+                    className={`flex gap-2 lg:gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="flex-shrink-0">
+                        <div className="w-6 h-6 lg:w-8 lg:h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Bot className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div
+                      className={`max-w-[85%] lg:max-w-[80%] ${message.content === 'MULTI_STAKEHOLDER_COMPONENT' ||
+                        message.content === 'NEXT_STEPS_COMPONENT' ||
+                        message.content === 'STAKEHOLDER_ALERT_COMPONENT' ||
+
+                        message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ||
+                        message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ||
+                        message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT'
+                        ? ''
+                        : `rounded-lg p-2 text-sm ${message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-secondary-foreground border border-border'
+                        }`
+                        }`}
+                    >
+                      {/* Component rendering logic */}
+                      {message.content === 'COMPREHENSIVE_QUESTIONS_COMPONENT' ? (
+                        <ComprehensiveQuestionsComponent
+                          primaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.primaryStakeholders ||
+                            []
+                          }
+                          secondaryStakeholders={
+                            message.metadata?.comprehensiveQuestions?.secondaryStakeholders ||
+                            []
+                          }
+                          timeEstimate={normalizeTimeEstimate(
+                            message.metadata?.comprehensiveQuestions?.timeEstimate
+                          ) as any}
+                          businessContext={message.metadata?.businessContext}
+                          onExport={() => exportComprehensiveQuestions('txt')}
+                          onContinue={continueToAnalysis}
+                          onDashboard={async () => {
+                            // Save current session before navigating
+                            try {
+                              await saveSession();
+                            } catch (error) {
+                              console.error('Failed to save session:', error);
+                            }
+                            window.location.href = '/unified-dashboard/research';
+                          }}
+                        />
+                      ) : message.content === 'ENHANCED_MULTISTAKEHOLDER_COMPONENT' ? (
+                        <EnhancedMultiStakeholderComponent
+                          industry={message.metadata?.industry}
+                          stakeholders={normalizeStakeholdersForEnhanced(message.metadata?.stakeholders)}
+                          businessContext={message.metadata?.businessContext}
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewDetailedPlan={handleViewDetailedPlan}
+                        />
+                      ) : message.content === 'STAKEHOLDER_QUESTIONS_COMPONENT' ? (
+                        <StakeholderQuestionsComponent
+                          stakeholders={normalizeStakeholdersForQuestions(
+                            message.metadata?.stakeholders
+                          )}
+                          businessContext={message.metadata?.businessContext}
+                          onExport={() => exportComprehensiveQuestions('txt')}
+                          onContinue={continueToAnalysis}
+                        />
+                      ) : message.content === 'MULTI_STAKEHOLDER_COMPONENT' ? (
+                        <MultiStakeholderChatMessage
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewDetailedPlan={handleViewDetailedPlan}
+                        />
+                      ) : message.content === 'STAKEHOLDER_ALERT_COMPONENT' ? (
+                        <StakeholderAlert
+                          onViewPlan={handleViewPlan}
+                          onDismiss={handleDismissAlert}
+                          onContinueWithCurrent={handleContinueWithCurrent}
+                          onViewMultiStakeholder={handleViewMultiStakeholder}
+                        />
+                      ) : message.content === 'NEXT_STEPS_COMPONENT' ? (
+                        <NextStepsChatMessage
+                          onExportQuestions={() => exportComprehensiveQuestions('txt')}
+                          onStartResearch={continueToAnalysis}
+                          timeEstimate={message.metadata?.timeEstimate}
+                        />
+                      ) : message.content.includes('_COMPONENT') ? (
+                        <div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+                          <p className="text-sm text-muted-foreground">
+                            Component: {message.content}
+                          </p>
+                          {message.metadata && (
+                            <pre className="text-xs mt-2 overflow-auto">
+                              {JSON.stringify(message.metadata, null, 2)}
+                            </pre>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Check if this is questionnaire content that should be rendered as component */}
+                          {message.content.includes('### Primary Stakeholders:') ||
+                            message.content.includes('## Primary Stakeholders') ||
+                            message.content.includes('**1. ') ||
+                            message.content.includes('Here are the comprehensive research questions') ||
+                            message.content.includes('Here are comprehensive research questions') ||
+                            message.content.includes('categorized by stakeholder') ||
+                            (message.content.includes('stakeholder') && message.content.includes('Questions')) ||
+                            (message.content.includes('Problem Discovery Questions') && message.content.includes('Solution Validation Questions')) ? (
+                            // Parse the questionnaire content and use the proper component
+                            (() => {
+                              // Try to parse the questionnaire content into structured data
+                              const parseQuestionnaireContent = (content: string) => {
+                                const primaryStakeholders: any[] = [];
+                                const secondaryStakeholders: any[] = [];
+
+                                // Split by major sections
+                                const sections = content.split(/(?=##\s)/);
+
+                                sections.forEach(section => {
+                                  if (section.includes('Primary Stakeholders')) {
+                                    // Parse primary stakeholders
+                                    const stakeholderMatches = section.split(/(?=\*\*\d+\.)/);
+                                    stakeholderMatches.forEach(match => {
+                                      const nameMatch = match.match(/\*\*(\d+\.\s+[^*]+)\*\*/);
+                                      const descMatch = match.match(/\*Description:\s*([^*]+)\*/);
+
+                                      if (nameMatch) {
+                                        const name = nameMatch[1];
+                                        const description = descMatch ? descMatch[1].trim() : '';
+
+                                        // Extract questions
+                                        const problemDiscovery: string[] = [];
+                                        const solutionValidation: string[] = [];
+                                        const followUp: string[] = [];
+
+                                        // Simple question extraction
+                                        const lines = match.split('\n');
+                                        let currentCategory = '';
+
+                                        lines.forEach(line => {
+                                          if (line.includes('Problem Discovery Questions')) {
+                                            currentCategory = 'problem';
+                                          } else if (line.includes('Solution Validation Questions')) {
+                                            currentCategory = 'solution';
+                                          } else if (line.includes('Follow-Up Questions') || line.includes('Follow-up Questions')) {
+                                            currentCategory = 'followup';
+                                          } else if (line.trim().startsWith('*') && line.includes('?')) {
+                                            const question = line.replace(/^\s*\*\s*/, '').trim();
+                                            if (currentCategory === 'problem') {
+                                              problemDiscovery.push(question);
+                                            } else if (currentCategory === 'solution') {
+                                              solutionValidation.push(question);
+                                            } else if (currentCategory === 'followup') {
+                                              followUp.push(question);
+                                            }
+                                          }
+                                        });
+
+                                        primaryStakeholders.push({
+                                          name,
+                                          description,
+                                          questions: {
+                                            problemDiscovery,
+                                            solutionValidation,
+                                            followUp
+                                          }
+                                        });
+                                      }
+                                    });
+                                  } else if (section.includes('Secondary Stakeholders')) {
+                                    // Parse secondary stakeholders (similar logic)
+                                    const stakeholderMatches = section.split(/(?=\*\*\d+\.)/);
+                                    stakeholderMatches.forEach(match => {
+                                      const nameMatch = match.match(/\*\*(\d+\.\s+[^*]+)\*\*/);
+                                      const descMatch = match.match(/\*Description:\s*([^*]+)\*/);
+
+                                      if (nameMatch) {
+                                        const name = nameMatch[1];
+                                        const description = descMatch ? descMatch[1].trim() : '';
+
+                                        const problemDiscovery: string[] = [];
+                                        const solutionValidation: string[] = [];
+                                        const followUp: string[] = [];
+
+                                        const lines = match.split('\n');
+                                        let currentCategory = '';
+
+                                        lines.forEach(line => {
+                                          if (line.includes('Problem Discovery Questions')) {
+                                            currentCategory = 'problem';
+                                          } else if (line.includes('Solution Validation Questions')) {
+                                            currentCategory = 'solution';
+                                          } else if (line.includes('Follow-Up Questions') || line.includes('Follow-up Questions')) {
+                                            currentCategory = 'followup';
+                                          } else if (line.trim().startsWith('*') && line.includes('?')) {
+                                            const question = line.replace(/^\s*\*\s*/, '').trim();
+                                            if (currentCategory === 'problem') {
+                                              problemDiscovery.push(question);
+                                            } else if (currentCategory === 'solution') {
+                                              solutionValidation.push(question);
+                                            } else if (currentCategory === 'followup') {
+                                              followUp.push(question);
+                                            }
+                                          }
+                                        });
+
+                                        secondaryStakeholders.push({
+                                          name,
+                                          description,
+                                          questions: {
+                                            problemDiscovery,
+                                            solutionValidation,
+                                            followUp
+                                          }
+                                        });
+                                      }
+                                    });
+                                  }
+                                });
+
+                                return { primaryStakeholders, secondaryStakeholders };
+                              };
+
+                              const parsedData = parseQuestionnaireContent(message.content);
+
+                              // Calculate time estimate
+                              const totalQuestions = parsedData.primaryStakeholders.reduce((acc, s) =>
+                                acc + (s.questions.problemDiscovery?.length || 0) +
+                                (s.questions.solutionValidation?.length || 0) +
+                                (s.questions.followUp?.length || 0), 0) +
+                                parsedData.secondaryStakeholders.reduce((acc, s) =>
+                                  acc + (s.questions.problemDiscovery?.length || 0) +
+                                  (s.questions.solutionValidation?.length || 0) +
+                                  (s.questions.followUp?.length || 0), 0);
+
+                              const timeEstimate = {
+                                totalQuestions,
+                                estimatedMinutes: `${Math.ceil(totalQuestions * 7)}-${Math.ceil(totalQuestions * 10)}`,
+                                primaryQuestions: parsedData.primaryStakeholders.reduce((acc, s) =>
+                                  acc + (s.questions.problemDiscovery?.length || 0) +
+                                  (s.questions.solutionValidation?.length || 0) +
+                                  (s.questions.followUp?.length || 0), 0),
+                                secondaryQuestions: parsedData.secondaryStakeholders.reduce((acc, s) =>
+                                  acc + (s.questions.problemDiscovery?.length || 0) +
+                                  (s.questions.solutionValidation?.length || 0) +
+                                  (s.questions.followUp?.length || 0), 0),
+                                breakdown: {
+                                  baseTime: totalQuestions * 7,
+                                  withBuffer: totalQuestions * 10,
+                                  perQuestion: 7
+                                }
+                              };
+
+                              return (
+                                <ComprehensiveQuestionsComponent
+                                  primaryStakeholders={parsedData.primaryStakeholders}
+                                  secondaryStakeholders={parsedData.secondaryStakeholders}
+                                  timeEstimate={timeEstimate as any}
+                                  businessContext={unifiedState.businessContext.businessIdea}
+                                  onExport={() => exportComprehensiveQuestions('txt')}
+                                  onDashboard={() => window.location.href = '/unified-dashboard/research'}
+                                />
+                              );
+                            })()
+                          ) : (
+                            <div className="whitespace-pre-wrap break-words">{message.content}</div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Timestamp and copy button */}
+                      {!message.content.includes('_COMPONENT') && (
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs opacity-70">
+                            <ClientTimestamp timestamp={typeof message.timestamp === 'string' ? new Date(message.timestamp) : message.timestamp} />
+                          </span>
+                          {message.role === 'assistant' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyMessage(message.content)}
+                              className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {message.role === 'user' && (
+                      <div className="flex-shrink-0">
+                        <div className="w-6 h-6 lg:w-8 lg:h-8 bg-muted rounded-full flex items-center justify-center">
+                          <User className="h-3 w-3 lg:h-4 lg:w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+
+
+                  {/* Show suggestions after assistant messages */}
+
+                </div>
+              ))}
+
+
+
+              {state.isLoading && (
+                <div className="flex gap-2 lg:gap-3 justify-start">
+                  <div className="flex-shrink-0">
+                    <div className="w-6 h-6 lg:w-8 lg:h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Bot className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
+                    </div>
+                  </div>
+                  <div className="bg-muted rounded-lg p-2 lg:p-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {formattedElapsedTime}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+            </div>
+            {/* Suggestions - In-flow at bottom, wrapped inline, minimal style */}
+            {!state.isLoading && state.currentSuggestions.length > 0 && (
+              <div className="mt-4 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/40">Suggested</span>
+                </div>
+                <div className="flex flex-wrap gap-2 px-1">
+                  {state.currentSuggestions.map((suggestion, idx) => {
+                    const isSpecial = suggestion === "I don't know" || suggestion === "All of the above";
+                    return (
+                      <button
+                        key={idx}
+                        className={`
+                            text-sm text-left py-1.5 px-3 rounded transition-colors duration-200
+                            whitespace-normal break-words leading-tight max-w-full
+                            ${isSpecial
+                            ? "bg-primary/5 text-primary hover:bg-primary/10"
+                            : "bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                          }
+                          `}
+                        onClick={() => handleSuggestionClickLocal(suggestion)}
+                      >
+                        {suggestion}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </ScrollArea>
+
+
+
+          {/* Input - Fixed at bottom with mobile optimization */}
+          <div className="p-3 lg:p-4 border-t flex-shrink-0 chat-input-container">
+            <div className="flex gap-2 items-end">
+              <Input
+                value={state.input}
+                onChange={(e) => actions.setInput(e.target.value)}
+                onKeyDown={handleKeyDownLocal}
+                onFocus={ensureInputVisible}
+                placeholder="Describe the product, feature, or problem and specify your target market (e.g., B2B companies in Germany)..."
+                disabled={state.isLoading}
+                className="flex-1 text-base lg:text-lg min-h-[44px] resize-none chat-input"
+                style={{
+                  fontSize: '16px', // Prevents zoom on iOS
+                  WebkitAppearance: 'none' // Removes iOS styling
+                }}
+              />
+              <Button
+                onClick={() => handleSendLocal()}
+                disabled={!state.input.trim() || state.isLoading}
+                size="sm"
+                className="h-[44px] w-[44px] flex-shrink-0 chat-send-button"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 hidden sm:block chat-help-text">
+              Press Enter to send, Shift+Enter for new line
+            </p>
+          </div>
+        </Card>
+
+        {/* Clear Confirmation Dialog */}
+        {state.showClearConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-2">Clear Chat?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This will clear your entire conversation and reset all progress. This action cannot be undone.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => actions.setShowClearConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={clearChat}
+                  >
+                    Clear Chat
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Context Panel - Hidden on mobile, shown on desktop */}
+        <div className="hidden lg:block lg:col-span-1 min-h-0">
+          <div className="h-full overflow-y-auto space-y-4 min-h-0">
+            <ContextPanel
+              context={contextForPanel}
+              questions={hideQuestionsSummary ? undefined : (currentQuestions || undefined)}
+              onExport={() => exportComprehensiveQuestions('txt')}
+              onContinueToAnalysis={continueToAnalysis}
+              debugPrompt={lastFullPrompt}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
