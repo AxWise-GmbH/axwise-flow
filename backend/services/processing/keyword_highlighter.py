@@ -260,7 +260,8 @@ class ContextAwareKeywordHighlighter:
 
         try:
             from pydantic_ai import Agent
-            from google import genai
+            from pydantic_ai.models.google import GoogleModel
+            from pydantic_ai.providers.google import GoogleProvider
             import os
         except ImportError:
             # Fallback if PydanticAI not available
@@ -275,10 +276,15 @@ class ContextAwareKeywordHighlighter:
             quantitative_indicators: List[str]
             confidence_score: float
 
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        provider = GoogleProvider(api_key=api_key) if api_key else None
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.5-flash")
+        gemini_model = GoogleModel(model_name, provider=provider) if provider else "google:gemini-1.5-flash"
+
         # Use the new Google GenAI client with PydanticAI
         # PydanticAI automatically handles the google-genai integration
         domain_agent = Agent(
-            model="gemini-3-flash-preview",  # PydanticAI will use google-genai automatically
+            model=gemini_model,
             output_type=DomainAnalysis,
             system_prompt="""You are an expert research analyst who identifies research domains and extracts relevant keywords for highlighting in user interviews.
 
@@ -308,7 +314,7 @@ Return terms in lowercase for consistency.""",
                 f"Analyze this research content and identify the domain and relevant keywords:\n\n{sample_content[:2000]}"
             )
 
-            domain_data = result.data
+            domain_data = result.output
 
             # Update internal state
             self.research_domain = domain_data.research_domain

@@ -10,10 +10,10 @@ import json
 from typing import List
 
 # Add backend to path
-sys.path.append("/Users/admin/Documents/DesignThinkingAgentAI")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # Load environment variables
-from load_env import load_dotenv
+from dotenv import load_dotenv
 load_dotenv()
 
 async def test_structured_demographics():
@@ -32,13 +32,15 @@ async def test_structured_demographics():
     try:
         # Import required modules
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
-        from backend.domain.models.persona_schema import SimplifiedPersonaModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
+        from backend.models.enhanced_persona_models import SimplifiedPersonaModel
         
         print("✅ Imports successful")
         
         # Create Gemini model
-        gemini_model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("models/gemini-3.5-flash", provider=provider)
         print("✅ Gemini model initialized")
         
         # Create agent with the updated system prompt (same as in persona_formation_service.py)
@@ -145,13 +147,13 @@ OUTPUT: Complete SimplifiedPersona object with all fields populated using actual
         print(f"✅ Generated persona: {persona.name}")
         print(f"📊 Overall confidence: {persona.overall_confidence}")
         
-        # Check if structured_demographics is populated
-        if persona.structured_demographics:
+        # Check if demographics is populated
+        if persona.demographics:
             print("\n🎉 STRUCTURED DEMOGRAPHICS FOUND!")
             print("=" * 50)
             
             # Convert to dict for pretty printing
-            structured_demo = persona.structured_demographics
+            structured_demo = persona.demographics
             
             # Check each field
             fields_to_check = ['experience_level', 'industry', 'location', 'professional_context', 'roles']

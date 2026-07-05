@@ -235,7 +235,7 @@ Limit to the top 5 most important keywords that would be valuable for persona an
                 "frequency": kw.frequency,
                 "statements": kw.statements,
             }
-            for kw in result.data.keywords
+            for kw in result.output.keywords
         ]
 
     except Exception as e:
@@ -348,7 +348,7 @@ Return only terms that are meaningful within the identified research domain.""",
         result = trait_keyword_agent.run_sync(prompt)
 
         # Return the extracted keywords
-        return result.data.keywords
+        return result.output.keywords
 
     except Exception as e:
         logger.warning(f"PydanticAI trait keyword extraction failed: {e}")

@@ -60,8 +60,8 @@ class StakeholderReportAssembler:
             try:
                 from pydantic_ai import ModelSettings  # type: ignore
 
-                model_settings = ModelSettings(timeout=300)
-                extra_kwargs = {"model_settings": model_settings, "temperature": 0}
+                model_settings = ModelSettings(timeout=300, temperature=0.0)
+                extra_kwargs = {"model_settings": model_settings}
             except Exception:
                 model_settings = None
                 extra_kwargs = {}
@@ -326,7 +326,9 @@ Return structured JSON with the above sections.
         """Parse summary result from LLM response and normalize to typed structure."""
         try:
             data = None
-            if hasattr(result, "data"):
+            if hasattr(result, "output"):
+                data = result.output
+            elif hasattr(result, "data"):
                 data = result.data
             elif isinstance(result, (dict, list)):
                 data = result
