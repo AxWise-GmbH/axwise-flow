@@ -9,13 +9,14 @@ import sys
 from typing import List
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
 
 # Add backend to path
-sys.path.append("/Users/admin/Documents/DesignThinkingAgentAI")
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # Load environment variables
-from load_env import load_dotenv
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -41,10 +42,11 @@ async def test_pydantic_ai():
     print(f"✅ API key found: {api_key[:10]}...")
 
     try:
-        # Initialize Gemini 2.5 Flash (now supported directly by PydanticAI)
-        print("🔧 Initializing Gemini 2.5 Flash...")
-        model = GeminiModel("gemini-2.5-flash")
-        print("✅ Gemini 2.5 Flash initialized successfully")
+        # Initialize GoogleModel
+        print("🔧 Initializing GoogleModel...")
+        provider = GoogleProvider(api_key=api_key)
+        model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+        print("✅ GoogleModel initialized successfully")
 
         # Create agent
         print("🤖 Creating PydanticAI agent...")

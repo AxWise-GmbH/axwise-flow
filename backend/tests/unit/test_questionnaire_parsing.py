@@ -26,7 +26,8 @@ async def test_questionnaire_parsing():
             SimulationRequest,
         )
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
         from pydantic import BaseModel
         from typing import List
         import os
@@ -71,7 +72,8 @@ async def test_questionnaire_parsing():
             questions: List[str]
 
         # Create PydanticAI agent for parsing
-        model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        model = GoogleModel("models/gemini-3.5-flash", provider=provider)
         parser_agent = Agent(
             model=model,
             output_type=ParsedQuestionnaire,

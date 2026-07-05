@@ -27,8 +27,9 @@ async def test_simplified_persona():
     try:
         # Import required modules
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
-        from backend.domain.models.persona_schema import SimplifiedPersonaModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
+        from backend.models.enhanced_persona_models import SimplifiedPersonaModel
 
         print("✅ Imports successful")
 
@@ -41,7 +42,8 @@ async def test_simplified_persona():
         print(f"✅ API key found: {api_key[:10]}...")
 
         # Create Gemini model
-        gemini_model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("models/gemini-3.5-flash", provider=provider)
         print("✅ Gemini model initialized")
 
         # Create PydanticAI agent with SimplifiedPersona
@@ -112,21 +114,12 @@ OUTPUT: Complete SimplifiedPersona object.""",
             f"\nDemographics ({persona.demographics_confidence:.1%}): {persona.demographics}"
         )
         print(
-            f"\nGoals & Motivations ({persona.goals_confidence:.1%}): {persona.goals_motivations}"
+            f"\nGoals & Motivations ({persona.goals_confidence:.1%}): {persona.goals}"
         )
         print(
-            f"\nChallenges ({persona.challenges_confidence:.1%}): {persona.challenges_frustrations}"
+            f"\nChallenges ({persona.challenges_confidence:.1%}): {persona.challenges}"
         )
-        print(f"\nSkills ({persona.skills_confidence:.1%}): {persona.skills_expertise}")
-        print(
-            f"\nTechnology ({persona.technology_confidence:.1%}): {persona.technology_tools}"
-        )
-        print(
-            f"\nPain Points ({persona.pain_points_confidence:.1%}): {persona.pain_points}"
-        )
-        print(f"\nKey Quotes ({len(persona.key_quotes)} quotes):")
-        for i, quote in enumerate(persona.key_quotes, 1):
-            print(f'  {i}. "{quote}"')
+        print(f"\nKey Quotes: {persona.key_quotes.value}")
 
         print("\n🎉 SIMPLIFIED PERSONA TEST PASSED!")
         return True

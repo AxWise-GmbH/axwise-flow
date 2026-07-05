@@ -72,8 +72,7 @@ class StakeholderThemeAnalyzer:
                 model=GoogleModel(model_name, provider=provider),
                 output_type=ThemeAttributionModel,
                 system_prompt=self._get_theme_attribution_prompt(),
-                model_settings=ModelSettings(timeout=300),
-                temperature=0,
+                model_settings=ModelSettings(timeout=300, temperature=0.0),
             )
             self.pydantic_ai_available = True
             logger.info("Theme agent initialized successfully")
@@ -257,7 +256,9 @@ Please analyze which stakeholders contributed to this theme and provide attribut
         """Parse attribution result from LLM response and normalize to safe structure."""
         try:
             data = None
-            if hasattr(result, "data"):
+            if hasattr(result, "output"):
+                data = result.output
+            elif hasattr(result, "data"):
                 data = result.data
             elif isinstance(result, (dict, list)):
                 data = result

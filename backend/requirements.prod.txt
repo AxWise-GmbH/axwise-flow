@@ -36,7 +36,7 @@ langgraph>=0.0.55  # State machine workflow for LLM applications
 # Data processing
 python-dotenv==1.0.1
 pydantic>=2.8.0
-pydantic-ai-slim==1.0.1  # Slim variant; avoids Starlette extras; provides pydantic_ai module (ModelSettings, output_type)
+pydantic-ai-slim>=2.0.0  # Slim variant; avoids Starlette extras; provides pydantic_ai module (ModelSettings, output_type)
 numpy==1.26.3
 pandas==2.1.4
 openpyxl>=3.1.2  # Required for Excel file processing with pandas

@@ -25,8 +25,9 @@ async def test_system_with_correct_prompt():
     try:
         # Import required modules
         from pydantic_ai import Agent
-        from pydantic_ai.models.gemini import GeminiModel
-        from backend.domain.models.persona_schema import SimplifiedPersonaModel
+        from pydantic_ai.models.google import GoogleModel
+        from pydantic_ai.providers.google import GoogleProvider
+        from backend.models.enhanced_persona_models import SimplifiedPersonaModel
         from backend.services.processing.persona_formation_service import PersonaFormationService
         
         print("✅ Imports successful")
@@ -40,7 +41,8 @@ async def test_system_with_correct_prompt():
         print(f"✅ API key found: {api_key[:10]}...")
         
         # Create Gemini model
-        gemini_model = GeminiModel("gemini-2.5-flash")
+        provider = GoogleProvider(api_key=api_key)
+        gemini_model = GoogleModel("models/gemini-3.5-flash", provider=provider)
         print("✅ Gemini model initialized")
         
         # Create PydanticAI agent with CORRECT SimplifiedPersona prompt
