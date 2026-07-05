@@ -1,120 +1,140 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { 
+  Shield, 
+  GitBranch, 
+  Server, 
+  Check, 
+  FileText, 
+  ChevronRight,
+  Sparkles,
+  Lock,
+  ArrowRight
+} from 'lucide-react';
 
-export default function TermsOfServicePage() {
-    return (
-        <div className="container mx-auto py-24 px-4 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="prose prose-slate dark:prose-invert max-w-none">
-                <h1 className="text-4xl font-bold mb-4 tracking-tight">Terms of Service</h1>
-                <p className="text-xl text-muted-foreground mb-12">Please read these terms carefully before using our service.</p>
+export default function TermsOfServicePage(): React.JSX.Element {
+  return (
+    <div className="min-h-screen bg-[#FCFAF7] text-[#1C1917] font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900">
+      
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-4 lg:px-8 xl:px-16 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
+              <defs>
+                <radialGradient id="o2_logo_tos" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
+              </defs>
+              <circle cx="32" cy="32" r="24" fill="url(#o2_logo_tos)"></circle>
+              <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
+            </svg>
+            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
+            <span className="text-stone-300 font-light select-none">×</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
+          </div>
+        </Link>
 
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
-                    <p>
-                        By accessing or using the Interview Analysis application and related services (collectively, the "Service") provided by AxWise UG (in formation) ("we", "our", or "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our Service.
-                    </p>
-                </section>
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
+          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
+          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
+          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
+          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
+          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+        </nav>
 
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
-                    <p>
-                        Our Service provides tools for analyzing interview transcripts, generating insights, and creating personas based on user research data. The Service may include AI-powered analysis, data visualization, and report generation features.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">3. User Accounts</h2>
-                    <p>
-                        To access certain features of the Service, you may be required to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You agree to notify us immediately of any unauthorized use of your account.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">4. User Content</h2>
-                    <p>
-                        Our Service allows you to upload, submit, and share content, including interview transcripts and related data ("User Content"). You retain all rights to your User Content, but you grant us a non-exclusive, worldwide, royalty-free license to use, reproduce, modify, and display your User Content solely for the purpose of providing and improving the Service.
-                    </p>
-                    <p>You are solely responsible for your User Content and the consequences of uploading it. You represent and warrant that:</p>
-                    <ul className="list-disc pl-6 space-y-2">
-                        <li>You own or have the necessary rights to use and authorize us to use your User Content</li>
-                        <li>Your User Content does not violate the privacy rights, publicity rights, copyright, contractual rights, or any other rights of any person or entity</li>
-                        <li>Your User Content does not contain confidential information that you do not have the right to disclose</li>
-                    </ul>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">5. Prohibited Uses</h2>
-                    <p>You agree not to use the Service:</p>
-                    <ul className="list-disc pl-6 space-y-2">
-                        <li>In any way that violates any applicable law or regulation</li>
-                        <li>To transmit any material that is defamatory, offensive, or otherwise objectionable</li>
-                        <li>To attempt to interfere with, compromise the system integrity or security, or decipher any transmissions to or from the servers running the Service</li>
-                        <li>To collect or track the personal information of others</li>
-                        <li>To impersonate or attempt to impersonate another person or entity</li>
-                        <li>To engage in any automated use of the system, such as using scripts to send comments or messages</li>
-                    </ul>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">6. Intellectual Property</h2>
-                    <p>
-                        The Service and its original content (excluding User Content), features, and functionality are and will remain the exclusive property of AxWise UG and its licensors. The Service is protected by copyright, trademark, and other laws of Germany and foreign countries.
-                    </p>
-                    <p>
-                        Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of AxWise UG.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">7. Limitation of Liability</h2>
-                    <p>
-                        To the maximum extent permitted by law, in no event shall AxWise UG, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from:
-                    </p>
-                    <ul className="list-disc pl-6 space-y-2">
-                        <li>Your access to or use of or inability to access or use the Service</li>
-                        <li>Any conduct or content of any third party on the Service</li>
-                        <li>Any content obtained from the Service</li>
-                        <li>Unauthorized access, use, or alteration of your transmissions or content</li>
-                    </ul>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">8. Disclaimer</h2>
-                    <p>
-                        Your use of the Service is at your sole risk. The Service is provided on an "AS IS" and "AS AVAILABLE" basis. The Service is provided without warranties of any kind, whether express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, non-infringement, or course of performance.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">9. Changes to Terms</h2>
-                    <p>
-                        We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">10. Governing Law</h2>
-                    <p>
-                        These Terms shall be governed and construed in accordance with the laws of Germany, without regard to its conflict of law provisions.
-                    </p>
-                </section>
-
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold mb-4">11. Contact Us</h2>
-                    <p>If you have any questions about these Terms, please contact us:</p>
-                    <div className="mt-4 p-6 bg-muted rounded-lg">
-                        <p className="font-semibold">AxWise UG (in formation)</p>
-                        <p>Aumunder Heerweg 13</p>
-                        <p>28757 Bremen</p>
-                        <p>Germany</p>
-                        <p className="mt-2">Email: <a href="mailto:vitalijs@axwise.de" className="text-primary hover:underline">vitalijs@axwise.de</a></p>
-                    </div>
-                </section>
-
-                <div className="flex gap-4 pt-8 border-t">
-                    <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">← Back to AxWise</Link>
-                </div>
-            </div>
+        <div className="flex items-center gap-3">
+          <a 
+            href="https://github.com/AxWise-GmbH/Flow" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
+          >
+            <GitBranch className="w-3.5 h-3.5" />
+            Apache 2.0 OSS
+          </a>
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1C1917] hover:bg-stone-800 text-[#FCFAF7] rounded-md text-xs font-medium tracking-tight transition-all"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            Main Gate
+          </Link>
         </div>
-    );
+      </header>
+
+      {/* Main Terms content */}
+      <main className="max-w-3xl mx-auto px-6 py-20 space-y-12">
+        <div className="space-y-4 border-b border-[#EAE6DF] pb-8">
+          <h1 className="font-serif text-5xl font-normal tracking-tight text-stone-900">Terms of Service</h1>
+          <p className="text-sm text-stone-500 font-mono">// Please read these terms carefully before using our service.</p>
+          <p className="text-xs text-stone-400">Last updated: July 2026</p>
+        </div>
+
+        <article className="prose prose-stone leading-relaxed space-y-8 text-stone-700 text-sm">
+          
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">1. Acceptance of Terms</h2>
+            <p>
+              By accessing or using the multi-agent orchestration sandboxes, documentation portals, and related services (collectively, the &quot;Service&quot;) provided by AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, please do not use our Service.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">2. Description of Service &amp; Apache 2.0 License</h2>
+            <p>
+              We provide tools and portals showcasing the AxWise Flow open-source repository. The core REST API gateway, database schemas, and multi-agent simulation routines are distributed under the <strong className="font-semibold text-stone-900">Apache 2.0 Open Source License</strong>. Users who download, customize, and self-host the code are fully bound by the terms of the Apache 2.0 license, which grants a non-exclusive license to use, modify, and distribute the work, subject to standard copyright attribution.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">3. User Content &amp; Local Execution</h2>
+            <p>
+              All customer research materials, transcripts, documents, or data payloads you process locally within your self-hosted instance (&quot;User Content&quot;) remain completely yours. We have no access to, ownership over, or liability for your local documents or their contents.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">4. Prohibited Uses of the Portal</h2>
+            <p>You agree not to use our web portals, APIs, or documentation gateways:</p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>In any way that violates applicable local or European laws and regulations.</li>
+              <li>To attempt unauthorized access, network disruption, or denial-of-service vectors on our web servers.</li>
+              <li>To scrape or mine documentation or interactive sandbox routines maliciously.</li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">5. Limitation of Liability</h2>
+            <p>
+              To the maximum extent permitted by German law, in no event shall AxWise UG, its directors, or its affiliates be liable for any indirect, special, incidental, or consequential damages resulting from your use of the open-source files, API integrations, or interactive web simulators.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-serif font-semibold text-stone-900">6. Contact Us</h2>
+            <div className="bg-stone-50 border border-stone-200 p-6 rounded-lg space-y-1.5 text-xs text-stone-600">
+              <p className="font-semibold text-stone-900">AxWise UG (in formation)</p>
+              <p>Aumunder Heerweg 13</p>
+              <p>28757 Bremen, Germany</p>
+              <p>Email: <a href="mailto:info@axwise.de" className="text-emerald-700 hover:underline">info@axwise.de</a></p>
+            </div>
+          </section>
+
+        </article>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
+        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div className="flex gap-6 mt-4 md:mt-0">
+          <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
+          <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>
+          <Link href="/impressum" className="hover:text-stone-300">Impressum</Link>
+        </div>
+      </footer>
+
+    </div>
+  );
 }

@@ -153,8 +153,8 @@ app = FastAPI(
     API for interview data analysis.
 
     Available LLM providers and models:
-    - OpenAI: gpt-4o-2024-08-06
-    - Google: models/gemini-3-flash-preview-preview-04-17 (Gemini 2.5 Flash)
+    - OpenAI: gpt-5
+    - Google: models/gemini-3.5-flash (Gemini 3.5 Flash)
 
     Authentication:
     - All endpoints (except /health) require Bearer token authentication

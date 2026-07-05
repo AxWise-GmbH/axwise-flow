@@ -1,0 +1,274 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { 
+  ArrowLeft, 
+  BookOpen, 
+  Code, 
+  Cpu, 
+  GitBranch, 
+  Lock, 
+  Server, 
+  Shield, 
+  Terminal as TerminalIcon,
+  ChevronRight,
+  Activity,
+  Check
+} from 'lucide-react';
+
+export default function DocsPage(): React.JSX.Element {
+  return (
+    <div className="min-h-screen bg-[#FCFAF7] text-[#1C1917] font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900">
+      
+      {/* ----------------- Minimal, Premium Header ----------------- */}
+      <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-4 lg:px-8 xl:px-16 py-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
+              <defs>
+                <radialGradient id="o2_logo_docs" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
+              </defs>
+              <circle cx="32" cy="32" r="24" fill="url(#o2_logo_docs)"></circle>
+              <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
+            </svg>
+            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
+            <span className="text-stone-300 font-light select-none">×</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
+          </div>
+        </Link>
+
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
+          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
+          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
+          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
+          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
+          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <a 
+            href="https://github.com/AxWise-GmbH/Flow" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
+          >
+            <GitBranch className="w-3.5 h-3.5" />
+            Apache 2.0 OSS
+          </a>
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1C1917] hover:bg-stone-800 text-[#FCFAF7] rounded-md text-xs font-medium tracking-tight transition-all"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Main Gate
+          </Link>
+        </div>
+      </header>
+
+      {/* ----------------- Main Layout ----------------- */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-16 py-16 grid lg:grid-cols-12 gap-12">
+        
+        {/* Left column: Sidebar */}
+        <aside className="lg:col-span-3 space-y-8 lg:sticky lg:top-24 h-fit">
+          <div className="space-y-2">
+            <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">// API ENGINE v2.4</span>
+            <h2 className="font-serif text-2xl text-stone-900">Developer Docs</h2>
+          </div>
+          
+          <nav className="flex flex-col gap-2.5 text-sm">
+            <a href="#installation" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">1. Setup &amp; Docker</a>
+            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Simulate Twin</a>
+            <a href="#parse" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Parse &amp; Trace</a>
+            <a href="#rbac" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Secured Query</a>
+          </nav>
+
+          <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
+            <div className="flex items-center gap-1.5 text-stone-500 font-mono text-[10px]">
+              <Shield className="w-3 h-3 text-emerald-600" />
+              <span>COMPLIANCE STATUS</span>
+            </div>
+            <p className="text-stone-600 leading-normal">
+              Self-hosted executions prevent token leakages under the European AI Act.
+            </p>
+          </div>
+        </aside>
+
+        {/* Right column: Interactive API Content */}
+        <main className="lg:col-span-9 space-y-16">
+          
+          {/* Section 1: Installation */}
+          <section id="installation" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">1. Setup &amp; Docker Install</h2>
+              <p className="text-sm text-stone-500 mt-1">Spin up the headless FastAPI server locally or with our 1-click Docker setup.</p>
+            </div>
+
+            <p className="text-stone-700 text-sm leading-relaxed">
+              AxWise Flow is built as a highly structured, self-contained Python package. Run the pip installation 
+              command to configure local SQLite/Postgres pgvector grounding databases, or use the 1-click Docker 
+              setup to deploy instantly:
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
+                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Pip Install</div>
+                <span className="text-emerald-500 select-none mr-1.5">$</span>
+                <span className="text-stone-200">pip install axwise-flow-oss &amp;&amp; python -m axwise.server</span>
+              </div>
+              <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
+                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Docker 1-Click Setup</div>
+                <span className="text-emerald-500 select-none mr-1.5">$</span>
+                <span className="text-stone-200">docker run -d -p 8000:8000 axwise/flow-oss:latest</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 2: Simulate Twin */}
+          <section id="simulate" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">2. Simulate Twin Endpoint</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/research/simulation-bridge/simulate-enhanced</p>
+            </div>
+
+            <p className="text-stone-700 text-sm leading-relaxed">
+              Triggers a closed-loop E2E cognitive simulation. Leverages normal Gaussian distributions matching the 
+              corporate hierarchy of specific occupations to generate grounded psychographic OCEAN twin vectors.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
+                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
+{`import requests
+
+url = "http://localhost:8000/api/simulate-enhanced"
+payload = {
+    "occupation": "CFO",
+    "seniority_years": 15,
+    "regulatory_framework": "BaFin-MaRisk"
+}
+response = requests.post(url, json=payload)`}
+                </pre>
+              </div>
+
+              <div className="space-y-3 font-mono text-xs">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
+                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
+{`{
+  "status": "success",
+  "evaluated_age": 45.2,
+  "traits": {
+    "Conscientiousness": 0.93,
+    "Agreeableness": 0.33
+  },
+  "compliance_flags": ["BAFIN-LOG-OK"]
+}`}
+                </pre>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 3: Parse & Trace */}
+          <section id="parse" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">3. Parse &amp; Trace Evidence</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/research/parse-evidence</p>
+            </div>
+
+            <p className="text-stone-700 text-sm leading-relaxed">
+              Maintains deterministic evidence mappings by linking goals, workflows, and problems back to exact 
+              character index offset boundaries in raw user transcripts, fuzzy-correcting speech typos.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
+                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
+{`import requests
+
+url = "http://localhost:8000/api/parse-evidence"
+payload = {
+    "raw_transcript": "Lukas: Honestly, it's a completely manual mess. We use Excel spreadsheets..."
+}
+response = requests.post(url, json=payload)`}
+                </pre>
+              </div>
+
+              <div className="space-y-3 font-mono text-xs">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
+                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
+{`{
+  "status": "resolved",
+  "evidence_mappings": [
+    {
+      "key": "pain_points.sheets",
+      "phrase": "maintaining 45 spreadsheets",
+      "start_char": 150,
+      "end_char": 236
+    }
+  ]
+}`}
+                </pre>
+              </div>
+            </div>
+          </section>
+
+          {/* Section 4: Secured Query */}
+          <section id="rbac" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">4. Secured Query Vault</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/security/query-vault</p>
+            </div>
+
+            <p className="text-stone-700 text-sm leading-relaxed">
+              Validates developer identity credentials and clearance levels before injecting sensitive corporate documents 
+              to digital twins. Secures system boundaries against malicious context prompt injections.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
+                <pre className="bg-stone-50 p-3 rounded text-xs font-mono text-stone-800 overflow-x-auto">
+{`import requests
+
+url = "http://localhost:8000/api/query-vault"
+headers = {"Authorization": "Bearer dev_token_xyz"}
+payload = {
+    "resource": "finance/salary_ledger_2026.xlsx"
+}
+response = requests.post(url, headers=headers, json=payload)`}
+                </pre>
+              </div>
+
+              <div className="space-y-3 font-mono text-xs">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON]</span>
+                <pre className="bg-[#1A1A1A] p-3 rounded text-[11px] text-stone-400 overflow-x-auto">
+{`{
+  "status": "denied",
+  "user": "marcus_chen_dev",
+  "error": "Insufficient privileges. Required role: CFO",
+  "audit_trail_block": "0x42f88b"
+}`}
+                </pre>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center mt-12">
+        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div className="flex gap-6 mt-4 md:mt-0">
+          <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
+          <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>
+          <Link href="/impressum" className="hover:text-stone-300">Impressum</Link>
+        </div>
+      </footer>
+
+    </div>
+  );
+}

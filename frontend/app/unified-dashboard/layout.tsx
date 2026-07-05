@@ -58,12 +58,6 @@ function NavigationContent({ children }: { children: ReactNode }): JSX.Element {
   // Navigation items (following logical workflow order)
   const navItems: NavItem[] = [
     {
-      href: '/unified-dashboard/orqaly-console',
-      label: 'Orqaly Operations Console',
-      icon: Sparkles,
-      active: pathname === '/unified-dashboard/orqaly-console'
-    },
-    {
       href: '/unified-dashboard',
       label: 'Dashboard',
       icon: BarChart3,
