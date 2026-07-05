@@ -1364,7 +1364,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 </div>
 
                 {/* Right side mockups (WhatsApp & Slack Side-by-Side with Connector) */}
-                <div className="col-span-12 lg:col-span-8 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-0 w-full overflow-x-auto py-2">
+                <div id="real-chats-capture" className="col-span-12 lg:col-span-8 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-0 w-full overflow-x-auto py-2">
                   
                   {/* WhatsApp Simulation */}
                   <div className="w-[240px] bg-[#EFEAE2] border border-stone-200 rounded-2xl overflow-hidden shadow-md flex flex-col h-[400px] flex-shrink-0">
