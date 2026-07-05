@@ -299,7 +299,50 @@ async def orqaly_simulate_enhanced(
         )
 
     # Execute enhanced simulation synchronously with database persistence and parallel processing
-    return await orchestrator.simulate_with_persistence(request, user.user_id)
+    result = await orchestrator.simulate_with_persistence(request, user.user_id)
+
+    # Run Pipeline A's empirical facade over simulated transcripts to populate empirical_personas
+    if result and result.interviews and result.people:
+        try:
+            import os
+            from backend.api.research.simulation_bridge.services.data_formatter import DataFormatter
+            from backend.services.llm import LLMServiceFactory
+            from backend.services.persona_service import PersonaFormationService
+
+            logger.info(f"Closed-Loop Hybrid Loop: Formatting transcripts into segments for simulation {result.simulation_id}...")
+            formatter = DataFormatter()
+            segments = formatter.format_as_transcript_segments(
+                interviews=result.interviews,
+                personas=result.people,
+                simulation_id=result.simulation_id
+            )
+
+            logger.info("Closed-Loop Hybrid Loop: Initializing empirical PersonaFormationService...")
+            llm_service = LLMServiceFactory.create("enhanced_gemini")
+            persona_formation_service = PersonaFormationService(llm_service=llm_service)
+
+            # Ensure all traits, highlighting, and evidence linking V2 features are active
+            os.environ["EVIDENCE_LINKING_V2"] = "true"
+            os.environ["PERSONA_KEYWORD_HIGHLIGHTING"] = "true"
+            os.environ["PERSONA_TRAIT_FORMATTING"] = "true"
+
+            logger.info("Closed-Loop Hybrid Loop: Parsing structured segments to construct non-hallucinated ProductionPersonas...")
+            empirical_personas = await persona_formation_service.form_personas_from_transcript(
+                transcript=segments,
+                context={
+                    "industry": request.business_context.industry if request.business_context else "Logistics",
+                    "document_id": result.simulation_id,
+                    "filename": f"sim_session_{result.simulation_id}.json"
+                }
+            )
+
+            result.empirical_personas = empirical_personas
+            logger.info(f"Closed-Loop Hybrid Loop: Successfully constructed {len(empirical_personas)} trace-verified personas with offset coordinates!")
+
+        except Exception as e:
+            logger.error(f"Failed to execute Closed-Loop empirical remapping: {e}", exc_info=True)
+
+    return result
 
 
 @router.get(

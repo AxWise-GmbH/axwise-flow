@@ -271,6 +271,7 @@ class SimulationResponse(BaseModel):
     persona_analysis: Optional[PersonaAnalysisResult] = None  # Analysis results
     simulation_insights: Optional[SimulationInsights] = None
     recommendations: Optional[List[str]] = None
+    empirical_personas: Optional[List[Dict[str, Any]]] = None
 
     # Keep old field for backward compatibility during transition
     @property
