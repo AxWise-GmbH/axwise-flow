@@ -150,7 +150,7 @@ export default function DocsPage(): React.JSX.Element {
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/axwise-flow-oss" 
+            href="https://github.com/AxWise-GmbH/axwise-flow" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -214,7 +214,7 @@ export default function DocsPage(): React.JSX.Element {
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
                 <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Clone &amp; Run Local Server</div>
                 <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git &amp;&amp; cd axwise-flow-oss &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
+                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow.git &amp;&amp; cd axwise-flow &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
               </div>
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
                 <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Build &amp; Run Local Docker Container</div>
