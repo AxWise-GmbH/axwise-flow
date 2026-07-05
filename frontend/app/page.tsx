@@ -539,11 +539,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#10B981] select-none mr-2">$</span>
-                <span className="flex-1 text-stone-200">pip install axwise-flow-oss</span>
+                <span className="flex-1 text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git</span>
                 <button 
                   onClick={() => {
                     if (navigator?.clipboard) {
-                      navigator.clipboard.writeText('pip install axwise-flow-oss');
+                      navigator.clipboard.writeText('git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git');
                     }
                   }}
                   className="hover:text-white transition-colors p-1"
@@ -563,7 +563,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 <ChevronRight className="w-4 h-4" />
               </a>
               <a 
-                href="https://github.com/AxWise-GmbH/Flow" 
+                href="https://github.com/AxWise-GmbH/axwise-flow-oss" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="px-6 py-3 border border-stone-300 hover:border-stone-500 rounded-md font-medium text-sm text-stone-700 hover:text-stone-900 transition-all"
