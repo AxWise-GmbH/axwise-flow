@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
   description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
     shortcut: '/favicon.ico',
     apple: '/favicon.ico',
   },
