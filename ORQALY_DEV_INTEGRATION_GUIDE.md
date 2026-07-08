@@ -1,6 +1,6 @@
 # Orqaly ↔ AxWise Conditions Integration: End-to-End Implementation Guide
 
-This guide establishes the comprehensive technical blueprint for implementing the **Orqaly (Node.js/TypeScript/Supabase)** side of the Greenfield Conditions Evaluation integration. 
+This guide establishes the comprehensive technical blueprint for implementing the **Orqaly (Node.js/ESM/Supabase)** side of the Greenfield Conditions Evaluation integration. 
 
 By offloading cognitive reasoning (OCEAN modeling, jailbreak scanning, advisory RBAC, and post-hoc sentence grounding) to the self-hosted **AxWise Flow Engine (Python)**, Orqaly functions strictly as a high-performance execution plane (CRUD, sandboxed runtimes, rate limits, and billing metrics).
 
@@ -26,7 +26,7 @@ By offloading cognitive reasoning (OCEAN modeling, jailbreak scanning, advisory 
 
 ## 🔑 Environment Configuration (`.env`)
 
-To establish secure system-to-system communication, both environments must be configured with the identical shared secret.
+To establish secure system-to-system communication, both environments must be configured with the identical shared secret. **Never commit actual production keys in plain-text code files or repositories.**
 
 ### A. Orqaly Server Environment (`.env`)
 Add these variables to Orqaly's secure vault or local configuration:
@@ -34,28 +34,29 @@ Add these variables to Orqaly's secure vault or local configuration:
 # AxWise Flow Engine target URL (Production server is hosted at api.axwise.de)
 AXWISE_API_URL="https://api.axwise.de/api/orqaly-axwise/v1"
 
-# Shared Machine-to-Machine Secret Key
-AXWISE_API_KEY="axwise_secure_prod_key_77a1bc92e49fd711823"
+# Shared Machine-to-Machine Secret Key (Set securely in environment vaults)
+AXWISE_API_KEY="<YOUR_SECURE_M2M_SECRET_KEY>"
 
 # Integration switches:
 # AXWISE_ENABLE: Bypasses network call entirely when false, falling back to local heuristics
 AXWISE_ENABLE="true"
 
 # AXWISE_ENFORCE: "shadow" logs decisions side-by-side; "authoritative" enforces AxWise security blocks
-AXWISE_ENFORCE="authoritative"
+# Always default to "shadow" on initial rollout to verify latency before swapping to authoritative
+AXWISE_ENFORCE="shadow"
 ```
 
 ### B. AxWise Server Environment (`backend/.env.oss`)
 Set the matching secret in the AxWise environment:
 ```bash
-AXWISE_API_KEY="axwise_secure_prod_key_77a1bc92e49fd711823"
+AXWISE_API_KEY="<YOUR_SECURE_M2M_SECRET_KEY>"
 ```
 
 ---
 
 ## 📁 Directory Structure & Module Layout
 
-Implement the integration logic inside a single, isolated module within Orqaly's service directory to avoid architectural sprawl:
+Implement the integration logic inside a single, isolated module within Orqaly's service directory as an **ES Module (`"type": "module"`)**:
 
 ```text
 lib/integrations/axwise/
@@ -127,13 +128,13 @@ Maintain these schema models inside `lib/integrations/axwise/types.js` to ensure
 ## 🚀 Greenfield Client Implementation Code
 
 ### 1. The HTTP Gateway Client (`client.js`)
-Handles raw network delivery, timeout parameters, retries, and errors following a zero-dependency pattern:
+Handles raw network delivery, timeout parameters, retries, and errors using standard ESM exports and correct `fetchWithRetry` signature:
 
 ```javascript
 // lib/integrations/axwise/client.js
-const { fetchWithRetry } = require('../../api/_lib/fetch'); // Or your existing HTTP client helper
+import { fetchWithRetry } from '../../api/_lib/fetch.js';
 
-async function evaluateConditions(integrationPoint, requestId, tenant, payload) {
+export async function evaluateConditions(integrationPoint, requestId, tenant, payload) {
   const apiUrl = process.env.AXWISE_API_URL;
   const apiKey = process.env.AXWISE_API_KEY;
 
@@ -141,21 +142,27 @@ async function evaluateConditions(integrationPoint, requestId, tenant, payload) 
     throw new Error('Integration Error: Missing AXWISE_API_URL or AXWISE_API_KEY in environment.');
   }
 
-  const response = await fetchWithRetry(`${apiUrl}/conditions/evaluate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-axwise-key': apiKey
+  // Real Signature: fetchWithRetry(url, options, config)
+  const response = await fetchWithRetry(
+    `${apiUrl}/conditions/evaluate`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-axwise-key': apiKey
+      },
+      body: JSON.stringify({
+        integrationPoint,
+        requestId,
+        tenant,
+        payload
+      })
     },
-    body: JSON.stringify({
-      integrationPoint,
-      requestId,
-      tenant,
-      payload
-    }),
-    timeoutMs: integrationPoint === 'copilot.chat' ? 3000 : 8000,
-    retries: 1
-  });
+    {
+      timeoutMs: integrationPoint === 'copilot.chat' ? 3000 : 8000,
+      retries: 1
+    }
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -164,8 +171,6 @@ async function evaluateConditions(integrationPoint, requestId, tenant, payload) 
 
   return response.json();
 }
-
-module.exports = { evaluateConditions };
 ```
 
 ### 2. The Token-Conservation Pre-Classifier (`pre-classifier.js`)
@@ -173,10 +178,9 @@ Filters out smalltalk, database reads, and billing questions locally before trig
 
 ```javascript
 // lib/integrations/axwise/pre-classifier.js
-const { matchSmalltalk } = require('../../communicator-handlers/smalltalk');
-const { isReadTool } = require('../../api-handlers/assistant-chat');
+import { matchSmalltalk } from '../../communicator-handlers/smalltalk.js';
 
-function shouldEvaluate(integrationPoint, payload) {
+export function shouldEvaluate(integrationPoint, payload) {
   if (integrationPoint !== 'copilot.chat') {
     return true; // Force evaluation for create/generate/ground points
   }
@@ -196,8 +200,6 @@ function shouldEvaluate(integrationPoint, payload) {
 
   return true;
 }
-
-module.exports = { shouldEvaluate };
 ```
 
 ### 3. Graceful Hybrid Degradation (`degrade.js`)
@@ -205,10 +207,10 @@ Implements the fail-safe wrapper managing `fail-closed` (for security/generation
 
 ```javascript
 // lib/integrations/axwise/degrade.js
-const { evaluateConditions } = require('./client');
-const { shouldEvaluate } = require('./pre-classifier');
+import { evaluateConditions } from './client.js';
+import { shouldEvaluate } from './pre-classifier.js';
 
-async function withAxwise(integrationPoint, requestId, tenant, payload, fallbackFn, options = {}) {
+export async function withAxwise(integrationPoint, requestId, tenant, payload, fallbackFn, options = {}) {
   const { posture = 'open' } = options;
 
   // 1. Check if the integration switch is toggled active
@@ -250,8 +252,32 @@ async function withAxwise(integrationPoint, requestId, tenant, payload, fallback
     };
   }
 }
+```
 
-module.exports = { withAxwise };
+### 4. Direct Cost Ledger Tracking (`tracked.js`)
+Registers actual token usage / API expenditure directly inside the unified `llm_usage` ledger using standard Supabase schemas:
+
+```javascript
+// lib/integrations/axwise/tracked.js
+import { buildSupabaseAdminClient } from '../../api/_lib/supabase.js';
+
+export async function recordAxWiseUsage(userId, integrationPoint, meta) {
+  if (!meta || meta.degraded) return;
+  
+  try {
+    const admin = buildSupabaseAdminClient();
+    await admin.from('llm_usage').insert({
+      user_id: userId,
+      source: 'axwise',
+      operation: integrationPoint,
+      model: meta.model || 'enhanced_gemini',
+      cost: meta.cost || 0.0,
+      tokens: 0 // Default fallback for cognitive evaluation metrics
+    });
+  } catch (err) {
+    console.error('Failed recording AxWise expenditure metrics:', err);
+  }
+}
 ```
 
 ---
@@ -259,13 +285,20 @@ module.exports = { withAxwise };
 ## 🔌 Wiring & Integration Points
 
 ### 1. Consilium Creation (`lib/concilium-handlers/boards.js`)
-Before saving a board record, intercept to obtain governance quorum and compliance frameworks:
+Before saving a board record, intercept to obtain governance defaults and compliance frameworks. Resolves users and writes split governance thresholds across canonical database tables (`concilium` and `concilium_consensus_rules`):
 
 ```javascript
 // Inside boards.js - POST board handler
-const uuidVal = uuidv4();
-const tenant = { userId: req.user.id, orgId: req.user.orgId };
+import { withAxwise } from '../integrations/axwise/degrade.js';
+import { verifySupabaseToken, getBearerToken } from '../api/_lib/auth.js';
+import { buildSupabaseAdminClient } from '../api/_lib/supabase.js';
 
+// Resolve caller using the authoritative auth tokens
+const user = await verifySupabaseToken(getBearerToken(req));
+const resolvedOrgId = req.body.orgId || null; // Resolved based on active user context
+const tenant = { userId: user.id, orgId: resolvedOrgId };
+
+const uuidVal = uuidv4();
 const fallback = () => ({
   processedOutputs: {
     governance: { consensus_type: "majority", quorum: 3, approval_threshold: 0.66, split_decision_strategy: "escalate" }
@@ -281,34 +314,47 @@ const result = await withAxwise(
   { posture: 'open' }
 );
 
-// Merge outputs into database insertion (Respect user explicitly chosen overrides)
-const finalGovernance = {
-  consensus_type: consensus_type || result.processedOutputs.governance.consensus_type,
-  quorum: quorum || result.processedOutputs.governance.quorum,
-  approval_threshold: approval_threshold || result.processedOutputs.governance.approval_threshold,
-};
-
-// Write the audit audit trail and outputs into the dedicated `axwise` JSONB column
-await db('concilium').insert({
-  ...finalGovernance,
+// 1. Save thresholds to Board metadata
+const admin = buildSupabaseAdminClient();
+const boardInsert = await admin.from('concilium').insert({
+  name,
+  purpose,
+  description,
+  user_id: user.id,
+  org_id: resolvedOrgId,
   axwise: {
     requestId: uuidVal,
     applicableConditions: result.applicableConditions,
     processedOutputs: result.processedOutputs
   }
+}).select('*').single();
+
+// 2. Save consensus metrics to canonical concilium_consensus_rules table
+const gov = result.processedOutputs?.governance;
+await admin.from('concilium_consensus_rules').insert({
+  board_id: boardInsert.data.id,
+  consensus_type: gov?.consensus_type || "majority",
+  quorum: gov?.quorum || 3,
+  approval_threshold: gov?.approval_threshold || 0.66,
+  split_decision_strategy: gov?.split_decision_strategy || "owner_escalation"
 });
 ```
 
 ---
 
 ### 2. On-Demand Agent Generation (`lib/concilium-handlers/agent-factory.js`)
-Intercept generation to run jailbreak scanning. If security output is blocked, halt execution (`fail-closed`):
+Intercept generation to run jailbreak scanning. Authoritative validation and RLS checks remain locally within Orqaly, with AxWise auditing serving as an advisory gate:
 
 ```javascript
 // Inside agent-factory.js - Agent builder
-const uuidVal = uuidv4();
-const tenant = { userId: req.user.id, orgId: req.user.orgId };
+import { withAxwise } from '../integrations/axwise/degrade.js';
+import { verifySupabaseToken, getBearerToken } from '../api/_lib/auth.js';
+import { buildSupabaseAdminClient } from '../api/_lib/supabase.js';
 
+const user = await verifySupabaseToken(getBearerToken(req));
+const tenant = { userId: user.id, orgId: resolvedOrgId };
+
+const uuidVal = uuidv4();
 const result = await withAxwise(
   'agent.generate',
   uuidVal,
@@ -318,63 +364,83 @@ const result = await withAxwise(
   { posture: 'closed' } // Fail-Closed
 );
 
-// Enforce security verdict if AXWISE_ENFORCE is authoritative
+// Perform Advisory Security enforcement if AXWISE_ENFORCE is authoritative
 const security = result.processedOutputs?.security;
 if (process.env.AXWISE_ENFORCE === 'authoritative' && security?.scopeDecision === 'denied') {
-  throw new Error(`Security Violation: ${security.blockReason}`);
+  // If degraded: true, Orqaly overrides decision to fail-closed
+  throw new Error(`Security Violation blocked by AxWise: ${security.blockReason}`);
 }
 
-// Proceed to compile system prompt with the authorized systemPromptFragment
+// ALWAYS retain local guardUserContent() and RLS as the core authoritative safety gateway
+await guardUserContent(config.system_prompt);
+
+// Prepend systemPromptFragment instructions
 const finalPrompt = `${result.processedOutputs?.systemPromptFragment || ''}\n${config.system_prompt}`;
 
-await db('concilium_agents').insert({
+const admin = buildSupabaseAdminClient();
+await admin.from('concilium_agents').insert({
   system_prompt: finalPrompt,
-  axwise: result // Store full transaction payload for governance audits
+  user_id: user.id,
+  axwise: result // Store full transaction details for audit trails
 });
 ```
 
 ---
 
 ### 3. Copilot Chat Loop (`lib/agent-handlers/copilot.js`)
-Front the chat loop to apply tone modification system fragments:
+Front the chat loop to apply tone modification system fragments, while keeping security guards intact:
 
 ```javascript
 // Inside copilot.js
+import { withAxwise } from '../integrations/axwise/degrade.js';
+import { recordAxWiseUsage } from '../integrations/axwise/tracked.js';
+
 const uuidVal = uuidv4();
-const tenant = { userId: req.user.id, orgId: req.user.orgId };
+const tenant = { userId: user.id, orgId: resolvedOrgId };
+
+// Always retain local guardUserContent as the primary, authoritative access checker
+await guardUserContent(message);
 
 const result = await withAxwise(
   'copilot.chat',
   uuidVal,
   tenant,
-  { message, history, active_twin_id: activeTwinId, sender_role: req.user.role },
+  { message, history, active_twin_id: activeTwinId, sender_role: req.body.userRole || 'admin' },
   () => ({
     processedOutputs: { systemPromptFragment: "Respond helpfully and politely." }
   }),
   { posture: 'open' }
 );
 
-// 1. Verify advisory checks
+// Enforce Advisory Verdict
 if (process.env.AXWISE_ENFORCE === 'authoritative' && result.processedOutputs?.security?.scopeDecision === 'denied') {
   return sendBlockedUIResponse(result.processedOutputs.security.blockReason);
 }
 
-// 2. Prepend systemPromptFragment to the final LLM prompt payload
+// Log execution costs to llm_usage ledger
+if (result.meta) {
+  await recordAxWiseUsage(user.id, 'copilot.chat', result.meta);
+}
+
+// Prepend systemPromptFragment to the final LLM prompt payload
 const promptWithPersona = `${result.processedOutputs.systemPromptFragment}\n${systemPrompt}`;
 const draftAnswer = await executeLocalLlm(promptWithPersona, message, history);
 
-// 3. Trigger Post-Hoc Grounding Verification (Asynchronously to avoid blocking response delivery)
-triggerAsyncGrounding(draftAnswer, groundedResources, tenant, uuidVal);
+// Post-Hoc Asynchronous sentence-grounding checks (Bypasses hot-path execution queue)
+triggerAsyncGrounding(draftAnswer, groundedResources, tenant, user.id, uuidVal);
 
 return sendResponseToUser(draftAnswer);
 ```
 
 ### 4. Async Post-Hoc Grounding (`copilot.ground`)
-Trigger the evaluation asynchronously after delivering the message, and push precision highlights or citations once matched:
+Trigger the evaluation asynchronously after delivering the message, and push precision highlights or citations once matched using the correct `draft_response` schema contract parameter:
 
 ```javascript
 // Asynchronous Grounding Event loop
-async function triggerAsyncGrounding(draftResponse, groundedResources, tenant, originalRequestId) {
+import { evaluateConditions } from '../integrations/axwise/client.js';
+import { recordAxWiseUsage } from '../integrations/axwise/tracked.js';
+
+async function triggerAsyncGrounding(draftResponse, groundedResources, tenant, userId, originalRequestId) {
   try {
     const result = await evaluateConditions(
       'copilot.ground',
@@ -387,6 +453,10 @@ async function triggerAsyncGrounding(draftResponse, groundedResources, tenant, o
     if (grounding && grounding.offsets.length > 0) {
       // Broadcast offset metrics and matched source files via WebSockets or push updates
       pushCitationsToClient(originalRequestId, grounding.offsets);
+    }
+    
+    if (result.meta) {
+      await recordAxWiseUsage(userId, 'copilot.ground', result.meta);
     }
   } catch (err) {
     console.error('Failed executing async grounding checks:', err);
