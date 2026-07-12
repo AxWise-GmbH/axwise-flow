@@ -5,6 +5,7 @@
 import { apiCore } from './core';
 import { DetailedAnalysisResult } from './types';
 import { getAnalysisById } from './results-detail';
+import { checkAnalysisStatus } from './analysis';
 
 /**
  * Get analysis by ID with polling until completion
@@ -23,11 +24,14 @@ export async function getAnalysisByIdWithPolling(
 
   while (attempts < maxAttempts) {
     try {
-      const result = await getAnalysisById(id);
+      const status = await checkAnalysisStatus(id);
 
-      // If analysis is completed, return it
-      if (result.status === 'completed') {
-        return result;
+      // Fetch results only after the authoritative completion transaction commits.
+      if (status.status === 'completed' && status.completed_at) {
+        return await getAnalysisById(id);
+      }
+      if (status.status === 'failed') {
+        throw new Error(status.error || 'Analysis failed');
       }
 
       // Otherwise wait for the specified interval

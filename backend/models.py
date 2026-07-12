@@ -8,6 +8,8 @@ from sqlalchemy import (
     ForeignKey,
     Text,
     Float,
+    Boolean,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, sessionmaker, foreign
@@ -258,6 +260,8 @@ class SimulationData(Base):
     interviews = Column(JSON)  # List of completed interviews
     insights = Column(JSON)  # Generated insights
     formatted_data = Column(JSON)  # Analysis-ready data
+    empirical_personas = Column(JSON, nullable=True)
+    hybrid_metadata = Column(JSON, nullable=True)
 
     # Metadata
     total_personas = Column(Integer, default=0)
@@ -286,7 +290,15 @@ class PipelineRun(Base):
     """
 
     __tablename__ = "pipeline_runs"
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "idempotency_key",
+            name="uq_pipeline_runs_partner_org_idempotency",
+        ),
+        {"extend_existing": True},
+    )
     __module__ = "backend.models"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -317,6 +329,24 @@ class PipelineRun(Base):
     persona_count = Column(Integer, nullable=True)
     interview_count = Column(Integer, nullable=True)
 
+    # Orqaly asynchronous hybrid-run contract
+    partner_id = Column(String, nullable=True, index=True)
+    external_org_id = Column(String, nullable=True, index=True)
+    external_user_id = Column(String, nullable=True)
+    pipeline_mode = Column(String, nullable=True, default="hybrid_a_plus_b")
+    current_stage = Column(String, nullable=True, default="queued")
+    progress_percentage = Column(Integer, nullable=False, default=0)
+    request_id = Column(String, nullable=True, index=True)
+    idempotency_key = Column(String, nullable=True)
+    request_hash = Column(String, nullable=True)
+    request_payload = Column(JSON, nullable=True)
+    requested_outputs = Column(JSON, nullable=True)
+    callback_config = Column(JSON, nullable=True)
+    result_summary = Column(JSON, nullable=True)
+    warning = Column(Text, nullable=True)
+    attempt_count = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
     user = relationship("User", viewonly=True)
 
     @property
@@ -332,6 +362,33 @@ class PipelineRun(Base):
         if self.completed_at and self.created_at:
             return int((self.completed_at - self.created_at).total_seconds() / 60)
         return None
+
+
+class OrqalyTenantMapping(Base):
+    """Maps an authenticated Orqaly tenant to an AxWise-owned workspace."""
+
+    __tablename__ = "orqaly_tenant_mappings"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            name="uq_orqaly_tenant_mapping",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    partner_id = Column(String, nullable=False, index=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+    user = relationship("User", viewonly=True)
 
 
 import uuid
@@ -411,4 +468,3 @@ class PersonaKnowledgeChunk(Base):
     embedding = Column(PortableVector(768), nullable=False)
     chunk_metadata = Column("metadata", JSON, nullable=True)
     created_at = Column(DateTime, default=utc_now)
-

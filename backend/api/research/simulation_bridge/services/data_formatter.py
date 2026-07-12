@@ -68,6 +68,7 @@ class DataFormatter:
             persona = persona_map.get(interview.person_id)
             speaker_name = persona.name if persona else "Participant"
             stakeholder_role = interview.stakeholder_type
+            document_id = f"sim_session_{simulation_id}_{interview.person_id}"
 
             for response in interview.responses:
                 # Turn 1: Interviewer Question
@@ -75,7 +76,7 @@ class DataFormatter:
                     "speaker_id": "Interviewer",
                     "role": "interviewer",
                     "dialogue": response.question,
-                    "document_id": f"sim_session_{simulation_id}"
+                    "document_id": document_id
                 })
 
                 # Turn 2: Persona Verbatim Response
@@ -83,7 +84,7 @@ class DataFormatter:
                     "speaker_id": speaker_name,
                     "role": "participant",
                     "dialogue": response.response,
-                    "document_id": f"sim_session_{simulation_id}"
+                    "document_id": document_id
                 })
 
         return segments

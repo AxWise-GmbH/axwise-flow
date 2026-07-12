@@ -30,6 +30,7 @@ from .services.file_processor import (
     FileProcessingRequest,
     FileProcessingResult,
 )
+from .services.closed_loop_hybrid import enrich_with_empirical_personas
 from backend.utils.structured_logger import request_start, request_end, request_error
 from pydantic_ai.models.google import GoogleModel
 from backend.models import User
@@ -284,8 +285,11 @@ async def simulate_interviews_enhanced(
                 detail="Both questions_data and business_context are required",
             )
 
-        # Use enhanced simulation with persistence and parallel processing
+        # Pipeline B: generate people and interviews.
         result = await orchestrator.simulate_with_persistence(request, user.user_id)
+
+        # Pipeline A: remap every transcript into audited, offset-linked personas.
+        result = await enrich_with_empirical_personas(result, request)
 
         request_end(
             endpoint,
@@ -1429,5 +1433,4 @@ async def search_grounding_context(
     except Exception as e:
         logger.error(f"Error querying grounding context for partition {partition_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
 

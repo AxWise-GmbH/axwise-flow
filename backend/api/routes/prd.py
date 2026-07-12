@@ -68,10 +68,23 @@ async def generate_prd(
 
         # Check if analysis is complete
         if analysis_results.get("status") != "completed":
-            raise HTTPException(status_code=400, detail="Analysis is not yet complete")
+            raise HTTPException(status_code=409, detail="Analysis is not yet complete")
 
         # Get results data
         results_data = analysis_results.get("results", {})
+        evidence_collections = (
+            "themes",
+            "enhanced_themes",
+            "patterns",
+            "personas",
+            "insights",
+            "prioritizedInsights",
+        )
+        if not any(results_data.get(key) for key in evidence_collections):
+            raise HTTPException(
+                status_code=409,
+                detail="Analysis completed without sufficient evidence to generate a PRD",
+            )
 
         # Create PRD generation service with enhanced_gemini provider, database session, and user
         llm_service = LLMServiceFactory.create("enhanced_gemini")

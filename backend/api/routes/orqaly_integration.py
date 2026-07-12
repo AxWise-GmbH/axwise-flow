@@ -8,6 +8,7 @@ import time
 import logging
 import uuid
 import re
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from collections import OrderedDict
@@ -15,14 +16,24 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Header, status
 from fastapi.responses import JSONResponse
 from rapidfuzz import fuzz
+from sqlalchemy.orm import Session
 
-from backend.models import User
+from backend.database import SessionLocal, get_db
+from backend.models import OrqalyTenantMapping, PipelineRun, User
 from backend.services.external.auth_middleware import get_current_user
 from backend.api.research.simulation_bridge.models import (
     SimulationRequest,
     SimulationResponse,
 )
 from backend.api.research.simulation_bridge.router import orchestrator, get_completed_simulation
+from backend.api.research.simulation_bridge.services.closed_loop_hybrid import (
+    enrich_with_empirical_personas,
+)
+from backend.services.orqaly_hybrid_run_service import (
+    HybridOutputs,
+    HybridRunService,
+    TERMINAL_STATUSES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +73,13 @@ async def verify_service_key(
     """
     Validates machine-to-machine requests using the shared x-axwise-key header with constant-time verification.
     """
-    expected_key = os.getenv("AXWISE_API_KEY", "axwise_orqaly_sec_key_2026_982bf")
+    expected_key = os.getenv("AXWISE_API_KEY")
+    if not expected_key:
+        logger.error("AXWISE_API_KEY is not configured for service-to-service requests")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service authentication is not configured",
+        )
     if not x_axwise_key:
         logger.warning("Authentication failed: Missing x-axwise-key header")
         raise HTTPException(
@@ -77,7 +94,6 @@ async def verify_service_key(
             detail="Unauthorized: Invalid service key",
             headers={"WWW-Authenticate": "ApiKey"},
         )
-    return x_axwise_key
     return x_axwise_key
 
 
@@ -103,6 +119,42 @@ class ExecutionMode(str, Enum):
 class TenantContext(BaseModel):
     userId: str = Field(..., description="Unique user ID from Orqaly")
     orgId: str = Field(..., description="Unique organization/tenant ID")
+
+
+class OrqalyHybridAsyncRequest(SimulationRequest):
+    """Production contract for a durable Orqaly A+B research run."""
+
+    tenant: TenantContext
+    outputs: HybridOutputs = Field(default_factory=HybridOutputs)
+
+
+def _resolve_orqaly_tenant_user(
+    db: Session, tenant: TenantContext, partner_id: str = "orqaly"
+) -> User:
+    """Resolve an external tenant through a persisted, active ownership mapping."""
+    mapping = (
+        db.query(OrqalyTenantMapping)
+        .filter(
+            OrqalyTenantMapping.partner_id == partner_id,
+            OrqalyTenantMapping.external_org_id == tenant.orgId,
+            OrqalyTenantMapping.external_user_id == tenant.userId,
+            OrqalyTenantMapping.active.is_(True),
+        )
+        .first()
+    )
+    if not mapping:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Orqaly tenant is not mapped to an AxWise workspace",
+        )
+    user = db.query(User).filter(User.user_id == mapping.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mapped AxWise workspace is unavailable",
+        )
+    return user
+
 
 class ConditionsEvaluationRequest(BaseModel):
     integrationPoint: IntegrationPoint = Field(..., description="Trigger point of evaluation")
@@ -726,6 +778,151 @@ async def verify_rbac_access(
 # ----------------- 4. Secure E2E Persona Simulation & Orchestration Endpoints -----------------
 
 @router.post(
+    "/simulate-enhanced-async",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Production Orqaly Async Closed-Loop A+B Research Run",
+    description="Queues a durable Pipeline B plus Pipeline A research run. Completion is published only after empirical personas, exact evidence offsets, and requested deliverables have been persisted.",
+)
+async def orqaly_simulate_enhanced_async(
+    request: OrqalyHybridAsyncRequest,
+    x_axwise_key: str = Depends(verify_service_key),
+    idempotency_key: str = Header(..., alias="Idempotency-Key"),
+    request_id: Optional[str] = Header(None, alias="X-Request-ID"),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Create or reuse a tenant-owned durable A+B research job."""
+    if not idempotency_key.strip():
+        raise HTTPException(status_code=400, detail="Idempotency-Key must not be empty")
+    resolved_user = _resolve_orqaly_tenant_user(db, request.tenant)
+    service = HybridRunService(orchestrator)
+    simulation_request = SimulationRequest(
+        questions_data=request.questions_data,
+        business_context=request.business_context,
+        raw_questionnaire_content=request.raw_questionnaire_content,
+        config=request.config,
+        callback_url=request.callback_url,
+    )
+    try:
+        run, reused = service.enqueue(
+            request=simulation_request,
+            outputs=request.outputs,
+            user=resolved_user,
+            external_org_id=request.tenant.orgId,
+            external_user_id=request.tenant.userId,
+            idempotency_key=idempotency_key.strip(),
+            request_id=request_id or str(uuid.uuid4()),
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        raise HTTPException(
+            status_code=(status.HTTP_409_CONFLICT if "Idempotency" in detail else 422),
+            detail=detail,
+        )
+
+    base = "/api/orqaly-axwise/v1"
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "success": True,
+            "job_id": run.job_id,
+            "simulation_id": run.simulation_id,
+            "request_id": run.request_id,
+            "status": run.status,
+            "pipeline": "hybrid_a_plus_b",
+            "reused": reused,
+            "links": {
+                "status": f"{base}/runs/{run.job_id}/status",
+                "result": f"{base}/runs/{run.job_id}",
+                "cancel": f"{base}/runs/{run.job_id}/cancel",
+            },
+        },
+    )
+
+
+def _tenant_from_headers(
+    x_orqaly_org_id: str = Header(..., alias="X-Orqaly-Org-ID"),
+    x_orqaly_user_id: str = Header(..., alias="X-Orqaly-User-ID"),
+) -> TenantContext:
+    return TenantContext(orgId=x_orqaly_org_id, userId=x_orqaly_user_id)
+
+
+@router.get(
+    "/runs/{job_id}/status",
+    summary="Orqaly Async A+B Job Status",
+)
+async def orqaly_hybrid_run_status(
+    job_id: str,
+    tenant: TenantContext = Depends(_tenant_from_headers),
+    x_axwise_key: str = Depends(verify_service_key),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    user = _resolve_orqaly_tenant_user(db, tenant)
+    run = HybridRunService(orchestrator).get_run_for_tenant(
+        job_id, user.user_id, tenant.orgId
+    )
+    if not run:
+        raise HTTPException(status_code=404, detail="Hybrid research run not found")
+    return HybridRunService.serialize_run(run, include_result=False)
+
+
+@router.get(
+    "/runs/{job_id}",
+    summary="Orqaly Async A+B Completed Result",
+)
+async def orqaly_hybrid_run_result(
+    job_id: str,
+    tenant: TenantContext = Depends(_tenant_from_headers),
+    x_axwise_key: str = Depends(verify_service_key),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    user = _resolve_orqaly_tenant_user(db, tenant)
+    run = HybridRunService(orchestrator).get_run_for_tenant(
+        job_id, user.user_id, tenant.orgId
+    )
+    if not run:
+        raise HTTPException(status_code=404, detail="Hybrid research run not found")
+    if run.status not in {"completed", "completed_with_warnings"}:
+        raise HTTPException(status_code=409, detail="Hybrid research run is not complete")
+    return HybridRunService.serialize_run(run, include_result=True)
+
+
+@router.post(
+    "/runs/{job_id}/cancel",
+    summary="Cancel an Orqaly Async A+B Job",
+)
+async def cancel_orqaly_hybrid_run(
+    job_id: str,
+    tenant: TenantContext = Depends(_tenant_from_headers),
+    x_axwise_key: str = Depends(verify_service_key),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    user = _resolve_orqaly_tenant_user(db, tenant)
+    session = SessionLocal()
+    try:
+        run = (
+            session.query(PipelineRun)
+            .filter(
+                PipelineRun.job_id == job_id,
+                PipelineRun.partner_id == "orqaly",
+                PipelineRun.external_org_id == tenant.orgId,
+                PipelineRun.user_id == user.user_id,
+            )
+            .first()
+        )
+        if not run:
+            raise HTTPException(status_code=404, detail="Hybrid research run not found")
+        if run.status in TERMINAL_STATUSES:
+            raise HTTPException(status_code=409, detail="Hybrid research run is already terminal")
+        run.status = "cancelled"
+        run.current_stage = "cancelled"
+        run.completed_at = datetime.now(timezone.utc)
+        run.updated_at = datetime.now(timezone.utc)
+        session.commit()
+        return {"success": True, "job_id": job_id, "status": "cancelled"}
+    finally:
+        session.close()
+
+@router.post(
     "/simulate-async",
     summary="Orqaly Secure Async Simulation Gateway",
     description="Starts a multi-tenant asynchronous simulation with progress callbacks. If callback_url is provided, real-time HTTP POST progress events are streamed back to Orqaly."
@@ -806,48 +1003,9 @@ async def orqaly_simulate_enhanced(
     # Execute enhanced simulation synchronously with database persistence and parallel processing
     result = await orchestrator.simulate_with_persistence(request, user.user_id)
 
-    # Run Pipeline A's empirical facade over simulated transcripts to populate empirical_personas
-    if result and result.interviews and result.people:
-        try:
-            import os
-            from backend.api.research.simulation_bridge.services.data_formatter import DataFormatter
-            from backend.services.llm import LLMServiceFactory
-            from backend.services.persona_service import PersonaFormationService
-
-            logger.info(f"Closed-Loop Hybrid Loop: Formatting transcripts into segments for simulation {result.simulation_id}...")
-            formatter = DataFormatter()
-            segments = formatter.format_as_transcript_segments(
-                interviews=result.interviews,
-                personas=result.people,
-                simulation_id=result.simulation_id
-            )
-
-            logger.info("Closed-Loop Hybrid Loop: Initializing empirical PersonaFormationService...")
-            llm_service = LLMServiceFactory.create("enhanced_gemini")
-            persona_formation_service = PersonaFormationService(llm_service=llm_service)
-
-            # Ensure all traits, highlighting, and evidence linking V2 features are active
-            os.environ["EVIDENCE_LINKING_V2"] = "true"
-            os.environ["PERSONA_KEYWORD_HIGHLIGHTING"] = "true"
-            os.environ["PERSONA_TRAIT_FORMATTING"] = "true"
-
-            logger.info("Closed-Loop Hybrid Loop: Parsing structured segments to construct non-hallucinated ProductionPersonas...")
-            empirical_personas = await persona_formation_service.form_personas_from_transcript(
-                transcript=segments,
-                context={
-                    "industry": request.business_context.industry if request.business_context else "Logistics",
-                    "document_id": result.simulation_id,
-                    "filename": f"sim_session_{result.simulation_id}.json"
-                }
-            )
-
-            result.empirical_personas = empirical_personas
-            logger.info(f"Closed-Loop Hybrid Loop: Successfully constructed {len(empirical_personas)} trace-verified personas with offset coordinates!")
-
-        except Exception as e:
-            logger.error(f"Failed to execute Closed-Loop empirical remapping: {e}", exc_info=True)
-
-    return result
+    # Use the same strict Pipeline A enrichment as the public enhanced endpoint.
+    # An advertised A+B request must not silently degrade to Pipeline B only.
+    return await enrich_with_empirical_personas(result, request)
 
 
 @router.get(

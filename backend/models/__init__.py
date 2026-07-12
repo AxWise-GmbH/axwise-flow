@@ -70,6 +70,7 @@ def _get_sqlalchemy_models():
                 "CachedPRD": getattr(backend_models, "CachedPRD", None),
                 "SimulationData": getattr(backend_models, "SimulationData", None),
                 "PipelineRun": getattr(backend_models, "PipelineRun", None),
+                "OrqalyTenantMapping": getattr(backend_models, "OrqalyTenantMapping", None),
                 "DigitalTwin": getattr(backend_models, "DigitalTwin", None),
                 "PersonaKnowledgeChunk": getattr(backend_models, "PersonaKnowledgeChunk", None),
             }
@@ -82,6 +83,7 @@ def _get_sqlalchemy_models():
                 "CachedPRD": None,
                 "SimulationData": None,
                 "PipelineRun": None,
+                "OrqalyTenantMapping": None,
                 "DigitalTwin": None,
                 "PersonaKnowledgeChunk": None,
             }
@@ -100,6 +102,7 @@ def _get_sqlalchemy_models():
             "CachedPRD": None,
             "SimulationData": None,
             "PipelineRun": None,
+            "OrqalyTenantMapping": None,
             "DigitalTwin": None,
             "PersonaKnowledgeChunk": None,
         }
@@ -116,6 +119,7 @@ Persona = _models["Persona"]
 CachedPRD = _models["CachedPRD"]
 SimulationData = _models["SimulationData"]
 PipelineRun = _models["PipelineRun"]
+OrqalyTenantMapping = _models["OrqalyTenantMapping"]
 DigitalTwin = _models["DigitalTwin"]
 PersonaKnowledgeChunk = _models["PersonaKnowledgeChunk"]
 
@@ -148,6 +152,7 @@ __all__ = [
     "CachedPRD",
     "SimulationData",
     "PipelineRun",
+    "OrqalyTenantMapping",
     "DigitalTwin",
     "PersonaKnowledgeChunk",
 ]
