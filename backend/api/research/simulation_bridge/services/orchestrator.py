@@ -359,6 +359,7 @@ class SimulationOrchestrator:
         request: SimulationRequest,
         user_id: str = "testuser123",
         simulation_id: Optional[str] = None,
+        finalize: bool = True,
     ) -> SimulationResponse:
         """
         Enhanced simulation with database persistence and parallel processing.
@@ -525,13 +526,18 @@ class SimulationOrchestrator:
                     interviews=[i.model_dump() for i in interviews],
                     insights=insights.model_dump() if insights else None,
                     formatted_data=formatted_data,
+                    mark_completed=finalize,
                 )
                 await uow.commit()
                 logger.info(f"Saved simulation results to database: {simulation_id}")
 
-            # Step 6: Complete
+            # The A+B worker uses Pipeline B as source material and deliberately
+            # defers the terminal state until empirical remapping is audited.
             await self._update_progress(
-                simulation_id, "completed", 100, "Simulation completed"
+                simulation_id,
+                "completed" if finalize else "pipeline_b_complete",
+                100 if finalize else 70,
+                "Simulation completed" if finalize else "Pipeline B completed; awaiting empirical remapping",
             )
 
             # Create response
@@ -557,17 +563,18 @@ class SimulationOrchestrator:
                 recommendations=insights.recommendations if insights else [],
             )
 
-            # Keep in memory for backward compatibility
-            self.completed_simulations[simulation_id] = response
+            if finalize:
+                # Keep in memory for backward compatibility
+                self.completed_simulations[simulation_id] = response
 
-            # Fire final completed response callback
-            await self._fire_callback(simulation_id, {
-                "simulation_id": simulation_id,
-                "status": "completed",
-                "progress_percentage": 100,
-                "message": "Simulation completed successfully",
-                "result": response.model_dump()
-            })
+                # Fire final completed response callback
+                await self._fire_callback(simulation_id, {
+                    "simulation_id": simulation_id,
+                    "status": "completed",
+                    "progress_percentage": 100,
+                    "message": "Simulation completed successfully",
+                    "result": response.model_dump()
+                })
 
             logger.info(f"Enhanced simulation completed successfully: {simulation_id}")
             return response
@@ -608,6 +615,24 @@ class SimulationOrchestrator:
             # Keep progress tracking for a bit longer to allow frontend to read final status
             # Don't immediately delete - let it be cleaned up later or by explicit calls
             pass
+
+    async def finalize_hybrid_simulation(self, result: SimulationResponse) -> None:
+        """Publish the terminal simulation event after Pipeline A has completed."""
+        simulation_id = result.simulation_id
+        if not simulation_id:
+            raise ValueError("Cannot finalize a hybrid simulation without simulation_id")
+
+        await self._update_progress(
+            simulation_id, "completed", 100, "Hybrid A+B simulation completed"
+        )
+        self.completed_simulations[simulation_id] = result
+        await self._fire_callback(simulation_id, {
+            "simulation_id": simulation_id,
+            "status": "completed",
+            "progress_percentage": 100,
+            "message": "Hybrid A+B simulation completed successfully",
+            "result": result.model_dump(mode="json"),
+        })
 
     async def _generate_insights(
         self, interviews: List[SimulatedInterview], business_context

@@ -84,6 +84,31 @@ class ResultsService:
                     detail=f"Results not found for result_id: {result_id}",
                 )
 
+            # A result row and progress JSON exist throughout background processing.
+            # Only the database status is authoritative for completion; formatting
+            # an in-progress row as completed makes clients stop polling too early.
+            if analysis_result.status == "failed":
+                return {
+                    "status": "error",
+                    "result_id": analysis_result.result_id,
+                    "error": analysis_result.error_message or "Analysis failed",
+                }
+            if analysis_result.status != "completed":
+                progress_data = (
+                    analysis_result.results
+                    if isinstance(analysis_result.results, dict)
+                    else {}
+                )
+                return {
+                    "status": "processing",
+                    "result_id": analysis_result.result_id,
+                    "message": progress_data.get(
+                        "message", "Analysis is still in progress."
+                    ),
+                    "progress": progress_data.get("progress", 0.0),
+                    "current_stage": progress_data.get("current_stage"),
+                }
+
             # Check if results are available
             if not analysis_result.results:
                 return {

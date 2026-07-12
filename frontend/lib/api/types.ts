@@ -34,7 +34,7 @@ declare global {
  * Enhanced status response type from the status endpoint
  */
 export type EnhancedStatusResponse = {
-  status: 'processing' | 'completed' | 'failed';
+  status: 'processing' | 'pending' | 'completed' | 'failed';
   progress?: number;
   current_stage?: string;
   stage_states?: Record<string, any>;

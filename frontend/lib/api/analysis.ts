@@ -125,8 +125,8 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
         return {
           status: 'failed',
           error: errorMessage || 'Analysis not found or access denied.',
-          errorCode: errorCode || 'ANALYSIS_NOT_FOUND',
-          requestId: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
+          error_code: errorCode || 'ANALYSIS_NOT_FOUND',
+          request_id: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
         };
       }
 
@@ -136,8 +136,8 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
         return {
           status: 'pending',
           error: errorMessage || 'Server processing error, retrying...',
-          errorCode: errorCode || 'SERVER_ERROR',
-          requestId: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
+          error_code: errorCode || 'SERVER_ERROR',
+          request_id: typeof errorData === 'object' && errorData?.request_id ? errorData.request_id : undefined
         };
       }
     }
@@ -148,7 +148,7 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
       return {
         status: 'pending',
         error: 'Network error, retrying...',
-        errorCode: 'NETWORK_ERROR'
+        error_code: 'NETWORK_ERROR'
       };
     }
 
@@ -158,7 +158,7 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
       return {
         status: 'pending',
         error: 'Request timed out, retrying...',
-        errorCode: 'TIMEOUT_ERROR'
+        error_code: 'TIMEOUT_ERROR'
       };
     }
 
@@ -167,7 +167,7 @@ export async function checkAnalysisStatus(resultId: string): Promise<EnhancedSta
     return {
       status: 'pending',
       error: error.message || 'Unknown error, retrying...',
-      errorCode: 'UNKNOWN_ERROR'
+      error_code: 'UNKNOWN_ERROR'
     };
   }
 }
@@ -201,98 +201,12 @@ export async function getProcessingStatus(analysisId: string): Promise<any> {
     return await response.json();
   } catch (error: any) {
     console.error('Error fetching processing status:', error);
-
-    // If the error is 404, check if the analysis is completed by trying to fetch its results
-    if (error.response && error.response.status === 404) {
-      try {
-        // Try to get the analysis results - if successful, the analysis is likely complete
-        // This will be implemented in the results module
-        // For now, we'll just return a mock status
-        return {
-          current_stage: 'COMPLETION',
-          completed_at: new Date().toISOString(),
-          stage_states: {
-            'FILE_UPLOAD': { status: 'completed', progress: 1 },
-            'FILE_VALIDATION': { status: 'completed', progress: 1 },
-            'DATA_VALIDATION': { status: 'completed', progress: 1 },
-            'PREPROCESSING': { status: 'completed', progress: 1 },
-            'ANALYSIS': { status: 'completed', progress: 1 },
-            'THEME_EXTRACTION': { status: 'completed', progress: 1 },
-            'PATTERN_DETECTION': { status: 'completed', progress: 1 },
-            'SENTIMENT_ANALYSIS': { status: 'completed', progress: 1 },
-            'PERSONA_FORMATION': { status: 'completed', progress: 1 },
-            'INSIGHT_GENERATION': { status: 'completed', progress: 1 },
-            'COMPLETION': { status: 'completed', progress: 1 }
-          },
-          progress: 1
-        };
-      } catch (resultError) {
-        console.log('Failed to check analysis results, continuing with simulation');
-      }
-    }
-
-    // Return a mock status that simulates progressive analysis
-    // Get the current timestamp to ensure progress advances over time
-    const timestamp = Date.now();
-    const simulatedProgress = Math.min(0.95, (timestamp % 60000) / 60000);
-    const analysisProgress = Math.min(0.95, (timestamp % 20000) / 20000);
-
     return {
-      current_stage: 'ANALYSIS',
-      started_at: new Date(timestamp - 60000).toISOString(),
-      stage_states: {
-        'FILE_UPLOAD': {
-          status: 'completed',
-          message: 'File uploaded successfully',
-          progress: 1
-        },
-        'FILE_VALIDATION': {
-          status: 'completed',
-          message: 'File validated',
-          progress: 1
-        },
-        'DATA_VALIDATION': {
-          status: 'completed',
-          message: 'Data validated',
-          progress: 1
-        },
-        'PREPROCESSING': {
-          status: 'completed',
-          message: 'Data preprocessed',
-          progress: 1
-        },
-        'ANALYSIS': {
-          status: 'in_progress',
-          message: 'Analyzing data',
-          progress: analysisProgress
-        },
-        'THEME_EXTRACTION': {
-          status: analysisProgress > 0.3 ? 'in_progress' : 'pending',
-          message: analysisProgress > 0.3 ? 'Extracting themes' : 'Not started',
-          progress: analysisProgress > 0.3 ? (analysisProgress - 0.3) * 2 : 0
-        },
-        'PATTERN_DETECTION': {
-          status: analysisProgress > 0.5 ? 'in_progress' : 'pending',
-          message: analysisProgress > 0.5 ? 'Detecting patterns' : 'Not started',
-          progress: analysisProgress > 0.5 ? (analysisProgress - 0.5) * 2 : 0
-        },
-        'SENTIMENT_ANALYSIS': {
-          status: analysisProgress > 0.7 ? 'in_progress' : 'pending',
-          message: analysisProgress > 0.7 ? 'Analyzing sentiment' : 'Not started',
-          progress: analysisProgress > 0.7 ? (analysisProgress - 0.7) * 3 : 0
-        },
-        'PERSONA_FORMATION': {
-          status: 'pending',
-          message: 'Not started',
-          progress: 0
-        },
-        'INSIGHT_GENERATION': {
-          status: 'pending',
-          message: 'Not started',
-          progress: 0
-        }
-      },
-      progress: simulatedProgress
+      status: error?.response?.status === 404 ? 'failed' : 'pending',
+      current_stage: error?.response?.status === 404 ? 'ERROR' : 'STATUS_UNAVAILABLE',
+      progress: 0,
+      stage_states: {},
+      error: error?.message || 'Unable to retrieve processing status'
     };
   }
 }

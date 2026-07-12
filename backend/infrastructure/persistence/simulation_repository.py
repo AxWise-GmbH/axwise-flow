@@ -68,6 +68,7 @@ class SimulationRepository(BaseRepository[SimulationData]):
         interviews: List[Dict[str, Any]],
         insights: Optional[Dict[str, Any]] = None,
         formatted_data: Optional[Dict[str, Any]] = None,
+        mark_completed: bool = True,
     ) -> Optional[SimulationData]:
         """
         Update simulation with results.
@@ -94,8 +95,8 @@ class SimulationRepository(BaseRepository[SimulationData]):
             simulation.formatted_data = formatted_data
             simulation.total_personas = len(personas)
             simulation.total_interviews = len(interviews)
-            simulation.status = "completed"
-            simulation.completed_at = datetime.utcnow()
+            simulation.status = "completed" if mark_completed else "running"
+            simulation.completed_at = datetime.utcnow() if mark_completed else None
             
             self.session.flush()
             logger.info(f"Updated simulation results: {simulation_id}")
@@ -103,6 +104,30 @@ class SimulationRepository(BaseRepository[SimulationData]):
             
         except SQLAlchemyError as e:
             logger.error(f"Error updating simulation results: {str(e)}")
+            raise
+
+    async def complete_hybrid_simulation(
+        self,
+        simulation_id: str,
+        empirical_personas: List[Dict[str, Any]],
+        hybrid_metadata: Dict[str, Any],
+    ) -> Optional[SimulationData]:
+        """Publish a simulation only after the A+B evidence audit has passed."""
+        try:
+            simulation = await self.get_by_simulation_id(simulation_id)
+            if not simulation:
+                logger.warning(f"Simulation not found: {simulation_id}")
+                return None
+
+            simulation.empirical_personas = empirical_personas
+            simulation.hybrid_metadata = hybrid_metadata
+            simulation.status = "completed"
+            simulation.completed_at = datetime.utcnow()
+            self.session.flush()
+            logger.info(f"Completed hybrid simulation: {simulation_id}")
+            return simulation
+        except SQLAlchemyError as e:
+            logger.error(f"Error completing hybrid simulation: {str(e)}")
             raise
 
     async def mark_simulation_failed(
