@@ -1,20 +1,48 @@
-# Orqaly &times; AxWise Infrastructure & Cognitive Routing Matrix
-This document establishes the definitive engineering boundaries for Orqaly's Agentic OS when handling user requests across career preparation, freelance bid writing, SMS networks, email SMTP/IMAP, multimedia rendering, and website design. 
+---
+type: Product Strategy
+title: "Orqaly and AxWise Cognitive Routing Opportunity Matrix"
+description: "A product discovery matrix for deciding which future Orqaly capabilities may benefit from AxWise cognitive services and which remain Orqaly infrastructure responsibilities."
+resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_INFRASTRUCTURE_ROUTING.md
+tags: [orqaly, axwise, strategy, routing, product, opportunities]
+timestamp: 2026-07-12T22:19:46.712Z
+---
 
-It details exactly when to invoke the **AxWise Flow Engine** (for cognitive alignment, psychographic modeling, target compliance, or trace-verified quote coordinate links) versus when to process tasks **locally within Orqaly's Agentic OS** (for compiler execution, graphics/rendering, transactional SaaS updates, and system infrastructure).
+# Orqaly × AxWise cognitive routing opportunity matrix
+
+This is a **product-discovery and architecture-boundary document**, not a production API capability list. The scenarios below are useful hypotheses for prioritisation; each requires its own validated contract, data policy, quality evaluation, and rollout before it can be offered as product functionality.
+
+Today, the live AxWise integration surface is deliberately narrower:
+
+| Live capability | Appropriate use |
+|---|---|
+| Conditions Gateway | Contextual policy, tone, grounding, and workflow-decision support. |
+| Durable async A+B research | Evidence-audited stakeholder research for product, service, policy, customer-journey, or operational hypotheses. |
+
+For the current contract, use ORQALY_INTEGRATION_SCHEMA.md. For the product summary, use ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md.
 
 ---
 
 ## 🧭 The Core Architectural Boundary Rules
 
-### 1. The Infrastructure Boundary Rule
-If a task involves **generating binary files (PDFs, MP4s, PNGs), rendering web pixels, provisioning domain names/SSL, setting up network socket handshakes, or calling SMTP/IMAP mail servers**, it must be handled strictly **LOCALLY** by Orqaly.
+### 1. The infrastructure boundary
+Tasks involving binary file generation, rendering, domain/SSL configuration, network sockets, transactional SaaS actions, payment operations, or direct SMTP/IMAP delivery remain in Orqaly. AxWise may provide analysis or drafting input, but it does not execute those infrastructure actions.
 
-### 2. The Cognitive Alignment Rule
-If a task requires **psychological tone alignment, Big Five OCEAN modeling, cultural target compliance checks (e.g. US anti-bias CV rules vs. EU photo/birth requirements), ATS semantic grading, or fuzzy RapidFuzz quote coordinate linkages**, you must invoke the **AxWise Flow Engine**.
+### 2. The cognitive boundary
+Consider AxWise where a validated product capability needs psychographic modelling, tone alignment, evidence linking, grounded analysis, or contextual policy support. A table entry below is a candidate, not an instruction to call AxWise automatically.
 
-### 3. The Token Conservation Rule
-Never route general, context-free chitchat, basic relational SaaS updates, or transactional billing operations to AxWise. 
+### 3. The proportionality boundary
+Do not call AxWise for general context-free chat, basic CRUD, transactional billing, or a task that a local deterministic rule can handle safely. Use it when the cognitive/evidence value is material and the input is authorised for the selected tenant.
+
+## How to use the catalogue below
+
+Use each scenario as a product hypothesis:
+
+1. Confirm that the problem is real and that the proposed AxWise input is authorised.
+2. Define an explicit current API contract and measurable quality target.
+3. Keep Orqaly responsible for user interaction, execution, and external integrations.
+4. Start in shadow mode where the scenario influences a consequential action.
+
+The tables intentionally remain as a breadth-of-opportunity appendix. They do not supersede the current API contract or imply that the /twins/* demonstration routes are production-ready.
 
 ---
 

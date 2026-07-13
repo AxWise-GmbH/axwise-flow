@@ -85,7 +85,10 @@ def run_migrations_online() -> None:
         # Log the configuration being used
         logger.info("Starting online migrations")
         database_url = config.get_main_option("sqlalchemy.url")
-        logger.info(f"Using database URL: {database_url}")
+        logger.info(
+            "Using configured %s database",
+            database_url.split("://", 1)[0] if "://" in database_url else "unknown",
+        )
 
         # Check if using SQLite
         is_sqlite = database_url.startswith("sqlite:")

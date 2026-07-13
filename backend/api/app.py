@@ -378,10 +378,11 @@ try:
         logger.warning(f"⚠️ Pipeline recovery failed (non-critical): {recovery_error}")
 
 except Exception as e:
+    if os.getenv("ENVIRONMENT", "development").lower() == "production":
+        logger.critical(f"Database initialization failed in production: {e}")
+        raise
     logger.warning(f"⚠️ Database initialization failed: {e}")
-    logger.info(
-        "🔄 Continuing without database (conversation routines will still work)"
-    )
+    logger.info("Continuing without database in a non-production environment")
 
 # Add this function definition before the route definitions
 _persona_service = None

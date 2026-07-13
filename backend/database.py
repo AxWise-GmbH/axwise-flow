@@ -226,8 +226,13 @@ def create_tables():
         if migrations_applied:
             logger.info("Successfully applied migrations; ensuring any missing tables are created via metadata")
         else:
-            # If migrations fail, fall back to creating tables directly
-            logger.warning("Falling back to direct table creation")
+            environment = os.getenv("ENVIRONMENT", "development").lower()
+            if environment == "production":
+                raise RuntimeError(
+                    "Database migrations failed in production; refusing direct schema creation"
+                )
+            # Direct creation remains available for local and test environments.
+            logger.warning("Falling back to direct table creation outside production")
 
         # Import models using centralized import mechanism to avoid registry conflicts
         try:
