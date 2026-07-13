@@ -4,7 +4,7 @@ title: "Orqaly Async A+B Hybrid Integration Implementation Plan"
 description: "Implementation-ready plan for exposing AxWise's evidence-audited A+B research pipeline, optional PRD deliverables, and production-grade Orqaly service integration through a durable asynchronous API."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_ASYNC_HYBRID_INTEGRATION_PLAN.md
 tags: [orqaly, axwise, integration, async, hybrid, personas, evidence, prd, security]
-timestamp: 2026-07-12T21:05:14Z
+timestamp: 2026-07-13T08:39:16.432Z
 ---
 
 # Orqaly Async A+B Hybrid Integration Implementation Plan
@@ -13,7 +13,7 @@ timestamp: 2026-07-12T21:05:14Z
 
 AxWise's synchronous `POST /api/orqaly-axwise/v1/simulate-enhanced` route is the quality reference implementation for research generation. Its A+B core is ready to be productized: Pipeline B generates psychologically varied people and interviews, and Pipeline A reconstructs evidence-grounded empirical personas with exact source quotes and audited offsets.
 
-## Implementation status — 2026-07-12
+## Implementation status — 2026-07-13
 
 The first AxWise implementation is complete and locally verified:
 
@@ -26,9 +26,43 @@ The first AxWise implementation is complete and locally verified:
 
 Local end-to-end verification covered a full worker-run A+B job: `202` acceptance, idempotent retry, independent status polling, completion, durable retrieval after API restart, one empirical persona, 11 audited evidence items, 11/11 exact offset matches, and a persisted analysis deliverable.
 
-Still required before a broad production rollout: partner key rotation and scopes, an administrative tenant-mapping workflow, a transactional webhook outbox with persistent delivery history, and deployment of the worker as a separate managed process.
+Production API deployment and authentication were verified on 2026-07-13:
 
-The next integration milestone is a durable asynchronous version of that same pipeline. The existing `simulate-async` route must not simply call the current Pipeline B background task and append enrichment afterward. The orchestration, persistence, completion signal, authentication, idempotency, and result contract must be completed first so Orqaly never receives a false `completed` event or loses the empirical output after an AxWise restart.
+- The enhanced async route is published at `api.axwise.de`.
+- AxWise now holds dedicated M2M and webhook-signing secrets in Google Secret Manager; the backend reads them from the current production revision.
+- Missing and invalid keys return `401`; a valid key reaches the live request contract.
+
+The 2026-07-13 production schema audit found that the migration is **not applied**: `orqaly_tenant_mappings` is absent and `pipeline_runs` has none of the durable A+B columns. A schema-valid async request therefore returns `500`, not the intended unmapped-tenant `403`.
+
+Still required before the first real tenant production run: apply the migration, provision an active mapping for the real Orqaly organization/user IDs, deploy the worker as a managed process, configure the Orqaly callback/client, and complete an end-to-end tenant smoke test. Longer-term hardening remains: partner key IDs/scopes and rotation procedure, an administrative tenant-mapping workflow, and a transactional webhook outbox with durable delivery history.
+
+The durable asynchronous architecture is implemented; do not revert the production path to the legacy Pipeline B-only `simulate-async` flow. Completion must remain gated on persisted Pipeline B and Pipeline A output so Orqaly never receives a false `completed` event or loses empirical output after an AxWise restart.
+
+## Orqaly compatibility review — `main` at `d8a6e2d5`
+
+A read-only review of `Orqaly/Orqaly` on 2026-07-13 established:
+
+- No AxWise client, `x-axwise-key` call, Conditions call, or A+B job client exists in the current code.
+- `src/services/copilotChatApiService.js` already sends the current message, history, organization ID, conversation ID, page context, and attachments to Orqaly's backend.
+- `lib/agent-handlers/copilot.js` authenticates the Supabase user, applies the local content guard, validates the organization/conversation identifiers, and sends history into the Copilot loop.
+- `lib/_shared/chat-history.js` keeps up to 40 recent turns within a 12,000-character budget and flags when earlier history was omitted.
+- Forty targeted Orqaly tests passed for chat sessions, history windowing, conversation behavior, and Copilot propagation.
+
+This proves Orqaly preserves chat context internally. It does **not** prove AxWise receives or uses it.
+
+The live AxWise test sent the same ambiguous follow-up with two different prior histories—one finance-sensitive, one general. Both returned the same allowed/general classification. The current `_process_copilot_chat` reads only `message`, `sender_role`, and `active_twin_id`; `conversation_history` is accepted as an extra payload field but ignored.
+
+Required chat bridge:
+
+1. Add a server-only Orqaly module such as `lib/integrations/axwise/client.js`; never expose the key through `src/`.
+2. In `handleCopilot`, call AxWise after Orqaly authentication/content guarding and before `runCopilotLoop`.
+3. Build tenant identity from the verified Supabase user and validated organization. Derive the sender role server-side; never trust a client-provided role.
+4. Send the already-windowed history, current message, conversation ID, page context, and active twin identifier with bounded size and explicit omission metadata.
+5. Extend AxWise `_process_copilot_chat` to use prior turns when classifying ambiguous follow-ups; add a regression test where finance-sensitive prior context changes the result.
+6. In shadow mode, merge only the AxWise prompt fragment/trace into observability. Promote enforcement only after agreement, latency, and false-deny measurements pass.
+7. Use `copilot.ground` after a draft only when authorised source text is available. Do not send arbitrary attachment contents merely because they are present.
+
+The A+B integration should be an explicit Orqaly research action/tool with persisted job state and progress UI. It should not run on every chat message.
 
 Recommended public route:
 
@@ -50,10 +84,10 @@ This plan reconciles the latest integration documents with the running implement
 
 | Document | Intended responsibility | Finding |
 |---|---|---|
-| `ORQALY_DEV_INTEGRATION_GUIDE.md` | Orqaly-side conditions client, degradation, usage tracking, and rollout | Strong conditions integration guide; does not define the long-running A+B research lifecycle. |
-| `AXWISE_INTEGRATION_PLAN.md` | Conditions gateway implementation checklist | Useful for conditions only; its completed checklist must not be interpreted as completion of simulation, twin runtime, or research delivery. |
-| `ORQALY_INFRASTRUCTURE_ROUTING.md` | Boundary between Orqaly infrastructure and AxWise cognition | The boundary remains correct: Orqaly owns infrastructure and user-facing execution; AxWise owns cognitive generation, evidence, and validation. |
-| `ORQALY_INTEGRATION_SCHEMA.md` | Simulation, twin, RBAC, and execution API contract | Correctly distinguishes Pipeline B from synchronous A+B, but overstates the maturity of `/twins/*` and conflicts with the dev guide on authentication. |
+| `ORQALY_DEV_INTEGRATION_GUIDE.md` | Current Orqaly-side Conditions and A+B client guidance | Correct contract and rollout posture; now needs implementation in the Orqaly repository. |
+| `AXWISE_INTEGRATION_PLAN.md` | Conditions gateway verification plan | Conditions-only plan; it does not mean A+B production readiness. |
+| `ORQALY_INFRASTRUCTURE_ROUTING.md` | Product opportunity boundary | Useful as a non-binding opportunity catalogue, not a shipped-capability list. |
+| `ORQALY_INTEGRATION_SCHEMA.md` | Current shareable partner contract | Correct M2M, tenant, job, polling, and webhook contract; no live credentials. |
 | `pipeline_comparison_metrics.md` | Historical A+B quality comparison | Useful historical evidence, but its “partial offsets” statement is stale after strict evidence re-anchoring was added. |
 
 ## 3. Current implementation truth
@@ -78,15 +112,17 @@ The July 12 comprehensive verification generated four simulated people, four int
 
 | Area | Current state | Required state |
 |---|---|---|
-| Async research pipeline | Pipeline B only | Pipeline B followed by Pipeline A and evidence audit. |
-| Job execution | FastAPI in-process `BackgroundTasks` | Durable, restart-safe worker execution. |
-| Completion boundary | Pipeline B marks the simulation complete and fires its callback | Completion occurs only after every requested A+B deliverable is persisted. |
-| Persistent result | Simulation database fallback omits empirical personas | Completed retrieval returns the same hybrid payload after restart as it did from memory. |
-| PRD | Requires a separate `AnalysisResult.result_id` | Hybrid run can create a canonical analysis result and expose or generate PRD deliverables. |
-| Authentication | Conditions uses M2M key; simulations use normal user authentication | One explicit partner-service and tenant identity model across Orqaly routes. |
-| Idempotency | Conditions has an in-memory request cache | Persistent tenant-scoped idempotency with request-body conflict detection. |
-| Authorization | Ownership is conditional and some database errors skip checks | Fail-closed tenant ownership for every status, result, retry, and cancellation operation. |
-| Webhooks | Callback URL stored in process memory; unsigned delivery | Persisted destination, signed events, delivery attempts, retries, and SSRF controls. |
+| Async research core | A+B orchestration, evidence audit, persistence, analysis result, optional PRD, and durable worker code are implemented and locally tested. | Apply the production migration and exercise the same path against production. |
+| Production schema | Legacy `pipeline_runs`; no durable columns; no `orqaly_tenant_mappings`. | Apply `20260712_1400_add_orqaly_async_hybrid_runs.py` and verify schema metadata. |
+| Worker runtime | Standalone worker script exists and stale-run recovery is tested locally. | Deploy a continuously managed production worker with monitoring and restart policy. |
+| Completion boundary | Pipeline B can defer finalization; A+B publishes only after persistence in local tests. | Verify this invariant in the production smoke run. |
+| Persistent result | Durable retrieval survives local API restart. | Verify after a production worker/API restart. |
+| PRD | Canonical analysis result and optional/required PRD policy exist in code. | Exercise optional and required production cases after the core smoke run. |
+| Authentication | Dedicated M2M secret is deployed and valid/missing/invalid behavior is verified. | Add scoped/key-ID rotation later; install the key in Orqaly's secret store. |
+| Idempotency | Persistent tenant-scoped request hashing is implemented locally. | Verify against the migrated production database. |
+| Authorization | Tenant mapping and ownership filters exist in code. | Create the real mapping and verify cross-tenant denial in production. |
+| Webhooks | HTTPS host allowlist, HMAC signature, and three immediate retries exist. | Add the Orqaly receiver; later add a transactional outbox and durable delivery history. |
+| Conditions | Live and authenticated, but heuristic and history-agnostic. | Keep shadow-only until the Orqaly bridge and history-aware regression tests pass. |
 | Twin registry/runtime | Several mock or hard-coded responses | Mark experimental or implement real persistence, retrieval, RBAC, and execution. |
 | Conditions gateway | Mostly heuristic advisory processing | Keep advisory initially; add real policy/model-backed implementations only where justified. |
 
@@ -664,80 +700,57 @@ Immediate action:
 - Apply the same partner credential, tenant resolution, scopes, and trace conventions used by research runs.
 - Keep `agent.generate` fail-closed when the security evaluator is unavailable.
 - Do not describe OCEAN, regulatory, grounding, or governance output as model-backed when a branch is a static template or simple keyword heuristic.
+- Replace the current `meta.model = "enhanced_gemini"` label with an honest implementation label such as `heuristic_rules_v1` until a model is actually invoked.
+- Separate estimated integration pricing from actual model cost; the current deterministic branches should not imply LLM spend.
 
 Conditions maturity does not block A+B launch, provided its claims and enforcement posture are accurate.
 
-## 16. AxWise implementation work packages
+## 16. AxWise work-package status
 
-### Package A: Contracts and database migration
-
-- Add request, output, callback, status, and result Pydantic models.
-- Extend `pipeline_runs` and hybrid result persistence.
-- Add partner/tenant identity mapping and scoped credentials.
-- Add persistent idempotency constraint.
-- Add webhook outbox tables.
-- Add migrations and rollback notes.
-
-### Package B: Orchestration refactor
-
-- Split Pipeline B execution from completion/finalization.
-- Move A+B stage logic into a reusable `HybridRunOrchestrator`.
-- Persist progress at every stage.
-- Ensure evidence audit is mandatory.
-- Persist empirical personas before completion.
-- Ensure retry and cancellation behavior is stage-safe.
-
-### Package C: Durable worker
-
-- Add job claiming, leases, heartbeat, retry, and recovery.
-- Run worker separately from the API process.
-- Add graceful shutdown behavior.
-- Add stale-run monitoring and operational metrics.
-
-### Package D: Canonical analysis and PRD
-
-- Build the simulation-to-analysis adapter.
-- Create a tenant-owned `AnalysisResult` only after hybrid audit.
-- Link job, simulation, and analysis identifiers.
-- Generate optional or required PRD.
-- Return cached deliverable URLs and retry state.
-
-### Package E: Partner security
-
-- Remove hard-coded fallback secrets.
-- Implement partner credential lookup, rotation, revocation, and scopes.
-- Resolve external tenants to internal ownership.
-- Enforce ownership on every run route.
-- Add rate limits by partner and organization.
-
-### Package F: Webhooks and observability
-
-- Add validated callback registration.
-- Add transactional outbox and signed delivery.
-- Add retries, delivery history, and deduplication guidance.
-- Add structured logs, metrics, and traces across all identifiers.
-
-### Package G: Documentation truthfulness
-
-- Update `ORQALY_INTEGRATION_SCHEMA.md` with the new async enhanced route.
-- Reconcile its bearer-token model with `ORQALY_DEV_INTEGRATION_GUIDE.md`.
-- Mark legacy Pipeline B and experimental twin routes clearly.
-- Update `pipeline_comparison_metrics.md` from partial to strict audited offsets, with a new reproducible measurement.
-- Add Orqaly examples for polling, webhook verification, idempotent retry, cancellation, and PRD retrieval.
+| Package | Code state | Production state / next action |
+|---|---|---|
+| Contracts and persistence | Request/result models, durable columns, tenant mapping model, migration, and persistent idempotency are implemented. | **Blocked:** apply the migration; production currently has none of these schema changes. |
+| A+B orchestration | Pipeline B finalization split, Pipeline A audit, persistence ordering, cancellation, and stale recovery are implemented and locally tested. | Verify after the migrated database and worker are live. |
+| Durable worker | Standalone claim/process loop exists. | Deploy as a managed production process with restart and monitoring. |
+| Analysis and PRD | Canonical analysis adapter and optional/required PRD flow exist. | Exercise only after the base A+B production smoke test. |
+| Partner security | Hard-coded fallback removed; secret and tenant ownership checks exist. | Install Orqaly-side secret, provision mapping, then add scoped key IDs/rate limits later. |
+| Webhooks | Callback validation, HMAC signing, and three retries exist. | Implement Orqaly receiver; add transactional outbox/delivery history as hardening. |
+| Documentation | Current contract, developer guide, one-pager, private handoff, and this status plan are aligned. | Revalidate after any Orqaly or deployment change. |
 
 ## 17. Orqaly implementation work packages
 
-- Add a long-run AxWise client with a short create timeout and polling support.
-- Generate and persist one idempotency key per logical research run.
-- Persist `job_id`, `simulation_id`, and `analysis_result_id` in Orqaly.
-- Verify signed webhooks and deduplicate event IDs.
-- Map AxWise stages to user-facing progress text.
-- Stop polling only on terminal status.
-- Render `completed_with_warnings` distinctly from failure.
-- Store evidence document IDs with quote coordinates.
-- Link analysis and PRD deliverables from the run UI.
-- Keep local infrastructure tasks, binary generation, messaging, and SaaS writes inside Orqaly as defined by `ORQALY_INFRASTRUCTURE_ROUTING.md`.
-- Roll out in shadow mode before making AxWise results authoritative in downstream automation.
+### Package O1: Server-only AxWise client
+
+- Add `lib/integrations/axwise/client.js` and configuration validation.
+- Keep all secrets in the Orqaly backend runtime.
+- Implement bounded timeout/retry and structured trace metadata without logging request bodies or keys.
+
+### Package O2: Chat Conditions bridge
+
+- Hook after verified auth/local content guard and before `runCopilotLoop`.
+- Send verified tenant IDs, server-derived role, current message, bounded history, conversation/page context, and omission flag.
+- Merge approved prompt/context output in shadow mode first.
+- Add the history-sensitive finance-follow-up regression test on both sides.
+
+### Package O3: A+B research lifecycle
+
+- Expose an explicit research action/tool; do not invoke A+B on every chat message.
+- Persist idempotency key, `job_id`, `simulation_id`, `analysis_result_id`, stage, and terminal status.
+- Map AxWise stages to progress UI and render `completed_with_warnings` separately.
+- Retrieve result/evidence coordinates and link analysis/PRD deliverables.
+
+### Package O4: Webhook and recovery
+
+- Verify signatures from raw bytes, reject stale timestamps, and deduplicate event IDs.
+- Treat webhooks as wake-up signals and poll the authoritative status/result.
+- Test duplicate, delayed, missing, and out-of-order terminal events.
+
+### Package O5: Controlled launch
+
+- Complete one mapped-tenant end-to-end smoke run.
+- Run Conditions in shadow mode and A+B with an explicitly selected pilot workflow.
+- Measure user-visible usefulness, completion reliability, latency, cost, and evidence quality before wider rollout.
+- Keep infrastructure tasks, binary generation, messaging, and SaaS writes inside Orqaly.
 
 ## 18. Test strategy
 
@@ -858,35 +871,44 @@ Twin runtime productionization and deeper conditions intelligence may proceed as
 
 ## 21. Definition of done
 
-The async A+B integration is complete only when:
+### Verified in code/local execution
 
-- [ ] `simulate-enhanced-async` returns `202` and a durable job ID.
-- [ ] Pipeline B never emits terminal completion before Pipeline A.
-- [ ] Every successful run includes empirical personas.
-- [ ] Every published evidence item passes exact quote and offset validation.
-- [ ] Completed results survive process restart.
-- [ ] A canonical tenant-owned analysis result is linked.
-- [ ] Optional and required PRD policies behave as documented.
-- [ ] Idempotency works across processes and deploys.
-- [ ] Authentication and ownership are consistent across create, status, result, cancel, retry, and PRD routes.
-- [ ] Hard-coded partner fallback secrets are removed.
-- [ ] Webhooks are signed, persisted, retried, and deduplicated.
-- [ ] Cross-tenant access tests pass.
-- [ ] Worker restart and stale-lease recovery tests pass.
-- [ ] OpenAPI and Markdown documentation match actual behavior.
-- [ ] Orqaly completes shadow rollout before authoritative adoption.
+- [x] `simulate-enhanced-async` creates a persistent job ID.
+- [x] Pipeline B defers terminal publication until Pipeline A finishes.
+- [x] Successful local runs include empirical personas and exact evidence offsets.
+- [x] Local completed results survive API restart.
+- [x] Canonical analysis and optional/required PRD policy are implemented.
+- [x] Persistent request hashing/idempotency and tenant ownership filters are implemented.
+- [x] Hard-coded partner fallback secrets are removed.
+- [x] Callback validation, signatures, and bounded immediate retries are implemented.
+- [x] Worker cancellation and stale-run recovery are locally tested.
+- [x] Public OpenAPI exposes the intended routes.
+
+### Required before production acceptance
+
+- [ ] Production migration is applied and durable schema metadata is verified.
+- [ ] Real Orqaly tenant mapping exists and an unmapped tenant returns `403`, not `500`.
+- [ ] Managed production worker claims and completes a queued job.
+- [ ] A production result survives API/worker restart.
+- [ ] Orqaly client persists IDs and renders progress/result states.
+- [ ] Orqaly webhook receiver verifies, deduplicates, and recovers through polling.
+- [ ] Cross-tenant production test denies status, result, and cancellation access.
+- [ ] Conversation history reaches AxWise Conditions and changes the history-sensitive regression case.
+- [ ] Conditions shadow metrics justify any authoritative use.
+- [ ] One full mapped-tenant A+B smoke run passes before user rollout.
 
 ## 22. Immediate next actions
 
-Implement in this order:
+Execute in this order:
 
-1. Refactor Pipeline B so it can return without marking the overall hybrid run complete.
-2. Extend persistent job and result storage for hybrid state and empirical personas.
-3. Add the durable `simulate-enhanced-async` worker flow.
-4. Add persistent idempotency and partner-tenant authorization.
-5. Add the canonical analysis adapter and PRD linkage.
-6. Add signed webhook outbox delivery.
-7. Update the existing integration documents to remove contradictions and mock claims.
-8. Integrate Orqaly in shadow mode and validate with comprehensive multi-person runs.
+1. Apply the AxWise production migration and verify the mapping table plus durable `pipeline_runs` columns.
+2. Provision the real Orqaly organization/user-to-AxWise workspace mapping.
+3. Deploy and monitor the managed A+B worker.
+4. Add the Orqaly server-only client and exact Copilot hook described in the compatibility review.
+5. Make AxWise Conditions history-aware and add the ambiguous-follow-up regression test.
+6. Add the Orqaly A+B job store, progress UI, polling, and signed webhook receiver.
+7. Run one mapped-tenant production A+B test and one Conditions shadow test using a real multi-turn conversation.
+8. Only then decide whether Conditions remains advisory or becomes authoritative for selected flows.
+9. Add the durable webhook outbox, scoped partner keys, and rate limits as production hardening.
 
-The core research quality is ready. The work above is required to make that quality durable, securely tenant-aware, honestly documented, and safe for Orqaly to depend on in production.
+The clearest near-term customer value is the explicit A+B research workflow: structured stakeholder perspectives, audited persona evidence, risks, opportunities, and reusable analysis/PRD output. Conditions is a supporting control layer, not the headline product, until it uses real conversation context and demonstrates incremental value over Orqaly's existing guardrails.

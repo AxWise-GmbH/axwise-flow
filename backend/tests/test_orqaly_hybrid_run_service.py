@@ -22,6 +22,10 @@ from backend.api.research.simulation_bridge.models import (
 from backend.database import Base
 from backend.models import AnalysisResult, PipelineRun, SimulationData, User
 from backend.services.orqaly_hybrid_run_service import HybridOutputs, HybridRunService
+from backend.services.orqaly_persona_resolution_service import (
+    OrqalyAgentCandidate,
+    OrqalyTaskContext,
+)
 
 
 @compiles(JSONB, "sqlite")
@@ -254,3 +258,46 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert analysis.status == "completed"
 
     assert service.get_run_for_tenant(run.job_id, "axwise-user-1", "other-org") is None
+
+
+@pytest.mark.asyncio
+async def test_worker_persists_customer_and_execution_persona_resolution(session_factory):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(orchestrator, session_factory, fake_enrichment)
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        HybridOutputs(persona_resolution=True),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-personas",
+        "trace-personas",
+        task_context=OrqalyTaskContext(
+            task_id="task-1",
+            title="Prepare evidence-grounded event plan",
+            description="Review customer interviews and event risks",
+        ),
+        agent_candidates=[
+            OrqalyAgentCandidate(
+                agent_id="agent-research",
+                name="Research Lead",
+                role="Customer Research Strategist",
+                capabilities=["customer interviews", "event research", "evidence"],
+                tools=["document-analysis"],
+                success_rate=0.9,
+            )
+        ],
+    )
+
+    claimed_id = await service.process_next()
+    await service.process_job(claimed_id, already_claimed=True)
+    persisted = service.get_run_for_tenant(run.job_id, "axwise-user-1", "orqaly-org-1")
+    resolution = persisted.dataset["data"]["persona_resolution"]
+    assert resolution["customer_persona"]["name"] == "Alex Researcher"
+    assert resolution["recommended_agent"]["agent_id"] == "agent-research"
+    assert persisted.result_summary["persona_resolution_status"] == "matched_candidate"
+    assert persisted.result_summary["recommended_agent_id"] == "agent-research"

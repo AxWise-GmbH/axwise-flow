@@ -34,6 +34,10 @@ from backend.services.orqaly_hybrid_run_service import (
     HybridRunService,
     TERMINAL_STATUSES,
 )
+from backend.services.orqaly_persona_resolution_service import (
+    OrqalyAgentCandidate,
+    OrqalyTaskContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +130,8 @@ class OrqalyHybridAsyncRequest(SimulationRequest):
 
     tenant: TenantContext
     outputs: HybridOutputs = Field(default_factory=HybridOutputs)
+    task_context: Optional[OrqalyTaskContext] = None
+    agent_candidates: List[OrqalyAgentCandidate] = Field(default_factory=list)
 
 
 def _resolve_orqaly_tenant_user(
@@ -811,6 +817,8 @@ async def orqaly_simulate_enhanced_async(
             external_user_id=request.tenant.userId,
             idempotency_key=idempotency_key.strip(),
             request_id=request_id or str(uuid.uuid4()),
+            task_context=request.task_context,
+            agent_candidates=request.agent_candidates,
         )
     except ValueError as exc:
         detail = str(exc)

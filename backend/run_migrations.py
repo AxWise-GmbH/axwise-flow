@@ -23,8 +23,9 @@ else:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from database import DATABASE_URL
 
-# Use the same DATABASE_URL as the application
-print(f"Using database URL: {DATABASE_URL}")
+# Use the same DATABASE_URL as the application without logging credentials.
+database_scheme = DATABASE_URL.split("://", 1)[0] if "://" in DATABASE_URL else "unknown"
+print(f"Using configured {database_scheme} database")
 os.environ["DATABASE_URL"] = DATABASE_URL
 
 
@@ -48,29 +49,6 @@ def run_alembic(command):
         print(f"Error running Alembic command: {e}")
         print(e.stdout)
         print(e.stderr)
-
-        # Check if the error is due to duplicate columns
-        if "DuplicateColumn" in e.stderr:
-            print(
-                "\nDetected duplicate column error. Attempting to stamp the current revision..."
-            )
-            # Try to stamp the current revision to mark it as complete
-            try:
-                stamp_result = subprocess.run(
-                    ["alembic", "stamp", "head"],
-                    cwd=os.path.dirname(os.path.abspath(__file__)),
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-                print("Successfully stamped the current revision as complete.")
-                print(stamp_result.stdout)
-                return True
-            except subprocess.CalledProcessError as stamp_error:
-                print(f"Error stamping revision: {stamp_error}")
-                print(stamp_error.stdout)
-                print(stamp_error.stderr)
-                return False
 
         return False
 

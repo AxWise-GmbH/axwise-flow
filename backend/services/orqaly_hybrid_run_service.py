@@ -27,6 +27,11 @@ from backend.database import SessionLocal
 from backend.models import AnalysisResult, InterviewData, PipelineRun, SimulationData, User
 from backend.services.llm import LLMServiceFactory
 from backend.services.processing.prd_generation_service import PRDGenerationService
+from backend.services.orqaly_persona_resolution_service import (
+    OrqalyAgentCandidate,
+    OrqalyTaskContext,
+    resolve_orqaly_personas,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +56,7 @@ class HybridOutputs(BaseModel):
     empirical_personas: bool = True
     insights: bool = True
     analysis_result: bool = True
+    persona_resolution: bool = False
     prd: HybridPRDOutput = Field(default_factory=HybridPRDOutput)
 
 
@@ -68,10 +74,17 @@ class HybridRunService:
         self.enrichment = enrichment
 
     @staticmethod
-    def request_hash(request: SimulationRequest, outputs: HybridOutputs) -> str:
+    def request_hash(
+        request: SimulationRequest,
+        outputs: HybridOutputs,
+        task_context: Optional[OrqalyTaskContext] = None,
+        agent_candidates: Optional[list[OrqalyAgentCandidate]] = None,
+    ) -> str:
         payload = {
             "simulation": request.model_dump(mode="json"),
             "outputs": outputs.model_dump(mode="json"),
+            "task_context": task_context.model_dump(mode="json") if task_context else None,
+            "agent_candidates": [item.model_dump(mode="json") for item in (agent_candidates or [])],
         }
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -122,12 +135,16 @@ class HybridRunService:
         external_user_id: str,
         idempotency_key: str,
         request_id: str,
+        task_context: Optional[OrqalyTaskContext] = None,
+        agent_candidates: Optional[list[OrqalyAgentCandidate]] = None,
     ) -> Tuple[PipelineRun, bool]:
         """Persist a new hybrid run or return the matching idempotent run."""
         if not outputs.empirical_personas:
             raise ValueError("Enhanced async runs must request empirical personas")
+        if outputs.persona_resolution and not task_context:
+            raise ValueError("Persona resolution requires task_context")
         self.validate_callback_url(request.callback_url)
-        request_hash = self.request_hash(request, outputs)
+        request_hash = self.request_hash(request, outputs, task_context, agent_candidates)
         session = self.session_factory()
         try:
             existing = (
@@ -161,7 +178,13 @@ class HybridRunService:
                 request_id=request_id,
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
-                request_payload={"simulation": request.model_dump(mode="json")},
+                request_payload={
+                    "simulation": request.model_dump(mode="json"),
+                    "task_context": task_context.model_dump(mode="json") if task_context else None,
+                    "agent_candidates": [
+                        item.model_dump(mode="json") for item in (agent_candidates or [])
+                    ],
+                },
                 requested_outputs=outputs.model_dump(mode="json"),
                 callback_config=(
                     {"url": request.callback_url, "events": ["run.completed", "run.failed"]}
@@ -319,6 +342,29 @@ class HybridRunService:
             )
             result = await self.enrichment(result, request)
             self._ensure_active(job_id)
+
+            if outputs.persona_resolution:
+                await self._set_stage(
+                    job_id,
+                    "resolving_task_personas",
+                    86,
+                    "Matching the customer persona to the execution persona",
+                )
+                task_context = OrqalyTaskContext.model_validate(
+                    claimed["request_payload"].get("task_context")
+                )
+                agent_candidates = [
+                    OrqalyAgentCandidate.model_validate(item)
+                    for item in claimed["request_payload"].get("agent_candidates", [])
+                ]
+                persona_resolution = resolve_orqaly_personas(
+                    result.empirical_personas or [], task_context, agent_candidates
+                )
+                result.data = {
+                    **(result.data or {}),
+                    "persona_resolution": persona_resolution,
+                }
+                self._ensure_active(job_id)
 
             await self._set_stage(
                 job_id,
@@ -497,6 +543,7 @@ class HybridRunService:
                 ],
                 "insights": insight_items,
                 "personas": result.empirical_personas or [],
+                "persona_resolution": (result.data or {}).get("persona_resolution"),
                 "simulation_insights": (
                     insights.model_dump(mode="json") if insights else None
                 ),
@@ -586,6 +633,16 @@ class HybridRunService:
                 "evidence_item_count": (result.metadata or {}).get("audited_evidence_count", 0),
                 "analysis_result_id": analysis_result_id,
                 "prd_status": prd_status,
+                "persona_resolution_status": (
+                    ((result.data or {}).get("persona_resolution") or {}).get(
+                        "selection_status", "not_requested"
+                    )
+                ),
+                "recommended_agent_id": (
+                    ((((result.data or {}).get("persona_resolution") or {}).get(
+                        "recommended_agent"
+                    ) or {}).get("agent_id"))
+                ),
             }
             run.status = status
             run.current_stage = "completed"
