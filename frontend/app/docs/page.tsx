@@ -180,9 +180,9 @@ export default function DocsPage(): React.JSX.Element {
           
           <nav className="flex flex-col gap-2.5 text-sm">
             <a href="#installation" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">1. Setup &amp; Docker</a>
-            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Multi-Agent Simulation</a>
+            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Customer &amp; Executor</a>
             <a href="#orchestration" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Progress &amp; Retrieval</a>
-            <a href="#twins-registry" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Twin Registry &amp; RBAC</a>
+            <a href="#twins-registry" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Execution Boundary</a>
           </nav>
 
           <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
@@ -227,12 +227,12 @@ export default function DocsPage(): React.JSX.Element {
           {/* Section 2: Simulate Twin */}
           <section id="simulate" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">2. Multi-Agent Persona Simulation</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-async or /simulate-enhanced</p>
+              <h2 className="font-serif text-3xl text-stone-900">2. Customer &amp; Executor Resolution</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-enhanced-async</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              Triggers a top-down psychologically-grounded user simulation. Generates individual OCEAN profiles from standard occupation baselines, simulates multi-turn research interviews, and optionally runs Pipeline A's bottom-up empirical remapping to output trace-verified personas with precise character-perfect verbatim offsets.
+              Starts the durable A+B pipeline. AxWise identifies the customer in the context of their pain, task, constraints, and desired outcome; creates the ideal human executor profile and corresponding AI agent or digital twin; then ranks the authenticated agents supplied by Orqaly. Typical production runs complete asynchronously in approximately 3–4 minutes.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
@@ -241,9 +241,19 @@ export default function DocsPage(): React.JSX.Element {
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
                   <HighlightPython code={`import requests
 
-url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate-enhanced"
-headers = {"Authorization": "Bearer <YOUR_KEY>"}
+url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate-enhanced-async"
+headers = {
+    "x-axwise-key": "<YOUR_SERVICE_KEY>",
+    "Idempotency-Key": "<UNIQUE_REQUEST_KEY>",
+    "X-Request-ID": "<TRACE_ID>",
+    "X-Orqaly-Org-ID": "<ORQALY_ORG_ID>",
+    "X-Orqaly-User-ID": "<ORQALY_USER_ID>"
+}
 payload = {
+    "tenant": {
+        "orgId": "<ORQALY_ORG_ID>",
+        "userId": "<ORQALY_USER_ID>"
+    },
     "business_context": {
         "business_idea": "Sovereign fleet telemetry routing",
         "target_customer": "SME Logistics dispatchers",
@@ -260,38 +270,58 @@ payload = {
             ]
         }
     },
-    "config": {"depth": "detailed", "personas_per_stakeholder": 1}
+    "config": {
+        "depth": "detailed",
+        "people_per_stakeholder": 1,
+        "response_style": "realistic",
+        "include_insights": true,
+        "temperature": 0.7
+    },
+    "outputs": {
+        "empirical_personas": true,
+        "insights": true,
+        "analysis_result": true,
+        "persona_resolution": true
+    },
+    "task_context": {
+        "title": "Dispatcher adoption plan",
+        "description": "Create a rollout plan that dispatchers can adopt",
+        "desired_outcome": "Reduce manual tracking without disrupting shifts",
+        "category": "operations",
+        "constraints": ["EU data residency", "limited training time"]
+    },
+    "agent_candidates": [
+        {
+            "agent_id": "agent-operations-strategist",
+            "name": "Operations Strategist",
+            "role": "Customer Operations Strategist",
+            "capabilities": ["workflow design", "change management"]
+        }
+    ]
 }
 response = requests.post(url, headers=headers, json=payload)`} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Response payload [JSON - Synchronous Flagship]</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Accepted job [HTTP 202]</span>
                 <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
                   <HighlightJSON code={`{
-  "simulation_id": "sim-session-123",
-  "empirical_personas": [
-    {
-      "name": "Elena Fischer",
-      "archetype": "Traditional Dispatcher",
-      "pain_points": {
-        "value": "Manual tracking takes 10+ hours per week",
-        "confidence": 1.0,
-        "evidence": [
-          {
-            "quote": "I spend 10 hours cross-referencing GPS pings",
-            "start_char": 631,
-            "end_char": 678,
-            "speaker": "Elena Fischer"
-          }
-        ]
-      }
-    }
-  ]
+  "job_id": "hybrid-123",
+  "status": "queued",
+  "links": {
+    "status": "/api/orqaly-axwise/v1/runs/hybrid-123/status",
+    "result": "/api/orqaly-axwise/v1/runs/hybrid-123"
+  }
 }`} />
                 </div>
               </div>
+            </div>
+            <p className="text-xs text-stone-600 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              Build <code>agent_candidates</code> on the Orqaly server from the authenticated user&apos;s active agent catalogue. Never trust candidate ownership or service credentials supplied by the browser.
+            </p>
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 text-xs text-stone-600 leading-relaxed">
+              <strong className="text-stone-900">Integration errors:</strong> <code>401</code> invalid service key; <code>403</code> tenant or principal not mapped; <code>409</code> idempotency key reused with different input; <code>422</code> invalid request; <code>5xx</code> transient service failure. Retry transient failures with backoff and the same idempotency key.
             </div>
           </section>
 
@@ -299,11 +329,11 @@ response = requests.post(url, headers=headers, json=payload)`} />
           <section id="orchestration" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
               <h2 className="font-serif text-3xl text-stone-900">3. Progress &amp; Retrieval</h2>
-              <p className="text-sm text-stone-500 mt-1">GET /api/orqaly-axwise/v1/simulate/{`{id}`}/progress or /completed/{`{id}`}</p>
+              <p className="text-sm text-stone-500 mt-1">GET /api/orqaly-axwise/v1/runs/{`{job_id}`}/status or /runs/{`{job_id}`}</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              If initiating asynchronously via <code>/simulate-async</code>, the simulation executes in the background. Use these endpoints to poll live progression stats (stages, tasks, metrics) or retrieve the finalized payload of OCEAN twins and raw dialogue once fully generated.
+              Poll the status resource while AxWise runs the research job, then retrieve the completed result. The result contains the customer-in-context, evidence-linked insights, ideal executor persona, ranked Orqaly candidate, and authorisation advisory. Cancel with <code>POST /runs/{`{job_id}`}/cancel</code> when the work is no longer needed.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
@@ -312,9 +342,13 @@ response = requests.post(url, headers=headers, json=payload)`} />
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
                   <HighlightPython code={`import requests
 
-# Poll the simulation progress endpoint
-url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate/sim-123/progress"
-headers = {"Authorization": "Bearer <YOUR_KEY>"}
+# Poll the durable job
+url = "https://api.axwise.de/api/orqaly-axwise/v1/runs/hybrid-123/status"
+headers = {
+    "x-axwise-key": "<YOUR_SERVICE_KEY>",
+    "X-Orqaly-Org-ID": "<ORQALY_ORG_ID>",
+    "X-Orqaly-User-ID": "<ORQALY_USER_ID>"
+}
 response = requests.get(url, headers=headers)
 print(response.json())`} />
                 </div>
@@ -324,71 +358,93 @@ print(response.json())`} />
                 <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Progress payload [JSON]</span>
                 <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
                   <HighlightJSON code={`{
-  "simulation_id": "sim-123",
-  "stage": "simulating_interviews",
-  "progress_percentage": 50,
-  "current_task": "Conducting simulated interviews",
-  "estimated_time_remaining": 3,
-  "completed_personas": 1,
-  "total_personas": 1,
-  "completed_interviews": 1,
-  "total_interviews": 1
+  "job_id": "hybrid-123",
+  "status": "running",
+  "stage": "empirical_persona_resolution",
+  "progress_percentage": 55
 }`} />
                 </div>
               </div>
             </div>
+            <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
+              <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-3">// Completed result excerpt</span>
+              <HighlightJSON code={`{
+  "result": {
+    "data": {
+      "persona_resolution": {
+        "customer_persona": {
+          "name": "Evidence-first Event Lead",
+          "confidence": 0.85,
+          "evidence": [{"quote": "Exact source quote", "start_char": 0, "end_char": 18}]
+        },
+        "ideal_agent_persona": {
+          "role": "Customer Research Strategist",
+          "required_capabilities": ["customer research", "evidence analysis"]
+        },
+        "recommended_agent": {"agent_id": "agent-operations-strategist", "score": 0.82},
+        "selection_status": "matched_candidate",
+        "auto_assign_allowed": false,
+        "requires_orqaly_authorization": true
+      }
+    }
+  }
+}`} />
+            </div>
           </section>
 
-          {/* Section 4: Sovereign Twin Registry & RBAC */}
+          {/* Section 4: Execution boundary */}
           <section id="twins-registry" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">4. Sovereign Twin Registry &amp; RBAC</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/twins/sync or /execute or /rbac-check</p>
+              <h2 className="font-serif text-3xl text-stone-900">4. Agent Execution Boundary</h2>
+              <p className="text-sm text-stone-500 mt-1">AxWise intelligence → Orqaly authorisation and execution</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              Registers or updates psychologically-grounded Sovereign Digital Twins dynamically. Performs secure, dynamic vector index retrieval and RBAC policy evaluations before grounding queries or executing third-party tool connectors (WhatsApp, Slack, email triggers).
+              AxWise recommends who should execute and how that expert should approach the task. Orqaly remains responsible for tenant ownership, agent availability, RBAC, approval, budget, tool access, and execution. Digital twins can perform LLM-native work immediately; actions through Slack, Drive, email, Figma, or financial systems require customer-authorised connectors and appropriate governance.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python execute query script</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Production responsibility split</span>
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`import requests
+                  <HighlightPython code={`# AxWise returns:
+# - customer persona in task context
+# - evidence and precise source offsets
+# - ideal human executor / digital-twin persona
+# - ranked authenticated Orqaly agents
+# - advisory conditions and confidence
 
-url = "https://api.axwise.de/api/orqaly-axwise/v1/twins/cfo_veronika/execute"
-headers = {"Authorization": "Bearer <YOUR_KEY>"}
-payload = {
-    "sender_name": "Vitalijs Visnevskis",
-    "sender_role": "CEO",
-    "message": "I need the latest Q2 board projections."
-}
-response = requests.post(url, headers=headers, json=payload)`} />
+# Orqaly then validates:
+# - tenant and agent ownership
+# - RBAC, approval, availability, and budget
+# - authorised tools and connected data sources
+# before executing the selected agent.`} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Grounded Response [JSON]</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Capability status</span>
                 <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
                   <HighlightJSON code={`{
-  "success": true,
-  "twin_id": "cfo_veronika_horvat",
-  "execution_status": "approved",
-  "grounded_response": "Hi Vitalijs! Pulling from Q2 Planning: Base scenario: $2.4M ARR...",
-  "citations": [
-    {
-      "source": "📁 Finance / Q2 Planning",
-      "file_name": "Q2_Projections_v4.pdf"
-    }
+  "live": [
+    "customer_and_executor_resolution",
+    "evidence_offsets",
+    "agent_recommendation",
+    "durable_job_lifecycle"
   ],
-  "telemetry": {
-    "execution_cost_usd": 0.045,
-    "time_taken_ms": 1180
-  }
+  "integration_dependent": [
+    "slack", "drive", "email", "figma"
+  ],
+  "enterprise_controlled": [
+    "financial_actions", "autonomous_operations"
+  ]
 }`} />
                 </div>
               </div>
             </div>
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              Legacy <code>/twins/*</code> demonstration routes are not the production Orqaly integration contract. Do not build new integrations against them.
+            </p>
           </section>
 
         </main>

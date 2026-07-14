@@ -635,16 +635,16 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         <span>// API INBOUND RESOLUTION</span>
                         <span className="text-emerald-700 font-semibold bg-emerald-100/60 px-1 rounded">E2E COGNITIVE ROUTINE</span>
                       </div>
-                      <div className="text-[#1C1917] font-semibold">POST /api/research/simulation-bridge/simulate-enhanced</div>
+                      <div className="text-[#1C1917] font-semibold">POST /api/orqaly-axwise/v1/simulate-enhanced-async</div>
                       <p className="text-[10px] text-stone-500 font-sans leading-normal">
-                        Launches a closed-loop empirical run. Spawns occupational twins, conducts automatic multi-turn simulated interviews, and outputs grounded trace records in a single self-hosted server roundtrip.
+                        Starts a durable A+B research job. AxWise identifies the customer in the context of their pain and task, defines the ideal executor, and ranks the authenticated agents available in Orqaly. Production runs typically complete in 3–4 minutes and are retrieved asynchronously.
                       </p>
                     </div>
 
                     <div className="space-y-2 border-l-2 border-emerald-500 pl-3">
                       <div className="flex items-center justify-between text-stone-500 text-[10px]">
                         <span>GAUSSIAN SAMPLING ENGINE</span>
-                        <span>CONFIDENCE: 98.4%</span>
+                        <span>ILLUSTRATIVE SIMULATION PROFILE</span>
                       </div>
                       <div className="text-stone-800 leading-normal">
                         - Target: <strong className="text-stone-900">CFO (Veronika Horvat)</strong><br />
@@ -926,12 +926,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
           {/* Content Explanation */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
             <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// DETERMINISTIC GROUNDING</span>
-            <h2 className="font-serif text-4xl text-stone-900 leading-tight">0% Hallucination Index Mapping</h2>
+            <h2 className="font-serif text-4xl text-stone-900 leading-tight">Trace-Linked Evidence Mapping</h2>
             <p className="text-stone-600 text-sm leading-relaxed">
               Every persona goal, challenge, and tool mention parsed by our engine is trace-verified back to source 
               documents using character-level offset linking. Select one of our <strong>4 Grounded Personas</strong> below, 
               then hover over any extracted property on the right to see its exact source quote highlight dynamically 
-              in the raw audio-to-text transcript on the left.
+              in the raw audio-to-text transcript on the left. Quotes and offsets are auditable; persona synthesis remains
+              evidence-grounded decision support rather than an absolute guarantee.
             </p>
 
             {/* Persona Selectors (At least 4 Personas) */}
@@ -1212,7 +1213,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// MULTI-CHANNEL COLLABORATION</span>
           <h2 className="font-serif text-4xl text-stone-900">Digital Twins in Action</h2>
           <p className="text-stone-600 text-sm">
-            See how Orqaly's Agentic OS combined with AxWise's grounding engine lets enterprise digital twins act as secure, highly capable, and fully autonomous teammates.
+            AxWise understands who needs help, identifies the ideal human-style executor, and shapes the corresponding AI agent or digital twin. Orqaly then authorises that agent and provides the tools and context required to execute.
           </p>
         </div>
 
@@ -1283,7 +1284,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       </div>
                       <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Setup</span>
                       <h4 className="text-xs font-bold text-stone-900 mb-1">Org Mapped</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">Orqaly maps workflows. AxWise creates digital twins.</p>
+                      <p className="text-[11px] text-stone-500 leading-tight">AxWise identifies the customer-in-context and ideal executor. Orqaly authorises and orchestrates the matched agent.</p>
                     </div>
 
                     <div className="hidden md:flex items-center pt-4 text-emerald-600">
@@ -1325,7 +1326,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       </div>
                       <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Result</span>
                       <h4 className="text-xs font-bold text-stone-900 mb-1">Files + Summary</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">Twin retrieves files and replies like a colleague.</p>
+                      <p className="text-[11px] text-stone-500 leading-tight">With authorised connectors, the twin retrieves files and responds in the user's workflow.</p>
                     </div>
                   </div>
                 </div>
@@ -1336,11 +1337,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
                     <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">CFO Digital Twin</span>
                     <h3 className="font-serif text-lg text-stone-950">Veronika Horvat</h3>
                     <p className="text-xs text-stone-600 leading-relaxed">
-                      Veronika is on vacation. Her CFO Digital Twin has been activated via AxWise, with secure read-only access to her Finance Folder, Q2 Planning document, and Slack history.
+                      Veronika is on vacation. AxWise defines the expert behaviour for her CFO Digital Twin; Orqaly activates it with customer-authorised, read-only access to Finance, planning, and communication sources.
                     </p>
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-mono rounded font-semibold">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                      Twin Active &amp; Grounded
+                      AI-Native · Connector-Dependent
                     </span>
                   </div>
 
