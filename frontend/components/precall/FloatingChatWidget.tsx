@@ -109,6 +109,8 @@ export function FloatingChatWidget({
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
+
+    return undefined;
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // Get context description for the current tab
@@ -171,4 +173,3 @@ export function FloatingChatWidget({
 }
 
 export default FloatingChatWidget;
-

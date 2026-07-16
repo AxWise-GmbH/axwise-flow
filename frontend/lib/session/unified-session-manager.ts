@@ -73,7 +73,7 @@ export class UnifiedSessionManager {
         try {
           session = await this.getBackendSession(sessionId);
           // If backend session has no messages, try localStorage as fallback
-          if (!session.messages || session.messages.length === 0) {
+          if (session && (!session.messages || session.messages.length === 0)) {
             console.warn(`Backend session ${sessionId} has no messages, checking localStorage`);
             const localSession = await this.getLocalSession(sessionId);
             if (localSession && localSession.messages && localSession.messages.length > 0) {
@@ -523,7 +523,7 @@ export class UnifiedSessionManager {
   private async cleanupOldSessions(): Promise<void> {
     try {
       const { LocalResearchStorage } = await import('@/lib/api/research');
-      const sessions = LocalResearchStorage.getAllSessions();
+      const sessions = LocalResearchStorage.getSessions();
 
       // Remove sessions older than 7 days that don't have questionnaires
       const cutoffDate = new Date();
@@ -534,7 +534,7 @@ export class UnifiedSessionManager {
         const sessionDate = new Date(session.created_at);
         const isOld = sessionDate < cutoffDate;
         const hasNoQuestionnaire = !session.questions_generated;
-        const hasMinimalData = !session.business_idea?.trim() || session.messages?.length < 3;
+        const hasMinimalData = !session.business_idea?.trim() || (session.messages?.length ?? 0) < 3;
 
         if (isOld && (hasNoQuestionnaire || hasMinimalData)) {
           LocalResearchStorage.deleteSession(session.session_id);

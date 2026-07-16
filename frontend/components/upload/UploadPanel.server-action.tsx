@@ -158,7 +158,7 @@ export default function UploadPanelServerAction() {
           });
         }
       } else {
-        throw new Error(result.error || 'Analysis failed without specific error');
+        throw new Error('error' in result ? result.error : 'Analysis failed without specific error');
       }
     } catch (error) {
       setAnalysisStatus({
@@ -335,4 +335,4 @@ export default function UploadPanelServerAction() {
       </CardFooter>
     </Card>
   );
-} 
+}

@@ -1,7 +1,7 @@
 {
     "name": "@axwise/mcp-connector",
-    "version": "1.0.0",
-    "description": "Local Universal MCP Bridge for AxWise Context Engine",
+    "version": "1.1.0",
+    "description": "MCP bridge for the AxWise cognitive-conditions gateway",
     "main": "build/index.js",
     "bin": {
         "axwise-mcp-connector": "./build/index.js"
@@ -10,7 +10,8 @@
     "scripts": {
         "build": "tsc",
         "start": "node build/index.js",
-        "dev": "tsc --watch"
+        "dev": "tsc --watch",
+        "test": "npm run build && node --test tests/*.test.mjs"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",

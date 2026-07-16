@@ -8,7 +8,7 @@ async function getAuthToken() {
   const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
   if (isProduction || enableClerkValidation) {
     const { getToken } = await auth();
-    const token = await getToken({ skipCache: true });
+    const token = await getToken();
     if (!token) throw new Error('No token');
     return token;
   }
@@ -94,4 +94,3 @@ export async function DELETE(_request: NextRequest, context: { params: { session
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

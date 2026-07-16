@@ -91,7 +91,7 @@ Interviewee: Time constraints are a big issue. We often don't have enough time t
 """
 
 
-class TestConfig:
+class PipelineTestConfig:
     """Test configuration."""
 
     def __init__(self):
@@ -174,7 +174,7 @@ async def test_trait_formatting():
     logger.info("Testing TraitFormattingService...")
 
     # Create a config
-    config = TestConfig()
+    config = PipelineTestConfig()
 
     # Create a GeminiService
     gemini_service = GeminiService(config.config)
@@ -208,7 +208,7 @@ async def test_tool_recognition():
     logger.info("Testing AdaptiveToolRecognitionService...")
 
     # Create a config
-    config = TestConfig()
+    config = PipelineTestConfig()
 
     # Create a GeminiService with the config
     try:
@@ -389,7 +389,7 @@ async def test_full_pipeline():
     logger.info("Testing full pipeline with AttributeExtractor...")
 
     # Create a config
-    config = TestConfig()
+    config = PipelineTestConfig()
 
     # Create a GeminiService
     gemini_service = GeminiService(config.config)
@@ -482,7 +482,7 @@ async def main():
         logger.info("=" * 80)
 
         # Create a config to check if API key is available
-        config = TestConfig()
+        config = PipelineTestConfig()
 
         # Continue even if the API key is "mock_api_key"
         if config.api_key == "mock_api_key":

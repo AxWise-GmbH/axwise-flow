@@ -16,7 +16,10 @@ interface DetectedStakeholder {
 interface ConsensusArea {
   topic: string;
   agreement_level: number;
-  stakeholder_positions: Record<string, string>;
+  stakeholder_positions?: Record<string, string>;
+  participating_stakeholders?: string[];
+  shared_insights?: string[];
+  business_impact?: string;
 }
 
 interface ConflictArea {
@@ -37,13 +40,18 @@ interface CrossStakeholderPatterns {
   conflict_areas?: ConflictArea[];
   influence_relationships?: InfluenceRelationship[];
   implementation_recommendations?: string[];
+  conflict_zones?: Record<string, any>[];
+  influence_networks?: Record<string, any>[];
 }
 
 interface MultiStakeholderSummary {
   total_stakeholders: number;
-  primary_stakeholder_types: string[];
+  primary_stakeholder_types?: string[];
   key_insights: string[];
-  recommendation_priority: string[];
+  recommendation_priority?: string[];
+  consensus_score?: number;
+  conflict_score?: number;
+  implementation_recommendations?: string[];
 }
 
 interface StakeholderIntelligence {
@@ -54,7 +62,7 @@ interface StakeholderIntelligence {
 }
 
 interface StakeholderIntelligenceViewProps {
-  stakeholderIntelligence: StakeholderIntelligence;
+  stakeholderIntelligence?: StakeholderIntelligence;
 }
 
 const StakeholderIntelligenceView: React.FC<StakeholderIntelligenceViewProps> = ({

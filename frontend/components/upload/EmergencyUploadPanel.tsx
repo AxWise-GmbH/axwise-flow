@@ -120,7 +120,7 @@ export default function EmergencyUploadPanel() {
 
       // Detailed logging for backend state
       console.log(`🔧 [BACKEND] Response Status: ${response.status}`);
-      console.log(`🔧 [BACKEND] Progress: ${response.progress} (${Math.round(response.progress * 100)}%)`);
+      console.log(`🔧 [BACKEND] Progress: ${response.progress ?? 0} (${Math.round((response.progress ?? 0) * 100)}%)`);
       console.log(`🔧 [BACKEND] Current Stage: ${response.current_stage}`);
       console.log(`🔧 [BACKEND] Full Response:`, JSON.stringify(response, null, 2));
 
@@ -520,33 +520,15 @@ export default function EmergencyUploadPanel() {
       // Use the API client to upload directly
       const uploadResponse = await apiClient.uploadData(file, isTextFile);
 
-      // Simulate the server action response format
-      const result = {
-        success: true,
-        uploadResponse: uploadResponse
-      };
-
-      if (result.success && result.uploadResponse) {
-        setUploadProgress(100);
-        setUploadResponse(result.uploadResponse);
-        toast({
-          title: "Upload successful",
-          description: `File ${fileName} uploaded successfully.`,
-          variant: "default",
-        });
-        // Start analysis immediately after successful upload
-        await handleAnalysis(result.uploadResponse.data_id);
-      } else {
-         // Handle error from server action (Type Guard)
-        if (!result.success) {
-            const errorMessage = result.error || 'Upload failed';
-            setUploadError(errorMessage); // Use string error
-            toast({ title: "Upload failed", description: errorMessage, variant: "destructive" });
-        } else {
-             setUploadError('Upload failed unexpectedly.');
-             toast({ title: "Upload failed", description: 'Upload failed unexpectedly.', variant: "destructive" });
-        }
-      }
+      setUploadProgress(100);
+      setUploadResponse(uploadResponse);
+      toast({
+        title: "Upload successful",
+        description: `File ${fileName} uploaded successfully.`,
+        variant: "default",
+      });
+      // Start analysis immediately after successful upload
+      await handleAnalysis(uploadResponse.data_id);
     } catch (error) {
       console.error('Upload error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown upload error';

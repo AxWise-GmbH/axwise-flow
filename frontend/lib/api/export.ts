@@ -14,9 +14,8 @@ export async function exportAnalysisMarkdown(analysisId: string): Promise<Blob> 
   try {
     console.log(`Exporting analysis ID: ${analysisId} as Markdown`);
 
-    // Make the API call with responseType blob to get binary data
+    // Markdown is text; Blob construction below handles the browser download payload.
     const response = await apiCore.getClient().get(`/api/export/${analysisId}/markdown`, {
-      responseType: 'blob',
       timeout: 60000, // 60 seconds timeout for potentially large files
     });
 

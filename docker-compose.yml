@@ -9,6 +9,7 @@
 # Services:
 #   - db:       PostgreSQL 15 database
 #   - backend:  FastAPI backend (Python 3.11)
+#   - worker:   Durable Orqaly A+B job worker
 #   - frontend: Next.js frontend (Node 20, dev mode with hot-reload)
 #
 # URLs:
@@ -64,12 +65,45 @@ services:
 
       # Auth disabled for OSS
       ENABLE_CLERK_VALIDATION: "false"
+      AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
 
       # Processing
       PAID_TIER_CONCURRENCY: "10"
     depends_on:
       db:
         condition: service_healthy
+
+  # ── Durable Orqaly A+B Worker ───────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "backend.scripts.run_orqaly_hybrid_worker_service"]
+    restart: unless-stopped
+    environment:
+      OSS_MODE: "true"
+      PORT: "8080"
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/axwise
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: axwise
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+      ENABLE_CLERK_VALIDATION: "false"
+      AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
+      WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # ── Next.js Frontend ─────────────────────────────────────────
   frontend:
@@ -90,7 +124,8 @@ services:
       NEXT_PUBLIC_ENABLE_ANALYTICS: "false"
       NEXT_TELEMETRY_DISABLED: "1"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   axwise_pgdata:

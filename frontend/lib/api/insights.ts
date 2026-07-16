@@ -36,6 +36,17 @@ export async function getPriorityInsights(analysisId: string): Promise<PriorityI
           }
         };
       }
+
+      if (response.status === 404) {
+        return {
+          insights: [],
+          metrics: {
+            high_urgency_count: 0,
+            medium_urgency_count: 0,
+            low_urgency_count: 0
+          }
+        };
+      }
     } catch (apiError) {
       console.warn('Next.js API route failed, trying direct backend call:', apiError);
     }
@@ -66,39 +77,10 @@ export async function getPriorityInsights(analysisId: string): Promise<PriorityI
       console.error(`Direct backend call failed: ${directResponse.status} ${directResponse.statusText}`);
     }
 
-    console.log('Priority insights response:', response.data);
-
-    // Handle 404 case explicitly
-    if (response.status === 404) {
-      console.log('No insights found for this analysis (404 response)');
-      return {
-        insights: [],
-        metrics: {
-          high_urgency_count: 0,
-          medium_urgency_count: 0,
-          low_urgency_count: 0
-        }
-      };
-    }
-
-    // Check if the response has the expected structure
-    if (!response.data || !response.data.insights) {
-      console.error('Invalid insights response format:', response.data);
-
-      // Return a default structure if the response is invalid
-      return {
-        insights: [],
-        metrics: {
-          high_urgency_count: 0,
-          medium_urgency_count: 0,
-          low_urgency_count: 0
-        }
-      };
-    }
-
+    // Both the application route and the direct backend route were unavailable.
     return {
-      insights: response.data.insights,
-      metrics: response.data.metrics || {
+      insights: [],
+      metrics: {
         high_urgency_count: 0,
         medium_urgency_count: 0,
         low_urgency_count: 0

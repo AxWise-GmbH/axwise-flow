@@ -11,15 +11,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
+from backend.api.app import app
 from backend.database import Base, get_db
 from backend.models import User, InterviewData
 
-# Load .env file from the backend folder for testing
-env_path = Path(__file__).parents[1] / ".env"
-if env_path.exists():
-    load_dotenv(dotenv_path=env_path)
-else:
-    load_dotenv()
+
+# Preserved historical scripts that target modules removed from the OSS runtime.
+# They are documented in backend/tests/LEGACY_TESTS.md and intentionally excluded
+# instead of being allowed to break collection or silently masquerade as coverage.
+collect_ignore = [
+    "services/processing/pipeline/test_transcript_processor.py",
+    "test_enhanced_research_models.py",
+    "unit/test_api_response_structure.py",
+    "unit/test_contextual_quick_replies.py",
+    "unit/test_direct_comparison.py",
+    "unit/test_llm_stakeholder_intelligence.py",
+    "unit/test_model_serialization.py",
+    "unit/test_nlp_blocking_fix.py",
+    "unit/test_persona_fix.py",
+    "unit/test_questionnaire_improvements.py",
+    "unit/test_smart_suggestions.py",
+    "unit/test_validation_fix.py",
+]
 
 # Load .env file from the backend folder for testing
 env_path = Path(__file__).parents[1] / ".env"
@@ -27,7 +40,6 @@ if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 else:
     load_dotenv()
-
 
 # Enable factory-based stakeholder agent and consensus service in tests (development behavior)
 @pytest.fixture(scope="session", autouse=True)

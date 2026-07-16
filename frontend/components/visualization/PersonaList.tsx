@@ -212,7 +212,7 @@ export function PersonaList({ personas, className }: PersonaListProps) {
       const arr = Array.isArray(quotes.evidence) ? quotes.evidence : [quotes.evidence];
       quoteList = arr
         .map(toText)
-        .filter((q): q is string => typeof q === 'string' && q.trim().length > 0);
+        .filter((q: string | null): q is string => typeof q === 'string' && q.trim().length > 0);
     }
 
     if (quoteList.length === 0) {

@@ -27,6 +27,8 @@ from backend.services.orqaly_persona_resolution_service import (
     OrqalyTaskContext,
 )
 
+pytestmark = pytest.mark.contract
+
 
 @compiles(JSONB, "sqlite")
 def _compile_jsonb_as_json(_type, _compiler, **_kwargs):

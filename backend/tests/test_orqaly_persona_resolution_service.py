@@ -1,8 +1,12 @@
+import pytest
+
 from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
     resolve_orqaly_personas,
 )
+
+pytestmark = pytest.mark.contract
 
 
 def _customer_persona():
@@ -78,4 +82,3 @@ def test_returns_ideal_persona_when_orqaly_has_no_candidate():
     assert result["recommended_agent"] is None
     assert result["selection_status"] == "ideal_persona_only"
     assert result["ideal_agent_persona"]["required_capabilities"]
-

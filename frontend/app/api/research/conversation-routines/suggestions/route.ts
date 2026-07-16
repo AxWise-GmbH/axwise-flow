@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveRouteAuthHeaders } from '@/lib/auth/server-route';
+
+export const dynamic = 'force-dynamic';
+
 const API_BASE_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function GET(request: NextRequest) {
@@ -94,4 +97,3 @@ function getErrorMessage(status: number, errorText: string): string {
       return `Backend error: ${errorText || 'Unknown error'}`;
   }
 }
-

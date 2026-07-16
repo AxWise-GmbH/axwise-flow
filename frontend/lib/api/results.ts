@@ -6,6 +6,7 @@ import { apiCore } from './core';
 import { DetailedAnalysisResult, SentimentOverview } from './types';
 import { generateMockAnalyses } from './mocks';
 import { getAnalysisById } from './results-detail';
+import { getAuthToken } from './auth';
 
 // Re-export getAnalysisById from results-detail.ts
 export { getAnalysisById };
@@ -85,7 +86,7 @@ export async function listAnalyses(params?: unknown): Promise<DetailedAnalysisRe
         }
 
         // Get proper auth token
-        const authToken = await apiCore.getAuthToken();
+        const authToken = await getAuthToken();
         if (!authToken) {
           throw new Error('No authentication token available');
         }
@@ -139,7 +140,7 @@ export async function listAnalyses(params?: unknown): Promise<DetailedAnalysisRe
       }
 
       // Get proper auth token
-      const authToken = await apiCore.getAuthToken();
+      const authToken = await getAuthToken();
       if (!authToken) {
         throw new Error('No authentication token available');
       }

@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 export function FlowDiagram() {
@@ -9,7 +9,7 @@ export function FlowDiagram() {
   }, []);
 
   // Animation variants for lines flowing from edges to center
-  const lineVariants = {
+  const lineVariants: Variants = {
     hidden: { pathLength: 0, opacity: 0 },
     visible: {
       pathLength: 1,

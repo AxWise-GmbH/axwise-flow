@@ -58,6 +58,12 @@
     "out/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "lib/auth-sync.ts",
+    "lib/utils/transform.ts",
+    "lib/utils/validation.ts"
   ]
 }

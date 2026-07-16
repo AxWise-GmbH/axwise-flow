@@ -1,15 +1,17 @@
 ---
 type: Technical Documentation
 title: "Orqaly and AxWise Current API Contract"
-description: "The current non-secret API contract for Orqaly server-to-server use of AxWise conditions and asynchronous A plus B research."
+description: "The current non-secret API contract for AxWise conditions and asynchronous A plus B research, with an explicit boundary to the target generic orchestration product."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_INTEGRATION_SCHEMA.md
-tags: [orqaly, axwise, api, contract, conditions, research, async]
+tags: [orqaly, axwise, api, contract, orchestration, assignment, conditions, research, async]
 timestamp: 2026-07-13T11:30:00Z
 ---
 
 # Orqaly × AxWise current API contract
 
-This is the shareable technical contract. It describes the live integration surface; it does not contain credentials. The separate private production handoff contains the M2M secret, webhook secret, and deployment checklist.
+This is the shareable technical contract for the currently implemented integration surface; it does not contain credentials. The separate private production handoff contains the M2M secret, webhook secret, and deployment checklist.
+
+The strategic product is broader than this API: AxWise is intended to provide domain-neutral cognitive orchestration and assignment for LLM-driven operational work, while Orqaly authorizes and executes the recommended plan. The generic task contract, routing modes, multi-agent plan, and outcome-learning requirements are defined in `AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md`; the implementation sequence is defined in `AXWISE_ORCHESTRATION_DEVELOPMENT_ROADMAP.md`. They are target capabilities and must not be inferred from the current A+B routes.
 
 ## Base URL and authentication
 
@@ -29,11 +31,12 @@ The integration does **not** use a browser token, a per-user bearer token, or th
 
 | Capability | Route | Purpose | Current status |
 |---|---|---|---|
-| Conditions gateway | `POST /conditions/evaluate` | A synchronous decision/grounding call at a defined Orqaly workflow point. | Live and authenticated; advisory/shadow use only while chat history remains unused. |
-| Durable A+B research | `POST /simulate-enhanced-async` | Queues evidence-audited research with idempotency, status, results, cancellation, and optional terminal webhook. | Live with production migration, durable storage, and managed worker. |
-| Run status | `GET /runs/{job_id}/status` | Retrieves durable job stage and progress. | Live. |
-| Completed result | `GET /runs/{job_id}` | Retrieves the persisted research output after completion. | Live. |
-| Cancellation | `POST /runs/{job_id}/cancel` | Cancels a queued or running tenant-owned job. | Live; terminal-state conflict behaviour remains enforced. |
+| Generic cognitive orchestration | Not yet published | Accepts an arbitrary operational task and recommends an agent, team, execution pattern, context, guardrails, approvals, and fallbacks. | Strategic target; not implemented as a stable API. |
+| Conditions gateway | `POST /conditions/evaluate` | A synchronous decision/grounding call at a defined Orqaly workflow point. | Implemented; verify deployment and authentication before use. Advisory/shadow use only while chat history remains unused. |
+| Durable A+B research | `POST /simulate-enhanced-async` | Queues evidence-audited research with idempotency, status, results, cancellation, and optional terminal webhook. | Implemented in the repository; production readiness requires current schema, worker, tenant, secret, and callback verification. |
+| Run status | `GET /runs/{job_id}/status` | Retrieves durable job stage and progress. | Implemented; verify deployment before use. |
+| Completed result | `GET /runs/{job_id}` | Retrieves the persisted research output after completion. | Implemented; verify deployment before use. |
+| Cancellation | `POST /runs/{job_id}/cancel` | Cancels a queued or running tenant-owned job. | Implemented with terminal-state conflict behaviour; verify deployment before use. |
 
 ## 1. Conditions gateway
 
@@ -171,8 +174,8 @@ The webhook is retried up to three times. Orqaly should return a quick 2xx after
 
 The legacy `/twins/*` routes and legacy `/simulate-async` flow are not the production A+B research contract. Do not build a production dependency on them.
 
-## 7. Production verification
+## 7. Historical production record and current verification
 
-On 2026-07-13, production was migrated to `20260712_orqaly_hybrid`, the dedicated managed worker was deployed, and a mapped-tenant A+B dual-persona run completed on its first attempt. The run produced a customer persona with four document-local evidence ranges; all four ranges were independently verified against their source interview text. Identical idempotent retry returned the same job, changed input returned `409`, and an unmapped tenant returned `403` rather than `500`.
+Project records state that on 2026-07-13 production was migrated to `20260712_orqaly_hybrid`, a dedicated managed worker was deployed, and a mapped-tenant A+B dual-persona run completed successfully. They also record successful evidence-range, idempotency-conflict, and unmapped-tenant checks. This historical record is not a current deployment guarantee and cannot be independently established from repository code.
 
-Before enabling a real Orqaly organisation, create an active mapping for its exact `orgId` and `userId` and install the current M2M secret in Orqaly's server-side secret store. Polling is production-ready. Treat signed callbacks as optional until Orqaly's receiver has separately passed signature, replay, retry, and deduplication tests.
+Before enabling a real Orqaly organisation, verify the migration and worker in the target environment, create an active mapping for its exact `orgId` and `userId`, install the current M2M secret in Orqaly's server-side secret store, and complete a fresh tenant-scoped smoke test. Treat signed callbacks as optional until Orqaly's receiver has separately passed signature, replay, retry, and deduplication tests.
