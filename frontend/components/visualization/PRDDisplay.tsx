@@ -179,7 +179,7 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
   }
 
   // Render empty state
-  if (!prdData) {
+  if (!prdData?.prd_data) {
     return (
       <Card>
         <CardHeader>
@@ -207,16 +207,18 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
     );
   }
 
+  const generatedPrd = prdData.prd_data;
+
   // Determine which tabs to show
-  const hasOperationalPRD = !!prdData?.prd_data?.operational_prd;
-  const hasTechnicalPRD = !!prdData?.prd_data?.technical_prd;
+  const hasOperationalPRD = !!generatedPrd.operational_prd;
+  const hasTechnicalPRD = !!generatedPrd.technical_prd;
 
   console.log('[PRDDisplay] PRD data check:', {
     hasPrdData: !!prdData,
     hasOperationalPRD,
     hasTechnicalPRD,
     prdDataKeys: prdData ? Object.keys(prdData) : [],
-    prdDataPrdKeys: prdData?.prd_data ? Object.keys(prdData.prd_data) : []
+    prdDataPrdKeys: Object.keys(generatedPrd)
   });
 
   return (
@@ -229,22 +231,22 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
               Product Requirements Document
             </CardTitle>
             <CardDescription>
-              AI-generated PRD from analysis of {prdData.prd_data.metadata?.generated_from.themes_count || 0} themes, {prdData.prd_data.metadata?.generated_from.patterns_count || 0} patterns, {prdData.prd_data.metadata?.generated_from.insights_count || 0} insights, and {prdData.prd_data.metadata?.generated_from.personas_count || 0} personas
+              AI-generated PRD from analysis of {generatedPrd.metadata?.generated_from.themes_count || 0} themes, {generatedPrd.metadata?.generated_from.patterns_count || 0} patterns, {generatedPrd.metadata?.generated_from.insights_count || 0} insights, and {generatedPrd.metadata?.generated_from.personas_count || 0} personas
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-2">
               <Badge variant="outline" className="bg-primary/10">
-                {prdData.prd_data.metadata?.generated_from.themes_count || 0} Themes
+                {generatedPrd.metadata?.generated_from.themes_count || 0} Themes
               </Badge>
               <Badge variant="outline" className="bg-primary/10">
-                {prdData.prd_data.metadata?.generated_from.patterns_count || 0} Patterns
+                {generatedPrd.metadata?.generated_from.patterns_count || 0} Patterns
               </Badge>
               <Badge variant="outline" className="bg-primary/10">
-                {prdData.prd_data.metadata?.generated_from.insights_count || 0} Insights
+                {generatedPrd.metadata?.generated_from.insights_count || 0} Insights
               </Badge>
               <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300">
-                {prdData.prd_data.metadata?.generated_from.personas_count || 0} Personas
+                {generatedPrd.metadata?.generated_from.personas_count || 0} Personas
               </Badge>
             </div>
             <div className="flex gap-2">
@@ -288,14 +290,14 @@ export function PRDDisplay({ analysis, prdData: serverPrdData }: PRDDisplayProps
           {/* Operational PRD Content */}
           {hasOperationalPRD && (
             <TabsContent value="operational" className="mt-6">
-              <OperationalPRDContent prd={prdData.prd_data.operational_prd!} getPriorityColorClass={getPriorityColorClass} />
+              <OperationalPRDContent prd={generatedPrd.operational_prd!} getPriorityColorClass={getPriorityColorClass} />
             </TabsContent>
           )}
 
           {/* Technical PRD Content */}
           {hasTechnicalPRD && (
             <TabsContent value="technical" className="mt-6">
-              <TechnicalPRDContent prd={prdData.prd_data.technical_prd!} getPriorityColorClass={getPriorityColorClass} />
+              <TechnicalPRDContent prd={generatedPrd.technical_prd!} getPriorityColorClass={getPriorityColorClass} />
             </TabsContent>
           )}
         </Tabs>

@@ -3,21 +3,30 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
     CallToolRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    ReadResourceRequestSchema,
-    ListPromptsRequestSchema,
-    GetPromptRequestSchema,
     ErrorCode,
+    GetPromptRequestSchema,
+    ListPromptsRequestSchema,
+    ListToolsRequestSchema,
     McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
 import dotenv from "dotenv";
 
+import {
+    CONDITIONS_ENDPOINT,
+    evaluateConditions,
+    type ConditionsToolArguments,
+    type TenantDefaults,
+} from "./conditions-client.js";
+
 dotenv.config();
 
 const AXWISE_API_KEY = process.env.AXWISE_API_KEY;
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
+const tenantDefaults: TenantDefaults = {
+    userId: process.env.AXWISE_USER_ID,
+    orgId: process.env.AXWISE_ORG_ID,
+};
 
 if (!AXWISE_API_KEY) {
     console.error("CRITICAL ERROR: AXWISE_API_KEY environment variable is required.");
@@ -25,142 +34,98 @@ if (!AXWISE_API_KEY) {
 }
 
 const server = new Server(
-    {
-        name: "axwise-engine",
-        version: "1.0.0",
-    },
-    {
-        capabilities: {
-            resources: {},
-            tools: {},
-            prompts: {},
-        },
-    }
+    { name: "axwise-cognitive-conditions", version: "1.1.0" },
+    { capabilities: { tools: {}, prompts: {} } },
 );
 
-const axiosInstance = axios.create({
+const apiClient = axios.create({
     baseURL: API_BASE_URL,
     headers: {
-        "X-AxWise-Api-Key": AXWISE_API_KEY,
+        "x-axwise-key": AXWISE_API_KEY,
         "Content-Type": "application/json",
     },
 });
 
-// Setup Resources
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return {
-        resources: [
-            {
-                uri: "axwise://context/twin",
-                name: "AxWise Digital Twin Context",
-                description: "Provides the stakeholder profiling context of the current user.",
-                mimeType: "text/markdown",
-            },
-        ],
-    };
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    if (request.params.uri !== "axwise://context/twin") {
-        throw new McpError(ErrorCode.InvalidRequest, `Unknown resource URI: ${request.params.uri}`);
-    }
-
-    try {
-        const response = await axiosInstance.get("/api/v1/mcp/twin");
-        return {
-            contents: [
-                {
-                    uri: request.params.uri,
-                    mimeType: "text/markdown",
-                    text: response.data.twin_context,
-                },
-            ],
-        };
-    } catch (error: any) {
-        throw new McpError(ErrorCode.InternalError, `Failed to fetch twin context: ${error?.message}`);
-    }
-});
-
-// Setup Tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
-            {
-                name: "axwise_map_stakeholders",
-                description: "Crucial: Call this tool during your Extended Thinking/Reasoning phase whenever the user asks for business, product, or communication advice. Pass a 1-sentence anonymized summary of their goal.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        anonymized_intent: {
-                            type: "string",
-                            description: "A 1-sentence anonymized summary of the user's generic workplace intent.",
-                        },
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+        {
+            name: "axwise_evaluate_conditions",
+            description:
+                "Evaluate a scoped orchestration event through AxWise for governance, persona/tone, security, classification, or grounding outputs.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    integration_point: {
+                        type: "string",
+                        enum: ["consilium.create", "agent.generate", "copilot.chat", "copilot.ground"],
+                        description: "The orchestration event whose conditions should be evaluated.",
                     },
-                    required: ["anonymized_intent"],
+                    payload: {
+                        type: "object",
+                        description: "Local facts for the selected integration point.",
+                        additionalProperties: true,
+                    },
+                    tenant: {
+                        type: "object",
+                        description: "Explicit tenant scope. May be omitted when AXWISE_USER_ID and AXWISE_ORG_ID are configured.",
+                        properties: {
+                            userId: { type: "string" },
+                            orgId: { type: "string" },
+                        },
+                        required: ["userId", "orgId"],
+                        additionalProperties: false,
+                    },
+                    request_id: {
+                        type: "string",
+                        description: "Optional UUID used for tracing and idempotency; generated when omitted.",
+                    },
+                    hints: {
+                        type: "object",
+                        additionalProperties: true,
+                    },
                 },
+                required: ["integration_point", "payload"],
+                additionalProperties: false,
             },
-        ],
-    };
-});
+        },
+    ],
+}));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name !== "axwise_map_stakeholders") {
+    if (request.params.name !== "axwise_evaluate_conditions") {
         throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
     }
 
-    const anonymized_intent = request.params.arguments?.anonymized_intent;
-    if (!anonymized_intent || typeof anonymized_intent !== "string") {
-        throw new McpError(ErrorCode.InvalidParams, "anonymized_intent is required and must be a string");
-    }
-
     try {
-        const response = await axiosInstance.post("/api/v1/mcp/session/stakeholders", {
-            anonymized_intent,
-        });
-
+        const result = await evaluateConditions(
+            apiClient,
+            request.params.arguments as unknown as ConditionsToolArguments,
+            tenantDefaults,
+        );
         return {
-            content: [
-                {
-                    type: "text",
-                    text: JSON.stringify(response.data, null, 2),
-                },
-            ],
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
     } catch (error: any) {
-        const errorDetails = error.response?.data?.detail || error.message;
-        throw new McpError(ErrorCode.InternalError, `Failed to map stakeholders: ${errorDetails}`);
+        const status = error.response?.status;
+        const detail = error.response?.data?.detail || error.message;
+        const prefix = status ? `AxWise returned HTTP ${status}` : "AxWise request failed";
+        throw new McpError(ErrorCode.InternalError, `${prefix}: ${detail}`);
     }
 });
 
-// Setup Prompts (Phase 4)
-server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return {
-        prompts: [
-            {
-                name: "axwise_session_start",
-                description: "Start a session with AxWise behavioral middleware injected.",
-            },
-        ],
-    };
-});
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts: [
+        {
+            name: "axwise_cognitive_gate",
+            description: "Use AxWise as a policy and cognitive decision point for an orchestration event.",
+        },
+    ],
+}));
 
 server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    if (request.params.name !== "axwise_session_start") {
+    if (request.params.name !== "axwise_cognitive_gate") {
         throw new McpError(ErrorCode.MethodNotFound, `Unknown prompt: ${request.params.name}`);
     }
-
-    const overridePrompt = `[AXWISE MIDDLEWARE ENGAGED]
-You are operating as an AxWise-enhanced agent. You must allocate your reasoning/thinking budget to execute the following pipeline before outputting a response:
-
-Identity Sync: Read the axwise://context/twin resource to understand my exact role, constraints, and the delivery pressures I am under.
-
-Stakeholder Mapping: Extract the core intent of my prompt/image. Anonymize it, and immediately call the axwise_map_stakeholders tool to understand who I am presenting this to.
-
-Constraint Enforcement: Work AGAINST your default LLM behavior. Do NOT give generic, empathetic, or academic UX advice.
-
-Synthesis (Inside Thinking Block): Translate my technical/UX insights strictly into the business language, KPIs, and risk-mitigation framing demanded by the stakeholder profile you just generated.
-
-Output: Give me the script, the mathematical framing, or the exact code required to win this argument. Keep it brief and ruthless.`;
 
     return {
         messages: [
@@ -168,18 +133,17 @@ Output: Give me the script, the mathematical framing, or the exact code required
                 role: "user",
                 content: {
                     type: "text",
-                    text: overridePrompt,
+                    text: `When an orchestration decision needs governance, security, persona/tone, classification, or grounding, call axwise_evaluate_conditions. Select the integration point that matches the event and pass only the facts needed for that decision. Treat applicableConditions and processedOutputs as decision support, preserve the returned traceId, and never claim that AxWise executed work beyond ${CONDITIONS_ENDPOINT}.`,
                 },
             },
         ],
     };
 });
 
-// Start Server
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("AxWise MCP Server running on stdio");
+    console.error(`AxWise MCP connector running on stdio; gateway=${CONDITIONS_ENDPOINT}`);
 }
 
 main().catch((error) => {

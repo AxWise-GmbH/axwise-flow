@@ -608,7 +608,10 @@ export const loadSession = async (
           }
         }
       } catch (e) {
-        console.log('Backend reconciliation skipped or failed (likely unauthenticated):', e?.message || e);
+        console.log(
+          'Backend reconciliation skipped or failed (likely unauthenticated):',
+          e instanceof Error ? e.message : String(e)
+        );
       }
     } else {
       // Load from backend API

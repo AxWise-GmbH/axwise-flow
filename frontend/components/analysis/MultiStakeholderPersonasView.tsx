@@ -32,7 +32,7 @@ interface Persona {
     value: string;
     evidence: string[];
   };
-  patterns?: {
+  patterns?: string[] | {
     value: string;
     evidence: string[];
   };
@@ -862,7 +862,7 @@ const MultiStakeholderPersonasView: React.FC<MultiStakeholderPersonasViewProps> 
                       {renderTraitValue((persona.challenges_and_frustrations || persona.pain_points)?.value)}
                     </ul>
                   </div>
-                  {((persona.challenges_and_frustrations || persona.pain_points)?.evidence && (persona.challenges_and_frustrations || persona.pain_points)?.evidence.length > 0) && (
+                  {(((persona.challenges_and_frustrations || persona.pain_points)?.evidence?.length ?? 0) > 0) && (
                     <Accordion type="single" collapsible className="mt-2">
                       <AccordionItem value="evidence">
                         <AccordionTrigger className="text-sm text-muted-foreground">

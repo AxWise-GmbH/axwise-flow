@@ -19,8 +19,13 @@ from rapidfuzz import fuzz
 from sqlalchemy.orm import Session
 
 from backend.database import SessionLocal, get_db
-from backend.models import OrqalyTenantMapping, PipelineRun, User
+from backend.models import PipelineRun, User
 from backend.services.external.auth_middleware import get_current_user
+from backend.api.dependencies import (
+    TenantContext,
+    resolve_orqaly_tenant_user,
+    verify_orqaly_service_key,
+)
 from backend.api.research.simulation_bridge.models import (
     SimulationRequest,
     SimulationResponse,
@@ -68,39 +73,6 @@ class RequestIDCache:
 IDEMPOTENCY_CACHE = RequestIDCache()
 
 
-# ----------------- Service-to-Service Header Authenticator -----------------
-import secrets
-
-async def verify_service_key(
-    x_axwise_key: Optional[str] = Header(None, alias="x-axwise-key", description="API Key for secure service-to-service integration")
-) -> str:
-    """
-    Validates machine-to-machine requests using the shared x-axwise-key header with constant-time verification.
-    """
-    expected_key = os.getenv("AXWISE_API_KEY")
-    if not expected_key:
-        logger.error("AXWISE_API_KEY is not configured for service-to-service requests")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service authentication is not configured",
-        )
-    if not x_axwise_key:
-        logger.warning("Authentication failed: Missing x-axwise-key header")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing secure x-axwise-key header",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    if not secrets.compare_digest(x_axwise_key, expected_key):
-        logger.warning("Authentication failed: Invalid service-to-service key")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized: Invalid service key",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-    return x_axwise_key
-
-
 # ==============================================================================
 #                      GREENFIELD COGNITIVE CONDITIONS CONTRACT
 # ==============================================================================
@@ -119,12 +91,6 @@ class ExecutionMode(str, Enum):
     THINK = "THINK"
     DO = "DO"
 
-# --- Request Models ---
-class TenantContext(BaseModel):
-    userId: str = Field(..., description="Unique user ID from Orqaly")
-    orgId: str = Field(..., description="Unique organization/tenant ID")
-
-
 class OrqalyHybridAsyncRequest(SimulationRequest):
     """Production contract for a durable Orqaly A+B research run."""
 
@@ -132,34 +98,6 @@ class OrqalyHybridAsyncRequest(SimulationRequest):
     outputs: HybridOutputs = Field(default_factory=HybridOutputs)
     task_context: Optional[OrqalyTaskContext] = None
     agent_candidates: List[OrqalyAgentCandidate] = Field(default_factory=list)
-
-
-def _resolve_orqaly_tenant_user(
-    db: Session, tenant: TenantContext, partner_id: str = "orqaly"
-) -> User:
-    """Resolve an external tenant through a persisted, active ownership mapping."""
-    mapping = (
-        db.query(OrqalyTenantMapping)
-        .filter(
-            OrqalyTenantMapping.partner_id == partner_id,
-            OrqalyTenantMapping.external_org_id == tenant.orgId,
-            OrqalyTenantMapping.external_user_id == tenant.userId,
-            OrqalyTenantMapping.active.is_(True),
-        )
-        .first()
-    )
-    if not mapping:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Orqaly tenant is not mapped to an AxWise workspace",
-        )
-    user = db.query(User).filter(User.user_id == mapping.user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Mapped AxWise workspace is unavailable",
-        )
-    return user
 
 
 class ConditionsEvaluationRequest(BaseModel):
@@ -481,7 +419,7 @@ async def _process_copilot_ground(payload: Dict[str, Any], request_id: str) -> t
 )
 async def evaluate_conditions_gateway(
     request: ConditionsEvaluationRequest,
-    x_axwise_key: str = Depends(verify_service_key)
+    x_axwise_key: str = Depends(verify_orqaly_service_key)
 ) -> ConditionsEvaluationResponse:
     start_time = time.perf_counter()
     trace_id = f"tx-{uuid.uuid4()}"
@@ -661,11 +599,23 @@ class RBACCheckResponse(BaseModel):
     logged_to_hsm: bool
 
 
+def require_demo_twin_routes() -> None:
+    """Keep legacy hard-coded twin demonstrations out of normal API operation."""
+    if os.getenv("ENABLE_DEMO_TWIN_ROUTES", "false").lower() not in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        raise HTTPException(status_code=404, detail="Demo twin routes are disabled")
+
+
 # ----------------- API Endpoints -----------------
 
 @router.post("/twins/sync", response_model=TwinRegistryResponse)
 async def sync_digital_twin(
     request: TwinRegistryRequest,
+    _demo_routes: None = Depends(require_demo_twin_routes),
     user: User = Depends(get_current_user),
 ) -> TwinRegistryResponse:
     """
@@ -688,6 +638,7 @@ async def sync_digital_twin(
 async def execute_grounded_query(
     twin_id: str,
     request: QueryRequest,
+    _demo_routes: None = Depends(require_demo_twin_routes),
     user: User = Depends(get_current_user),
 ) -> QueryResponse:
     """
@@ -757,6 +708,7 @@ async def execute_grounded_query(
 async def verify_rbac_access(
     twin_id: str,
     request: RBACCheckRequest,
+    _demo_routes: None = Depends(require_demo_twin_routes),
     user: User = Depends(get_current_user),
 ) -> RBACCheckResponse:
     """
@@ -791,7 +743,7 @@ async def verify_rbac_access(
 )
 async def orqaly_simulate_enhanced_async(
     request: OrqalyHybridAsyncRequest,
-    x_axwise_key: str = Depends(verify_service_key),
+    x_axwise_key: str = Depends(verify_orqaly_service_key),
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
     request_id: Optional[str] = Header(None, alias="X-Request-ID"),
     db: Session = Depends(get_db),
@@ -799,7 +751,7 @@ async def orqaly_simulate_enhanced_async(
     """Create or reuse a tenant-owned durable A+B research job."""
     if not idempotency_key.strip():
         raise HTTPException(status_code=400, detail="Idempotency-Key must not be empty")
-    resolved_user = _resolve_orqaly_tenant_user(db, request.tenant)
+    resolved_user = resolve_orqaly_tenant_user(db, request.tenant)
     service = HybridRunService(orchestrator)
     simulation_request = SimulationRequest(
         questions_data=request.questions_data,
@@ -861,10 +813,10 @@ def _tenant_from_headers(
 async def orqaly_hybrid_run_status(
     job_id: str,
     tenant: TenantContext = Depends(_tenant_from_headers),
-    x_axwise_key: str = Depends(verify_service_key),
+    x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    user = _resolve_orqaly_tenant_user(db, tenant)
+    user = resolve_orqaly_tenant_user(db, tenant)
     run = HybridRunService(orchestrator).get_run_for_tenant(
         job_id, user.user_id, tenant.orgId
     )
@@ -880,10 +832,10 @@ async def orqaly_hybrid_run_status(
 async def orqaly_hybrid_run_result(
     job_id: str,
     tenant: TenantContext = Depends(_tenant_from_headers),
-    x_axwise_key: str = Depends(verify_service_key),
+    x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    user = _resolve_orqaly_tenant_user(db, tenant)
+    user = resolve_orqaly_tenant_user(db, tenant)
     run = HybridRunService(orchestrator).get_run_for_tenant(
         job_id, user.user_id, tenant.orgId
     )
@@ -901,10 +853,10 @@ async def orqaly_hybrid_run_result(
 async def cancel_orqaly_hybrid_run(
     job_id: str,
     tenant: TenantContext = Depends(_tenant_from_headers),
-    x_axwise_key: str = Depends(verify_service_key),
+    x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    user = _resolve_orqaly_tenant_user(db, tenant)
+    user = resolve_orqaly_tenant_user(db, tenant)
     session = SessionLocal()
     try:
         run = (

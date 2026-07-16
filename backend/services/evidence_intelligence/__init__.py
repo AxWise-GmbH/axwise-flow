@@ -12,7 +12,6 @@ from .speaker_intelligence import (
     SpeakerIntelligence,
     SpeakerProfile,
     SpeakerRole,
-    SpeakerCharacteristics,
 )
 from .demographic_intelligence import DemographicIntelligence, DemographicData
 from .evidence_attribution import EvidenceAttribution, AttributedEvidence, EvidenceType
@@ -44,7 +43,6 @@ __all__ = [
     "SpeakerIntelligence",
     "SpeakerProfile",
     "SpeakerRole",
-    "SpeakerCharacteristics",
     # Demographics
     "DemographicIntelligence",
     "DemographicData",

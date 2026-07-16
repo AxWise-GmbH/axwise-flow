@@ -30,8 +30,8 @@ interface ResearchContext {
   multiStakeholderConsidered?: boolean;
   multiStakeholderDetected?: boolean;
   detectedStakeholders?: {
-    primary: string[];
-    secondary: string[];
+    primary: Array<string | { name: string }>;
+    secondary: Array<string | { name: string }>;
     industry?: string;
   };
 }

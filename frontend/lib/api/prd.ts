@@ -151,9 +151,10 @@ export interface TechnicalPRD {
  */
 export interface PRDResponse {
   success: boolean;
-  result_id: number;
-  prd_type: string;
-  prd_data: PRDData;
+  error?: string;
+  result_id?: number;
+  prd_type?: string;
+  prd_data?: PRDData;
 }
 
 /**

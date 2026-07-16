@@ -1,12 +1,9 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
 import { Providers } from './providers';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
@@ -39,28 +36,21 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
     description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
-    images: ['https://axwise.de/og_preview.png'],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
     images: ['https://axwise.de/orqaly-axwise/assets/simple_mode_home.png'],
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false, // Prevents zoom on input focus
-  viewportFit: 'cover' // Handles notched devices
-};
-
-export const themeColor = [
+  viewportFit: 'cover', // Handles notched devices
+  themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: '#000' },
-];
+  ],
+};
 
 interface RootLayoutProps {
   children: React.ReactNode;
@@ -71,7 +61,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
     <html lang="en" suppressHydrationWarning>
       <head>
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         <ErrorBoundary>
           <Providers>
             <AppLayout>

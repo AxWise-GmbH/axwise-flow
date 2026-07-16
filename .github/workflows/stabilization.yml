@@ -1,0 +1,84 @@
+name: Stabilization
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend contracts and collection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Validate migration graph
+        run: python -m alembic -c backend/alembic.ini heads
+      - name: Collect supported backend suite
+        run: python -m pytest --collect-only -q
+      - name: Run Orqaly and A+B contracts
+        run: >-
+          python -m pytest -q
+          backend/tests/test_orqaly_conditions_evaluation.py
+          backend/tests/test_orqaly_usecases_e2e.py
+          backend/tests/test_orqaly_hybrid_run_service.py
+          backend/tests/test_orqaly_persona_resolution_service.py
+          backend/tests/test_closed_loop_hybrid.py
+
+  frontend:
+    name: Frontend type, test, and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run type-check
+        working-directory: frontend
+      - run: npm run test:ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_OSS_MODE: "true"
+          NEXT_PUBLIC_ENABLE_CLERK_AUTH: "false"
+          NEXT_PUBLIC_ENABLE_ANALYTICS: "false"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  mcp:
+    name: MCP contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: packages/axwise-mcp-connector/package-lock.json
+      - run: npm ci
+        working-directory: packages/axwise-mcp-connector
+      - run: npm test
+        working-directory: packages/axwise-mcp-connector
+
+  compose:
+    name: Compose contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate local stack definition
+        run: docker compose config --quiet
+        env:
+          GEMINI_API_KEY: ci-placeholder
+          AXWISE_API_KEY: ci-placeholder

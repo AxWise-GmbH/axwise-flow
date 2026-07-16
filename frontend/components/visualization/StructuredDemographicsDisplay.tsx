@@ -132,7 +132,6 @@ export const StructuredDemographicsDisplay: React.FC<StructuredDemographicsDispl
 
   // Filter out fields that don't have values
   const availableFields = demographicFields.filter(
-    // @ts-expect-error SSOT type uses optional fields
     field => demographics[field.key] && (demographics as any)[field.key]?.value
   );
 
@@ -170,7 +169,6 @@ export const StructuredDemographicsDisplay: React.FC<StructuredDemographicsDispl
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {availableFields.map(({ key, label }) => {
-            // @ts-expect-error index access on SSOT type
             const attributedField = (demographics as any)[key] as AttributedField | undefined;
             if (!attributedField) return null;
 

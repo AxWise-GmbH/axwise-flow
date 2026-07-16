@@ -47,11 +47,14 @@ export function EmbeddedChatDisplay({ context }: EmbeddedChatDisplayProps) {
     setIsLoading(true);
     try {
       // Try to load from localStorage first
-      const sessions = LocalResearchStorage.getAllSessions();
+      const sessions = LocalResearchStorage.getSessions();
       const latestSession = sessions[0]; // Get most recent session
       
       if (latestSession?.messages) {
-        setMessages(latestSession.messages);
+        setMessages(latestSession.messages.map((message) => ({
+          ...message,
+          timestamp: new Date(message.timestamp),
+        })));
       } else {
         // Generate synthetic conversation based on context
         generateSyntheticConversation();

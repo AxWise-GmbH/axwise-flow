@@ -8,7 +8,7 @@ import { ResponsiveContainer as RechartsResponsiveContainer } from 'recharts';
  */
 interface ResponsiveContainerProps {
   /** The content to render inside the container */
-  children: React.ReactNode;
+  children: React.ReactElement;
   /** The width of the container (default: 100%) */
   width?: number | string;
   /** The height of the container (default: 400) */

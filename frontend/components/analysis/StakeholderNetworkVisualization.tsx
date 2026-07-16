@@ -41,7 +41,7 @@ interface Persona {
     value: string;
     evidence: string[];
   };
-  patterns?: {
+  patterns?: string[] | {
     value: string;
     evidence: string[];
   };

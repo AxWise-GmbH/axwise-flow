@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest, context: { params: { sessionId:
     if (isProduction || enableClerkValidation) {
       try {
         const { getToken } = await auth();
-        authToken = (await getToken({ skipCache: true })) || '';
+        authToken = (await getToken()) || '';
         if (!authToken) return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
       } catch (e) {
         return NextResponse.json({ error: 'Authentication error' }, { status: 401 });
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest, context: { params: { sessionId:
     if (isProduction || enableClerkValidation) {
       try {
         const { getToken } = await auth();
-        authToken = (await getToken({ skipCache: true })) || '';
+        authToken = (await getToken()) || '';
         if (!authToken) return NextResponse.json({ error: 'Authentication token required' }, { status: 401 });
       } catch (e) {
         return NextResponse.json({ error: 'Authentication error' }, { status: 401 });
@@ -80,4 +80,3 @@ export async function POST(request: NextRequest, context: { params: { sessionId:
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-

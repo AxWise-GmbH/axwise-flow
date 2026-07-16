@@ -18,8 +18,8 @@ export function generateMockAnalyses(): DetailedAnalysisResult[] {
       status: 'completed',
       createdAt: mockDate,
       themes: [
-        { id: 1, name: 'User Feedback', frequency: 0.8, keywords: ['feedback', 'review'] }, // Fix ID type
-        { id: 2, name: 'Product Features', frequency: 0.5, keywords: ['feature', 'capability'] } // Fix ID type
+        { id: 1, name: 'User Feedback', frequency: 0.8, sentiment: 0.2, statements: [], keywords: ['feedback', 'review'] },
+        { id: 2, name: 'Product Features', frequency: 0.5, sentiment: 0.1, statements: [], keywords: ['feature', 'capability'] }
       ],
       patterns: [
         { id: "1", name: 'Feature Requests', category: 'Enhancement', description: 'Users requesting specific features', frequency: 0.7, count: 10 }, // Add count

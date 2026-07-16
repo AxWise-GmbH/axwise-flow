@@ -68,9 +68,10 @@ export function usePipelineRunDetail(jobId: string | null) {
     queryKey: ['pipelineRun', jobId],
     queryFn: () => pipelineRunsService.getPipelineRunDetail(jobId!),
     enabled: !!jobId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Stop refetching if the run is completed or failed
-      if (data?.status === 'completed' || data?.status === 'failed') {
+      const status = query.state.data?.status;
+      if (status === 'completed' || status === 'failed') {
         return false;
       }
       // Refetch every 5 seconds for pending/running jobs
@@ -78,4 +79,3 @@ export function usePipelineRunDetail(jobId: string | null) {
     },
   });
 }
-

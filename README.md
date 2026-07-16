@@ -1,7 +1,7 @@
 ---
 type: "project-overview"
 title: "AxWise Flow OSS"
-description: "Your headless, context-engineered API for top-down interview simulation and bottom-up empirical persona analytics."
+description: "An evidence-aware cognitive orchestration and assignment engine with research, simulation, and persona intelligence for agentic systems."
 tags:
   - open-source
   - multi-agent-orchestrator
@@ -12,13 +12,23 @@ timestamp: "2026-07-04T10:00:00Z"
 ---
 # AxWise Flow OSS
 
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE) [![Status: Active Development](https://img.shields.io/badge/Status-Active_Development-brightgreen)](#) [![GitHub stars](https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow-oss.svg?style=social&label=Star)](https://github.com/AxWise-GmbH/axwise-flow-oss)
 [![arXiv](https://img.shields.io/badge/arXiv-2501.11613-b31b1b.svg)](https://arxiv.org/abs/2501.11613)
-[![GitHub Star History](https://api.star-history.com/svg?repos=AxWise-GmbH/axwise-flow&type=Date)](https://star-history.com/#AxWise-GmbH/axwise-flow&Date)
+[![GitHub Star History](https://api.star-history.com/svg?repos=AxWise-GmbH/axwise-flow-oss&type=Date)](https://star-history.com/#AxWise-GmbH/axwise-flow-oss&Date)
 
-**An open-source, headless, context-engineered REST API for qualitative customer research, top-down interview simulation, and bottom-up empirical persona analytics.**
+**An open-source, headless cognitive orchestration and assignment engine with qualitative research, top-down simulation, and bottom-up empirical persona analytics.**
 
-AxWise Flow transforms raw qualitative customer transcripts and multi-agent interview simulations into **evidence-linked customer personas** through a context-engineered server workflow. Every insight, persona, and demographic trait is trace-verified back to source transcripts using character-level offset linking.
+AxWise Flow is designed to determine who should perform an LLM-driven task, why that agent or team is appropriate, and which context, evidence, guardrails, approvals, and fallbacks should accompany the assignment. It can transform raw qualitative transcripts and multi-agent interview simulations into **evidence-linked customer personas** when stakeholder research would improve the decision.
+
+The strategic product boundary is simple: **AxWise decides; Orqaly executes.** AxWise is the cognitive decision plane. Orqaly remains responsible for authenticated tenancy, workflows, agent and tool availability, authorization, budgets, external actions, monitoring, and delivery.
+
+The current repository implements the research/evidence foundation, an initial customer-to-execution-persona resolver, durable A+B jobs, and advisory cognitive conditions. The generic operational-task API, multi-agent planner, and outcome-learning loop are target capabilities and must not be represented as shipped functionality.
+
+Development sources of truth:
+
+- [Product and architecture doctrine](AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md)
+- [Repository-grounded development roadmap](AXWISE_ORCHESTRATION_DEVELOPMENT_ROADMAP.md)
+- [Prioritized technical backlog](AXWISE_ORCHESTRATION_TECHNICAL_BACKLOG.md)
 
 ---
 
@@ -67,19 +77,25 @@ AxWise Flow operates as a decoupled, Python-based FastAPI gateway that orchestra
 
 ## 💡 Practical Use Cases & LLM Agents
 
-AxWise Flow is built for production-grade design thinking, synthetic data generation, and conversational modeling. The underlying engines power the following primary scenarios:
+AxWise Flow is intended to support domain-neutral orchestration for software engineering, research, sales, marketing, customer support, finance, compliance, HR, procurement, executive work, and general operations. Research and simulation are optional reasoning modes rather than mandatory steps for every task.
 
-### 1. Generative Agents & "Digital Twins" (Simulation)
+### 1. Cognitive Orchestration & Agent Assignment
+* **What it does**: Interprets an operational task, determines the stakeholders, risks, required capabilities, and suitable execution pattern, then recommends an agent, team, workflow, or human escalation.
+* **Use Case**: Route software delivery, customer escalations, contract review, campaign preparation, audit evidence, procurement analysis, or other LLM-driven work through one domain-neutral decision contract.
+* **Product Boundary**: AxWise returns an explainable recommendation. Orqaly rechecks availability, ownership, permissions, budget, and tool scope before it executes the approved plan.
+* **Current Status**: The repository contains the initial dual-persona ranking and conditions foundations. Generic task routing, multi-agent planning, and outcome learning remain roadmap capabilities.
+
+### 2. Generative Agents & "Digital Twins" (Simulation)
 * **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context. 
 * **Use Case**: Spin up digital twins of target stakeholders (e.g., enterprise compliance officers, procurement leads, local craftspeople) and interview them dynamically before writing a single line of code or launching a marketing campaign.
 * **Underlying Tech**: Uses statistical Gaussian sampling to model personality metrics (Big Five OCEAN traits) matching occupational baselines, driving the conversational response profiles of the simulated agents.
 
-### 2. Live Research & Interactive Chats
+### 3. Live Research & Interactive Chats
 * **What it does**: Conducts multi-turn, responsive interviews using a custom, context-aware researcher agent.
 * **Use Case**: Conduct automated qualitative user discovery. The research agent dynamically probes user pain points, asks follow-up questions to vague responses, and explores edge cases based on the simulated persona's profile.
 * **Underlying Tech**: Driven by structured, multi-turn `pydantic_ai.Agent` models communicating over persistent dialogue session loops.
 
-### 3. Traceable Enterprise Knowledge Bases
+### 4. Traceable Enterprise Knowledge Bases
 * **What it does**: Automatically structures conversation files, documents, and transcripts into evidence-linked, validated datasets.
 * **Use Case**: Clean up and ingest real (or simulated) user transcripts into external enterprise databases, retaining complete, character-perfect traceability so product requirements can be traced back to exact customer quotes.
 * **Underlying Tech**: Generates highly validated `ProductionPersona` JSON blocks conforming to an enterprise Golden Schema, complete with direct quotes and remapped source character indices.
@@ -373,6 +389,18 @@ curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/city-profile \
 
 ## ⚙️ Manual Setup & Execution
 
+### Docker Compose quick start
+
+The local stack includes PostgreSQL, FastAPI, the durable A+B worker, and Next.js:
+
+```bash
+cp .env.example .env
+# Set GEMINI_API_KEY and replace AXWISE_API_KEY before exposing the service.
+docker compose up --build
+```
+
+The worker waits for the backend health check, then claims durable queued A+B jobs. Its own health endpoint runs inside the Compose network on port `8080`.
+
 ### Prerequisites
 * **Python 3.11** (recommended; pandas 2.1.4 requires python 3.11)
 * **PostgreSQL 12+**
@@ -382,8 +410,8 @@ curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/city-profile \
 
 1. **Clone the headless codebase**
    ```bash
-   git clone https://github.com/AxWise-GmbH/axwise-flow.git
-   cd axwise-flow
+   git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git
+   cd axwise-flow-oss
    ```
 
 2. **Configure Environment variables**
@@ -430,6 +458,17 @@ curl -X POST http://localhost:8000/api/personas/12/Lukas_Weber/city-profile \
 
 ## 📈 Quality Verification & Measurement
 
+The supported deterministic gates are:
+
+```bash
+backend/venv/bin/python -m pytest -q
+cd frontend && npm run type-check && npm run test:ci && npm run build
+cd ../packages/axwise-mcp-connector && npm test
+cd ../.. && GEMINI_API_KEY=ci-placeholder AXWISE_API_KEY=ci-placeholder docker compose config --quiet
+```
+
+The backend default selects supported `contract` tests. Historical backend and frontend suites are preserved and documented in `backend/tests/LEGACY_TESTS.md` and `frontend/tests/LEGACY_TESTS.md`; they are not counted as passing release coverage.
+
 We provide a complete, programmatic benchmarking and accuracy verification suite under the `scripts/` directory:
 
 * **Remapped Offset Coupler Test**:
@@ -452,8 +491,8 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 
 ## 📞 Support & Community
 * 📧 **Email**: support@axwise.de or vitalijs@axwise.de
-* 🐛 **Issues**: [GitHub Issues](https://github.com/AxWise-GmbH/axwise-flow/issues)
-* 📖 **Documentation**: [Wiki](https://github.com/AxWise-GmbH/axwise-flow/wiki)
+* 🐛 **Issues**: [GitHub Issues](https://github.com/AxWise-GmbH/axwise-flow-oss/issues)
+* 📖 **Documentation**: [Wiki](https://github.com/AxWise-GmbH/axwise-flow-oss/wiki)
 
 ## 🙏 Acknowledgments
 Built with ❤️ by the AxWise team and contributors.

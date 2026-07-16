@@ -6,16 +6,19 @@ dependency injection container to create and manage service instances.
 """
 
 import logging
+import os
+import secrets
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.services.external.auth_middleware import get_current_user
 
 # Import SQLAlchemy models from centralized package to avoid duplicate registration
-from backend.models import User
+from backend.models import OrqalyTenantMapping, User
 from backend.infrastructure.container import Container
 from backend.infrastructure.persistence.unit_of_work import UnitOfWork
 
@@ -23,6 +26,71 @@ logger = logging.getLogger(__name__)
 
 # Global container instance
 _container = Container()
+
+
+class TenantContext(BaseModel):
+    """Verified external tenant identifiers supplied by the Orqaly backend."""
+
+    userId: str = Field(..., description="Unique user ID from Orqaly")
+    orgId: str = Field(..., description="Unique organization/tenant ID")
+
+
+async def verify_orqaly_service_key(
+    x_axwise_key: Optional[str] = Header(
+        None,
+        alias="x-axwise-key",
+        description="API key for secure service-to-service integration",
+    ),
+) -> str:
+    """Validate the Orqaly machine credential using constant-time comparison."""
+    expected_key = os.getenv("AXWISE_API_KEY")
+    if not expected_key:
+        logger.error("AXWISE_API_KEY is not configured for service-to-service requests")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service authentication is not configured",
+        )
+    if not x_axwise_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing secure x-axwise-key header",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    if not secrets.compare_digest(x_axwise_key, expected_key):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Invalid service key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    return x_axwise_key
+
+
+def resolve_orqaly_tenant_user(
+    db: Session, tenant: TenantContext, partner_id: str = "orqaly"
+) -> User:
+    """Resolve external tenant identity through a persisted active mapping."""
+    mapping = (
+        db.query(OrqalyTenantMapping)
+        .filter(
+            OrqalyTenantMapping.partner_id == partner_id,
+            OrqalyTenantMapping.external_org_id == tenant.orgId,
+            OrqalyTenantMapping.external_user_id == tenant.userId,
+            OrqalyTenantMapping.active.is_(True),
+        )
+        .first()
+    )
+    if not mapping:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Orqaly tenant is not mapped to an AxWise workspace",
+        )
+    user = db.query(User).filter(User.user_id == mapping.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Mapped AxWise workspace is unavailable",
+        )
+    return user
 
 
 def get_container() -> Container:

@@ -5,6 +5,8 @@ import pytest
 
 from backend.api.research.simulation_bridge.services import closed_loop_hybrid
 
+pytestmark = pytest.mark.contract
+
 
 @pytest.mark.asyncio
 async def test_hybrid_enrichment_uses_consistent_document_id(monkeypatch):

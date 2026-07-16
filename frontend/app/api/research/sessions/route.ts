@@ -8,7 +8,7 @@ async function getAuthTokenOptional() {
   const enableClerkValidation = process.env.NEXT_PUBLIC_ENABLE_CLERK_VALIDATION === 'true';
   if (isProduction || enableClerkValidation) {
     const { getToken } = await auth();
-    return (await getToken({ skipCache: true })) || '';
+    return (await getToken()) || '';
   }
   return '';
 }

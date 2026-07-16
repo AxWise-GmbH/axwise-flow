@@ -74,7 +74,7 @@ export function JiraExportButton({ analysisId, disabled = false }: JiraExportBut
       const result = await response.json();
 
       if (response.ok && result.success) {
-        showToast(`✅ Connection successful! Project: ${result.project_name}`, { variant: 'default' });
+        showToast(`✅ Connection successful! Project: ${result.project_name}`, { variant: 'success' });
       } else {
         showToast(`❌ Connection failed: ${result.message || 'Unknown error'}`, { variant: 'error' });
       }
@@ -122,7 +122,7 @@ export function JiraExportButton({ analysisId, disabled = false }: JiraExportBut
       if (response.ok && result.success) {
         showToast(
           `✅ Successfully exported to Jira! ${result.message} (1 epic, ${result.stories_created} stories, ${result.tasks_created} tasks)`,
-          { variant: 'default' }
+          { variant: 'success' }
         );
 
         // Open epic in new tab if URL is available
@@ -312,4 +312,3 @@ export function JiraExportButton({ analysisId, disabled = false }: JiraExportBut
 }
 
 export default JiraExportButton;
-
