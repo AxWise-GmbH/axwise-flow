@@ -1,24 +1,45 @@
 ---
 type: Product Strategy
 title: "Orqaly and AxWise Cognitive Routing Opportunity Matrix"
-description: "A product discovery matrix for deciding which future Orqaly capabilities may benefit from AxWise cognitive services and which remain Orqaly infrastructure responsibilities."
+description: "The current Orqaly-to-AxWise routing boundary plus a product discovery matrix for future cognitive use cases."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_INFRASTRUCTURE_ROUTING.md
 tags: [orqaly, axwise, strategy, routing, product, opportunities]
-timestamp: 2026-07-12T22:19:46.712Z
+timestamp: 2026-07-16T20:00:00Z
 ---
 
 # Orqaly × AxWise cognitive routing opportunity matrix
 
-This is a **product-discovery and architecture-boundary document**, not a production API capability list. The scenarios below are useful hypotheses for prioritisation; each requires its own validated contract, data policy, quality evaluation, and rollout before it can be offered as product functionality.
+This document has two purposes: define the current Orqaly-to-AxWise routing boundary, and preserve a **product-discovery catalogue** of future use cases. The numbered scenarios remain hypotheses for prioritisation; each requires a validated contract, data policy, quality evaluation, and rollout before it can be offered as product functionality.
 
-Today, the live AxWise integration surface is deliberately narrower:
+The `axwise-flow-oss` repository now implements the following integration surface. "Implemented" does not mean deployed or verified in the target environment:
 
-| Live capability | Appropriate use |
+| Repository capability | Appropriate use | Orqaly route |
+|---|---|---|
+| Phase 1 generic assignment | Explainable eligibility, ranking, direct recommendation, or human-controlled escalation for domain-neutral tasks. | `POST /orchestration/decisions` without research or planning extensions. |
+| Phase 2 evidence routing | Choose direct, existing-evidence, bounded-research, or clarification paths from deterministic uncertainty and value-of-information signals. | `POST /orchestration/decisions`, then `/research/refresh` when pending. |
+| Phase 3 planning and recovery | Build validated agent-team plans and create immutable recovery plans after execution-state changes. | `POST /orchestration/decisions` with `planning`, then `/replan` when required. |
+| Conditions Gateway | Contextual policy, tone, grounding, and workflow-decision support at a selected hook. | `POST /conditions/evaluate`. |
+| Standalone durable A+B research | Evidence-audited stakeholder research and dual-persona resolution independently of an orchestration decision. | `POST /simulate-enhanced-async`, then durable run routes. |
+
+For exact request and response fields, use `ORQALY_INTEGRATION_SCHEMA.md`. For the product summary, use `ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md`. Confirm deployment separately through the private production handoff and a fresh authenticated smoke test.
+
+## Current routing decision
+
+Use this order before consulting the opportunity catalogue:
+
+| Question | Route or owner |
 |---|---|
-| Conditions Gateway | Contextual policy, tone, grounding, and workflow-decision support. |
-| Durable async A+B research | Evidence-audited stakeholder research for product, service, policy, customer-journey, or operational hypotheses. |
+| Is this deterministic CRUD, file rendering, payment, transport, storage, or SaaS execution? | Keep it in Orqaly; no AxWise call. |
+| Does Orqaly need an explainable agent/team assignment or workflow recommendation? | Create a Phase 1–3 orchestration decision. |
+| Is the task clear and supported by current authoritative catalogues? | Let the orchestration decision remain direct; do not force research. |
+| Could authorized existing evidence materially improve the decision? | Supply bounded reference-only evidence metadata through Phase 2. |
+| Is uncertainty consequential and is bounded A+B research economically justified? | Explicitly permit Phase 2 research, persist the pending decision, then refresh after terminal research. |
+| Does the task require multiple roles, dependencies, reviewers, approvals, or separation of duties? | Include the typed Phase 3 `planning` object and validate the returned feasibility request in Orqaly. |
+| Did an agent, tool, output, budget, or human instruction change after planning? | Request one typed immutable replan; never overwrite the parent decision. |
+| Does Orqaly need a research deliverable independently of assignment? | Use standalone durable A+B. |
+| Is only a bounded policy, tone, security, classification, or grounding fragment needed? | Use Conditions at an explicit workflow hook, initially in shadow mode. |
 
-For the current contract, use ORQALY_INTEGRATION_SCHEMA.md. For the product summary, use ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md.
+Every orchestration and research call must use server-verified tenant identity. Orqaly must revalidate ownership, availability, RBAC, budget, tools, approvals, and plan feasibility before execution. AxWise output is never execution authority.
 
 ---
 
@@ -28,7 +49,7 @@ For the current contract, use ORQALY_INTEGRATION_SCHEMA.md. For the product summ
 Tasks involving binary file generation, rendering, domain/SSL configuration, network sockets, transactional SaaS actions, payment operations, or direct SMTP/IMAP delivery remain in Orqaly. AxWise may provide analysis or drafting input, but it does not execute those infrastructure actions.
 
 ### 2. The cognitive boundary
-Consider AxWise where a validated product capability needs psychographic modelling, tone alignment, evidence linking, grounded analysis, or contextual policy support. A table entry below is a candidate, not an instruction to call AxWise automatically.
+Consider AxWise where a validated capability needs explainable task assignment, capability matching, uncertainty routing, evidence linking, stakeholder modelling, grounded analysis, multi-agent planning, recovery planning, or contextual policy support. A table entry below is a candidate, not an instruction to call AxWise automatically.
 
 ### 3. The proportionality boundary
 Do not call AxWise for general context-free chat, basic CRUD, transactional billing, or a task that a local deterministic rule can handle safely. Use it when the cognitive/evidence value is material and the input is authorised for the selected tenant.
@@ -38,11 +59,11 @@ Do not call AxWise for general context-free chat, basic CRUD, transactional bill
 Use each scenario as a product hypothesis:
 
 1. Confirm that the problem is real and that the proposed AxWise input is authorised.
-2. Define an explicit current API contract and measurable quality target.
+2. Map the scenario to the existing generic orchestration contract or define an explicit new contract and measurable quality target.
 3. Keep Orqaly responsible for user interaction, execution, and external integrations.
 4. Start in shadow mode where the scenario influences a consequential action.
 
-The tables intentionally remain as a breadth-of-opportunity appendix. They do not supersede the current API contract or imply that the /twins/* demonstration routes are production-ready.
+The tables intentionally remain a breadth-of-opportunity appendix. They do not supersede the current API contract, prove deployment, or imply that `/twins/*` demonstration routes are production-ready.
 
 ---
 
