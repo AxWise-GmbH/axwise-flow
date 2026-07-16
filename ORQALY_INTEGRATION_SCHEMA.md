@@ -4,7 +4,7 @@ title: "Orqaly and AxWise Current API Contract"
 description: "The current non-secret API contract for AxWise Phase 1–3 decisions, evidence routing, team planning, recovery, conditions, and asynchronous A plus B research."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_INTEGRATION_SCHEMA.md
 tags: [orqaly, axwise, api, contract, orchestration, assignment, planning, recovery, conditions, research, async]
-timestamp: 2026-07-16T19:00:00Z
+timestamp: 2026-07-16T20:00:00Z
 ---
 
 # Orqaly × AxWise current API contract
@@ -12,6 +12,8 @@ timestamp: 2026-07-16T19:00:00Z
 This is the shareable technical contract for the currently implemented integration surface; it does not contain credentials. The separate private production handoff contains the M2M secret, webhook secret, and deployment checklist.
 
 AxWise provides domain-neutral cognitive orchestration and assignment for LLM-driven operational work, while Orqaly authorizes and executes the recommendation. Phases 1–3 publish the generic task contract, deterministic ranking and uncertainty routing, bounded evidence acquisition, validated multi-agent team plans, structured feasibility handoff, and immutable recovery replanning. Execution receipts, outcome learning, and production deployment hardening remain target capabilities defined in `AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md` and sequenced in `AXWISE_ORCHESTRATION_DEVELOPMENT_ROADMAP.md`.
+
+Use this file as the source of truth for route and payload compatibility. Use `ORQALY_DEV_INTEGRATION_GUIDE.md` for Orqaly client behavior, `AXWISE_INTEGRATION_PLAN.md` for rollout and verification, `ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md` for product positioning, and `ORQALY_INFRASTRUCTURE_ROUTING.md` for deciding whether a task belongs in AxWise or Orqaly. None of those companion documents overrides this contract.
 
 ## Base URL and authentication
 
@@ -31,7 +33,7 @@ The integration does **not** use a browser token, a per-user bearer token, or th
 
 | Capability | Route | Purpose | Current status |
 |---|---|---|---|
-| Phase 1–3 orchestration decision | `POST /orchestration/decisions` | Accepts a domain-neutral task, evaluates uncertainty/evidence value, and optionally constructs a validated single or multi-agent plan. | Implemented in the repository; requires current migration, tenant mapping, M2M key, worker, and target-environment verification. |
+| Phase 1–3 orchestration decision | `POST /orchestration/decisions` | Accepts a domain-neutral task, evaluates uncertainty/evidence value, and optionally constructs a validated single or multi-agent plan. | Implemented in the repository; requires the current migration, tenant mapping, M2M key, target-environment verification, and an active worker only when research can be selected. |
 | Decision retrieval | `GET /orchestration/decisions/{decision_id}` | Retrieves the exact immutable input snapshot and decision for the mapped tenant. | Implemented with tenant-scoped lookup; verify deployment before use. |
 | Research refresh and rescore | `POST /orchestration/decisions/{decision_id}/research/refresh` | Returns the pending decision or creates a linked immutable decision after terminal research. | Implemented with exact organization/user isolation and durable refresh idempotency. |
 | Recovery replan | `POST /orchestration/decisions/{decision_id}/replan` | Creates a linked immutable plan after agent, tool, output, budget, or human-override changes. | Implemented with structured feasibility rejection, exact-user isolation, and durable idempotency. |

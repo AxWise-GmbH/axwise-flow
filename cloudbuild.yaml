@@ -40,5 +40,7 @@ images:
 
 # Options
 options:
-  logging: CLOUD_LOGGING_ONLY
+  # The current build service account can write to the default Cloud Build
+  # storage bucket but does not have roles/logging.logWriter.
+  logging: GCS_ONLY
   machineType: "E2_HIGHCPU_8"

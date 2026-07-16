@@ -69,6 +69,24 @@ gcloud run deploy "${API_SERVICE}" \
   --update-env-vars "AXWISE_WEBHOOK_ALLOWED_HOSTS=api.orqaly.com" \
   --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
 
+# Cloud Run preserves an explicit revision pin when a service was previously
+# configured with one. Route to the revision created above so the health check
+# cannot accidentally validate an older serving revision.
+API_REVISION="$(gcloud run services describe "${API_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.latestCreatedRevisionName)')"
+if [[ -z "${API_REVISION}" ]]; then
+  echo "Could not determine the newly created API revision" >&2
+  exit 1
+fi
+
+echo "Switching API traffic to ${API_REVISION}"
+gcloud run services update-traffic "${API_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --to-revisions "${API_REVISION}=100"
+
 echo "Deploying durable Orqaly A+B worker"
 gcloud run deploy "${WORKER_SERVICE}" \
   --image "${IMAGE}" \
@@ -90,4 +108,13 @@ gcloud run deploy "${WORKER_SERVICE}" \
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
 curl --fail --silent --show-error "${API_URL}/health" >/dev/null
 
-echo "Deployment complete: ${IMAGE}"
+READY_REVISION="$(gcloud run services describe "${API_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.latestReadyRevisionName)')"
+if [[ "${READY_REVISION}" != "${API_REVISION}" ]]; then
+  echo "Expected ${API_REVISION} to be ready, but Cloud Run reports ${READY_REVISION}" >&2
+  exit 1
+fi
+
+echo "Deployment complete: ${IMAGE} (${API_REVISION})"
