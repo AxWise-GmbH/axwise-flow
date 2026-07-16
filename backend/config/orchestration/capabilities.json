@@ -1,0 +1,41 @@
+{
+  "aliases": {
+    "incident response": "incident_analysis",
+    "incident management": "incident_analysis",
+    "customer comms": "customer_communication",
+    "customer communications": "customer_communication",
+    "regulatory analysis": "compliance_review",
+    "legal compliance": "compliance_review",
+    "campaign copy": "campaign_content",
+    "marketing copy": "campaign_content",
+    "financial modelling": "financial_analysis",
+    "financial modeling": "financial_analysis"
+  },
+  "domain_packs": {
+    "software_operations": {
+      "aliases": ["software", "software_engineering", "devops", "incident"],
+      "default_required_capabilities": ["incident_analysis"],
+      "preferred_capabilities": ["remediation_planning"]
+    },
+    "customer_support": {
+      "aliases": ["support", "customer_success", "customer_operations"],
+      "default_required_capabilities": ["customer_communication"],
+      "preferred_capabilities": ["escalation_management"]
+    },
+    "compliance": {
+      "aliases": ["legal", "risk", "regulatory"],
+      "default_required_capabilities": ["compliance_review"],
+      "preferred_capabilities": ["evidence_assessment"]
+    },
+    "marketing": {
+      "aliases": ["campaign", "growth", "communications"],
+      "default_required_capabilities": ["campaign_content"],
+      "preferred_capabilities": ["brand_review"]
+    },
+    "finance": {
+      "aliases": ["financial", "accounting", "fp_and_a"],
+      "default_required_capabilities": ["financial_analysis"],
+      "preferred_capabilities": ["variance_analysis"]
+    }
+  }
+}

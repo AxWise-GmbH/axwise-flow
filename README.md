@@ -22,13 +22,16 @@ AxWise Flow is designed to determine who should perform an LLM-driven task, why 
 
 The strategic product boundary is simple: **AxWise decides; Orqaly executes.** AxWise is the cognitive decision plane. Orqaly remains responsible for authenticated tenancy, workflows, agent and tool availability, authorization, budgets, external actions, monitoring, and delivery.
 
-The current repository implements the research/evidence foundation, an initial customer-to-execution-persona resolver, durable A+B jobs, and advisory cognitive conditions. The generic operational-task API, multi-agent planner, and outcome-learning loop are target capabilities and must not be represented as shipped functionality.
+The current repository implements the research/evidence foundation, durable A+B jobs, advisory cognitive conditions, and the Phase 1–3 domain-neutral decision API. It can choose deterministic direct assignment, existing evidence, bounded A+B research, or human clarification; construct validated single, sequential, parallel, supervisor, and human-controlled team plans; and create immutable recovery decisions after execution-state changes. Outcome ingestion and learning remain target capabilities and must not be represented as shipped functionality.
 
 Development sources of truth:
 
 - [Product and architecture doctrine](AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md)
 - [Repository-grounded development roadmap](AXWISE_ORCHESTRATION_DEVELOPMENT_ROADMAP.md)
 - [Prioritized technical backlog](AXWISE_ORCHESTRATION_TECHNICAL_BACKLOG.md)
+- [Implemented Phase 1 contract and verification](AXWISE_ORCHESTRATION_PHASE_1.md)
+- [Implemented Phase 2 evidence-routing contract](AXWISE_ORCHESTRATION_PHASE_2.md)
+- [Implemented Phase 3 planning and recovery contract](AXWISE_ORCHESTRATION_PHASE_3.md)
 
 ---
 
@@ -83,7 +86,7 @@ AxWise Flow is intended to support domain-neutral orchestration for software eng
 * **What it does**: Interprets an operational task, determines the stakeholders, risks, required capabilities, and suitable execution pattern, then recommends an agent, team, workflow, or human escalation.
 * **Use Case**: Route software delivery, customer escalations, contract review, campaign preparation, audit evidence, procurement analysis, or other LLM-driven work through one domain-neutral decision contract.
 * **Product Boundary**: AxWise returns an explainable recommendation. Orqaly rechecks availability, ownership, permissions, budget, and tool scope before it executes the approved plan.
-* **Current Status**: The repository contains the initial dual-persona ranking and conditions foundations. Generic task routing, multi-agent planning, and outcome learning remain roadmap capabilities.
+* **Current Status**: Phases 1–3 accept one strict task contract across domains, classify uncertainty and evidence sufficiency, bound research by value/cost/time, construct validated multi-agent plans, publish Orqaly feasibility requests, and create linked immutable recovery decisions. Execution receipts, outcome evaluation, and safe learning remain roadmap capabilities.
 
 ### 2. Generative Agents & "Digital Twins" (Simulation)
 * **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context. 
@@ -105,6 +108,13 @@ AxWise Flow is intended to support domain-neutral orchestration for software eng
 ## 🚀 Headless REST API Specification
 
 FastAPI registers a clean OpenAPI routing table at `/docs`. The key endpoints are:
+
+### Cognitive Orchestration (Phases 1–3)
+* `POST /api/orqaly-axwise/v1/orchestration/decisions`: Creates an immutable, tenant-scoped decision using deterministic uncertainty routing, optional bounded evidence/research, hard eligibility, weighted factor explanations, and optional typed team planning. Requires M2M authentication and `Idempotency-Key`; every result still requires Orqaly authorization.
+* `GET /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}`: Retrieves the exact tenant-owned request snapshot and decision for audit.
+* `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/research/refresh`: Returns `202` while A+B is pending, then creates a linked immutable evidence-rescored decision when research becomes terminal.
+* `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/replan`: Creates a linked immutable recovery decision for agent unavailability, tool failure, rejected output, budget change, or human override.
+* `GET /api/orqaly-axwise/v1/orchestration/schemas/decision-request-v1`: Publishes the authenticated backward-compatible v1 request JSON Schema, including optional Phase 2 evidence/research and Phase 3 planning controls.
 
 ### Pipeline Ingestion
 * `POST /api/analysis/analyze-text`: **Pipeline A (Bottom-Up Empirical)**. Analyzes a raw, unstructured transcript string, mapping exact verbatim quotes back to character index ranges.

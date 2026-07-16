@@ -152,6 +152,7 @@ class HybridRunService:
                 .filter(
                     PipelineRun.partner_id == PARTNER_ID,
                     PipelineRun.external_org_id == external_org_id,
+                    PipelineRun.external_user_id == external_user_id,
                     PipelineRun.idempotency_key == idempotency_key,
                 )
                 .first()
@@ -206,6 +207,7 @@ class HybridRunService:
                 .filter(
                     PipelineRun.partner_id == PARTNER_ID,
                     PipelineRun.external_org_id == external_org_id,
+                    PipelineRun.external_user_id == external_user_id,
                     PipelineRun.idempotency_key == idempotency_key,
                 )
                 .first()
@@ -213,27 +215,67 @@ class HybridRunService:
             if existing and existing.request_hash == request_hash:
                 session.expunge(existing)
                 return existing, True
-            raise
+            raise ValueError("Idempotency key was reused with a different request")
         finally:
             session.close()
 
     def get_run_for_tenant(
-        self, job_id: str, user_id: str, external_org_id: str
+        self,
+        job_id: str,
+        user_id: str,
+        external_org_id: str,
+        external_user_id: str | None = None,
     ) -> Optional[PipelineRun]:
         session = self.session_factory()
         try:
-            run = (
-                session.query(PipelineRun)
-                .filter(
-                    PipelineRun.job_id == job_id,
-                    PipelineRun.partner_id == PARTNER_ID,
-                    PipelineRun.external_org_id == external_org_id,
-                    PipelineRun.user_id == user_id,
-                )
-                .first()
+            query = session.query(PipelineRun).filter(
+                PipelineRun.job_id == job_id,
+                PipelineRun.partner_id == PARTNER_ID,
+                PipelineRun.external_org_id == external_org_id,
+                PipelineRun.user_id == user_id,
             )
+            if external_user_id is not None:
+                query = query.filter(PipelineRun.external_user_id == external_user_id)
+            run = query.first()
             if run:
                 session.expunge(run)
+            return run
+        finally:
+            session.close()
+
+    def cancel_for_tenant(
+        self,
+        job_id: str,
+        user_id: str,
+        external_org_id: str,
+        external_user_id: str | None = None,
+        reason: str = "cancelled by tenant",
+    ) -> Optional[PipelineRun]:
+        """Stop a non-terminal job through the same tenant boundary as retrieval."""
+        session = self.session_factory()
+        try:
+            query = session.query(PipelineRun).filter(
+                PipelineRun.job_id == job_id,
+                PipelineRun.partner_id == PARTNER_ID,
+                PipelineRun.external_org_id == external_org_id,
+                PipelineRun.user_id == user_id,
+            )
+            if external_user_id is not None:
+                query = query.filter(PipelineRun.external_user_id == external_user_id)
+            run = query.first()
+            if not run:
+                return None
+            if run.status in TERMINAL_STATUSES:
+                raise ValueError("Hybrid research run is already terminal")
+            now = datetime.now(timezone.utc)
+            run.status = "cancelled"
+            run.current_stage = "cancelled"
+            run.error = reason[:4000]
+            run.completed_at = now
+            run.updated_at = now
+            session.commit()
+            session.refresh(run)
+            session.expunge(run)
             return run
         finally:
             session.close()

@@ -217,6 +217,16 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
             "idem-1",
             "trace-3",
         )
+    with pytest.raises(ValueError, match="different request"):
+        service.enqueue(
+            _request(),
+            HybridOutputs(),
+            user,
+            "orqaly-org-1",
+            "orqaly-user-peer",
+            "idem-1",
+            "trace-peer",
+        )
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,21 @@
+{
+  "high_consequence_ambiguity": {
+    "minimum_ambiguity": 0.65,
+    "minimum_consequence": 0.6
+  },
+  "clarification": {
+    "minimum_ambiguity": 0.45,
+    "maximum_unresolved_evidence_gap": 0.25,
+    "maximum_contradiction": 0.25
+  },
+  "calibration_bands": {
+    "low_maximum": 0.3,
+    "medium_maximum": 0.6
+  },
+  "provenance_weights": {
+    "operational": 1.0,
+    "empirical": 1.0,
+    "inferred": 0.8,
+    "synthetic": 0.65
+  }
+}
