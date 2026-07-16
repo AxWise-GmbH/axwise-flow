@@ -20,7 +20,7 @@ The roadmap must not move tenant authority, tool credentials, workflow execution
 
 ## Executive conclusion
 
-The repository already contains a useful research and evidence foundation, but the general orchestration product does not yet exist. Development must add a new domain-neutral decision layer rather than stretching the current A+B endpoint or persona resolver into responsibilities they were not designed to handle.
+The repository contains a useful research/evidence foundation plus the Phase 1–3 domain-neutral decision, value-of-information routing, multi-agent planning, and immutable recovery layers. The next differentiation work is execution outcome feedback, safe evaluation and learning, and measured superiority over simpler baselines; those responsibilities must not be forced into the current A+B endpoint or persona resolver.
 
 The critical path is:
 
@@ -37,17 +37,17 @@ Baseline observed on 2026-07-16. These are repository findings, not claims about
 
 | Area | Present now | Development gap |
 |---|---|---|
-| Orqaly API | `backend/api/routes/orqaly_integration.py` publishes Conditions and durable A+B routes; legacy twin demonstrations are disabled unless `ENABLE_DEMO_TWIN_ROUTES` is explicitly enabled. | No generic orchestration decision endpoint. The file still contains legacy demo implementation that should eventually be removed or moved to an example module. |
+| Orqaly API | `backend/api/routes/orchestration.py` publishes authenticated Phase 1–3 decision create, tenant-scoped retrieval, request schema, research refresh/rescore, and immutable replan routes. `backend/api/routes/orqaly_integration.py` publishes Conditions and durable A+B routes. | Outcome ingestion and execution-receipt endpoints are not implemented. The integration file still contains legacy demo implementation that should eventually be removed or moved to an example module. |
 | Durable work | `backend/services/orqaly_hybrid_run_service.py` provides tenant-scoped idempotency, persistence, worker claiming, stale recovery, cancellation, result delivery, and signed terminal webhooks. | It is specialized for `hybrid_a_plus_b`; orchestration decisions and execution outcomes need separate lifecycle models. |
-| Assignment | `backend/services/orqaly_persona_resolution_service.py` returns a customer persona, ideal executor persona, ranked candidates, and an Orqaly authorization requirement. | Ranking is token overlap plus availability, success rate, and reputation. It selects one candidate and has no capability ontology, calibrated confidence, team construction, dependency graph, cost/risk reasoning, or recovery. |
+| Assignment | Phase 1 applies hard eligibility and weighted scoring. Phase 2 selects direct, evidence, research, or clarification. Phase 3 deterministically constructs and validates single, sequential, parallel, supervisor, human-controlled, and recovery plans with collaboration, separation-of-duty, approval, graph, tool, and budget checks. | Calibration is rule-band regression rather than outcome-calibrated probability. Team selection is greedy rather than globally optimized; learned outcome features and baseline evaluation remain open. |
 | Conditions | The Conditions gateway supplies rule/fuzzy-based governance, injection checks, finance classification, grounding, and advisory outputs. | Logic is largely hard-coded, idempotency is in memory, prior conversation history is unused, and no measured policy-quality or false-positive evaluation exists. |
-| Research | Pipeline B simulation, Pipeline A evidence analysis, and the closed A+B loop are implemented. | Research is currently a dedicated workflow rather than an optional tool chosen by an uncertainty router. Synthetic and OCEAN methodology need stronger source lineage, calibration, limitations, and bias evaluation. |
-| Persistence | `PipelineRun` and `OrqalyTenantMapping` plus migration `20260712_orqaly_hybrid` support the A+B integration. | No immutable decision record, plan-node record, outcome receipt, evaluation run, scorer version, or feedback event schema exists. |
+| Research | Pipeline B, Pipeline A evidence analysis, and closed-loop A+B exist. Phase 2 wraps explicit existing evidence and durable A+B behind typed ports and invokes A+B only after a bounded value-of-information decision. | Independent A versus B versus A+B method selection, broad knowledge retrieval, atomic enqueue/outbox coordination, and stronger scientific calibration/bias evaluation remain open. |
+| Persistence | `PipelineRun` and tenant mapping support A+B. Immutable decision snapshots preserve routing assessments, evidence, complete plans, feasibility results, linked research/replan parents, replan context, rankings, and audit events. | Plans currently live inside immutable decision JSON. No queryable plan-node, outcome, evaluation-run, performance-snapshot, or delivery-outbox schema exists yet. |
 | Worker | `backend/scripts/run_orqaly_hybrid_worker.py` runs durable A+B work outside FastAPI, and `docker-compose.yml` now starts a health-checked worker after the backend is healthy. | No general decision/replanning worker or durable outbox exists; a clean-stack tenant-scoped A+B smoke run remains required. |
-| Orqaly execution handoff | A+B accepts server-supplied agent candidates and requires Orqaly authorization. | No typed Orqaly adapter validates plan feasibility, reports authorization rejection, or sends structured execution outcomes back to AxWise. |
-| MCP | `packages/axwise-mcp-connector` now exposes `axwise_evaluate_conditions`, preserves tenant scope, and calls the implemented `/api/orqaly-axwise/v1/conditions/evaluate` route with `x-axwise-key`. | The generic task-decision, decision-inspection, evidence-request, and outcome-submission tools depend on the future orchestration API. |
+| Orqaly execution handoff | A+B accepts server-supplied agent candidates and requires Orqaly authorization. Phase 3 emits a typed feasibility request and provides snapshot/live-state adapter semantics with structured node/agent/tool rejection reasons. | A production remote live-state adapter, explicit authorization-rejection receipt, per-node progress, and structured execution outcomes remain open. |
+| MCP | `packages/axwise-mcp-connector` exposes `axwise_evaluate_conditions`, preserves tenant scope, and calls the implemented Conditions route with `x-axwise-key`. | Phase 1–3 decision create/inspection/research/replan tools and outcome submission are not exposed through MCP yet. |
 | Frontend | Research UI and A+B documentation pages exist. | No decision inspection, plan graph, factor explanation, comparison, outcome, override, or evaluation UI exists. |
-| Backend test health | 416 tests collect without errors. The supported default contract gate is self-contained and passes 25 tests covering Conditions, durable A+B, persona resolution, and the closed loop. | The explicitly invoked historical audit still contains superseded repository/evidence/V2 suites and unintended live-LLM behavior; it is documented and not counted as release coverage. |
+| Backend test health | 492 tests collect without errors. The supported default contract gate is self-contained and passes 101 tests: 14 Phase 1 cases, 39 Phase 2 cases, and 23 Phase 3 cases covering team templates, plan validation, feasibility, approvals, cross-domain execution doubles, immutable recovery, compatibility, isolation, and failure injection, alongside the existing Conditions/A+B contracts. | The explicitly invoked historical audit still contains superseded repository/evidence/V2 suites and unintended live-LLM behavior; it is documented and not counted as release coverage. |
 | Frontend test health | Type-check, the supported four-test Vitest stabilization suite, and a production build pass without a backend or font download. | Historical co-located tests are quarantined and need behavior-by-behavior rewriting; frontend types are still handwritten rather than generated from OpenAPI. |
 | MCP test health | Build and three connector contract tests pass against the real Conditions request shape and tenant boundary. | Tool-discovery, HTTP authentication-header, backend-error, and full in-process MCP protocol tests remain to be added. |
 
@@ -133,6 +133,14 @@ GET /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}
 
 Retrieval must be tenant-scoped and return the immutable input snapshot and decision version used for audit reconstruction.
 
+### Refresh terminal research evidence
+
+```text
+POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/research/refresh
+```
+
+The implemented Phase 2 refresh returns the unchanged parent while research is pending and creates an idempotent, linked immutable decision after a terminal A+B result. It records provenance, terminal failure state, refreshed rankings, and rank/score changes. This evidence refresh is narrower than the general failure/change replan planned for Phase 3.
+
 ### Replan after a change or failure
 
 ```text
@@ -192,6 +200,8 @@ Exit gate:
 
 Goal: deliver the smallest domain-neutral product slice without research or multi-agent complexity.
 
+**Repository status (2026-07-16): implemented and contract-tested.** See `AXWISE_ORCHESTRATION_PHASE_1.md` for the shipped boundary, API, weights, benchmark scope, and explicit non-goals. Deployment verification and PostgreSQL migration rehearsal remain environment-specific gates.
+
 Development:
 
 - Add Pydantic models for the task envelope, agent/tool catalogue, policy, budget, evidence reference, assignment factor, decision, and outcome.
@@ -213,6 +223,8 @@ Exit gate:
 
 Goal: choose when extra context or research is worth its cost.
 
+**Repository status (2026-07-16): implemented and contract-tested.** See `AXWISE_ORCHESTRATION_PHASE_2.md` for signal formulas, budgets, adapter boundaries, refresh semantics, provenance, failure behavior, and explicit limitations. PostgreSQL/deployed verification and statistical outcome calibration remain open.
+
 Development:
 
 - Classify task ambiguity, evidence sufficiency, stakeholder sensitivity, consequence, reversibility, and deadline pressure.
@@ -232,6 +244,8 @@ Exit gate:
 ### Phase 3 — team planning, approvals, and recovery
 
 Goal: recommend executable teams and plans rather than only one agent.
+
+**Repository status (2026-07-16): implemented and contract-tested.** See `AXWISE_ORCHESTRATION_PHASE_3.md` for additive planning inputs, templates, graph/policy/budget validation, feasibility handoff, failure paths, immutable replan semantics, test evidence, and explicit limitations. Remote Orqaly deployment, execution receipts, and outcome learning remain open.
 
 Development:
 

@@ -71,15 +71,15 @@ backend/domain/orchestration/validation.py
 backend/tests/orchestration/contract/
 ```
 
-- [ ] Define `TaskEnvelopeV1` with objective, desired outcome, constraints, deadline, context references, and data classification.
-- [ ] Define verified tenant, agent, tool, policy, approval, and budget models.
-- [ ] Define direct, evidence-assisted, research-assisted, sequential, parallel, supervisor, human-controlled, and recovery modes.
-- [ ] Define `AssignmentFactor`, `EvidenceReference`, `ContextPackage`, `ApprovalGate`, and `Fallback` models.
-- [ ] Define `PlanNode` and `ExecutionPlan` with stable identifiers and typed input/output contracts.
-- [ ] Define `OrchestrationDecisionV1`, `ReplanRequestV1`, and `ExecutionOutcomeV1`.
-- [ ] Validate that browser-provided fields cannot assert authority, ownership, permission, or secret values.
-- [ ] Publish JSON Schema and OpenAPI examples for at least five domains.
-- [ ] Add forward/backward compatibility tests and reject unknown breaking contract versions.
+- [x] Define `TaskEnvelopeV1` with objective, desired outcome, constraints, deadline, context references, and data classification.
+- [x] Define verified tenant, agent, tool, policy, approval, and budget models.
+- [x] Define direct, evidence-assisted, research-assisted, sequential, parallel, supervisor, human-controlled, and recovery modes.
+- [x] Define `AssignmentFactor`, `EvidenceReference`, `ContextPackage`, `ApprovalGate`, and `Fallback` models.
+- [x] Define `PlanNode` and `ExecutionPlan` with stable identifiers and typed input/output contracts.
+- [x] Define `OrchestrationDecisionV1`, `ReplanRequestV1`, and `ExecutionOutcomeV1`.
+- [x] Validate that browser-provided fields cannot assert authority, ownership, permission, or secret values.
+- [x] Publish JSON Schema and OpenAPI examples for at least five domains.
+- [x] Add forward/backward compatibility tests and reject unknown breaking contract versions.
 
 Acceptance:
 
@@ -102,12 +102,12 @@ backend/tests/orchestration/integration/
 ```
 
 - [ ] Implement create, retrieve, replan, and outcome routes under `/api/orqaly-axwise/v1/orchestration`.
-- [ ] Reuse constant-time M2M authentication and persisted tenant mapping through extracted shared dependencies.
-- [ ] Add tenant-scoped durable idempotency and canonical request hashing.
-- [ ] Persist immutable input snapshot, decision, versions, factor values, evidence references, and audit events.
+- [x] Reuse constant-time M2M authentication and persisted tenant mapping through extracted shared dependencies.
+- [x] Add tenant-scoped durable idempotency and canonical request hashing.
+- [x] Persist immutable input snapshot, decision, versions, factor values, evidence references, and audit events.
 - [ ] Add plan-node, outcome, evaluation-run, performance-snapshot, and outbox tables.
-- [ ] Add repository methods that require tenant identity in every query.
-- [ ] Add retention and deletion metadata without destroying required audit linkage.
+- [x] Add repository methods that require tenant identity in every query.
+- [x] Add retention and deletion metadata without destroying required audit linkage.
 - [ ] Add migration upgrade/downgrade and PostgreSQL integration tests.
 
 Acceptance:
@@ -132,12 +132,12 @@ backend/tests/orchestration/unit/test_uncertainty_router.py
 ```
 
 - [ ] Normalize objective, outcome, domain, urgency, consequence, reversibility, stakeholders, and capability requirements.
-- [ ] Separate deterministic rules, model inference, and unverified input in the result.
-- [ ] Calculate evidence sufficiency and value-of-information signals.
+- [x] Separate deterministic rules, model inference, and unverified input in the result.
+- [x] Calculate evidence sufficiency and value-of-information signals.
 - [ ] Implement direct, existing-evidence, A/B/A+B research, and human-clarification choices.
-- [ ] Enforce per-mode budgets, deadlines, timeouts, and maximum expansion.
-- [ ] Make high-consequence ambiguity escalate rather than silently guessing.
-- [ ] Add calibration fixtures and adversarial cross-domain cases.
+- [x] Enforce per-mode budgets, deadlines, timeouts, and maximum expansion.
+- [x] Make high-consequence ambiguity escalate rather than silently guessing.
+- [x] Add calibration fixtures and adversarial cross-domain cases.
 
 Acceptance:
 
@@ -159,12 +159,12 @@ backend/config/orchestration/
 backend/tests/orchestration/evaluation/test_assignment_baselines.py
 ```
 
-- [ ] Replace token-overlap selection as the primary production scorer.
-- [ ] Add hard eligibility filters for tenant ownership, availability, tools, policy, data access, and required approvals.
+- [x] Replace token-overlap selection as the primary production scorer.
+- [x] Add hard eligibility filters for tenant ownership, availability, tools, policy, data access, and required approvals.
 - [ ] Add versioned features for capability coverage, relevant outcomes, stakeholder fit, collaboration fit, risk, cost, and latency.
-- [ ] Represent missing values separately from average or poor performance.
+- [x] Represent missing values separately from average or poor performance.
 - [ ] Return factor contributions, exclusions, alternatives, confidence, and calibration metadata.
-- [ ] Add configurable capability aliases and domain packs without changing scorer code.
+- [x] Add configurable capability aliases and domain packs without changing scorer code.
 - [ ] Implement deterministic baseline scorers: round-robin, capability-only, and weighted rules.
 - [ ] Add offline ranking metrics and minority-task/fairness slices.
 
@@ -187,13 +187,13 @@ backend/services/orchestration/adapters/hybrid_research_adapter.py
 backend/tests/orchestration/integration/test_research_assisted_decision.py
 ```
 
-- [ ] Wrap existing evidence services behind a typed retrieval port.
-- [ ] Wrap `HybridRunService` behind a research-tool port rather than invoking its HTTP route internally.
-- [ ] Pass decision and tenant correlation identifiers through A+B jobs.
-- [ ] Label empirical, inferred, and synthetic evidence separately.
-- [ ] Re-score after evidence completion and record factor/rank changes.
-- [ ] Implement timeout, cancellation, no-result, low-quality, and partial-result fallbacks.
-- [ ] Prevent A+B from being the default route.
+- [x] Wrap existing evidence services behind a typed retrieval port.
+- [x] Wrap `HybridRunService` behind a research-tool port rather than invoking its HTTP route internally.
+- [x] Pass decision and tenant correlation identifiers through A+B jobs.
+- [x] Label empirical, inferred, and synthetic evidence separately.
+- [x] Re-score after evidence completion and record factor/rank changes.
+- [x] Implement timeout, cancellation, no-result, low-quality, and partial-result fallbacks.
+- [x] Prevent A+B from being the default route.
 
 Acceptance:
 
@@ -216,13 +216,13 @@ backend/tests/orchestration/unit/test_plan_validator.py
 backend/tests/orchestration/integration/test_replanning.py
 ```
 
-- [ ] Implement single-agent, sequential, parallel, supervisor, and human-controlled templates.
-- [ ] Select team members subject to capability coverage, separation of duties, collaboration, budget, and policy.
-- [ ] Add node dependencies, input/output contracts, reviewers, completion criteria, and fallbacks.
-- [ ] Validate acyclic graphs, reachable nodes, complete outputs, and total budget.
-- [ ] Replan on agent unavailability, tool failure, rejected output, budget change, and human override.
-- [ ] Produce a plan feasibility request that Orqaly can validate against live state.
-- [ ] Preserve parent decision, reason, and changed factors in every replan.
+- [x] Implement single-agent, sequential, parallel, supervisor, and human-controlled templates.
+- [x] Select team members subject to capability coverage, separation of duties, collaboration, budget, and policy.
+- [x] Add node dependencies, input/output contracts, reviewers, completion criteria, and fallbacks.
+- [x] Validate acyclic graphs, reachable nodes, complete outputs, and total budget.
+- [x] Replan on agent unavailability, tool failure, rejected output, budget change, and human override.
+- [x] Produce a plan feasibility request that Orqaly can validate against live state.
+- [x] Preserve parent decision, reason, and changed factors in every replan.
 
 Acceptance:
 

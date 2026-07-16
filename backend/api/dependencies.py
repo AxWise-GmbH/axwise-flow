@@ -35,6 +35,14 @@ class TenantContext(BaseModel):
     orgId: str = Field(..., description="Unique organization/tenant ID")
 
 
+def tenant_context_from_headers(
+    x_orqaly_org_id: str = Header(..., alias="X-Orqaly-Org-ID"),
+    x_orqaly_user_id: str = Header(..., alias="X-Orqaly-User-ID"),
+) -> TenantContext:
+    """Build verified external tenant context from M2M request headers."""
+    return TenantContext(orgId=x_orqaly_org_id, userId=x_orqaly_user_id)
+
+
 async def verify_orqaly_service_key(
     x_axwise_key: Optional[str] = Header(
         None,

@@ -24,14 +24,8 @@ jobs:
         run: python -m alembic -c backend/alembic.ini heads
       - name: Collect supported backend suite
         run: python -m pytest --collect-only -q
-      - name: Run Orqaly and A+B contracts
-        run: >-
-          python -m pytest -q
-          backend/tests/test_orqaly_conditions_evaluation.py
-          backend/tests/test_orqaly_usecases_e2e.py
-          backend/tests/test_orqaly_hybrid_run_service.py
-          backend/tests/test_orqaly_persona_resolution_service.py
-          backend/tests/test_closed_loop_hybrid.py
+      - name: Run supported contract gate
+        run: python -m pytest -q
 
   frontend:
     name: Frontend type, test, and build

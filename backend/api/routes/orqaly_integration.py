@@ -8,7 +8,7 @@ import time
 import logging
 import uuid
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from collections import OrderedDict
@@ -18,12 +18,13 @@ from fastapi.responses import JSONResponse
 from rapidfuzz import fuzz
 from sqlalchemy.orm import Session
 
-from backend.database import SessionLocal, get_db
-from backend.models import PipelineRun, User
+from backend.database import get_db
+from backend.models import User
 from backend.services.external.auth_middleware import get_current_user
 from backend.api.dependencies import (
     TenantContext,
     resolve_orqaly_tenant_user,
+    tenant_context_from_headers,
     verify_orqaly_service_key,
 )
 from backend.api.research.simulation_bridge.models import (
@@ -37,7 +38,6 @@ from backend.api.research.simulation_bridge.services.closed_loop_hybrid import (
 from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridRunService,
-    TERMINAL_STATUSES,
 )
 from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
@@ -799,26 +799,19 @@ async def orqaly_simulate_enhanced_async(
     )
 
 
-def _tenant_from_headers(
-    x_orqaly_org_id: str = Header(..., alias="X-Orqaly-Org-ID"),
-    x_orqaly_user_id: str = Header(..., alias="X-Orqaly-User-ID"),
-) -> TenantContext:
-    return TenantContext(orgId=x_orqaly_org_id, userId=x_orqaly_user_id)
-
-
 @router.get(
     "/runs/{job_id}/status",
     summary="Orqaly Async A+B Job Status",
 )
 async def orqaly_hybrid_run_status(
     job_id: str,
-    tenant: TenantContext = Depends(_tenant_from_headers),
+    tenant: TenantContext = Depends(tenant_context_from_headers),
     x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     user = resolve_orqaly_tenant_user(db, tenant)
     run = HybridRunService(orchestrator).get_run_for_tenant(
-        job_id, user.user_id, tenant.orgId
+        job_id, user.user_id, tenant.orgId, tenant.userId
     )
     if not run:
         raise HTTPException(status_code=404, detail="Hybrid research run not found")
@@ -831,13 +824,13 @@ async def orqaly_hybrid_run_status(
 )
 async def orqaly_hybrid_run_result(
     job_id: str,
-    tenant: TenantContext = Depends(_tenant_from_headers),
+    tenant: TenantContext = Depends(tenant_context_from_headers),
     x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     user = resolve_orqaly_tenant_user(db, tenant)
     run = HybridRunService(orchestrator).get_run_for_tenant(
-        job_id, user.user_id, tenant.orgId
+        job_id, user.user_id, tenant.orgId, tenant.userId
     )
     if not run:
         raise HTTPException(status_code=404, detail="Hybrid research run not found")
@@ -852,35 +845,24 @@ async def orqaly_hybrid_run_result(
 )
 async def cancel_orqaly_hybrid_run(
     job_id: str,
-    tenant: TenantContext = Depends(_tenant_from_headers),
+    tenant: TenantContext = Depends(tenant_context_from_headers),
     x_axwise_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     user = resolve_orqaly_tenant_user(db, tenant)
-    session = SessionLocal()
+    service = HybridRunService(orchestrator)
     try:
-        run = (
-            session.query(PipelineRun)
-            .filter(
-                PipelineRun.job_id == job_id,
-                PipelineRun.partner_id == "orqaly",
-                PipelineRun.external_org_id == tenant.orgId,
-                PipelineRun.user_id == user.user_id,
-            )
-            .first()
+        run = service.cancel_for_tenant(
+            job_id,
+            user.user_id,
+            tenant.orgId,
+            tenant.userId,
         )
-        if not run:
-            raise HTTPException(status_code=404, detail="Hybrid research run not found")
-        if run.status in TERMINAL_STATUSES:
-            raise HTTPException(status_code=409, detail="Hybrid research run is already terminal")
-        run.status = "cancelled"
-        run.current_stage = "cancelled"
-        run.completed_at = datetime.now(timezone.utc)
-        run.updated_at = datetime.now(timezone.utc)
-        session.commit()
-        return {"success": True, "job_id": job_id, "status": "cancelled"}
-    finally:
-        session.close()
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    if not run:
+        raise HTTPException(status_code=404, detail="Hybrid research run not found")
+    return {"success": True, "job_id": job_id, "status": "cancelled"}
 
 @router.post(
     "/simulate-async",

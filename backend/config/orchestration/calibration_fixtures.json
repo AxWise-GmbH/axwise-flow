@@ -1,0 +1,26 @@
+{
+  "version": "routing-calibration-v1",
+  "fixtures": [
+    {
+      "name": "clear_direct",
+      "expected_mode": "direct",
+      "expected_band": "low",
+      "minimum_uncertainty": 0.0,
+      "maximum_uncertainty": 0.3
+    },
+    {
+      "name": "ambiguous_bounded_research",
+      "expected_mode": "research_assisted",
+      "expected_band": "medium",
+      "minimum_uncertainty": 0.3,
+      "maximum_uncertainty": 0.6
+    },
+    {
+      "name": "high_consequence_ambiguity",
+      "expected_mode": "human_clarification",
+      "expected_band": "medium",
+      "minimum_uncertainty": 0.3,
+      "maximum_uncertainty": 0.6
+    }
+  ]
+}

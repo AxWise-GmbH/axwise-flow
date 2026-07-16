@@ -391,6 +391,68 @@ class OrqalyTenantMapping(Base):
     user = relationship("User", viewonly=True)
 
 
+class OrchestrationDecisionSnapshot(Base):
+    """Immutable, tenant-scoped snapshot of an AxWise assignment decision."""
+
+    __tablename__ = "orchestration_decisions"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "idempotency_key",
+            name="uq_orchestration_decision_idempotency",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    decision_id = Column(String, unique=True, nullable=False, index=True)
+    partner_id = Column(String, nullable=False, index=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    idempotency_key = Column(String, nullable=False)
+    request_id = Column(String, nullable=False, index=True)
+    request_hash = Column(String, nullable=False)
+    contract_version = Column(String, nullable=False)
+    scorer_version = Column(String, nullable=False)
+    input_snapshot = Column(JSON, nullable=False)
+    decision_payload = Column(JSON, nullable=False)
+    routing_mode = Column(String, nullable=False)
+    selected_agent_id = Column(String, nullable=True)
+    confidence = Column(Float, nullable=False)
+    status = Column(String, nullable=False)
+    parent_decision_id = Column(
+        String, ForeignKey("orchestration_decisions.decision_id"), nullable=True
+    )
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    retention_until = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class OrchestrationEvent(Base):
+    """Append-only audit event associated with an orchestration decision."""
+
+    __tablename__ = "orchestration_events"
+    __table_args__ = {"extend_existing": True}
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String, unique=True, nullable=False, index=True)
+    decision_id = Column(
+        String,
+        ForeignKey("orchestration_decisions.decision_id"),
+        nullable=False,
+        index=True,
+    )
+    external_org_id = Column(String, nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    event_type = Column(String, nullable=False)
+    event_payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
 import uuid
 import json
 from sqlalchemy.types import TypeDecorator, TEXT

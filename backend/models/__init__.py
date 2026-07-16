@@ -71,6 +71,8 @@ def _get_sqlalchemy_models():
                 "SimulationData": getattr(backend_models, "SimulationData", None),
                 "PipelineRun": getattr(backend_models, "PipelineRun", None),
                 "OrqalyTenantMapping": getattr(backend_models, "OrqalyTenantMapping", None),
+                "OrchestrationDecisionSnapshot": getattr(backend_models, "OrchestrationDecisionSnapshot", None),
+                "OrchestrationEvent": getattr(backend_models, "OrchestrationEvent", None),
                 "DigitalTwin": getattr(backend_models, "DigitalTwin", None),
                 "PersonaKnowledgeChunk": getattr(backend_models, "PersonaKnowledgeChunk", None),
             }
@@ -84,6 +86,8 @@ def _get_sqlalchemy_models():
                 "SimulationData": None,
                 "PipelineRun": None,
                 "OrqalyTenantMapping": None,
+                "OrchestrationDecisionSnapshot": None,
+                "OrchestrationEvent": None,
                 "DigitalTwin": None,
                 "PersonaKnowledgeChunk": None,
             }
@@ -103,6 +107,8 @@ def _get_sqlalchemy_models():
             "SimulationData": None,
             "PipelineRun": None,
             "OrqalyTenantMapping": None,
+            "OrchestrationDecisionSnapshot": None,
+            "OrchestrationEvent": None,
             "DigitalTwin": None,
             "PersonaKnowledgeChunk": None,
         }
@@ -120,6 +126,8 @@ CachedPRD = _models["CachedPRD"]
 SimulationData = _models["SimulationData"]
 PipelineRun = _models["PipelineRun"]
 OrqalyTenantMapping = _models["OrqalyTenantMapping"]
+OrchestrationDecisionSnapshot = _models["OrchestrationDecisionSnapshot"]
+OrchestrationEvent = _models["OrchestrationEvent"]
 DigitalTwin = _models["DigitalTwin"]
 PersonaKnowledgeChunk = _models["PersonaKnowledgeChunk"]
 
@@ -153,6 +161,8 @@ __all__ = [
     "SimulationData",
     "PipelineRun",
     "OrqalyTenantMapping",
+    "OrchestrationDecisionSnapshot",
+    "OrchestrationEvent",
     "DigitalTwin",
     "PersonaKnowledgeChunk",
 ]
