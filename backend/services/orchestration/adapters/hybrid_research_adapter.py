@@ -41,6 +41,7 @@ class HybridResearchAdapter:
             desired_outcome=task.desired_outcome,
             category=task.domain,
             constraints=task.constraints,
+            required_capabilities=task.required_capabilities,
         )
 
     @staticmethod

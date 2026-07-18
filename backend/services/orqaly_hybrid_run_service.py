@@ -362,6 +362,23 @@ class HybridRunService:
             )
             outputs = HybridOutputs.model_validate(claimed["requested_outputs"] or {})
 
+            # API routes parse raw questionnaires before calling the legacy
+            # orchestrator, but durable jobs bypass those routes in the worker.
+            # Normalize the persisted request here as well so async A+B runs do
+            # not reach simulate_with_persistence with questions_data=None.
+            if request.raw_questionnaire_content and not request.questions_data:
+                parsed = await self.orchestrator.parse_raw_questionnaire(
+                    request.raw_questionnaire_content,
+                    request.config,
+                )
+                request = request.model_copy(
+                    update={"questions_data": parsed.questions_data}
+                )
+            if not request.questions_data or not request.questions_data.stakeholders:
+                raise RuntimeError(
+                    "Hybrid research requires parsed stakeholder questions"
+                )
+
             # The legacy orchestrator owns Pipeline B progress. It must not publish
             # a terminal result or callback while the empirical stage is pending.
             await self._set_stage(job_id, "generating_people", 5, "Generating simulated people")
