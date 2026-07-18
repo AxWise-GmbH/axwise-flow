@@ -36,6 +36,15 @@ SENSITIVE_STAKEHOLDERS = {
     "investor",
     "board",
 }
+UNRESOLVED_STAKEHOLDER_MARKERS = {
+    "unknown",
+    "unspecified",
+    "to be determined",
+    "tbd",
+    "identify the person",
+    "identify the customer",
+    "affected stakeholder",
+}
 
 
 @dataclass(frozen=True)
@@ -86,9 +95,13 @@ class TaskClassifier:
         if not task.required_capabilities and not task.capability_profile:
             score += 0.15
             reasons.append("capability requirements were not explicitly verified")
-        if not task.stakeholders:
-            score += 0.1
-            reasons.append("stakeholders are unspecified")
+        stakeholder_text = " ".join(task.stakeholders).casefold().strip()
+        if not stakeholder_text or any(
+            marker in stakeholder_text
+            for marker in UNRESOLVED_STAKEHOLDER_MARKERS
+        ):
+            score += 0.25
+            reasons.append("stakeholders are unspecified or unresolved")
         return self._clamp(score), reasons
 
     def _stakeholder_sensitivity(self, request: DecisionCreateRequestV1) -> float:

@@ -73,6 +73,9 @@ def _get_sqlalchemy_models():
                 "OrqalyTenantMapping": getattr(backend_models, "OrqalyTenantMapping", None),
                 "OrchestrationDecisionSnapshot": getattr(backend_models, "OrchestrationDecisionSnapshot", None),
                 "OrchestrationEvent": getattr(backend_models, "OrchestrationEvent", None),
+                "OrchestrationOutcome": getattr(backend_models, "OrchestrationOutcome", None),
+                "OrchestrationExecutionReceipt": getattr(backend_models, "OrchestrationExecutionReceipt", None),
+                "OrchestrationScorerVersion": getattr(backend_models, "OrchestrationScorerVersion", None),
                 "DigitalTwin": getattr(backend_models, "DigitalTwin", None),
                 "PersonaKnowledgeChunk": getattr(backend_models, "PersonaKnowledgeChunk", None),
             }
@@ -88,6 +91,9 @@ def _get_sqlalchemy_models():
                 "OrqalyTenantMapping": None,
                 "OrchestrationDecisionSnapshot": None,
                 "OrchestrationEvent": None,
+                "OrchestrationOutcome": None,
+                "OrchestrationExecutionReceipt": None,
+                "OrchestrationScorerVersion": None,
                 "DigitalTwin": None,
                 "PersonaKnowledgeChunk": None,
             }
@@ -109,6 +115,9 @@ def _get_sqlalchemy_models():
             "OrqalyTenantMapping": None,
             "OrchestrationDecisionSnapshot": None,
             "OrchestrationEvent": None,
+            "OrchestrationOutcome": None,
+            "OrchestrationExecutionReceipt": None,
+            "OrchestrationScorerVersion": None,
             "DigitalTwin": None,
             "PersonaKnowledgeChunk": None,
         }
@@ -128,6 +137,9 @@ PipelineRun = _models["PipelineRun"]
 OrqalyTenantMapping = _models["OrqalyTenantMapping"]
 OrchestrationDecisionSnapshot = _models["OrchestrationDecisionSnapshot"]
 OrchestrationEvent = _models["OrchestrationEvent"]
+OrchestrationOutcome = _models["OrchestrationOutcome"]
+OrchestrationExecutionReceipt = _models["OrchestrationExecutionReceipt"]
+OrchestrationScorerVersion = _models["OrchestrationScorerVersion"]
 DigitalTwin = _models["DigitalTwin"]
 PersonaKnowledgeChunk = _models["PersonaKnowledgeChunk"]
 
@@ -163,6 +175,9 @@ __all__ = [
     "OrqalyTenantMapping",
     "OrchestrationDecisionSnapshot",
     "OrchestrationEvent",
+    "OrchestrationOutcome",
+    "OrchestrationExecutionReceipt",
+    "OrchestrationScorerVersion",
     "DigitalTwin",
     "PersonaKnowledgeChunk",
 ]

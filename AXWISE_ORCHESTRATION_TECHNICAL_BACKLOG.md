@@ -101,11 +101,12 @@ backend/migrations/versions/<revision>_add_orchestration_decisions.py
 backend/tests/orchestration/integration/
 ```
 
-- [ ] Implement create, retrieve, replan, and outcome routes under `/api/orqaly-axwise/v1/orchestration`.
+- [x] Implement create, retrieve, research-refresh, replan, schema, and outcome routes under `/api/orqaly-axwise/v1/orchestration`.
 - [x] Reuse constant-time M2M authentication and persisted tenant mapping through extracted shared dependencies.
 - [x] Add tenant-scoped durable idempotency and canonical request hashing.
 - [x] Persist immutable input snapshot, decision, versions, factor values, evidence references, and audit events.
-- [ ] Add plan-node, outcome, evaluation-run, performance-snapshot, and outbox tables.
+- [x] Add immutable outcome, node-receipt, and governed scorer-version tables.
+- [ ] Add dedicated plan-node, evaluation-run, performance-snapshot, and delivery-outbox tables when replay/operator workloads require them.
 - [x] Add repository methods that require tenant identity in every query.
 - [x] Add retention and deletion metadata without destroying required audit linkage.
 - [ ] Add migration upgrade/downgrade and PostgreSQL integration tests.
@@ -134,7 +135,8 @@ backend/tests/orchestration/unit/test_uncertainty_router.py
 - [ ] Normalize objective, outcome, domain, urgency, consequence, reversibility, stakeholders, and capability requirements.
 - [x] Separate deterministic rules, model inference, and unverified input in the result.
 - [x] Calculate evidence sufficiency and value-of-information signals.
-- [ ] Implement direct, existing-evidence, A/B/A+B research, and human-clarification choices.
+- [x] Implement direct, existing-evidence, bounded A+B research, and human-clarification choices.
+- [ ] Add separate A-only/B-only research modes only if evaluated use cases show value beyond the governed A+B path.
 - [x] Enforce per-mode budgets, deadlines, timeouts, and maximum expansion.
 - [x] Make high-consequence ambiguity escalate rather than silently guessing.
 - [x] Add calibration fixtures and adversarial cross-domain cases.
@@ -161,9 +163,9 @@ backend/tests/orchestration/evaluation/test_assignment_baselines.py
 
 - [x] Replace token-overlap selection as the primary production scorer.
 - [x] Add hard eligibility filters for tenant ownership, availability, tools, policy, data access, and required approvals.
-- [ ] Add versioned features for capability coverage, relevant outcomes, stakeholder fit, collaboration fit, risk, cost, and latency.
+- [x] Version the published capability, relevant-outcome, stakeholder, cost, latency, tool, and collaboration signals; risk remains a hard eligibility/policy control rather than a gameable positive weight.
 - [x] Represent missing values separately from average or poor performance.
-- [ ] Return factor contributions, exclusions, alternatives, confidence, and calibration metadata.
+- [x] Return factor contributions, exclusions, alternatives, confidence, routing calibration metadata, and learned-feature provenance.
 - [x] Add configurable capability aliases and domain packs without changing scorer code.
 - [ ] Implement deterministic baseline scorers: round-robin, capability-only, and weighted rules.
 - [ ] Add offline ranking metrics and minority-task/fairness slices.
@@ -243,12 +245,12 @@ backend/services/orchestration/scorer_registry.py
 backend/tests/orchestration/evaluation/
 ```
 
-- [ ] Ingest idempotent decision-level and node-level execution receipts.
-- [ ] Capture authorization rejection, quality, cost, latency, rework, escalation, override, acceptance, and failure taxonomy.
-- [ ] Define normalized success metrics per task class while preserving raw observations.
-- [ ] Build offline replay, shadow comparison, calibration, drift, and rollback tooling.
-- [ ] Require human-reviewed scorer promotion with stored evaluation evidence.
-- [ ] Protect against popularity bias, sparse-history overconfidence, gaming, and cross-tenant leakage.
+- [x] Ingest idempotent decision-level and node-level execution receipts.
+- [x] Capture authorization rejection, quality, cost, latency, rework, escalation, override, acceptance, and failure taxonomy.
+- [x] Define a versioned normalized success metric while preserving raw observations; task-class-specific calibration remains dataset work.
+- [x] Add calibration, drift, fairness-slice, cost/safety gates, governed promotion, and rollback primitives; production-scale replay datasets remain open.
+- [x] Require human-reviewed scorer promotion with stored evaluation evidence.
+- [x] Protect against sparse-history overconfidence and cross-tenant leakage with tenant/time/provenance/version metadata; adversarial gaming evaluation remains open.
 - [ ] Add scheduled evaluation reports and regression gates.
 
 Acceptance:
@@ -261,13 +263,14 @@ Acceptance:
 
 Priority: **P2/P3**
 
-- [ ] Define an Orqaly catalogue adapter for current agents, tools, availability, policy, performance, and budgets.
-- [ ] Define plan-feasibility and authorization-rejection contracts.
-- [ ] Define execution receipt, progress, failure, override, and completion contracts.
+- [x] Define an Orqaly catalogue adapter for current agents, tools, availability, policy, performance, and budgets in the Orqaly integration repository.
+- [x] Define plan-feasibility and authorization-rejection contracts.
+- [x] Define immutable execution receipt, failure, override, and completion contracts.
+- [ ] Add streaming progress delivery and a durable outbox.
 - [ ] Replace digital-twin-only MCP tools with task decision, decision inspection, evidence request, and outcome submission tools.
 - [x] Align MCP authentication and routes with the published backend contract.
 - [ ] Add operator views for decision factors, alternatives, evidence, plan graph, approvals, outcomes, replay, and comparison.
-- [ ] Keep browser clients away from M2M secrets and authority construction.
+- [x] Keep browser clients away from M2M secrets and authority construction in the current Orqaly server-side bridge.
 
 Acceptance:
 

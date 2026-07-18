@@ -43,17 +43,30 @@ class ScoringResult:
 class AssignmentScorer:
     version = SCORER_VERSION
 
-    def __init__(self, registry: CapabilityRegistry | None = None):
+    def __init__(
+        self,
+        registry: CapabilityRegistry | None = None,
+        weights: dict[str, float] | None = None,
+        version: str | None = None,
+    ):
         self.registry = registry or CapabilityRegistry()
+        self.weights = dict(weights or WEIGHTS)
+        if set(self.weights) != set(WEIGHTS):
+            raise ValueError("scorer weights must define every published factor")
+        if any(value < 0.0 or value > 1.0 for value in self.weights.values()):
+            raise ValueError("scorer weights must be between zero and one")
+        if abs(sum(self.weights.values()) - 1.0) > 0.000001:
+            raise ValueError("scorer weights must sum to one")
+        self.version = version or SCORER_VERSION
 
-    @staticmethod
     def _factor(
+        self,
         name: str,
         value: float | None,
         reason: str,
         status: FactorStatus | None = None,
     ) -> AssignmentFactor:
-        weight = WEIGHTS[name]
+        weight = self.weights[name]
         resolved_status = status or (
             FactorStatus.MISSING
             if value is None
