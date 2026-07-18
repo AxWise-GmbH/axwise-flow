@@ -2,6 +2,7 @@
 AI Persona Generator for Interview Simulation.
 """
 
+import asyncio
 import logging
 import uuid
 import random
@@ -338,30 +339,56 @@ The personas should feel like real people who would genuinely interact with this
         # Reset used names for each new simulation
         self.used_names_by_category.clear()
         self.used_names_global.clear()
-        all_people = []
-
+        stakeholder_entries = []
         for stakeholder_category, stakeholder_list in stakeholders.items():
             logger.info(
                 f"Processing {stakeholder_category} stakeholders: {len(stakeholder_list)} found"
             )
+            stakeholder_entries.extend(stakeholder_list)
 
-            for stakeholder in stakeholder_list:
-                logger.info(
-                    f"Generating people for stakeholder: {stakeholder.name} (ID: {stakeholder.id})"
+        performance_profile = getattr(
+            getattr(config, "performance_profile", None), "value", None
+        ) or str(getattr(config, "performance_profile", "standard"))
+        quality_fast = performance_profile == "quality_fast"
+
+        async def generate_one(stakeholder: Stakeholder):
+            logger.info(
+                f"Generating people for stakeholder: {stakeholder.name} (ID: {stakeholder.id})"
+            )
+            try:
+                people = await self.generate_people(
+                    stakeholder, business_context, config
                 )
-                try:
-                    people = await self.generate_people(
-                        stakeholder, business_context, config
-                    )
-                    logger.info(
-                        f"Generated {len(people)} people for {stakeholder.name}"
-                    )
-                    all_people.extend(people)
-                except Exception as e:
-                    logger.error(
-                        f"Failed to generate people for {stakeholder.name}: {str(e)}",
-                        exc_info=True,
-                    )
+                logger.info(
+                    f"Generated {len(people)} people for {stakeholder.name}"
+                )
+                return people
+            except Exception as e:
+                logger.error(
+                    f"Failed to generate people for {stakeholder.name}: {str(e)}",
+                    exc_info=True,
+                )
+                return []
+
+        if quality_fast and len(stakeholder_entries) > 1:
+            # Each call already returns all people for one stakeholder. Running the
+            # independent stakeholder calls concurrently removes the old N-call
+            # latency chain without reducing persona count or prompt detail.
+            max_concurrent = min(5, len(stakeholder_entries))
+            semaphore = asyncio.Semaphore(max_concurrent)
+
+            async def bounded_generate(stakeholder: Stakeholder):
+                async with semaphore:
+                    return await generate_one(stakeholder)
+
+            groups = await asyncio.gather(
+                *(bounded_generate(item) for item in stakeholder_entries)
+            )
+            all_people = [person for group in groups for person in group]
+        else:
+            all_people = []
+            for stakeholder in stakeholder_entries:
+                all_people.extend(await generate_one(stakeholder))
 
         logger.info(
             f"Generated {len(all_people)} total people across all stakeholder types"

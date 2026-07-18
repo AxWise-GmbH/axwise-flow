@@ -12,7 +12,7 @@ STOP_WORDS = {
     "and", "are", "for", "from", "into", "that", "the", "their", "this",
     "to", "with", "will", "your", "task", "user", "agent", "project",
     "assume", "better", "customer", "customers", "instead", "inventing",
-    "general_operations",
+    "general", "general_operations",
 }
 
 MINIMUM_AGENT_FIT_SCORE = 0.35
@@ -42,11 +42,22 @@ class OrqalyAgentCandidate(BaseModel):
 
 def _tokens(*values: Any) -> set[str]:
     text = " ".join(str(value or "") for value in values).lower()
-    return {
-        token
-        for token in re.findall(r"[a-z0-9][a-z0-9_+-]{2,}", text)
-        if token not in STOP_WORDS
-    }
+    tokens = set()
+    for raw in re.findall(r"[a-z0-9]+", text):
+        if len(raw) < 3 or raw in STOP_WORDS:
+            continue
+        token = raw
+        if token.endswith("ing") and len(token) > 5:
+            token = token[:-3]
+            if len(token) > 3 and token[-1] == token[-2]:
+                token = token[:-1]
+        elif token.endswith("ies") and len(token) > 5:
+            token = token[:-3] + "y"
+        elif token.endswith("s") and len(token) > 4 and not token.endswith("ss"):
+            token = token[:-1]
+        if len(token) >= 3 and token not in STOP_WORDS:
+            tokens.add(token)
+    return tokens
 
 
 def _walk_strings(value: Any) -> Iterable[str]:
@@ -186,8 +197,16 @@ def resolve_orqaly_personas(
         task_context.desired_outcome,
         task_context.category,
         task_context.constraints,
+        task_context.required_capabilities,
     )
-    customer_tokens = _tokens(*_walk_strings(customer["profile"]))
+    # Include both the selected persona identity and its supporting quotations.
+    # The public profile projection can be intentionally concise, while the
+    # evidence often carries the domain signal needed for a grounded match.
+    customer_tokens = _tokens(
+        customer["name"],
+        *_walk_strings(customer["profile"]),
+        *(item.get("quote", "") for item in customer["evidence"]),
+    )
     ranked = sorted(
         (
             _candidate_score(candidate, task_tokens, customer_tokens)

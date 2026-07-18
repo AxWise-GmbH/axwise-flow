@@ -15,6 +15,7 @@ from backend.api.research.simulation_bridge.models import (
     SimulatedInterview,
     SimulatedPerson,
     SimulationConfig,
+    SimulationPerformanceProfile,
     SimulationRequest,
     SimulationResponse,
     Stakeholder,
@@ -57,7 +58,10 @@ def _request(problem: str = "Research plans are vague") -> SimulationRequest:
                 ]
             }
         ),
-        config=SimulationConfig(people_per_stakeholder=1),
+        config=SimulationConfig(
+            people_per_stakeholder=1,
+            performance_profile=SimulationPerformanceProfile.QUALITY_FAST,
+        ),
     )
 
 
@@ -67,6 +71,7 @@ class FakeOrchestrator:
         self.finalized = []
         self.finalize_flags = []
         self.parsed_questionnaires = []
+        self.performance_profiles = []
 
     async def parse_raw_questionnaire(self, content, config):
         self.parsed_questionnaires.append(content)
@@ -95,6 +100,7 @@ class FakeOrchestrator:
         self, request, user_id, simulation_id=None, finalize=True
     ):
         self.finalize_flags.append(finalize)
+        self.performance_profiles.append(request.config.performance_profile.value)
         person = SimulatedPerson(
             id="person-1",
             name="Alex Researcher",
@@ -283,6 +289,8 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert persisted.result_summary["evidence_item_count"] == 1
     assert persisted.analysis_id
     assert orchestrator.finalize_flags == [False]
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.performance_profiles == ["quality_fast"]
     assert orchestrator.finalized == [persisted.simulation_id]
 
     session = session_factory()

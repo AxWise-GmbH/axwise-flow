@@ -28,7 +28,13 @@ def _patch_attribute_extractor(monkeypatch, return_attrs):
     # Patch the AttributeExtractor method used by the facade to avoid LLM
     import backend.services.processing.attribute_extractor as ae
 
-    async def _fake_extract(self, text, role="Participant", scope_meta=None):
+    async def _fake_extract(
+        self,
+        text,
+        role="Participant",
+        industry=None,
+        scope_meta=None,
+    ):
         return return_attrs
 
     monkeypatch.setattr(

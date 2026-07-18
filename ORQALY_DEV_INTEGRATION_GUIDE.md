@@ -251,6 +251,8 @@ For a vague goal, submit the active Agent Hub catalogue, declared context, verif
 
 Pass the completed context decision as `upstream_decision_id` in the final plan request. AxWise rejects missing, cross-tenant, or different-task parents.
 
+When AxWise selects `research_assisted`, build the A+B request with typed `questions_data` as well as the human-readable questionnaire. Use domain-neutral stakeholder roles such as problem experiencer, decision maker, beneficiary, executor, and outcome definer; do not hard-code PO/PM or software-development roles. Set `config.performance_profile` to `quality_fast` for the normal Orqaly path. This profile preserves the two-person-per-stakeholder scope and the same evidence/persona output contract, but avoids the raw-questionnaire parser, parallelizes independent persona generation, and removes duplicate evidence-cleaning/filter calls. AxWise still owns the empirical persona derivation and exact quote/source validation.
+
 ## 7. Phase 3: team planning and recovery
 
 Planning is backward compatible and opt-in. Set `AXWISE_PLANNING_ENABLED=true` only for workflows whose request builder, UI, execution state, and approvals support the typed `planning` contract.
