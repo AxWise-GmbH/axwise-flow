@@ -505,7 +505,16 @@ class PersonaFormationFacade:
 
         # Extract industry from context
         industry_context = context.get("industry", None) if context else None
+        performance_profile = (
+            context.get("performance_profile", "standard") if context else "standard"
+        )
+        quality_fast = performance_profile == "quality_fast"
+        attribute_timeout = 60.0 if quality_fast else 300.0
+        evidence_timeout = 30.0 if quality_fast else 300.0
         logger.info(f"👥 [PERSONA_V2] Using industry context: {industry_context}")
+        logger.info(
+            "👥 [PERSONA_V2] Performance profile: %s", performance_profile
+        )
 
         async def _process_single_speaker(speaker: str, scoped_text: str, doc_spans: List[Dict[str, Any]], scope_meta: Dict[str, Any]):
             async with semaphore:
@@ -568,17 +577,22 @@ class PersonaFormationFacade:
 
                     scoped_text = _clean_alien_lines(scoped_text, speaker)
 
-                    # LLM-clean: keep only participant-verbatim lines (fail-open)
+                    # The text is already grouped from participant-only segments.
+                    # Standard mode retains the historical LLM cleaner; quality-fast
+                    # relies on deterministic speaker and evidence hard gates.
+                    _pre_clean = scoped_text
                     try:
-                        _pre_clean = scoped_text
+                        if quality_fast:
+                            scoped_text_cleaned = scoped_text
+                        else:
+                            scoped_text_cleaned = await asyncio.wait_for(
+                                self.evidence_linker.llm_clean_scoped_text(
+                                    scoped_text,
+                                    scope_meta=scope_meta,
+                                ),
+                                timeout=300.0,
+                            )
                         # Add timeout to prevent indefinite hangs on large transcripts
-                        scoped_text_cleaned = await asyncio.wait_for(
-                            self.evidence_linker.llm_clean_scoped_text(
-                                scoped_text,
-                                scope_meta=scope_meta,
-                            ),
-                            timeout=300.0  # 5 minute timeout for text cleaning
-                        )
                         # Keep doc_spans since we have original_scoped_text to remap against
                         doc_spans_task = doc_spans if doc_spans else []
                         scoped_text = scoped_text_cleaned
@@ -605,10 +619,12 @@ class PersonaFormationFacade:
                                 industry=industry_context,
                                 scope_meta=scope_meta_task
                             ),
-                            timeout=300.0  # 5 minute timeout for attribute extraction (increased from 3 min)
+                            timeout=attribute_timeout
                         )
                     except asyncio.TimeoutError:
-                        logger.error(f"👥 [PERSONA_V2] Attribute extraction TIMED OUT for {speaker} after 300 seconds")
+                        logger.error(
+                            f"👥 [PERSONA_V2] Attribute extraction TIMED OUT for {speaker} after {attribute_timeout:.0f} seconds"
+                        )
                         return None  # Skip this speaker if extraction times out
                     logger.info(f"👥 [PERSONA_V2] Attributes extracted for {speaker}")
                     enhanced_attrs = attributes
@@ -626,7 +642,7 @@ class PersonaFormationFacade:
                                         scope_meta_task,
                                         True,  # protect_key_quotes
                                     ),
-                                    timeout=300.0  # 5 minute timeout for evidence linking
+                                    timeout=evidence_timeout
                                 )
                             )
                             logger.info(f"👥 [PERSONA_V2] [DEBUG] Evidence linking completed for {speaker}")
@@ -699,29 +715,33 @@ class PersonaFormationFacade:
                                     for it in fv["evidence"]
                                     if not _is_bad_evidence_line(_get_quote_text(it))
                                 ]
-                                # Optional LLM gate over quotes (fail-open)
-                                try:
-                                    quotes = [_get_quote_text(it) for it in pre]
-                                    if quotes:
-                                        logger.info(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] Calling llm_filter_quotes for {speaker} field '{fk}' with {len(quotes)} quotes...")
-                                        _start = _time.perf_counter()
-                                    approved_idx = await asyncio.wait_for(
-                                        self.evidence_linker.llm_filter_quotes(
-                                            quotes, scope_meta_task
-                                        ),
-                                        timeout=300.0  # 5 minute timeout for quote filtering
-                                    )
-                                    if quotes:
-                                        _elapsed = _time.perf_counter() - _start
-                                        logger.info(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes completed for {speaker} field '{fk}' in {_elapsed:.2f}s")
-                                    if approved_idx and len(approved_idx) != len(pre):
-                                        pre = [
-                                            it for i, it in enumerate(pre) if i in approved_idx
-                                        ]
-                                except asyncio.TimeoutError:
-                                    logger.warning(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes TIMED OUT for {speaker} field '{fk}' after 30s")
-                                except Exception as e:
-                                    logger.warning(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes EXCEPTION for {speaker} field '{fk}': {e}")
+                                # Standard mode retains the legacy LLM gate. The
+                                # quality-fast path already has participant-scoped
+                                # source text, deterministic offsets, and local hard
+                                # gates, so another network call per field is redundant.
+                                if not quality_fast:
+                                    try:
+                                        quotes = [_get_quote_text(it) for it in pre]
+                                        if quotes:
+                                            logger.info(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] Calling llm_filter_quotes for {speaker} field '{fk}' with {len(quotes)} quotes...")
+                                            _start = _time.perf_counter()
+                                        approved_idx = await asyncio.wait_for(
+                                            self.evidence_linker.llm_filter_quotes(
+                                                quotes, scope_meta_task
+                                            ),
+                                            timeout=300.0
+                                        )
+                                        if quotes:
+                                            _elapsed = _time.perf_counter() - _start
+                                            logger.info(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes completed for {speaker} field '{fk}' in {_elapsed:.2f}s")
+                                        if approved_idx and len(approved_idx) != len(pre):
+                                            pre = [
+                                                it for i, it in enumerate(pre) if i in approved_idx
+                                            ]
+                                    except asyncio.TimeoutError:
+                                        logger.warning(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes TIMED OUT for {speaker} field '{fk}'")
+                                    except Exception as e:
+                                        logger.warning(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] llm_filter_quotes EXCEPTION for {speaker} field '{fk}': {e}")
                                 if len(pre) != len(fv["evidence"]):
                                     nf = dict(fv)
                                     nf["evidence"] = pre
@@ -730,7 +750,9 @@ class PersonaFormationFacade:
                                 logger.debug(f"👥 [PERSONA_V2] [DEBUG] [{_field_idx}/{len(_field_list)}] Skipping field '{fk}' (no evidence list)")
                     logger.info(f"👥 [PERSONA_V2] [DEBUG] Evidence filter loop completed for {speaker}")
 
-                    # Write structured evidence back into attributes when V2 is enabled
+                    # Keep instrumentation aligned with the evidence that survived
+                    # the hard gates. The previous implementation restored the
+                    # pre-filter map here, undoing the filter while adding latency.
                     if (
                         self.enable_evidence_v2
                         and isinstance(evidence_map, dict)
@@ -738,12 +760,10 @@ class PersonaFormationFacade:
                     ):
                         for field, items in evidence_map.items():
                             fv = enhanced_attrs.get(field)
-                            if isinstance(fv, dict) and isinstance(items, list) and items:
-                                nf = dict(fv)
-                                nf["evidence"] = (
-                                    items  # preserve dict items with offsets/speaker
-                                )
-                                enhanced_attrs[field] = nf
+                            if isinstance(fv, dict) and isinstance(
+                                fv.get("evidence"), list
+                            ):
+                                evidence_map[field] = list(fv["evidence"])
                     logger.info(f"👥 [PERSONA_V2] Assembling persona for {speaker}...")
                     # Debug: Log enhanced_attrs before building
                     _debug_keys = list(enhanced_attrs.keys()) if enhanced_attrs else []
@@ -1029,6 +1049,7 @@ class PersonaFormationFacade:
                 "speaker": speaker,
                 "speaker_role": speaker_role,
                 "document_id": doc_id,
+                "performance_profile": performance_profile,
             }
             if doc_spans:
                 scope_meta["doc_spans"] = doc_spans

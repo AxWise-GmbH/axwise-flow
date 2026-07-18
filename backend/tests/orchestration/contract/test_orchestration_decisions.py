@@ -19,12 +19,19 @@ from sqlalchemy.orm import sessionmaker
 from backend.api.routes.orchestration import router
 from backend.database import Base, get_db
 from backend.domain.orchestration.examples import ORCHESTRATION_DECISION_EXAMPLES
+from backend.domain.orchestration.models import EvaluationSliceV1
 from backend.models import (
     OrchestrationDecisionSnapshot,
     OrchestrationEvent,
+    OrchestrationExecutionReceipt,
+    OrchestrationOutcome,
+    OrchestrationScorerVersion,
     OrqalyTenantMapping,
     User,
 )
+from backend.services.orchestration.assignment_scorer import WEIGHTS
+from backend.services.orchestration.evaluation_service import ScorerEvaluationService
+from backend.services.orchestration.scorer_registry import ScorerRegistryService
 from backend.tests.orchestration.unit.test_team_planner import planning_payload
 
 
@@ -529,4 +536,467 @@ def test_phase1_migration_upgrades_and_downgrades_on_sqlite(
         assert "orchestration_decisions" not in tables_after_downgrade
         assert "orchestration_events" not in tables_after_downgrade
 
+    engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_phase4_outcome_is_idempotent_tenant_scoped_and_audited(
+    orchestration_client,
+):
+    client, factory = orchestration_client
+    decision_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("phase4-decision"),
+        json=_phase3_payload(),
+    )
+    assert decision_response.status_code == 201, decision_response.text
+    decision = decision_response.json()
+    node = decision["execution_plan"]["nodes"][0]
+    outcome = {
+        "contract_version": "1.0",
+        "outcome_id": "outcome-phase4-1",
+        "decision_id": decision["decision_id"],
+        "authorization_status": "approved",
+        "execution_status": "completed",
+        "task_success": True,
+        "quality_score": 0.92,
+        "stakeholder_acceptance": 0.9,
+        "cost": decision["execution_plan"]["total_estimated_cost"],
+        "currency": "EUR",
+        "latency_ms": decision["execution_plan"]["critical_path_latency_ms"],
+        "node_receipts": [
+            {
+                "receipt_id": "receipt-phase4-1",
+                "node_id": node["node_id"],
+                "agent_id": node["assigned_agent_id"],
+                "attempt": 1,
+                "status": "completed",
+                "quality_score": 0.92,
+                "currency": "EUR",
+            }
+        ],
+    }
+    headers = {
+        **_get_headers("orqaly-org-1", "orqaly-user-1"),
+        "Idempotency-Key": "phase4-outcome-key",
+    }
+    path = (
+        "/api/orqaly-axwise/v1/orchestration/decisions/"
+        f"{decision['decision_id']}/outcomes"
+    )
+    created = await client.post(path, headers=headers, json=outcome)
+    assert created.status_code == 201, created.text
+    record = created.json()
+    assert record["evaluation"]["task_success"] is True
+    assert record["evaluation"]["promotable_observation"] is True
+    assert record["evaluation"]["safety_flags"] == []
+
+    reused = await client.post(path, headers=headers, json=outcome)
+    assert reused.status_code == 200
+    assert reused.json()["reused"] is True
+    changed = deepcopy(outcome)
+    changed["quality_score"] = 0.2
+    assert (await client.post(path, headers=headers, json=changed)).status_code == 409
+    assert (
+        await client.get(
+            path,
+            headers=_get_headers("orqaly-org-2", "orqaly-user-2"),
+        )
+    ).status_code == 404
+
+    session = factory()
+    try:
+        assert session.query(OrchestrationOutcome).count() == 1
+        assert session.query(OrchestrationExecutionReceipt).count() == 1
+        assert (
+            session.query(OrchestrationEvent)
+            .filter(OrchestrationEvent.event_type == "outcome.received")
+            .count()
+            == 1
+        )
+    finally:
+        session.close()
+
+
+@pytest.mark.asyncio
+async def test_phase4_currency_mismatch_is_preserved_but_never_promotable(
+    orchestration_client,
+):
+    client, _ = orchestration_client
+    decision_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("phase4-currency-decision"),
+        json=_phase3_payload(),
+    )
+    decision = decision_response.json()
+    response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions/"
+        f"{decision['decision_id']}/outcomes",
+        headers={
+            **_get_headers("orqaly-org-1", "orqaly-user-1"),
+            "Idempotency-Key": "phase4-currency-outcome",
+        },
+        json={
+            "contract_version": "1.0",
+            "outcome_id": "outcome-phase4-currency",
+            "decision_id": decision["decision_id"],
+            "authorization_status": "approved",
+            "execution_status": "completed",
+            "task_success": True,
+            "quality_score": 0.95,
+            "cost": decision["execution_plan"]["total_estimated_cost"],
+            "currency": "USD",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    evaluation = response.json()["evaluation"]
+    assert evaluation["expected_currency"] == "EUR"
+    assert evaluation["currency_matches"] is False
+    assert evaluation["cost_delta_ratio"] is None
+    assert "currency_mismatch" in evaluation["safety_flags"]
+    assert evaluation["promotable_observation"] is False
+
+
+@pytest.mark.asyncio
+async def test_failed_node_receipt_cannot_be_overridden_by_claimed_task_success(
+    orchestration_client,
+):
+    client, _ = orchestration_client
+    decision_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("phase4-node-failure-decision"),
+        json=_phase3_payload(),
+    )
+    decision = decision_response.json()
+    node = decision["execution_plan"]["nodes"][0]
+    response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions/"
+        f"{decision['decision_id']}/outcomes",
+        headers={
+            **_get_headers("orqaly-org-1", "orqaly-user-1"),
+            "Idempotency-Key": "phase4-node-failure-outcome",
+        },
+        json={
+            "contract_version": "1.0",
+            "outcome_id": "outcome-phase4-node-failure",
+            "decision_id": decision["decision_id"],
+            "authorization_status": "approved",
+            "execution_status": "completed",
+            "task_success": True,
+            "quality_score": 0.95,
+            "currency": "EUR",
+            "node_receipts": [
+                {
+                    "receipt_id": "receipt-phase4-node-failure",
+                    "node_id": node["node_id"],
+                    "agent_id": node["assigned_agent_id"],
+                    "status": "failed",
+                    "failure_type": "invalid_output",
+                    "currency": "EUR",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    evaluation = response.json()["evaluation"]
+    assert "node_failure_observed" in evaluation["safety_flags"]
+    assert evaluation["promotable_observation"] is False
+
+
+@pytest.mark.asyncio
+async def test_human_reviewed_outcomes_change_ranking_and_rollback_restores_it(
+    orchestration_client,
+):
+    client, factory = orchestration_client
+    seed = _payload("customer_escalation")
+    history_agent = deepcopy(seed["available_agents"][0])
+    history_agent.update(agent_id="agent-history", name="History Agent")
+    history_agent.pop("success_rate", None)
+
+    for index in range(3):
+        request = deepcopy(seed)
+        request["task"]["task_id"] = f"history-task-{index}"
+        request["available_agents"] = [deepcopy(history_agent)]
+        decision_response = await client.post(
+            "/api/orqaly-axwise/v1/orchestration/decisions",
+            headers=_post_headers(f"history-decision-{index}"),
+            json=request,
+        )
+        assert decision_response.status_code == 201, decision_response.text
+        decision = decision_response.json()
+        node = decision["execution_plan"]["nodes"][0]
+        submitted = await client.post(
+            "/api/orqaly-axwise/v1/orchestration/decisions/"
+            f"{decision['decision_id']}/outcomes",
+            headers={
+                **_get_headers("orqaly-org-1", "orqaly-user-1"),
+                "Idempotency-Key": f"history-outcome-{index}",
+            },
+            json={
+                "contract_version": "1.0",
+                "outcome_id": f"history-outcome-{index}",
+                "decision_id": decision["decision_id"],
+                "authorization_status": "approved",
+                "execution_status": "completed",
+                "task_success": True,
+                "quality_score": 0.95,
+                "stakeholder_acceptance": 0.95,
+                "currency": seed["budget"]["currency"],
+                "node_receipts": [
+                    {
+                        "receipt_id": f"history-receipt-{index}",
+                        "node_id": node["node_id"],
+                        "agent_id": node["assigned_agent_id"],
+                        "status": "completed",
+                        "quality_score": 0.95,
+                        "currency": seed["budget"]["currency"],
+                    }
+                ],
+            },
+        )
+        assert submitted.status_code == 201, submitted.text
+
+    session = factory()
+    try:
+        registry = ScorerRegistryService(session)
+        registry.register_candidate(
+            external_org_id="orqaly-org-1",
+            version="weighted-outcome-v1.1.0",
+            weights=WEIGHTS,
+            minimum_samples=3,
+        )
+        report = ScorerEvaluationService().build_report(
+            report_id="report-phase4-passing",
+            external_org_id="orqaly-org-1",
+            candidate_version="weighted-outcome-v1.1.0",
+            baseline_version="weighted-direct-v1.0.0",
+            dataset_id="golden-cross-domain-v1",
+            sample_count=30,
+            overall_success_delta=0.04,
+            cost_delta=0.0,
+            calibration_error=0.05,
+            drift_score=0.05,
+            slices=[
+                EvaluationSliceV1(
+                    slice_name="minority-domain",
+                    sample_count=5,
+                    success_delta=0.01,
+                )
+            ],
+        )
+        registry.promote(
+            external_org_id="orqaly-org-1",
+            version="weighted-outcome-v1.1.0",
+            report=report,
+            reviewed_by="human-reviewer-1",
+        )
+    finally:
+        session.close()
+
+    later = deepcopy(seed)
+    later["task"]["task_id"] = "later-task"
+    alphabetical_agent = deepcopy(history_agent)
+    alphabetical_agent.update(agent_id="agent-a", name="Alphabetical Agent")
+    later["available_agents"] = [alphabetical_agent, deepcopy(history_agent)]
+    learned = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("later-learned"),
+        json=later,
+    )
+    assert learned.status_code == 201, learned.text
+    learned_decision = learned.json()
+    assert learned_decision["scorer_version"] == "weighted-outcome-v1.1.0"
+    assert learned_decision["recommended_agents"][0]["agent_id"] == "agent-history"
+    assert learned_decision["learned_features"][0]["sample_count"] == 3
+    assert learned_decision["learned_features"][0]["external_org_id"] == "orqaly-org-1"
+    assert (
+        learned_decision["learned_features"][0]["provenance"]
+        == "orchestration_execution_receipts"
+    )
+
+    session = factory()
+    try:
+        ScorerRegistryService(session).rollback(
+            external_org_id="orqaly-org-1",
+            version="weighted-outcome-v1.1.0",
+            reviewed_by="human-reviewer-2",
+        )
+    finally:
+        session.close()
+
+    restored = deepcopy(later)
+    restored["task"]["task_id"] = "restored-task"
+    baseline = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("later-restored"),
+        json=restored,
+    )
+    assert baseline.status_code == 201, baseline.text
+    baseline_decision = baseline.json()
+    assert baseline_decision["scorer_version"] == "weighted-direct-v1.0.0"
+    assert baseline_decision["recommended_agents"][0]["agent_id"] == "agent-a"
+    assert baseline_decision["learned_features"] == []
+
+
+@pytest.mark.asyncio
+async def test_final_plan_links_to_the_preplanning_context_decision(
+    orchestration_client,
+):
+    client, _ = orchestration_client
+    context_payload = _payload("customer_escalation")
+    context_payload["task"]["task_id"] = "linked-goal"
+    context_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("linked-context"),
+        json=context_payload,
+    )
+    assert context_response.status_code == 201, context_response.text
+    context = context_response.json()
+
+    plan_payload = _phase3_payload()
+    plan_payload["task"]["task_id"] = "linked-goal"
+    plan_payload["upstream_decision_id"] = context["decision_id"]
+    plan_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("linked-plan"),
+        json=plan_payload,
+    )
+    assert plan_response.status_code == 201, plan_response.text
+    assert plan_response.json()["parent_decision_id"] == context["decision_id"]
+
+    foreign_payload = deepcopy(plan_payload)
+    foreign_payload["tenant"] = {
+        "userId": "orqaly-user-2",
+        "orgId": "orqaly-org-2",
+    }
+    for agent in foreign_payload["available_agents"]:
+        agent["org_id"] = "orqaly-org-2"
+    for tool in foreign_payload["available_tools"]:
+        tool["org_id"] = "orqaly-org-2"
+    foreign = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("linked-foreign"),
+        json=foreign_payload,
+    )
+    assert foreign.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_unsafe_or_costly_scorer_report_cannot_be_promoted(
+    orchestration_client,
+):
+    _, factory = orchestration_client
+    session = factory()
+    try:
+        registry = ScorerRegistryService(session)
+        registry.register_candidate(
+            external_org_id="orqaly-org-1",
+            version="unsafe-scorer-v1",
+            weights=WEIGHTS,
+        )
+        changed_weights = dict(WEIGHTS)
+        changed_weights["required_capability_coverage"] -= 0.01
+        changed_weights["preferred_capability_coverage"] += 0.01
+        with pytest.raises(ValueError, match="immutable"):
+            registry.register_candidate(
+                external_org_id="orqaly-org-1",
+                version="unsafe-scorer-v1",
+                weights=changed_weights,
+            )
+        report = ScorerEvaluationService().build_report(
+            report_id="unsafe-report",
+            external_org_id="orqaly-org-1",
+            candidate_version="unsafe-scorer-v1",
+            baseline_version="weighted-direct-v1.0.0",
+            dataset_id="golden-cross-domain-v1",
+            sample_count=30,
+            overall_success_delta=0.02,
+            cost_delta=0.4,
+            calibration_error=0.05,
+            drift_score=0.05,
+            slices=[
+                EvaluationSliceV1(
+                    slice_name="regulated-minority",
+                    sample_count=4,
+                    success_delta=-0.2,
+                    safety_regressions=1,
+                )
+            ],
+        )
+        assert report.passed is False
+        assert "material_cost_regression" in report.blockers
+        with pytest.raises(ValueError, match="passing"):
+            registry.promote(
+                external_org_id="orqaly-org-1",
+                version="unsafe-scorer-v1",
+                report=report,
+                reviewed_by="human-reviewer",
+            )
+        forged = report.model_copy(update={"passed": True, "blockers": []})
+        with pytest.raises(ValueError, match="passing"):
+            registry.promote(
+                external_org_id="orqaly-org-1",
+                version="unsafe-scorer-v1",
+                report=forged,
+                reviewed_by="human-reviewer",
+            )
+        tenant_mismatch = ScorerEvaluationService().build_report(
+            report_id="wrong-tenant-report",
+            external_org_id="orqaly-org-2",
+            candidate_version="unsafe-scorer-v1",
+            baseline_version="weighted-direct-v1.0.0",
+            dataset_id="golden-cross-domain-v1",
+            sample_count=30,
+            overall_success_delta=0.02,
+            cost_delta=0.0,
+            calibration_error=0.05,
+            drift_score=0.05,
+            slices=[],
+        )
+        with pytest.raises(ValueError, match="tenant-bound"):
+            registry.promote(
+                external_org_id="orqaly-org-1",
+                version="unsafe-scorer-v1",
+                report=tenant_mismatch,
+                reviewed_by="human-reviewer",
+            )
+        row = (
+            session.query(OrchestrationScorerVersion)
+            .filter(OrchestrationScorerVersion.version == "unsafe-scorer-v1")
+            .one()
+        )
+        assert row.status == "candidate"
+    finally:
+        session.close()
+
+
+def test_phase4_migration_upgrades_and_downgrades_on_sqlite(tmp_path, monkeypatch):
+    phase1 = importlib.import_module(
+        "backend.migrations.versions.20260716_1500_add_orchestration_decisions"
+    )
+    phase4 = importlib.import_module(
+        "backend.migrations.versions.20260718_1000_add_orchestration_outcomes"
+    )
+    engine = create_engine(f"sqlite:///{tmp_path}/phase4-migration.db")
+    metadata = MetaData()
+    Table("users", metadata, Column("user_id", String, primary_key=True))
+    metadata.create_all(engine)
+    with engine.begin() as connection:
+        context = MigrationContext.configure(connection)
+        operations = Operations(context)
+        monkeypatch.setattr(phase1, "op", operations)
+        monkeypatch.setattr(phase4, "op", operations)
+        phase1.upgrade()
+        phase4.upgrade()
+        tables = set(inspect(connection).get_table_names())
+        assert "orchestration_outcomes" in tables
+        assert "orchestration_execution_receipts" in tables
+        assert "orchestration_scorer_versions" in tables
+        phase4.downgrade()
+        tables = set(inspect(connection).get_table_names())
+        assert "orchestration_outcomes" not in tables
+        assert "orchestration_execution_receipts" not in tables
+        assert "orchestration_scorer_versions" not in tables
     engine.dispose()

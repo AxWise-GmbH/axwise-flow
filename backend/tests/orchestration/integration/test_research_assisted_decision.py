@@ -214,6 +214,35 @@ def test_phase2_idempotency_hash_remains_compatible_until_planning_changes(
         service.create(changed, "axwise-user", "legacy-phase2-hash")
 
 
+def test_pre_link_idempotency_hash_remains_compatible_without_an_upstream_parent(
+    decision_store,
+):
+    service = OrchestrationDecisionService(SqlAlchemyDecisionStore(decision_store))
+    request = _request()
+    created = service.create(request, "axwise-user", "legacy-pre-link-hash")
+    row = (
+        decision_store.query(OrchestrationDecisionSnapshot)
+        .filter(OrchestrationDecisionSnapshot.decision_id == created.decision_id)
+        .one()
+    )
+    row.request_hash = service._legacy_pre_link_request_hash(request)
+    snapshot = dict(row.input_snapshot)
+    snapshot.pop("upstream_decision_id")
+    row.input_snapshot = snapshot
+    decision_store.commit()
+
+    retry = service.create(request, "axwise-user", "legacy-pre-link-hash")
+
+    assert retry.reused is True
+    assert retry.decision_id == created.decision_id
+    with pytest.raises(IdempotencyConflict):
+        service.create(
+            request.model_copy(update={"upstream_decision_id": "decision-new-parent"}),
+            "axwise-user",
+            "legacy-pre-link-hash",
+        )
+
+
 def test_research_is_durable_pending_and_does_not_publish_an_assignment(decision_store):
     research = FakeResearchPort()
     service = OrchestrationDecisionService(

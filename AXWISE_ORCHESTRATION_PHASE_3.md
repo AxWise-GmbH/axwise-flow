@@ -135,6 +135,23 @@ The parent decision is never updated. An identical retry returns the existing ch
 
 If the changed state makes the plan infeasible, the child is still durably recorded but is `human_controlled`, has confidence `0`, contains no recommended agents, and marks its explanatory plan `executable: false`.
 
+## Phase 3.1 — conditional customer-intelligence entry
+
+Orqaly must not call the standalone A+B endpoint as the default pre-planning step. The pre-planning flow now creates a normal orchestration decision with `planning: null`, a bounded `research_policy`, the active Agent Hub catalogue, declared context, and any verified user answers.
+
+AxWise then selects exactly one path:
+
+| Routing mode | Orqaly behavior |
+|---|---|
+| `direct` | Build a provenance-labelled goal context from declared facts; do not run research. |
+| `evidence_assisted` | Use verified existing evidence; do not run new research. |
+| `research_assisted` | Persist the returned A+B job, poll it, and call research refresh after terminal completion. |
+| `human_clarification` | Pause in Orqaly's existing `awaiting_po_input` flow and collect explicit stakeholder/outcome/evidence answers. |
+
+The resulting pre-planning decision ID is passed back as `upstream_decision_id` when Orqaly requests the final plan/team decision. AxWise validates exact tenant and task ownership, then records it as `parent_decision_id`. This creates one immutable chain from context resolution to planning, assignment, execution, and Phase 4 outcome.
+
+Direct and evidence-only paths may still populate Orqaly's contextual Agent Hub overlay, but they use `orqaly_context_resolution_v2` and a `source_type` of `declared_context` or `existing_evidence`. They must not be presented as researched customer personas.
+
 ## Verification coverage
 
 The supported tests cover:
@@ -166,12 +183,11 @@ backend/venv/bin/python -m pytest -q
 Phase 3 does not yet claim:
 
 - that AxWise itself executes, schedules, or monitors plan nodes;
-- durable per-node progress, execution receipts, or outcome ingestion;
-- resume-from-completed-node behavior—without Phase 4 receipts, a replan recommends a complete replacement graph;
+- resume-from-completed-node behavior—a replan still recommends a complete replacement graph even though Phase 4 now stores completion receipts;
 - a remote production Orqaly live-state deployment; the typed port and rejection behavior are implemented, while the default adapter validates the authenticated catalogue snapshot;
 - globally optimal team selection; the current planner is deterministic and greedy;
-- learned collaboration performance or outcome-calibrated team confidence;
+- learned collaboration performance or statistically outcome-calibrated team confidence beyond the governed tenant-scoped success-rate feature introduced in Phase 4;
 - queryable plan-node tables separate from immutable decision JSON;
 - PostgreSQL deployment rehearsal, atomic outbox delivery, or a production SLO.
 
-Execution receipts, outcomes, evaluation, and safe learning remain Phase 4. Enterprise deployment hardening and operator tooling remain Phase 5.
+Execution receipts, outcome evaluation, and governed scorer versioning are implemented in Phase 4. Production pilot calibration, scheduled large-dataset evaluation, enterprise deployment hardening, and operator tooling remain later rollout work.

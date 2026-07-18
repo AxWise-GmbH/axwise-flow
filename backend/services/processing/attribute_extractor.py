@@ -147,6 +147,12 @@ class AttributeExtractor:
         speaker_name = None
         if scope_meta and isinstance(scope_meta, dict):
             speaker_name = scope_meta.get("speaker", "").strip() or None
+        performance_profile = (
+            scope_meta.get("performance_profile", "standard")
+            if isinstance(scope_meta, dict)
+            else "standard"
+        )
+        quality_fast = performance_profile == "quality_fast"
 
         logger.info(f"Extracting attributes for {role} (speaker: {speaker_name}) from {len(text)} chars of text")
 
@@ -289,7 +295,14 @@ Be thorough and extract all relevant information. Use exact quotes from the tran
                 try:
                     logger.info("Using EvidenceLinkingService to find relevant quotes")
                     logger.info(f"[TRACE_DEMO] Before linking: {attributes.get('demographics', 'MISSING')}")
-                    if getattr(self.evidence_linking_service, "enable_v2", False):
+                    if quality_fast:
+                        # The quality-fast facade is the single owner of V2 evidence
+                        # linking so offsets, metrics, and the final evidence map are
+                        # produced once from the final formatted attributes.
+                        logger.info(
+                            "Deferring evidence linking to quality-fast persona facade"
+                        )
+                    elif getattr(self.evidence_linking_service, "enable_v2", False):
                         # Build richer scope metadata: prefer real speaker_id if provided
                         meta = {"speaker": role}
                         if scope_meta:
@@ -349,130 +362,15 @@ Be thorough and extract all relevant information. Use exact quotes from the tran
                 else:
                     attributes = self._fix_trait_value_formatting(attributes)
 
-                # SOLUTION 1: Analyze the full transcript for tools first, then update the attributes
-                try:
+                # Tool recognition is optional enrichment. The structured persona
+                # extraction already retains tool-related fields and quotes; avoid
+                # a second LLM-backed recognition pass in the latency-bounded path.
+                if quality_fast:
                     logger.info(
-                        "Using AdaptiveToolRecognitionService to improve tool identification"
+                        "Skipping optional adaptive tool enrichment in quality-fast profile"
                     )
-
-                    # First, identify all tools in the full transcript
-                    logger.info("Identifying all tools in the full transcript")
-                    try:
-                        all_identified_tools = await asyncio.wait_for(
-                            self.tool_recognition_service.identify_tools_in_text(
-                                text,  # Use the full transcript as the primary text to analyze
-                                "",  # No additional context needed since we're using the full text
-                            ),
-                            timeout=60.0  # 60 second timeout for tool identification
-                        )
-                    except asyncio.TimeoutError:
-                        logger.warning("Tool identification timed out after 60 seconds, skipping")
-                        all_identified_tools = []
-
-                    if all_identified_tools:
-                        logger.info(
-                            f"Identified {len(all_identified_tools)} tools in the full transcript"
-                        )
-
-                        # Format all identified tools
-                        all_formatted_tools = (
-                            self.tool_recognition_service.format_tools_for_persona(
-                                all_identified_tools, "bullet"
-                            )
-                        )
-
-                        # Create evidence from identified tools
-                        tool_evidence = []
-                        for tool in all_identified_tools:
-                            if tool.get("confidence", 0) >= 0.8:
-                                evidence = f"Identified '{tool['tool_name']}' from '{tool['original_mention']}'"
-                                if tool.get("is_misspelling"):
-                                    evidence += f" (corrected from possible transcription error)"
-                                tool_evidence.append(evidence)
-
-                        # Process both tools_used and technology_and_tools fields
-                        for tool_field in ["tools_used", "technology_and_tools"]:
-                            if tool_field in attributes:
-                                # Update the attribute with all identified tools
-                                if isinstance(attributes[tool_field], dict):
-                                    attributes[tool_field][
-                                        "value"
-                                    ] = all_formatted_tools
-                                    if tool_evidence:
-                                        attributes[tool_field][
-                                            "evidence"
-                                        ] = tool_evidence
-                                        attributes[tool_field][
-                                            "confidence"
-                                        ] = 0.9  # High confidence
-                                else:
-                                    attributes[tool_field] = all_formatted_tools
-
-                                logger.info(
-                                    f"Updated {tool_field} with all tools identified from the full transcript"
-                                )
-                    else:
-                        logger.info(
-                            "No tools identified in the full transcript, falling back to field-specific analysis"
-                        )
-
-                        # Fall back to analyzing each field individually
-                        for tool_field in ["tools_used", "technology_and_tools"]:
-                            if tool_field in attributes:
-                                # Get the current tool value
-                                current_tools = attributes[tool_field]
-                                if (
-                                    isinstance(current_tools, dict)
-                                    and "value" in current_tools
-                                ):
-                                    tool_value = current_tools["value"]
-                                else:
-                                    tool_value = str(current_tools)
-
-                                # Skip if empty
-                                if not tool_value or tool_value.lower() in [
-                                    "unknown",
-                                    "n/a",
-                                    "none",
-                                ]:
-                                    continue
-
-                                # Identify tools in the specific field value, with full text as context
-                                try:
-                                    field_tools = await asyncio.wait_for(
-                                        self.tool_recognition_service.identify_tools_in_text(
-                                            tool_value, text
-                                        ),
-                                        timeout=30.0  # 30 second timeout for field-specific tool identification
-                                    )
-                                except asyncio.TimeoutError:
-                                    logger.warning(f"Tool identification for {tool_field} timed out, skipping")
-                                    field_tools = []
-
-                                # Format the tools for the persona
-                                if field_tools:
-                                    # Format as bullet points
-                                    formatted_tools = self.tool_recognition_service.format_tools_for_persona(
-                                        field_tools, "bullet"
-                                    )
-
-                                    # Update the attribute
-                                    if isinstance(attributes[tool_field], dict):
-                                        attributes[tool_field][
-                                            "value"
-                                        ] = formatted_tools
-                                    else:
-                                        attributes[tool_field] = formatted_tools
-
-                                    logger.info(
-                                        f"Updated {tool_field} with field-specific tool identification"
-                                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error using AdaptiveToolRecognitionService: {str(e)}",
-                        exc_info=True,
-                    )
-                    # Continue without tool recognition if it fails
+                else:
+                    attributes = await self._enrich_tool_attributes(attributes, text)
 
                 # NOW convert to nested structures for PersonaBuilder
                 attributes = self._clean_persona_attributes(attributes)
@@ -492,6 +390,83 @@ Be thorough and extract all relevant information. Use exact quotes from the tran
                 f"Error extracting attributes for {role}: {str(e)}", exc_info=True
             )
             return self._create_fallback_attributes(role, text)
+
+    async def _enrich_tool_attributes(
+        self, attributes: Dict[str, Any], text: str
+    ) -> Dict[str, Any]:
+        """Run the legacy optional tool recognizer for the standard profile."""
+        try:
+            logger.info(
+                "Using AdaptiveToolRecognitionService to improve tool identification"
+            )
+            try:
+                identified = await asyncio.wait_for(
+                    self.tool_recognition_service.identify_tools_in_text(text, ""),
+                    timeout=60.0,
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Tool identification timed out after 60 seconds, skipping")
+                identified = []
+
+            if identified:
+                formatted = self.tool_recognition_service.format_tools_for_persona(
+                    identified, "bullet"
+                )
+                evidence = []
+                for item in identified:
+                    if item.get("confidence", 0) < 0.8:
+                        continue
+                    detail = (
+                        f"Identified '{item['tool_name']}' from "
+                        f"'{item['original_mention']}'"
+                    )
+                    if item.get("is_misspelling"):
+                        detail += " (corrected from possible transcription error)"
+                    evidence.append(detail)
+                for field in ("tools_used", "technology_and_tools"):
+                    if field not in attributes:
+                        continue
+                    if isinstance(attributes[field], dict):
+                        attributes[field]["value"] = formatted
+                        if evidence:
+                            attributes[field]["evidence"] = evidence
+                            attributes[field]["confidence"] = 0.9
+                    else:
+                        attributes[field] = formatted
+                return attributes
+
+            for field in ("tools_used", "technology_and_tools"):
+                current = attributes.get(field)
+                value = current.get("value") if isinstance(current, dict) else current
+                if not value or str(value).lower() in {"unknown", "n/a", "none"}:
+                    continue
+                try:
+                    field_tools = await asyncio.wait_for(
+                        self.tool_recognition_service.identify_tools_in_text(
+                            str(value), text
+                        ),
+                        timeout=30.0,
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "Tool identification for %s timed out, skipping", field
+                    )
+                    continue
+                if field_tools:
+                    formatted = self.tool_recognition_service.format_tools_for_persona(
+                        field_tools, "bullet"
+                    )
+                    if isinstance(current, dict):
+                        current["value"] = formatted
+                    else:
+                        attributes[field] = formatted
+        except Exception as exc:
+            logger.error(
+                "Error using AdaptiveToolRecognitionService: %s",
+                exc,
+                exc_info=True,
+            )
+        return attributes
 
     def _parse_llm_json_response(
         self, response: Any, context: str = ""

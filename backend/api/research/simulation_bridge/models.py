@@ -42,6 +42,13 @@ class ResponseStyle(str, Enum):
     MIXED = "mixed"
 
 
+class SimulationPerformanceProfile(str, Enum):
+    """Execution profiles that preserve output contracts at different latency budgets."""
+
+    STANDARD = "standard"
+    QUALITY_FAST = "quality_fast"
+
+
 class SimulationConfig(BaseModel):
     """Configuration for simulation parameters."""
 
@@ -52,6 +59,9 @@ class SimulationConfig(BaseModel):
     response_style: ResponseStyle = ResponseStyle.REALISTIC
     include_insights: bool = True
     temperature: float = Field(default=0.7, ge=0.0, le=1.0)
+    performance_profile: SimulationPerformanceProfile = (
+        SimulationPerformanceProfile.STANDARD
+    )
 
     # Keep old field for backward compatibility during transition
     @property
@@ -376,4 +386,3 @@ class PersonaChatResponse(BaseModel):
     """Response containing the persona's message and their simulated cognitive reasoning trace."""
     persona_response: str
     cognitive_steps: List[str]
-

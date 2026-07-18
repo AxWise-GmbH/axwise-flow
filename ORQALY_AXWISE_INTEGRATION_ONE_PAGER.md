@@ -15,7 +15,7 @@ Orqaly remains the product, workflow, tenancy, integrations, and user-facing exe
 
 The long-term scope is domain-neutral LLM-driven work, including software engineering, research, sales, marketing, support, finance, compliance, HR, procurement, and general operations. Pipeline A+B is an optional research-assisted decision mode, not the definition of the whole product and not a mandatory step for every task.
 
-The generic Phase 1–3 orchestration contract is now implemented in the `axwise-flow-oss` repository. It supports domain-neutral assignment, evidence and research routing, multi-agent planning, and immutable recovery replanning. This is repository capability, not proof that the routes are deployed or verified in a target environment. Use A+B for high-value research and dual-persona resolution, use Conditions as bounded advisory decision support, and do not treat demonstration twin routes as production orchestration.
+The generic Phase 1–4 orchestration contract is now implemented in the `axwise-flow-oss` repository. It supports domain-neutral assignment, conditional evidence/research routing, multi-agent planning, immutable recovery, execution outcomes, and human-governed scorer versions. This is repository capability, not proof that the routes are deployed or verified in a target environment. Use A+B only when the AxWise router selects valuable bounded research or research is itself the deliverable.
 
 ## What Orqaly should use
 
@@ -24,12 +24,13 @@ The generic Phase 1–3 orchestration contract is now implemented in the `axwise
 | **Cognitive orchestration and assignment** | Classifies an operational task, applies hard eligibility, ranks candidates, chooses an evidence path, and recommends an agent, team, workflow, or human escalation with explanations and guardrails. | Any LLM-driven development, research, commercial, administrative, or operational task. | **Implemented repository contract.** Create and retrieve immutable decisions through the versioned orchestration API; verify target deployment before use. |
 | **Evidence and bounded research routing** | Chooses direct, evidence-assisted, research-assisted, or human-clarification routing from deterministic uncertainty and value-of-information signals. | Tasks where stakeholder uncertainty or evidence quality could materially change the assignment. | **Implemented in Phase 2.** Research-assisted decisions remain non-executable until terminal research is refreshed into a linked decision. |
 | **Multi-agent planning and recovery** | Builds and validates single, sequential, parallel, supervisor, or human-controlled plans, then replans immutably when execution state changes. | Work requiring capability-specialized teams, dependencies, reviewers, approvals, separation of duties, or recovery. | **Implemented in Phase 3.** Orqaly must validate live feasibility, authorize, execute, and report state changes. |
+| **Outcomes and safe learning** | Stores decision/node receipts, evaluates success/quality/cost/latency/rework/escalation/acceptance, and gates tenant-scoped scorer promotion and rollback. | Proving which assignments work and improving later ranking without uncontrolled online learning. | **Implemented in Phase 4.** Orqaly reports execution; human-reviewed offline evidence is mandatory before promotion. |
 | **Async A+B dual-persona research** | Simulates stakeholder interviews (Pipeline B), produces evidence-audited customer personas (Pipeline A), and resolves the ideal and best available Orqaly agent persona for the task. | Identifying who the task is for, what evidence-backed needs should guide it, and which authorised Orqaly agent should execute it. | Start a durable job with task context and a server-derived agent catalogue, then poll its status/result and optionally receive a signed terminal webhook. |
 | **Conditions gateway** | Supplies fast rule-based/advisory tone, security, governance, classification, and grounding checks. | Shadow-mode pre-flight checks for selected Orqaly agent or copilot decision points. | One server-to-server request at a defined workflow point; do not call it on every chat by default. |
 
 The differentiated value is evidence-aware orchestration: matching a task and its affected stakeholders to the right authorised execution resources, explaining the assignment, constructing a feasible team plan, and producing a safe recovery path when execution state changes. A+B is the high-value uncertainty-reduction and dual-persona workflow. Conditions is a supporting control layer and should remain shadow-only until it demonstrably improves Orqaly's existing guardrails and uses prior conversation context correctly.
 
-The repository contains the Phase 1–3 decision API and schema, immutable persistence, deterministic scoring and uncertainty routing, bounded research refresh, multi-agent planning, feasibility handoff, replanning, and the A+B API, worker lifecycle, tenant mapping, persona resolution, and signed webhook implementation. Deployment readiness must be established from the current production schema, worker, tenant mapping, secret, callback, and authenticated route state rather than inferred from repository documentation. Orqaly remains responsible for final agent and plan authorisation.
+The repository contains the Phase 1–4 decision/outcome APIs and schemas, immutable persistence, deterministic scoring and uncertainty routing, conditional research refresh, linked context-to-plan decisions, multi-agent planning, replanning, governed scorer versions, and the A+B lifecycle. Deployment readiness must still be established in the target environment. Orqaly remains responsible for final agent and plan authorisation.
 
 ## General orchestration flow
 
@@ -40,17 +41,19 @@ The repository contains the Phase 1–3 decision API and schema, immutable persi
 5. AxWise persists and returns an immutable decision containing the agent or team recommendation, execution graph, context packages, guardrails, approval points, failure paths, fallbacks, confidence, and assignment factors.
 6. Orqaly rechecks ownership, availability, RBAC, budget, and tool scope, then executes the approved plan.
 7. When state changes, Orqaly requests an immutable replan and adopts the child plan only after renewed live-state authorization.
-8. Future Phase 4 work will let Orqaly return durable execution receipts, outcomes, costs, failures, corrections, and human feedback for evaluation and safe learning.
+8. Orqaly returns durable execution receipts, outcomes, costs, failures, corrections, and human feedback for versioned evaluation and safe learning.
 
-Phases 1–3 implement steps 1–7 at the recommendation-contract level. AxWise still does not execute or monitor Orqaly workflows, and Phase 4 outcome learning is not yet implemented. The canonical product doctrine and remaining acceptance criteria are defined in `AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md`.
+Phases 1–4 implement this audited loop. AxWise still does not execute or monitor Orqaly workflows, and measured market superiority still requires production-like replay and pilots. The canonical product doctrine and remaining acceptance criteria are defined in `AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md`.
 
-## Phase 1–3 in one view
+## Phase 1–4 in one view
 
 | Phase | Idea | Main output | Orqaly action |
 |---|---|---|---|
 | **Phase 1** | Choose the best eligible resource for a domain-neutral task. | Immutable direct or human-controlled decision with rankings, exclusions, factors, guardrails, and authorization requirement. | Revalidate the catalogue and authorize or escalate. |
 | **Phase 2** | Spend on evidence only when it is expected to improve the decision. | Direct, evidence-assisted, research-assisted, or clarification decision; terminal research creates a linked immutable rescore. | Poll research where required, refresh the decision, then authorize only the child result. |
 | **Phase 3** | Compose capability-specialized teams and recover safely from changed execution state. | Validated typed plan, feasibility handoff, approval gates, failure paths, and linked recovery replan. | Validate live feasibility, execute the approved plan, and trigger replan when state changes. |
+| **Phase 3.1** | Decide whether customer research is actually needed before planning. | Direct/declared context, existing-evidence context, bounded A+B job, or human clarification; final plan links to this context decision. | Never start A+B first; branch on AxWise routing mode. |
+| **Phase 4** | Learn safely from what happened. | Immutable outcome/node receipts, normalized evaluation, learned-feature provenance, and governed scorer version. | Report execution best-effort; promote only with human-reviewed passing evidence; retain rollback. |
 
 ## Domain examples
 
@@ -66,7 +69,7 @@ Phases 1–3 implement steps 1–7 at the recommendation-contract level. AxWise 
 ## A+B research flow
 
 1. An Orqaly workflow supplies the task, target audience, research questions, verified tenant identity, and a server-derived catalogue of available agents.
-2. AxWise creates a durable, idempotent A+B research job.
+2. AxWise creates a durable, idempotent A+B research job only after `research_assisted` is selected, or when standalone research is explicitly requested.
 3. Pipeline B generates psychologically varied stakeholder perspectives and interviews.
 4. Pipeline A extracts evidence-linked persona patterns, themes, risks, opportunities, and recommendations from those interview artifacts.
 5. AxWise resolves the primary customer persona, ideal execution persona, and ranked match against the supplied Orqaly agents.
