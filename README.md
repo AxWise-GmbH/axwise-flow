@@ -22,7 +22,7 @@ AxWise Flow is designed to determine who should perform an LLM-driven task, why 
 
 The strategic product boundary is simple: **AxWise decides; Orqaly executes.** AxWise is the cognitive decision plane. Orqaly remains responsible for authenticated tenancy, workflows, agent and tool availability, authorization, budgets, external actions, monitoring, and delivery.
 
-The current repository implements the research/evidence foundation, durable A+B jobs, advisory cognitive conditions, and the Phase 1–3 domain-neutral decision API. It can choose deterministic direct assignment, existing evidence, bounded A+B research, or human clarification; construct validated single, sequential, parallel, supervisor, and human-controlled team plans; and create immutable recovery decisions after execution-state changes. Outcome ingestion and learning remain target capabilities and must not be represented as shipped functionality.
+The current repository implements the research/evidence foundation, durable A+B jobs, advisory cognitive conditions, and the Phase 1–4 domain-neutral orchestration API. It can choose deterministic direct assignment, existing evidence, bounded A+B research, or human clarification; construct validated team plans; create immutable recovery decisions; ingest decision/node outcomes; and apply only human-promoted, tenant-scoped scorer versions with rollback. Production pilot superiority remains unproven and must not be represented as shipped market evidence.
 
 Development sources of truth:
 
@@ -32,6 +32,7 @@ Development sources of truth:
 - [Implemented Phase 1 contract and verification](AXWISE_ORCHESTRATION_PHASE_1.md)
 - [Implemented Phase 2 evidence-routing contract](AXWISE_ORCHESTRATION_PHASE_2.md)
 - [Implemented Phase 3 planning and recovery contract](AXWISE_ORCHESTRATION_PHASE_3.md)
+- [Implemented Phase 4 outcomes and safe-learning contract](AXWISE_ORCHESTRATION_PHASE_4.md)
 
 ---
 
@@ -86,7 +87,7 @@ AxWise Flow is intended to support domain-neutral orchestration for software eng
 * **What it does**: Interprets an operational task, determines the stakeholders, risks, required capabilities, and suitable execution pattern, then recommends an agent, team, workflow, or human escalation.
 * **Use Case**: Route software delivery, customer escalations, contract review, campaign preparation, audit evidence, procurement analysis, or other LLM-driven work through one domain-neutral decision contract.
 * **Product Boundary**: AxWise returns an explainable recommendation. Orqaly rechecks availability, ownership, permissions, budget, and tool scope before it executes the approved plan.
-* **Current Status**: Phases 1–3 accept one strict task contract across domains, classify uncertainty and evidence sufficiency, bound research by value/cost/time, construct validated multi-agent plans, publish Orqaly feasibility requests, and create linked immutable recovery decisions. Execution receipts, outcome evaluation, and safe learning remain roadmap capabilities.
+* **Current Status**: Phases 1–4 accept one strict task contract across domains, classify uncertainty and evidence sufficiency, bound research by value/cost/time, construct validated multi-agent plans, link pre-planning context to final assignments, create immutable recovery decisions, store execution receipts, evaluate outcomes, and govern tenant-scoped scorer promotion/rollback. Scheduled production-scale replay and paid-pilot proof remain open.
 
 ### 2. Generative Agents & "Digital Twins" (Simulation)
 * **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context. 

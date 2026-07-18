@@ -127,6 +127,48 @@ def test_research_requires_positive_value_and_explicit_bounded_authorization():
     assert "cost and time threshold" in assessment.reasons[-1]
 
 
+def test_unresolved_customer_context_is_researched_when_bounded_value_is_positive():
+    payload = _payload()
+    payload["task"].update(
+        {
+            "objective": "Increase conversion of our service onboarding",
+            "desired_outcome": "Increase onboarding activation while preserving customer trust",
+            "required_capabilities": [],
+            "capability_profile": None,
+            "required_tools": [],
+            "requested_actions": [],
+            "stakeholders": [
+                "Unknown — identify the person, team, organisation, buyer, user, or beneficiary"
+            ],
+            "risk_level": "medium",
+            "reversibility": "reversible",
+        }
+    )
+    payload["research_policy"] = {
+        "allow_hybrid_research": True,
+        "minimum_value_of_information": 0.2,
+        "maximum_research_cost": 5,
+        "estimated_research_cost": 1,
+        "maximum_research_latency_ms": 1_200_000,
+        "estimated_research_latency_ms": 300_000,
+        "maximum_research_iterations": 1,
+    }
+    payload["research_brief"] = {
+        "business_idea": "Improve onboarding",
+        "target_stakeholders": "Unknown",
+        "problem": "The affected customer and actual friction remain unresolved",
+        "research_questions": ["Who experiences the onboarding problem?"],
+    }
+
+    assessment = UncertaintyRouter().route(
+        DecisionCreateRequestV1.model_validate(payload),
+        [],
+    )
+
+    assert assessment.selected_mode.value == "research_assisted"
+    assert "stakeholders are unspecified or unresolved" in assessment.reasons
+
+
 def test_published_bounded_research_example_selects_research():
     request = DecisionCreateRequestV1.model_validate(
         ORCHESTRATION_DECISION_EXAMPLES["bounded_research"]["value"]

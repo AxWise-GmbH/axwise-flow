@@ -1,7 +1,7 @@
 ---
 type: Technical Documentation
 title: "Orqaly and AxWise Current API Contract"
-description: "The current non-secret API contract for AxWise Phase 1–3 decisions, evidence routing, team planning, recovery, conditions, and asynchronous A plus B research."
+description: "The current non-secret API contract for AxWise Phase 1–4 decisions, conditional research, team planning, recovery, outcomes, conditions, and asynchronous A plus B research."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_INTEGRATION_SCHEMA.md
 tags: [orqaly, axwise, api, contract, orchestration, assignment, planning, recovery, conditions, research, async]
 timestamp: 2026-07-16T20:00:00Z
@@ -11,7 +11,7 @@ timestamp: 2026-07-16T20:00:00Z
 
 This is the shareable technical contract for the currently implemented integration surface; it does not contain credentials. The separate private production handoff contains the M2M secret, webhook secret, and deployment checklist.
 
-AxWise provides domain-neutral cognitive orchestration and assignment for LLM-driven operational work, while Orqaly authorizes and executes the recommendation. Phases 1–3 publish the generic task contract, deterministic ranking and uncertainty routing, bounded evidence acquisition, validated multi-agent team plans, structured feasibility handoff, and immutable recovery replanning. Execution receipts, outcome learning, and production deployment hardening remain target capabilities defined in `AXWISE_ORQALY_COGNITIVE_ORCHESTRATION.md` and sequenced in `AXWISE_ORCHESTRATION_DEVELOPMENT_ROADMAP.md`.
+AxWise provides domain-neutral cognitive orchestration and assignment for LLM-driven operational work, while Orqaly authorizes and executes the recommendation. Phases 1–4 publish the generic task contract, deterministic ranking and uncertainty routing, conditional evidence acquisition, validated multi-agent plans, linked pre-planning context, immutable recovery, execution receipts, versioned evaluation, and governed tenant-scoped learning. Production deployment and pilot proof remain separate gates.
 
 Use this file as the source of truth for route and payload compatibility. Use `ORQALY_DEV_INTEGRATION_GUIDE.md` for Orqaly client behavior, `AXWISE_INTEGRATION_PLAN.md` for rollout and verification, `ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md` for product positioning, and `ORQALY_INFRASTRUCTURE_ROUTING.md` for deciding whether a task belongs in AxWise or Orqaly. None of those companion documents overrides this contract.
 
@@ -38,6 +38,8 @@ The integration does **not** use a browser token, a per-user bearer token, or th
 | Research refresh and rescore | `POST /orchestration/decisions/{decision_id}/research/refresh` | Returns the pending decision or creates a linked immutable decision after terminal research. | Implemented with exact organization/user isolation and durable refresh idempotency. |
 | Recovery replan | `POST /orchestration/decisions/{decision_id}/replan` | Creates a linked immutable plan after agent, tool, output, budget, or human-override changes. | Implemented with structured feasibility rejection, exact-user isolation, and durable idempotency. |
 | Decision-request schema | `GET /orchestration/schemas/decision-request-v1` | Publishes the authenticated backward-compatible v1 JSON Schema, including Phase 2 evidence/research and Phase 3 planning controls. | Implemented in the repository. |
+| Outcome submission/list | `POST/GET /orchestration/decisions/{decision_id}/outcomes` | Stores idempotent raw outcome/node receipts and returns versioned evaluation. | Implemented with exact tenant isolation, immutable audit events, and plan-node validation. |
+| Outcome schema | `GET /orchestration/schemas/execution-outcome-v1` | Publishes the Phase 4 execution-outcome JSON Schema. | Implemented in the repository. |
 | Conditions gateway | `POST /conditions/evaluate` | A synchronous decision/grounding call at a defined Orqaly workflow point. | Implemented; verify deployment and authentication before use. Advisory/shadow use only while chat history remains unused. |
 | Durable A+B research | `POST /simulate-enhanced-async` | Queues evidence-audited research with idempotency, status, results, cancellation, and optional terminal webhook. | Implemented in the repository; production readiness requires current schema, worker, tenant, secret, and callback verification. |
 | Run status | `GET /runs/{job_id}/status` | Retrieves durable job stage and progress. | Implemented; verify deployment before use. |
@@ -60,6 +62,7 @@ The strict body contains:
 - `tenant.userId` and `tenant.orgId`, resolved through an active persisted tenant mapping;
 - a versioned task envelope with the objective, desired outcome, domain, capabilities, tools, actions, constraints, context references, data classification, risk, urgency, and reversibility;
 - Orqaly's current agent and tool catalogues for that organization;
+- optional `upstream_decision_id`, restricted to the same exact tenant and task, to link pre-planning context to the final plan;
 - policy, approval, and budget context.
 - optional reference-only evidence metadata, research thresholds, and a bounded research brief.
 - optional typed planning steps, dependencies, contracts, review rules, collaboration constraints, separation of duties, and plan budgets.
@@ -102,6 +105,20 @@ x-axwise-key: <M2M secret>
 ```
 
 The strict body names one trigger—`agent_unavailable`, `tool_failure`, `output_rejected`, `budget_changed`, or `human_override`—and its corresponding changed state. A feasible replan returns a linked `recovery` decision. An infeasible replan returns a durable human-controlled child with `executable: false` and structured rejection reasons. Orqaly must validate the emitted `plan_feasibility_request` against live authority and may return the same typed rejection contract through the configured adapter. Full templates, graph validation, failure paths, approval rules, and limitations are documented in `AXWISE_ORCHESTRATION_PHASE_3.md`.
+
+### Phase 4 execution outcome
+
+```http
+POST /orchestration/decisions/{decision_id}/outcomes
+Idempotency-Key: <stable for this logical outcome>
+X-Orqaly-Org-ID: <same tenant orgId>
+X-Orqaly-User-ID: <same tenant userId>
+x-axwise-key: <M2M secret>
+```
+
+The strict body includes `outcome_id`, matching `decision_id`, authorization/execution status, optional success, quality, stakeholder acceptance, cost/currency, latency, rework, escalation, override reason, failure taxonomy, completion time, notes, and zero or more `node_receipts`. Each node receipt names its immutable plan node, attempt, terminal/progress status, observed agent, timestamps, quality, acceptance, cost, latency, tokens, rework, escalation, override, and failure information.
+
+The response contains the preserved raw outcome, `OutcomeEvaluationV1`, expected currency, currency-match status, decision scorer version, receipt time, request hash, and `reused`. Unknown plan nodes, silent owner substitution, unexplained receipt overrides, receipt/outcome currency disagreement, and changed meaning under the same idempotency key are rejected. A decision-budget currency mismatch is retained for audit but is not promotable. GET on the same route lists tenant-owned outcomes. Full metrics and promotion/rollback rules are in `AXWISE_ORCHESTRATION_PHASE_4.md`.
 
 ## 2. Conditions gateway
 
