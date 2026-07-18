@@ -167,8 +167,9 @@ X-Request-ID: <recommended Orqaly trace ID>
 The body must include:
 
 - `tenant.orgId` and `tenant.userId`;
-- `config` with simulation depth, people per stakeholder, response style, insight switch, and temperature;
-- a business context and/or questionnaire content;
+- `config` with simulation depth, people per stakeholder, response style, insight switch, temperature, and optional `performance_profile`; Orqaly uses `quality_fast` for latency-bounded dual-persona research while `standard` remains the backward-compatible default;
+- `questions_data.stakeholders`, grouped into domain-neutral primary and secondary roles with stable IDs, descriptions, and question arrays. Orqaly should send this typed form for research-assisted goals and may also retain `raw_questionnaire_content` for audit/backward compatibility. If typed questions are absent, AxWise must interpret the raw questionnaire before research and the job will take longer;
+- a business context describing the original goal, affected stakeholder if known, problem, domain, and optional location;
 - `outputs` with `empirical_personas: true`; set `persona_resolution: true` for the primary Orqaly dual-persona workflow;
 - `task_context` describing the task, desired outcome, category, and constraints when persona resolution is requested;
 - `agent_candidates`, built by the Orqaly backend from the authenticated user's active agent catalogue rather than accepted from an untrusted browser payload;
@@ -177,6 +178,8 @@ The body must include:
 A `202 Accepted` means the request has been persisted as a durable job. It is not a completion signal. The response includes a stable `job_id`, `simulation_id`, request ID, and links to status, result, and cancellation routes.
 
 Pipeline B produces stakeholder simulations and interviews. Pipeline A then derives evidence-linked persona patterns, exact source offsets, themes, risks, opportunities, and recommendations from those interview artifacts. AxWise only publishes completion after the resulting analysis is persisted.
+
+`quality_fast` does not reduce `people_per_stakeholder`, remove stakeholder roles, relax the completed result schema, or bypass AxWise's decision about whether research is needed. It runs independent stakeholder generation concurrently, performs one structured attribute extraction per participant, and uses one deterministic evidence-linking pass with participant, document, and exact-offset hard gates. The default `standard` profile remains available for compatibility and diagnostics.
 
 For the primary Orqaly workflow, the completed result also contains `result.data.persona_resolution`:
 

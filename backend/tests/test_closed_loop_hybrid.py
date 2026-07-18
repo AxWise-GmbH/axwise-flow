@@ -23,7 +23,10 @@ async def test_hybrid_enrichment_uses_consistent_document_id(monkeypatch):
         metadata={"existing": True},
     )
     request = SimpleNamespace(
-        business_context=SimpleNamespace(industry="logistics")
+        business_context=SimpleNamespace(industry="logistics"),
+        config=SimpleNamespace(
+            performance_profile=SimpleNamespace(value="quality_fast")
+        ),
     )
     segments = [
         {
@@ -74,6 +77,7 @@ async def test_hybrid_enrichment_uses_consistent_document_id(monkeypatch):
     assert enriched.metadata["empirical_persona_count"] == 1
     assert enriched.metadata["evidence_document_id"] == "sim_session_sim-123"
     assert enriched.metadata["audited_evidence_count"] == 1
+    assert enriched.metadata["performance_profile"] == "quality_fast"
     evidence = empirical["_evidence_linking_v2"]["evidence_map"]["goals_and_motivations"][0]
     assert evidence["start_char"] == 7
     assert evidence["end_char"] == 33
@@ -81,6 +85,7 @@ async def test_hybrid_enrichment_uses_consistent_document_id(monkeypatch):
     call = form_personas.await_args.kwargs
     assert call["transcript"] == segments
     assert call["context"]["document_id"] == "sim_session_sim-123"
+    assert call["context"]["performance_profile"] == "quality_fast"
 
 
 @pytest.mark.asyncio
