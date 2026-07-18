@@ -15,6 +15,7 @@ from backend.api.research.simulation_bridge.models import (
     SimulatedInterview,
     SimulatedPerson,
     SimulationConfig,
+    SimulationPerformanceProfile,
     SimulationRequest,
     SimulationResponse,
     Stakeholder,
@@ -57,7 +58,10 @@ def _request(problem: str = "Research plans are vague") -> SimulationRequest:
                 ]
             }
         ),
-        config=SimulationConfig(people_per_stakeholder=1),
+        config=SimulationConfig(
+            people_per_stakeholder=1,
+            performance_profile=SimulationPerformanceProfile.QUALITY_FAST,
+        ),
     )
 
 
@@ -66,11 +70,37 @@ class FakeOrchestrator:
         self.session_factory = session_factory
         self.finalized = []
         self.finalize_flags = []
+        self.parsed_questionnaires = []
+        self.performance_profiles = []
+
+    async def parse_raw_questionnaire(self, content, config):
+        self.parsed_questionnaires.append(content)
+        return SimulationRequest(
+            business_context=BusinessContext(
+                business_idea="Parsed research brief",
+                target_customer="Operations stakeholders",
+                problem="Unresolved operational delays",
+            ),
+            questions_data=QuestionsData(
+                stakeholders={
+                    "operations": [
+                        Stakeholder(
+                            id="operations-lead",
+                            name="Operations Lead",
+                            description="Owns operational performance",
+                            questions=["Which delay matters most?"],
+                        )
+                    ]
+                }
+            ),
+            config=config,
+        )
 
     async def simulate_with_persistence(
         self, request, user_id, simulation_id=None, finalize=True
     ):
         self.finalize_flags.append(finalize)
+        self.performance_profiles.append(request.config.performance_profile.value)
         person = SimulatedPerson(
             id="person-1",
             name="Alex Researcher",
@@ -259,6 +289,8 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert persisted.result_summary["evidence_item_count"] == 1
     assert persisted.analysis_id
     assert orchestrator.finalize_flags == [False]
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.performance_profiles == ["quality_fast"]
     assert orchestrator.finalized == [persisted.simulation_id]
 
     session = session_factory()
@@ -270,6 +302,43 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert analysis.status == "completed"
 
     assert service.get_run_for_tenant(run.job_id, "axwise-user-1", "other-org") is None
+
+
+@pytest.mark.asyncio
+async def test_worker_parses_raw_questionnaire_before_durable_execution(session_factory):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(orchestrator, session_factory, fake_enrichment)
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    request = SimulationRequest(
+        business_context=BusinessContext(
+            business_idea="Improve operations",
+            target_customer="Unknown stakeholder",
+            problem="Operational delays",
+        ),
+        raw_questionnaire_content="- Who experiences the operational delay?",
+        config=SimulationConfig(people_per_stakeholder=1),
+    )
+    run, _ = service.enqueue(
+        request,
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-raw-questionnaire",
+        "trace-raw-questionnaire",
+    )
+
+    claimed_id = await service.process_next()
+    await service.process_job(claimed_id, already_claimed=True)
+
+    persisted = service.get_run_for_tenant(run.job_id, "axwise-user-1", "orqaly-org-1")
+    assert persisted.status == "completed"
+    assert orchestrator.parsed_questionnaires == [
+        "- Who experiences the operational delay?"
+    ]
 
 
 @pytest.mark.asyncio

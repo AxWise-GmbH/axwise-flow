@@ -8,13 +8,18 @@ from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
     EvidenceItemV1,
     ExecutionPlan,
+    LearnedFeatureV1,
     PlanFeasibilityResultV1,
     ResearchJobV1,
     ResearchResultV1,
 )
 
 if TYPE_CHECKING:
-    from backend.models import OrchestrationDecisionSnapshot
+    from backend.models import (
+        OrchestrationDecisionSnapshot,
+        OrchestrationExecutionReceipt,
+        OrchestrationOutcome,
+    )
 
 
 class DecisionStore(Protocol):
@@ -68,3 +73,45 @@ class PlanFeasibilityPort(Protocol):
         request: DecisionCreateRequestV1,
         plan: ExecutionPlan,
     ) -> PlanFeasibilityResultV1: ...
+
+
+class OutcomeStore(Protocol):
+    def find_by_idempotency(
+        self,
+        partner_id: str,
+        external_org_id: str,
+        external_user_id: str,
+        idempotency_key: str,
+    ) -> Optional[OrchestrationOutcome]: ...
+
+    def get_for_tenant(
+        self,
+        outcome_id: str,
+        external_org_id: str,
+        external_user_id: str,
+        user_id: str,
+    ) -> Optional[OrchestrationOutcome]: ...
+
+    def list_for_decision(
+        self,
+        decision_id: str,
+        external_org_id: str,
+        external_user_id: str,
+        user_id: str,
+    ) -> list[OrchestrationOutcome]: ...
+
+    def add(
+        self,
+        outcome: OrchestrationOutcome,
+        receipts: list[OrchestrationExecutionReceipt],
+    ) -> None: ...
+
+    def rollback(self) -> None: ...
+
+
+class OutcomeLearningPort(Protocol):
+    def enrich(
+        self,
+        request: DecisionCreateRequestV1,
+        scorer_version: str,
+    ) -> tuple[DecisionCreateRequestV1, list[LearnedFeatureV1]]: ...

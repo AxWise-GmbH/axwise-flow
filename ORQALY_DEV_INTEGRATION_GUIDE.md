@@ -1,7 +1,7 @@
 ---
 type: Technical Documentation
 title: "Orqaly and AxWise Developer Integration Guide"
-description: "A current developer guide for Phase 1–3 orchestration, Conditions, and durable asynchronous A plus B research."
+description: "A current developer guide for Phase 1–4 orchestration, Conditions, and durable asynchronous A plus B research."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/ORQALY_DEV_INTEGRATION_GUIDE.md
 tags: [orqaly, axwise, orchestration, assignment, planning, recovery, evidence, research, conditions, api, development, security, rollout]
 timestamp: 2026-07-16T20:00:00Z
@@ -9,7 +9,7 @@ timestamp: 2026-07-16T20:00:00Z
 
 # Orqaly ↔ AxWise developer integration guide
 
-This guide is for the Orqaly backend team. It covers the implemented Phase 1–3 orchestration lifecycle, the Conditions Gateway, and standalone durable A+B research. Use `ORQALY_INTEGRATION_SCHEMA.md` as the canonical non-secret field contract and the separate private production handoff for live secret values and target-environment checks.
+This guide is for the Orqaly backend team. It covers the implemented Phase 1–4 orchestration lifecycle, conditional customer intelligence, outcomes, the Conditions Gateway, and standalone durable A+B research. Use `ORQALY_INTEGRATION_SCHEMA.md` as the canonical non-secret field contract.
 
 Repository implementation is not a deployment guarantee. Do not enable a route until it passes authenticated verification in the intended environment.
 
@@ -53,8 +53,12 @@ Use production keys and the webhook secret only from the private handoff. Never 
 | Validate client compatibility | `GET /orchestration/schemas/decision-request-v1` | Authenticated JSON Schema. |
 | Apply a bounded workflow condition or grounding check | `POST /conditions/evaluate` | Synchronous advisory/control result. |
 | Produce a research deliverable independently of a decision | `POST /simulate-enhanced-async` | Durable asynchronous job with polling and optional webhook. |
+| Report execution and node outcomes | `POST /orchestration/decisions/{decision_id}/outcomes` | Idempotent Phase 4 receipt and versioned evaluation. |
+| Inspect stored outcomes | `GET /orchestration/decisions/{decision_id}/outcomes` | Exact-tenant audit/reconciliation read. |
 
 Do not call standalone A+B merely because a decision is `pending_research`. That decision already owns a tenant-scoped research job; poll it and use the research-refresh route.
+
+For pre-planning customer intelligence, also do not call standalone A+B first. Create a normal orchestration decision with `planning: null` and explicit research budgets, then branch on the returned routing mode.
 
 ## 4. Shared server client
 
@@ -236,6 +240,19 @@ export async function refreshAxWiseDecision(
 
 Failed, cancelled, timed-out, empty, contradictory, or low-quality research must remain visible and route to clarification unless the returned usable evidence independently meets the documented thresholds.
 
+### Phase 3.1 pre-planning customer-intelligence route
+
+For a vague goal, submit the active Agent Hub catalogue, declared context, verified user answers, a bounded `research_brief`, explicit cost/latency/iteration limits, and `planning: null` to the normal decision route.
+
+- `direct`: store `orqaly_context_resolution_v2` with `source_type: declared_context`; plan immediately.
+- `evidence_assisted`: store the same contextual format with `source_type: existing_evidence`; plan immediately.
+- `research_assisted`: persist and poll the returned job, then call research refresh and consume `orqaly_dual_persona_v1`.
+- `human_clarification`: pause through Orqaly's existing `awaiting_po_input` questions and resubmit after the user answers.
+
+Pass the completed context decision as `upstream_decision_id` in the final plan request. AxWise rejects missing, cross-tenant, or different-task parents.
+
+When AxWise selects `research_assisted`, build the A+B request with typed `questions_data` as well as the human-readable questionnaire. Use domain-neutral stakeholder roles such as problem experiencer, decision maker, beneficiary, executor, and outcome definer; do not hard-code PO/PM or software-development roles. Set `config.performance_profile` to `quality_fast` for the normal Orqaly path. This profile preserves the two-person-per-stakeholder scope and the same evidence/persona output contract, but avoids the raw-questionnaire parser, parallelizes independent persona generation, and removes duplicate evidence-cleaning/filter calls. AxWise still owns the empirical persona derivation and exact quote/source validation.
+
 ## 7. Phase 3: team planning and recovery
 
 Planning is backward compatible and opt-in. Set `AXWISE_PLANNING_ENABLED=true` only for workflows whose request builder, UI, execution state, and approvals support the typed `planning` contract.
@@ -282,7 +299,13 @@ Send exactly one typed trigger:
 
 The parent is never mutated. A feasible child uses `routing_mode: recovery`. An infeasible child is durably recorded but remains human-controlled, non-executable, and confidence `0`. Revalidate and authorize every child as a new decision.
 
-Until Phase 4 execution receipts exist, a replan is a complete replacement recommendation, not a resume-from-completed-node instruction. Orqaly must reconcile already completed work itself.
+Although Phase 4 execution receipts now exist, a replan is still a complete replacement recommendation, not a resume-from-completed-node instruction. Orqaly must reconcile already completed work itself.
+
+### Phase 4 outcome submission
+
+At terminal execution, POST a decision-level outcome plus terminal plan-node receipts to `/orchestration/decisions/{decision_id}/outcomes`. Use the exact organization/user headers and a stable key such as `orqaly-outcome:{goal_id}:iteration:{iteration}:{decision_id}`. Include authorization, success, quality, acceptance, cost, latency, rework, escalation, overrides, failure taxonomy, and node attempt owners/statuses where observed.
+
+AxWise validates node, owner, override, and currency linkage, stores raw observations, and returns `outcome-evaluator-v1.0.0` metrics. Reporting is best-effort: it must not change Orqaly's terminal state. Persist the returned outcome ID, normalized success, safety flags, currency-match status, and evaluation version for reconciliation. Scorer promotion is an offline tenant-bound, baseline-matched, human-governed operator action, never an Orqaly runtime call.
 
 ## 8. Conditions Gateway
 

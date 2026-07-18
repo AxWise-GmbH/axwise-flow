@@ -18,6 +18,8 @@ The `axwise-flow-oss` repository now implements the following integration surfac
 | Phase 1 generic assignment | Explainable eligibility, ranking, direct recommendation, or human-controlled escalation for domain-neutral tasks. | `POST /orchestration/decisions` without research or planning extensions. |
 | Phase 2 evidence routing | Choose direct, existing-evidence, bounded-research, or clarification paths from deterministic uncertainty and value-of-information signals. | `POST /orchestration/decisions`, then `/research/refresh` when pending. |
 | Phase 3 planning and recovery | Build validated agent-team plans and create immutable recovery plans after execution-state changes. | `POST /orchestration/decisions` with `planning`, then `/replan` when required. |
+| Phase 3.1 conditional context | Resolve declared context, reuse evidence, select bounded A+B, or request clarification before planning; link context to the final plan decision. | `POST /orchestration/decisions` with `planning: null`, then final create with `upstream_decision_id`. |
+| Phase 4 outcomes and safe learning | Store decision/node receipts, evaluate performance, and apply only human-promoted tenant-scoped scorer versions. | `POST/GET /orchestration/decisions/{decision_id}/outcomes`. |
 | Conditions Gateway | Contextual policy, tone, grounding, and workflow-decision support at a selected hook. | `POST /conditions/evaluate`. |
 | Standalone durable A+B research | Evidence-audited stakeholder research and dual-persona resolution independently of an orchestration decision. | `POST /simulate-enhanced-async`, then durable run routes. |
 
@@ -36,6 +38,7 @@ Use this order before consulting the opportunity catalogue:
 | Is uncertainty consequential and is bounded A+B research economically justified? | Explicitly permit Phase 2 research, persist the pending decision, then refresh after terminal research. |
 | Does the task require multiple roles, dependencies, reviewers, approvals, or separation of duties? | Include the typed Phase 3 `planning` object and validate the returned feasibility request in Orqaly. |
 | Did an agent, tool, output, budget, or human instruction change after planning? | Request one typed immutable replan; never overwrite the parent decision. |
+| Has Orqaly completed or failed the authorized work? | Submit an idempotent Phase 4 outcome and plan-node receipts; reporting must not control execution state. |
 | Does Orqaly need a research deliverable independently of assignment? | Use standalone durable A+B. |
 | Is only a bounded policy, tone, security, classification, or grounding fragment needed? | Use Conditions at an explicit workflow hook, initially in shadow mode. |
 

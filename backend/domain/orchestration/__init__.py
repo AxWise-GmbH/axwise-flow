@@ -2,6 +2,8 @@
 
 from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
+    ExecutionOutcomeRecordV1,
+    ExecutionOutcomeV1,
     OrchestrationDecisionRecordV1,
     OrchestrationDecisionV1,
     TaskEnvelopeV1,
@@ -9,6 +11,8 @@ from backend.domain.orchestration.models import (
 
 __all__ = [
     "DecisionCreateRequestV1",
+    "ExecutionOutcomeRecordV1",
+    "ExecutionOutcomeV1",
     "OrchestrationDecisionRecordV1",
     "OrchestrationDecisionV1",
     "TaskEnvelopeV1",

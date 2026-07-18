@@ -82,3 +82,33 @@ def test_returns_ideal_persona_when_orqaly_has_no_candidate():
     assert result["recommended_agent"] is None
     assert result["selection_status"] == "ideal_persona_only"
     assert result["ideal_agent_persona"]["required_capabilities"]
+
+
+def test_rejects_a_weak_cross_domain_candidate_and_normalizes_structured_style():
+    customer = _customer_persona()
+    customer["communication_style"] = {
+        "value": "methodical and evidence-led",
+        "confidence": 0.9,
+    }
+    result = resolve_orqaly_personas(
+        [customer],
+        OrqalyTaskContext(
+            title="Improve unclear operations",
+            description="Customers are unhappy and work is slow",
+            category="general_operations",
+        ),
+        [
+            OrqalyAgentCandidate(
+                agent_id="agent-healthcare",
+                name="Healthcare Operations Specialist",
+                role="Healthcare Operations Specialist",
+                capabilities=["clinic workflow", "patient communication"],
+            )
+        ],
+    )
+
+    assert result["recommended_agent"] is None
+    assert result["selection_status"] == "ideal_persona_only"
+    assert result["ideal_agent_persona"]["role"] == "Customer-aligned operations specialist"
+    assert result["ideal_agent_persona"]["communication_style"] == "methodical and evidence-led"
+    assert "better" not in result["ideal_agent_persona"]["required_capabilities"]

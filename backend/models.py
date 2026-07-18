@@ -9,6 +9,7 @@ from sqlalchemy import (
     Text,
     Float,
     Boolean,
+    ForeignKeyConstraint,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -451,6 +452,130 @@ class OrchestrationEvent(Base):
     event_type = Column(String, nullable=False)
     event_payload = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class OrchestrationOutcome(Base):
+    """Immutable tenant-scoped execution outcome for one decision."""
+
+    __tablename__ = "orchestration_outcomes"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            "idempotency_key",
+            name="uq_orchestration_outcome_idempotency",
+        ),
+        UniqueConstraint(
+            "external_org_id",
+            "external_user_id",
+            "outcome_id",
+            name="uq_orchestration_outcome_tenant_id",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    outcome_id = Column(String, nullable=False, index=True)
+    decision_id = Column(
+        String,
+        ForeignKey("orchestration_decisions.decision_id"),
+        nullable=False,
+        index=True,
+    )
+    partner_id = Column(String, nullable=False, index=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    idempotency_key = Column(String, nullable=False)
+    request_hash = Column(String, nullable=False)
+    contract_version = Column(String, nullable=False)
+    scorer_version = Column(String, nullable=False)
+    outcome_payload = Column(JSON, nullable=False)
+    evaluation_payload = Column(JSON, nullable=False)
+    authorization_status = Column(String, nullable=False)
+    execution_status = Column(String, nullable=False)
+    normalized_success = Column(Float, nullable=False)
+    quality_score = Column(Float, nullable=True)
+    stakeholder_acceptance = Column(Float, nullable=True)
+    cost = Column(Float, nullable=True)
+    latency_ms = Column(Integer, nullable=True)
+    rework_count = Column(Integer, nullable=False, default=0)
+    escalation_count = Column(Integer, nullable=False, default=0)
+    human_override = Column(Boolean, nullable=False, default=False)
+    received_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class OrchestrationExecutionReceipt(Base):
+    """Append-only node execution observation belonging to an outcome."""
+
+    __tablename__ = "orchestration_execution_receipts"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["external_org_id", "external_user_id", "outcome_id"],
+            [
+                "orchestration_outcomes.external_org_id",
+                "orchestration_outcomes.external_user_id",
+                "orchestration_outcomes.outcome_id",
+            ],
+            name="fk_orchestration_receipt_tenant_outcome",
+        ),
+        UniqueConstraint(
+            "external_org_id",
+            "external_user_id",
+            "receipt_id",
+            name="uq_orchestration_receipt_tenant_id",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    receipt_id = Column(String, nullable=False, index=True)
+    outcome_id = Column(String, nullable=False, index=True)
+    decision_id = Column(
+        String,
+        ForeignKey("orchestration_decisions.decision_id"),
+        nullable=False,
+        index=True,
+    )
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    node_id = Column(String, nullable=False, index=True)
+    agent_id = Column(String, nullable=True, index=True)
+    attempt = Column(Integer, nullable=False)
+    status = Column(String, nullable=False)
+    receipt_payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class OrchestrationScorerVersion(Base):
+    """Human-governed scorer configuration and its offline evaluation evidence."""
+
+    __tablename__ = "orchestration_scorer_versions"
+    __table_args__ = (
+        UniqueConstraint(
+            "external_org_id",
+            "version",
+            name="uq_orchestration_scorer_version_tenant",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    version = Column(String, nullable=False, index=True)
+    parent_version = Column(String, nullable=True)
+    status = Column(String, nullable=False, index=True)
+    configuration = Column(JSON, nullable=False)
+    evaluation_report = Column(JSON, nullable=True)
+    reviewed_by = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    promoted_at = Column(DateTime(timezone=True), nullable=True)
+    retired_at = Column(DateTime(timezone=True), nullable=True)
 
 
 import uuid

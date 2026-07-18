@@ -102,6 +102,10 @@ async def enrich_with_empirical_personas(
     )
     llm_service = LLMServiceFactory.create("enhanced_gemini")
     persona_service = PersonaFormationService(llm_service=llm_service)
+    request_config = getattr(request, "config", None)
+    performance_profile = getattr(
+        getattr(request_config, "performance_profile", None), "value", None
+    ) or str(getattr(request_config, "performance_profile", "standard"))
     empirical_personas = await persona_service.form_personas_from_transcript(
         transcript=segments,
         context={
@@ -114,6 +118,7 @@ async def enrich_with_empirical_personas(
             "filename": f"{document_id}.json",
             "simulation_id": simulation_id,
             "pipeline": "closed_loop_a_plus_b",
+            "performance_profile": performance_profile,
         },
     )
     if not empirical_personas:
@@ -132,6 +137,7 @@ async def enrich_with_empirical_personas(
         "evidence_document_id": document_id,
         "evidence_document_ids": evidence_document_ids,
         "audited_evidence_count": audited_evidence_count,
+        "performance_profile": performance_profile,
     }
     logger.info(
         "Closed-loop A+B: generated %s empirical personas for simulation %s",

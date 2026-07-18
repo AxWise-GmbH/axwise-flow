@@ -11,7 +11,11 @@ from pydantic import BaseModel, Field
 STOP_WORDS = {
     "and", "are", "for", "from", "into", "that", "the", "their", "this",
     "to", "with", "will", "your", "task", "user", "agent", "project",
+    "assume", "better", "customer", "customers", "instead", "inventing",
+    "general", "general_operations",
 }
+
+MINIMUM_AGENT_FIT_SCORE = 0.35
 
 
 class OrqalyTaskContext(BaseModel):
@@ -21,6 +25,7 @@ class OrqalyTaskContext(BaseModel):
     desired_outcome: Optional[str] = None
     category: Optional[str] = None
     constraints: List[str] = Field(default_factory=list)
+    required_capabilities: List[str] = Field(default_factory=list)
 
 
 class OrqalyAgentCandidate(BaseModel):
@@ -37,11 +42,22 @@ class OrqalyAgentCandidate(BaseModel):
 
 def _tokens(*values: Any) -> set[str]:
     text = " ".join(str(value or "") for value in values).lower()
-    return {
-        token
-        for token in re.findall(r"[a-z0-9][a-z0-9_+-]{2,}", text)
-        if token not in STOP_WORDS
-    }
+    tokens = set()
+    for raw in re.findall(r"[a-z0-9]+", text):
+        if len(raw) < 3 or raw in STOP_WORDS:
+            continue
+        token = raw
+        if token.endswith("ing") and len(token) > 5:
+            token = token[:-3]
+            if len(token) > 3 and token[-1] == token[-2]:
+                token = token[:-1]
+        elif token.endswith("ies") and len(token) > 5:
+            token = token[:-3] + "y"
+        elif token.endswith("s") and len(token) > 4 and not token.endswith("ss"):
+            token = token[:-1]
+        if len(token) >= 3 and token not in STOP_WORDS:
+            tokens.add(token)
+    return tokens
 
 
 def _walk_strings(value: Any) -> Iterable[str]:
@@ -94,6 +110,16 @@ def _persona_confidence(persona: Dict[str, Any]) -> float:
             return max(0.0, min(float(value), 1.0))
     evidence_count = len(_evidence_items(persona))
     return min(0.55 + evidence_count * 0.05, 0.9)
+
+
+def _field_text(value: Any, fallback: str) -> str:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if isinstance(value, dict):
+        nested = value.get("value")
+        if isinstance(nested, str) and nested.strip():
+            return nested.strip()
+    return fallback
 
 
 def _pick_customer_persona(personas: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -171,8 +197,16 @@ def resolve_orqaly_personas(
         task_context.desired_outcome,
         task_context.category,
         task_context.constraints,
+        task_context.required_capabilities,
     )
-    customer_tokens = _tokens(*_walk_strings(customer["profile"]))
+    # Include both the selected persona identity and its supporting quotations.
+    # The public profile projection can be intentionally concise, while the
+    # evidence often carries the domain signal needed for a grounded match.
+    customer_tokens = _tokens(
+        customer["name"],
+        *_walk_strings(customer["profile"]),
+        *(item.get("quote", "") for item in customer["evidence"]),
+    )
     ranked = sorted(
         (
             _candidate_score(candidate, task_tokens, customer_tokens)
@@ -181,22 +215,33 @@ def resolve_orqaly_personas(
         key=lambda item: (item["available"], item["score"]),
         reverse=True,
     )
-    recommendation = ranked[0] if ranked else None
+    recommendation = (
+        ranked[0]
+        if ranked and ranked[0]["score"] >= MINIMUM_AGENT_FIT_SCORE
+        else None
+    )
 
     customer_profile = customer["profile"]
-    communication_style = (
+    communication_style = _field_text(
         customer_profile.get("communication_style")
-        or customer_profile.get("preferred_communication_style")
-        or "clear, evidence-grounded, and adapted to the customer"
+        or customer_profile.get("preferred_communication_style"),
+        "clear, evidence-grounded, and adapted to the customer",
     )
-    ideal_capabilities = list(
-        dict.fromkeys(
-            (recommendation or {}).get("capabilities", [])
-            + sorted(task_tokens)[:8]
-        )
-    )[:12]
+    ideal_capabilities = list(dict.fromkeys(
+        task_context.required_capabilities
+        + ((recommendation or {}).get("capabilities", []))
+    ))[:12]
+    if not ideal_capabilities:
+        ideal_capabilities = [
+            "stakeholder discovery",
+            "evidence synthesis",
+            "operational problem framing",
+        ]
+    category_role = (task_context.category or "operations").replace("_", " ").strip()
+    if category_role == "general operations":
+        category_role = "operations"
     ideal_agent = {
-        "role": (recommendation or {}).get("role") or "Customer-aligned task specialist",
+        "role": (recommendation or {}).get("role") or f"Customer-aligned {category_role} specialist",
         "communication_style": communication_style,
         "required_capabilities": ideal_capabilities,
         "operating_principles": [
@@ -218,4 +263,3 @@ def resolve_orqaly_personas(
         "requires_orqaly_authorization": True,
         "evidence_count": len(customer["evidence"]),
     }
-

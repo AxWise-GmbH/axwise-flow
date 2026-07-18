@@ -25,6 +25,7 @@ from backend.domain.orchestration.models import (
     EvidenceReference,
     ExecutionPlan,
     Fallback,
+    LearnedFeatureV1,
     OrchestrationDecisionRecordV1,
     OrchestrationDecisionV1,
     PlanFeasibilityRequestV1,
@@ -41,6 +42,7 @@ from backend.domain.orchestration.models import (
 from backend.domain.orchestration.ports import (
     DecisionStore,
     EvidenceRetrievalPort,
+    OutcomeLearningPort,
     PlanFeasibilityPort,
     ResearchToolPort,
 )
@@ -72,6 +74,10 @@ class ReplanError(ValueError):
     """Raised when an immutable decision cannot be replanned."""
 
 
+class DecisionLinkError(ValueError):
+    """Raised when an upstream decision is missing or crosses a tenant boundary."""
+
+
 @dataclass(frozen=True)
 class ResearchRefresh:
     record: OrchestrationDecisionRecordV1
@@ -89,6 +95,7 @@ class OrchestrationDecisionService:
         team_planner: TeamPlanner | None = None,
         plan_feasibility_port: PlanFeasibilityPort | None = None,
         replanning_service: ReplanningService | None = None,
+        outcome_learning_port: OutcomeLearningPort | None = None,
     ):
         self.store = store
         self.scorer = scorer or AssignmentScorer()
@@ -100,6 +107,7 @@ class OrchestrationDecisionService:
             plan_feasibility_port or CataloguePlanFeasibilityAdapter()
         )
         self.replanning_service = replanning_service or ReplanningService()
+        self.outcome_learning_port = outcome_learning_port
 
     @staticmethod
     def _record_from_row(
@@ -120,7 +128,8 @@ class OrchestrationDecisionService:
         request: DecisionCreateRequestV1,
     ) -> str | None:
         if (
-            request.evidence_catalogue
+            request.upstream_decision_id is not None
+            or request.evidence_catalogue
             or request.research_brief is not None
             or request.research_policy != ResearchPolicyV1()
             or request.planning is not None
@@ -135,6 +144,7 @@ class OrchestrationDecisionService:
         payload.pop("research_policy", None)
         payload.pop("research_brief", None)
         payload.pop("planning", None)
+        payload.pop("upstream_decision_id", None)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -142,7 +152,7 @@ class OrchestrationDecisionService:
     def _legacy_phase2_request_hash(
         request: DecisionCreateRequestV1,
     ) -> str | None:
-        if request.planning is not None:
+        if request.upstream_decision_id is not None or request.planning is not None:
             return None
         payload = request.model_dump(
             mode="json",
@@ -150,6 +160,23 @@ class OrchestrationDecisionService:
             exclude_none=False,
         )
         payload.pop("planning", None)
+        payload.pop("upstream_decision_id", None)
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _legacy_pre_link_request_hash(
+        request: DecisionCreateRequestV1,
+    ) -> str | None:
+        """Hash produced by Phase 1–3 before upstream decision links existed."""
+        if request.upstream_decision_id is not None:
+            return None
+        payload = request.model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_none=False,
+        )
+        payload.pop("upstream_decision_id", None)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -164,6 +191,7 @@ class OrchestrationDecisionService:
             current_hash,
             cls._legacy_phase1_request_hash(request),
             cls._legacy_phase2_request_hash(request),
+            cls._legacy_pre_link_request_hash(request),
         }
 
     def _evidence(
@@ -328,6 +356,7 @@ class OrchestrationDecisionService:
         parent: OrchestrationDecisionRecordV1 | None = None,
         force_recovery: bool = False,
         replan_context: ReplanContextV1 | None = None,
+        learned_features: list[LearnedFeatureV1] | None = None,
     ) -> OrchestrationDecisionV1:
         task = request.task
         policy = request.policy_context
@@ -631,6 +660,7 @@ class OrchestrationDecisionService:
             else []
         )
         return OrchestrationDecisionV1(
+            scorer_version=self.scorer.version,
             decision_id=decision_id,
             request_id=request_id,
             created_at=datetime.now(timezone.utc),
@@ -669,6 +699,11 @@ class OrchestrationDecisionService:
                 else None
             ),
             replan_context=replan_context,
+            learned_features=(
+                list(learned_features)
+                if learned_features is not None
+                else list(parent.learned_features) if parent else []
+            ),
         )
 
     def _persist(
@@ -758,7 +793,28 @@ class OrchestrationDecisionService:
         evaluated_request = request.model_copy(
             update={"evidence_catalogue": evidence}
         )
+        learned_features: list[LearnedFeatureV1] = []
+        if self.outcome_learning_port:
+            evaluated_request, learned_features = self.outcome_learning_port.enrich(
+                evaluated_request,
+                self.scorer.version,
+            )
         assessment = self.router.route(evaluated_request, evidence)
+        parent = None
+        if request.upstream_decision_id:
+            parent_row = self.store.get_for_tenant(
+                request.upstream_decision_id,
+                request.tenant.org_id,
+                request.tenant.user_id,
+                user_id,
+            )
+            if not parent_row:
+                raise DecisionLinkError("upstream orchestration decision was not found")
+            parent = self._record_from_row(parent_row)
+            if parent.task_id != request.task.task_id:
+                raise DecisionLinkError(
+                    "upstream decision belongs to a different task"
+                )
         decision_id = f"decision-{uuid.uuid4()}"
         decision = self._build_decision(
             request=evaluated_request,
@@ -767,6 +823,8 @@ class OrchestrationDecisionService:
             assessment=assessment,
             decision_id=decision_id,
             research_idempotency_key=idempotency_key,
+            parent=parent,
+            learned_features=learned_features,
         )
         return self._persist(
             evaluated_request,

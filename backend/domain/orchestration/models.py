@@ -287,6 +287,7 @@ class PlanningRequirementsV1(ContractModel):
 class DecisionCreateRequestV1(ContractModel):
     contract_version: Literal["1.0"] = CONTRACT_VERSION
     tenant: VerifiedTenantContext
+    upstream_decision_id: Optional[str] = Field(default=None, max_length=255)
     task: TaskEnvelopeV1
     available_agents: List[AgentCandidateV1] = Field(default_factory=list, max_length=500)
     available_tools: List[ToolCandidateV1] = Field(default_factory=list, max_length=500)
@@ -522,6 +523,23 @@ class ReplanContextV1(ContractModel):
     changed_facts: List[str] = Field(default_factory=list)
 
 
+class LearnedFeatureV1(ContractModel):
+    """Tenant- and version-scoped feature derived from immutable outcomes."""
+
+    agent_id: str
+    feature_name: Literal["relevant_success_rate"] = "relevant_success_rate"
+    value: float = Field(ge=0.0, le=1.0)
+    sample_count: int = Field(ge=1)
+    external_org_id: str
+    window_start: datetime
+    window_end: datetime
+    provenance: Literal[
+        "orchestration_outcomes",
+        "orchestration_execution_receipts",
+    ] = "orchestration_outcomes"
+    scorer_version: str
+
+
 class OrchestrationDecisionV1(ContractModel):
     contract_version: Literal["1.0"] = CONTRACT_VERSION
     scorer_version: str = SCORER_VERSION
@@ -553,6 +571,7 @@ class OrchestrationDecisionV1(ContractModel):
     plan_feasibility: Optional[PlanFeasibilityResultV1] = None
     plan_feasibility_request: Optional[PlanFeasibilityRequestV1] = None
     replan_context: Optional[ReplanContextV1] = None
+    learned_features: List[LearnedFeatureV1] = Field(default_factory=list)
 
 
 class OrchestrationDecisionRecordV1(OrchestrationDecisionV1):
@@ -593,13 +612,172 @@ class ReplanRequestV1(ContractModel):
 
 class ExecutionOutcomeV1(ContractModel):
     contract_version: Literal["1.0"] = CONTRACT_VERSION
-    outcome_id: str
-    decision_id: str
+    outcome_id: str = Field(..., min_length=1, max_length=255)
+    decision_id: str = Field(..., min_length=1, max_length=255)
     authorization_status: Literal["approved", "rejected", "partially_approved"]
     execution_status: Literal["completed", "failed", "cancelled", "escalated"]
+    task_success: Optional[bool] = None
     quality_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    stakeholder_acceptance: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
     cost: Optional[float] = Field(default=None, ge=0.0)
+    currency: str = Field(
+        default="EUR",
+        min_length=3,
+        max_length=3,
+        pattern=r"^[A-Za-z]{3}$",
+    )
     latency_ms: Optional[int] = Field(default=None, ge=0)
     rework_count: int = Field(default=0, ge=0)
+    escalation_count: int = Field(default=0, ge=0)
     human_override: bool = False
+    override_reason: Optional[str] = Field(default=None, max_length=2000)
+    failure_type: Optional[
+        Literal[
+            "agent_failure",
+            "tool_failure",
+            "invalid_output",
+            "policy_rejection",
+            "budget_exceeded",
+            "timeout",
+            "stakeholder_rejection",
+            "cancelled_by_user",
+            "unknown",
+        ]
+    ] = None
+    completed_at: Optional[datetime] = None
+    node_receipts: List["NodeExecutionReceiptV1"] = Field(
+        default_factory=list,
+        max_length=500,
+    )
     notes: List[str] = Field(default_factory=list)
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        return value.upper()
+
+    @model_validator(mode="after")
+    def validate_outcome(self) -> "ExecutionOutcomeV1":
+        receipt_ids = [receipt.receipt_id for receipt in self.node_receipts]
+        if len(receipt_ids) != len(set(receipt_ids)):
+            raise ValueError("node_receipts must have unique receipt_id values")
+        if self.human_override and not self.override_reason:
+            raise ValueError("human_override requires override_reason")
+        if self.execution_status == "failed" and not self.failure_type:
+            self.failure_type = "unknown"
+        return self
+
+
+class NodeExecutionReceiptV1(ContractModel):
+    """Append-only observation for one execution attempt of a planned node."""
+
+    receipt_id: str = Field(..., min_length=1, max_length=255)
+    node_id: str = Field(..., min_length=1, max_length=255)
+    agent_id: Optional[str] = Field(default=None, max_length=255)
+    attempt: int = Field(default=1, ge=1, le=100)
+    status: Literal[
+        "started",
+        "completed",
+        "failed",
+        "cancelled",
+        "escalated",
+        "approval_rejected",
+    ]
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    quality_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    stakeholder_acceptance: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    cost: Optional[float] = Field(default=None, ge=0.0)
+    currency: str = Field(
+        default="EUR",
+        min_length=3,
+        max_length=3,
+        pattern=r"^[A-Za-z]{3}$",
+    )
+    latency_ms: Optional[int] = Field(default=None, ge=0)
+    token_count: Optional[int] = Field(default=None, ge=0)
+    rework_count: int = Field(default=0, ge=0)
+    escalation_count: int = Field(default=0, ge=0)
+    human_override: bool = False
+    override_reason: Optional[str] = Field(default=None, max_length=2000)
+    failure_type: Optional[str] = Field(default=None, max_length=120)
+    notes: List[str] = Field(default_factory=list, max_length=50)
+
+    @field_validator("currency")
+    @classmethod
+    def normalize_receipt_currency(cls, value: str) -> str:
+        return value.upper()
+
+    @model_validator(mode="after")
+    def validate_timestamps(self) -> "NodeExecutionReceiptV1":
+        if self.started_at and self.completed_at and self.completed_at < self.started_at:
+            raise ValueError("completed_at cannot be earlier than started_at")
+        if self.human_override and not self.override_reason:
+            raise ValueError("receipt human_override requires override_reason")
+        return self
+
+
+class OutcomeEvaluationV1(ContractModel):
+    """Reproducible normalized metrics derived from the raw outcome."""
+
+    evaluation_version: str = "outcome-evaluator-v1.0.0"
+    normalized_success: float = Field(ge=0.0, le=1.0)
+    task_success: bool
+    quality_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    stakeholder_acceptance: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    expected_cost: Optional[float] = Field(default=None, ge=0.0)
+    expected_currency: Optional[str] = Field(default=None, min_length=3, max_length=3)
+    currency_matches: bool = True
+    cost_delta_ratio: Optional[float] = None
+    expected_latency_ms: Optional[int] = Field(default=None, ge=0)
+    latency_delta_ratio: Optional[float] = None
+    safety_flags: List[str] = Field(default_factory=list)
+    promotable_observation: bool
+
+
+class ExecutionOutcomeRecordV1(ContractModel):
+    outcome: ExecutionOutcomeV1
+    evaluation: OutcomeEvaluationV1
+    scorer_version: str
+    received_at: datetime
+    request_hash: str
+    reused: bool = False
+
+
+class EvaluationSliceV1(ContractModel):
+    slice_name: str = Field(..., min_length=1, max_length=255)
+    sample_count: int = Field(ge=0)
+    success_delta: float
+    cost_delta: float = 0.0
+    safety_regressions: int = Field(default=0, ge=0)
+
+
+class ScorerEvaluationReportV1(ContractModel):
+    """Stored evidence required before any scorer version can be promoted."""
+
+    report_id: str = Field(..., min_length=1, max_length=255)
+    external_org_id: str = Field(..., min_length=1, max_length=255)
+    candidate_version: str = Field(..., min_length=1, max_length=255)
+    baseline_version: str = Field(..., min_length=1, max_length=255)
+    dataset_id: str = Field(..., min_length=1, max_length=255)
+    sample_count: int = Field(ge=1)
+    overall_success_delta: float
+    cost_delta: float = 0.0
+    calibration_error: float = Field(ge=0.0)
+    drift_score: float = Field(ge=0.0)
+    slices: List[EvaluationSliceV1] = Field(default_factory=list)
+    passed: bool
+    blockers: List[str] = Field(default_factory=list)
+    created_at: datetime

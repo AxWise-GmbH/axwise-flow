@@ -1,7 +1,7 @@
 ---
 type: Technical Documentation
 title: "AxWise and Orqaly Integration Implementation and Verification Plan"
-description: "The implementation, rollout, and verification plan for Phase 1–3 orchestration, Conditions, and durable A plus B research."
+description: "The implementation, rollout, and verification plan for Phase 1–4 orchestration, Conditions, and durable A plus B research."
 resource: file:///Users/admin/axwise-opensource/axwise-flow-oss/AXWISE_INTEGRATION_PLAN.md
 tags: [axwise, orqaly, orchestration, assignment, research, planning, recovery, conditions, verification, rollout, security]
 timestamp: 2026-07-16T20:00:00Z
@@ -9,7 +9,7 @@ timestamp: 2026-07-16T20:00:00Z
 
 # AxWise and Orqaly integration implementation and verification plan
 
-This plan covers the complete current repository integration surface. Phase 1–3 orchestration is the primary decision and assignment path. The synchronous Conditions Gateway and durable standalone A+B research API remain supported companion paths.
+This plan covers the complete current repository integration surface. Phase 1–4 orchestration is the primary decision, assignment, and outcome path. The synchronous Conditions Gateway and durable standalone A+B research API remain supported companion paths.
 
 Repository implementation is not proof of deployment. Each target environment must separately verify the current database migrations, M2M authentication, exact tenant mappings, worker state where research is used, and authenticated smoke tests.
 
@@ -31,6 +31,7 @@ All calls originate from the Orqaly backend and use the private `x-axwise-key` M
 | Decision retrieval | `GET /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}` | Recover the exact tenant-owned input snapshot and decision. | Use for audit, retry recovery, and Orqaly workflow restoration. |
 | Research refresh | `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/research/refresh` | Convert terminal bounded research into a linked immutable rescore. | Only when the parent decision is `pending_research`. |
 | Recovery replan | `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/replan` | Recommend a linked replacement plan after operational state changes. | Use for one typed agent, tool, output, budget, or human-override trigger. |
+| Phase 4 outcomes | `POST/GET /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/outcomes` | Store idempotent decision/node receipts and retrieve versioned evaluation. | Report best-effort after Orqaly completion; never give AxWise completion authority. |
 | Request schema | `GET /api/orqaly-axwise/v1/orchestration/schemas/decision-request-v1` | Retrieve the authenticated backward-compatible request schema. | Use in contract tests and integration validation. |
 | Conditions Gateway | `POST /api/orqaly-axwise/v1/conditions/evaluate` | Fast advisory policy, tone, security, classification, or grounding support. | Keep shadow-only until the selected integration point passes its quality gate. |
 | Standalone A+B research | `POST /api/orqaly-axwise/v1/simulate-enhanced-async` | Start durable evidence-audited stakeholder and dual-persona research. | Use when Orqaly needs a research deliverable independently of an orchestration decision. |
@@ -77,6 +78,14 @@ Required Orqaly work:
 5. Adopt the linked child plan only after the same live-state authorization checks.
 6. Treat an infeasible child as a durable explanation and human-repair path, not as an executable plan.
 
+### Phase 3.1: conditional customer context
+
+Before PM planning, create a decision with `planning: null`, research budgets, any verified user answers, and the active Agent Hub catalogue. Branch on `direct`, `evidence_assisted`, `research_assisted`, or `human_clarification`. Do not call standalone A+B first. Pass the resulting decision as `upstream_decision_id` in the final plan request so AxWise records one immutable audit chain.
+
+### Phase 4: outcomes, evaluation, and safe learning
+
+After Orqaly execution, submit raw decision metrics and plan-node receipts with exact tenant headers and a stable idempotency key. Store the returned evaluation summary locally. Scorer candidates are tenant-scoped and cannot activate without stored blocker-free offline evidence and a human reviewer. Rollback must restore the parent or baseline behavior. See `AXWISE_ORCHESTRATION_PHASE_4.md`.
+
 ## 4. Companion paths
 
 ### Conditions Gateway
@@ -104,7 +113,8 @@ Research started automatically by a Phase 2 decision is resumed through `/orches
 - [ ] Remote Orqaly live-state feasibility adapter deployment.
 - [ ] Orqaly shadow-mode integration and telemetry comparison for selected workflows.
 - [ ] Fresh production smoke run covering direct decision, research refresh, team planning, and replan.
-- [ ] Phase 4 execution receipts, outcomes, evaluation, and safe learning.
+- [x] Phase 4 execution receipts, versioned evaluation, governed promotion, tenant-scoped learned features, and rollback mechanism.
+- [ ] Production-scale scheduled replay reports and pilot proof against simpler baselines.
 - [ ] Phase 5 enterprise hardening, PostgreSQL rehearsal, release SLOs, and operator tooling.
 
 ## 6. Verification matrix
@@ -156,7 +166,7 @@ Before enabling any Phase 1–3 route in production, confirm:
 ## 9. Non-goals
 
 - AxWise does not execute SaaS actions, send communications, make payments, render files, or manage Orqaly users.
-- Phases 1–3 do not provide durable per-node execution receipts, outcome learning, or statistically calibrated assignment confidence.
+- Phase 4 provides durable receipts and governed outcome features, but statistically meaningful calibration and market superiority remain pilot claims, not repository claims.
 - Repository tests and historical production records do not establish current deployment readiness.
 - Legacy `/twins/*` and `/simulate-async` routes are not part of the production orchestration or evidence-audited A+B contract.
 
@@ -165,5 +175,5 @@ Before enabling any Phase 1–3 route in production, confirm:
 - Current partner API contract: `ORQALY_INTEGRATION_SCHEMA.md`.
 - Orqaly implementation guide: `ORQALY_DEV_INTEGRATION_GUIDE.md`.
 - Product decision boundary: `ORQALY_AXWISE_INTEGRATION_ONE_PAGER.md`.
-- Phase details: `AXWISE_ORCHESTRATION_PHASE_1.md`, `AXWISE_ORCHESTRATION_PHASE_2.md`, and `AXWISE_ORCHESTRATION_PHASE_3.md`.
+- Phase details: `AXWISE_ORCHESTRATION_PHASE_1.md`, `AXWISE_ORCHESTRATION_PHASE_2.md`, `AXWISE_ORCHESTRATION_PHASE_3.md`, and `AXWISE_ORCHESTRATION_PHASE_4.md`.
 - Standalone research lifecycle: `ORQALY_ASYNC_HYBRID_INTEGRATION_PLAN.md`.
