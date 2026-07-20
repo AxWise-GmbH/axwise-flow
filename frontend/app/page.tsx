@@ -466,15 +466,6 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <div className="flex items-center gap-2">
             <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
-            <span className="text-stone-300 font-light select-none">×</span>
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
-              <defs>
-                <radialGradient id="o2_logo" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
-              </defs>
-              <circle cx="32" cy="32" r="24" fill="url(#o2_logo)"></circle>
-              <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
-            </svg>
-            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
           </div>
         </Link>
 
@@ -482,7 +473,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <a href="#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</a>
           <a href="#evidence" className="hover:text-stone-900 transition-colors">Evidence</a>
           <a href="#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</a>
-          <a href="#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</a>
+          <a href="#execution" className="hover:text-stone-900 transition-colors">Orqaly Integration</a>
           <a href="#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</a>
         </nav>
 
@@ -522,12 +513,16 @@ export default function RedesignedHomePage(): React.JSX.Element {
               Choose the <span className="underline decoration-emerald-500/40 decoration-2 underline-offset-8">right agent or team</span>.
             </h1>
 
-            <p className="text-lg text-stone-600 max-w-xl leading-relaxed">
-              AxWise turns a goal into an evidence-backed execution brief:{' '}
-              <strong className="font-semibold text-stone-900">who the work is for, what outcome matters, what is known or uncertain, and which capabilities the work requires</strong>. It
-              provides Orqaly with that context, an execution persona, and a ranked agent or team.{' '}
-              Orqaly authorises, executes, and monitors the work.
-            </p>
+            <div className="max-w-xl space-y-3">
+              <p className="text-lg text-stone-600 leading-relaxed">
+                AxWise turns a goal into an evidence-backed execution brief:{' '}
+                <strong className="font-semibold text-stone-900">who the work is for, what outcome matters, what is known or uncertain, and which capabilities the work requires</strong>. It
+                returns that context, an execution persona, and a ranked agent or team through a standalone API.
+              </p>
+              <p className="text-sm text-stone-500 leading-relaxed">
+                Use AxWise inside your own product or agent stack. Or connect it to Orqaly—a separate execution platform and the reference integration shown here—to authorise, run, and monitor the work.
+              </p>
+            </div>
 
             {/* Quick-install panel */}
             <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-sm border border-stone-800 shadow-lg max-w-md">
@@ -1202,13 +1197,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
         </div>
       </section>
 
-      {/* ----------------- AxWise intelligence to Orqaly execution ----------------- */}
+      {/* ----------------- Optional Orqaly reference integration ----------------- */}
       <section id="execution" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// AXWISE INTELLIGENCE → ORQALY EXECUTION</span>
-          <h2 className="font-serif text-4xl text-stone-900">From cognitive decision to governed execution</h2>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// REFERENCE INTEGRATION · SEPARATE PRODUCTS</span>
+          <h2 className="font-serif text-4xl text-stone-900">AxWise intelligence, connected to Orqaly execution</h2>
           <p className="text-stone-600 text-sm">
-            AxWise returns the customer context, ideal executor profile, evidence, and ranked agent or team recommendation. Orqaly keeps the permanent Agent Hub identity intact, adds the goal-specific persona overlay, plans the work, authorises tools, and runs it.
+            AxWise works independently as a cognitive decision API and can enhance different agentic or workflow products. Orqaly is a separate execution platform and the reference integration shown below: AxWise returns context, evidence, an execution persona, and a ranked agent or team; Orqaly plans, authorises, and runs the work.
           </p>
         </div>
 
@@ -1877,10 +1872,10 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 className="space-y-6"
               >
                 <div className="text-center max-w-xl mx-auto space-y-2">
-                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">RESPONSIBILITY BOUNDARY</span>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">OPTIONAL INTEGRATION BOUNDARY</span>
                   <h3 className="font-serif text-2xl text-stone-950">AxWise intelligence &times; Orqaly execution</h3>
                   <p className="text-stone-600 text-xs leading-relaxed">
-                    AxWise is advisory: it builds evidence-aware context and recommendations. Orqaly owns the goal lifecycle, permanent Agent Hub profiles, planning, authorization, connectors, execution, and delivery.
+                    These are separate products. AxWise supplies evidence-aware context and recommendations; in this integration, Orqaly owns the goal lifecycle, permanent Agent Hub profiles, planning, authorization, connectors, execution, and delivery.
                   </p>
                 </div>
 
@@ -2180,9 +2175,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
       <section className="bg-[#1A1A1A] text-[#FCFAF7] px-6 lg:px-16 py-20 text-center border-t border-stone-800">
         <div className="max-w-2xl mx-auto space-y-6">
           <span className="text-xs font-mono text-[#10B981] uppercase tracking-wider font-semibold">// OPEN-SOURCE COGNITIVE LAYER</span>
-          <h2 className="font-serif text-4xl">Add customer-aware intelligence to every agentic goal.</h2>
+          <h2 className="font-serif text-4xl">Give every agentic goal grounded context before execution.</h2>
           <p className="text-stone-400 text-sm max-w-lg mx-auto">
-            Self-host AxWise to keep decision context and evidence inside your environment, or connect it to Orqaly for governed planning and execution. Deployment control supports your security and governance programme; it does not replace it.
+            Self-host AxWise or embed its API in your own product and agent stack. For governed end-to-end execution, connect it to an orchestration platform such as Orqaly. Deployment control supports your security and governance programme; it does not replace it.
           </p>
           <div className="pt-4 flex flex-wrap justify-center gap-4">
             <a 
