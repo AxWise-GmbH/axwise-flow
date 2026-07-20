@@ -514,18 +514,19 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <div className="lg:col-span-7 space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-medium text-emerald-800">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>From vague goals to customer-aware agent decisions</span>
+              <span>Cognitive context · evidence-aware decisions · agent and team fit</span>
             </div>
 
             <h1 className="font-serif text-5xl md:text-6xl font-normal leading-[1.1] tracking-tight text-stone-900">
-              Understand the <em className="italic">customer</em> and the real problem.<br />
+              Give agents the context to solve the <em className="italic">right problem</em>.<br />
               Choose the <span className="underline decoration-emerald-500/40 decoration-2 underline-offset-8">right agent or team</span>.
             </h1>
 
             <p className="text-lg text-stone-600 max-w-xl leading-relaxed">
-              AxWise turns a vague goal into a grounded understanding of the{' '}
-              <strong className="font-semibold text-stone-900">customer, stakeholders, real problem, evidence, and ideal executor</strong>—then recommends the best available agent or team.{' '}
-              Orqaly receives that intelligence and owns planning, authorisation, tools, execution, and monitoring.
+              AxWise turns a goal into an evidence-backed execution brief:{' '}
+              <strong className="font-semibold text-stone-900">who the work is for, what outcome matters, what is known or uncertain, and which capabilities the work requires</strong>. It
+              provides Orqaly with that context, an execution persona, and a ranked agent or team.{' '}
+              Orqaly authorises, executes, and monitors the work.
             </p>
 
             {/* Quick-install panel */}
