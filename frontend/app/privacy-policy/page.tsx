@@ -31,22 +31,22 @@ export default function PrivacyPolicyPage(): React.JSX.Element {
             </svg>
             <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
             <span className="text-stone-300 font-light select-none">×</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
           </div>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
-          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
-          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
-          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
-          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
-          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+          <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
+          <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
+          <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</Link>
+          <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/Flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -77,7 +77,7 @@ export default function PrivacyPolicyPage(): React.JSX.Element {
           <section className="space-y-3">
             <h2 className="text-lg font-serif font-semibold text-stone-900">1. Introduction</h2>
             <p>
-              AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our self-hosted REST API gateway, multi-agent simulation sandbox, and related developer portals (collectively, the &quot;Service&quot;).
+              AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our cognitive decision API, research tools, and related developer portals (collectively, the &quot;Service&quot;).
             </p>
             <p>
               Please read this Privacy Policy carefully. By accessing or using our Service, you acknowledge that you have read, understood, and agree to be bound by all the terms of this Privacy Policy.
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage(): React.JSX.Element {
           <section className="space-y-3">
             <h2 className="text-lg font-serif font-semibold text-stone-900">2. Self-Hosted Privacy First</h2>
             <p>
-              Because the core <strong className="font-semibold text-stone-900">AxWise Flow Engine</strong> is designed to be fully self-hosted under the Apache 2.0 open-source license, we do not store, intercept, or analyze your raw transcripts or private digital twin execution data on our servers. All local databases (SQLite, PostgreSQL, pgvector) and local files are fully containerized and controlled by you, providing absolute security and zero external data leaks.
+              The core <strong className="font-semibold text-stone-900">AxWise Flow Engine</strong> can be self-hosted under the Apache 2.0 open-source license. Data processed only by that deployment remains under the operator&apos;s control, subject to its configuration, infrastructure, model providers, connectors, and logging choices. Self-hosting reduces external data exposure but does not by itself guarantee security or prevent data transfer to configured third parties.
             </p>
           </section>
 
@@ -123,7 +123,7 @@ export default function PrivacyPolicyPage(): React.JSX.Element {
 
       {/* Footer */}
       <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
-        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
           <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>

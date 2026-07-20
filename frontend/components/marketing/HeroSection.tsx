@@ -104,10 +104,10 @@ export const HeroSection = () => {
         {/* Open Source Announcement Banner */}
         <div className="mb-4 md:mb-6 flex justify-center">
           <Link
-            href="https://github.com/AxWise-GmbH/axwise-flow"
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackButtonClick('Open Source GitHub', ButtonLocation.HERO, 'https://github.com/AxWise-GmbH/axwise-flow')}
+            onClick={() => trackButtonClick('Open Source GitHub', ButtonLocation.HERO, 'https://github.com/AxWise-GmbH/axwise-flow-oss')}
             className="hover:scale-105 transition-transform duration-200"
           >
             <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-full px-4 py-2 flex items-center gap-3 backdrop-blur-sm cursor-pointer">
@@ -115,7 +115,7 @@ export const HeroSection = () => {
               <span className="text-xs font-medium text-foreground">
                 <span className="text-green-600 dark:text-green-400 font-semibold">AxWise is open source</span>
                 {" • "}
-                <span className="text-muted-foreground">Open source version coming when ready</span>
+                <span className="text-muted-foreground">Explore the self-hosted cognitive engine</span>
               </span>
               <Heart className="w-3 h-3 text-red-500" />
             </div>

@@ -31,22 +31,22 @@ export default function TermsOfServicePage(): React.JSX.Element {
             </svg>
             <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
             <span className="text-stone-300 font-light select-none">×</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
           </div>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
-          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
-          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
-          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
-          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
-          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+          <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
+          <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
+          <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</Link>
+          <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/Flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -77,7 +77,7 @@ export default function TermsOfServicePage(): React.JSX.Element {
           <section className="space-y-3">
             <h2 className="text-lg font-serif font-semibold text-stone-900">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using the multi-agent orchestration sandboxes, documentation portals, and related services (collectively, the &quot;Service&quot;) provided by AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, please do not use our Service.
+              By accessing or using the cognitive decision API, research tools, documentation portals, and related services (collectively, the &quot;Service&quot;) provided by AxWise UG (in formation) (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, please do not use our Service.
             </p>
           </section>
 
@@ -127,7 +127,7 @@ export default function TermsOfServicePage(): React.JSX.Element {
 
       {/* Footer */}
       <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
-        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
           <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>

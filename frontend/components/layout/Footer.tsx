@@ -16,7 +16,7 @@ export function Footer() {
     {
       name: 'GitHub',
       icon: Github,
-      href: 'https://github.com/AxWise-GmbH/axwise-flow',
+      href: 'https://github.com/AxWise-GmbH/axwise-flow-oss',
       ariaLabel: 'Visit our GitHub'
     },
     {
@@ -94,7 +94,7 @@ export function Footer() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-gray-600 mb-6 max-w-md mx-auto"
           >
-            Next-gen AI systems, built for tomorrow's innovators
+            Cognitive decision intelligence for customer-aware agentic work.
           </motion.p>
 
           <motion.div
@@ -107,22 +107,13 @@ export function Footer() {
           </motion.div>
         </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.35 }}
-            className="flex flex-col items-center justify-center mt-8 mb-4 border-t border-gray-100 pt-8"
-         >
-         </motion.div>
-
         {/* Navigation Links */}
         <motion.nav
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="flex flex-wrap justify-center gap-6 mb-12 pt-12 border-t border-gray-100"
+          className="flex flex-wrap justify-center gap-6 mb-12 pt-8 border-t border-gray-100"
         >
           {footerLinks.map((link, index) => (
             <motion.a
@@ -150,7 +141,7 @@ export function Footer() {
           className="text-center text-gray-500 text-sm"
         >
           <p>AXWISE © {new Date().getFullYear()}</p>
-          <p className="mt-1 text-xs">AxWise UG (in formation)</p>
+          <p className="mt-1 text-xs">Apache 2.0 open source</p>
         </motion.div>
       </div>
     </footer>
