@@ -507,24 +507,24 @@ export default function RedesignedHomePage(): React.JSX.Element {
       </header>
 
       {/* ----------------- Hero Section: Deep trust ----------------- */}
-      <section className="px-6 lg:px-16 pt-20 pb-28 max-w-7xl mx-auto border-b border-[#EAE6DF]">
+      <section className="px-6 lg:px-16 pt-10 lg:pt-12 pb-28 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="grid lg:grid-cols-12 gap-12 items-center">
           
           {/* Left Column: Core Message */}
           <div className="lg:col-span-7 space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-medium text-emerald-800">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Customer intelligence · evidence-aware routing · agent and team fit</span>
+              <span>From vague goals to customer-aware agent decisions</span>
             </div>
 
             <h1 className="font-serif text-5xl md:text-6xl font-normal leading-[1.1] tracking-tight text-stone-900">
-              Know <em className="italic">who</em> you are solving for.<br />
+              Understand the <em className="italic">customer</em> and the real problem.<br />
               Choose the <span className="underline decoration-emerald-500/40 decoration-2 underline-offset-8">right agent or team</span>.
             </h1>
 
             <p className="text-lg text-stone-600 max-w-xl leading-relaxed">
-              AxWise is the cognitive decision layer for agentic work. It turns a vague goal into a structured understanding of the{' '}
-              <strong className="font-semibold text-stone-900">customer, problem, evidence, ideal executor, and best available agent or team</strong>.{' '}
+              AxWise turns a vague goal into a grounded understanding of the{' '}
+              <strong className="font-semibold text-stone-900">customer, stakeholders, real problem, evidence, and ideal executor</strong>—then recommends the best available agent or team.{' '}
               Orqaly receives that intelligence and owns planning, authorisation, tools, execution, and monitoring.
             </p>
 
@@ -2029,7 +2029,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
                       {/* Pool: Data Sources */}
                       <rect x="20" y="350" width="1060" height="55" fill="rgba(0,0,0,0.02)" stroke="#cbd5e1" strokeWidth="1" rx="10"/>
-                      <text x="35" y="382" className="text-[9px] font-bold tracking-wider uppercase" fill="#64748b">Evidence &amp; operational context supplied through Orqaly</text>
+                      <text x="35" y="382" className="text-[9px] font-bold tracking-wider uppercase" fill="#64748b">Context sources</text>
 
                       <g transform="translate(230, 362)">
                         <rect width="85" height="28" rx="6" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
