@@ -24,15 +24,6 @@ export default function TermsOfServicePage(): React.JSX.Element {
           <div className="flex items-center gap-2">
             <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
-            <span className="text-stone-300 font-light select-none">×</span>
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
-              <defs>
-                <radialGradient id="o2_logo_tos" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
-              </defs>
-              <circle cx="32" cy="32" r="24" fill="url(#o2_logo_tos)"></circle>
-              <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
-            </svg>
-            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
           </div>
         </Link>
 
@@ -40,7 +31,7 @@ export default function TermsOfServicePage(): React.JSX.Element {
           <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
           <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
           <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
-          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Integration</Link>
           <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
