@@ -520,7 +520,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 returns that context, an execution persona, and a ranked agent or team through a standalone API.
               </p>
               <p className="text-sm text-stone-500 leading-relaxed">
-                Use AxWise inside your own product or agent stack. Or connect it to Orqaly—a separate execution platform and the reference integration shown here—to authorise, run, and monitor the work.
+                Use AxWise inside your own product or agent stack. Or connect it to Orqaly, where AxWise decision intelligence complements Orqaly&apos;s governed execution, monitoring, and delivery.
               </p>
             </div>
 
@@ -1200,10 +1200,10 @@ export default function RedesignedHomePage(): React.JSX.Element {
       {/* ----------------- Optional Orqaly reference integration ----------------- */}
       <section id="execution" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// REFERENCE INTEGRATION · SEPARATE PRODUCTS</span>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// REFERENCE INTEGRATION · COMPLEMENTARY LAYERS</span>
           <h2 className="font-serif text-4xl text-stone-900">AxWise intelligence, connected to Orqaly execution</h2>
           <p className="text-stone-600 text-sm">
-            AxWise works independently as a cognitive decision API and can enhance different agentic or workflow products. Orqaly is a separate execution platform and the reference integration shown below: AxWise returns context, evidence, an execution persona, and a ranked agent or team; Orqaly plans, authorises, and runs the work.
+            AxWise works independently as a cognitive decision API and can enhance different agentic or workflow products. The Orqaly use case below shows the two products working in synergy: AxWise returns context, evidence, an execution persona, and a ranked agent or team; Orqaly plans, authorises, and runs the work.
           </p>
         </div>
 
@@ -1872,10 +1872,10 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 className="space-y-6"
               >
                 <div className="text-center max-w-xl mx-auto space-y-2">
-                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">OPTIONAL INTEGRATION BOUNDARY</span>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">INTEGRATION RESPONSIBILITY BOUNDARY</span>
                   <h3 className="font-serif text-2xl text-stone-950">AxWise intelligence &times; Orqaly execution</h3>
                   <p className="text-stone-600 text-xs leading-relaxed">
-                    These are separate products. AxWise supplies evidence-aware context and recommendations; in this integration, Orqaly owns the goal lifecycle, permanent Agent Hub profiles, planning, authorization, connectors, execution, and delivery.
+                    This use case shows how the products complement each other: AxWise supplies evidence-aware context and recommendations; Orqaly applies them to the goal lifecycle, permanent Agent Hub profiles, planning, authorization, connectors, execution, and delivery.
                   </p>
                 </div>
 
