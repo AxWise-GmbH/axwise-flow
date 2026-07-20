@@ -5,39 +5,38 @@ import { motion } from 'motion/react';
 import { Navigation } from '@/components/layout/Navigation';
 import { Footer } from '@/components/layout/Footer';
 import { Button3D } from '@/components/layout/Button3D';
-import { CodeCarousel } from '@/components/b2b/CodeCarousel';
-import { ChevronRight, ShieldCheck, Zap, Users, BarChart3, Lock, Server } from 'lucide-react';
+import { ShieldCheck, Zap, Users, BarChart3, Target, Server } from 'lucide-react';
 
 export default function B2BPage() {
     const features = [
         {
-            title: "Research at Lightning Speed",
-            description: "Generate unlimited interviews in hours instead of weeks.",
+            title: "Resolve the Real Customer",
+            description: "Turn an underspecified goal into customers, users, buyers, stakeholders, pains, outcomes, and constraints.",
             icon: Zap,
         },
         {
-            title: "Demographically Realistic",
-            description: "Grounded in real-world distributions, not random generation.",
+            title: "Model the Ideal Executor",
+            description: "Define the experience, capabilities, tools, communication style, and boundaries the work actually requires.",
             icon: Users,
         },
         {
-            title: "Conflict Simulation",
-            description: "Model complex organizational dynamics and multi-stakeholder conflicts.",
+            title: "Rank Agents and Teams",
+            description: "Compare authenticated Orqaly Agent Hub profiles using task, customer, tool, constraint, and evidence fit.",
             icon: BarChart3,
         },
         {
-            title: "Zero Privacy Risk",
-            description: "100% synthetic data with absolutely no PII concerns.",
-            icon: Lock,
+            title: "Keep Evidence Inspectable",
+            description: "Separate source quotes, derived inferences, and working hypotheses with field-level confidence and provenance.",
+            icon: Target,
         },
         {
-            title: "Enterprise Governance",
-            description: "Column-level lineage and quality monitoring for compliance.",
+            title: "Preserve the Trust Boundary",
+            description: "AxWise recommends; Orqaly owns tenant authorization, approvals, budgets, connectors, and execution.",
             icon: ShieldCheck,
         },
         {
-            title: "Lakehouse Native",
-            description: "Deployed directly in your secure environment.",
+            title: "Self-Host the Decision Layer",
+            description: "Run the open-source API in your environment and retain control of the decision context and evidence data plane.",
             icon: Server,
         },
     ];
@@ -55,30 +54,24 @@ export default function B2BPage() {
                         transition={{ duration: 0.8 }}
                     >
                         <h1 className="text-4xl lg:text-7xl font-bold tracking-tight mb-8">
-                            The Behavioral Simulation Engine <br />
+                            The cognitive decision layer <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-                                for Enterprise Decisions
+                                for agentic operations
                             </span>
                         </h1>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
-                            Generate reliable, compliant synthetic datasets on demand in your own lakehouse,
-                            powered by the AxWise engine that turns slow qualitative research into a quantitative capability.
+                            AxWise turns vague operational goals into evidence-aware customer context, ideal executor profiles, and traceable agent or team recommendations. Orqaly plans, authorizes, and executes the work.
                         </p>
                         <div className="flex flex-wrap justify-center gap-4">
                             <Button3D href="https://calendar.app.google/LTCGuJt8RBN7XrD47" size="lg">
                                 Schedule Architecture Review
                             </Button3D>
-                            <Button3D variant="secondary" size="lg" href="#">
-                                Download Sample Dataset
+                            <Button3D variant="secondary" size="lg" href="/docs">
+                                Read Integration Docs
                             </Button3D>
                         </div>
                     </motion.div>
                 </div>
-            </section>
-
-            {/* Persona Dataset Highlights */}
-            <section className="pt-8 pb-24 bg-gradient-to-b from-background to-blue-950/20">
-                <CodeCarousel />
             </section>
 
             {/* Features Grid */}

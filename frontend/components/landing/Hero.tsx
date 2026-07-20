@@ -63,7 +63,7 @@ export function Hero() {
                 <span className="text-sm text-gray-700">AxWise Synthetic Persona Engine</span>
               </a>
               <a
-                href="https://github.com/AxWise-GmbH/axwise-flow"
+                href="https://github.com/AxWise-GmbH/axwise-flow-oss"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full shadow-sm hover:bg-gray-800 transition-colors cursor-pointer"

@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-  description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+  title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+  description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     apple: '/favicon.ico',
   },
   openGraph: {
-    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+    description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
     url: 'https://axwise.de',
     siteName: 'AxWise Flow',
     images: [
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         url: 'https://axwise.de/og_preview.png',
         width: 1200,
         height: 630,
-        alt: 'AxWise Flow — Real-World Digital Twin Chats',
+        alt: 'AxWise cognitive decision layer for agentic work',
       }
     ],
     locale: 'en_US',
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+    description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
     images: ['https://axwise.de/orqaly-axwise/assets/simple_mode_home.png'],
   },
 };

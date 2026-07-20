@@ -133,24 +133,24 @@ export default function DocsPage(): React.JSX.Element {
               <circle cx="32" cy="32" r="24" fill="url(#o2_logo_docs)"></circle>
               <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
             </svg>
-            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
-            <span className="text-stone-300 font-light select-none">×</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
+            <span className="text-stone-300 font-light select-none">×</span>
+            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
           </div>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
-          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
-          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
-          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
-          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
-          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+          <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
+          <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
+          <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</Link>
+          <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/axwise-flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -174,8 +174,8 @@ export default function DocsPage(): React.JSX.Element {
         {/* Left column: Sidebar */}
         <aside className="lg:col-span-3 space-y-8 lg:sticky lg:top-24 h-fit">
           <div className="space-y-2">
-            <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">// API ENGINE v2.4</span>
-            <h2 className="font-serif text-2xl text-stone-900">Developer Docs</h2>
+            <span className="text-xs font-mono text-stone-400 uppercase tracking-wider">// COGNITIVE DECISION API</span>
+            <h1 className="font-serif text-2xl text-stone-900">Developer Docs</h1>
           </div>
           
           <nav className="flex flex-col gap-2.5 text-sm">
@@ -188,10 +188,10 @@ export default function DocsPage(): React.JSX.Element {
           <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
             <div className="flex items-center gap-1.5 text-stone-500 font-mono text-[10px]">
               <Shield className="w-3 h-3 text-emerald-600" />
-              <span>COMPLIANCE STATUS</span>
+              <span>TRUST BOUNDARY</span>
             </div>
             <p className="text-stone-600 leading-normal">
-              Self-hosted executions prevent token leakages under the European AI Act.
+              Self-hosting keeps the AxWise decision data plane under your control. Orqaly still owns execution policy, connector access, and approvals; deployment alone does not establish compliance.
             </p>
           </div>
         </aside>
@@ -214,7 +214,7 @@ export default function DocsPage(): React.JSX.Element {
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
                 <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Clone &amp; Run Local Server</div>
                 <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow.git &amp;&amp; cd axwise-flow &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
+                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git &amp;&amp; cd axwise-flow-oss &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
               </div>
               <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
                 <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Build &amp; Run Local Docker Container</div>
@@ -232,7 +232,7 @@ export default function DocsPage(): React.JSX.Element {
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              Starts the durable A+B pipeline. AxWise identifies the customer in the context of their pain, task, constraints, and desired outcome; creates the ideal human executor profile and corresponding AI agent or digital twin; then ranks the authenticated agents supplied by Orqaly. Typical production runs complete asynchronously in approximately 3–4 minutes.
+              This lower-level asynchronous endpoint starts the durable customer-and-executor pipeline. AxWise identifies the customer in the context of their pain, task, constraints, and desired outcome; creates the ideal human executor profile; then ranks the authenticated agents supplied by Orqaly. In the full Orqaly integration, start with the decision endpoint so AxWise can choose direct routing, evidence use, research, or clarification instead of running research unconditionally.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
@@ -452,7 +452,7 @@ print(response.json())`} />
 
       {/* Footer */}
       <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center mt-12">
-        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
           <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>

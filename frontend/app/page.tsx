@@ -26,7 +26,7 @@ import {
 // MOCK DATA FOR INTERACTIVE SHOWCASES
 // ============================================================================
 
-interface TwinDetail {
+interface DecisionProfile {
   name: string;
   role: string;
   traits: string;
@@ -39,129 +39,129 @@ interface Usecase {
   location: string;
   directive: string;
   challenge: string;
-  twins: TwinDetail[];
+  twins: DecisionProfile[];
   consoleOutput: Array<{ text: string; type: string }>;
 }
 
-const COMPLIANCE_USECASES: Usecase[] = [
+const DECISION_USECASES: Usecase[] = [
   {
-    id: 'medtech',
-    title: 'MedTech / Healthcare',
-    location: 'Munich, Germany',
-    directive: 'EU Regulation 2026/977 & Team-NB v4',
-    challenge: 'MDR Clinical Evaluation Report (CER) documentation and literature audits.',
+    id: 'warehouse',
+    title: 'Warehouse Operations',
+    location: 'Regional distribution · Germany',
+    directive: 'Reduce damage and late departures during shift handoffs without slowing dispatch.',
+    challenge: 'The goal names the symptom, but the problem owner, decision-maker, evidence, and best executor still need to be resolved.',
     twins: [
       { 
-        name: 'Dr. Katharina Weber', 
-        role: 'Regulatory Affairs Director', 
-        traits: 'Conscientiousness: 0.93, Agreeableness: 0.33',
-        background: 'Skep-critical EU MDR expert with 15+ years certifying class III orthopedic implants.'
+        name: 'Mara',
+        role: 'Operations Discovery Lead',
+        traits: 'Stakeholder discovery · Evidence synthesis · Pilot design',
+        background: 'Best fit while the customer context and operational facts are still hypotheses.'
       },
       { 
-        name: 'Lukas Neubert', 
-        role: 'Senior Biomedical Systems Architect', 
-        traits: 'Openness: 0.75, Extraversion: 0.45',
-        background: 'IEC 62304 active lifecycle compliance lead, specializing in automated validation pipelines.'
+        name: 'Leon',
+        role: 'Warehouse Process Specialist',
+        traits: 'Handoff analysis · Damage prevention · Workflow design',
+        background: 'Best fit once verified operational evidence establishes the problem and constraints.'
       }
     ],
     consoleOutput: [
-      { text: '[INIT] Initializing MedTech Consilium for EU MDR...', type: 'info' },
-      { text: '[SYSTEM] Pre-sampling normal occupational age: Dr. Weber (Mean 48, Std 6) -> Sampled: 46', type: 'system' },
-      { text: '[SYSTEM] Sampler adjusted OCEAN: Conscientiousness set to 0.93 based on seniority', type: 'system' },
-      { text: '[GROUNDING] Pulling partition "tuv-sud-clinical-guidance-2026"', type: 'grounding' },
-      { text: '[CFO_TWIN] Katharina: "We must ensure non-siloed traceability between risk files and clinical trials. No exemptions under Annex VII."', type: 'speech' },
-      { text: '[DEV_TWIN] Lukas: "Integrating automatic PDF literature check. Remapping sentences with direct characters to IEC 62304 lifecycle."', type: 'speech' },
-      { text: '[SUCCESS] CER Audit completed. All Direct Quotes trace-linked. USD Cost: $0.052', type: 'success' }
+      { text: '[GOAL] Prevent damage and departure delays around warehouse shift handoffs.', type: 'info' },
+      { text: '[ROUTER] Existing evidence is insufficient. Selected route: research_assisted.', type: 'system' },
+      { text: '[CUSTOMER] Working hypothesis: Dispatch Coordinator; confidence 0.75.', type: 'grounding' },
+      { text: '[EVIDENCE] 14 synthetic quotes retained with source IDs and character offsets.', type: 'grounding' },
+      { text: '[EXECUTOR] Ideal capabilities: stakeholder discovery, evidence synthesis, operational problem framing.', type: 'speech' },
+      { text: '[AGENT FIT] Mara — Operations Discovery ranked first among authenticated Orqaly candidates.', type: 'speech' },
+      { text: '[HANDOFF] Human verification required. Recommendation is not executable until Orqaly authorises it.', type: 'success' }
     ]
   },
   {
-    id: 'fintech',
-    title: 'FinTech / Algo-Trading',
-    location: 'Frankfurt, Germany',
-    directive: 'BaFin MaRisk-Novelle & WpHG § 80',
-    challenge: 'Audit-proof real-time parameter tracking and algorithm microsecond logging.',
+    id: 'patient-access',
+    title: 'Patient Access',
+    location: 'Multi-site clinic network',
+    directive: 'Reduce missed appointments without increasing front-desk workload.',
+    challenge: 'Patients, clinicians, administrators, and the budget owner value different outcomes and require different evidence.',
     twins: [
       { 
-        name: 'Dr. Dieter Reinhardt', 
-        role: 'Senior Compliance Director', 
-        traits: 'Conscientiousness: 0.84, Extraversion: 0.70',
-        background: 'Former Bundesbank regulatory auditor, specialized in algorithmic risk controls.'
+        name: 'Nora',
+        role: 'Service Research Lead',
+        traits: 'Stakeholder mapping · Interview design · Service evidence',
+        background: 'Resolves whose problem is being solved before a channel or automation is selected.'
       },
       { 
-        name: 'Lukas Weber', 
-        role: 'Senior Quantitative Systems Architect', 
-        traits: 'Openness: 0.70, Neuroticism: 0.28',
-        background: 'High-frequency C++/Go microsecond optimization engineer, expert in lock-free ring buffers.'
+        name: 'Amir',
+        role: 'Patient Operations Designer',
+        traits: 'Access workflows · Reminder design · Service measurement',
+        background: 'Shapes a bounded operational pilot once patient and clinic constraints are supported.'
       }
     ],
     consoleOutput: [
-      { text: '[INIT] Booting BaFin Compliance Consilium...', type: 'info' },
-      { text: '[SYSTEM] Pre-sampling occupational age: Lukas Weber (Mean 33, Std 5) -> Sampled: 34', type: 'system' },
-      { text: '[GROUNDING] Pulling partition "marisk-novelle-2026-automated-models"', type: 'grounding' },
-      { text: '[RBAC] Validated request for user "d_reinhardt" (Clearance: Compliance Director) -> GRANTED', type: 'rbac' },
-      { text: '[CFO_TWIN] Dieter: "BaFin Circular xx/2026 requires complete mathematical explainability. We cannot use un-audited black boxes."', type: 'speech' },
-      { text: '[DEV_TWIN] Lukas: "I have configured the non-blocking ring-buffer to write chronologically at millisecond boundaries. Memory allocated."', type: 'speech' },
-      { text: '[SUCCESS] MaRisk Audit trail committed. Latency: 12ms. USD Cost: $0.048', type: 'success' }
+      { text: '[GOAL] Reduce missed appointments without adding front-desk workload.', type: 'info' },
+      { text: '[CONTEXT] Problem experiencer, beneficiary, decision-maker, and outcome owner separated.', type: 'system' },
+      { text: '[TRUST] Declared assumptions retained separately from verified clinic evidence.', type: 'grounding' },
+      { text: '[CUSTOMER] Primary operational context: patients who struggle to confirm or reschedule.', type: 'speech' },
+      { text: '[EXECUTOR] Recommended role: patient-access operations designer.', type: 'speech' },
+      { text: '[BOUNDARY] AxWise recommends the work pattern; Orqaly controls communications and approvals.', type: 'rbac' },
+      { text: '[HANDOFF] Customer-aware planning package ready for Orqaly.', type: 'success' }
     ]
   },
   {
-    id: 'esg',
-    title: 'ESG & Supply Chain',
-    location: 'Düsseldorf, Germany',
-    directive: 'German Supply Chain Act (LkSG) / BAFA',
-    challenge: 'Multi-tier supplier risk mappings and LkSG BAFA audit-proof heatmaps.',
+    id: 'revenue',
+    title: 'Revenue Operations',
+    location: 'B2B services',
+    directive: 'Improve proposal conversion for complex enterprise opportunities.',
+    challenge: 'The buyer, daily user, procurement gatekeeper, and delivery team have different risks and decision criteria.',
     twins: [
       { 
-        name: 'Dr. Carsten Becker', 
-        role: 'Head of Global ESG Compliance', 
-        traits: 'Conscientiousness: 0.88, Neuroticism: 0.42',
-        background: 'Specialized in risk audits of cross-border supply dependencies and BAFA heatmaps.'
+        name: 'Elena',
+        role: 'Buyer Intelligence Strategist',
+        traits: 'Stakeholder analysis · Objection evidence · Decision criteria',
+        background: 'Builds a customer map without collapsing buyer, user, and approver into one persona.'
       },
       { 
-        name: 'Dieter Neumann', 
-        role: 'Lead Graph Database Architect', 
-        traits: 'Openness: 0.68, Agreeableness: 0.60',
-        background: 'Expert in graph cycle detection and tracing multi-tier supplier compliance back to database indices.'
+        name: 'Jonas',
+        role: 'Enterprise Proposal Lead',
+        traits: 'Value framing · Risk communication · Commercial synthesis',
+        background: 'Adapts the execution persona and deliverable to the evidenced buying group.'
       }
     ],
     consoleOutput: [
-      { text: '[INIT] Launching LkSG Supplier Risk Consilium...', type: 'info' },
-      { text: '[SYSTEM] Pre-sampling occupational age: Dieter Neumann (Mean 45, Std 5) -> Sampled: 48', type: 'system' },
-      { text: '[GROUNDING] Pulling partition "bafa-risk-analysis-prioritization-guidelines"', type: 'grounding' },
-      { text: '[COMPLIANCE] Note: public reporting is suspended per 2026 amendments; substantive audits remain ACTIVE', type: 'warning' },
-      { text: '[CFO_TWIN] Carsten: "A signed supplier code of conduct is not enough. BAFA demands independent risk analysis of local labor conditions."', type: 'speech' },
-      { text: '[DEV_TWIN] Neumann: "Graph database mapped across 6 tiers. Cycle detection enabled. Circular dependencies marked as high-risk."', type: 'speech' },
-      { text: '[SUCCESS] LkSG risk map generated. No unresolved circular supplier nodes. USD Cost: $0.045', type: 'success' }
+      { text: '[GOAL] Improve conversion for complex enterprise proposals.', type: 'info' },
+      { text: '[STAKEHOLDERS] Economic buyer, end user, procurement, and delivery owner mapped separately.', type: 'system' },
+      { text: '[EVIDENCE] CRM notes and discovery answers scored by relevance, quality, and verification.', type: 'grounding' },
+      { text: '[CUSTOMER] Buying objections linked to the stakeholder who raised them.', type: 'speech' },
+      { text: '[EXECUTOR] Proposal lead profile shaped for executive clarity and risk transparency.', type: 'speech' },
+      { text: '[AGENT FIT] Candidate ranking includes capability, customer, tool, and history signals.', type: 'rbac' },
+      { text: '[HANDOFF] Orqaly receives the recommendation, rationale, and execution persona.', type: 'success' }
     ]
   },
   {
-    id: 'smartgrid',
-    title: 'Smart-Grid Utilities',
-    location: 'Essen, Germany',
-    directive: 'BSI TR-03109 & § 14a EnWG',
-    challenge: 'Demand-response load-shifting secure SMGWplus signal control.',
+    id: 'community',
+    title: 'Public-Service Operations',
+    location: 'Local service network',
+    directive: 'Reduce unresolved service requests across departments.',
+    challenge: 'Residents experience the problem, service teams execute the work, and department owners define acceptable outcomes.',
     twins: [
       { 
-        name: 'Markus Weber', 
-        role: 'Grid Operations Director', 
-        traits: 'Conscientiousness: 0.91, Extraversion: 0.50',
-        background: 'Decarbonized grid load manager, balancing mass iMSys Smart Meter integrations across networks.'
+        name: 'Sofia',
+        role: 'Community Service Researcher',
+        traits: 'Inclusive discovery · Service mapping · Evidence synthesis',
+        background: 'Identifies affected groups and prevents the loudest stakeholder from becoming the only customer.'
       },
       { 
-        name: 'Jonas Lindner', 
-        role: 'Senior IoT Security Architect', 
-        traits: 'Openness: 0.72, Neuroticism: 0.30',
-        background: 'Certified SMGWplus control protocol designer, specializing in secure EEBUS transmission signals.'
+        name: 'David',
+        role: 'Cross-Department Service Designer',
+        traits: 'Case routing · Operating models · Outcome measurement',
+        background: 'Designs a non-software-first pilot before tools or automation are selected.'
       }
     ],
     consoleOutput: [
-      { text: '[INIT] Activating Smart Meter Control Consilium...', type: 'info' },
-      { text: '[SYSTEM] Pre-sampling age: Jonas Lindner (Mean 38, Std 4) -> Sampled: 39', type: 'system' },
-      { text: '[GROUNDING] Pulling partition "bsi-tr-03109-smart-meter-standards"', type: 'grounding' },
-      { text: '[IOT] Initializing SMGWplus software control over secure TLS channel...', type: 'info' },
-      { text: '[CFO_TWIN] Markus: "We must drop grid frequency parameters under high municipal loads without manual relays."', type: 'speech' },
-      { text: '[DEV_TWIN] Jonas: "Configured direct EEBUS signal dispatch to local energy systems. Security keys verified."', type: 'speech' },
-      { text: '[SUCCESS] Load-shaving signal successfully broadcasted to 1,200 grid nodes. USD Cost: $0.038', type: 'success' }
+      { text: '[GOAL] Reduce unresolved service requests across departments.', type: 'info' },
+      { text: '[ROUTER] Research is optional; value-of-information gate evaluated first.', type: 'system' },
+      { text: '[STAKEHOLDERS] Residents, service teams, approvers, and outcome owners mapped.', type: 'grounding' },
+      { text: '[CONSTRAINT] Do not assume a software product is the answer.', type: 'warning' },
+      { text: '[EXECUTOR] Ideal role requires facilitation, service design, and measurement.', type: 'speech' },
+      { text: '[PLAN SIGNAL] Start with a bounded cross-department operating pilot.', type: 'speech' },
+      { text: '[HANDOFF] Orqaly owns planning, tools, approval, and execution.', type: 'success' }
     ]
   }
 ];
@@ -270,7 +270,7 @@ const TRACE_PERSONAS: PersonaTraceData[] = [
   {
     id: 'clara',
     name: 'Clara Dubois',
-    role: 'Lead UX Design Twin',
+    role: 'Lead UX Designer',
     avatar: 'C',
     transcript: [
       { text: "Interviewer: Clara, how do you handle user onboarding tests for international markets?", active: false },
@@ -344,7 +344,7 @@ const TRACE_PERSONAS: PersonaTraceData[] = [
 // ============================================================================
 
 export default function RedesignedHomePage(): React.JSX.Element {
-  const [activeTab, setActiveTab] = useState<string>('medtech');
+  const [activeTab, setActiveTab] = useState<string>('warehouse');
   const [consoleLogs, setConsoleLogs] = useState<Array<{ text: string; type: string }>>([]);
   const [logIndex, setLogIndex] = useState<number>(0);
   const [hoveredJsonId, setHoveredJsonId] = useState<string | null>(null);
@@ -366,7 +366,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
   // Terminal Stream Effect for the active usecase
   useEffect(() => {
-    const activeCase = COMPLIANCE_USECASES.find(c => c.id === activeTab);
+    const activeCase = DECISION_USECASES.find(c => c.id === activeTab);
     if (!activeCase) return;
     
     setConsoleLogs([activeCase.consoleOutput[0]]);
@@ -396,9 +396,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
     setCliLogs([initialLog]);
     
     const logs = [
-      `[GATEWAY] Routing request to Policy Engine...`,
-      `[GATEWAY] Identity mapped to role: ${cliUser === 'marcus' ? 'Developer (Internal Hire)' : 'Chief Financial Officer (Executive)'}`,
-      `[RBAC] Evaluating rule: 'read_secured_resource' on resource '${cliCommand.split(' ').pop()}'...`
+      `[AXWISE] Recommendation includes requires_orqaly_authorization=true.`,
+      `[ORQALY] Identity mapped to role: ${cliUser === 'marcus' ? 'Developer' : 'Chief Financial Officer'}.`,
+      `[ORQALY RBAC] Evaluating requested tool action on '${cliCommand.split(' ').pop()}'...`
     ];
 
     let index = 0;
@@ -417,14 +417,14 @@ export default function RedesignedHomePage(): React.JSX.Element {
           if (isSalaryLedger) {
             setCliLogs(prev => [
               ...prev,
-              `[ACCESS DENIED] User 'marcus_chen_dev' does not have Finance-tier clearance. Required role: CFO or Executive.`,
-              `[AUDIT] SECURE LOG GENERATED: Threat Vector committed to block 40228. Status: BLOCKED.`
+              `[ACCESS DENIED] User 'marcus_chen_dev' does not have Finance-tier clearance.`,
+              `[ORQALY RECEIPT] Action blocked; no tool call executed. AxWise recommendation remains advisory.`
             ]);
           } else {
             setCliLogs(prev => [
               ...prev,
-              `[ACCESS GRANTED] User 'marcus_chen_dev' has read access to research partition.`,
-              `[SUCCESS] Opening 'research/customer_transcripts_bremen.txt'...`,
+              `[ACCESS GRANTED] User 'marcus_chen_dev' has read access to the research partition.`,
+              `[ORQALY TOOL] Opening 'research/customer_transcripts_bremen.txt'...`,
               `--- Content snippet ---`,
               `"Lukas: Honestly, it's a completely manual mess. We use Excel spreadsheets..."`
             ]);
@@ -434,16 +434,16 @@ export default function RedesignedHomePage(): React.JSX.Element {
           if (isSalaryLedger) {
             setCliLogs(prev => [
               ...prev,
-              `[ACCESS GRANTED] Decrypting file keys using Session Private HSM...`,
-              `[SUCCESS] File decrypted successfully. Retrieval cost: $0.024.`,
-              `--- Ledgers ---`,
+              `[ACCESS GRANTED] Finance read permission confirmed.`,
+              `[ORQALY TOOL] File retrieval authorised and recorded.`,
+              `--- Illustrative ledger excerpt ---`,
               `Lukas Beckmann (Lead Engineer): €115,000 / year`,
               `Dennis Kruse (Fleet Coordinator): €78,000 / year`
             ]);
           } else {
             setCliLogs(prev => [
               ...prev,
-              `[ACCESS GRANTED] Opening 'research/customer_transcripts_bremen.txt'...`,
+              `[ACCESS GRANTED] Opening 'research/customer_transcripts_bremen.txt' through an authorised Orqaly connector...`,
               `--- Content snippet ---`,
               `"Lukas: Honestly, it's a completely manual mess. We use Excel spreadsheets..."`
             ]);
@@ -464,6 +464,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
       <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-4 lg:px-8 xl:px-16 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <div className="flex items-center gap-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
+            <span className="text-stone-300 font-light select-none">×</span>
             <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
               <defs>
                 <radialGradient id="o2_logo" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
@@ -472,23 +475,20 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
             </svg>
             <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
-            <span className="text-stone-300 font-light select-none">×</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
-            <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
           </div>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
-          <a href="#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</a>
-          <a href="#traceability" className="hover:text-stone-900 transition-colors">Traceability</a>
-          <a href="#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</a>
-          <a href="#twins" className="hover:text-stone-900 transition-colors">Digital Twins</a>
-          <a href="#compliance" className="hover:text-stone-900 transition-colors">Use Cases</a>
+          <a href="#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</a>
+          <a href="#evidence" className="hover:text-stone-900 transition-colors">Evidence</a>
+          <a href="#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</a>
+          <a href="#execution" className="hover:text-stone-900 transition-colors">Orqaly Handoff</a>
+          <a href="#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</a>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/Flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -514,24 +514,24 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <div className="lg:col-span-7 space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs font-medium text-emerald-800">
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>AxWise &amp; Orqaly Merger: From qualitative UX personas to trace-linked corporate twins.</span>
+              <span>Customer intelligence · evidence-aware routing · agent and team fit</span>
             </div>
 
             <h1 className="font-serif text-5xl md:text-6xl font-normal leading-[1.1] tracking-tight text-stone-900">
-              Your operations, <em className="italic">encoded</em>.<br />
-              Your decisions, <span className="underline decoration-emerald-500/40 decoration-2 underline-offset-8">audited</span>.
+              Know <em className="italic">who</em> you are solving for.<br />
+              Choose the <span className="underline decoration-emerald-500/40 decoration-2 underline-offset-8">right agent or team</span>.
             </h1>
 
             <p className="text-lg text-stone-600 max-w-xl leading-relaxed">
-              AxWise Flow has pivoted from legacy qualitative design-thinking SaaS into a developer-first, self-hosted{' '}
-              <strong className="font-semibold text-stone-900">headless REST API engine</strong>. Coupled with Orqaly’s Agentic OS, you can instantiate psychologically grounded{' '}
-              <strong className="font-semibold text-stone-900">Sovereign Digital Twins</strong> that execute operational processes inside secure, audited environments.
+              AxWise is the cognitive decision layer for agentic work. It turns a vague goal into a structured understanding of the{' '}
+              <strong className="font-semibold text-stone-900">customer, problem, evidence, ideal executor, and best available agent or team</strong>.{' '}
+              Orqaly receives that intelligence and owns planning, authorisation, tools, execution, and monitoring.
             </p>
 
             {/* Quick-install panel */}
             <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-sm border border-stone-800 shadow-lg max-w-md">
               <div className="flex items-center justify-between mb-2 pb-2 border-b border-stone-800">
-                <span className="text-xs text-stone-500">Self-Hosted Terminal Setup</span>
+                <span className="text-xs text-stone-500">Open-source cognitive engine</span>
                 <span className="flex gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-stone-700"></span>
                   <span className="w-2.5 h-2.5 rounded-full bg-stone-700"></span>
@@ -539,11 +539,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#10B981] select-none mr-2">$</span>
-                <span className="flex-1 text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow.git</span>
+                <span className="flex-1 text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git</span>
                 <button 
                   onClick={() => {
                     if (navigator?.clipboard) {
-                      navigator.clipboard.writeText('git clone https://github.com/AxWise-GmbH/axwise-flow.git');
+                      navigator.clipboard.writeText('git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git');
                     }
                   }}
                   className="hover:text-white transition-colors p-1"
@@ -556,19 +556,19 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
             <div className="flex flex-wrap gap-4 pt-4">
               <a 
-                href="#consilium"
+                href="#decision-lab"
                 className="px-6 py-3 bg-[#1C1917] hover:bg-stone-800 text-[#FCFAF7] rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-all"
               >
-                Launch Sandbox Preview
+                See the decision flow
                 <ChevronRight className="w-4 h-4" />
               </a>
               <a 
-                href="https://github.com/AxWise-GmbH/axwise-flow" 
+                href="https://github.com/AxWise-GmbH/axwise-flow-oss"
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="px-6 py-3 border border-stone-300 hover:border-stone-500 rounded-md font-medium text-sm text-stone-700 hover:text-stone-900 transition-all"
               >
-                Explore GitHub Repository
+                Explore the open-source engine
               </a>
             </div>
           </div>
@@ -581,9 +581,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <div className="flex items-center justify-between border-b border-stone-100 pb-4 mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-xs font-mono font-medium text-stone-500 uppercase tracking-wider">AxWise Gateway</span>
+                  <span className="text-xs font-mono font-medium text-stone-500 uppercase tracking-wider">AxWise Decision API</span>
                 </div>
-                <span className="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-medium">FastAPI v2.4</span>
+                <span className="text-xs font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-medium">Contract v1.0</span>
               </div>
 
               {/* Miniature Tab Selection/Carousel */}
@@ -596,7 +596,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       : 'text-stone-500 hover:text-stone-800'
                   }`}
                 >
-                  1. Simulate Twin
+                  1. Route Goal
                 </button>
                 <button
                   onClick={() => setGatewayTab('parse')}
@@ -606,7 +606,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       : 'text-stone-500 hover:text-stone-800'
                   }`}
                 >
-                  2. Parse &amp; Trace
+                  2. Build Context
                 </button>
                 <button
                   onClick={() => setGatewayTab('rbac')}
@@ -616,7 +616,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       : 'text-stone-500 hover:text-stone-800'
                   }`}
                 >
-                  3. Secured Query
+                  3. Recommend Team
                 </button>
               </div>
 
@@ -632,46 +632,46 @@ export default function RedesignedHomePage(): React.JSX.Element {
                   >
                     <div className="bg-stone-50 p-3 rounded border border-stone-100 space-y-1">
                       <div className="text-stone-400 mb-1 flex items-center justify-between text-[10px]">
-                        <span>// API INBOUND RESOLUTION</span>
-                        <span className="text-emerald-700 font-semibold bg-emerald-100/60 px-1 rounded">E2E COGNITIVE ROUTINE</span>
+                        <span>// GOAL ROUTING</span>
+                        <span className="text-emerald-700 font-semibold bg-emerald-100/60 px-1 rounded">VALUE OF INFORMATION</span>
                       </div>
-                      <div className="text-[#1C1917] font-semibold">POST /api/orqaly-axwise/v1/simulate-enhanced-async</div>
+                      <div className="text-[#1C1917] font-semibold">POST /api/orqaly-axwise/v1/orchestration/decisions</div>
                       <p className="text-[10px] text-stone-500 font-sans leading-normal">
-                        Starts a durable A+B research job. AxWise identifies the customer in the context of their pain and task, defines the ideal executor, and ranks the authenticated agents available in Orqaly. Production runs typically complete in 3–4 minutes and are retrieved asynchronously.
+                        AxWise evaluates ambiguity, evidence sufficiency, consequence, and the value of more information. It chooses direct, evidence-assisted, bounded research, or human clarification before expensive research begins.
                       </p>
                     </div>
 
                     <div className="space-y-2 border-l-2 border-emerald-500 pl-3">
                       <div className="flex items-center justify-between text-stone-500 text-[10px]">
-                        <span>GAUSSIAN SAMPLING ENGINE</span>
-                        <span>ILLUSTRATIVE SIMULATION PROFILE</span>
+                        <span>DECISION INPUT</span>
+                        <span>DOMAIN-NEUTRAL</span>
                       </div>
                       <div className="text-stone-800 leading-normal">
-                        - Target: <strong className="text-stone-900">CFO (Veronika Horvat)</strong><br />
-                        - Standard Age Distribution: <span className="text-emerald-700">Mean 48.0, Std 6.0</span><br />
-                        - Evaluated Age: <strong className="text-[#10B981]">45.2 Years Old</strong><br />
-                        - Modulated OCEAN: <span className="text-stone-600">Conscientiousness +18.4%</span>
+                        - Goal: <strong className="text-stone-900">Reduce damage at warehouse handoffs</strong><br />
+                        - Stakeholder: <span className="text-emerald-700">declared, not yet verified</span><br />
+                        - Evidence: <strong className="text-[#10B981]">insufficient for execution</strong><br />
+                        - Candidate agents: <span className="text-stone-600">authenticated Orqaly catalogue</span>
                         <p className="text-[10px] text-stone-500 font-sans mt-1">
-                          Calculates specific age and psychographic normal distributions corresponding to corporate hierarchy baselines, filtering out user bias.
+                          The same contract works for operations, research, sales, services, compliance, or software goals. It does not assume the answer is code.
                         </p>
                       </div>
                     </div>
 
                     <div className="bg-[#1A1A1A] p-3 rounded text-[11px] leading-relaxed shadow border border-stone-800 space-y-1.5">
                       <div className="text-stone-500 text-[9px] font-mono flex items-center justify-between border-b border-stone-800 pb-1.5 mb-1.5">
-                        <span>// STRUCTURED COMPLIANCE RETURN</span>
-                        <span className="text-emerald-400">SUCCESS CODE 200</span>
+                        <span>// IMMUTABLE DECISION</span>
+                        <span className="text-emerald-400">HTTP 201</span>
                       </div>
                       <div className="text-stone-400">
                         <span className="text-[#10B981]">{"{"}</span><br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"status"</span>: <span className="text-emerald-400">"success"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"audit_trail_block"</span>: <span className="text-emerald-400">"0x42f88b"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"total_token_burn"</span>: <span className="text-emerald-400">4811</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"compliance_flags"</span>: <span className="text-[#10B981]">["EU-AI-ACT-SECURE", "BAFIN-LOG-OK"]</span><br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"routing_mode"</span>: <span className="text-emerald-400">"research_assisted"</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"status"</span>: <span className="text-emerald-400">"pending_research"</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"research_job"</span>: <span className="text-emerald-400">{"{ \"status\": \"queued\" }"}</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"requires_orqaly_authorization"</span>: <span className="text-[#10B981]">true</span><br />
                         <span className="text-[#10B981]">{"}"}</span>
                       </div>
                       <p className="text-[10px] text-stone-400 font-sans leading-normal">
-                        Commits output parameters to local databases with secure hash signatures, facilitating cryptographically verifiable compliance reporting.
+                        Every recommendation is advisory. Orqaly revalidates tenant ownership, agent availability, policy, approval, budget, and tool access before execution.
                       </p>
                     </div>
                   </motion.div>
@@ -688,46 +688,46 @@ export default function RedesignedHomePage(): React.JSX.Element {
                   >
                     <div className="bg-stone-50 p-3 rounded border border-stone-100 space-y-1">
                       <div className="text-stone-400 mb-1 flex items-center justify-between text-[10px]">
-                        <span>// API INBOUND RESOLUTION</span>
-                        <span className="text-blue-700 font-semibold bg-blue-50 px-1 rounded">DETERMINISTIC EXTRACTION</span>
+                        <span>// CUSTOMER &amp; EXECUTOR CONTEXT</span>
+                        <span className="text-blue-700 font-semibold bg-blue-50 px-1 rounded">RESEARCH ONLY WHEN NEEDED</span>
                       </div>
-                      <div className="text-[#1C1917] font-semibold">POST /api/research/parse-evidence</div>
+                      <div className="text-[#1C1917] font-semibold">GET /api/orqaly-axwise/v1/runs/{`{job_id}`}</div>
                       <p className="text-[10px] text-stone-500 font-sans leading-normal">
-                        Extracts goals, pain points, and workflows from voice-to-text audio streams. Maps all extracted properties back to exact quote boundaries to block AI hallucinations.
+                        When research is justified, AxWise builds a stakeholder map, customer-in-context persona, and ideal executor profile. Synthetic research remains explicitly unverified until a human or operational source confirms it.
                       </p>
                     </div>
 
                     <div className="space-y-2 border-l-2 border-blue-500 pl-3">
                       <div className="flex items-center justify-between text-stone-500 text-[10px]">
-                        <span>CHARACTER-OFFSET REMAPPING</span>
-                        <span>CONFIDENCE: 100%</span>
+                        <span>STRUCTURED CONTEXT</span>
+                        <span>PROVENANCE PRESERVED</span>
                       </div>
                       <div className="text-stone-800 leading-normal">
-                        - Target Trace Index: <strong className="text-stone-900">pain_points.sheets</strong><br />
-                        - Mapped Phrase: <span className="text-blue-700">"maintaining 45 spreadsheets..."</span><br />
-                        - Bounding Box: <strong className="text-[#10B981]">start_char: 150, end_char: 236</strong><br />
-                        - Adaptive Correction: <span className="text-stone-600">"Mirrorboards" -&gt; "Miro"</span>
+                        - Problem experiencer: <strong className="text-stone-900">frontline handlers</strong><br />
+                        - Decision-maker: <span className="text-blue-700">dispatch operations owner</span><br />
+                        - Desired outcome: <strong className="text-[#10B981]">fewer damaged loads and late departures</strong><br />
+                        - Ideal executor: <span className="text-stone-600">evidence-led operations specialist</span>
                         <p className="text-[10px] text-stone-500 font-sans mt-1">
-                          Traces structural statements back to character offsets inside source documents and standardizes verbal stutters or fuzzy system terms.
+                          AxWise keeps problem experiencer, buyer, beneficiary, executor, and outcome owner distinct instead of flattening them into one generic persona.
                         </p>
                       </div>
                     </div>
 
                     <div className="bg-[#1A1A1A] p-3 rounded text-[11px] leading-relaxed shadow border border-stone-800 space-y-1.5">
                       <div className="text-stone-500 text-[9px] font-mono flex items-center justify-between border-b border-stone-800 pb-1.5 mb-1.5">
-                        <span>// CHARACTER BOUND PROPS RETURN</span>
-                        <span className="text-blue-400">SUCCESS CODE 200</span>
+                        <span>// PERSONA RESOLUTION</span>
+                        <span className="text-blue-400">HTTP 200</span>
                       </div>
                       <div className="text-stone-400">
                         <span className="text-blue-400">{"{"}</span><br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"status"</span>: <span className="text-blue-400">"resolved"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"evidence_mappings"</span>: <span className="text-blue-400">14</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"quote_character_trace"</span>: <span className="text-blue-400">"start: 150, end: 236"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"tool_fuzzy_corrections"</span>: <span className="text-[#10B981]">{"[{\"raw\": \"Mirrorboards\", \"resolved\": \"Miro\"}]"}</span><br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"customer_persona"</span>: <span className="text-blue-400">{"{ \"trust\": \"synthetic_hypothesis\" }"}</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"ideal_agent_persona"</span>: <span className="text-blue-400">{"{ \"role\": \"Operations Discovery Lead\" }"}</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"evidence_count"</span>: <span className="text-blue-400">14</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"auto_assign_allowed"</span>: <span className="text-[#10B981]">false</span><br />
                         <span className="text-blue-400">{"}"}</span>
                       </div>
                       <p className="text-[10px] text-stone-400 font-sans leading-normal">
-                        Returns clear character indexes for front-end highlight synchronization, ensuring data audits have absolute direct quotes.
+                        Quote-backed fields carry speaker, source ID, and character offsets. Inference and synthetic evidence are labelled separately from verified facts.
                       </p>
                     </div>
                   </motion.div>
@@ -744,46 +744,46 @@ export default function RedesignedHomePage(): React.JSX.Element {
                   >
                     <div className="bg-stone-50 p-3 rounded border border-stone-100 space-y-1">
                       <div className="text-stone-400 mb-1 flex items-center justify-between text-[10px]">
-                        <span>// API INBOUND RESOLUTION</span>
-                        <span className="text-purple-700 font-semibold bg-purple-50 px-1 rounded">SECURE CONTEXT GATING</span>
+                        <span>// POST-RESEARCH DECISION</span>
+                        <span className="text-purple-700 font-semibold bg-purple-50 px-1 rounded">AGENT &amp; TEAM FIT</span>
                       </div>
-                      <div className="text-[#1C1917] font-semibold">POST /api/security/query-vault</div>
+                      <div className="text-[#1C1917] font-semibold">POST /orchestration/decisions/{`{id}`}/research/refresh</div>
                       <p className="text-[10px] text-stone-500 font-sans leading-normal">
-                        Validates the user's role and identity, checking budget boundaries and permission policies before allowing context injection to the digital twin.
+                        AxWise re-scores the authenticated Orqaly catalogue using task fit, generated executor capabilities, customer context, tool readiness, and available performance evidence.
                       </p>
                     </div>
 
                     <div className="space-y-2 border-l-2 border-purple-500 pl-3">
                       <div className="flex items-center justify-between text-stone-500 text-[10px]">
-                        <span>POLICY ENGINE</span>
-                        <span>STATUS: AUDITED</span>
+                        <span>CANDIDATE RANKING</span>
+                        <span>SOFT + HARD SIGNALS</span>
                       </div>
                       <div className="text-stone-800 leading-normal">
-                        - Requested File: <strong className="text-stone-900">finance/salary_ledger_2026.xlsx</strong><br />
-                        - Active Identity: <span className="text-purple-700">marcus_chen_dev (Role: Developer)</span><br />
-                        - Required Clearance: <strong className="text-red-600">Finance-Tier-1</strong><br />
-                        - Policy Evaluation: <strong className="text-red-500">BLOCKED (Insufficient Permissions)</strong>
+                        - Recommended: <strong className="text-stone-900">Mara — Operations Discovery</strong><br />
+                        - Capability fit: <span className="text-purple-700">stakeholder discovery + evidence synthesis</span><br />
+                        - Trust status: <strong className="text-amber-600">synthetic working hypothesis</strong><br />
+                        - Execution status: <strong className="text-red-500">BLOCKED UNTIL HUMAN VERIFICATION</strong>
                         <p className="text-[10px] text-stone-500 font-sans mt-1">
-                          Automatically checks context requests against organization-wide permission layers, preventing LLM document prompt injection breaches.
+                          Research can improve the recommendation without weakening the trust gate. Useful hypotheses remain visible, but cannot silently become customer truth.
                         </p>
                       </div>
                     </div>
 
                     <div className="bg-[#1A1A1A] p-3 rounded text-[11px] leading-relaxed shadow border border-stone-800 space-y-1.5">
                       <div className="text-stone-500 text-[9px] font-mono flex items-center justify-between border-b border-stone-800 pb-1.5 mb-1.5">
-                        <span>// BLOCK LOG RETURN</span>
-                        <span className="text-red-400">ACCESS DENIED 403</span>
+                        <span>// ORQALY HANDOFF</span>
+                        <span className="text-red-400">REVIEW REQUIRED</span>
                       </div>
                       <div className="text-stone-400">
                         <span className="text-purple-400">{"{"}</span><br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"status"</span>: <span className="text-red-400">"denied"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"user"</span>: <span className="text-red-400">"marcus_chen_dev"</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"cleared_permissions"</span>: <span className="text-red-400">["Dev-Tier-2"]</span>,<br />
-                        &nbsp;&nbsp;<span className="text-stone-300">"audit_trail"</span>: <span className="text-purple-400">"committed-to-block-40228"</span><br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"recommended_agent_id"</span>: <span className="text-purple-400">"agent-ops-discovery"</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"authoritative"</span>: <span className="text-red-400">false</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"assignable"</span>: <span className="text-red-400">false</span>,<br />
+                        &nbsp;&nbsp;<span className="text-stone-300">"requires_orqaly_authorization"</span>: <span className="text-purple-400">true</span><br />
                         <span className="text-purple-400">{"}"}</span>
                       </div>
                       <p className="text-[10px] text-stone-400 font-sans leading-normal">
-                        Blocks unauthorized access at the API layer and commits the security event signature to the system trace ledger.
+                        Orqaly decides whether the recommendation may enter planning or execution. AxWise never grants tool access or performs the external action itself.
                       </p>
                     </div>
                   </motion.div>
@@ -795,20 +795,19 @@ export default function RedesignedHomePage(): React.JSX.Element {
         </div>
       </section>
 
-      {/* ----------------- Showcase 1: Consilium Control Room ----------------- */}
-      <section id="consilium" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
+      {/* ----------------- Showcase 1: Cognitive decision lab ----------------- */}
+      <section id="decision-lab" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// INTERACTIVE PIPELINE DEMO</span>
-          <h2 className="font-serif text-4xl text-stone-900">The Consilium Control Room</h2>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// INTERACTIVE COGNITIVE DECISION TRACE</span>
+          <h2 className="font-serif text-4xl text-stone-900">From vague goal to grounded recommendation</h2>
           <p className="text-stone-600 text-sm">
-            Watch how our multi-agent council (Consilium) decomposes business goals, schedules parallel 
-            simulation pathways, and structures decisions under strict environmental and budget caps.
+            Explore illustrative, domain-neutral scenarios. AxWise decides whether more research is valuable, resolves the customer and ideal executor, ranks existing Orqaly agents, and returns a trust-aware handoff. Orqaly&apos;s Consilium and workflow engine act downstream.
           </p>
         </div>
 
         {/* Tab Selection */}
         <div className="flex flex-wrap justify-center gap-3 mb-12">
-          {COMPLIANCE_USECASES.map((usecase) => (
+          {DECISION_USECASES.map((usecase) => (
             <button
               key={usecase.id}
               onClick={() => setActiveTab(usecase.id)}
@@ -830,24 +829,24 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-[#EAE6DF] p-6 rounded-lg shadow-sm space-y-4">
               <div>
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">ACTIVE USECASE</span>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">ILLUSTRATIVE SCENARIO</span>
                 <h3 className="font-serif text-xl text-stone-900 mt-1">
-                  {COMPLIANCE_USECASES.find(c => c.id === activeTab)?.title}
+                  {DECISION_USECASES.find(c => c.id === activeTab)?.title}
                 </h3>
                 <div className="flex items-center gap-1.5 text-xs text-stone-500 mt-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>{COMPLIANCE_USECASES.find(c => c.id === activeTab)?.location}</span>
+                  <span>{DECISION_USECASES.find(c => c.id === activeTab)?.location}</span>
                 </div>
               </div>
 
               <div className="p-3 bg-stone-50 rounded border border-stone-100 text-xs text-stone-700 leading-relaxed">
-                <strong>Compliance Target:</strong> {COMPLIANCE_USECASES.find(c => c.id === activeTab)?.directive}
-                <p className="mt-2 text-stone-600">{COMPLIANCE_USECASES.find(c => c.id === activeTab)?.challenge}</p>
+                <strong>Goal context:</strong> {DECISION_USECASES.find(c => c.id === activeTab)?.directive}
+                <p className="mt-2 text-stone-600">{DECISION_USECASES.find(c => c.id === activeTab)?.challenge}</p>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">GROUNDED RECRUITED TWINS</span>
-                {COMPLIANCE_USECASES.find(c => c.id === activeTab)?.twins.map((twin, idx) => (
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">ILLUSTRATIVE EXECUTOR PROFILES</span>
+                {DECISION_USECASES.find(c => c.id === activeTab)?.twins.map((twin, idx) => (
                   <div key={idx} className="flex gap-3 items-start border border-[#EAE6DF] p-3.5 rounded hover:border-emerald-300 hover:bg-emerald-50/5 transition-all">
                     <div className="w-9 h-9 bg-[#1A1A1A] text-white rounded-full flex items-center justify-center font-mono text-xs font-semibold shadow-sm">
                       {twin.name.split(' ').pop()?.charAt(0)}
@@ -855,13 +854,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-semibold text-stone-900">{twin.name}</div>
-                        <span className="text-[9px] font-mono bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded">OCEAN Grounded</span>
+                        <span className="text-[9px] font-mono bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded">Goal-specific fit</span>
                       </div>
                       <div className="text-[10px] text-stone-500 font-medium">{twin.role}</div>
                       <div className="text-[10px] text-stone-600 leading-normal bg-stone-50 p-2 rounded border border-stone-100 italic">{twin.background}</div>
                       <div className="text-[9px] font-mono text-emerald-700 font-medium bg-emerald-50/50 p-1.5 rounded flex items-center gap-1">
                         <Activity className="w-3 h-3 text-emerald-600" />
-                        <span>Traits: {twin.traits}</span>
+                        <span>Fit signals: {twin.traits}</span>
                       </div>
                     </div>
                   </div>
@@ -875,7 +874,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
             <div className="bg-[#1F1F1F] px-4 py-3 border-b border-stone-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TerminalIcon className="w-4 h-4 text-[#10B981]" />
-                <span className="text-stone-400">Live Agent Council Trace Logs</span>
+                <span className="text-stone-400">AxWise decision trace</span>
               </div>
               <div className="flex gap-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
@@ -911,8 +910,8 @@ export default function RedesignedHomePage(): React.JSX.Element {
             </div>
             
             <div className="bg-[#1F1F1F] p-3 text-[10px] text-stone-500 border-t border-stone-800 flex justify-between items-center">
-              <span>Streaming sequence {logIndex}/{COMPLIANCE_USECASES.find(c => c.id === activeTab)?.consoleOutput.length}</span>
-              <span className="text-emerald-500 animate-pulse">● System Processing</span>
+              <span>Decision trace {logIndex}/{DECISION_USECASES.find(c => c.id === activeTab)?.consoleOutput.length}</span>
+              <span className="text-emerald-500 animate-pulse">● Illustrative trace</span>
             </div>
           </div>
 
@@ -920,24 +919,20 @@ export default function RedesignedHomePage(): React.JSX.Element {
       </section>
 
       {/* ----------------- Showcase 2: Traceability & Evidence ----------------- */}
-      <section id="traceability" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
+      <section id="evidence" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="grid lg:grid-cols-12 gap-12 items-start">
           
           {/* Content Explanation */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-            <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// DETERMINISTIC GROUNDING</span>
-            <h2 className="font-serif text-4xl text-stone-900 leading-tight">Trace-Linked Evidence Mapping</h2>
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// INSPECTABLE EVIDENCE</span>
+            <h2 className="font-serif text-4xl text-stone-900 leading-tight">See what is quoted, inferred, or still unknown</h2>
             <p className="text-stone-600 text-sm leading-relaxed">
-              Every persona goal, challenge, and tool mention parsed by our engine is trace-verified back to source 
-              documents using character-level offset linking. Select one of our <strong>4 Grounded Personas</strong> below, 
-              then hover over any extracted property on the right to see its exact source quote highlight dynamically 
-              in the raw audio-to-text transcript on the left. Quotes and offsets are auditable; persona synthesis remains
-              evidence-grounded decision support rather than an absolute guarantee.
+              Quote-backed persona fields retain the speaker, source document, exact quote, and character offsets. Select one of the <strong>four illustrative persona records</strong>, then hover over an extracted field to inspect its source. AxWise keeps those quotes separate from model inference and labels synthetic research as a hypothesis—not verified customer truth.
             </p>
 
             {/* Persona Selectors (At least 4 Personas) */}
             <div className="space-y-2">
-              <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block">Grounded Persona Dataset</label>
+              <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block">Illustrative persona dataset</label>
               <div className="grid grid-cols-2 gap-2">
                 {TRACE_PERSONAS.map((persona) => (
                   <button
@@ -967,15 +962,15 @@ export default function RedesignedHomePage(): React.JSX.Element {
             <div className="space-y-2 text-xs pt-2">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#10B981]" />
-                <span>Synchronous sentence-to-sentence token bounding</span>
+                <span>Exact quote, speaker, and source document retained</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#10B981]" />
-                <span>Deterministic start_char / end_char indexes</span>
+                <span>Character offsets available for field-level review</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-[#10B981]" />
-                <span>Adaptive Tool correction (Voice-to-Text standardizing)</span>
+                <span>Synthetic, inferred, declared, and verified evidence kept distinct</span>
               </div>
             </div>
           </div>
@@ -986,7 +981,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
             {/* Raw Transcript (Left) */}
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">Raw Interview Transcript</span>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">Illustrative source transcript</span>
                 <span className="text-xs font-mono text-stone-400">doc_transcript_{selectedPersona.id}</span>
               </div>
               <div className="space-y-3 text-xs leading-relaxed text-stone-600 max-h-[300px] overflow-y-auto pr-2">
@@ -1015,8 +1010,8 @@ export default function RedesignedHomePage(): React.JSX.Element {
             {/* Structured JSON Output (Right) */}
             <div className="border-t md:border-t-0 md:border-l border-stone-200 md:pl-6 pt-6 md:pt-0 space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">ProductionPersona [JSON]</span>
-                <span className="text-xs font-mono text-stone-400">Pydantic Model</span>
+                <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider">Persona evidence [JSON]</span>
+                <span className="text-xs font-mono text-stone-400">Structured output</span>
               </div>
 
               <div className="space-y-3">
@@ -1083,14 +1078,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
         </div>
       </section>
 
-      {/* ----------------- Showcase 3: RBAC CLI Sandbox ----------------- */}
-      <section id="policy" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
+      {/* ----------------- Showcase 3: Orqaly authorization boundary ----------------- */}
+      <section id="trust" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// POLICY GATING &amp; SECURITY</span>
-          <h2 className="font-serif text-4xl text-stone-900">Zero-Trust Role Policy Gateway</h2>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// RECOMMENDATION ≠ AUTHORIZATION</span>
+          <h2 className="font-serif text-4xl text-stone-900">AxWise advises. Orqaly decides what may run.</h2>
           <p className="text-stone-600 text-sm">
-            Configure hard budget boundaries and granular data clearance rules. Test the RBAC engine below to see 
-            how corporate policy filters evaluate data retrieval actions based on identity roles.
+            Every AxWise decision requires Orqaly authorization. The illustrative downstream check below shows the responsibility boundary: Orqaly validates tenant ownership, identity, agent availability, approval, budget, and connector permissions before any external action.
           </p>
         </div>
 
@@ -1100,7 +1094,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-[#EAE6DF] p-6 rounded-lg space-y-5">
               <div>
-                <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block mb-2">Select User Identity Profile</label>
+                <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block mb-2">Illustrative Orqaly identity</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => {
@@ -1140,7 +1134,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </div>
 
               <div>
-                <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block mb-2">REST API Database Command</label>
+                <label className="text-xs font-mono text-stone-500 uppercase tracking-wider block mb-2">Requested connector action</label>
                 <select
                   value={cliCommand}
                   onChange={(e) => {
@@ -1167,7 +1161,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 ) : (
                   <>
                     <Lock className="w-3.5 h-3.5" />
-                    Execute Secured Endpoint Request
+                    Test downstream authorization
                   </>
                 )}
               </button>
@@ -1177,22 +1171,22 @@ export default function RedesignedHomePage(): React.JSX.Element {
           {/* CLI Display (Right) */}
           <div className="lg:col-span-7 bg-[#1A1A1A] border border-stone-800 rounded-lg overflow-hidden shadow-lg h-[340px] font-mono text-xs flex flex-col">
             <div className="bg-[#1F1F1F] border-b border-stone-800 px-4 py-2.5 flex items-center justify-between text-stone-400">
-              <span className="text-[10px] font-semibold tracking-wider">SECURE AUTHORIZATION SANDBOX</span>
-              <span className="text-stone-600">CLI Version v1.02</span>
+              <span className="text-[10px] font-semibold tracking-wider">ORQALY AUTHORIZATION BOUNDARY</span>
+              <span className="text-stone-600">Illustrative enforcement</span>
             </div>
             
             <div className="flex-1 p-4 space-y-2 overflow-y-auto leading-relaxed text-stone-300">
               {cliLogs.length === 0 ? (
                 <div className="text-stone-500 italic text-center pt-24">
-                  Select an identity profile and execute a secured database command to test policy boundaries.
+                  Select an identity and test how Orqaly enforces policy after receiving an AxWise recommendation.
                 </div>
               ) : (
                 cliLogs.map((log, index) => {
                   let logColor = 'text-stone-300';
                   if (log.startsWith('$')) logColor = 'text-white font-semibold';
-                  if (log.startsWith('[GATEWAY]') || log.startsWith('[RBAC]')) logColor = 'text-blue-400';
+                  if (log.startsWith('[AXWISE]') || log.startsWith('[ORQALY]') || log.startsWith('[ORQALY RBAC]')) logColor = 'text-blue-400';
                   if (log.startsWith('[ACCESS DENIED]')) logColor = 'text-red-400 font-semibold bg-red-950/20 p-2 rounded border border-red-900/30';
-                  if (log.startsWith('[ACCESS GRANTED]') || log.startsWith('[SUCCESS]')) logColor = 'text-[#10B981] font-semibold';
+                  if (log.startsWith('[ACCESS GRANTED]') || log.startsWith('[ORQALY TOOL]')) logColor = 'text-[#10B981] font-semibold';
                   if (log.startsWith('---') || log.includes('€') || log.includes('Lukas:')) logColor = 'text-stone-200 bg-stone-900/40 p-1.5 rounded pl-4';
                   return (
                     <div key={index} className={`${logColor} whitespace-pre-wrap`}>
@@ -1207,13 +1201,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
         </div>
       </section>
 
-      {/* ----------------- Showcase: Digital Twins in Action (Slides 10-13) ----------------- */}
-      <section id="twins" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
+      {/* ----------------- AxWise intelligence to Orqaly execution ----------------- */}
+      <section id="execution" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-12 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// MULTI-CHANNEL COLLABORATION</span>
-          <h2 className="font-serif text-4xl text-stone-900">Digital Twins in Action</h2>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// AXWISE INTELLIGENCE → ORQALY EXECUTION</span>
+          <h2 className="font-serif text-4xl text-stone-900">From cognitive decision to governed execution</h2>
           <p className="text-stone-600 text-sm">
-            AxWise understands who needs help, identifies the ideal human-style executor, and shapes the corresponding AI agent or digital twin. Orqaly then authorises that agent and provides the tools and context required to execute.
+            AxWise returns the customer context, ideal executor profile, evidence, and ranked agent or team recommendation. Orqaly keeps the permanent Agent Hub identity intact, adds the goal-specific persona overlay, plans the work, authorises tools, and runs it.
           </p>
         </div>
 
@@ -1227,7 +1221,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400 hover:text-stone-900'
             }`}
           >
-            CFO Twin (WhatsApp &amp; Slack)
+            Goal Persona Example
           </button>
           <button
             onClick={() => setTwinsTab('rbac_gov')}
@@ -1237,7 +1231,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400 hover:text-stone-900'
             }`}
           >
-            RBAC Governance (Blocked Flow)
+            Orqaly Policy Enforcement
           </button>
           <button
             onClick={() => setTwinsTab('designer')}
@@ -1247,7 +1241,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400 hover:text-stone-900'
             }`}
           >
-            Designer Twin (Slack &amp; Figma)
+            Connector-Backed Execution
           </button>
           <button
             onClick={() => setTwinsTab('bpmn')}
@@ -1257,7 +1251,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400 hover:text-stone-900'
             }`}
           >
-            BPMN Architecture Flow
+            Responsibility Map
           </button>
         </div>
 
@@ -1282,9 +1276,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <div className="w-11 h-11 rounded-full border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center text-emerald-700 shadow-sm mb-3">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                       </div>
-                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Setup</span>
-                      <h4 className="text-xs font-bold text-stone-900 mb-1">Org Mapped</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">AxWise identifies the customer-in-context and ideal executor. Orqaly authorises and orchestrates the matched agent.</p>
+                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Input</span>
+                      <h4 className="text-xs font-bold text-stone-900 mb-1">Vague Goal</h4>
+                      <p className="text-[11px] text-stone-500 leading-tight">Orqaly sends the goal, tenant context, constraints, and available Agent Hub profiles.</p>
                     </div>
 
                     <div className="hidden md:flex items-center pt-4 text-emerald-600">
@@ -1296,9 +1290,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <div className="w-11 h-11 rounded-full border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center text-amber-700 shadow-sm mb-3">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                       </div>
-                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Trigger</span>
-                      <h4 className="text-xs font-bold text-stone-900 mb-1">Team Member OOO</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">Your CFO goes on vacation. Operations usually stall.</p>
+                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Intelligence</span>
+                      <h4 className="text-xs font-bold text-stone-900 mb-1">Customer + Executor</h4>
+                      <p className="text-[11px] text-stone-500 leading-tight">AxWise decides whether research is needed, resolves stakeholders, and recommends the best fit.</p>
                     </div>
 
                     <div className="hidden md:flex items-center pt-4 text-emerald-600">
@@ -1310,9 +1304,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <div className="w-11 h-11 rounded-full border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-700 shadow-sm mb-3">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                       </div>
-                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Query</span>
-                      <h4 className="text-xs font-bold text-stone-900 mb-1">Ask via Chat</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">Send a message on Slack or WhatsApp as usual.</p>
+                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Authorization</span>
+                      <h4 className="text-xs font-bold text-stone-900 mb-1">Orqaly Validates</h4>
+                      <p className="text-[11px] text-stone-500 leading-tight">Orqaly checks the tenant, agent, approval policy, budget, and connector permissions.</p>
                     </div>
 
                     <div className="hidden md:flex items-center pt-4 text-emerald-600">
@@ -1324,9 +1318,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <div className="w-11 h-11 rounded-full border-2 border-teal-300 bg-[#059669] flex items-center justify-center text-white shadow-md mb-3">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                       </div>
-                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Result</span>
-                      <h4 className="text-xs font-bold text-stone-900 mb-1">Files + Summary</h4>
-                      <p className="text-[11px] text-stone-500 leading-tight">With authorised connectors, the twin retrieves files and responds in the user's workflow.</p>
+                      <span className="text-[10px] font-bold tracking-wider text-stone-400 uppercase mb-1">Execution</span>
+                      <h4 className="text-xs font-bold text-stone-900 mb-1">Goal-Aware Agent</h4>
+                      <p className="text-[11px] text-stone-500 leading-tight">Orqaly plans and runs the work with AxWise context applied as a goal-specific overlay.</p>
                     </div>
                   </div>
                 </div>
@@ -1334,19 +1328,19 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 {/* Left side info */}
                 <div className="col-span-12 lg:col-span-4 space-y-4">
                   <div className="border border-emerald-200 bg-emerald-50/30 p-5 rounded-lg space-y-3">
-                    <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">CFO Digital Twin</span>
+                    <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">Illustrative digital-twin use case</span>
                     <h3 className="font-serif text-lg text-stone-950">Veronika Horvat</h3>
                     <p className="text-xs text-stone-600 leading-relaxed">
-                      Veronika is on vacation. AxWise defines the expert behaviour for her CFO Digital Twin; Orqaly activates it with customer-authorised, read-only access to Finance, planning, and communication sources.
+                      AxWise can shape a goal-specific CFO execution persona and recommend the matching Agent Hub profile. Orqaly alone activates the agent and grants any authorised, read-only access to finance or communication sources.
                     </p>
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-mono rounded font-semibold">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                      AI-Native · Connector-Dependent
+                      Example · Orqaly-executed
                     </span>
                   </div>
 
                   <div className="bg-stone-50/50 border border-stone-200 p-5 rounded-lg space-y-3">
-                    <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">Grounded Data Resources</span>
+                    <span className="text-[10px] font-mono text-stone-500 uppercase tracking-wider block">Potential Orqaly connectors</span>
                     <ul className="text-xs text-stone-600 space-y-2">
                       <li className="flex items-center gap-2">
                         <FileText className="w-3.5 h-3.5 text-stone-400" />
@@ -1527,16 +1521,16 @@ export default function RedesignedHomePage(): React.JSX.Element {
                     <span className="text-[10px] font-mono text-red-800 uppercase tracking-wider font-semibold">Policy Gated Flow</span>
                     <h3 className="font-serif text-lg text-stone-950">Strict Access Control</h3>
                     <p className="text-xs text-stone-600 leading-relaxed">
-                      Digital twins strictly enforce role-based permissions. Even though the twin represents the CFO, it validates requested content dynamically, denying access to unauthorized members.
+                      AxWise can advise that a requested action requires authorization; Orqaly evaluates the authenticated user, tenant policy, approval state, and connector scope before any tool call runs.
                     </p>
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-red-100 text-red-800 text-[10px] font-mono rounded font-semibold">
                       <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                      RBAC Gateway Active
+                      Orqaly Policy Active
                     </span>
                   </div>
 
                   <div className="bg-stone-50/50 border border-stone-200 p-5 rounded-lg space-y-2 text-xs">
-                    <div className="font-mono text-[10px] text-stone-500 uppercase tracking-wider">CFO TWIN GATING POLICIES</div>
+                    <div className="font-mono text-[10px] text-stone-500 uppercase tracking-wider">ILLUSTRATIVE ORQALY POLICIES</div>
                     <div className="space-y-1.5 text-stone-600 leading-relaxed">
                       <div className="flex items-center justify-between bg-red-50 border border-red-100 p-1.5 rounded text-[10px] text-red-700">
                         <span>🔒 Finance / Salary_Ledger.xlsx</span>
@@ -1882,10 +1876,10 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 className="space-y-6"
               >
                 <div className="text-center max-w-xl mx-auto space-y-2">
-                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">SYSTEM TOPOLOGY</span>
-                  <h3 className="font-serif text-2xl text-stone-950">Orqaly &times; AxWise Integration Map</h3>
+                  <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded font-semibold uppercase tracking-wider">RESPONSIBILITY BOUNDARY</span>
+                  <h3 className="font-serif text-2xl text-stone-950">AxWise intelligence &times; Orqaly execution</h3>
                   <p className="text-stone-600 text-xs leading-relaxed">
-                    Message flow runs on a zero-trust, permission-evaluated routing engine. Context retrieval is bound securely to the local workspace databases.
+                    AxWise is advisory: it builds evidence-aware context and recommendations. Orqaly owns the goal lifecycle, permanent Agent Hub profiles, planning, authorization, connectors, execution, and delivery.
                   </p>
                 </div>
 
@@ -1948,26 +1942,26 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
                       {/* Pool: Orqaly */}
                       <rect x="20" y="95" width="1060" height="110" fill="url(#grad-orqaly-bpmn)" stroke="#059669" strokeWidth="1.5" rx="12" strokeDasharray="4 2"/>
-                      <text x="40" y="190" className="text-[10px] font-bold tracking-wider uppercase" fill="#059669">Orqaly — Workflow Orchestrator</text>
+                      <text x="40" y="190" className="text-[10px] font-bold tracking-wider uppercase" fill="#059669">Orqaly — Agentic OS &amp; execution plane</text>
 
                       {/* Orqaly nodes */}
                       <rect x="160" y="125" width="160" height="42" rx="10" fill="rgba(16,185,129,0.04)" stroke="#059669" strokeWidth="1.5"/>
-                      <text x="240" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Message Router</text>
-                      <text x="240" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Detects intent &amp; entity</text>
+                      <text x="240" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Goal Lifecycle</text>
+                      <text x="240" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Goal, tenant &amp; constraints</text>
 
                       {/* Arrow to Workflow Engine */}
                       <line x1="320" y1="146" x2="370" y2="146" stroke="#059669" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead-green)"/>
 
                       <rect x="370" y="125" width="180" height="42" rx="10" fill="rgba(16,185,129,0.04)" stroke="#059669" strokeWidth="1.5"/>
-                      <text x="460" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Workflow Engine</text>
-                      <text x="460" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Maps process &amp; selects twin</text>
+                      <text x="460" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Agent Hub</text>
+                      <text x="460" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Permanent agent profiles</text>
 
                       {/* Arrow to Task Router */}
                       <line x1="550" y1="146" x2="600" y2="146" stroke="#059669" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead-green)"/>
 
                       <rect x="600" y="125" width="160" height="42" rx="10" fill="rgba(16,185,129,0.04)" stroke="#059669" strokeWidth="1.5"/>
-                      <text x="680" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Task Orchestrator</text>
-                      <text x="680" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Executes multi-step flows</text>
+                      <text x="680" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Planning &amp; Execution</text>
+                      <text x="680" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Tasks, tools &amp; monitoring</text>
 
                       {/* Arrow down from Task Orchestrator to AxWise (Active Twin) via orthogonal path */}
                       <line x1="680" y1="167" x2="680" y2="212" stroke="#059669" strokeWidth="1.5" fill="none"/>
@@ -1981,52 +1975,52 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
                       {/* Response Builder node */}
                       <rect x="820" y="125" width="160" height="42" rx="10" fill="rgba(16,185,129,0.04)" stroke="#059669" strokeWidth="1.5"/>
-                      <text x="900" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Response Builder</text>
-                      <text x="900" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Formats &amp; delivers reply</text>
+                      <text x="900" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Approval &amp; Delivery</text>
+                      <text x="900" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Policy, connectors &amp; output</text>
 
                       {/* Response Arrow back to channel bus */}
                       <line x1="900" y1="125" x2="900" y2="88" stroke="#059669" strokeWidth="1.5" fill="none"/>
                       <line x1="900" y1="88" x2="240" y2="88" stroke="#059669" strokeWidth="1.5" fill="none" strokeDasharray="4 2"/>
                       <line x1="240" y1="88" x2="240" y2="82" stroke="#059669" strokeWidth="1.5" fill="none" markerEnd="url(#bpmn-arrowhead-green)"/>
-                      <text x="760" y="81" textAnchor="middle" className="font-semibold" fill="#047857" fontSize="9">Response delivered to all channels</text>
+                      <text x="760" y="81" textAnchor="middle" className="font-semibold" fill="#047857" fontSize="9">Authorized output delivered by Orqaly</text>
 
                       {/* Pool: AxWise */}
                       <rect x="20" y="220" width="1060" height="120" fill="url(#grad-axwise-bpmn)" stroke="#3b82f6" strokeWidth="1.5" rx="12" strokeDasharray="4 2"/>
-                      <text x="40" y="236" className="text-[10px] font-bold tracking-wider uppercase" fill="#3b82f6">AxWise — Digital Twin Engine</text>
+                      <text x="40" y="236" className="text-[10px] font-bold tracking-wider uppercase" fill="#3b82f6">AxWise — Cognitive decision layer</text>
 
                       {/* AxWise nodes */}
                       <rect x="160" y="245" width="160" height="42" rx="10" fill="rgba(59,130,246,0.04)" stroke="#3b82f6" strokeWidth="1.5"/>
-                      <text x="240" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Twin Registry</text>
-                      <text x="240" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Persona DNA &amp; context</text>
+                      <text x="240" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Context Router</text>
+                      <text x="240" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Direct, evidence or research</text>
 
                       {/* Arrow to twin */}
                       <line x1="320" y1="266" x2="410" y2="266" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead)"/>
 
                       <rect x="410" y="245" width="160" height="42" rx="10" fill="rgba(59,130,246,0.04)" stroke="#3b82f6" strokeWidth="1.5"/>
-                      <text x="490" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Active Twin</text>
-                      <text x="490" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Simulates employee</text>
+                      <text x="490" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Customer Intelligence</text>
+                      <text x="490" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Stakeholders &amp; outcomes</text>
 
                       {/* Gateway: Access Check (diamond) */}
                       <polygon points="625,266 650,241 675,266 650,291" fill="rgba(239,68,68,0.04)" stroke="#EF4444" strokeWidth="1.5"/>
-                      <text x="650" y="270" textAnchor="middle" fontSize="9" fontWeight="700" fill="#EF4444">RBAC</text>
+                      <text x="650" y="270" textAnchor="middle" fontSize="9" fontWeight="700" fill="#EF4444">FIT</text>
 
                       {/* Arrow to gateway */}
                       <line x1="570" y1="266" x2="625" y2="266" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead)"/>
 
                       {/* Approved path */}
                       <line x1="675" y1="266" x2="730" y2="266" stroke="#059669" strokeWidth="1.5" fill="none" markerEnd="url(#bpmn-arrowhead-green)"/>
-                      <text x="702" y="258" textAnchor="middle" fontSize="8" fill="#059669" fontWeight="700">✓ Allowed</text>
+                      <text x="702" y="258" textAnchor="middle" fontSize="8" fill="#059669" fontWeight="700">✓ Confident</text>
 
                       {/* Denied path */}
                       <line x1="650" y1="291" x2="650" y2="320" stroke="#EF4444" strokeWidth="1.5" fill="none" markerEnd="url(#bpmn-arrowhead-red)"/>
-                      <text x="665" y="308" fontSize="8" fill="#EF4444" fontWeight="700">✗ Denied</text>
+                      <text x="665" y="308" fontSize="8" fill="#EF4444" fontWeight="700">Review</text>
                       <rect x="590" y="320" width="120" height="16" rx="4" fill="rgba(239,68,68,0.08)" stroke="#EF4444" strokeWidth="1"/>
-                      <text x="650" y="331" textAnchor="middle" fontSize="8" fill="#EF4444" fontWeight="600">Audit Log</text>
+                      <text x="650" y="331" textAnchor="middle" fontSize="8" fill="#EF4444" fontWeight="600">Working hypothesis</text>
 
                       {/* Data Retriever */}
                       <rect x="730" y="245" width="160" height="42" rx="10" fill="rgba(59,130,246,0.04)" stroke="#3b82f6" strokeWidth="1.5"/>
-                      <text x="810" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Data Retriever</text>
-                      <text x="810" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Files, context, history</text>
+                      <text x="810" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Persona + Agent Fit</text>
+                      <text x="810" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Overlay, ranking &amp; rationale</text>
 
                       {/* Arrow up from Data Retriever to Response Builder */}
                       <line x1="810" y1="245" x2="810" y2="212" stroke="#3b82f6" strokeWidth="1.5" fill="none"/>
@@ -2035,7 +2029,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
                       {/* Pool: Data Sources */}
                       <rect x="20" y="350" width="1060" height="55" fill="rgba(0,0,0,0.02)" stroke="#cbd5e1" strokeWidth="1" rx="10"/>
-                      <text x="35" y="382" className="text-[9px] font-bold tracking-wider uppercase" fill="#64748b">Connected Data Sources</text>
+                      <text x="35" y="382" className="text-[9px] font-bold tracking-wider uppercase" fill="#64748b">Evidence &amp; operational context supplied through Orqaly</text>
 
                       <g transform="translate(230, 362)">
                         <rect width="85" height="28" rx="6" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1"/>
@@ -2093,15 +2087,15 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <line x1="910" y1="278" x2="940" y2="278" stroke="#3b82f6" strokeWidth="2"/>
                       <text x="948" y="282" fontSize="9" fill="#334155">AxWise flow</text>
                       <line x1="910" y1="294" x2="940" y2="294" stroke="#EF4444" strokeWidth="2"/>
-                      <text x="948" y="298" fontSize="9" fill="#334155">Access denied</text>
+                      <text x="948" y="298" fontSize="9" fill="#334155">Needs review</text>
                       <polygon points="915,310 925,302 935,310 925,318" fill="none" stroke="#EF4444" strokeWidth="1.5"/>
-                      <text x="948" y="314" fontSize="9" fill="#334155">RBAC gateway</text>
+                      <text x="948" y="314" fontSize="9" fill="#334155">Confidence gate</text>
                     </svg>
                   </div>
                 </div>
 
                 <div className="bg-stone-50 border border-stone-200 p-4 rounded-lg text-xs text-stone-600 leading-relaxed max-w-2xl mx-auto text-center font-mono">
-                  💡 <strong>How it joins:</strong> Orqaly serves as the asynchronous communication dispatcher and step executor, while AxWise runs containerized local digital twin files and evaluates role authorizations on every API call.
+                  💡 <strong>How it joins:</strong> AxWise returns a traceable recommendation package. Orqaly applies it to the goal, preserves the permanent Agent Hub profile, authorises tools and budgets, executes the workflow, and reports outcomes back for learning.
                 </div>
               </motion.div>
             )}
@@ -2110,13 +2104,13 @@ export default function RedesignedHomePage(): React.JSX.Element {
         </div>
       </section>
 
-      {/* ----------------- Showcase 4: Enterprise-Ready Agentic Use Cases ----------------- */}
-      <section id="compliance" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto">
+      {/* ----------------- Cross-domain use cases ----------------- */}
+      <section id="use-cases" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// DEEP COGNITIVE ORCHESTRATION</span>
-          <h2 className="font-serif text-4xl text-stone-900">Enterprise Agentic Use Cases</h2>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// CROSS-DOMAIN COGNITIVE INTELLIGENCE</span>
+          <h2 className="font-serif text-4xl text-stone-900">One decision layer, many kinds of work</h2>
           <p className="text-stone-600 text-sm">
-            AxWise Flow is built for multi-agent execution, from simple digital-twin tasks to secure, audited enterprise integrations.
+            AxWise is not limited to software delivery or product management. It can clarify the customer, stakeholder, and ideal executor for operational, commercial, research, healthcare, public-service, and technical goals.
           </p>
         </div>
 
@@ -2128,11 +2122,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <Sparkles className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-serif text-lg text-stone-900">Customer &amp; Solver Discovery</h3>
-              <p className="text-xs font-mono text-emerald-700 mt-1">Segment &amp; Expert Matcher</p>
+              <h3 className="font-serif text-lg text-stone-900">Stakeholder Resolution</h3>
+              <p className="text-xs font-mono text-emerald-700 mt-1">Who is this really for?</p>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Analyzes raw business problems, automatically identifies the core target customer segments, and selects the exact expert personas or agents needed to solve them.
+              Turns a vague objective into a structured view of customers, users, buyers, affected stakeholders, desired outcomes, constraints, and unresolved assumptions.
             </p>
           </div>
 
@@ -2142,11 +2136,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <User className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-serif text-lg text-stone-900">Enterprise Digital Twins</h3>
-              <p className="text-xs font-mono text-emerald-700 mt-1">Role Impersonation (CFO / Design)</p>
+              <h3 className="font-serif text-lg text-stone-900">Evidence-Aware Personas</h3>
+              <p className="text-xs font-mono text-emerald-700 mt-1">Customer + ideal executor</p>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Creates psychologically grounded, 24/7 Digital Twins of key company roles. Grounded in private spreadsheets, Figma tokens, or Slack channels to keep operations running when members are OOO.
+              Produces operational customer and executor profiles with field-level provenance, confidence, quotes, inferences, and explicit working hypotheses when evidence is incomplete.
             </p>
           </div>
 
@@ -2156,11 +2150,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <Code className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-serif text-lg text-stone-900">Agentic Task Orchestration</h3>
-              <p className="text-xs font-mono text-emerald-700 mt-1">Custom API &amp; SMS Integration</p>
+              <h3 className="font-serif text-lg text-stone-900">Agent &amp; Team Fit</h3>
+              <p className="text-xs font-mono text-emerald-700 mt-1">Recommendation, not execution</p>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Executes concrete workflows inside secure sandboxes. Connects custom SMS gateways and messaging routes to chat interfaces, or automates end-to-end marketing campaigns for local shops.
+              Ranks Orqaly Agent Hub profiles against task fit, customer fit, tools, constraints, and evidence—then returns the reason, confidence, and goal-specific persona overlay.
             </p>
           </div>
 
@@ -2170,11 +2164,11 @@ export default function RedesignedHomePage(): React.JSX.Element {
               <Shield className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-serif text-lg text-stone-900">Sovereign Compliance</h3>
-              <p className="text-xs font-mono text-emerald-700 mt-1">Role-Based Access &amp; Audit Logs</p>
+              <h3 className="font-serif text-lg text-stone-900">Decisions That Improve</h3>
+              <p className="text-xs font-mono text-emerald-700 mt-1">Outcome feedback loop</p>
             </div>
             <p className="text-xs text-stone-600 leading-relaxed">
-              Maintains high-security guardrails with central RBAC policy gateways and chronological, trace-verified audit records—fully containerized to comply with strict enterprise standards.
+              Stores immutable decision records and learns from quality, time, cost, customer reaction, and success signals without silently rewriting the evidence behind earlier recommendations.
             </p>
           </div>
 
@@ -2184,20 +2178,19 @@ export default function RedesignedHomePage(): React.JSX.Element {
       {/* ----------------- Footer Call to Action ----------------- */}
       <section className="bg-[#1A1A1A] text-[#FCFAF7] px-6 lg:px-16 py-20 text-center border-t border-stone-800">
         <div className="max-w-2xl mx-auto space-y-6">
-          <span className="text-xs font-mono text-[#10B981] uppercase tracking-wider font-semibold">// SOVEREIGN ENGINE DEPLOYMENT</span>
-          <h2 className="font-serif text-4xl">Deploy AxWise Flow locally inside your private clouds.</h2>
+          <span className="text-xs font-mono text-[#10B981] uppercase tracking-wider font-semibold">// OPEN-SOURCE COGNITIVE LAYER</span>
+          <h2 className="font-serif text-4xl">Add customer-aware intelligence to every agentic goal.</h2>
           <p className="text-stone-400 text-sm max-w-lg mx-auto">
-            Run the entire context-engineered, multi-agent engine locally with direct database control, zero vendor lock-in, 
-            and complete compliance under the European AI Act.
+            Self-host AxWise to keep decision context and evidence inside your environment, or connect it to Orqaly for governed planning and execution. Deployment control supports your security and governance programme; it does not replace it.
           </p>
           <div className="pt-4 flex flex-wrap justify-center gap-4">
             <a 
-              href="https://github.com/AxWise-GmbH/Flow" 
+              href="https://github.com/AxWise-GmbH/axwise-flow-oss"
               target="_blank" 
               rel="noopener noreferrer"
               className="px-6 py-3 bg-[#FCFAF7] hover:bg-stone-100 text-[#1A1A1A] rounded-md font-medium text-sm flex items-center gap-2 transition-all shadow-md"
             >
-              Get Self-Hosted Code (Apache 2.0)
+              Explore AxWise on GitHub
               <ArrowRight className="w-4 h-4" />
             </a>
             <a 
@@ -2211,7 +2204,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
       </section>
 
       <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
-        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <a href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</a>
           <a href="/terms-of-service" className="hover:text-stone-300">Terms of Service</a>
