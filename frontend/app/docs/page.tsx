@@ -203,7 +203,7 @@ export default function DocsPage(): React.JSX.Element {
 
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-stone-700 leading-relaxed">
               <strong className="font-semibold text-stone-900">AxWise is an independent cognitive decision API.</strong>{' '}
-              It can be embedded in different products and agent stacks. The endpoints below document the optional Orqaly reference integration; Orqaly is a separate execution platform.
+              It can be embedded in different products and agent stacks. The endpoints below document the Orqaly reference integration, where AxWise decision intelligence enhances Orqaly planning and execution.
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
