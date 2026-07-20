@@ -8,8 +8,11 @@ from typing import Any
 
 from backend.api.research.simulation_bridge.models import (
     BusinessContext,
+    QuestionsData,
     SimulationConfig,
+    SimulationPerformanceProfile,
     SimulationRequest,
+    Stakeholder,
 )
 from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
@@ -59,6 +62,82 @@ class HybridResearchAdapter:
             for agent in request.available_agents
         ]
 
+    @staticmethod
+    def _questions_data(request: DecisionCreateRequestV1) -> QuestionsData:
+        """Build a domain-neutral, typed questionnaire without invoking the parser."""
+        brief = request.research_brief
+        if not brief:
+            raise ValueError("research brief is required")
+        supplied = list(brief.research_questions)
+        defaults = [
+            "Who directly experiences the problem, and how does it affect their work or life?",
+            "In what context, workflow, or situation does the problem occur?",
+            "Who decides, approves, funds, or can block a solution?",
+            "Who benefits from the outcome, including people different from the decision-maker?",
+            "Which observable or measurable outcome would count as success?",
+            "Which evidence, constraints, risks, or non-negotiable facts must guide the work?",
+            "Which capabilities, tools, communication style, and boundaries should the executor have?",
+        ]
+        questions = [
+            supplied[index] if index < len(supplied) else fallback
+            for index, fallback in enumerate(defaults)
+        ]
+        stakeholders = {
+            "primary": [
+                Stakeholder(
+                    id="problem_experiencer",
+                    name="Problem experiencer",
+                    description=(
+                        "The person, team, organisation, community, user, or other party "
+                        "that directly experiences the problem."
+                    ),
+                    questions=[questions[0], questions[1]],
+                ),
+                Stakeholder(
+                    id="decision_authority",
+                    name="Decision authority",
+                    description=(
+                        "The buyer, approver, funder, regulator, owner, or other party "
+                        "that can authorize or block the outcome."
+                    ),
+                    questions=[questions[2], questions[5]],
+                ),
+                Stakeholder(
+                    id="beneficiary",
+                    name="Outcome beneficiary",
+                    description=(
+                        "The person or group that receives the intended benefit, whether "
+                        "or not they are the buyer or direct user."
+                    ),
+                    questions=[questions[3], questions[4]],
+                ),
+            ],
+            "secondary": [
+                Stakeholder(
+                    id="executor",
+                    name="Executor",
+                    description=(
+                        "The person or agent responsible for carrying out the work in the "
+                        "relevant operational domain."
+                    ),
+                    questions=[questions[6], questions[5]],
+                ),
+                Stakeholder(
+                    id="outcome_definer",
+                    name="Outcome definer",
+                    description=(
+                        "The accountable party that defines acceptable evidence, quality, "
+                        "and observable success."
+                    ),
+                    questions=[questions[4], questions[5]],
+                ),
+            ],
+        }
+        return QuestionsData(
+            stakeholders=stakeholders,
+            timeEstimate={"totalQuestions": len(questions)},
+        )
+
     def start(
         self,
         request: DecisionCreateRequestV1,
@@ -80,10 +159,12 @@ class HybridResearchAdapter:
                 location=brief.location,
             ),
             raw_questionnaire_content=raw_questions,
+            questions_data=self._questions_data(request),
             config=SimulationConfig(
                 depth=brief.depth,
                 people_per_stakeholder=brief.sample_size,
                 include_insights=True,
+                performance_profile=SimulationPerformanceProfile.QUALITY_FAST,
             ),
         )
         run, _ = self.service.enqueue(

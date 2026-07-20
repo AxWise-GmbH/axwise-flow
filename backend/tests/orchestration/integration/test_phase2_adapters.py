@@ -101,6 +101,21 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
     assert service.enqueue_kwargs["idempotency_key"] == (
         "orchestration-research:decision-key"
     )
+    simulation = service.enqueue_kwargs["request"]
+    assert simulation.config.performance_profile.value == "quality_fast"
+    assert simulation.questions_data is not None
+    assert set(simulation.questions_data.stakeholders) == {"primary", "secondary"}
+    assert {
+        stakeholder.id
+        for group in simulation.questions_data.stakeholders.values()
+        for stakeholder in group
+    } == {
+        "problem_experiencer",
+        "decision_authority",
+        "beneficiary",
+        "executor",
+        "outcome_definer",
+    }
 
 
 def test_hybrid_timeout_cancels_the_bounded_run():

@@ -234,6 +234,14 @@ class OrchestrationDecisionService:
     ) -> DecisionCreateRequestV1:
         if mode != RoutingMode.EVIDENCE_ASSISTED:
             return request
+        return self._request_with_evidence_capability_hints(request, evidence)
+
+    def _request_with_evidence_capability_hints(
+        self,
+        request: DecisionCreateRequestV1,
+        evidence: list[EvidenceItemV1],
+    ) -> DecisionCreateRequestV1:
+        """Apply discovered capabilities as soft ranking preferences only."""
         hints = self.scorer.registry.normalize_many(
             hint for item in evidence for hint in item.capability_hints
         )
@@ -929,6 +937,14 @@ class OrchestrationDecisionService:
                         )
                     )
                 }
+            )
+        if result.job.status in USABLE_RESEARCH_STATUSES:
+            # The research-derived capability model can improve the immutable
+            # candidate ranking even when evidence remains too weak to authorize
+            # execution. These are preferences, never eligibility requirements.
+            enriched_request = self._request_with_evidence_capability_hints(
+                enriched_request,
+                bounded_evidence,
             )
         decision = self._build_decision(
             request=enriched_request,

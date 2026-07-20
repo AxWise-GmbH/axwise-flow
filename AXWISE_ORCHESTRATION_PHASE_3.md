@@ -152,6 +152,8 @@ The resulting pre-planning decision ID is passed back as `upstream_decision_id` 
 
 Direct and evidence-only paths may still populate Orqaly's contextual Agent Hub overlay, but they use `orqaly_context_resolution_v2` and a `source_type` of `declared_context` or `existing_evidence`. They must not be presented as researched customer personas.
 
+The routed A+B adapter converts the orchestration research brief into typed, domain-neutral stakeholder groups and uses the `quality_fast` performance profile. Post-research capability hints are applied only as soft candidate-ranking preferences. If evidence remains below the router threshold, the immutable decision stays `human_clarification`, publishes no recommended assignment or executable plan, and Orqaly may show the sanitized persona result only as a non-authoritative, non-assignable, non-executable working hypothesis pending human evidence.
+
 ## Verification coverage
 
 The supported tests cover:

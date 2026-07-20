@@ -315,6 +315,67 @@ def test_completed_research_creates_linked_immutable_rescore(decision_store):
     assert decision_store.query(OrchestrationEvent).count() == 2
 
 
+def test_post_research_capabilities_improve_ranking_without_authorizing_execution(
+    decision_store,
+):
+    payload = _ambiguous_research_payload()
+    payload["research_policy"]["minimum_evidence_sufficiency"] = 0.95
+    payload["available_agents"] = [
+        {
+            **payload["available_agents"][0],
+            "agent_id": "agent-general",
+            "name": "General Operations Agent",
+            "capabilities": ["core operation"],
+        },
+        {
+            **payload["available_agents"][0],
+            "agent_id": "agent-discovered",
+            "name": "Discovered Specialist",
+            "capabilities": ["core operation", "discovered capability"],
+        },
+    ]
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    parent = service.create(
+        _request(payload),
+        "axwise-user",
+        "research-soft-capability-parent",
+    )
+    research.result = ResearchResultV1(
+        job=parent.research_job.model_copy(
+            update={"status": "completed", "evidence_count": 1}
+        ),
+        evidence=[
+            EvidenceItemV1(
+                reference_id="synthetic:capability:1",
+                provenance="synthetic",
+                relevance=1.0,
+                quality=1.0,
+                verified=True,
+                verification_source="axwise_audit",
+                capability_hints=["discovered capability"],
+            )
+        ],
+    )
+
+    record = service.refresh_research(
+        parent.decision_id,
+        "orqaly-org-example",
+        "orqaly-user",
+        "axwise-user",
+        "research-soft-capability-result",
+    ).record
+
+    assert record.routing_mode.value == "human_clarification"
+    assert record.recommended_agents == []
+    assert record.execution_plan.executable is False
+    assert record.candidate_rankings[0].agent_id == "agent-discovered"
+    assert "discovered_capability" in record.input_snapshot.task.preferred_capabilities
+
+
 def test_refresh_caps_the_combined_existing_and_research_evidence(decision_store):
     payload = _ambiguous_research_payload()
     payload["research_policy"]["maximum_evidence_items"] = 2
