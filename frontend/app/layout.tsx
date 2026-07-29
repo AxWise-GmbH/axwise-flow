@@ -7,7 +7,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-  description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
+  description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -18,25 +18,16 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-    description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
     url: 'https://axwise.de',
     siteName: 'AxWise Flow',
-    images: [
-      {
-        url: 'https://axwise.de/og_preview.png',
-        width: 1200,
-        height: 630,
-        alt: 'AxWise cognitive decision layer for agentic work',
-      }
-    ],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'AxWise — Cognitive Decision Layer for Agentic Work',
-    description: 'Turn vague goals into evidence-aware customer context, ideal executor profiles, and trusted agent or team recommendations. Orqaly authorizes and executes.',
-    images: ['https://axwise.de/orqaly-axwise/assets/simple_mode_home.png'],
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
   },
 };
 

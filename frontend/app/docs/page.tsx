@@ -17,14 +17,14 @@ import {
   Check
 } from 'lucide-react';
 
-function HighlightPython({ code }: { code: string }) {
+function HighlightPython({ code, dark = false }: { code: string; dark?: boolean }) {
   const lines = code.split('\n');
   return (
-    <code className="block font-mono text-xs text-stone-800 whitespace-pre-wrap break-all break-words leading-relaxed">
+    <code className={`block font-mono text-xs whitespace-pre-wrap break-all break-words leading-relaxed ${dark ? 'text-stone-300' : 'text-stone-800'}`}>
       {lines.map((line, lineIdx) => {
         if (line.trim().startsWith('#') || line.trim().startsWith('//')) {
           return (
-            <div key={lineIdx} className="text-stone-400 font-mono italic">
+            <div key={lineIdx} className={`${dark ? 'text-stone-500' : 'text-stone-400'} font-mono italic`}>
               {line}
             </div>
           );
@@ -43,14 +43,14 @@ function HighlightPython({ code }: { code: string }) {
               }
               if (['import', 'as', 'from', 'def', 'class', 'return'].includes(token)) {
                 return (
-                  <span key={tokenIdx} className="text-stone-900 font-bold">
+                  <span key={tokenIdx} className={`${dark ? 'text-stone-100' : 'text-stone-900'} font-bold`}>
                     {token}
                   </span>
                 );
               }
               if (['requests', 'print', 'json'].includes(token)) {
                 return (
-                  <span key={tokenIdx} className="text-indigo-600 font-semibold">
+                  <span key={tokenIdx} className={`${dark ? 'text-blue-400' : 'text-indigo-600'} font-semibold`}>
                     {token}
                   </span>
                 );
@@ -171,9 +171,11 @@ export default function DocsPage(): React.JSX.Element {
           
           <nav className="flex flex-col gap-2.5 text-sm">
             <a href="#installation" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">1. Setup &amp; Docker</a>
-            <a href="#simulate" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Customer &amp; Executor</a>
-            <a href="#orchestration" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Progress &amp; Retrieval</a>
-            <a href="#twins-registry" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Execution Boundary</a>
+            <a href="#decision" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">2. Create a Decision</a>
+            <a href="#continue" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">3. Retrieve &amp; Refresh</a>
+            <a href="#outcomes" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">4. Replan &amp; Outcomes</a>
+            <a href="#research" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">5. Lower-level Research</a>
+            <a href="#trust-boundary" className="text-stone-600 hover:text-stone-900 font-medium border-l border-stone-200 pl-4 py-1 hover:border-stone-900 transition-all">6. Trust Boundary</a>
           </nav>
 
           <div className="bg-white border border-[#EAE6DF] p-4 rounded-lg space-y-3 shadow-sm text-xs">
@@ -182,7 +184,7 @@ export default function DocsPage(): React.JSX.Element {
               <span>TRUST BOUNDARY</span>
             </div>
             <p className="text-stone-600 leading-normal">
-              Self-hosting keeps the AxWise decision data plane under your control. AxWise remains advisory; the integrating product owns execution policy, connector access, and approvals. Deployment alone does not establish compliance.
+              The core is self-hostable. The hosted reference contract shown here is currently optimized for Orqaly. AxWise remains advisory; the integrating host owns identity, approvals, connector access, execution, and delivery.
             </p>
           </div>
         </aside>
@@ -193,253 +195,370 @@ export default function DocsPage(): React.JSX.Element {
           {/* Section 1: Installation */}
           <section id="installation" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">1. Setup &amp; Docker Install</h2>
-              <p className="text-sm text-stone-500 mt-1">Spin up the headless FastAPI server locally or build with Docker instantly.</p>
+              <h2 className="font-serif text-3xl text-stone-900">1. Run the Reference Stack</h2>
+              <p className="text-sm text-stone-500 mt-1">Start PostgreSQL, the FastAPI decision service, and the durable research worker together.</p>
             </div>
 
             <p className="text-stone-700 text-sm leading-relaxed">
-              AxWise Flow is built as a highly structured, decoupled Python package. Clone the open-source repository directly to configure local SQLite/Postgres pgvector grounding databases, or build the Docker image locally to run:
+              The decision endpoint can return a durable research job, so running only the backend is incomplete. The repository&apos;s Docker Compose stack builds the actual backend image, applies database migrations during API startup, and starts the worker that claims queued research.
             </p>
 
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 text-sm text-stone-700 leading-relaxed">
-              <strong className="font-semibold text-stone-900">AxWise is an independent cognitive decision API.</strong>{' '}
-              It can be embedded in different products and agent stacks. The endpoints below document the Orqaly reference integration, where AxWise decision intelligence enhances Orqaly planning and execution.
+              <strong className="font-semibold text-stone-900">Product boundary:</strong>{' '}
+              the Apache-2.0 cognitive core is self-hostable. The current hosted path, headers, and tenant-mapping model below are the Orqaly reference adapter—not yet a product-neutral hosted contract. Another host product can integrate the core, but it must supply its own trusted identity, authorization, approval, and execution boundary.
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
-                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Clone &amp; Run Local Server</div>
-                <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git &amp;&amp; cd axwise-flow-oss &amp;&amp; ./scripts/oss/run_backend_oss.sh</span>
-              </div>
-              <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
-                <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Build &amp; Run Local Docker Container</div>
-                <span className="text-emerald-500 select-none mr-1.5">$</span>
-                <span className="text-stone-200">docker build -t axwise-flow -f backend/Dockerfile.production . &amp;&amp; docker run -p 8000:8000 axwise-flow</span>
-              </div>
+            <div className="bg-[#1A1A1A] text-stone-300 rounded-lg p-4 font-mono text-xs border border-stone-800 shadow-md">
+              <div className="text-[10px] text-stone-500 border-b border-stone-800 pb-1.5 mb-2.5">// Fresh clone · backend + durable worker</div>
+              <HighlightPython dark code={`git clone https://github.com/AxWise-GmbH/axwise-flow-oss.git
+cd axwise-flow-oss
+cp .env.example .env
+
+# Set GEMINI_API_KEY in .env.
+# Replace AXWISE_API_KEY before exposing the service.
+docker compose up -d --build db backend worker
+
+# Health and interactive OpenAPI
+docker compose ps
+curl http://localhost:8000/health
+# Visit http://localhost:8000/docs`} />
             </div>
+
+            <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-4 leading-relaxed">
+              The reference endpoints fail closed unless a trusted host tenant is mapped to an AxWise workspace. For a local-only reference tenant, run{' '}
+              <code>docker compose exec backend python -m backend.scripts.seed_reference_tenant --org-id local-org --user-id local-user</code>.
+              Provision production mappings through an administrator-controlled process, never from a browser request.
+            </p>
           </section>
 
-          {/* Section 2: Simulate Twin */}
-          <section id="simulate" className="space-y-6 scroll-mt-24">
+          {/* Section 2: Create a decision */}
+          <section id="decision" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">2. Customer &amp; Executor Resolution</h2>
-              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-enhanced-async</p>
+              <h2 className="font-serif text-3xl text-stone-900">2. Create an Evidence-aware Decision</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/orchestration/decisions</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              This lower-level asynchronous endpoint starts the durable customer-and-executor pipeline. AxWise identifies the customer in the context of their pain, task, constraints, and desired outcome; creates the ideal human executor profile; then ranks the authenticated agents supplied by Orqaly. In the full Orqaly integration, start with the decision endpoint so AxWise can choose direct routing, evidence use, research, or clarification instead of running research unconditionally.
+              Start every integrated goal here. AxWise evaluates ambiguity, evidence sufficiency, consequence, and value of more information before choosing direct, evidence-assisted, bounded-research, or human-clarification routing. It then returns an immutable recommendation package. It does not authorize or execute the recommendation.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python payload script</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Trusted host request</span>
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
                   <HighlightPython code={`import requests
 
-url = "https://api.axwise.de/api/orqaly-axwise/v1/simulate-enhanced-async"
+base = "https://api.axwise.de/api/orqaly-axwise/v1"
 headers = {
-    "x-axwise-key": "<YOUR_SERVICE_KEY>",
-    "Idempotency-Key": "<UNIQUE_REQUEST_KEY>",
-    "X-Request-ID": "<TRACE_ID>",
-    "X-Orqaly-Org-ID": "<ORQALY_ORG_ID>",
-    "X-Orqaly-User-ID": "<ORQALY_USER_ID>"
+    "x-axwise-key": "<SERVICE_KEY>",
+    "Idempotency-Key": "<GOAL_VERSION_KEY>",
+    "X-Request-ID": "<TRACE_ID>"
 }
 payload = {
+    "contract_version": "1.0",
     "tenant": {
         "orgId": "<ORQALY_ORG_ID>",
         "userId": "<ORQALY_USER_ID>"
     },
-    "business_context": {
-        "business_idea": "Sovereign fleet telemetry routing",
-        "target_customer": "SME Logistics dispatchers",
-        "problem": "Manual tracking takes 10+ hours/week"
+    "task": {
+        "contract_version": "1.0",
+        "task_id": "goal-warehouse-handoff-v1",
+        "domain": "operations",
+        "objective": "Reduce damage at warehouse handoffs",
+        "desired_outcome": "A reviewed plan with owners and measurable controls",
+        "required_capabilities": ["operational analysis"],
+        "preferred_capabilities": ["stakeholder communication"],
+        "stakeholders": ["warehouse manager", "shift lead"],
+        "constraints": ["No external side effect without host approval"],
+        "data_classification": "internal",
+        "risk_level": "medium"
     },
-    "questions_data": {
-        "stakeholders": {
-            "primary": [
-                {
-                    "id": "dispatcher",
-                    "name": "Fleet Dispatcher",
-                    "questions": ["What is your biggest bottleneck?"]
-                }
-            ]
-        }
+    "available_agents": [{
+        "agent_id": "agent-operations",
+        "org_id": "<ORQALY_ORG_ID>",
+        "name": "Operations Analyst",
+        "capabilities": [
+            "operational analysis",
+            "stakeholder communication"
+        ],
+        "availability": "available",
+        "max_data_classification": "confidential",
+        "max_risk_level": "high"
+    }],
+    "policy_context": {
+        "maximum_risk_without_human": "medium",
+        "guardrails": ["The host must approve execution"]
     },
-    "config": {
-        "depth": "detailed",
-        "people_per_stakeholder": 1,
-        "response_style": "realistic",
-        "include_insights": true,
-        "temperature": 0.7
-    },
-    "outputs": {
-        "empirical_personas": true,
-        "insights": true,
-        "analysis_result": true,
-        "persona_resolution": true
-    },
-    "task_context": {
-        "title": "Dispatcher adoption plan",
-        "description": "Create a rollout plan that dispatchers can adopt",
-        "desired_outcome": "Reduce manual tracking without disrupting shifts",
-        "category": "operations",
-        "constraints": ["EU data residency", "limited training time"]
-    },
-    "agent_candidates": [
-        {
-            "agent_id": "agent-operations-strategist",
-            "name": "Operations Strategist",
-            "role": "Customer Operations Strategist",
-            "capabilities": ["workflow design", "change management"]
-        }
-    ]
+    "budget": {
+        "currency": "EUR",
+        "maximum_cost": 25,
+        "maximum_latency_ms": 120000
+    }
 }
-response = requests.post(url, headers=headers, json=payload)`} />
+response = requests.post(
+    f"{base}/orchestration/decisions",
+    headers=headers,
+    json=payload,
+    timeout=30
+)
+response.raise_for_status()`} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Accepted job [HTTP 202]</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Immutable recommendation excerpt · HTTP 201</span>
                 <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
                   <HighlightJSON code={`{
-  "job_id": "hybrid-123",
-  "status": "queued",
-  "links": {
-    "status": "/api/orqaly-axwise/v1/runs/hybrid-123/status",
-    "result": "/api/orqaly-axwise/v1/runs/hybrid-123"
-  }
+  "contract_version": "1.0",
+  "decision_id": "decision-…",
+  "task_id": "goal-warehouse-handoff-v1",
+  "routing_mode": "direct",
+  "status": "recommended",
+  "recommended_agents": [{
+    "agent_id": "agent-operations",
+    "eligible": true,
+    "score": 0.82,
+    "factors": []
+  }],
+  "execution_plan": {
+    "nodes": [{
+      "node_id": "node-direct-assignment",
+      "assigned_agent_id": "agent-operations"
+    }],
+    "executable": true
+  },
+  "approval_points": [],
+  "evidence": [],
+  "confidence": 0.82,
+  "requires_orqaly_authorization": true,
+  "request_hash": "4c61236d…"
 }`} />
                 </div>
               </div>
             </div>
-            <p className="text-xs text-stone-600 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              Build <code>agent_candidates</code> on the Orqaly server from the authenticated user&apos;s active agent catalogue. Never trust candidate ownership or service credentials supplied by the browser.
+
+            <p className="text-xs text-stone-600 bg-emerald-50 border border-emerald-200 rounded-lg p-4 leading-relaxed">
+              Construct <code>available_agents</code>, <code>available_tools</code>, policy, and tenant identifiers on the trusted host backend from the authenticated catalogue. Never accept candidate ownership, the machine credential, or authorization decisions from a browser. Retrieve the exact JSON Schemas at <code>/orchestration/schemas/decision-request-v1</code> and <code>/orchestration/schemas/execution-outcome-v1</code>.
             </p>
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 text-xs text-stone-600 leading-relaxed">
-              <strong className="text-stone-900">Integration errors:</strong> <code>401</code> invalid service key; <code>403</code> tenant or principal not mapped; <code>409</code> idempotency key reused with different input; <code>422</code> invalid request; <code>5xx</code> transient service failure. Retry transient failures with backoff and the same idempotency key.
+              <strong className="text-stone-900">Failure contract:</strong> <code>401</code> missing or invalid service key; <code>403</code> inactive or unknown tenant mapping; <code>409</code> idempotency key reused with different input; <code>422</code> invalid strict contract. Retry transient failures with backoff and the same idempotency key.
             </div>
           </section>
 
-          {/* Section 3: Progress & Retrieval */}
-          <section id="orchestration" className="space-y-6 scroll-mt-24">
+          {/* Section 3: Retrieve and refresh */}
+          <section id="continue" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">3. Progress &amp; Retrieval</h2>
-              <p className="text-sm text-stone-500 mt-1">GET /api/orqaly-axwise/v1/runs/{`{job_id}`}/status or /runs/{`{job_id}`}</p>
+              <h2 className="font-serif text-3xl text-stone-900">3. Retrieve or Refresh the Decision</h2>
+              <p className="text-sm text-stone-500 mt-1">GET /decisions/{`{decision_id}`} · POST /decisions/{`{decision_id}`}/research/refresh</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              Poll the status resource while AxWise runs the research job, then retrieve the completed result. The result contains the customer-in-context, evidence-linked insights, ideal executor persona, ranked Orqaly candidate, and authorisation advisory. Cancel with <code>POST /runs/{`{job_id}`}/cancel</code> when the work is no longer needed.
+              A direct, evidence-assisted, or clarification decision is immediately retrievable. A research-assisted decision returns <code>status: pending_research</code> and a durable <code>research_job</code>. Call refresh with a new idempotency key: HTTP 202 means the worker is still running; HTTP 201 returns a new linked decision after the evidence is available. The original snapshot is never rewritten.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Python status polling script</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Tenant-scoped retrieval</span>
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`import requests
-
-# Poll the durable job
-url = "https://api.axwise.de/api/orqaly-axwise/v1/runs/hybrid-123/status"
-headers = {
-    "x-axwise-key": "<YOUR_SERVICE_KEY>",
+                  <HighlightPython code={`tenant_headers = {
+    "x-axwise-key": "<SERVICE_KEY>",
     "X-Orqaly-Org-ID": "<ORQALY_ORG_ID>",
     "X-Orqaly-User-ID": "<ORQALY_USER_ID>"
 }
-response = requests.get(url, headers=headers)
-print(response.json())`} />
+decision = requests.get(
+    f"{base}/orchestration/decisions/{decision_id}",
+    headers=tenant_headers,
+    timeout=30
+)
+decision.raise_for_status()`} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Progress payload [JSON]</span>
-                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-                  <HighlightJSON code={`{
-  "job_id": "hybrid-123",
-  "status": "running",
-  "stage": "empirical_persona_resolution",
-  "progress_percentage": 55
-}`} />
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Continue bounded research</span>
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`refresh_headers = {
+    **tenant_headers,
+    "Idempotency-Key": "<REFRESH_ATTEMPT_KEY>",
+    "X-Request-ID": "<TRACE_ID>"
+}
+refreshed = requests.post(
+    f"{base}/orchestration/decisions/{decision_id}/research/refresh",
+    headers=refresh_headers,
+    timeout=30
+)
+if refreshed.status_code == 202:
+    # Keep the goal non-executable and retry with backoff.
+    pass
+elif refreshed.status_code in (200, 201):
+    next_decision = refreshed.json()
+else:
+    refreshed.raise_for_status()`} />
                 </div>
               </div>
             </div>
+
             <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-              <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-3">// Completed result excerpt</span>
+              <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block mb-3">// Research-assisted state excerpt</span>
               <HighlightJSON code={`{
-  "result": {
-    "data": {
-      "persona_resolution": {
-        "customer_persona": {
-          "name": "Evidence-first Event Lead",
-          "confidence": 0.85,
-          "evidence": [{"quote": "Exact source quote", "start_char": 0, "end_char": 18}]
-        },
-        "ideal_agent_persona": {
-          "role": "Customer Research Strategist",
-          "required_capabilities": ["customer research", "evidence analysis"]
-        },
-        "recommended_agent": {"agent_id": "agent-operations-strategist", "score": 0.82},
-        "selection_status": "matched_candidate",
-        "auto_assign_allowed": false,
-        "requires_orqaly_authorization": true
-      }
-    }
-  }
+  "decision_id": "decision-parent",
+  "routing_mode": "research_assisted",
+  "status": "pending_research",
+  "research_job": {
+    "job_id": "hybrid-…",
+    "status": "queued",
+    "pipeline": "hybrid_a_plus_b"
+  },
+  "execution_plan": {"nodes": [], "executable": false},
+  "requires_orqaly_authorization": true
 }`} />
             </div>
           </section>
 
-          {/* Section 4: Execution boundary */}
-          <section id="twins-registry" className="space-y-6 scroll-mt-24">
+          {/* Section 4: Replan and outcomes */}
+          <section id="outcomes" className="space-y-6 scroll-mt-24">
             <div className="border-b border-[#EAE6DF] pb-4">
-              <h2 className="font-serif text-3xl text-stone-900">4. Agent Execution Boundary</h2>
-              <p className="text-sm text-stone-500 mt-1">AxWise intelligence → Orqaly authorisation and execution</p>
+              <h2 className="font-serif text-3xl text-stone-900">4. Replan and Report Outcomes</h2>
+              <p className="text-sm text-stone-500 mt-1">Immutable recovery decisions and observed execution receipts</p>
             </div>
 
             <p className="text-[#1C1917] text-sm leading-relaxed">
-              AxWise recommends who should execute and how that expert should approach the task. Orqaly remains responsible for tenant ownership, agent availability, RBAC, approval, budget, tool access, and execution. Digital twins can perform LLM-native work immediately; actions through Slack, Drive, email, Figma, or financial systems require customer-authorised connectors and appropriate governance.
+              If the host rejects a recommendation or live execution state changes, request a linked replan instead of mutating the original decision. After the host authorizes and executes the plan, report observed outcomes using the real decision, node, and agent IDs. Outcomes improve evaluation; they do not give AxWise authority to run anything.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Production responsibility split</span>
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Replan after live state changes</span>
                 <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
-                  <HighlightPython code={`# AxWise returns:
-# - customer persona in task context
-# - evidence and precise source offsets
-# - ideal human executor / digital-twin persona
-# - ranked authenticated Orqaly agents
-# - advisory conditions and confidence
-
-# Orqaly then validates:
-# - tenant and agent ownership
-# - RBAC, approval, availability, and budget
-# - authorised tools and connected data sources
-# before executing the selected agent.`} />
+                  <HighlightPython code={`replan = requests.post(
+    f"{base}/orchestration/decisions/{decision_id}/replan",
+    headers={
+        **tenant_headers,
+        "Idempotency-Key": "<REPLAN_KEY>"
+    },
+    json={
+        "contract_version": "1.0",
+        "trigger": "agent_unavailable",
+        "reason": "Selected agent became unavailable",
+        "unavailable_agent_ids": ["agent-operations"],
+        "replacement_agents": [{
+            "agent_id": "agent-operations-backup",
+            "org_id": "<ORQALY_ORG_ID>",
+            "name": "Backup Operations Analyst",
+            "capabilities": ["operational analysis"],
+            "availability": "available"
+        }]
+    },
+    timeout=30
+)
+replan.raise_for_status()`} />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Capability status</span>
-                <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
-                  <HighlightJSON code={`{
-  "live": [
-    "customer_and_executor_resolution",
-    "evidence_offsets",
-    "agent_recommendation",
-    "durable_job_lifecycle"
-  ],
-  "integration_dependent": [
-    "slack", "drive", "email", "figma"
-  ],
-  "enterprise_controlled": [
-    "financial_actions", "autonomous_operations"
-  ]
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// Outcome after host execution</span>
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`outcome = requests.post(
+    f"{base}/orchestration/decisions/{decision_id}/outcomes",
+    headers={
+        **tenant_headers,
+        "Idempotency-Key": "<OUTCOME_KEY>"
+    },
+    json={
+        "contract_version": "1.0",
+        "outcome_id": "outcome-goal-warehouse-v1",
+        "decision_id": decision_id,
+        "authorization_status": "approved",
+        "execution_status": "completed",
+        "task_success": True,
+        "quality_score": 0.86,
+        "stakeholder_acceptance": 0.80,
+        "cost": 7.50,
+        "currency": "EUR",
+        "latency_ms": 42000,
+        "node_receipts": [{
+            "receipt_id": "receipt-node-direct-v1",
+            "node_id": "node-direct-assignment",
+            "agent_id": "agent-operations",
+            "status": "completed",
+            "quality_score": 0.86
+        }]
+    },
+    timeout=30
+)
+outcome.raise_for_status()`} />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-lg p-4 leading-relaxed">
+              List accepted records with <code>GET /orchestration/decisions/{`{decision_id}`}/outcomes</code>. Reuse the same idempotency key only for an identical body; changed retries return HTTP 409.
+            </p>
+          </section>
+
+          {/* Section 5: Lower-level research */}
+          <section id="research" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">5. Lower-level Research Is Secondary</h2>
+              <p className="text-sm text-stone-500 mt-1">POST /api/orqaly-axwise/v1/simulate-enhanced-async</p>
+            </div>
+
+            <p className="text-[#1C1917] text-sm leading-relaxed">
+              Use the enhanced simulation endpoint only when a trusted integration deliberately needs the raw durable customer-and-executor pipeline. It starts research unconditionally. For normal goal handling, the decision endpoint is the correct entry point because it may determine that existing evidence, direct routing, or human clarification is safer and faster.
+            </p>
+
+            <div className="bg-[#1A1A1A] p-4 rounded-lg border border-stone-900 shadow-md">
+              <HighlightJSON code={`{
+  "secondary_flow": {
+    "start": "POST /api/orqaly-axwise/v1/simulate-enhanced-async",
+    "status": "GET /api/orqaly-axwise/v1/runs/{job_id}/status",
+    "result": "GET /api/orqaly-axwise/v1/runs/{job_id}",
+    "cancel": "POST /api/orqaly-axwise/v1/runs/{job_id}/cancel"
+  },
+  "rule": "Synthetic output remains an unverified working hypothesis",
+  "preferred_goal_entry": "POST /api/orqaly-axwise/v1/orchestration/decisions"
 }`} />
+            </div>
+          </section>
+
+          {/* Section 6: Execution boundary */}
+          <section id="trust-boundary" className="space-y-6 scroll-mt-24">
+            <div className="border-b border-[#EAE6DF] pb-4">
+              <h2 className="font-serif text-3xl text-stone-900">6. Host Authorization and Execution Boundary</h2>
+              <p className="text-sm text-stone-500 mt-1">AxWise intelligence → host approval, tools, execution, and delivery</p>
+            </div>
+
+            <p className="text-[#1C1917] text-sm leading-relaxed">
+              AxWise returns who the work is for, what remains uncertain, the ideal executor requirements, a goal-specific execution persona, ranked eligible agents or teams, and an advisory plan. In the reference integration, Orqaly preserves permanent Agent Hub identities and owns both human gates, tenant ownership, live availability, budget, connectors, execution, monitoring, and delivery.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 bg-white border border-[#EAE6DF] p-5 rounded-lg shadow-sm">
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// AxWise returns advice</span>
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`# Evidence-bounded customer and stakeholder context
+# Ideal executor requirements and goal persona overlay
+# Ranked authenticated catalogue candidates
+# Routing rationale, confidence, plan, and fallbacks
+# Immutable request and decision hashes
+# requires_orqaly_authorization = True`} />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">// The host remains authoritative</span>
+                <div className="bg-stone-50 p-4 rounded-lg border border-stone-200 overflow-hidden shadow-sm">
+                  <HighlightPython code={`# Authenticate the user and establish tenant ownership
+# Confirm context before planning
+# Confirm exact team, tools, budget, and plan before execution
+# Revalidate approvals and live state when a queued task starts
+# Execute through customer-authorized connectors
+# Deliver output and report observed outcomes`} />
                 </div>
               </div>
             </div>
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-4">
-              Legacy <code>/twins/*</code> demonstration routes are not the production Orqaly integration contract. Do not build new integrations against them.
+              Legacy <code>/twins/*</code> demonstration routes are not the cognitive decision contract. Do not build new integrations against them. Self-hosting gives you control of the data plane; it does not by itself establish authorization, compliance, or safe autonomy.
             </p>
           </section>
 

@@ -515,12 +515,12 @@ export default function RedesignedHomePage(): React.JSX.Element {
 
             <div className="max-w-xl space-y-3">
               <p className="text-lg text-stone-600 leading-relaxed">
-                AxWise turns a goal into an evidence-backed execution brief:{' '}
+                AxWise turns a goal into an evidence-bounded execution brief:{' '}
                 <strong className="font-semibold text-stone-900">who the work is for, what outcome matters, what is known or uncertain, and which capabilities the work requires</strong>. It
-                returns that context, an execution persona, and a ranked agent or team through a standalone API.
+                returns that context, an execution persona, and a ranked agent or team through a self-hostable cognitive API.
               </p>
               <p className="text-sm text-stone-500 leading-relaxed">
-                Use AxWise inside your own product or agent stack. Or connect it to Orqaly, where AxWise decision intelligence complements Orqaly&apos;s governed execution, monitoring, and delivery.
+                Embed the open-source core in your own product or agent stack. The current hosted reference contract is optimized for Orqaly, where AxWise decision intelligence complements Orqaly&apos;s governed execution, monitoring, and delivery.
               </p>
             </div>
 
@@ -1078,9 +1078,9 @@ export default function RedesignedHomePage(): React.JSX.Element {
       <section id="trust" className="px-6 lg:px-16 py-24 max-w-7xl mx-auto border-b border-[#EAE6DF]">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
           <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// RECOMMENDATION ≠ AUTHORIZATION</span>
-          <h2 className="font-serif text-4xl text-stone-900">AxWise advises. Orqaly decides what may run.</h2>
+          <h2 className="font-serif text-4xl text-stone-900">AxWise advises. The host decides what may run.</h2>
           <p className="text-stone-600 text-sm">
-            Every AxWise decision requires Orqaly authorization. The illustrative downstream check below shows the responsibility boundary: Orqaly validates tenant ownership, identity, agent availability, approval, budget, and connector permissions before any external action.
+            Every AxWise recommendation requires authorization by the integrating host system. In the reference workflow below, Orqaly validates tenant ownership, identity, agent availability, approval, budget, and connector permissions before any external action.
           </p>
         </div>
 
@@ -1203,7 +1203,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
           <span className="text-xs font-mono uppercase tracking-wider text-emerald-600 font-semibold">// REFERENCE INTEGRATION · COMPLEMENTARY LAYERS</span>
           <h2 className="font-serif text-4xl text-stone-900">AxWise intelligence, connected to Orqaly execution</h2>
           <p className="text-stone-600 text-sm">
-            AxWise works independently as a cognitive decision API and can enhance different agentic or workflow products. The Orqaly use case below shows the two products working in synergy: AxWise returns context, evidence, an execution persona, and a ranked agent or team; Orqaly plans, authorises, and runs the work.
+            The self-hostable AxWise core can enhance different agentic or workflow products; its current hosted reference API is optimized for Orqaly. The use case below shows the two products working in synergy: AxWise returns context, evidence, an execution persona, and a ranked agent or team; Orqaly plans, authorises, and runs the work.
           </p>
         </div>
 
