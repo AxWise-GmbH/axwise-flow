@@ -103,8 +103,11 @@ export default function CustomerResearchPage(): React.JSX.Element {
       {/* ----------------- Customer Research Area ----------------- */}
       <main className="max-w-7xl mx-auto px-6 lg:px-16 py-16 space-y-12">
         <div className="space-y-4 border-b border-[#EAE6DF] pb-8">
-          <h1 className="font-serif text-5xl font-normal tracking-tight text-stone-900">Customer Research Panel</h1>
-          <p className="text-sm text-stone-500 font-mono">// Model and test target customer segments with cognitive interviews</p>
+          <h1 className="font-serif text-5xl font-normal tracking-tight text-stone-900">Bounded Research Workspace</h1>
+          <p className="text-sm text-stone-500 font-mono">// Secondary evidence workflow for goals the decision router cannot resolve safely</p>
+          <p className="max-w-3xl text-sm leading-relaxed text-stone-600">
+            Start with the cognitive decision API. Use this workspace only when AxWise determines that additional information has enough value to justify research. Synthetic responses are working hypotheses and remain unverified until confirmed by a human or an operational source.
+          </p>
         </div>
 
         {/* Quick Start Cards */}
@@ -122,7 +125,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Start New Research
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Initiate a guided, structural interview cycle with our context assistant to map stakeholder priorities and construct precise questionnaires.
+                Prepare a bounded research brief, map affected stakeholders, and define the questions needed to resolve a specific decision uncertainty.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">
@@ -143,7 +146,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Interactive Simulation
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Deploy customized, psychologically sampled synthetic customer twins to automatically execute conversations and test product strategies.
+                Generate labelled synthetic stakeholder hypotheses for review. These outputs do not become verified evidence or authorize execution by themselves.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">
@@ -166,7 +169,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Analyze Transcripts
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Upload raw qualitative user transcripts. Automatically extract goals, tools, and pains with synchronous character-level trace auditing.
+                Upload real qualitative transcripts and extract claims with character-level source offsets so downstream context remains inspectable.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">

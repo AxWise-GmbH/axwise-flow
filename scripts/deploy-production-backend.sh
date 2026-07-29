@@ -66,7 +66,7 @@ gcloud run deploy "${API_SERVICE}" \
   --concurrency 5 \
   --min-instances 1 \
   --max-instances 5 \
-  --update-env-vars "AXWISE_WEBHOOK_ALLOWED_HOSTS=api.orqaly.com" \
+  --update-env-vars "AXWISE_WEBHOOK_ALLOWED_HOSTS=api.orqaly.com,AXWISE_BUILD_REVISION=${REVISION}" \
   --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
 
 # Cloud Run preserves an explicit revision pin when a service was previously
@@ -102,7 +102,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --concurrency 1 \
   --min-instances 1 \
   --max-instances 1 \
-  --set-env-vars "ENVIRONMENT=production,LLM_PROVIDER=gemini,GEMINI_MODEL=models/gemini-3.5-flash,MAX_PERSONAS=5,WORKER_POLL_SECONDS=1,AXWISE_WEBHOOK_ALLOWED_HOSTS=api.orqaly.com" \
+  --set-env-vars "ENVIRONMENT=production,LLM_PROVIDER=gemini,GEMINI_MODEL=models/gemini-3.5-flash,MAX_PERSONAS=5,WORKER_POLL_SECONDS=1,AXWISE_WEBHOOK_ALLOWED_HOSTS=api.orqaly.com,AXWISE_BUILD_REVISION=${REVISION}" \
   --set-secrets "DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"

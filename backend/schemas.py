@@ -116,6 +116,9 @@ class HealthCheckResponse(BaseModel):
 
     status: str
     timestamp: datetime
+    service: str
+    version: str
+    revision: str | None = None
 
 
 # Detailed Analysis Result Models
