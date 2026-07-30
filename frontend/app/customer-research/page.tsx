@@ -67,31 +67,22 @@ export default function CustomerResearchPage(): React.JSX.Element {
       <header className="sticky top-0 z-50 bg-[#FCFAF7]/90 backdrop-blur-md border-b border-[#EAE6DF] px-4 lg:px-8 xl:px-16 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <div className="flex items-center gap-2">
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{ width: '28px', height: '28px', flexShrink: 0 }}>
-              <defs>
-                <radialGradient id="o2_logo_cr" cx="40%" cy="40%"><stop offset="0%" stopColor="#34D399" stopOpacity="0.6"></stop><stop offset="100%" stopColor="#064E3B"></stop></radialGradient>
-              </defs>
-              <circle cx="32" cy="32" r="24" fill="url(#o2_logo_cr)"></circle>
-              <circle cx="32" cy="32" r="22" fill="none" stroke="#34D399" strokeOpacity="0.4" strokeWidth="3" strokeDasharray="20 15"></circle>
-            </svg>
-            <span className="font-sans font-medium text-sm text-stone-500">Orqaly</span>
-            <span className="text-stone-300 font-light select-none">×</span>
-            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" stroke-width="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}><rect width="24" height="24" rx="6" fill="#000" stroke="#333" strokeWidth="1"/><path d="M12 5L18.062 8.5V15.5L12 19L5.938 15.5V8.5L12 5Z" stroke="#fff" strokeWidth="2" fill="none" strokeLinejoin="round"/><circle cx="12" cy="12" r="1.5" fill="#fff"/></svg>
             <span className="font-serif font-bold text-lg tracking-tight">AxWise</span>
           </div>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-4 xl:gap-8 text-xs xl:text-sm font-medium text-stone-600">
-          <Link href="/#consilium" className="hover:text-stone-900 transition-colors">Consilium Sandbox</Link>
-          <Link href="/#traceability" className="hover:text-stone-900 transition-colors">Traceability</Link>
-          <Link href="/#policy" className="hover:text-stone-900 transition-colors">RBAC Gateway</Link>
-          <Link href="/#twins" className="hover:text-stone-900 transition-colors">Digital Twins</Link>
-          <Link href="/#compliance" className="hover:text-stone-900 transition-colors">Use Cases</Link>
+          <Link href="/#decision-lab" className="hover:text-stone-900 transition-colors">Decision Lab</Link>
+          <Link href="/#evidence" className="hover:text-stone-900 transition-colors">Evidence</Link>
+          <Link href="/#trust" className="hover:text-stone-900 transition-colors">Trust Boundary</Link>
+          <Link href="/#execution" className="hover:text-stone-900 transition-colors">Orqaly Integration</Link>
+          <Link href="/#use-cases" className="hover:text-stone-900 transition-colors">Use Cases</Link>
         </nav>
 
         <div className="flex items-center gap-3">
           <a 
-            href="https://github.com/AxWise-GmbH/Flow" 
+            href="https://github.com/AxWise-GmbH/axwise-flow-oss"
             target="_blank" 
             rel="noopener noreferrer" 
             className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 border border-stone-300 rounded-md text-xs font-mono text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-all"
@@ -112,8 +103,11 @@ export default function CustomerResearchPage(): React.JSX.Element {
       {/* ----------------- Customer Research Area ----------------- */}
       <main className="max-w-7xl mx-auto px-6 lg:px-16 py-16 space-y-12">
         <div className="space-y-4 border-b border-[#EAE6DF] pb-8">
-          <h1 className="font-serif text-5xl font-normal tracking-tight text-stone-900">Customer Research Panel</h1>
-          <p className="text-sm text-stone-500 font-mono">// Model and test target customer segments with cognitive interviews</p>
+          <h1 className="font-serif text-5xl font-normal tracking-tight text-stone-900">Bounded Research Workspace</h1>
+          <p className="text-sm text-stone-500 font-mono">// Secondary evidence workflow for goals the decision router cannot resolve safely</p>
+          <p className="max-w-3xl text-sm leading-relaxed text-stone-600">
+            Start with the cognitive decision API. Use this workspace only when AxWise determines that additional information has enough value to justify research. Synthetic responses are working hypotheses and remain unverified until confirmed by a human or an operational source.
+          </p>
         </div>
 
         {/* Quick Start Cards */}
@@ -131,7 +125,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Start New Research
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Initiate a guided, structural interview cycle with our context assistant to map stakeholder priorities and construct precise questionnaires.
+                Prepare a bounded research brief, map affected stakeholders, and define the questions needed to resolve a specific decision uncertainty.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">
@@ -152,7 +146,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Interactive Simulation
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Deploy customized, psychologically sampled synthetic customer twins to automatically execute conversations and test product strategies.
+                Generate labelled synthetic stakeholder hypotheses for review. These outputs do not become verified evidence or authorize execution by themselves.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">
@@ -175,7 +169,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
                 Analyze Transcripts
               </CardTitle>
               <CardDescription className="text-stone-600 text-xs leading-relaxed font-sans">
-                Upload raw qualitative user transcripts. Automatically extract goals, tools, and pains with synchronous character-level trace auditing.
+                Upload real qualitative transcripts and extract claims with character-level source offsets so downstream context remains inspectable.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 pt-6">
@@ -197,7 +191,7 @@ export default function CustomerResearchPage(): React.JSX.Element {
 
       {/* Footer */}
       <footer className="bg-[#121212] text-stone-500 px-6 lg:px-16 py-8 border-t border-stone-900 text-xs flex flex-wrap justify-between items-center">
-        <div>© 2026 AxWise GmbH &amp; Orqaly. All rights reserved. Licensed under Apache 2.0.</div>
+        <div>© 2026 AxWise. AxWise Flow is licensed under Apache 2.0.</div>
         <div className="flex gap-6 mt-4 md:mt-0">
           <Link href="/privacy-policy" className="hover:text-stone-300">Privacy Policy</Link>
           <Link href="/terms-of-service" className="hover:text-stone-300">Terms of Service</Link>

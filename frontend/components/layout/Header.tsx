@@ -85,20 +85,20 @@ export function Header(): JSX.Element {
             </Link>
 
             <Link
-              href="https://github.com/AxWise-GmbH/axwise-flow"
+              href="https://github.com/AxWise-GmbH/axwise-flow-oss"
               target="_blank"
               rel="noopener noreferrer"
               className="no-underline"
               onClick={() => {
                 try {
-                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow', ButtonLocation.HEADER);
+                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow-oss', ButtonLocation.HEADER);
                 } catch (error) {
                   console.warn('Analytics tracking failed:', error);
                 }
               }}
             >
               <img
-                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star"
+                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow-oss.svg?style=social&label=Star"
                 alt="GitHub stars"
                 className="h-5"
               />
@@ -170,13 +170,13 @@ export function Header(): JSX.Element {
             </Link>
 
             <Link
-              href="https://github.com/AxWise-GmbH/axwise-flow"
+              href="https://github.com/AxWise-GmbH/axwise-flow-oss"
               target="_blank"
               rel="noopener noreferrer"
               className="no-underline"
               onClick={() => {
                 try {
-                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow', ButtonLocation.MOBILE_MENU);
+                  trackNavigation('GitHub Stars', pathname, 'https://github.com/AxWise-GmbH/axwise-flow-oss', ButtonLocation.MOBILE_MENU);
                 } catch (error) {
                   console.warn('Analytics tracking failed:', error);
                 }
@@ -184,7 +184,7 @@ export function Header(): JSX.Element {
               }}
             >
               <img
-                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow.svg?style=social&label=Star"
+                src="https://img.shields.io/github/stars/AxWise-GmbH/axwise-flow-oss.svg?style=social&label=Star"
                 alt="GitHub stars"
                 className="h-5"
               />

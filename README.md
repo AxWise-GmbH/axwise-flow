@@ -89,9 +89,9 @@ AxWise Flow is intended to support domain-neutral orchestration for software eng
 * **Product Boundary**: AxWise returns an explainable recommendation. Orqaly rechecks availability, ownership, permissions, budget, and tool scope before it executes the approved plan.
 * **Current Status**: Phases 1–4 accept one strict task contract across domains, classify uncertainty and evidence sufficiency, bound research by value/cost/time, construct validated multi-agent plans, link pre-planning context to final assignments, create immutable recovery decisions, store execution receipts, evaluate outcomes, and govern tenant-scoped scorer promotion/rollback. Scheduled production-scale replay and paid-pilot proof remain open.
 
-### 2. Generative Agents & "Digital Twins" (Simulation)
+### 2. Simulated Stakeholder Profiles
 * **What it does**: Automatically instantiates highly specific, psychologically realistic personas based on raw commercial context. 
-* **Use Case**: Spin up digital twins of target stakeholders (e.g., enterprise compliance officers, procurement leads, local craftspeople) and interview them dynamically before writing a single line of code or launching a marketing campaign.
+* **Use Case**: Simulate target stakeholders (e.g., enterprise compliance officers, procurement leads, local craftspeople) and interview them dynamically before writing a single line of code or launching a marketing campaign.
 * **Underlying Tech**: Uses statistical Gaussian sampling to model personality metrics (Big Five OCEAN traits) matching occupational baselines, driving the conversational response profiles of the simulated agents.
 
 ### 3. Live Research & Interactive Chats
@@ -115,6 +115,7 @@ FastAPI registers a clean OpenAPI routing table at `/docs`. The key endpoints ar
 * `GET /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}`: Retrieves the exact tenant-owned request snapshot and decision for audit.
 * `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/research/refresh`: Returns `202` while A+B is pending, then creates a linked immutable evidence-rescored decision when research becomes terminal.
 * `POST /api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/replan`: Creates a linked immutable recovery decision for agent unavailability, tool failure, rejected output, budget change, or human override.
+* `scripts/benchmark_orchestration_research.py`: Runs the guarded 20+ sample [staging latency and evidence-quality benchmark](backend/docs/staging_research_benchmark.md) before promotion.
 * `GET /api/orqaly-axwise/v1/orchestration/schemas/decision-request-v1`: Publishes the authenticated backward-compatible v1 request JSON Schema, including optional Phase 2 evidence/research and Phase 3 planning controls.
 
 ### Pipeline Ingestion

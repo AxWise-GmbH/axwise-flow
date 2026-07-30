@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-  description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+  title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+  description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
   icons: {
     icon: [
       { url: '/favicon.ico' },
@@ -17,26 +17,17 @@ export const metadata: Metadata = {
     apple: '/favicon.ico',
   },
   openGraph: {
-    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
+    title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
     url: 'https://axwise.de',
     siteName: 'AxWise Flow',
-    images: [
-      {
-        url: 'https://axwise.de/og_preview.png',
-        width: 1200,
-        height: 630,
-        alt: 'AxWise Flow — Real-World Digital Twin Chats',
-      }
-    ],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'AxWise Flow — Self-Hosted Headless REST API Engine',
-    description: 'Instantiate psychologically grounded Sovereign Digital Twins that execute operational processes inside secure, containerized environments. Built on Orqaly’s Agentic OS.',
-    images: ['https://axwise.de/orqaly-axwise/assets/simple_mode_home.png'],
+    card: 'summary',
+    title: 'AxWise — Cognitive Decision Layer for Agentic Work',
+    description: 'Turn vague goals into evidence-aware context and trusted agent or team recommendations. Host systems authorize and execute; Orqaly is the reference integration.',
   },
 };
 
