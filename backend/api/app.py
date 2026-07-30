@@ -1,5 +1,5 @@
 """
-FastAPI application for handling interview data and analysis.
+FastAPI application for the AxWise cognitive decision API.
 
 📚 IMPLEMENTATION REFERENCE: See docs/pydantic-instructor-implementation-guide.md
    for proper Pydantic Instructor usage, JSON parsing, and structured output handling.
@@ -17,7 +17,8 @@ from dotenv import load_dotenv
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env_file = os.path.join(backend_dir, ".env.oss")
 if os.path.exists(env_file):
-    load_dotenv(env_file, override=True)
+    # Explicit process/container environment always wins over a local file.
+    load_dotenv(env_file, override=False)
     print(f"[INFO] Loaded environment from {env_file}")
 else:
     print(f"[WARNING] .env.oss file not found at {env_file}")
@@ -148,31 +149,41 @@ def transform_analysis_results(results):
 
 # Initialize FastAPI with security scheme
 app = FastAPI(
-    title="Interview Analysis API",
+    title="AxWise Cognitive Decision API",
     description="""
-    API for interview data analysis.
+    AxWise turns operational goals into evidence-aware routing decisions,
+    customer and stakeholder context, ideal-executor requirements, and ranked
+    agent or team recommendations.
 
-    Available LLM providers and models:
-    - OpenAI: gpt-5
-    - Google: models/gemini-3.5-flash (Gemini 3.5 Flash)
+    **Product boundary**
 
-    Authentication:
-    - All endpoints (except /health) require Bearer token authentication
-    - For Phase 1/2, any non-empty token value is accepted for testing
-    - In production, proper JWT validation will be implemented
+    - The Apache-2.0 core is self-hostable.
+    - The hosted `/api/orqaly-axwise/v1` reference contract is currently
+      optimized for Orqaly.
+    - AxWise is advisory. The integrating host system owns identity,
+      authorization, approvals, tool access, execution, and delivery.
+
+    **Authentication**
+
+    Authentication is endpoint-specific. The Orqaly reference contract uses an
+    `x-axwise-key` machine credential and a persisted tenant mapping. Candidate
+    ownership and authorization must be established by the trusted host
+    backend, never by browser-supplied claims.
     """,
-    version="2.0.0",
+    version="1.0.0",
     openapi_url="/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
     contact={
-        "name": "Development Team",
-        "email": "dev@example.com",
+        "name": "AxWise",
+        "url": "https://axwise.de",
     },
     license_info={
-        "name": "Private",
-        "url": "https://example.com/license",
+        "name": "Apache License 2.0",
+        "identifier": "Apache-2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
     },
+    terms_of_service="https://axwise.de/terms-of-service",
 )
 
 # Get CORS settings from centralized configuration
@@ -669,8 +680,15 @@ async def health_check():
     """
     Simple health check endpoint.
     """
-    # Return dict instead of HealthCheckResponse to control timestamp format
-    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+    # Include an immutable build marker when the deploy script supplies one so
+    # an E2E receipt can prove which serving revision handled the request.
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "axwise-cognitive-decision-api",
+        "version": app.version,
+        "revision": os.getenv("AXWISE_BUILD_REVISION") or os.getenv("K_REVISION"),
+    }
 
 
 @app.get(

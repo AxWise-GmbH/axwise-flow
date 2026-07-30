@@ -1,0 +1,16 @@
+# Local credentials must never enter the backend image build context.
+.env
+.env.*
+!.env.example
+
+# Local runtimes and caches
+venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Local data and editor files
+*.db
+.DS_Store
+.vscode/

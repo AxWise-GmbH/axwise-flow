@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       service: 'axwise-frontend',
       version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
+      revision: process.env.AXWISE_BUILD_REVISION || 'local'
     });
   } catch (error) {
     return NextResponse.json(
