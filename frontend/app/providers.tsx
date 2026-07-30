@@ -44,6 +44,10 @@ export function Providers({ children }: ProvidersProps): JSX.Element {
       {isClerkConfigured ? (
         <ClerkProvider
           publishableKey={clerkConfig.publishableKey}
+          signInUrl={clerkConfig.signInUrl}
+          signUpUrl={clerkConfig.signUpUrl}
+          signInFallbackRedirectUrl={clerkConfig.signInFallbackRedirectUrl}
+          signUpFallbackRedirectUrl={clerkConfig.signUpFallbackRedirectUrl}
           appearance={clerkConfig.appearance}
         >
           {content}
