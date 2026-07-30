@@ -3,7 +3,7 @@
 # Builds frontend/Dockerfile with --target runner. Public NEXT_PUBLIC_* env
 # vars are inlined into the client bundle by Next.js at build time, so we
 # forward them as --build-arg values from substitutions. Substitution values
-# are supplied by scripts/deploy-axwise-de-frontend.sh.
+# are supplied by scripts/deploy-production-frontend.sh.
 
 steps:
   - name: "gcr.io/cloud-builders/docker"
@@ -63,4 +63,3 @@ images:
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: "E2_HIGHCPU_8"
-

@@ -355,7 +355,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
   // Gateway active tab selection for the carousel
   const [gatewayTab, setGatewayTab] = useState<'simulate' | 'parse' | 'rbac'>('simulate');
 
-  // Selected state for the brand-new digital twins action showcase (representing slides 10-13)
+  // Selected state for the Orqaly execution showcase (representing slides 10-13)
   const [twinsTab, setTwinsTab] = useState<'cfo' | 'rbac_gov' | 'designer' | 'bpmn'>('cfo');
 
   // CLI State
@@ -818,10 +818,10 @@ export default function RedesignedHomePage(): React.JSX.Element {
           ))}
         </div>
 
-        {/* Console & Twins Board */}
+        {/* Console & Executor Profiles Board */}
         <div className="grid lg:grid-cols-12 gap-8">
 
-          {/* Usecase Description & Digital Twins */}
+          {/* Use-case Description & Executor Profiles */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-[#EAE6DF] p-6 rounded-lg shadow-sm space-y-4">
               <div>
@@ -1255,7 +1255,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
         <div className="bg-white border border-[#EAE6DF] rounded-xl p-6 md:p-8 shadow-sm relative overflow-hidden">
           <AnimatePresence mode="wait">
 
-            {/* 1. CFO Twin Tab */}
+            {/* 1. CFO Goal Persona Tab */}
             {twinsTab === 'cfo' && (
               <motion.div
                 key="cfo-twin"
@@ -1324,7 +1324,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 {/* Left side info */}
                 <div className="col-span-12 lg:col-span-4 space-y-4">
                   <div className="border border-emerald-200 bg-emerald-50/30 p-5 rounded-lg space-y-3">
-                    <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">Illustrative digital-twin use case</span>
+                    <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">Illustrative goal-execution use case</span>
                     <h3 className="font-serif text-lg text-stone-950">Veronika Horvat</h3>
                     <p className="text-xs text-stone-600 leading-relaxed">
                       AxWise can shape a goal-specific CFO execution persona and recommend the matching Agent Hub profile. Orqaly alone activates the agent and grants any authorised, read-only access to finance or communication sources.
@@ -1371,14 +1371,14 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         />
                         <div>
                           <div className="text-[10px] font-semibold text-stone-900 leading-tight">Veronika Horvat</div>
-                          <div className="text-[7.5px] text-[#00A884]">Away · Twin Active</div>
+                          <div className="text-[7.5px] text-[#00A884]">Away · Authorized Agent Active</div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex-1 p-2.5 overflow-y-auto space-y-2.5 flex flex-col">
                       <div className="bg-[#FFEECD] text-[7.5px] text-stone-600 px-2 py-1 rounded border border-[#FFE3B3] text-center self-center max-w-[95%] leading-snug">
-                        Veronika is Out of Office. Queries handled by her Digital Twin.
+                        Veronika is out of office. Requests are handled by an authorized agent using her goal execution persona.
                       </div>
 
                       <div className="bg-[#D9FDD3] self-end max-w-[85%] rounded-lg p-2 text-[9.5px] text-stone-900 shadow-sm leading-snug">
@@ -1387,7 +1387,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       </div>
 
                       <div className="bg-white self-start max-w-[85%] rounded-lg p-2 text-[9.5px] text-stone-900 shadow-sm space-y-1.5 leading-snug">
-                        <p><span className="text-[7px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded mr-1">CFO TWIN</span>Hi! Pulling from Q2 Planning. Here is the file and key points:</p>
+                        <p><span className="text-[7px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded mr-1">CFO AGENT</span>Hi! Pulling from Q2 Planning. Here is the file and key points:</p>
 
                         <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 p-1.5 rounded-md">
                           <div className="w-5.5 h-5.5 bg-emerald-100 rounded flex items-center justify-center text-emerald-700">
@@ -1420,7 +1420,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                   {/* Connector */}
                   <div className="flex md:flex-col items-center gap-1 py-2 md:py-0 px-3 text-stone-400 flex-shrink-0">
                     <div className="h-px w-6 md:h-12 md:w-px bg-gradient-to-r md:bg-gradient-to-b from-emerald-500/20 to-transparent"></div>
-                    <span className="text-[7.5px] font-mono tracking-wider uppercase text-emerald-600 font-bold opacity-60">same twin</span>
+                    <span className="text-[7.5px] font-mono tracking-wider uppercase text-emerald-600 font-bold opacity-60">same authorized agent</span>
                     <div className="h-px w-6 md:h-12 md:w-px bg-gradient-to-r md:bg-gradient-to-b from-transparent to-emerald-500/20"></div>
                   </div>
 
@@ -1465,7 +1465,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         <div className="w-7 h-7 bg-gradient-to-br from-emerald-800 to-emerald-600 text-white rounded flex items-center justify-center text-[9px] font-bold font-mono">AW</div>
                         <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-bold text-stone-900 leading-none">Veronika's Twin</span>
+                            <span className="text-[10px] font-bold text-stone-900 leading-none">Veronika&apos;s Agent</span>
                             <span className="bg-purple-800 text-white text-[7px] font-bold uppercase px-1 py-0.5 rounded ml-1 leading-none">APP</span>
                             <span className="text-[7px] text-stone-400 ml-1">9:43 AM</span>
                           </div>
@@ -1561,14 +1561,14 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         />
                         <div>
                           <div className="text-[10px] font-semibold text-stone-900 leading-tight">Veronika Horvat</div>
-                          <div className="text-[7.5px] text-[#00A884]">Away · Twin Active</div>
+                          <div className="text-[7.5px] text-[#00A884]">Away · Authorized Agent Active</div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex-1 p-2.5 overflow-y-auto space-y-2.5 flex flex-col">
                       <div className="bg-[#FFEECD] text-[7.5px] text-stone-600 px-2 py-1 rounded border border-[#FFE3B3] text-center self-center max-w-[95%] leading-snug">
-                        Veronika is Out of Office. Queries handled by her Digital Twin.
+                        Veronika is out of office. Requests are handled by an authorized agent using her goal execution persona.
                       </div>
 
                       <div className="bg-[#D9FDD3] self-end max-w-[85%] rounded-lg p-2 text-[9.5px] text-stone-900 shadow-sm leading-snug">
@@ -1634,7 +1634,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                             <span className="text-[7px] text-stone-400">10:17 AM</span>
                           </div>
                           <p className="text-[9.5px] text-stone-700 leading-snug">
-                            <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-medium">@Veronika</span> I also need the AWS billing credentials from Finance. Can the twin pull those for me?
+                            <span className="text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-medium">@Veronika</span> I also need the AWS billing credentials from Finance. Can the agent retrieve those for me?
                           </p>
                         </div>
                       </div>
@@ -1643,7 +1643,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         <div className="w-7 h-7 bg-red-950 text-red-400 rounded flex items-center justify-center text-[9px] font-bold font-mono">AW</div>
                         <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-bold text-stone-900 leading-none">Veronika's Twin</span>
+                            <span className="text-[10px] font-bold text-stone-900 leading-none">Veronika&apos;s Agent</span>
                             <span className="bg-red-800 text-white text-[7px] font-bold uppercase px-1 py-0.5 rounded ml-1 leading-none">APP</span>
                             <span className="text-[7px] text-stone-400 ml-1">10:17 AM</span>
                           </div>
@@ -1670,7 +1670,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
               </motion.div>
             )}
 
-            {/* 3. Designer Twin Tab */}
+            {/* 3. Design Execution Persona Tab */}
             {twinsTab === 'designer' && (
               <motion.div
                 key="designer-twin"
@@ -1682,14 +1682,14 @@ export default function RedesignedHomePage(): React.JSX.Element {
                 {/* Left side info */}
                 <div className="col-span-12 lg:col-span-4 space-y-4">
                   <div className="border border-blue-200 bg-blue-50/20 p-5 rounded-lg space-y-3">
-                    <span className="text-[10px] font-mono text-blue-800 uppercase tracking-wider font-semibold">Designer Twin</span>
+                    <span className="text-[10px] font-mono text-blue-800 uppercase tracking-wider font-semibold">Design execution persona</span>
                     <h3 className="font-serif text-lg text-stone-950">Clara Dubois</h3>
                     <p className="text-xs text-stone-600 leading-relaxed">
-                      Clara is presenting at a design conference. Her twin handles cross-functional spacing tokens, height specifications, and UI asset distribution directly on Slack.
+                      Clara is presenting at a design conference. An authorized Orqaly agent uses her goal execution persona and approved connectors to answer design-system questions.
                     </p>
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-mono rounded font-semibold">
                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                      Twin Online &amp; FIGMA Connected
+                      Agent Authorized &amp; Figma Connected
                     </span>
                   </div>
 
@@ -1729,14 +1729,14 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         />
                         <div>
                           <div className="text-[10px] font-semibold text-stone-900 leading-tight">Clara Dubois</div>
-                          <div className="text-[7.5px] text-[#00A884]">Away · Twin Active</div>
+                          <div className="text-[7.5px] text-[#00A884]">Away · Authorized Agent Active</div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex-1 p-2.5 overflow-y-auto space-y-2.5 flex flex-col">
                       <div className="bg-[#FFEECD] text-[7.5px] text-stone-600 px-2 py-1 rounded border border-[#FFE3B3] text-center self-center max-w-[95%] leading-snug">
-                        Clara is at a conference. Queries handled by her Digital Twin.
+                        Clara is at a conference. Requests are handled by an authorized agent using her goal execution persona.
                       </div>
 
                       <div className="bg-[#D9FDD3] self-end max-w-[85%] rounded-lg p-2 text-[9.5px] text-stone-900 shadow-sm leading-snug">
@@ -1745,7 +1745,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       </div>
 
                       <div className="bg-white self-start max-w-[85%] rounded-lg p-2 text-[9.5px] text-stone-900 shadow-sm space-y-1.5 leading-snug">
-                        <p><span className="text-[7px] font-bold text-blue-800 bg-blue-50 px-1 py-0.5 rounded mr-1">DESIGNER TWIN</span>Found it! The latest version is in the Design Drive:</p>
+                        <p><span className="text-[7px] font-bold text-blue-800 bg-blue-50 px-1 py-0.5 rounded mr-1">DESIGN AGENT</span>Found it! The latest version is in the Design Drive:</p>
 
                         <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 p-1.5 rounded-md">
                           <div className="w-5.5 h-5.5 bg-blue-100 rounded flex items-center justify-center text-blue-700">
@@ -1777,7 +1777,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                   {/* Connector */}
                   <div className="flex md:flex-col items-center gap-1 py-2 md:py-0 px-3 text-stone-400 flex-shrink-0">
                     <div className="h-px w-6 md:h-12 md:w-px bg-gradient-to-r md:bg-gradient-to-b from-blue-500/20 to-transparent"></div>
-                    <span className="text-[7.5px] font-mono tracking-wider uppercase text-blue-600 font-bold opacity-60">same twin</span>
+                    <span className="text-[7.5px] font-mono tracking-wider uppercase text-blue-600 font-bold opacity-60">same authorized agent</span>
                     <div className="h-px w-6 md:h-12 md:w-px bg-gradient-to-r md:bg-gradient-to-b from-transparent to-blue-500/20"></div>
                   </div>
 
@@ -1822,7 +1822,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                         <div className="w-7 h-7 bg-blue-900 text-white rounded flex items-center justify-center text-[9px] font-bold font-serif">CD</div>
                         <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-bold text-stone-900 leading-none">Clara's Twin</span>
+                            <span className="text-[10px] font-bold text-stone-900 leading-none">Clara&apos;s Agent</span>
                             <span className="bg-blue-800 text-white text-[7px] font-bold uppercase px-1 py-0.5 rounded ml-1 leading-none">APP</span>
                             <span className="text-[7px] text-stone-400 ml-1">2:25 PM</span>
                           </div>
@@ -1959,12 +1959,12 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <text x="680" y="142" textAnchor="middle" className="font-semibold" fill="#059669" fontSize="11">Planning &amp; Execution</text>
                       <text x="680" y="154" textAnchor="middle" fill="#065f46" fontSize="8.5">Tasks, tools &amp; monitoring</text>
 
-                      {/* Arrow down from Task Orchestrator to AxWise (Active Twin) via orthogonal path */}
+                      {/* Arrow down from Planning & Execution to AxWise via orthogonal path */}
                       <line x1="680" y1="167" x2="680" y2="212" stroke="#059669" strokeWidth="1.5" fill="none"/>
                       <line x1="680" y1="212" x2="490" y2="212" stroke="#059669" strokeWidth="1.5" fill="none"/>
                       <line x1="490" y1="212" x2="490" y2="245" stroke="#059669" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead-green)"/>
 
-                      {/* Arrow down from Orqaly down to Twin Registry via orthogonal dashed green path */}
+                      {/* Arrow down from Orqaly to the AxWise context router via orthogonal dashed green path */}
                       <line x1="680" y1="205" x2="680" y2="212" stroke="#059669" strokeWidth="1.5" strokeDasharray="4 2" fill="none"/>
                       <line x1="680" y1="212" x2="240" y2="212" stroke="#059669" strokeWidth="1.5" strokeDasharray="4 2" fill="none"/>
                       <line x1="240" y1="212" x2="240" y2="245" stroke="#059669" strokeWidth="1.5" strokeDasharray="4 2" fill="none" markerEnd="url(#bpmn-arrowhead-green)"/>
@@ -1989,7 +1989,7 @@ export default function RedesignedHomePage(): React.JSX.Element {
                       <text x="240" y="262" textAnchor="middle" className="font-semibold" fill="#1e3a8a" fontSize="11">Context Router</text>
                       <text x="240" y="274" textAnchor="middle" fill="#2563eb" fontSize="8.5">Direct, evidence or research</text>
 
-                      {/* Arrow to twin */}
+                      {/* Arrow to customer intelligence */}
                       <line x1="320" y1="266" x2="410" y2="266" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#bpmn-arrowhead)"/>
 
                       <rect x="410" y="245" width="160" height="42" rx="10" fill="rgba(59,130,246,0.04)" stroke="#3b82f6" strokeWidth="1.5"/>
