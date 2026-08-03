@@ -151,6 +151,10 @@ class SqlAlchemyOutcomeStore:
         receipts: list[OrchestrationExecutionReceipt],
     ) -> None:
         self.session.add(outcome)
+        # Receipt rows reference the outcome through an immediate composite
+        # foreign key. The mapped models have no ORM relationship, so make the
+        # parent INSERT explicit while keeping the transaction atomic.
+        self.session.flush()
         self.session.add_all(receipts)
         self.session.add(
             OrchestrationEvent(
