@@ -11,7 +11,7 @@ import pytest_asyncio
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 from fastapi import FastAPI
-from sqlalchemy import Column, MetaData, String, Table, create_engine, inspect
+from sqlalchemy import Column, MetaData, String, Table, create_engine, event, inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
@@ -84,6 +84,15 @@ async def orchestration_client(tmp_path, monkeypatch):
         f"sqlite:///{tmp_path}/orchestration.db",
         connect_args={"check_same_thread": False},
     )
+
+    @event.listens_for(engine, "connect")
+    def enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine)
     session = factory()
@@ -590,6 +599,15 @@ async def test_phase4_outcome_is_idempotent_tenant_scoped_and_audited(
     assert record["evaluation"]["task_success"] is True
     assert record["evaluation"]["promotable_observation"] is True
     assert record["evaluation"]["safety_flags"] == []
+
+    listed = await client.get(
+        path,
+        headers=_get_headers("orqaly-org-1", "orqaly-user-1"),
+    )
+    assert listed.status_code == 200, listed.text
+    assert [item["outcome"]["outcome_id"] for item in listed.json()] == [
+        outcome["outcome_id"]
+    ]
 
     reused = await client.post(path, headers=headers, json=outcome)
     assert reused.status_code == 200
