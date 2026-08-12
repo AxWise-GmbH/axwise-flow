@@ -17,6 +17,9 @@ from backend.api.research.simulation_bridge.models import (
     SimulationRequest,
     SimulationResponse,
 )
+from backend.services.orqaly_persona_resolution_service import (
+    is_customer_persona_eligible,
+)
 
 
 BUNDLE_VERSION = "axwise_research_bundle_v1"
@@ -697,6 +700,8 @@ def _interview_rows(result: SimulationResponse) -> List[Dict[str, Any]]:
 def _persona_rows(result: SimulationResponse) -> List[Dict[str, Any]]:
     rows = []
     for index, persona in enumerate(result.empirical_personas or []):
+        if not is_customer_persona_eligible(persona):
+            continue
         identity = {
             "simulation_id": result.simulation_id,
             "name": persona.get("name") or persona.get("persona_name"),

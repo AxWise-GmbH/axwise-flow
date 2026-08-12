@@ -8,6 +8,7 @@ from backend.api.research.simulation_bridge.models import (
     QuestionsData,
     SimulationConfig,
     SimulationRequest,
+    SimulationResponse,
 )
 from backend.api.routes.orqaly_integration import OrqalyHybridAsyncRequest
 from backend.domain.orchestration.models import ResearchPolicyV1
@@ -19,6 +20,7 @@ from backend.services.orqaly_research_bundle_service import (
     derive_executor_role_specs,
     normalize_market_grounding,
     request_with_grounding,
+    _persona_rows,
 )
 
 
@@ -29,6 +31,32 @@ def test_bundle_hash_normalizes_integral_floats_for_javascript_interop():
     assert canonical_hash({"score": 1.0, "values": [2.0, 2.5]}) == canonical_hash(
         {"score": 1, "values": [2, 2.5]}
     )
+
+
+def test_bundle_customer_personas_exclude_explicit_executor_participants():
+    result = SimulationResponse(
+        success=True,
+        message="complete",
+        simulation_id="sim-bremen",
+        empirical_personas=[
+            {
+                "name": "Jens Völkers, Managing Director",
+                "stakeholder_intelligence": {
+                    "stakeholder_type": "Problem experiencer"
+                },
+            },
+            {
+                "name": "Torsten Kröger, Compliance Specialist",
+                "stakeholder_intelligence": {"stakeholder_type": "Executor"},
+            },
+        ],
+    )
+
+    rows = _persona_rows(result)
+
+    assert [row["persona"]["name"] for row in rows] == [
+        "Jens Völkers, Managing Director"
+    ]
 
 
 @pytest.mark.parametrize(

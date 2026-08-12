@@ -303,6 +303,41 @@ async def fake_enrichment(result, request):
     return result
 
 
+def test_analysis_result_prepends_authoritative_goal_contract(session_factory):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator, session_factory, fake_enrichment, fake_grounding
+    )
+    result = SimulationResponse(
+        success=True,
+        message="complete",
+        simulation_id="sim-contract",
+        interviews=[],
+    )
+    context = OrqalyTaskContext(
+        title="Bremen commercial plan",
+        description="Deliver 3 ICPs, 3 packages, outreach, funnel, and risk matrix",
+        desired_outcome="A four-week German commercial plan",
+        constraints=["No external execution tools"],
+    )
+
+    result_id = service._create_canonical_analysis_result(
+        result, _request(), "axwise-user-1", context
+    )
+
+    session = session_factory()
+    try:
+        analysis = session.query(AnalysisResult).filter_by(result_id=result_id).one()
+        assert analysis.results["original_text"].startswith(
+            "AUTHORITATIVE ORQALY GOAL CONTRACT"
+        )
+        assert "Deliver 3 ICPs, 3 packages" in analysis.results["original_text"]
+        assert "No external execution tools" in analysis.results["original_text"]
+        assert "SYNTHETIC INTERVIEW CORPUS" in analysis.results["original_text"]
+    finally:
+        session.close()
+
+
 async def fake_grounding(_request, _policy):
     return {
         "market_sources": [

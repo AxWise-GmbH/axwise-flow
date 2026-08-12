@@ -212,6 +212,7 @@ class HybridResearchAdapter:
                 prd=HybridPRDOutput(
                     enabled="research_prd" in policy.required_outputs,
                     required="research_prd" in policy.required_outputs,
+                    type="operational",
                 ),
             ),
             user=self.user,

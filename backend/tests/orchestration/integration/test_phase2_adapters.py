@@ -168,6 +168,7 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     outputs = service.enqueue_kwargs["outputs"]
     assert outputs.prd.enabled is True
     assert outputs.prd.required is True
+    assert outputs.prd.type == "operational"
     assert service.enqueue_kwargs["request"].config.performance_profile.value == (
         "quality_fast"
     )

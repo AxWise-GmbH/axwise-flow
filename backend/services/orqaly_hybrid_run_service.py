@@ -600,7 +600,7 @@ class HybridRunService:
                 "Persisting hybrid research deliverables",
             )
             analysis_result_id = self._create_canonical_analysis_result(
-                result, request, claimed["user_id"]
+                result, request, claimed["user_id"], task_context
             )
 
             warning = None
@@ -753,15 +753,44 @@ class HybridRunService:
             session.close()
 
     def _create_canonical_analysis_result(
-        self, result: SimulationResponse, request: SimulationRequest, user_id: str
+        self,
+        result: SimulationResponse,
+        request: SimulationRequest,
+        user_id: str,
+        task_context: Optional[OrqalyTaskContext] = None,
     ) -> int:
         """Persist hybrid deliverables in the existing analysis/PRD data model."""
         session = self.session_factory()
         try:
-            original_text = "\n\n".join(
+            interview_text = "\n\n".join(
                 response.response
                 for interview in result.interviews or []
                 for response in interview.responses
+            )
+            goal_contract = {
+                "title": task_context.title if task_context else None,
+                "description": task_context.description if task_context else None,
+                "desired_outcome": (
+                    task_context.desired_outcome if task_context else None
+                ),
+                "constraints": task_context.constraints if task_context else [],
+                "required_execution_roles": (
+                    task_context.required_execution_roles if task_context else []
+                ),
+                "business_context": (
+                    request.business_context.model_dump(mode="json")
+                    if request.business_context
+                    else None
+                ),
+            }
+            original_text = (
+                "AUTHORITATIVE ORQALY GOAL CONTRACT\n"
+                "Use this contract as the scope boundary. Interview evidence may "
+                "refine the customer understanding but must not replace or expand "
+                "the requested deliverables.\n"
+                f"{json.dumps(goal_contract, ensure_ascii=False, sort_keys=True)}\n\n"
+                "SYNTHETIC INTERVIEW CORPUS\n"
+                f"{interview_text}"
             )
             interview_data = InterviewData(
                 user_id=user_id,
