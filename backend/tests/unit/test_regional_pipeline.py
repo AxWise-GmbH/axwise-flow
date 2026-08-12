@@ -1,5 +1,8 @@
-import pytest
+from datetime import date
 from unittest.mock import MagicMock, patch, AsyncMock
+
+import pytest
+
 from api.research.simulation_bridge.services.pipeline import B2BDataPipeline
 from api.research.simulation_bridge.models import CompanyDiscoveryItem
 
@@ -71,7 +74,7 @@ async def test_pipeline_openregister_geo_search():
     mock_rep1 = MagicMock()
     mock_rep1.role = "DIRECTOR"
     mock_rep1.end_date = None
-    mock_rep1.start_date = "2019-03-15"
+    mock_rep1.start_date = date(2019, 3, 15)
     mock_rep1.name = "Dr. Thomas Wagner"
     mock_rep1.natural_person.first_name = "Thomas"
     mock_rep1.natural_person.last_name = "Wagner"

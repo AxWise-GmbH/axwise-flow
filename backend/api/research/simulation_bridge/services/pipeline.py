@@ -292,7 +292,16 @@ Determine:
                     if rep.natural_person.city:
                         dm_detail["city"] = rep.natural_person.city
                     if rep.start_date:
-                        dm_detail["since"] = rep.start_date
+                        # openregister-sdk may deserialize ISO dates as
+                        # datetime.date objects.  The public discovery model
+                        # deliberately exposes JSON-safe strings, so normalize
+                        # at the adapter boundary instead of rejecting an
+                        # otherwise valid company record.
+                        dm_detail["since"] = (
+                            rep.start_date.isoformat()
+                            if hasattr(rep.start_date, "isoformat")
+                            else str(rep.start_date)
+                        )
                     decision_makers.append(f"{role_display}: {full_name}")
                 elif rep.legal_person:
                     lp_name = getattr(rep.legal_person, 'name', None) or rep.name
