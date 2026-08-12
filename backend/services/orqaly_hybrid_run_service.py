@@ -20,6 +20,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 
 from backend.api.research.simulation_bridge.models import SimulationRequest, SimulationResponse
+from backend.api.research.simulation_bridge.services.market_scope import (
+    resolve_market_scope,
+)
 from backend.api.research.simulation_bridge.services.closed_loop_hybrid import (
     enrich_with_empirical_personas,
 )
@@ -49,6 +52,14 @@ from backend.services.orqaly_persona_resolution_service import (
     OrqalyTaskContext,
     resolve_orqaly_personas,
 )
+from backend.services.research_quality_service import (
+    COMMERCIAL_MARKET_LAUNCH,
+    SUPPORTED_RESEARCH_PRD_TYPES,
+    determine_claim_class_applicability,
+    evaluate_critical_claims,
+    normalize_research_prd_type,
+)
+from backend.domain.market_scope import resolve_market_expression
 
 
 logger = logging.getLogger(__name__)
@@ -67,8 +78,24 @@ class HybridRunCancelled(Exception):
 
 class HybridPRDOutput(BaseModel):
     enabled: bool = False
-    type: str = Field(default="both", pattern="^(operational|technical|both)$")
+    type: str = Field(
+        default="both",
+        pattern=(
+            "^(operational|technical|both|commercial_market_launch|"
+            "operational_process|product_strategy|software_product)$"
+        ),
+    )
     required: bool = False
+
+    @property
+    def document_intent(self) -> str:
+        return normalize_research_prd_type(self.type)
+
+    @property
+    def storage_type(self) -> str:
+        if self.type in {"operational", "technical", "both"}:
+            return self.type
+        return "technical" if self.type == "software_product" else "operational"
 
 
 class HybridOutputs(BaseModel):
@@ -100,6 +127,133 @@ class HybridRunService:
         self.session_factory = session_factory
         self.enrichment = enrichment
         self.grounding = grounding
+
+    @staticmethod
+    def _requested_country_codes(
+        request: SimulationRequest,
+        grounding: Dict[str, Any],
+    ) -> list[str]:
+        scope = getattr(request.business_context, "market_scope", None)
+        if scope:
+            values = [
+                str(country.country_code).upper()
+                for country in scope.resolved_scope.countries
+            ]
+            if values:
+                return list(dict.fromkeys(values))
+        values = [
+            str(value).upper()
+            for value in (grounding.get("country_codes") or [])
+            if value
+        ]
+        for cell in grounding.get("cell_coverage") or []:
+            if isinstance(cell, dict):
+                values.extend(
+                    str(value).upper()
+                    for value in (cell.get("country_codes") or [])
+                    if value
+                )
+        return list(dict.fromkeys(values))
+
+    @staticmethod
+    def _claim_class_applicability(
+        request: SimulationRequest,
+        task_context: Optional[OrqalyTaskContext],
+        requested_claim_classes: list[str],
+    ) -> Dict[str, Any]:
+        context = request.business_context
+        return determine_claim_class_applicability(
+            {
+                "research_prd_type": (
+                    task_context.research_prd_type if task_context else None
+                ),
+                "title": task_context.title if task_context else None,
+                "description": task_context.description if task_context else None,
+                "desired_outcome": (
+                    task_context.desired_outcome if task_context else None
+                ),
+                "category": task_context.category if task_context else None,
+                "constraints": task_context.constraints if task_context else [],
+                "required_capabilities": (
+                    task_context.required_capabilities if task_context else []
+                ),
+                "required_execution_roles": (
+                    task_context.required_execution_roles if task_context else []
+                ),
+                "business_context": (
+                    context.model_dump(mode="json") if context else None
+                ),
+                "research_questions": (
+                    request.questions_data.model_dump(mode="json")
+                    if request.questions_data
+                    else None
+                ),
+            },
+            requested_claim_classes,
+        )
+
+    @staticmethod
+    def _with_resolved_required_market(
+        request: SimulationRequest,
+        policy: HybridGroundingPolicy,
+    ) -> SimulationRequest:
+        """Resolve safe country expressions and reject ambiguous research markets."""
+
+        if not policy.research_required:
+            return request
+        context = request.business_context
+        scope = context.market_scope if context else None
+        if not scope and context and str(context.location or "").strip():
+            inferred_scope = resolve_market_expression(str(context.location))
+            if (
+                inferred_scope.resolved_scope.countries
+                and not inferred_scope.confirmation.required
+            ):
+                context = context.model_copy(update={"market_scope": inferred_scope})
+                request = request.model_copy(update={"business_context": context})
+                scope = inferred_scope
+        if (
+            not scope
+            or not scope.resolved_scope.countries
+            or (scope.confirmation.required and not scope.confirmation.confirmed)
+        ):
+            raise ValueError(
+                "Required research needs a country-resolved, confirmed market_scope; "
+                "a city-only or ambiguous business_context.location is insufficient"
+            )
+        return request
+
+    @staticmethod
+    def _validate_required_synthetic_cohort(
+        request: SimulationRequest,
+        result: SimulationResponse,
+    ) -> None:
+        """Required research cannot silently publish a partial simulated cohort."""
+
+        stakeholders = request.questions_data.stakeholders if request.questions_data else {}
+        planned = sum(len(group or []) for group in stakeholders.values()) * int(
+            request.config.people_per_stakeholder
+        )
+        people = list(result.people or [])
+        interviews = list(result.interviews or [])
+        person_ids = [str(person.id or "") for person in people]
+        interview_person_ids = [str(item.person_id or "") for item in interviews]
+        complete = (
+            planned > 0
+            and len(people) == planned
+            and len(interviews) == planned
+            and all(person_ids)
+            and len(set(person_ids)) == planned
+            and set(interview_person_ids) == set(person_ids)
+            and len(set(interview_person_ids)) == planned
+        )
+        if not complete:
+            raise RuntimeError(
+                "Required synthetic cohort incomplete "
+                f"(planned={planned}; personas={len(people)}; "
+                f"interviews={len(interviews)}; covered_people="
+                f"{len(set(interview_person_ids) & set(person_ids))})"
+            )
 
     @staticmethod
     def request_hash(
@@ -194,6 +348,7 @@ class HybridRunService:
         if outputs.persona_resolution and not task_context:
             raise ValueError("Persona resolution requires task_context")
         policy = grounding_policy or HybridGroundingPolicy(required=False)
+        request = self._with_resolved_required_market(request, policy)
         if research_mode == HybridResearchMode.SYNTHETIC_ONLY and policy.required:
             raise ValueError("Synthetic-only research cannot require market grounding")
         if policy.required:
@@ -215,9 +370,18 @@ class HybridRunService:
                     or context.market_scope.confirmation.confirmed
                 )
             )
-            if not has_location and not has_confirmed_scope:
+            resolved_location = (
+                resolve_market_scope(str(context.location or ""))
+                if has_location
+                else None
+            )
+            location_has_country = bool(
+                resolved_location and resolved_location.country_code
+            )
+            if not has_confirmed_scope and not location_has_country:
                 raise ValueError(
-                    "Required grounding needs a confirmed market_scope or business_context.location"
+                    "Required grounding needs a country-qualified location or a "
+                    "confirmed market_scope; city-only locations cannot authorize a country"
                 )
         self.validate_callback_url(request.callback_url)
         request_hash = self.request_hash(
@@ -568,9 +732,58 @@ class HybridRunService:
                     raise RuntimeError(
                         "Required market grounding produced no source-linked market claims"
                     )
-                request = request_with_grounding(request, grounding)
             elif grounding_policy.required:
                 raise RuntimeError("Required market grounding cannot run in synthetic-only mode")
+
+            critical_policy = (
+                task_context.critical_claim_policy if task_context else {}
+            )
+            if critical_policy.get("required"):
+                if research_mode != HybridResearchMode.GROUNDED_HYBRID:
+                    raise RuntimeError(
+                        "Critical-claim verification requires grounded research"
+                    )
+                await self._set_stage(
+                    job_id,
+                    "verifying_critical_claims",
+                    4,
+                    "Verifying current material claims against direct sources",
+                )
+                mandatory_claim_classes = list(
+                    critical_policy.get("mandatory_claim_classes") or []
+                )
+                critical_quality = evaluate_critical_claims(
+                    grounding,
+                    self._requested_country_codes(request, grounding),
+                    freshness_days=int(critical_policy.get("freshness_days") or 120),
+                    freshness_by_class=(
+                        critical_policy.get("freshness_by_class") or {}
+                    ),
+                    mandatory_claim_classes=mandatory_claim_classes,
+                    claim_class_applicability=self._claim_class_applicability(
+                        request,
+                        task_context,
+                        mandatory_claim_classes,
+                    ),
+                )
+                grounding = {
+                    **grounding,
+                    "critical_claim_quality": critical_quality,
+                }
+                if (
+                    critical_policy.get("fail_closed", True)
+                    and critical_quality.get("status") != "passed"
+                ):
+                    reasons = ",".join(
+                        str(item.get("reason") or "unknown")
+                        for item in critical_quality.get("blocked_claims") or []
+                    )[:1000]
+                    raise RuntimeError(
+                        "Required current material claims were not verified "
+                        f"(reasons={reasons or 'unknown'})"
+                    )
+            if research_mode == HybridResearchMode.GROUNDED_HYBRID:
+                request = request_with_grounding(request, grounding)
 
             # The legacy orchestrator owns Pipeline B progress. It must not publish
             # a terminal result or callback while the empirical stage is pending.
@@ -584,6 +797,8 @@ class HybridRunService:
             )
             if not result.success:
                 raise RuntimeError(result.message)
+            if grounding_policy.research_required:
+                self._validate_required_synthetic_cohort(request, result)
             self._ensure_active(job_id)
 
             await self._set_stage(
@@ -651,7 +866,7 @@ class HybridRunService:
                 "status": "not_requested",
                 "analysis_result_id": analysis_result_id,
                 "cached_prd_id": None,
-                "prd_type": outputs.prd.type,
+                "prd_type": outputs.prd.document_intent,
                 "content_hash": None,
                 "content": None,
             }
@@ -897,6 +1112,15 @@ class HybridRunService:
                 "required_execution_roles": (
                     task_context.required_execution_roles if task_context else []
                 ),
+                "research_prd_type": (
+                    task_context.research_prd_type if task_context else None
+                ),
+                "customer_role_contract": (
+                    task_context.customer_role_contract if task_context else {}
+                ),
+                "critical_claim_policy": (
+                    task_context.critical_claim_policy if task_context else {}
+                ),
                 "business_context": (
                     request.business_context.model_dump(mode="json")
                     if request.business_context
@@ -943,6 +1167,17 @@ class HybridRunService:
                 "insights": insight_items,
                 "personas": result.empirical_personas or [],
                 "persona_resolution": (result.data or {}).get("persona_resolution"),
+                "research_prd_type": (
+                    task_context.research_prd_type
+                    if task_context and task_context.research_prd_type
+                    else None
+                ),
+                "critical_claim_quality": (
+                    ((result.data or {}).get("market_grounding") or {}).get(
+                        "critical_claim_quality"
+                    )
+                ),
+                "market_grounding": (result.data or {}).get("market_grounding"),
                 "simulation_insights": (
                     insights.model_dump(mode="json") if insights else None
                 ),
@@ -985,8 +1220,32 @@ class HybridRunService:
             user = session.query(User).filter(User.user_id == user_id).first()
             if not analysis or not user:
                 return (
-                    self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                    self._prd_metadata(
+                        "failed", analysis_result_id, outputs.prd.document_intent
+                    ),
                     "Hybrid analysis result is unavailable for PRD generation",
+                )
+            raw_intent = (
+                (analysis.results or {}).get("research_prd_type")
+                or outputs.prd.type
+            )
+            semantic_intent = normalize_research_prd_type(raw_intent)
+            if (
+                raw_intent
+                and str(raw_intent) not in SUPPORTED_RESEARCH_PRD_TYPES
+                and str(raw_intent) not in {"operational", "technical", "both"}
+            ):
+                raise ValueError(f"Unsupported research PRD type: {raw_intent}")
+            critical_quality = (analysis.results or {}).get(
+                "critical_claim_quality"
+            ) or {}
+            if (
+                semantic_intent == COMMERCIAL_MARKET_LAUNCH
+                and critical_quality.get("status") != "passed"
+            ):
+                raise ValueError(
+                    "Commercial market-launch PRD requires passed current "
+                    "critical-claim verification"
                 )
             llm_service = LLMServiceFactory.create("enhanced_gemini")
             prd_service = PRDGenerationService(
@@ -994,20 +1253,22 @@ class HybridRunService:
             )
             prd = await prd_service.generate_prd(
                 analysis_results=analysis.results,
-                prd_type=outputs.prd.type,
+                prd_type=outputs.prd.storage_type,
                 industry=(request.business_context.industry if request.business_context else None),
                 result_id=analysis_result_id,
+                document_intent=semantic_intent,
+                critical_claim_quality=critical_quality,
             )
             if isinstance(prd, dict) and prd.get("error"):
                 return (
-                    self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                    self._prd_metadata("failed", analysis_result_id, semantic_intent),
                     str(prd["error"]),
                 )
             cached = (
                 session.query(CachedPRD)
                 .filter(
                     CachedPRD.result_id == analysis_result_id,
-                    CachedPRD.prd_type == outputs.prd.type,
+                    CachedPRD.prd_type == outputs.prd.storage_type,
                 )
                 .first()
             )
@@ -1015,7 +1276,7 @@ class HybridRunService:
                 self._prd_metadata(
                     "completed",
                     analysis_result_id,
-                    outputs.prd.type,
+                    semantic_intent,
                     content=prd,
                     cached_prd_id=(cached.id if cached else None),
                 ),
@@ -1024,7 +1285,9 @@ class HybridRunService:
         except Exception as exc:
             logger.exception("PRD generation failed for hybrid analysis %s", analysis_result_id)
             return (
-                self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                self._prd_metadata(
+                    "failed", analysis_result_id, outputs.prd.document_intent
+                ),
                 str(exc),
             )
         finally:

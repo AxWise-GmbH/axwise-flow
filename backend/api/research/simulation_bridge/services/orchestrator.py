@@ -11,8 +11,7 @@ from datetime import datetime
 
 import os
 from pydantic_ai.models import Model
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai import ModelRetry, NativeOutput, RunContext
 
 from ..models import (
     SimulationRequest,
@@ -31,6 +30,7 @@ from .parallel_interview_simulator import ParallelInterviewSimulator
 from .data_formatter import DataFormatter
 from .ocean_sampler import OCEANSampler
 from .occupation_classifier import OccupationClassifier
+from backend.services.llm.gemini_runtime import build_research_model
 from backend.infrastructure.persistence.simulation_repository import (
     SimulationRepository,
 )
@@ -53,9 +53,7 @@ class SimulationOrchestrator:
         # even when production declared GEMINI_MODEL=models/gemini-3.6-flash.
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if api_key:
-            provider = GoogleProvider(api_key=api_key)
-            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
-            self.model = GoogleModel(model_name, provider=provider)
+            self.model = build_research_model(api_key)
         else:
             # Fallback for tests/offline - will fail at runtime if actually used
             self.model = None
@@ -102,7 +100,7 @@ class SimulationOrchestrator:
         # Create PydanticAI agent for parsing
         parser_agent = Agent(
             model=self.model,
-            output_type=ParsedQuestionnaire,
+            output_type=NativeOutput(ParsedQuestionnaire),
             system_prompt="""You are an expert at parsing customer research questionnaires.
 
             Extract the business context and organize questions by stakeholder type.
@@ -122,7 +120,32 @@ class SimulationOrchestrator:
             - Problem Discovery Questions
             - Solution Validation Questions
             - Follow-up Questions""",
+            retries={"output": 2},
         )
+
+        @parser_agent.output_validator
+        async def validate_questionnaire(
+            _ctx: RunContext[None], output: ParsedQuestionnaire
+        ) -> ParsedQuestionnaire:
+            stakeholders = output.primary_stakeholders + output.secondary_stakeholders
+            if (
+                len(output.business_idea.strip()) < 3
+                or len(output.target_customer.strip()) < 2
+                or len(output.problem.strip()) < 3
+                or not stakeholders
+                or any(
+                    len(item.name.strip()) < 2
+                    or len(item.description.strip()) < 5
+                    or not item.questions
+                    or any(len(question.strip()) < 5 for question in item.questions)
+                    for item in stakeholders
+                )
+            ):
+                raise ModelRetry(
+                    "Return a specific business context and at least one fully described "
+                    "stakeholder with non-empty research questions."
+                )
+            return output
 
         prompt = f"""
         Parse this questionnaire file and extract:

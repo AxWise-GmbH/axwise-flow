@@ -23,6 +23,12 @@ class DemographicDetails(BaseModel):
     income_level: Optional[str] = None
     education: Optional[str] = None
     location: Optional[str] = None
+    country_code: Optional[str] = Field(
+        default=None,
+        min_length=2,
+        max_length=2,
+        description="ISO 3166-1 alpha-2 country assigned by the market-scope contract",
+    )
     industry_experience: Optional[str] = None
     company_size: Optional[str] = None
 
@@ -95,6 +101,7 @@ class BusinessContext(BaseModel):
     industry: Optional[str] = "general"
     location: Optional[str] = None
     market_scope: Optional[MarketScopeV2] = None
+    grounding_context: Optional[Dict[str, Any]] = None
 
 
 class Stakeholder(BaseModel):

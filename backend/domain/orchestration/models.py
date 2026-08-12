@@ -25,7 +25,7 @@ from backend.domain.orchestration.enums import (
     RoutingMode,
     Urgency,
 )
-from backend.domain.market_scope import MarketScopeV2
+from backend.domain.market_scope import MarketScopeV2, resolve_market_expression
 
 
 CONTRACT_VERSION = "1.0"
@@ -245,12 +245,64 @@ class ResearchPolicyV1(ContractModel):
         return self
 
 
+class CustomerRoleContractV1(ContractModel):
+    primary_roles: List[
+        Literal["economic_buyer", "decision_authority", "influencer", "operational_user", "beneficiary"]
+    ] = Field(
+        default_factory=lambda: ["economic_buyer", "decision_authority"],
+        min_length=1,
+        max_length=5,
+    )
+    require_primary_buyer: bool = False
+    ineligible_roles: List[
+        Literal["economic_buyer", "decision_authority", "influencer", "operational_user", "beneficiary"]
+    ] = Field(default_factory=list, max_length=5)
+
+
+class CriticalClaimPolicyV1(ContractModel):
+    required: bool = False
+    fail_closed: bool = True
+    freshness_days: int = Field(default=120, ge=1, le=3650)
+    freshness_by_class: Dict[
+        Literal[
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        ],
+        int,
+    ] = Field(
+        default_factory=lambda: {
+            "official_statistic": 730,
+            "observed_primary_market": 120,
+        }
+    )
+    mandatory_claim_classes: List[
+        Literal[
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        ]
+    ] = Field(default_factory=list, max_length=3)
+
+
 class ResearchBriefV1(ContractModel):
     business_idea: str = Field(..., min_length=3, max_length=4000)
     target_stakeholders: str = Field(..., min_length=2, max_length=2000)
     problem: str = Field(..., min_length=3, max_length=4000)
     research_questions: List[str] = Field(default_factory=list, max_length=30)
     required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
+    research_prd_type: Literal[
+        "commercial_market_launch",
+        "operational_process",
+        "product_strategy",
+        "software_product",
+    ] = "operational_process"
+    customer_role_contract: CustomerRoleContractV1 = Field(
+        default_factory=CustomerRoleContractV1
+    )
+    critical_claim_policy: CriticalClaimPolicyV1 = Field(
+        default_factory=CriticalClaimPolicyV1
+    )
     industry: str = Field(default="general", min_length=1, max_length=120)
     location: Optional[str] = Field(default=None, max_length=255)
     market_scope: Optional[MarketScopeV2] = None
@@ -383,7 +435,13 @@ class DecisionCreateRequestV1(ContractModel):
         )
         if grounded_research:
             brief = self.research_brief
-            has_legacy_location = bool(brief and str(brief.location or "").strip())
+            if brief and not brief.market_scope and str(brief.location or "").strip():
+                inferred_scope = resolve_market_expression(str(brief.location))
+                if (
+                    inferred_scope.resolved_scope.countries
+                    and not inferred_scope.confirmation.required
+                ):
+                    brief.market_scope = inferred_scope
             has_confirmed_scope = bool(
                 brief
                 and brief.market_scope
@@ -393,9 +451,10 @@ class DecisionCreateRequestV1(ContractModel):
                     or brief.market_scope.confirmation.confirmed
                 )
             )
-            if not has_legacy_location and not has_confirmed_scope:
+            if not has_confirmed_scope:
                 raise ValueError(
-                    "grounded research requires a confirmed market_scope or research_brief.location"
+                    "grounded research requires a country-resolved, confirmed market_scope; "
+                    "a city-only or ambiguous research_brief.location is insufficient"
                 )
         return self
 
