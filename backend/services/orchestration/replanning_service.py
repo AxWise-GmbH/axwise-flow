@@ -132,7 +132,7 @@ class ReplanningService:
             update={"constraints": list(dict.fromkeys(constraints))}
         )
         policy = request.research_policy.model_copy(
-            update={"allow_hybrid_research": False}
+            update={"allow_hybrid_research": False, "required": False}
         )
         updated = request.model_copy(
             update={

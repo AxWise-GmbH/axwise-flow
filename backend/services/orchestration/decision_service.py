@@ -893,6 +893,7 @@ class OrchestrationDecisionService:
         policy = prior_policy.model_copy(
             update={
                 "allow_hybrid_research": False,
+                "required": False,
                 "completed_research_iterations": min(
                     prior_policy.maximum_research_iterations,
                     prior_policy.completed_research_iterations + 1,

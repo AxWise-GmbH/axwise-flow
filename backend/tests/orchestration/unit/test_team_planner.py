@@ -218,6 +218,74 @@ def test_team_planner_rejects_missing_collaboration_compatibility():
     assert "no eligible owner" in reasons
 
 
+def test_orqaly_commercial_roles_are_soft_preferences_not_missing_nodes():
+    payload = planning_payload("parallel", "marketing")
+    payload["task"]["required_capabilities"] = ["orqaly_goal_executor"]
+    payload["task"]["preferred_capabilities"] = ["campaign strategy"]
+    payload["task"]["required_tools"] = []
+    payload["budget"]["maximum_cost"] = 100
+    payload["available_tools"] = []
+    payload["available_agents"] = [
+        {
+            **payload["available_agents"][0],
+            "agent_id": "agent-marketing",
+            "name": "Marketing Strategist",
+            "capabilities": [
+                "orqaly_goal_executor",
+                "Marketing Strategist",
+                "campaign strategy",
+            ],
+            "tool_ids": [],
+        },
+        {
+            **payload["available_agents"][1],
+            "agent_id": "agent-director",
+            "name": "Managing Director",
+            "capabilities": [
+                "orqaly_goal_executor",
+                "Managing Director",
+                "commercial leadership",
+            ],
+            "tool_ids": [],
+        },
+    ]
+    roles = [
+        "Marketing Strategist",
+        "Business Development Manager",
+        "Sales Manager",
+        "CFO",
+        "Sales Manager",
+        "Managing Director",
+    ]
+    payload["planning"]["separation_of_duty_rules"] = []
+    payload["planning"]["steps"] = [
+        {
+            "step_id": f"commercial-{index}",
+            "title": f"Commercial workstream {index}",
+            "objective": f"Complete commercial workstream {index}",
+            "required_capabilities": ["orqaly_goal_executor"],
+            "preferred_capabilities": [role],
+            "required_tools": [],
+            "requested_actions": [],
+            "dependencies": [] if index <= 2 else [f"commercial-{index - 2}"],
+            "input_contract": {"task_context": "TaskEnvelopeV1"},
+            "output_contract": {"deliverable": "CommercialDeliverableV1"},
+            "completion_criteria": ["The commercial deliverable is reviewable"],
+        }
+        for index, role in enumerate(roles, 1)
+    ]
+    request = DecisionCreateRequestV1.model_validate(payload)
+
+    result = TeamPlanner().build(request, RoutingMode.DIRECT)
+
+    assert result.validation.valid is True
+    assert result.plan.executable is True
+    assert len(result.plan.nodes) == len(roles)
+    assert {node.node_id for node in result.plan.nodes} == {
+        f"commercial-{index}" for index in range(1, len(roles) + 1)
+    }
+
+
 def test_planning_budget_cannot_widen_the_top_level_request_budget():
     payload = planning_payload()
     payload["budget"]["maximum_cost"] = 10

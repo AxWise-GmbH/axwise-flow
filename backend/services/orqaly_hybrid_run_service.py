@@ -24,9 +24,26 @@ from backend.api.research.simulation_bridge.services.closed_loop_hybrid import (
     enrich_with_empirical_personas,
 )
 from backend.database import SessionLocal
-from backend.models import AnalysisResult, InterviewData, PipelineRun, SimulationData, User
+from backend.models import (
+    AnalysisResult,
+    CachedPRD,
+    InterviewData,
+    PipelineRun,
+    SimulationData,
+    User,
+)
 from backend.services.llm import LLMServiceFactory
 from backend.services.processing.prd_generation_service import PRDGenerationService
+from backend.services.orqaly_research_bundle_service import (
+    HybridGroundingPolicy,
+    HybridResearchMode,
+    GroundingCollector,
+    build_research_bundle,
+    canonical_hash,
+    collect_regional_grounding,
+    request_with_grounding,
+    valid_structured_market_sources,
+)
 from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
@@ -57,6 +74,11 @@ class HybridOutputs(BaseModel):
     insights: bool = True
     analysis_result: bool = True
     persona_resolution: bool = False
+    market_sources: bool = False
+    market_claims: bool = False
+    synthetic_participants: bool = False
+    interviews: bool = False
+    research_bundle: bool = False
     prd: HybridPRDOutput = Field(default_factory=HybridPRDOutput)
 
 
@@ -68,10 +90,12 @@ class HybridRunService:
         orchestrator,
         session_factory: Callable = SessionLocal,
         enrichment=enrich_with_empirical_personas,
+        grounding: GroundingCollector = collect_regional_grounding,
     ):
         self.orchestrator = orchestrator
         self.session_factory = session_factory
         self.enrichment = enrichment
+        self.grounding = grounding
 
     @staticmethod
     def request_hash(
@@ -79,12 +103,17 @@ class HybridRunService:
         outputs: HybridOutputs,
         task_context: Optional[OrqalyTaskContext] = None,
         agent_candidates: Optional[list[OrqalyAgentCandidate]] = None,
+        research_mode: HybridResearchMode = HybridResearchMode.SYNTHETIC_ONLY,
+        grounding_policy: Optional[HybridGroundingPolicy] = None,
     ) -> str:
+        policy = grounding_policy or HybridGroundingPolicy(required=False)
         payload = {
             "simulation": request.model_dump(mode="json"),
             "outputs": outputs.model_dump(mode="json"),
             "task_context": task_context.model_dump(mode="json") if task_context else None,
             "agent_candidates": [item.model_dump(mode="json") for item in (agent_candidates or [])],
+            "research_mode": research_mode.value,
+            "grounding_policy": policy.model_dump(mode="json"),
         }
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -137,14 +166,49 @@ class HybridRunService:
         request_id: str,
         task_context: Optional[OrqalyTaskContext] = None,
         agent_candidates: Optional[list[OrqalyAgentCandidate]] = None,
+        research_mode: HybridResearchMode = HybridResearchMode.SYNTHETIC_ONLY,
+        grounding_policy: Optional[HybridGroundingPolicy] = None,
     ) -> Tuple[PipelineRun, bool]:
         """Persist a new hybrid run or return the matching idempotent run."""
-        if not outputs.empirical_personas:
-            raise ValueError("Enhanced async runs must request empirical personas")
+        required_output_flags = {"empirical_personas": outputs.empirical_personas}
+        if outputs.research_bundle:
+            required_output_flags.update(
+                {
+                    "market_sources": outputs.market_sources,
+                    "market_claims": outputs.market_claims,
+                    "synthetic_participants": outputs.synthetic_participants,
+                    "interviews": outputs.interviews,
+                }
+            )
+        missing_outputs = [
+            name for name, enabled in required_output_flags.items() if not enabled
+        ]
+        if missing_outputs:
+            raise ValueError(
+                "Enhanced async runs require outputs: " + ", ".join(missing_outputs)
+            )
         if outputs.persona_resolution and not task_context:
             raise ValueError("Persona resolution requires task_context")
+        policy = grounding_policy or HybridGroundingPolicy(required=False)
+        if research_mode == HybridResearchMode.SYNTHETIC_ONLY and policy.required:
+            raise ValueError("Synthetic-only research cannot require market grounding")
+        if (
+            policy.required
+            and (
+                not request.business_context
+                or not str(request.business_context.location or "").strip()
+            )
+        ):
+            raise ValueError("Required regional grounding needs business_context.location")
         self.validate_callback_url(request.callback_url)
-        request_hash = self.request_hash(request, outputs, task_context, agent_candidates)
+        request_hash = self.request_hash(
+            request,
+            outputs,
+            task_context,
+            agent_candidates,
+            research_mode,
+            policy,
+        )
         session = self.session_factory()
         try:
             existing = (
@@ -185,6 +249,8 @@ class HybridRunService:
                     "agent_candidates": [
                         item.model_dump(mode="json") for item in (agent_candidates or [])
                     ],
+                    "research_mode": research_mode.value,
+                    "grounding_policy": policy.model_dump(mode="json"),
                 },
                 requested_outputs=outputs.model_dump(mode="json"),
                 callback_config=(
@@ -361,6 +427,28 @@ class HybridRunService:
                 claimed["request_payload"]["simulation"]
             )
             outputs = HybridOutputs.model_validate(claimed["requested_outputs"] or {})
+            raw_task_context = claimed["request_payload"].get("task_context")
+            task_context = (
+                OrqalyTaskContext.model_validate(raw_task_context)
+                if raw_task_context
+                else None
+            )
+            agent_candidates = [
+                OrqalyAgentCandidate.model_validate(item)
+                for item in claimed["request_payload"].get("agent_candidates", [])
+            ]
+            raw_research_mode = claimed["request_payload"].get("research_mode")
+            research_mode = HybridResearchMode(
+                raw_research_mode or HybridResearchMode.SYNTHETIC_ONLY.value
+            )
+            raw_grounding_policy = claimed["request_payload"].get("grounding_policy")
+            grounding_policy = HybridGroundingPolicy.model_validate(
+                raw_grounding_policy
+                or {
+                    "required": False,
+                    "source_strategy": "hybrid",
+                }
+            )
 
             # API routes parse raw questionnaires before calling the legacy
             # orchestrator, but durable jobs bypass those routes in the worker.
@@ -378,6 +466,68 @@ class HybridRunService:
                 raise RuntimeError(
                     "Hybrid research requires parsed stakeholder questions"
                 )
+            bundle_request = request
+
+            grounding = {
+                "market_sources": [],
+                "market_claims": [],
+                "structured_source_count": 0,
+                "claim_count": 0,
+                "company_count": 0,
+            }
+            if research_mode == HybridResearchMode.GROUNDED_HYBRID:
+                await self._set_stage(
+                    job_id,
+                    "grounding_market",
+                    3,
+                    "Grounding the regional market with registry and Google sources",
+                )
+                try:
+                    grounding = await self.grounding(request, grounding_policy)
+                except Exception as exc:
+                    raise RuntimeError("Regional market grounding failed") from exc
+                structured_sources = valid_structured_market_sources(
+                    grounding, grounding_policy
+                )
+                valid_source_ids = {
+                    str(item["source_id"])
+                    for item in structured_sources
+                    if item.get("source_id")
+                }
+                structured_claims = []
+                for claim in grounding.get("market_claims") or []:
+                    if not isinstance(claim, dict):
+                        continue
+                    source_ids = [
+                        str(value)
+                        for value in (claim.get("source_ids") or [])
+                        if str(value) in valid_source_ids
+                    ]
+                    if source_ids:
+                        structured_claims.append({**claim, "source_ids": source_ids})
+                grounding = {
+                    **grounding,
+                    "market_sources": structured_sources,
+                    "market_claims": structured_claims,
+                    "structured_source_count": len(structured_sources),
+                    "claim_count": len(structured_claims),
+                }
+                structured_source_count = len(structured_sources)
+                if (
+                    grounding_policy.required
+                    and structured_source_count
+                    < grounding_policy.minimum_structured_sources
+                ):
+                    raise RuntimeError(
+                        "Required market grounding produced no sufficient structured real sources"
+                    )
+                if grounding_policy.required and not structured_claims:
+                    raise RuntimeError(
+                        "Required market grounding produced no source-linked market claims"
+                    )
+                request = request_with_grounding(request, grounding)
+            elif grounding_policy.required:
+                raise RuntimeError("Required market grounding cannot run in synthetic-only mode")
 
             # The legacy orchestrator owns Pipeline B progress. It must not publish
             # a terminal result or callback while the empirical stage is pending.
@@ -401,6 +551,19 @@ class HybridRunService:
             )
             result = await self.enrichment(result, request)
             self._ensure_active(job_id)
+            result.data = {
+                **(result.data or {}),
+                "market_grounding": grounding,
+            }
+            result.metadata = {
+                **(result.metadata or {}),
+                "research_mode": research_mode.value,
+                "structured_market_source_count": int(
+                    grounding.get("structured_source_count")
+                    or len(grounding.get("market_sources") or [])
+                ),
+                "market_claim_count": len(grounding.get("market_claims") or []),
+            }
 
             if outputs.persona_resolution:
                 await self._set_stage(
@@ -409,13 +572,8 @@ class HybridRunService:
                     86,
                     "Matching the customer persona to the execution persona",
                 )
-                task_context = OrqalyTaskContext.model_validate(
-                    claimed["request_payload"].get("task_context")
-                )
-                agent_candidates = [
-                    OrqalyAgentCandidate.model_validate(item)
-                    for item in claimed["request_payload"].get("agent_candidates", [])
-                ]
+                if not task_context:
+                    raise RuntimeError("Persona resolution requires task_context")
                 persona_resolution = resolve_orqaly_personas(
                     result.empirical_personas or [], task_context, agent_candidates
                 )
@@ -446,14 +604,47 @@ class HybridRunService:
             )
 
             warning = None
-            prd_status = "not_requested"
+            research_prd = {
+                "status": "not_requested",
+                "analysis_result_id": analysis_result_id,
+                "cached_prd_id": None,
+                "prd_type": outputs.prd.type,
+                "content_hash": None,
+                "content": None,
+            }
             if outputs.prd.enabled:
                 await self._set_stage(job_id, "generating_prd", 96, "Generating PRD")
-                prd_status, warning = await self._generate_prd(
+                research_prd, warning = await self._generate_prd(
                     analysis_result_id, request, outputs, claimed["user_id"]
                 )
-                if prd_status == "failed" and outputs.prd.required:
+                if research_prd["status"] == "failed" and outputs.prd.required:
                     raise RuntimeError(warning or "Required PRD generation failed")
+
+            if outputs.research_bundle:
+                bundle = build_research_bundle(
+                    job_id=job_id,
+                    request=bundle_request,
+                    requested_outputs=outputs.model_dump(mode="json"),
+                    result=result,
+                    grounding=grounding,
+                    research_mode=research_mode,
+                    grounding_policy=grounding_policy,
+                    analysis_result_id=analysis_result_id,
+                    research_prd=research_prd,
+                    task_context=(
+                        task_context.model_dump(mode="json") if task_context else None
+                    ),
+                    agent_candidates=[
+                        item.model_dump(mode="json") for item in agent_candidates
+                    ],
+                )
+                result.data = {
+                    **(result.data or {}),
+                    "research_bundle": bundle,
+                }
+                self._attach_bundle_to_analysis(
+                    analysis_result_id, bundle, claimed["user_id"]
+                )
 
             terminal_status = "completed_with_warnings" if warning else "completed"
             self._persist_success(
@@ -461,7 +652,7 @@ class HybridRunService:
                 result,
                 analysis_result_id,
                 terminal_status,
-                prd_status,
+                research_prd["status"],
                 warning,
                 time.monotonic() - started,
             )
@@ -634,7 +825,7 @@ class HybridRunService:
         request: SimulationRequest,
         outputs: HybridOutputs,
         user_id: str,
-    ) -> Tuple[str, Optional[str]]:
+    ) -> Tuple[Dict[str, Any], Optional[str]]:
         session = self.session_factory()
         try:
             analysis = (
@@ -644,7 +835,10 @@ class HybridRunService:
             )
             user = session.query(User).filter(User.user_id == user_id).first()
             if not analysis or not user:
-                return "failed", "Hybrid analysis result is unavailable for PRD generation"
+                return (
+                    self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                    "Hybrid analysis result is unavailable for PRD generation",
+                )
             llm_service = LLMServiceFactory.create("enhanced_gemini")
             prd_service = PRDGenerationService(
                 db=session, llm_service=llm_service, user=user
@@ -656,11 +850,81 @@ class HybridRunService:
                 result_id=analysis_result_id,
             )
             if isinstance(prd, dict) and prd.get("error"):
-                return "failed", str(prd["error"])
-            return "completed", None
+                return (
+                    self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                    str(prd["error"]),
+                )
+            cached = (
+                session.query(CachedPRD)
+                .filter(
+                    CachedPRD.result_id == analysis_result_id,
+                    CachedPRD.prd_type == outputs.prd.type,
+                )
+                .first()
+            )
+            return (
+                self._prd_metadata(
+                    "completed",
+                    analysis_result_id,
+                    outputs.prd.type,
+                    content=prd,
+                    cached_prd_id=(cached.id if cached else None),
+                ),
+                None,
+            )
         except Exception as exc:
             logger.exception("PRD generation failed for hybrid analysis %s", analysis_result_id)
-            return "failed", str(exc)
+            return (
+                self._prd_metadata("failed", analysis_result_id, outputs.prd.type),
+                str(exc),
+            )
+        finally:
+            session.close()
+
+    @staticmethod
+    def _prd_metadata(
+        status: str,
+        analysis_result_id: int,
+        prd_type: str,
+        *,
+        content: Optional[Dict[str, Any]] = None,
+        cached_prd_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        return {
+            "status": status,
+            "analysis_result_id": analysis_result_id,
+            "cached_prd_id": cached_prd_id,
+            "prd_type": prd_type,
+            "content_hash": canonical_hash(content) if content is not None else None,
+            "content": content,
+        }
+
+    def _attach_bundle_to_analysis(
+        self, analysis_result_id: int, bundle: Dict[str, Any], user_id: str
+    ) -> None:
+        """Persist the immutable handoff in the same tenant-owned analysis record."""
+        session = self.session_factory()
+        try:
+            analysis = (
+                session.query(AnalysisResult)
+                .join(InterviewData, InterviewData.id == AnalysisResult.data_id)
+                .filter(AnalysisResult.result_id == analysis_result_id)
+                .filter(InterviewData.user_id == user_id)
+                .first()
+            )
+            if not analysis:
+                raise RuntimeError(
+                    "Hybrid analysis result disappeared before bundle persistence"
+                )
+            analysis.results = {
+                **(analysis.results or {}),
+                "research_bundle": bundle,
+                "research_prd": bundle.get("research_prd"),
+            }
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()
 
@@ -684,6 +948,12 @@ class HybridRunService:
             )
             if not run or not simulation:
                 raise RuntimeError("Hybrid run persistence record was not found")
+            research_bundle = (
+                ((result.data or {}).get("research_bundle") or {})
+                if isinstance(result.data, dict)
+                else {}
+            )
+            bundle_quality = research_bundle.get("quality") or {}
             summary = {
                 "hybrid_status": "completed",
                 "people_count": len(result.people or []),
@@ -702,6 +972,14 @@ class HybridRunService:
                         "recommended_agent"
                     ) or {}).get("agent_id"))
                 ),
+                "research_bundle_version": research_bundle.get("version"),
+                "research_bundle_id": research_bundle.get("bundle_id"),
+                "research_bundle_hash": research_bundle.get("bundle_hash"),
+                "structured_market_source_count": bundle_quality.get(
+                    "structured_source_count", 0
+                ),
+                "market_claim_count": bundle_quality.get("claim_count", 0),
+                "artifact_count": bundle_quality.get("artifact_count", 0),
             }
             run.status = status
             run.current_stage = "completed"
@@ -827,6 +1105,12 @@ class HybridRunService:
         }
         if include_result and run.status in {"completed", "completed_with_warnings"}:
             data["result"] = run.dataset
+            research_bundle = (
+                (((run.dataset or {}).get("data") or {}).get("research_bundle"))
+                if isinstance(run.dataset, dict)
+                else None
+            )
+            data["research_bundle"] = research_bundle
             data["deliverables"] = {
                 "analysis": (
                     {"status": "completed", "url": f"/api/results/{run.analysis_id}"}

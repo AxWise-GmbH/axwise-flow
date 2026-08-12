@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 STOP_WORDS = {
@@ -26,6 +26,21 @@ class OrqalyTaskContext(BaseModel):
     category: Optional[str] = None
     constraints: List[str] = Field(default_factory=list)
     required_capabilities: List[str] = Field(default_factory=list)
+    required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator("required_execution_roles")
+    @classmethod
+    def normalize_execution_roles(cls, values: List[str]) -> List[str]:
+        cleaned: List[str] = []
+        seen = set()
+        for value in values:
+            item = value.strip()
+            if len(item) > 255:
+                raise ValueError("required execution roles are limited to 255 characters")
+            if item and item.casefold() not in seen:
+                seen.add(item.casefold())
+                cleaned.append(item)
+        return cleaned
 
 
 class OrqalyAgentCandidate(BaseModel):
@@ -198,6 +213,7 @@ def resolve_orqaly_personas(
         task_context.category,
         task_context.constraints,
         task_context.required_capabilities,
+        task_context.required_execution_roles,
     )
     # Include both the selected persona identity and its supporting quotations.
     # The public profile projection can be intentionally concise, while the
@@ -228,7 +244,8 @@ def resolve_orqaly_personas(
         "clear, evidence-grounded, and adapted to the customer",
     )
     ideal_capabilities = list(dict.fromkeys(
-        task_context.required_capabilities
+        task_context.required_execution_roles
+        + task_context.required_capabilities
         + ((recommendation or {}).get("capabilities", []))
     ))[:12]
     if not ideal_capabilities:
@@ -240,8 +257,20 @@ def resolve_orqaly_personas(
     category_role = (task_context.category or "operations").replace("_", " ").strip()
     if category_role == "general operations":
         category_role = "operations"
+    required_roles = task_context.required_execution_roles
+    if len(required_roles) == 1:
+        ideal_role = required_roles[0]
+    elif len(required_roles) > 1:
+        ideal_role = "Role-specific execution team"
+    else:
+        ideal_role = (
+            (recommendation or {}).get("role")
+            or f"Customer-aligned {category_role} specialist"
+        )
     ideal_agent = {
-        "role": (recommendation or {}).get("role") or f"Customer-aligned {category_role} specialist",
+        "role": ideal_role,
+        "profile_scope": "team" if len(required_roles) > 1 else "specialist",
+        "required_execution_roles": required_roles,
         "communication_style": communication_style,
         "required_capabilities": ideal_capabilities,
         "operating_principles": [

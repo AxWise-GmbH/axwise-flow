@@ -84,6 +84,30 @@ def test_returns_ideal_persona_when_orqaly_has_no_candidate():
     assert result["ideal_agent_persona"]["required_capabilities"]
 
 
+def test_multi_role_research_does_not_present_one_candidate_as_the_whole_team():
+    roles = ["Marketing ICP Specialist", "Finance Pricing Specialist"]
+    result = resolve_orqaly_personas(
+        [_customer_persona()],
+        OrqalyTaskContext(
+            title="Build a commercial plan",
+            description="Research and package a regional offer",
+            required_execution_roles=roles,
+        ),
+        [
+            OrqalyAgentCandidate(
+                agent_id="agent-marketing",
+                name="Marketing Strategist",
+                role="Marketing ICP Specialist",
+                capabilities=["Marketing ICP Specialist"],
+            )
+        ],
+    )
+
+    assert result["ideal_agent_persona"]["role"] == "Role-specific execution team"
+    assert result["ideal_agent_persona"]["profile_scope"] == "team"
+    assert result["ideal_agent_persona"]["required_execution_roles"] == roles
+
+
 def test_rejects_a_weak_cross_domain_candidate_and_normalizes_structured_style():
     customer = _customer_persona()
     customer["communication_style"] = {

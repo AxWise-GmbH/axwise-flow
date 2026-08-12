@@ -88,6 +88,19 @@ class UncertaintyRouter:
         ):
             reasons.append("consequential contradictory evidence requires human clarification")
             return RoutingMode.HUMAN_CLARIFICATION, reasons
+        if policy.required:
+            budget_allows, budget_reasons = self._research_budget_allows(request)
+            if classified.deadline_pressure >= 0.7:
+                budget_allows = False
+                budget_reasons.append(
+                    "task deadline is too close for the configured research path"
+                )
+            if budget_allows:
+                reasons.append("research is explicitly required by the authorized policy")
+                return RoutingMode.RESEARCH_ASSISTED, reasons
+            reasons.extend(budget_reasons)
+            reasons.append("required research cannot run within its authorized bounds")
+            return RoutingMode.HUMAN_CLARIFICATION, list(dict.fromkeys(reasons))
         if (
             evidence
             and policy.allow_existing_evidence

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Annotated, Any, Dict, List
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Response, status
@@ -48,6 +49,30 @@ router = APIRouter(
     prefix="/api/orqaly-axwise/v1/orchestration",
     tags=["Orchestration Decisions"],
 )
+
+
+def _correlation_id(request_id: str | None) -> str:
+    """Return the caller trace id, or generate one for safe error correlation."""
+    value = (request_id or "").strip()
+    return value[:255] if value else str(uuid.uuid4())
+
+
+def _contract_error(
+    status_code: int,
+    code: str,
+    message: str,
+    request_id: str,
+) -> HTTPException:
+    """Expose a bounded machine-readable error without tenant snapshots."""
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "code": code,
+            "message": message[:500],
+            "request_id": request_id,
+        },
+        headers={"X-Request-ID": request_id},
+    )
 
 
 def _service(
@@ -110,6 +135,7 @@ async def create_orchestration_decision(
     _service_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> OrchestrationDecisionRecordV1:
+    correlation_id = _correlation_id(request_id)
     tenant = TenantContext(
         userId=request.tenant.user_id,
         orgId=request.tenant.org_id,
@@ -120,14 +146,25 @@ async def create_orchestration_decision(
             request=request,
             user_id=user.user_id,
             idempotency_key=idempotency_key.strip(),
-            request_id=request_id,
+            request_id=correlation_id,
         )
     except IdempotencyConflict as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            "AXWISE_IDEMPOTENCY_CONFLICT",
+            str(exc),
+            correlation_id,
+        )
     except DecisionLinkError as exc:
         detail = str(exc)
         code = status.HTTP_404_NOT_FOUND if "not found" in detail else status.HTTP_422_UNPROCESSABLE_ENTITY
-        raise HTTPException(status_code=code, detail=detail)
+        error_code = (
+            "AXWISE_UPSTREAM_DECISION_NOT_FOUND"
+            if code == status.HTTP_404_NOT_FOUND
+            else "AXWISE_UPSTREAM_DECISION_INVALID"
+        )
+        raise _contract_error(code, error_code, detail, correlation_id)
+    response.headers["X-Request-ID"] = correlation_id
     response.status_code = status.HTTP_200_OK if record.reused else status.HTTP_201_CREATED
     return record
 
