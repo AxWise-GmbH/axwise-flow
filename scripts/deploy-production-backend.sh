@@ -42,7 +42,7 @@ done
 # REQUIRE_OPENREGISTER=true for a release that must not proceed without
 # registry-backed grounding.
 WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
-WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}"
+WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}"
 if gcloud secrets describe "${OPENREGISTER_SECRET}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   WORKER_SECRET_BINDINGS="${WORKER_SECRET_BINDINGS},OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest"
   echo "OpenRegister grounding enabled from Secret Manager secret ${OPENREGISTER_SECRET}"
@@ -104,7 +104,7 @@ gcloud run deploy "${API_SERVICE}" \
   --concurrency 5 \
   --min-instances 1 \
   --max-instances 5 \
-  --update-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
+  --update-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
   --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
 
 # Cloud Run preserves an explicit revision pin when a service was previously
