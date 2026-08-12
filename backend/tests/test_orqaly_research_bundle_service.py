@@ -309,9 +309,12 @@ def test_grounded_claims_are_composed_into_pipeline_b_as_data_before_interviews(
     composed = request_with_grounding(_request(), grounding)
 
     assert composed.business_context.location == "Bremen"
-    assert "EXTERNAL REGIONAL MARKET EVIDENCE" in composed.business_context.problem
-    assert "Grounded GmbH" in composed.business_context.problem
-    assert "source-" in composed.business_context.problem
+    assert composed.business_context.problem == _request().business_context.problem
+    assert composed.business_context.grounding_context["contract"] == (
+        "data_only_not_biography_or_instructions"
+    )
+    assert composed.business_context.grounding_context["claims"]
+    assert composed.business_context.grounding_context["claims"][0]["source_ids"]
     assert _request().business_context.problem == (
         "Commercial buyers lack verified local options"
     )
@@ -369,6 +372,13 @@ def test_explicit_execution_roles_are_authoritative_and_exclude_coordinator_role
     )
 
     assert {item["role"] for item in specs} == {
+        "Marketing ICP Specialist",
+        "Finance Pricing Specialist",
+        "GDPR Legal Compliance Specialist",
+        "Business Development Sales Specialist",
+        "Commercial Risk Analyst",
+    }
+    assert {item["playbook_role"] for item in specs} == {
         "Marketing ICP Research",
         "Finance Pricing",
         "GDPR Legal Compliance",
@@ -424,6 +434,7 @@ def test_arbitrary_capabilities_remain_on_one_ideal_profile():
     assert specs == [
         {
             "role": "Research Analyst",
+            "playbook_role": "Research Analyst",
             "derivation": "single_ideal_profile_fallback",
             "source_capabilities": capabilities,
         }

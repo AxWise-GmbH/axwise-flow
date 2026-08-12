@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+import hashlib
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
@@ -54,6 +56,12 @@ class SearxngSearchService:
             )
             response.raise_for_status()
             payload = response.json()
+            retrieved_at = datetime.now(timezone.utc).isoformat()
+            raw_content = getattr(response, "content", None)
+            if not isinstance(raw_content, (bytes, bytearray)):
+                raw_content = str(payload).encode("utf-8")
+            response_hash = hashlib.sha256(raw_content).hexdigest()
+            query_id = hashlib.sha256(query.encode("utf-8")).hexdigest()[:20]
             rows = payload.get("results") if isinstance(payload, dict) else []
             sources = []
             claims = []
@@ -66,7 +74,24 @@ class SearxngSearchService:
                     continue
                 title = str(row.get("title") or "Unknown").strip()[:500]
                 content = str(row.get("content") or "").strip()[:1500]
-                sources.append({"title": title, "url": url})
+                provider_source_id = hashlib.sha256(url.encode("utf-8")).hexdigest()[:20]
+                sources.append(
+                    {
+                        "title": title,
+                        "url": url,
+                        "provider": "searxng",
+                        "provider_source_id": f"searxng-{provider_source_id}",
+                        "provider_response_hash": response_hash,
+                        "provider_query_ids": [query_id],
+                        "provider_queries": [query[:1000]],
+                        "retrieved_at": retrieved_at,
+                        "citation_metadata": {
+                            "result_index": len(sources),
+                            "snippet_hash": hashlib.sha256(content.encode("utf-8")).hexdigest()
+                            if content else None,
+                        },
+                    }
+                )
                 if content:
                     claims.append(
                         {
@@ -74,6 +99,20 @@ class SearxngSearchService:
                             "source_urls": [url],
                             "confidence_scores": [],
                             "verification_status": "search_snippet_not_independently_verified",
+                            "provider": "searxng",
+                            "provider_response_hash": response_hash,
+                            "provider_query_ids": [query_id],
+                            "provider_queries": [query[:1000]],
+                            "segment_start": 0,
+                            "segment_end": len(content),
+                            "span_target": "source_snippet",
+                            "provenance_artifact": {
+                                "artifact_type": "source_snippet",
+                                "text": content,
+                                "sha256": hashlib.sha256(
+                                    content.encode("utf-8")
+                                ).hexdigest(),
+                            },
                         }
                     )
                 passages.append(f"{title}\n{content}\n{url}")
@@ -83,6 +122,10 @@ class SearxngSearchService:
                 "text": "\n\n".join(passages),
                 "sources": sources,
                 "claims": claims,
+                "provider": "searxng",
+                "provider_response_hash": response_hash,
+                "provider_query_ids": [query_id],
+                "provider_queries": [query[:1000]],
                 "search_performed": bool(sources),
             }
         except Exception as exc:

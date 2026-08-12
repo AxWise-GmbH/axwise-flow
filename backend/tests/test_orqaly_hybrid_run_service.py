@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import os
 from datetime import datetime
 
 import pytest
@@ -23,6 +25,8 @@ from backend.api.research.simulation_bridge.models import (
 )
 from backend.database import Base
 from backend.models import AnalysisResult, PipelineRun, SimulationData, User
+from backend.models import CachedPRD
+from backend.domain.market_scope import resolve_market_expression
 from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridPRDOutput,
@@ -38,8 +42,16 @@ from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
 )
+from backend.services.research_source_authority_service import (
+    build_authority_claim_artifact,
+    build_direct_primary_market_proof,
+    build_recognized_root_proof,
+)
 
 pytestmark = pytest.mark.contract
+os.environ.setdefault(
+    "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
+)
 
 
 @compiles(JSONB, "sqlite")
@@ -56,6 +68,7 @@ def _request(problem: str = "Research plans are vague") -> SimulationRequest:
             problem=problem,
             industry="research technology",
             location="Bremen",
+            market_scope=resolve_market_expression("Bremen, Germany"),
         ),
         questions_data=QuestionsData(
             stakeholders={
@@ -88,7 +101,7 @@ def _bundle_outputs(**updates) -> HybridOutputs:
     return HybridOutputs(**values)
 
 
-BREMEN_EXECUTION_ROLES = [
+BREMEN_PLAYBOOK_ROLES = [
     "Marketing ICP Research",
     "Finance Pricing",
     "GDPR Legal Compliance",
@@ -102,6 +115,7 @@ ORQALY_BREMEN_EXECUTION_ROLES = [
     "Business Development Sales Specialist",
     "Commercial Risk Analyst",
 ]
+BREMEN_EXECUTION_ROLES = ORQALY_BREMEN_EXECUTION_ROLES
 BREMEN_LEGACY_CAPABILITIES = [
     "German Market Localization Specialist",
     "Commercial Pricing Analyst",
@@ -150,6 +164,7 @@ class FakeOrchestrator:
         self.parsed_questionnaires = []
         self.performance_profiles = []
         self.pipeline_b_problems = []
+        self.pipeline_b_grounding_contexts = []
 
     async def parse_raw_questionnaire(self, content, config):
         self.parsed_questionnaires.append(content)
@@ -180,6 +195,9 @@ class FakeOrchestrator:
         self.finalize_flags.append(finalize)
         self.performance_profiles.append(request.config.performance_profile.value)
         self.pipeline_b_problems.append(request.business_context.problem)
+        self.pipeline_b_grounding_contexts.append(
+            request.business_context.grounding_context
+        )
         person = SimulatedPerson(
             id="person-1",
             name="Alex Researcher",
@@ -338,6 +356,176 @@ def test_analysis_result_prepends_authoritative_goal_contract(session_factory):
         session.close()
 
 
+@pytest.mark.asyncio
+async def test_commercial_hybrid_run_repairs_then_caches_and_bundles_valid_prd(
+    session_factory, monkeypatch
+):
+    llm = RepairingCommercialLLM()
+    monkeypatch.setattr(
+        "backend.services.orqaly_hybrid_run_service.LLMServiceFactory.create",
+        lambda _provider: llm,
+    )
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator, session_factory, commercial_enrichment, commercial_grounding
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    outputs = _bundle_outputs(
+        persona_resolution=True,
+        prd=HybridPRDOutput(
+            enabled=True,
+            type="commercial_market_launch",
+            required=True,
+        ),
+    )
+    run, _ = service.enqueue(
+        _request(),
+        outputs,
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-commercial-prd",
+        "trace-commercial-prd",
+        task_context=_commercial_task_context(),
+        agent_candidates=_bremen_agents(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "completed", persisted.error
+    assert len(llm.requests) == 2
+    first_envelope = __import__("json").loads(llm.requests[0]["text"])
+    second_envelope = __import__("json").loads(llm.requests[1]["text"])
+    assert first_envelope["repair_feedback"] == []
+    assert second_envelope["repair_feedback"]
+    bundle = persisted.dataset["data"]["research_bundle"]
+    assert bundle["research_prd"]["status"] == "completed"
+    assert bundle["research_prd"]["prd_type"] == "commercial_market_launch"
+    assert bundle["research_prd"]["content"]["metadata"]["validation"][
+        "status"
+    ] == "passed"
+    assert bundle["quality"]["critical_claims"]["status"] == "passed"
+    assert bundle["quality"]["critical_claims"]["evidence_ledger"]
+    assert bundle["quality"]["critical_claims"]["applicable_claim_classes"] == [
+        "observed_primary_market",
+        "official_statistic",
+        "statutory_current",
+    ]
+    assert bundle["quality"]["critical_claims"]["mandatory_claim_classes"] == (
+        bundle["quality"]["critical_claims"]["applicable_claim_classes"]
+    )
+    assert bundle["quality"]["critical_claims"]["not_applicable_claim_classes"] == []
+    assert bundle["quality"]["critical_claims"]["verified_claim_classes"] == [
+        "observed_primary_market",
+        "official_statistic",
+        "statutory_current",
+    ]
+    assert any(
+        source["source_authority"] == "first_party_catalog"
+        and source["authority_proof_signature"]
+        for row in bundle["quality"]["critical_claims"]["evidence_ledger"]
+        for source in row["sources"]
+    )
+    assert bundle["quality"]["requested_execution_roles"] == (
+        ORQALY_BREMEN_EXECUTION_ROLES
+    )
+    assert bundle["quality"]["returned_execution_roles"] == (
+        ORQALY_BREMEN_EXECUTION_ROLES
+    )
+    assert bundle["quality"]["executor_role_coverage"] == {
+        "status": "complete",
+        "requested_count": 5,
+        "returned_count": 5,
+        "missing_roles": [],
+        "unexpected_roles": [],
+        "role_matches": [
+            {"requested_role": role, "returned_role": role, "covered": True}
+            for role in ORQALY_BREMEN_EXECUTION_ROLES
+        ],
+    }
+    assert bundle["research_context"]["selected_customer"]["buyer_role"] is True
+    assert bundle["research_context"]["selected_customer"]["evidence_refs"]
+    assert all(row["evidence_refs"] for row in bundle["executor_personas"])
+
+    session = session_factory()
+    cached = session.query(CachedPRD).filter_by(
+        result_id=int(persisted.analysis_id), prd_type="operational"
+    ).one()
+    analysis = session.query(AnalysisResult).filter_by(
+        result_id=int(persisted.analysis_id)
+    ).one()
+    session.close()
+    assert cached.prd_data["prd_type"] == "commercial_market_launch"
+    assert cached.prd_data["metadata"]["validation"]["status"] == "passed"
+    assert analysis.results["research_bundle"]["bundle_hash"] == bundle["bundle_hash"]
+
+
+@pytest.mark.asyncio
+async def test_commercial_hybrid_run_blocks_generic_prd_and_does_not_cache(
+    session_factory, monkeypatch
+):
+    llm = RepairingCommercialLLM(always_invalid=True)
+    monkeypatch.setattr(
+        "backend.services.orqaly_hybrid_run_service.LLMServiceFactory.create",
+        lambda _provider: llm,
+    )
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        commercial_enrichment,
+        commercial_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        _bundle_outputs(
+            persona_resolution=True,
+            prd=HybridPRDOutput(
+                enabled=True,
+                type="commercial_market_launch",
+                required=True,
+            ),
+        ),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-commercial-invalid",
+        "trace-commercial-invalid",
+        task_context=_commercial_task_context(),
+        agent_candidates=_bremen_agents(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert len(llm.requests) == 2
+    session = session_factory()
+    assert session.query(CachedPRD).count() == 0
+    session.close()
+
+
 async def fake_grounding(_request, _policy):
     return {
         "market_sources": [
@@ -368,6 +556,270 @@ async def fake_grounding(_request, _policy):
         "company_count": 1,
         "composer_version": "regional_google_registry_v1",
     }
+
+
+def _commercial_prd_content() -> dict:
+    return {
+        "prd_type": "commercial_market_launch",
+        "commercial_prd": {
+            "market_scope": {"country": "Germany", "city": "Bremen"},
+            "market_and_demand_assessment": ["Grounded local demand assessment"],
+            "customer_segments": ["Commercial category buyers"],
+            "buying_roles": ["Economic buyer and operational user are separated"],
+            "regulatory_checklist": [
+                {
+                    "statement": "Germany's standard VAT rate is 19%.",
+                    "claim_ids": ["claim-de-vat"],
+                }
+            ],
+            "competitors": ["Competitor evidence requires sourced field validation"],
+            "suppliers_and_channels": ["Specialist retail and direct channels"],
+            "pricing_and_unit_economics": {
+                "statement": "Net price derives from gross price and verified VAT.",
+                "formula": "net_price = gross_price / (1 + vat_rate)",
+                "input_claim_ids": ["claim-de-vat"],
+            },
+            "go_to_market_plan_90_days": ["Validate", "Pilot", "Scale"],
+            "risks_assumptions_and_validation": [
+                "Validate synthetic buyer assumptions in field conversations"
+            ],
+        },
+    }
+
+
+class RepairingCommercialLLM:
+    def __init__(self, *, always_invalid: bool = False):
+        self.always_invalid = always_invalid
+        self.requests = []
+
+    async def analyze(self, request):
+        self.requests.append(dict(request))
+        if self.always_invalid or len(self.requests) == 1:
+            return {"operational_prd": {"workflow": "generic fallback"}}
+        return _commercial_prd_content()
+
+
+async def commercial_enrichment(result, request):
+    result = await fake_enrichment(result, request)
+    persona = result.empirical_personas[0]
+    persona.update(
+        {
+            "name": "Markus Weber, Commercial Director",
+            "role": "Commercial Director",
+            "stakeholder_intelligence": {
+                "stakeholder_type": "economic buyer",
+                "decision_role": "economic buyer",
+            },
+        }
+    )
+    return result
+
+
+async def commercial_grounding(_request, _policy):
+    vat_claim = "Germany's standard VAT rate is 19% effective 2025-01-01."
+    statistic_claim = (
+        "Germany's latest official market population is 84 million for 2025."
+    )
+    price_claim = (
+        "The current retail catalogue price for premium cat food is €2.99 on "
+        "2026-08-12."
+    )
+    source_url = "https://tax.gov.de/current-market-facts"
+    catalog_url = "https://shop.example.de/cat-food"
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    direct_text = (
+        "Government tax authority current value-added tax and statistics guidance. "
+        f"{vat_claim} {statistic_claim}"
+    )
+    proof = build_recognized_root_proof(
+        direct_url=source_url,
+        direct_text=direct_text,
+        country_codes=["DE"],
+        retrieved_at=retrieved_at,
+    )
+    catalog_text = "Official product catalogue for Germany. " + price_claim
+    catalog_proof = build_direct_primary_market_proof(
+        direct_url=catalog_url,
+        direct_text=catalog_text,
+        country_codes=["DE"],
+        retrieved_at=retrieved_at,
+    )
+    authority_document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": "source-de-government-facts",
+        "text": direct_text,
+        "sha256": hashlib.sha256(direct_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    catalog_document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": "source-de-cat-catalog",
+        "text": catalog_text,
+        "sha256": hashlib.sha256(catalog_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": catalog_proof["proof_signature"],
+    }
+
+    def claim_row(
+        *,
+        claim_id,
+        text,
+        predicate,
+        evidence_class,
+        source_id,
+        url,
+        source_proof,
+        document,
+        **temporal,
+    ):
+        artifact = build_authority_claim_artifact(
+            source_id=source_id,
+            source_url=url,
+            authority_proof=source_proof,
+            authority_document=document,
+            claim_text=text,
+        )
+        binding = artifact["claim_binding"]
+        return {
+            "claim_id": claim_id,
+            "claim_type": "grounded_web_evidence",
+            "subject": "Germany",
+            "predicate": predicate,
+            "object": text,
+            "source_ids": [source_id],
+            "country_codes": ["DE"],
+            "critical": True,
+            "evidence_class": evidence_class,
+            "provider": "searxng",
+            "provider_query_ids": [f"query-{claim_id}"],
+            "provider_queries": [f"Germany {predicate}"],
+            "citation_metadata": {
+                "segment_start": binding["claim_start"],
+                "segment_end": binding["claim_end"],
+                "span_target": "direct_authority_document",
+                "offset_unit": "unicode_codepoints",
+                "source_id": source_id,
+            },
+            "provenance_artifact": artifact,
+            **temporal,
+        }
+
+    return {
+        "market_sources": [
+            {
+                "source_id": "source-de-government-facts",
+                "source_type": "google_search_result",
+                "title": "Current German tax and official statistics guidance",
+                "url": source_url,
+                "publisher": "tax.gov.de",
+                "provider": "searxng",
+                "provider_source_id": "searx-de-government-facts",
+                "provider_query_ids": ["query-de-vat", "query-de-population"],
+                "provider_queries": [
+                    "Germany current VAT effective date",
+                    "Germany latest official market population",
+                ],
+                "country_codes": ["DE"],
+                "source_authority": "official_public",
+                "authority_verification_status": "recognized_public_root_direct",
+                "retrieved_at": retrieved_at,
+                "authority_proof": proof,
+                "authority_document": {
+                    key: value for key, value in authority_document.items() if key != "text"
+                },
+            },
+            {
+                "source_id": "source-de-cat-catalog",
+                "source_type": "google_search_result",
+                "title": "Current German cat food catalogue",
+                "url": catalog_url,
+                "publisher": "shop.example.de",
+                "provider": "searxng",
+                "provider_source_id": "searx-de-cat-price",
+                "provider_query_ids": ["query-de-cat-price"],
+                "provider_queries": ["Germany cat food retail catalogue price"],
+                "country_codes": ["DE"],
+                "source_authority": "first_party_catalog",
+                "authority_verification_status": "direct_primary_market_observation",
+                "retrieved_at": retrieved_at,
+                "authority_proof": catalog_proof,
+                "authority_document": {
+                    key: value
+                    for key, value in catalog_document.items()
+                    if key != "text"
+                },
+            },
+        ],
+        "market_claims": [
+            claim_row(
+                claim_id="claim-de-vat",
+                text=vat_claim,
+                predicate="standard VAT rate",
+                evidence_class="statutory_current",
+                source_id="source-de-government-facts",
+                url=source_url,
+                source_proof=proof,
+                document=authority_document,
+                effective_at="2025-01-01T00:00:00+00:00",
+                current=True,
+            ),
+            claim_row(
+                claim_id="claim-de-population",
+                text=statistic_claim,
+                predicate="latest official population",
+                evidence_class="official_statistic",
+                source_id="source-de-government-facts",
+                url=source_url,
+                source_proof=proof,
+                document=authority_document,
+                observation_end="2025-12-31T00:00:00+00:00",
+                latest_release=True,
+            ),
+            claim_row(
+                claim_id="claim-de-cat-price",
+                text=price_claim,
+                predicate="observed retail catalogue price",
+                evidence_class="observed_primary_market",
+                source_id="source-de-cat-catalog",
+                url=catalog_url,
+                source_proof=catalog_proof,
+                document=catalog_document,
+                observed_at=retrieved_at,
+            ),
+        ],
+        "structured_source_count": 2,
+        "claim_count": 3,
+        "company_count": 0,
+        "composer_version": "provider_shaped_commercial_fixture_v1",
+    }
+
+
+def _commercial_task_context() -> OrqalyTaskContext:
+    return _bremen_task_context().model_copy(
+        update={
+            "research_prd_type": "commercial_market_launch",
+            "customer_role_contract": {
+                "primary_roles": ["economic_buyer", "decision_authority"],
+                "require_primary_buyer": True,
+                "ineligible_roles": ["operational_user"],
+            },
+            "critical_claim_policy": {
+                "required": True,
+                "fail_closed": True,
+                "freshness_days": 120,
+                "freshness_by_class": {
+                    "official_statistic": 730,
+                    "observed_primary_market": 120,
+                },
+                "mandatory_claim_classes": [
+                    "statutory_current",
+                    "official_statistic",
+                    "observed_primary_market",
+                ],
+            },
+        }
+    )
 
 
 @pytest.fixture
@@ -504,6 +956,12 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert len(bundle["customer_personas"]) == 1
     assert len(bundle["selected_persona_ids"]) == 1
     assert bundle["customer_personas"][0]["selection_status"] == "selected_primary"
+    assert "source-bremen-registry" in bundle["customer_personas"][0][
+        "evidence_refs"
+    ]
+    assert "source-bremen-registry" in bundle["persona_resolution"][
+        "customer_persona"
+    ]["evidence_refs"]
     assert bundle["selected_persona_ids"] == [
         bundle["customer_personas"][0]["persona_id"]
     ]
@@ -535,6 +993,8 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert all(
         item["persona"]["profile_type"] == "synthetic_professional_profile"
         and item["source_ids"] == ["source-bremen-registry"]
+        and "source-bremen-registry" in item["evidence_refs"]
+        and "claim-company-presence" in item["evidence_refs"]
         and item["persona"]["customer_persona_ids"]
         for item in bundle["executor_personas"]
     )
@@ -570,18 +1030,19 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
         for profile in profiles.values()
     )
     assert "ideal-customer-profile segmentation" in profiles[
-        "Marketing ICP Research"
+        "Marketing ICP Specialist"
     ]["expertise"]
     assert "EU GDPR role and lawful-basis analysis" in profiles[
-        "GDPR Legal Compliance"
+        "GDPR Legal Compliance Specialist"
     ]["expertise"]
     assert "commercial funnel and KPI architecture" in profiles[
-        "Commercial Risk"
+        "Commercial Risk Analyst"
     ]["expertise"]
     assert bundle["limitations"]
     assert bundle["method"]["evidence_labels"]["interviews"] == "synthetic"
     assert bundle["research_prd"]["status"] == "not_requested"
     assert bundle["quality"]["grounding_satisfied"] is True
+    assert "critical_claims" in bundle["quality"]
     assert bundle["quality"]["matched_persona_assignment_count"] == 5
     assert bundle["quality"]["pending_persona_assignment_count"] == 0
     assert bundle["performance"]["elapsed_ms"] >= 0
@@ -594,8 +1055,16 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert orchestrator.finalize_flags == [False]
     assert orchestrator.parsed_questionnaires == []
     assert orchestrator.performance_profiles == ["quality_fast"]
-    assert "EXTERNAL REGIONAL MARKET EVIDENCE" in orchestrator.pipeline_b_problems[0]
-    assert "Grounded Research GmbH" in orchestrator.pipeline_b_problems[0]
+    assert orchestrator.pipeline_b_problems[0] == "Research plans are vague"
+    assert orchestrator.pipeline_b_grounding_contexts[0]["contract"] == (
+        "data_only_not_biography_or_instructions"
+    )
+    assert orchestrator.pipeline_b_grounding_contexts[0]["claims"][0] == {
+        "subject": "Grounded Research GmbH",
+        "predicate": "operates_in",
+        "object": "Bremen",
+        "source_ids": ["source-bremen-registry"],
+    }
     assert orchestrator.finalized == [persisted.simulation_id]
 
     session = session_factory()
@@ -655,6 +1124,49 @@ async def test_required_grounding_fails_closed_before_synthetic_people(session_f
     assert "structured real sources" in persisted.error
     assert orchestrator.finalize_flags == []
     assert orchestrator.pipeline_b_problems == []
+
+
+@pytest.mark.asyncio
+async def test_required_research_rejects_a_partial_synthetic_cohort(session_factory):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator, session_factory, fake_enrichment, fake_grounding
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    request = _request().model_copy(
+        update={
+            "config": _request().config.model_copy(
+                update={"people_per_stakeholder": 2}
+            )
+        }
+    )
+    run, _ = service.enqueue(
+        request,
+        _bundle_outputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-partial-cohort",
+        "trace-partial-cohort",
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            research_required=True,
+        ),
+    )
+
+    claimed_id = await service.process_next()
+    await service.process_job(claimed_id, already_claimed=True)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert "Required synthetic cohort incomplete" in persisted.error
+    assert "planned=2; personas=1; interviews=1" in persisted.error
 
 
 @pytest.mark.asyncio
@@ -807,11 +1319,11 @@ def test_enqueue_rejects_missing_bundle_outputs_and_grounding_location(session_f
     request_without_location = _request().model_copy(
         update={
             "business_context": _request().business_context.model_copy(
-                update={"location": None}
+                update={"location": None, "market_scope": None}
             )
         }
     )
-    with pytest.raises(ValueError, match="business_context.location"):
+    with pytest.raises(ValueError, match="country-qualified location"):
         service.enqueue(
             request_without_location,
             _bundle_outputs(),

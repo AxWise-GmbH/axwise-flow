@@ -12,6 +12,13 @@ from fastapi import HTTPException
 
 from backend.services.llm import LLMServiceFactory
 from backend.models import CachedPRD, User
+from backend.services.research_quality_service import (
+    COMMERCIAL_MARKET_LAUNCH,
+    clean_semantic_text,
+    normalize_research_prd_type,
+    validate_research_prd,
+)
+from backend.services.llm.prompts.tasks.prd_generation import PRDGenerationPrompts
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +56,9 @@ class PRDGenerationService:
         industry: Optional[str] = None,
         result_id: Optional[int] = None,
         force_regenerate: bool = False,
+        document_intent: Optional[str] = None,
+        critical_claim_quality: Optional[Dict[str, Any]] = None,
+        repair_feedback: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """
         Generate a PRD from analysis results.
@@ -77,9 +87,14 @@ class PRDGenerationService:
                         detail="You have reached your monthly PRD generation limit. Please upgrade your subscription to continue.",
                     )
 
+            semantic_intent = normalize_research_prd_type(document_intent or prd_type)
+            # The legacy DB column is a short storage discriminator. Semantic
+            # intent lives in metadata and must not overflow that cache key.
+            cache_type = prd_type if prd_type in {"operational", "technical", "both"} else "operational"
+
             # Check cache first if database session is available and not forcing regeneration
             if self.db and result_id and not force_regenerate:
-                cached_prd = self._get_cached_prd(result_id, prd_type)
+                cached_prd = self._get_cached_prd(result_id, cache_type)
                 if cached_prd:
                     logger.info(
                         f"Using cached PRD for result_id: {result_id}, prd_type: {prd_type}"
@@ -91,7 +106,13 @@ class PRDGenerationService:
                         )
                     except Exception:
                         normalized = cached_prd.prd_data
-                    return normalized
+                    validation = validate_research_prd(
+                        normalized,
+                        prd_type=semantic_intent,
+                        critical_claim_quality=critical_claim_quality,
+                    )
+                    if validation["status"] == "passed":
+                        return normalized
 
             logger.info(
                 f"Generating {prd_type} PRD for result_id: {result_id or 'unknown'}"
@@ -107,71 +128,90 @@ class PRDGenerationService:
             original_text = analysis_results.get("original_text", "")
 
             # Prepare request data for LLM
-            request_data = {
-                "task": "prd_generation",
+            prompt_data = {
                 "text": original_text,
                 "themes": themes,
                 "patterns": patterns,
                 "insights": insights,
                 "personas": personas,
                 "prd_type": prd_type,
+                "document_intent": semantic_intent,
+                "critical_claim_quality": critical_claim_quality or {},
+                "repair_feedback": repair_feedback or [],
+                "industry": industry,
+            }
+            request_data = {
+                "task": "prd_generation",
+                "text": "",
+                "themes": themes,
+                "patterns": patterns,
+                "insights": insights,
+                "personas": personas,
+                "prd_type": prd_type,
+                "document_intent": semantic_intent,
+                "critical_claim_quality": critical_claim_quality or {},
+                "repair_feedback": repair_feedback or [],
                 "industry": industry,
                 "enforce_json": True,  # Flag to enforce JSON output
             }
 
-            # Call LLM to generate PRD
-            logger.info("Calling LLM to generate PRD")
-            llm_response = await self.llm_service.analyze(request_data)
-
-            # Parse and validate the response
-            prd_data = self._parse_llm_response(llm_response)
-
-            # Add metadata
-            prd_data["metadata"] = {
-                "generated_from": {
-                    "themes_count": len(themes),
-                    "patterns_count": len(patterns),
-                    "insights_count": len(insights),
-                    "personas_count": len(personas),
-                },
-                "prd_type": prd_type,
-                "industry": industry,
-            }
-
-            # Normalize operational_prd to ensure required nested structure exists
-            prd_data = self._normalize_operational_prd(prd_data)
+            validation = None
+            prd_data = None
+            attempts = 2 if semantic_intent == COMMERCIAL_MARKET_LAUNCH else 1
+            for attempt in range(attempts):
+                logger.info("Calling LLM to generate PRD (attempt %s/%s)", attempt + 1, attempts)
+                request_data["repair_feedback"] = (
+                    list((validation or {}).get("issues") or [])
+                    if attempt
+                    else (repair_feedback or [])
+                )
+                prompt_data["repair_feedback"] = request_data["repair_feedback"]
+                request_data["text"] = PRDGenerationPrompts.get_prompt(prompt_data)
+                llm_response = await self.llm_service.analyze(request_data)
+                candidate = clean_semantic_text(self._parse_llm_response(llm_response))
+                candidate["metadata"] = {
+                    "generated_from": {
+                        "themes_count": len(themes),
+                        "patterns_count": len(patterns),
+                        "insights_count": len(insights),
+                        "personas_count": len(personas),
+                    },
+                    "prd_type": semantic_intent,
+                    "industry": industry,
+                    "generation_attempts": attempt + 1,
+                }
+                if semantic_intent != COMMERCIAL_MARKET_LAUNCH:
+                    candidate = self._normalize_operational_prd(candidate)
+                validation = validate_research_prd(
+                    candidate,
+                    prd_type=semantic_intent,
+                    critical_claim_quality=critical_claim_quality,
+                )
+                if validation["status"] == "passed":
+                    prd_data = candidate
+                    break
+            if prd_data is None:
+                raise ValueError(
+                    "Research PRD semantic validation failed after bounded same-model repair: "
+                    + json.dumps((validation or {}).get("issues") or [], ensure_ascii=False)
+                )
+            prd_data["metadata"]["validation"] = validation
 
             # Cache the PRD if database session is available
             if self.db and result_id:
-                self._cache_prd(result_id, prd_type, prd_data)
+                self._cache_prd(result_id, cache_type, prd_data)
 
             logger.info(f"Successfully generated PRD with type: {prd_type}")
             return prd_data
 
         except Exception as e:
             logger.error(f"Error generating PRD: {str(e)}")
-            # Return a minimal error response
+            # Fail closed. A generic operational/software fallback must never
+            # be published as a completed commercial research document.
             return {
                 "error": f"Failed to generate PRD: {str(e)}",
-                "prd_type": prd_type,
-                "operational_prd": (
-                    {
-                        "objectives": [
-                            {"title": "Error", "description": "Failed to generate PRD"}
-                        ]
-                    }
-                    if prd_type in ["operational", "both"]
-                    else None
-                ),
-                "technical_prd": (
-                    {
-                        "objectives": [
-                            {"title": "Error", "description": "Failed to generate PRD"}
-                        ]
-                    }
-                    if prd_type in ["technical", "both"]
-                    else None
-                ),
+                "prd_type": document_intent or prd_type,
+                "status": "blocked",
             }
 
     def _extract_json_candidate(self, text: str) -> Optional[str]:

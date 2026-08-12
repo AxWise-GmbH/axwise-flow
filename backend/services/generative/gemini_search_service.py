@@ -11,9 +11,101 @@ We must parse the markdown response manually into structured data.
 import os
 import re
 import logging
+import hashlib
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Optional, Dict, Any, List
 
+import httpx
+
+from backend.services.llm.gemini_runtime import (
+    RESEARCH_MODEL,
+    require_search_model,
+)
+
 logger = logging.getLogger(__name__)
+
+
+GEMINI_SEARCH_MAX_ATTEMPTS = 3
+GEMINI_SEARCH_OPERATION_SECONDS = 120.0
+GEMINI_SEARCH_ATTEMPT_SECONDS = 60.0
+GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS = 20.0
+GEMINI_SEARCH_TRANSIENT_STATUS_CODES = frozenset(
+    {408, 429, 500, 502, 503, 504}
+)
+
+
+class _GroundedSearchRuntimeError(RuntimeError):
+    """Internal failure carrying safe, structured request diagnostics."""
+
+    def __init__(
+        self,
+        *,
+        status: str,
+        diagnostics: Dict[str, Any],
+        cause: BaseException,
+    ) -> None:
+        super().__init__(f"Gemini grounded search failed: {status}")
+        self.status = status
+        self.diagnostics = diagnostics
+        self.cause = cause
+
+
+def _search_status_code(error: BaseException) -> Optional[int]:
+    for candidate in (
+        getattr(error, "status_code", None),
+        getattr(error, "code", None),
+        getattr(getattr(error, "response", None), "status_code", None),
+    ):
+        if isinstance(candidate, int) and not isinstance(candidate, bool):
+            return candidate
+        if isinstance(candidate, str) and candidate.isdigit():
+            return int(candidate)
+    return None
+
+
+def _is_transient_search_error(error: BaseException) -> bool:
+    status_code = _search_status_code(error)
+    if status_code is not None:
+        return status_code in GEMINI_SEARCH_TRANSIENT_STATUS_CODES
+    return isinstance(
+        error,
+        (
+            TimeoutError,
+            ConnectionError,
+            httpx.TimeoutException,
+            httpx.NetworkError,
+            httpx.RemoteProtocolError,
+        ),
+    )
+
+
+def _retry_after_seconds(error: BaseException) -> Optional[float]:
+    response = getattr(error, "response", None)
+    headers = getattr(response, "headers", None)
+    if not headers:
+        return None
+    value = headers.get("Retry-After") or headers.get("retry-after")
+    if not value:
+        return None
+    try:
+        return min(
+            max(0.0, float(value)),
+            GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
+        )
+    except (TypeError, ValueError):
+        pass
+    try:
+        retry_at = parsedate_to_datetime(str(value))
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
+        return min(
+            max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds()),
+            GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
+        )
+    except (TypeError, ValueError, OverflowError):
+        return None
 
 
 def parse_news_markdown(text: str) -> List[Dict[str, Any]]:
@@ -159,13 +251,18 @@ class GeminiSearchService:
     """
     Service for performing grounded web searches using Gemini's Google Search tool.
 
-    This uses Gemini 2.5's native integration with Google Search for real-time
+    This uses Gemini 3.6 Flash's native integration with Google Search for real-time
     information retrieval - no external search APIs needed.
     """
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         self._client = None
+        self._search_clock = time.monotonic
+        self._search_sleep = time.sleep
+        self._search_operation_seconds = GEMINI_SEARCH_OPERATION_SECONDS
+        self._search_attempt_seconds = GEMINI_SEARCH_ATTEMPT_SECONDS
+        self._search_max_attempts = GEMINI_SEARCH_MAX_ATTEMPTS
         try:
             from google import genai
             if self.api_key:
@@ -177,6 +274,184 @@ class GeminiSearchService:
     def is_available(self) -> bool:
         """Check if the service is available."""
         return bool(self._client)
+
+    def _search_runtime_diagnostics(
+        self,
+        *,
+        status: str,
+        started_at: float,
+        call_count: int,
+        model: str = RESEARCH_MODEL,
+    ) -> Dict[str, Any]:
+        clock = getattr(self, "_search_clock", time.monotonic)
+        operation_seconds = float(
+            getattr(
+                self,
+                "_search_operation_seconds",
+                GEMINI_SEARCH_OPERATION_SECONDS,
+            )
+        )
+        return {
+            "route": "gemini_google_search",
+            "model": model,
+            "status": status,
+            "elapsed_ms": max(0, round((clock() - started_at) * 1000)),
+            "call_count": call_count,
+            "retry_count": max(0, call_count - 1),
+            "deadline_ms": round(operation_seconds * 1000),
+            "fallback_used": False,
+        }
+
+    def _generate_grounded_content(self, query: str) -> tuple[Any, Dict[str, Any]]:
+        """Call the exact Google Search model with one bounded retry owner."""
+        from google.genai import types
+
+        clock = getattr(self, "_search_clock", time.monotonic)
+        sleep = getattr(self, "_search_sleep", time.sleep)
+        operation_seconds = max(
+            0.001,
+            min(
+                float(
+                    getattr(
+                        self,
+                        "_search_operation_seconds",
+                        GEMINI_SEARCH_OPERATION_SECONDS,
+                    )
+                ),
+                GEMINI_SEARCH_OPERATION_SECONDS,
+            ),
+        )
+        attempt_seconds = max(
+            0.001,
+            min(
+                float(
+                    getattr(
+                        self,
+                        "_search_attempt_seconds",
+                        GEMINI_SEARCH_ATTEMPT_SECONDS,
+                    )
+                ),
+                GEMINI_SEARCH_ATTEMPT_SECONDS,
+            ),
+        )
+        max_attempts = max(
+            1,
+            min(
+                int(
+                    getattr(
+                        self,
+                        "_search_max_attempts",
+                        GEMINI_SEARCH_MAX_ATTEMPTS,
+                    )
+                ),
+                GEMINI_SEARCH_MAX_ATTEMPTS,
+            ),
+        )
+        started_at = clock()
+        deadline = started_at + operation_seconds
+        call_count = 0
+
+        try:
+            model = require_search_model()
+        except Exception as error:
+            diagnostics = self._search_runtime_diagnostics(
+                status="configuration_error",
+                started_at=started_at,
+                call_count=0,
+            )
+            raise _GroundedSearchRuntimeError(
+                status="configuration_error",
+                diagnostics=diagnostics,
+                cause=error,
+            ) from error
+
+        while call_count < max_attempts:
+            remaining = deadline - clock()
+            if remaining <= 0:
+                error = TimeoutError("Gemini grounded search deadline exceeded")
+                diagnostics = self._search_runtime_diagnostics(
+                    status="deadline_exceeded",
+                    started_at=started_at,
+                    call_count=call_count,
+                    model=model,
+                )
+                raise _GroundedSearchRuntimeError(
+                    status="deadline_exceeded",
+                    diagnostics=diagnostics,
+                    cause=error,
+                ) from error
+
+            # The SDK defaults to five attempts. Disable that layer so this
+            # bounded loop remains the only retry owner and call_count is exact.
+            config = types.GenerateContentConfig(
+                tools=[types.Tool(google_search=types.GoogleSearch())],
+                http_options=types.HttpOptions(
+                    timeout=max(1, int(min(attempt_seconds, remaining) * 1000)),
+                    retry_options=types.HttpRetryOptions(
+                        attempts=1,
+                        http_status_codes=sorted(
+                            GEMINI_SEARCH_TRANSIENT_STATUS_CODES
+                        ),
+                    ),
+                ),
+            )
+            call_count += 1
+            try:
+                response = self._client.models.generate_content(
+                    model=model,
+                    contents=query,
+                    config=config,
+                )
+            except Exception as error:
+                transient = _is_transient_search_error(error)
+                remaining = deadline - clock()
+                if not transient:
+                    status = "non_retryable_error"
+                elif remaining <= 0:
+                    status = "deadline_exceeded"
+                elif call_count >= max_attempts:
+                    status = "retry_exhausted"
+                else:
+                    retry_after = _retry_after_seconds(error) or 0.0
+                    delay = min(
+                        GEMINI_SEARCH_MAX_RETRY_AFTER_SECONDS,
+                        max(float(2 ** (call_count - 1)), retry_after),
+                    )
+                    if delay < remaining:
+                        logger.warning(
+                            "Gemini grounded search transient failure; "
+                            "route=gemini_google_search model=%s call_count=%s "
+                            "retry_in_seconds=%.3f error_type=%s",
+                            model,
+                            call_count,
+                            delay,
+                            type(error).__name__,
+                        )
+                        sleep(delay)
+                        continue
+                    status = "deadline_exceeded"
+
+                diagnostics = self._search_runtime_diagnostics(
+                    status=status,
+                    started_at=started_at,
+                    call_count=call_count,
+                    model=model,
+                )
+                raise _GroundedSearchRuntimeError(
+                    status=status,
+                    diagnostics=diagnostics,
+                    cause=error,
+                ) from error
+
+            diagnostics = self._search_runtime_diagnostics(
+                status="ok",
+                started_at=started_at,
+                call_count=call_count,
+                model=model,
+            )
+            return response, diagnostics
+
+        raise AssertionError("bounded Gemini grounded-search loop exhausted")
 
     def search_location_news(
         self,
@@ -231,11 +506,10 @@ CRITICAL - Include SPECIFIC details:
 Do NOT use vague language. Include actual facts from search results."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash"),
+                model=require_search_model(),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
                 ),
             )
 
@@ -337,11 +611,10 @@ CRITICAL - Include SPECIFIC historical details:
 Do NOT use vague language. Include actual historical facts about {location} during {year_range}."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash"),
+                model=require_search_model(),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
                 ),
             )
 
@@ -449,11 +722,10 @@ CRITICAL - Include SPECIFIC details:
 Do NOT use vague language. Include actual facts from search results about {industry} in {location} during {year}."""
 
             response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash"),
+                model=require_search_model(),
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
                 ),
             )
 
@@ -510,36 +782,98 @@ Do NOT use vague language. Include actual facts from search results about {indus
         Returns:
             Dict containing the raw text response, source titles/URLs, and search metadata.
         """
+        clock = getattr(self, "_search_clock", time.monotonic)
+        started_at = clock()
         if not self._client:
             logger.warning("Gemini client not available for search_web_general")
-            return {"text": "", "sources": [], "search_performed": False}
-
-        try:
-            from google.genai import types
-
-            response = self._client.models.generate_content(
-                model=os.getenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash"),
-                contents=query,
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search=types.GoogleSearch())],
-                    temperature=0.2,
+            return {
+                "text": "",
+                "sources": [],
+                "claims": [],
+                "provider": "gemini_google_search",
+                "search_performed": False,
+                "error": "ClientUnavailable",
+                "runtime_diagnostics": self._search_runtime_diagnostics(
+                    status="unavailable",
+                    started_at=started_at,
+                    call_count=0,
                 ),
+            }
+
+        runtime_diagnostics: Optional[Dict[str, Any]] = None
+        try:
+            response, runtime_diagnostics = self._generate_grounded_content(
+                query
             )
 
             grounding_sources = []
             grounded_claims = []
+            raw_text = response.text or ""
+            response_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+            retrieved_at = datetime.now(timezone.utc).isoformat()
+            provider_queries = []
+            provider_query_ids = []
+            search_entry_point = None
+            response_parts = []
+            if response.candidates:
+                content = getattr(response.candidates[0], "content", None)
+                response_parts = [
+                    str(getattr(part, "text", None) or "")
+                    for part in (getattr(content, "parts", None) or [])
+                ]
+            if not response_parts:
+                response_parts = [raw_text]
+            response_part_hashes = [
+                hashlib.sha256(part.encode("utf-8")).hexdigest()
+                for part in response_parts
+            ]
+            response_parts_manifest = hashlib.sha256(
+                "\n".join(response_part_hashes).encode("ascii")
+            ).hexdigest()
             if response.candidates and response.candidates[0].grounding_metadata:
                 metadata = response.candidates[0].grounding_metadata
+                provider_queries = [
+                    str(value)[:1000]
+                    for value in (getattr(metadata, "web_search_queries", None) or [])
+                ]
+                provider_query_ids = [
+                    hashlib.sha256(value.encode("utf-8")).hexdigest()[:20]
+                    for value in provider_queries
+                ]
+                entry = getattr(metadata, "search_entry_point", None)
+                rendered = getattr(entry, "rendered_content", None) if entry else None
+                if rendered:
+                    search_entry_point = {
+                        "rendered_content_hash": hashlib.sha256(
+                            str(rendered).encode("utf-8")
+                        ).hexdigest(),
+                        # Google requires Search Suggestions to be displayed as
+                        # supplied. Consumers may omit them, but must not mutate.
+                        "rendered_content": str(rendered),
+                    }
                 chunk_url_by_index = {}
                 if metadata.grounding_chunks:
                     for chunk_index, chunk in enumerate(metadata.grounding_chunks):
                         if hasattr(chunk, 'web') and chunk.web:
+                            url = chunk.web.uri if hasattr(chunk.web, 'uri') else None
                             source = {
                                 "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
-                                "url": chunk.web.uri if hasattr(chunk.web, 'uri') else None
+                                "url": url,
+                                "provider": "gemini_google_search",
+                                "provider_source_id": f"gemini-chunk-{response_hash[:16]}-{chunk_index}",
+                                "grounding_chunk_index": chunk_index,
+                                "provider_response_hash": response_hash,
+                                "provider_query_ids": provider_query_ids,
+                                "provider_queries": provider_queries,
+                                "retrieved_at": retrieved_at,
+                                "citation_metadata": {
+                                    "grounding_chunk_index": chunk_index,
+                                    "search_entry_point": search_entry_point,
+                                },
+                                "provider_redirect": True,
                             }
                             grounding_sources.append(source)
-                            chunk_url_by_index[chunk_index] = source.get("url")
+                            chunk_url_by_index[chunk_index] = url
 
                 # Preserve Gemini's claim-to-source relationship instead of
                 # treating the whole generated answer as equally grounded.
@@ -548,8 +882,42 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     claim_text = getattr(segment, "text", None) if segment else None
                     if not claim_text:
                         continue
+                    start_index = getattr(segment, "start_index", None)
+                    end_index = getattr(segment, "end_index", None)
+                    part_index = getattr(segment, "part_index", None)
+                    if not isinstance(part_index, int):
+                        part_index = 0 if len(response_parts) == 1 else None
+                    part_text = (
+                        response_parts[part_index]
+                        if isinstance(part_index, int)
+                        and 0 <= part_index < len(response_parts)
+                        else None
+                    )
+                    part_bytes = (
+                        part_text.encode("utf-8") if isinstance(part_text, str) else b""
+                    )
+                    try:
+                        cited_bytes = part_bytes[start_index:end_index]
+                        cited_text = cited_bytes.decode("utf-8")
+                    except (TypeError, UnicodeDecodeError):
+                        cited_text = None
+                    if (
+                        not isinstance(start_index, int)
+                        or not isinstance(end_index, int)
+                        or start_index < 0
+                        or end_index <= start_index
+                        or not isinstance(part_index, int)
+                        or cited_text != str(claim_text)
+                    ):
+                        logger.warning(
+                            "Discarding Gemini grounding support with invalid response span"
+                        )
+                        continue
                     source_urls = []
-                    for index in getattr(support, "grounding_chunk_indices", None) or []:
+                    chunk_indices = list(
+                        getattr(support, "grounding_chunk_indices", None) or []
+                    )
+                    for index in chunk_indices:
                         if not isinstance(index, int):
                             continue
                         source_url = chunk_url_by_index.get(index)
@@ -558,24 +926,92 @@ Do NOT use vague language. Include actual facts from search results about {indus
                     if not source_urls:
                         continue
                     grounded_claims.append({
-                        "text": str(claim_text)[:2000],
+                        "text": str(claim_text),
                         "source_urls": list(dict.fromkeys(source_urls)),
+                        "provider": "gemini_google_search",
+                        "provider_response_hash": response_hash,
+                        "provider_query_ids": provider_query_ids,
+                        "provider_queries": provider_queries,
+                        "grounding_chunk_indices": chunk_indices,
+                        "segment_start": start_index,
+                        "segment_end": end_index,
+                        "part_index": part_index,
+                        "offset_unit": "utf8_bytes",
+                        "span_target": "provider_response_part",
+                        "provenance_artifact": {
+                            "artifact_type": "provider_response_part",
+                            "part_index": part_index,
+                            "text": part_text,
+                            "sha256": hashlib.sha256(part_bytes).hexdigest(),
+                            "response_parts_sha256": response_parts_manifest,
+                            "response_part_hashes": response_part_hashes,
+                            # Retain the exact bounded provider response so a
+                            # consumer can prove this part belongs to the
+                            # hashed response, rather than trusting a
+                            # caller-supplied part/hash pair.
+                            "response_parts": response_parts,
+                            "provider_response_text": raw_text,
+                            "provider_response_sha256": response_hash,
+                        },
                         "confidence_scores": list(
                             getattr(support, "confidence_scores", None) or []
                         )[:10],
                     })
 
-            return {
-                "text": response.text or "",
+            result = {
+                "text": raw_text,
                 "sources": grounding_sources[:10],
                 "claims": grounded_claims[:50],
-                "search_performed": True
+                "provider": "gemini_google_search",
+                "provider_response_hash": response_hash,
+                "provider_query_ids": provider_query_ids,
+                "provider_queries": provider_queries,
+                "search_entry_point": search_entry_point,
+                "search_performed": True,
+                "runtime_diagnostics": runtime_diagnostics,
             }
+            logger.info(
+                "Gemini grounded search completed; route=%s model=%s "
+                "status=%s elapsed_ms=%s call_count=%s",
+                runtime_diagnostics["route"],
+                runtime_diagnostics["model"],
+                runtime_diagnostics["status"],
+                runtime_diagnostics["elapsed_ms"],
+                runtime_diagnostics["call_count"],
+            )
+            return result
         except Exception as e:
-            logger.error(f"search_web_general failed for query '{query}': {e}")
+            if isinstance(e, _GroundedSearchRuntimeError):
+                runtime_diagnostics = e.diagnostics
+                root_error = e.cause
+            else:
+                root_error = e
+                prior_calls = (
+                    runtime_diagnostics.get("call_count", 0)
+                    if runtime_diagnostics
+                    else 0
+                )
+                runtime_diagnostics = self._search_runtime_diagnostics(
+                    status="response_processing_error",
+                    started_at=started_at,
+                    call_count=prior_calls,
+                )
+            logger.error(
+                "Gemini grounded search failed; route=%s model=%s status=%s "
+                "elapsed_ms=%s call_count=%s error_type=%s",
+                runtime_diagnostics["route"],
+                runtime_diagnostics["model"],
+                runtime_diagnostics["status"],
+                runtime_diagnostics["elapsed_ms"],
+                runtime_diagnostics["call_count"],
+                type(root_error).__name__,
+            )
             return {
                 "text": "",
                 "sources": [],
+                "claims": [],
+                "provider": "gemini_google_search",
                 "search_performed": False,
-                "error": str(e)
+                "error": type(root_error).__name__,
+                "runtime_diagnostics": runtime_diagnostics,
             }

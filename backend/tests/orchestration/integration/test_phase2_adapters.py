@@ -126,7 +126,7 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
 
 def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     payload = _ambiguous_research_payload()
-    payload["research_brief"]["location"] = "Bremen"
+    payload["research_brief"]["location"] = "Bremen, Germany"
     payload["research_brief"]["required_execution_roles"] = [
         "Marketing ICP Specialist",
         "Finance Pricing Specialist",
@@ -134,6 +134,30 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
         "Business Development Sales Specialist",
         "Commercial Risk Analyst",
     ]
+    payload["research_brief"].update(
+        {
+            "research_prd_type": "commercial_market_launch",
+            "customer_role_contract": {
+                "primary_roles": ["economic_buyer", "decision_authority"],
+                "require_primary_buyer": True,
+                "ineligible_roles": ["operational_user"],
+            },
+            "critical_claim_policy": {
+                "required": True,
+                "fail_closed": True,
+                "freshness_days": 120,
+                "freshness_by_class": {
+                    "official_statistic": 730,
+                    "observed_primary_market": 120,
+                },
+                "mandatory_claim_classes": [
+                    "statutory_current",
+                    "official_statistic",
+                    "observed_primary_market",
+                ],
+            },
+        }
+    )
     payload["research_policy"].update(
         {
             "required": True,
@@ -168,7 +192,7 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     outputs = service.enqueue_kwargs["outputs"]
     assert outputs.prd.enabled is True
     assert outputs.prd.required is True
-    assert outputs.prd.type == "operational"
+    assert outputs.prd.type == "commercial_market_launch"
     assert service.enqueue_kwargs["request"].config.performance_profile.value == (
         "quality_fast"
     )
@@ -184,9 +208,18 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     assert service.enqueue_kwargs["task_context"].required_execution_roles == (
         payload["research_brief"]["required_execution_roles"]
     )
+    task_context = service.enqueue_kwargs["task_context"]
+    assert task_context.research_prd_type == "commercial_market_launch"
+    assert task_context.customer_role_contract["require_primary_buyer"] is True
+    assert task_context.customer_role_contract["primary_roles"] == [
+        "economic_buyer",
+        "decision_authority",
+    ]
+    assert task_context.critical_claim_policy["required"] is True
+    assert task_context.critical_claim_policy["freshness_days"] == 120
 
 
-def test_grounded_research_contract_requires_an_explicit_location():
+def test_grounded_research_contract_requires_a_country_resolved_market():
     payload = _ambiguous_research_payload()
     payload["research_policy"].update(
         {
@@ -196,8 +229,35 @@ def test_grounded_research_contract_requires_an_explicit_location():
         }
     )
 
-    with pytest.raises(ValueError, match="research_brief.location"):
+    with pytest.raises(ValueError, match="country-resolved, confirmed market_scope"):
         DecisionCreateRequestV1.model_validate(payload)
+
+
+def test_grounded_research_rejects_city_only_and_resolves_country_expression():
+    city_payload = _ambiguous_research_payload()
+    city_payload["research_brief"]["location"] = "Tallinn"
+    city_payload["research_policy"].update(
+        {
+            "required": True,
+            "minimum_mode": "grounded_fast",
+            "grounding_required": True,
+        }
+    )
+    with pytest.raises(ValueError, match="city-only or ambiguous"):
+        DecisionCreateRequestV1.model_validate(city_payload)
+
+    country_payload = _ambiguous_research_payload()
+    country_payload["research_brief"]["location"] = "Estonia"
+    country_payload["research_policy"].update(
+        {
+            "required": True,
+            "minimum_mode": "grounded_fast",
+            "grounding_required": True,
+        }
+    )
+    request = DecisionCreateRequestV1.model_validate(country_payload)
+
+    assert request.research_brief.market_scope.resolved_scope.countries[0].country_code == "EE"
 
 
 def test_hybrid_timeout_cancels_the_bounded_run():

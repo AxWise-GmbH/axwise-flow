@@ -58,6 +58,21 @@ class ResponseFormat(str, Enum):
     TEXT = "text/plain"
 
 
+# Gemini 3.6 Flash has a documented 65,536-token output ceiling. Google also
+# deprecated sampling controls for Gemini 3.6: they are currently ignored and
+# may become request errors. Keep these capabilities next to config creation so
+# every caller gets the same production-safe behavior.
+GEMINI_36_FLASH_MODEL = "gemini-3.6-flash"
+GEMINI_36_MAX_OUTPUT_TOKENS = 65_536
+GEMINI_36_DEPRECATED_SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
+
+
+def is_gemini_36_flash(model: Optional[str]) -> bool:
+    """Return whether ``model`` is exactly the Gemini 3.6 Flash GA model."""
+
+    return bool(model) and str(model).rstrip("/").rsplit("/", 1)[-1] == GEMINI_36_FLASH_MODEL
+
+
 # Response schema models for different task types
 class PatternModel(BaseModel):
     """Schema for a pattern in pattern recognition."""
@@ -188,13 +203,14 @@ class GenAIConfigModel(BaseModel):
     """Pydantic model for GenAI configuration validation."""
 
     model: str = Field(default=GEMINI_MODEL_NAME)
-    temperature: float = Field(default=GEMINI_TEMPERATURE, ge=0.0, le=1.0)
+    temperature: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     max_output_tokens: int = Field(default=GEMINI_MAX_TOKENS, gt=0)
-    top_p: float = Field(default=GEMINI_TOP_P, ge=0.0, le=1.0)
-    top_k: Optional[int] = Field(default=GEMINI_TOP_K, ge=1)
+    top_p: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    top_k: Optional[int] = Field(default=None, ge=1)
     response_mime_type: Optional[str] = None
     response_schema: Optional[Any] = None
     safety_settings: Optional[List[Dict[str, Any]]] = None
+    system_instruction: Optional[str] = None
 
     @field_validator("safety_settings", mode="before")
     @classmethod
@@ -225,7 +241,11 @@ class GenAIConfigFactory:
 
     @staticmethod
     def create_config(
-        task: Union[str, TaskType], custom_params: Optional[Dict[str, Any]] = None
+        task: Union[str, TaskType],
+        custom_params: Optional[Dict[str, Any]] = None,
+        *,
+        model: Optional[str] = None,
+        system_instruction: Optional[str] = None,
     ) -> GenerateContentConfig:
         """
         Create a GenerateContentConfig for the specified task.
@@ -233,6 +253,10 @@ class GenAIConfigFactory:
         Args:
             task: Task type (string or TaskType enum)
             custom_params: Optional custom parameters to override defaults
+            model: Model that will receive this config. This is required for
+                applying model-specific capability constraints.
+            system_instruction: Native Gemini system instruction. It is kept
+                separate from user contents so model roles remain meaningful.
 
         Returns:
             GenerateContentConfig object
@@ -247,9 +271,12 @@ class GenAIConfigFactory:
                 )
                 task = TaskType.UNKNOWN
 
+        custom_params = dict(custom_params or {})
+        selected_model = model or custom_params.pop("model", None) or GEMINI_MODEL_NAME
+
         # Start with base configuration
         config_params = {
-            "model": GEMINI_MODEL_NAME,
+            "model": selected_model,
             "temperature": GEMINI_TEMPERATURE,
             "max_output_tokens": GEMINI_MAX_TOKENS,
             "top_p": GEMINI_TOP_P,
@@ -276,6 +303,29 @@ class GenAIConfigFactory:
         if custom_params:
             config_params.update(custom_params)
 
+        if system_instruction:
+            config_params["system_instruction"] = system_instruction
+
+        if is_gemini_36_flash(selected_model):
+            requested_tokens = int(
+                config_params.get("max_output_tokens") or GEMINI_MAX_TOKENS
+            )
+            if requested_tokens > GEMINI_36_MAX_OUTPUT_TOKENS:
+                logger.warning(
+                    "Clamping Gemini 3.6 Flash max_output_tokens from %s to %s",
+                    requested_tokens,
+                    GEMINI_36_MAX_OUTPUT_TOKENS,
+                )
+            config_params["max_output_tokens"] = min(
+                requested_tokens, GEMINI_36_MAX_OUTPUT_TOKENS
+            )
+            for parameter in GEMINI_36_DEPRECATED_SAMPLING_PARAMS:
+                if config_params.get(parameter) is not None:
+                    logger.debug(
+                        "Omitting deprecated Gemini 3.6 parameter: %s", parameter
+                    )
+                config_params[parameter] = None
+
         # Validate configuration
         validated_config = GenAIConfigModel(**config_params)
 
@@ -292,7 +342,8 @@ class GenAIConfigFactory:
         task: TaskType, config_params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Apply task-specific configuration parameters."""
-        # JSON tasks should use application/json response_mime_type and temperature=0.0
+        # JSON tasks use application/json. Semantic correctness still belongs to
+        # the Pydantic/domain validators; sampling controls are not a substitute.
         json_tasks = [
             TaskType.TRANSCRIPT_STRUCTURING,
             TaskType.THEME_ANALYSIS,
@@ -315,22 +366,22 @@ class GenAIConfigFactory:
             TaskType.THEME_ANALYSIS,
             TaskType.THEME_ANALYSIS_ENHANCED,
         ]:
-            config_params["max_output_tokens"] = (
-                131072  # Doubled from 65536 for large responses
-            )
+            config_params["max_output_tokens"] = GEMINI_36_MAX_OUTPUT_TOKENS
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                f"Using enhanced config for {task}: max_tokens=131072, top_k=1, top_p=0.95"
+                "Using full Gemini 3.6 output allowance for %s: max_tokens=%s",
+                task,
+                GEMINI_36_MAX_OUTPUT_TOKENS,
             )
         elif task == TaskType.PRD_GENERATION:
-            config_params["max_output_tokens"] = (
-                131072  # Use maximum token limit for PRD generation
-            )
+            config_params["max_output_tokens"] = GEMINI_36_MAX_OUTPUT_TOKENS
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                f"Using enhanced config for {task}: max_tokens=131072, top_k=1, top_p=0.95"
+                "Using full Gemini 3.6 output allowance for %s: max_tokens=%s",
+                task,
+                GEMINI_36_MAX_OUTPUT_TOKENS,
             )
         elif task in [TaskType.PERSONA_FORMATION, TaskType.PATTERN_RECOGNITION]:
             config_params["max_output_tokens"] = 65536
@@ -379,25 +430,29 @@ class GenAIConfigFactory:
         config: GenAIConfigModel, safety_settings: List[SafetySetting]
     ) -> GenerateContentConfig:
         """Create a GenerateContentConfig from validated parameters."""
-        config_dict = config.dict(exclude_none=True)
+        config_dict = config.model_dump(exclude_none=True)
 
         # Extract response_schema if present
         response_schema = None
         if "response_schema" in config_dict:
             response_schema = config_dict.pop("response_schema")
 
-        # Create the GenerateContentConfig with safety settings
-        generate_content_config = types.GenerateContentConfig(
-            temperature=config_dict.get("temperature", 0.0),
-            max_output_tokens=config_dict.get("max_output_tokens", 65536),
-            top_k=config_dict.get("top_k", 1),
-            top_p=config_dict.get("top_p", 0.95),
-            response_mime_type=config_dict.get("response_mime_type"),
-            safety_settings=safety_settings,
-        )
-
-        # Add response_schema if it exists
+        generation_params: Dict[str, Any] = {
+            "max_output_tokens": config_dict.get(
+                "max_output_tokens", GEMINI_36_MAX_OUTPUT_TOKENS
+            ),
+            "safety_settings": safety_settings,
+        }
+        for optional_parameter in (
+            "temperature",
+            "top_p",
+            "top_k",
+            "response_mime_type",
+            "system_instruction",
+        ):
+            if optional_parameter in config_dict:
+                generation_params[optional_parameter] = config_dict[optional_parameter]
         if response_schema:
-            generate_content_config.response_schema = response_schema
+            generation_params["response_schema"] = response_schema
 
-        return generate_content_config
+        return types.GenerateContentConfig(**generation_params)

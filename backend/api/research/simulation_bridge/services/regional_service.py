@@ -8,8 +8,6 @@ import uuid
 from typing import List, Dict, Any, Optional
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.google import GoogleProvider
 from pydantic import BaseModel
 
 from ..models import (
@@ -30,6 +28,7 @@ from ..models import (
 from .persona_generator import PersonaGenerator
 from .pin_image_service import PinImageService
 from .interview_simulator import InterviewSimulator
+from backend.services.llm.gemini_runtime import build_research_model
 from backend.infrastructure.persistence.simulation_repository import SimulationRepository
 
 logger = logging.getLogger(__name__)
@@ -44,9 +43,7 @@ class RegionalService:
         else:
             api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
             if api_key:
-                provider = GoogleProvider(api_key=api_key)
-                model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
-                self.model = GoogleModel(model_name, provider=provider)
+                self.model = build_research_model(api_key)
             else:
                 self.model = None
                 logger.warning("No API key set for RegionalService LLM. Ensure GEMINI_API_KEY is configured.")

@@ -61,7 +61,8 @@ services:
 
       # LLM
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+      AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.6-flash}
       OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
       SEARXNG_URL: ${SEARXNG_URL:-}
 
@@ -93,7 +94,8 @@ services:
       DB_PORT: "5432"
       DB_NAME: axwise
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
-      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+      AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.6-flash}
       OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
       SEARXNG_URL: ${SEARXNG_URL:-}
       ENABLE_CLERK_VALIDATION: "false"

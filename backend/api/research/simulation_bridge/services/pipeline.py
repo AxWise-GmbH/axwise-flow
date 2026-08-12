@@ -7,15 +7,21 @@ import hashlib
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
-from pydantic_ai import Agent
+from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models import Model
 
 from ..models import CompanyDiscoveryItem
 from .market_scope import resolve_market_scope
+from backend.services.research_source_authority_service import (
+    build_authority_claim_artifact,
+    enrich_authority_sources,
+    is_trusted_public_root,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,20 +103,14 @@ class B2BDataPipeline:
         """Runs the E2E ingestion and enrichment pipeline."""
 
         discovered: List[CompanyDiscoveryItem] = []
+        route_tasks: List[tuple[str, Any]] = []
 
         # OpenRegister is a German registry. Never send an unsupported market
         # to it and never ask a model to replace the authorized geography.
         if self.data_source in ("hybrid", "registry"):
             registry_location = self.market_scope.openregister_locality
             if self.openregister_key and registry_location:
-                registry_companies = await self._fetch_from_openregister()
-                accepted = self._accept_market_companies(
-                    registry_companies, provider="openregister"
-                )
-                discovered.extend(accepted)
-                self._record_provider(
-                    "openregister", attempted=True, accepted=len(accepted)
-                )
+                route_tasks.append(("openregister", self._fetch_from_openregister()))
             else:
                 self._record_provider(
                     "openregister",
@@ -130,16 +130,26 @@ class B2BDataPipeline:
             logger.info(
                 "Discovering via market-aware web grounding for %s.", self.location
             )
-            web_companies = await self._discover_via_web_search()
-            web_companies = self._accept_market_companies(
-                web_companies, provider="web"
-            )
-            if web_companies:
-                discovered.extend(
-                    self._accept_market_companies(
-                        web_companies, provider="web_enrichment"
-                    )
+            route_tasks.append(("web", self._discover_via_web_search()))
+
+        # Registry and web retrieval are independent evidence routes. Running
+        # them together shortens retrieval without removing either provider.
+        route_results = await asyncio.gather(
+            *(task for _provider, task in route_tasks), return_exceptions=True
+        )
+        for (provider, _task), result in zip(route_tasks, route_results):
+            if isinstance(result, BaseException):
+                self._record_provider(
+                    provider,
+                    attempted=True,
+                    accepted=0,
+                    reason=f"provider_error:{type(result).__name__}",
                 )
+                continue
+            accepted = self._accept_market_companies(result, provider=provider)
+            discovered.extend(accepted)
+            if provider == "openregister":
+                self._record_provider(provider, attempted=True, accepted=len(accepted))
 
         companies = self._deduplicate_companies(discovered)
         self.routing_diagnostics["accepted_company_count"] = len(companies)
@@ -185,18 +195,180 @@ class B2BDataPipeline:
         return f"{prefix}-{digest}"
 
     @staticmethod
-    def _source_authority(url: str) -> str:
+    def _source_authority(url: str, *, provider: Optional[str] = None) -> str:
         hostname = (urlparse(url).hostname or "").casefold()
-        if (
-            hostname.endswith(".gov")
-            or ".gov." in hostname
-            or hostname == "europa.eu"
-            or hostname.endswith(".europa.eu")
+        if provider == "gemini_google_search" or any(
+            token in hostname
+            for token in ("vertexaisearch.cloud.google.com", "googleusercontent.com")
         ):
+            return "unverified_redirect"
+        if is_trusted_public_root(url):
             return "official_public"
         if hostname.endswith((".edu", ".ac.uk")):
             return "academic"
         return "independent_web"
+
+    @staticmethod
+    def _direct_claim_semantics(
+        text: str,
+        *,
+        direct_document_text: str,
+        retrieved_at: Optional[str],
+    ) -> Dict[str, Any]:
+        """Fail-closed deterministic metadata from the exact direct quote.
+
+        This never paraphrases or invents a date. Missing temporal language is
+        intentionally left missing so the critical validator blocks it.
+        """
+
+        lower = text.casefold()
+        result: Dict[str, Any] = {
+            "critical": bool(
+                re.search(
+                    r"\b(?:vat|tax|gst|duty|tariff|regulation|legal|law|"
+                    r"compliance|price|cost|fee|market size|population|growth rate)\b",
+                    lower,
+                )
+            )
+        }
+        if re.search(
+            r"\b(?:vat|tax|gst|duty|tariff|regulation|legal|law|compliance)\b",
+            lower,
+        ):
+            result["evidence_class"] = "statutory_current"
+        elif re.search(
+            r"\b(?:market size|population|growth rate|employment|inflation)\b",
+            lower,
+        ):
+            result["evidence_class"] = "official_statistic"
+        elif re.search(r"\b(?:price|cost|fee|retail|catalog|supplier)\b", lower):
+            result["evidence_class"] = "observed_primary_market"
+        else:
+            return result
+
+        iso_date = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", text)
+        month_date = re.search(
+            r"\b(january|february|march|april|may|june|july|august|"
+            r"september|october|november|december)\s+(\d{1,2},?\s+)?(20\d{2})\b",
+            lower,
+        )
+        year = re.search(r"\b(20\d{2})\b", text)
+        effective = None
+        if iso_date:
+            effective = f"{iso_date.group(1)}T00:00:00+00:00"
+        elif month_date:
+            month = datetime.strptime(month_date.group(1), "%B").month
+            day_text = (month_date.group(2) or "1").replace(",", "").strip()
+            effective = datetime(
+                int(month_date.group(3)), month, int(day_text), tzinfo=timezone.utc
+            ).isoformat()
+        elif year:
+            effective = datetime(int(year.group(1)), 1, 1, tzinfo=timezone.utc).isoformat()
+
+        evidence_class = result["evidence_class"]
+        if evidence_class == "statutory_current":
+            if effective:
+                result["effective_at"] = effective
+            result["current"] = bool(
+                re.search(r"\b(?:current|currently|effective|from|is|are)\b", lower)
+                and not re.search(r"\b(?:former|previous|repealed|superseded|until)\b", lower)
+            )
+        elif evidence_class == "official_statistic":
+            if effective:
+                observed_year = int(year.group(1)) if year else int(effective[:4])
+                result["observation_end"] = datetime(
+                    observed_year, 12, 31, tzinfo=timezone.utc
+                ).isoformat()
+            document_years = [
+                int(value) for value in re.findall(r"\b(20\d{2})\b", direct_document_text)
+            ]
+            result["latest_release"] = bool(
+                year
+                and document_years
+                and int(year.group(1)) == max(document_years)
+                and re.search(r"\b(?:latest|most recent|current release)\b", lower)
+            )
+            result["latest_release_basis"] = (
+                "explicit_latest_language_and_max_year_in_direct_document"
+                if result["latest_release"]
+                else "not_proven"
+            )
+        elif evidence_class == "observed_primary_market" and retrieved_at:
+            result["observed_at"] = retrieved_at
+        result["semantic_extraction"] = "deterministic_exact_direct_quote_v1"
+        return result
+
+    @classmethod
+    def _direct_document_claim_passages(
+        cls,
+        text: str,
+        *,
+        retrieved_at: Optional[str],
+        maximum_passages: int = 12,
+    ) -> List[Dict[str, Any]]:
+        """Extract exact, consequential passages from a fetched document.
+
+        Search-provider answers are often faithful paraphrases, but a
+        paraphrase cannot serve as an exact citation.  This deterministic
+        stage selects one- and two-sentence spans directly from the normalized
+        fetched document.  It never rewrites the publisher's words and only
+        promotes spans whose class-specific currentness metadata can be proven
+        from the span/document itself.
+        """
+
+        normalized = " ".join(str(text or "").split())
+        if not normalized:
+            return []
+        sentences = [
+            value.strip()
+            for value in re.split(r"(?<=[.!?])\s+", normalized)
+            if value.strip()
+        ]
+        candidates: List[str] = []
+        for index, sentence in enumerate(sentences):
+            candidates.append(sentence)
+            if index + 1 < len(sentences):
+                candidates.append(f"{sentence} {sentences[index + 1]}")
+
+        material_value = re.compile(
+            r"(?:[€$£]\s*\d|\b\d[\d\s.,]*\s*(?:%|percent|EUR|USD|GBP|"
+            r"million|billion|thousand)(?:\b|(?=\s|$)))",
+            re.IGNORECASE,
+        )
+        accepted: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for passage in candidates:
+            if (
+                passage in seen
+                or not (16 <= len(passage) <= 1_200)
+                or not material_value.search(passage)
+            ):
+                continue
+            semantics = cls._direct_claim_semantics(
+                passage,
+                direct_document_text=normalized,
+                retrieved_at=retrieved_at,
+            )
+            evidence_class = semantics.get("evidence_class")
+            temporally_proven = (
+                evidence_class == "statutory_current"
+                and semantics.get("current") is True
+                and bool(semantics.get("effective_at"))
+            ) or (
+                evidence_class == "official_statistic"
+                and semantics.get("latest_release") is True
+                and bool(semantics.get("observation_end"))
+            ) or (
+                evidence_class == "observed_primary_market"
+                and bool(semantics.get("observed_at"))
+            )
+            if semantics.get("critical") is not True or not temporally_proven:
+                continue
+            seen.add(passage)
+            accepted.append({"text": passage, **semantics})
+            if len(accepted) >= maximum_passages:
+                break
+        return accepted
 
     def _store_direct_web_evidence(
         self,
@@ -207,8 +379,30 @@ class B2BDataPipeline:
         sources_by_id = {}
         for row in source_rows:
             url = str(row.get("url") or "")
-            source_id = self._evidence_id("source", url)
+            retrieval_url = str(row.get("retrieval_url") or url)
+            provider = str(row.get("provider") or "")
+            provider_source_id = str(row.get("provider_source_id") or "")
+            source_id = self._evidence_id("source", provider_source_id or url)
             source_id_by_url[url] = source_id
+            source_id_by_url[retrieval_url] = source_id
+            inferred_authority = self._source_authority(url, provider=provider)
+            proof = row.get("authority_proof")
+            # Authority enrichment is the only path that may promote a direct
+            # non-.gov publisher to official_public. Preserve that signed
+            # result; otherwise retain the conservative URL-derived label.
+            authority = (
+                str(row.get("source_authority"))
+                if row.get("source_authority")
+                in {"official_public", "first_party_catalog"}
+                and isinstance(proof, dict)
+                else inferred_authority
+            )
+            authority_document = row.get("authority_document_artifact")
+            if isinstance(authority_document, dict):
+                authority_document = {
+                    **authority_document,
+                    "source_id": source_id,
+                }
             sources_by_id[source_id] = {
                 "source_id": source_id,
                 "source_type": "google_search_result",
@@ -217,12 +411,70 @@ class B2BDataPipeline:
                 "publisher": urlparse(url).hostname,
                 "registry": None,
                 "market_location": self.location,
-                "source_authority": self._source_authority(url),
-                "search_provider": row.get("provider"),
+                "source_authority": authority,
+                "authority_verification_status": (
+                    "provider_redirect_unverified"
+                    if authority == "unverified_redirect"
+                    else row.get("authority_verification_status")
+                    or "direct_publisher_unclassified"
+                ),
+                "authority_proof": proof,
+                "authority_document": (
+                    {
+                        key: value
+                        for key, value in authority_document.items()
+                        if key != "text"
+                    }
+                    if isinstance(authority_document, dict)
+                    else None
+                ),
+                "_authority_document_artifact": authority_document,
+                "provider": provider,
+                "search_provider": provider,
+                "provider_source_id": provider_source_id or None,
+                "retrieved_at": row.get("retrieved_at"),
+                "provider_response_hash": row.get("provider_response_hash"),
+                "provider_query_ids": list(row.get("provider_query_ids") or []),
+                "provider_queries": list(row.get("provider_queries") or []),
+                "citation_metadata": row.get("citation_metadata") or {},
+                "provider_redirect": authority == "unverified_redirect",
+                "country_codes": list(row.get("country_codes") or []),
             }
 
+        # Build exact direct-document claims in addition to provider claims.
+        # This is essential for Gemini/SearX results that summarize rather than
+        # quote the underlying official page verbatim.
+        direct_claim_rows: List[Dict[str, Any]] = []
+        for source_id, source in sources_by_id.items():
+            document = source.get("_authority_document_artifact")
+            proof = source.get("authority_proof")
+            if not isinstance(document, dict) or not isinstance(proof, dict):
+                continue
+            document_text = document.get("text")
+            if not isinstance(document_text, str):
+                continue
+            for extracted in self._direct_document_claim_passages(
+                document_text,
+                retrieved_at=source.get("retrieved_at"),
+            ):
+                direct_claim_rows.append(
+                    {
+                        **extracted,
+                        "source_urls": [source.get("url")],
+                        "provider": "direct_authority_document",
+                        "provider_source_id": source.get("provider_source_id"),
+                        "provider_query_ids": list(
+                            source.get("provider_query_ids") or []
+                        ),
+                        "provider_queries": list(source.get("provider_queries") or []),
+                        "verification_status": "direct_authority_exact_quote",
+                        "_source_id": source_id,
+                    }
+                )
+
         linked_source_ids = set()
-        for row in claim_rows:
+        stored_identities: set[str] = set()
+        for row in [*claim_rows, *direct_claim_rows]:
             if not isinstance(row, dict):
                 continue
             text = str(row.get("text") or "").strip()[:2000]
@@ -242,6 +494,90 @@ class B2BDataPipeline:
                 continue
             linked_source_ids.update(source_ids)
             identity = f"{text}|{'|'.join(sorted(set(source_ids)))}"
+            if identity in stored_identities:
+                continue
+            citation_metadata = {
+                "segment_start": row.get("segment_start"),
+                "segment_end": row.get("segment_end"),
+                "grounding_chunk_indices": list(
+                    row.get("grounding_chunk_indices") or []
+                ),
+                "span_target": row.get("span_target"),
+                "part_index": row.get("part_index"),
+                "offset_unit": row.get("offset_unit"),
+            }
+            provenance_artifact = row.get("provenance_artifact")
+            provider_retrieval_provenance = {
+                "citation_metadata": citation_metadata,
+                "provenance_artifact": provenance_artifact,
+                "provider_response_hash": row.get("provider_response_hash"),
+            }
+            semantic_metadata: Dict[str, Any] = {}
+            bound_to_direct_document = False
+            # A search snippet/provider answer may discover a fact, but it
+            # cannot verify an official critical fact. Re-bind only when the
+            # exact claim occurs in the independently fetched, signed direct
+            # authority document.
+            for source_id in source_ids:
+                source = sources_by_id.get(source_id) or {}
+                document = source.get("_authority_document_artifact")
+                proof = source.get("authority_proof") or {}
+                if not isinstance(document, dict) or not isinstance(proof, dict):
+                    continue
+                document_text = document.get("text")
+                if not isinstance(document_text, str):
+                    continue
+                if document_text.find(text) < 0:
+                    continue
+                try:
+                    bound_artifact = build_authority_claim_artifact(
+                        source_id=source_id,
+                        source_url=str(source.get("url") or ""),
+                        authority_proof=proof,
+                        authority_document=document,
+                        claim_text=text,
+                    )
+                except ValueError:
+                    continue
+                binding = bound_artifact["claim_binding"]
+                citation_metadata = {
+                    "segment_start": binding["claim_start"],
+                    "segment_end": binding["claim_end"],
+                    "span_target": "direct_authority_document",
+                    "offset_unit": "unicode_codepoints",
+                    "source_id": source_id,
+                }
+                provenance_artifact = bound_artifact
+                semantic_metadata = self._direct_claim_semantics(
+                    text,
+                    direct_document_text=document_text,
+                    retrieved_at=source.get("retrieved_at"),
+                )
+                provider_retrieval_provenance = {
+                    "provider_response_hash": row.get("provider_response_hash"),
+                    "provider_query_ids": list(row.get("provider_query_ids") or []),
+                    "citation_metadata": provider_retrieval_provenance[
+                        "citation_metadata"
+                    ],
+                }
+                bound_to_direct_document = True
+                break
+            if not bound_to_direct_document and any(
+                isinstance((sources_by_id.get(source_id) or {}).get(
+                    "_authority_document_artifact"
+                ), dict)
+                for source_id in source_ids
+            ):
+                # Retain the provider observation for transparency, while
+                # explicitly preventing a paraphrase from becoming a verified
+                # critical fact. The separately extracted exact passage is the
+                # only claim eligible for authoritative validation.
+                semantic_metadata = {
+                    "critical": False,
+                    "evidence_class": "source_linked_observation",
+                    "semantic_extraction": "provider_paraphrase_not_exact_quote_v1",
+                }
+            stored_identities.add(identity)
             self.market_claims.append(
                 {
                     "claim_id": self._evidence_id("claim", identity),
@@ -253,10 +589,22 @@ class B2BDataPipeline:
                     "verification_status": row.get("verification_status")
                     or "provider_citation_linked_not_independently_verified",
                     "confidence_scores": list(row.get("confidence_scores") or [])[:10],
+                    "evidence_class": row.get("evidence_class"),
+                    "provider": row.get("provider"),
+                    "provider_response_hash": row.get("provider_response_hash"),
+                    "provider_query_ids": list(row.get("provider_query_ids") or []),
+                    "provider_queries": list(row.get("provider_queries") or []),
+                    "citation_metadata": citation_metadata,
+                    "provenance_artifact": provenance_artifact,
+                    "provider_retrieval_provenance": provider_retrieval_provenance,
+                    "country_codes": [self.market_scope.country_code]
+                    if self.market_scope.country_code
+                    else [],
+                    **semantic_metadata,
                 }
             )
         self.market_sources.extend(
-            row
+            {key: value for key, value in row.items() if not key.startswith("_")}
             for source_id, row in sources_by_id.items()
             if source_id in linked_source_ids
         )
@@ -392,7 +740,7 @@ class B2BDataPipeline:
 
             agent = Agent(
                 model=self.model,
-                output_type=OpenRegisterQueryParams,
+                output_type=NativeOutput(OpenRegisterQueryParams),
                 system_prompt=f"""You are a German B2B market intelligence assistant.
 Analyze the business problem: '{self.business_problem}'
 Analyze the target user: '{self.target_user}'
@@ -592,7 +940,13 @@ The registry locality is fixed by the authorized request and is not yours to inf
         """Geocode company addresses in bulk using LLM or fallback coordinates."""
         if not self.model:
             coords = self._get_city_coordinates()
-            base_lat, base_lon = coords if coords else (51.1657, 10.4515)
+            if not coords:
+                logger.warning(
+                    "No deterministic coordinates for authorized market %s; preserving unknown coordinates.",
+                    self.location,
+                )
+                return
+            base_lat, base_lon = coords
             import random
             for c in companies:
                 c.latitude = base_lat + random.uniform(-0.04, 0.04)
@@ -609,10 +963,10 @@ The registry locality is fixed by the authorized request and is not yours to inf
 
             geocode_agent = Agent(
                 model=self.model,
-                output_type=GeocodeResults,
+                output_type=NativeOutput(GeocodeResults),
                 system_prompt=f"""You are a geocoding helper.
 Given a list of company addresses in or around '{self.location}', estimate realistic latitude and longitude coordinates for each.
-They must be physically located in Germany near the target city.
+They must be physically located in the explicitly authorized market '{self.location}'.
 Spread them out realistically across the city area — don't cluster them all at the exact center.
 Return exactly one coordinate pair per address, in the same order as the input list.
 """
@@ -629,7 +983,9 @@ Return exactly one coordinate pair per address, in the same order as the input l
         except Exception as geo_err:
             logger.error(f"Failed to geocode company addresses: {geo_err}", exc_info=True)
             coords = self._get_city_coordinates()
-            base_lat, base_lon = coords if coords else (51.1657, 10.4515)
+            if not coords:
+                return
+            base_lat, base_lon = coords
             import random
             for c in companies:
                 if c.latitude == 0.0:
@@ -680,15 +1036,23 @@ Return exactly one coordinate pair per address, in the same order as the input l
         source_rows = []
         claim_rows = []
         seen_urls = set()
-        for provider, search_service in search_services:
+        async def run_provider(provider: str, search_service: Any) -> tuple[str, Dict[str, Any] | BaseException]:
             try:
                 # Both provider SDKs expose synchronous search methods. Run them
                 # off the event loop so independent market cells can genuinely
                 # progress concurrently instead of serializing on network I/O.
-                search_result = await asyncio.to_thread(
+                return provider, await asyncio.to_thread(
                     search_service.search_web_general, query
                 )
             except Exception as exc:
+                return provider, exc
+
+        provider_results = await asyncio.gather(
+            *(run_provider(provider, service) for provider, service in search_services)
+        )
+        for provider, search_result in provider_results:
+            if isinstance(search_result, BaseException):
+                exc = search_result
                 logger.warning(
                     "Grounded search provider %s failed with %s.",
                     provider,
@@ -748,6 +1112,14 @@ Return exactly one coordinate pair per address, in the same order as the input l
                         "title": str(source.get("title") or "Unknown")[:500],
                         "url": url,
                         "provider": provider,
+                        "provider_source_id": source.get("provider_source_id"),
+                        "retrieved_at": source.get("retrieved_at"),
+                        "provider_response_hash": source.get("provider_response_hash"),
+                        "provider_query_ids": source.get("provider_query_ids") or [],
+                        "provider_queries": source.get("provider_queries") or [],
+                        "citation_metadata": source.get("citation_metadata") or {},
+                        "country_codes": [self.market_scope.country_code]
+                        if self.market_scope.country_code else [],
                     }
                 )
 
@@ -772,18 +1144,13 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 for url in claim.get("source_urls") or []
                 if url in seen_urls
             }
-            authoritative_urls = {
-                row["url"]
-                for row in source_rows
-                if row["url"] in linked_urls
-                and self._source_authority(row["url"]) in {"official_public", "academic"}
-            }
-            if (
-                len(linked_urls) >= self.minimum_source_count
-                and len(authoritative_urls) >= self.minimum_authoritative_source_count
-            ):
-                break
+            # Both routes always complete: independent corroboration is a
+            # quality property, not merely a fallback for an empty first call.
 
+        # Direct publisher verification is independent of retrieval/synthesis.
+        # A non-.gov authority can become official only after its fetched page
+        # is linked from a separately fetched government/EU root.
+        await enrich_authority_sources(source_rows)
         self._store_direct_web_evidence(source_rows, claim_rows)
         if not texts or not source_rows:
             logger.warning("Web grounding returned no source-bearing evidence.")
@@ -802,7 +1169,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
             
         agent = Agent(
             model=self.model,
-            output_type=CompaniesListOut,
+            output_type=NativeOutput(CompaniesListOut),
             system_prompt=f"""You are a B2B market intelligence parsing agent.
 Your job is to read grounded search results for the authorized market
 '{self.location}' and extract structured data without changing that market.
@@ -911,7 +1278,7 @@ CRITICAL RULES:
 
         agent = Agent(
             model=self.model,
-            output_type=BatchEnrichmentOut,
+            output_type=NativeOutput(BatchEnrichmentOut),
             system_prompt=f"""You are parsing REAL Google search results to find factual company details.
 
 For each company listed below, extract from the search text:
@@ -1017,7 +1384,7 @@ Return one result per company, matched by name.
         
         agent = Agent(
             model=self.model,
-            output_type=BatchPainPointsOut,
+            output_type=NativeOutput(BatchPainPointsOut),
             system_prompt=f"""You are a B2B market analyst generating pain point assessments for companies in {self.location}.
 Business problem context: '{self.business_problem}'
 Target user role: '{self.target_user}'
