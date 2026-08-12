@@ -84,6 +84,47 @@ def test_returns_ideal_persona_when_orqaly_has_no_candidate():
     assert result["ideal_agent_persona"]["required_capabilities"]
 
 
+def test_customer_selection_excludes_explicit_executor_even_with_stronger_evidence():
+    customer = _customer_persona()
+    customer["name"] = "Jens Völkers, Managing Director"
+    customer["stakeholder_intelligence"] = {
+        "stakeholder_type": "Problem experiencer"
+    }
+    executor = _customer_persona()
+    executor["name"] = "Torsten Kröger, Compliance Specialist"
+    executor["confidence"] = 1.0
+    executor["stakeholder_intelligence"] = {"stakeholder_type": "Executor"}
+    executor["_evidence_linking_v2"]["evidence_map"]["goals_and_motivations"].append(
+        {
+            "quote": "I require Article 32 evidence and a risk matrix.",
+            "speaker": executor["name"],
+            "document_id": "sim_session_1_executor",
+            "start_char": 0,
+            "end_char": 48,
+        }
+    )
+
+    result = resolve_orqaly_personas(
+        [executor, customer],
+        OrqalyTaskContext(title="Build a Bremen plan", description="Research buyers"),
+        [],
+    )
+
+    assert result["customer_persona"]["name"] == customer["name"]
+
+
+def test_customer_selection_fails_closed_when_only_executors_exist():
+    executor = _customer_persona()
+    executor["stakeholder_intelligence"] = {"stakeholder_type": "Executor"}
+
+    with pytest.raises(ValueError, match="eligible customer persona"):
+        resolve_orqaly_personas(
+            [executor],
+            OrqalyTaskContext(title="Build a Bremen plan", description="Research buyers"),
+            [],
+        )
+
+
 def test_multi_role_research_does_not_present_one_candidate_as_the_whole_team():
     roles = ["Marketing ICP Specialist", "Finance Pricing Specialist"]
     result = resolve_orqaly_personas(

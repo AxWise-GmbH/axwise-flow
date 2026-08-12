@@ -17,6 +17,13 @@ STOP_WORDS = {
 
 MINIMUM_AGENT_FIT_SCORE = 0.35
 
+_NON_CUSTOMER_STAKEHOLDER_TYPES = {
+    "executor",
+    "execution team",
+    "ideal executor",
+    "role specific execution team",
+}
+
 
 class OrqalyTaskContext(BaseModel):
     task_id: Optional[str] = None
@@ -137,9 +144,41 @@ def _field_text(value: Any, fallback: str) -> str:
     return fallback
 
 
+def is_customer_persona_eligible(persona: Dict[str, Any]) -> bool:
+    """Keep explicitly generated executors out of customer selection.
+
+    Pipeline B preserves the originating stakeholder role in
+    ``stakeholder_intelligence.stakeholder_type``.  This is an authority
+    boundary, not a fuzzy title classifier: legacy personas without the field
+    remain eligible, while rows explicitly generated as executors cannot be
+    promoted to the affected customer merely because their evidence is rich.
+    """
+
+    stakeholder = persona.get("stakeholder_intelligence")
+    stakeholder_type = (
+        stakeholder.get("stakeholder_type")
+        if isinstance(stakeholder, dict)
+        else None
+    )
+    if not stakeholder_type:
+        metadata = persona.get("persona_metadata")
+        stakeholder_type = (
+            metadata.get("stakeholder_category")
+            if isinstance(metadata, dict)
+            else None
+        )
+    normalized = " ".join(
+        re.findall(r"[a-z0-9]+", str(stakeholder_type or "").casefold())
+    )
+    return normalized not in _NON_CUSTOMER_STAKEHOLDER_TYPES
+
+
 def _pick_customer_persona(personas: List[Dict[str, Any]]) -> Dict[str, Any]:
+    eligible = [persona for persona in personas if is_customer_persona_eligible(persona)]
+    if not eligible:
+        raise ValueError("Persona resolution requires an eligible customer persona")
     ranked = sorted(
-        personas,
+        eligible,
         key=lambda persona: (_persona_confidence(persona), len(_evidence_items(persona))),
         reverse=True,
     )
