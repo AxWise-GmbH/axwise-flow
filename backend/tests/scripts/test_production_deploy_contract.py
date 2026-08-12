@@ -60,6 +60,8 @@ def test_private_searxng_deployment_uses_identity_and_pinned_image() -> None:
 
     assert "searxng/searxng@sha256:" in dockerfile
     assert "--no-allow-unauthenticated" in script
+    assert '--service-account "${SERVICE_ACCOUNT}"' in script
+    assert "gcloud iam service-accounts describe" in script
     assert 'serviceAccount:${WORKER_SERVICE_ACCOUNT}' in script
     assert "roles/run.invoker" in script
     assert "SEARXNG_AUTH_MODE=google_identity" in script
