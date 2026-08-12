@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import math
+import os
 import re
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Literal, Optional
@@ -17,13 +19,14 @@ from backend.api.research.simulation_bridge.models import (
     SimulationRequest,
     SimulationResponse,
 )
+from backend.domain.market_scope import research_cells
 from backend.services.orqaly_persona_resolution_service import (
     is_customer_persona_eligible,
 )
 
 
 BUNDLE_VERSION = "axwise_research_bundle_v1"
-GROUNDING_COMPOSER_VERSION = "regional_google_registry_v1"
+GROUNDING_COMPOSER_VERSION = "adaptive_market_cells_gemini_searxng_registry_v2"
 MAX_RESEARCH_BUNDLE_BYTES = 8 * 1024 * 1024
 _URL_PATTERN = re.compile(r"https?://[^\s<>\]\[\)\(\"']+", re.IGNORECASE)
 
@@ -88,11 +91,11 @@ _NON_EXECUTION_ROLE_KEYS = {
 }
 _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
     "Marketing ICP Research": {
-        "mission_focus": "Define evidence-backed Bremen SMB segments and their buying context.",
+        "mission_focus": "Define evidence-backed customer segments for the authorized market scope.",
         "expertise": [
             "ideal-customer-profile segmentation",
             "jobs-to-be-done and buying-trigger research",
-            "German regional market localization",
+            "country and regional market localization",
             "buyer-role and qualification-rule design",
         ],
         "methods": [
@@ -103,7 +106,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         "decision_lens": [
             "Is the segment specific enough to target and disqualify?",
             "Does each material assertion trace to a source, interview, or labeled hypothesis?",
-            "Does localization reflect Bremen and German SMB buying behavior without stereotyping?",
+            "Does localization reflect the authorized markets without flattening country differences or stereotyping?",
         ],
         "outputs": [
             "Prioritized ICP profiles with pains, triggers, buyer roles, and qualification rules.",
@@ -117,7 +120,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "Finance Pricing": {
-        "mission_focus": "Turn customer value and delivery constraints into defensible fixed-price EUR offers.",
+        "mission_focus": "Turn customer value and delivery constraints into defensible market-specific offers.",
         "expertise": [
             "commercial package architecture",
             "value, cost, and margin assumption modelling",
@@ -130,12 +133,12 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
             "Mark every unobserved price or willingness-to-pay input as a field-test hypothesis.",
         ],
         "decision_lens": [
-            "Is the EUR price internally coherent with scope and exclusions?",
+            "Is each price coherent with the market currency, tax context, scope, and exclusions?",
             "Can a buyer understand the value and proof required to justify the package?",
             "Are margin, tax, procurement, and delivery-risk assumptions explicit?",
         ],
         "outputs": [
-            "Fixed-price EUR packages with scope, exclusions, assumptions, and proof points.",
+            "Market-specific packages with currency, scope, exclusions, assumptions, and proof points.",
             "Unit-economics and sensitivity table with decision thresholds.",
             "Pricing validation questions for real customer conversations.",
         ],
@@ -146,7 +149,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "GDPR Legal Compliance": {
-        "mission_focus": "Design a GDPR-safe commercial and delivery framework for the Bremen offer.",
+        "mission_focus": "Design a compliant commercial and delivery framework for every authorized market.",
         "expertise": [
             "EU GDPR role and lawful-basis analysis",
             "data minimization, retention, and purpose limitation",
@@ -160,7 +163,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         ],
         "decision_lens": [
             "Is personal data necessary and proportionate for the stated purpose?",
-            "Are German/EU processing roles, transfers, notices, and deletion duties explicit?",
+            "Are applicable national, regional, and cross-border duties explicit for each market?",
             "Is legal uncertainty escalated instead of represented as legal advice?",
         ],
         "outputs": [
@@ -175,16 +178,16 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "Business Development Sales": {
-        "mission_focus": "Convert the selected Bremen ICP into a measurable German B2B outreach motion.",
+        "mission_focus": "Convert selected customer segments into measurable, localized market motions.",
         "expertise": [
-            "German SMB business development",
+            "localized business development",
             "multi-channel outbound cadence design",
             "buyer-role messaging and objection handling",
             "pipeline qualification and CRM handoff",
         ],
         "methods": [
             "Map each message and channel to a researched pain, trigger, buyer role, and next step.",
-            "Use professional German Sie-form and permission-aware follow-up patterns.",
+            "Adapt language, register, channels, and permission-aware follow-up to each market.",
             "Define weekly activity, response, meeting, qualification, and handoff targets.",
         ],
         "decision_lens": [
@@ -193,7 +196,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
             "Are opt-out, channel, contact-data, and CRM handling boundaries respected?",
         ],
         "outputs": [
-            "Four-week German outreach cadence with channels, templates, and weekly targets.",
+            "Localized outreach cadence with channels, templates, and weekly targets.",
             "Role-specific objection responses and qualification prompts.",
             "CRM stage, handoff, and experiment-tracking specification.",
         ],
@@ -204,7 +207,7 @@ _EXECUTOR_ROLE_PLAYBOOKS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "Commercial Risk": {
-        "mission_focus": "Make the Bremen commercial plan measurable, falsifiable, and resilient.",
+        "mission_focus": "Make the multi-market commercial plan measurable, falsifiable, and resilient.",
         "expertise": [
             "commercial funnel and KPI architecture",
             "risk identification, scoring, and mitigation ownership",
@@ -599,12 +602,149 @@ async def collect_regional_grounding(
     request: SimulationRequest,
     policy: HybridGroundingPolicy,
 ) -> Dict[str, Any]:
-    """Run the existing registry/Google regional pipeline without synthetic fallback."""
+    """Ground one or many confirmed market cells with bounded concurrency."""
+
+    context = request.business_context
+    if not context:
+        return normalize_market_grounding([], policy)
+    if policy.allowed_source_types == ["provided_document"]:
+        return normalize_market_grounding([], policy)
+
+    scope = context.market_scope
+    country_cells = (
+        [
+            cell
+            for cell in research_cells(scope)
+            if cell.get("cell_id", "").startswith("country:")
+        ]
+        if scope
+        else []
+    )
+    per_cell_minimum = (
+        3
+        if policy.requested_mode == "grounded_deep"
+        else policy.minimum_structured_sources
+    )
+    per_cell_authoritative_minimum = 1 if policy.requested_mode == "grounded_deep" else 0
+    country_cells = [
+        {
+            **cell,
+            "minimum_structured_sources": per_cell_minimum,
+            "minimum_authoritative_sources": per_cell_authoritative_minimum,
+        }
+        for cell in country_cells
+    ]
+    if not country_cells:
+        if not _safe_text(context.location, 255):
+            return normalize_market_grounding([], policy)
+        return await _collect_single_market_grounding(request, policy)
+
+    if scope.confirmation.required and not scope.confirmation.confirmed:
+        raise ValueError("multi-market grounding requires a confirmed market scope")
+
+    try:
+        configured_parallel = int(os.getenv("AXWISE_MARKET_CELL_CONCURRENCY", "6"))
+    except ValueError:
+        configured_parallel = 6
+    maximum_parallel = max(1, min(configured_parallel, 8))
+    semaphore = asyncio.Semaphore(maximum_parallel)
+
+    async def collect_cell(cell: Dict[str, Any]) -> Dict[str, Any]:
+        async with semaphore:
+            locality = next(iter(cell.get("localities") or []), None)
+            location = ", ".join(
+                value for value in [locality, cell.get("country_name")] if value
+            )
+            cell_request = request.model_copy(
+                update={
+                    "business_context": context.model_copy(
+                        update={"location": location, "market_scope": None}
+                    )
+                }
+            )
+            result = await _collect_single_market_grounding(cell_request, policy)
+            cell_id = cell["cell_id"]
+            country_codes = list(cell.get("country_codes") or [])
+            for row in result.get("market_sources") or []:
+                row["research_cell_ids"] = [cell_id]
+                row["country_codes"] = country_codes
+            for row in result.get("market_claims") or []:
+                row["research_cell_ids"] = [cell_id]
+                row["country_codes"] = country_codes
+            source_count = len(result.get("market_sources") or [])
+            authoritative_source_count = sum(
+                1
+                for row in result.get("market_sources") or []
+                if row.get("source_type")
+                in {"company_registry", "official_company_website"}
+                or row.get("source_authority") in {"official_registry", "official_public", "academic"}
+            )
+            result["cell_coverage"] = {
+                "cell_id": cell_id,
+                "country_codes": country_codes,
+                "source_count": source_count,
+                "authoritative_source_count": authoritative_source_count,
+                "claim_count": len(result.get("market_claims") or []),
+                "minimum_structured_sources": cell["minimum_structured_sources"],
+                "minimum_authoritative_sources": cell["minimum_authoritative_sources"],
+                "status": (
+                    "complete"
+                    if source_count >= cell["minimum_structured_sources"]
+                    and authoritative_source_count
+                    >= cell["minimum_authoritative_sources"]
+                    else "blocked"
+                ),
+            }
+            return result
+
+    results = await asyncio.gather(*(collect_cell(cell) for cell in country_cells))
+    maximum_sources = min(100, max(policy.maximum_sources, len(country_cells) * 5))
+    maximum_claims = min(200, max(policy.maximum_claims, len(country_cells) * 10))
+    merge_policy = policy.model_copy(
+        update={"maximum_sources": maximum_sources, "maximum_claims": maximum_claims}
+    )
+    sources, claims = _merge_market_evidence(
+        [row for result in results for row in result.get("market_sources") or []],
+        [row for result in results for row in result.get("market_claims") or []],
+        merge_policy,
+    )
+    coverage = [result["cell_coverage"] for result in results]
+    diagnostics = {
+        "requested_location": scope.raw_input,
+        "market_scope_hash": scope.resolution_hash,
+        "country_codes": [
+            country.country_code for country in scope.resolved_scope.countries
+        ],
+        "cell_concurrency": maximum_parallel,
+        "providers": [
+            provider
+            for result in results
+            for provider in (result.get("routing_diagnostics") or {}).get("providers") or []
+        ],
+        "cells": coverage,
+    }
+    return {
+        "market_sources": sources,
+        "market_claims": claims,
+        "structured_source_count": len(sources),
+        "claim_count": len(claims),
+        "company_count": sum(int(result.get("company_count") or 0) for result in results),
+        "composer_version": "multi_market_cells_v2",
+        "market_scope": scope.model_dump(mode="json"),
+        "research_cells": country_cells,
+        "cell_coverage": coverage,
+        "routing_diagnostics": diagnostics,
+    }
+
+
+async def _collect_single_market_grounding(
+    request: SimulationRequest,
+    policy: HybridGroundingPolicy,
+) -> Dict[str, Any]:
+    """Run the existing single-market registry/web pipeline."""
 
     context = request.business_context
     if not context or not _safe_text(context.location, 255):
-        return normalize_market_grounding([], policy)
-    if policy.allowed_source_types == ["provided_document"]:
         return normalize_market_grounding([], policy)
 
     # Import lazily: worker startup and non-grounded reads should not initialize
@@ -620,6 +760,9 @@ async def collect_regional_grounding(
         model=regional.model,
         data_source=policy.source_strategy,
         minimum_source_count=policy.minimum_structured_sources,
+        minimum_authoritative_source_count=(
+            1 if policy.requested_mode == "grounded_deep" else 0
+        ),
     )
     companies = await pipeline.run()
     grounding = normalize_market_grounding(companies, policy)
@@ -688,6 +831,12 @@ def _merge_market_evidence(
         existing = canonical_sources.get(evidence_key)
         if existing:
             source_aliases[source_id] = str(existing["source_id"])
+            for list_key in ("research_cell_ids", "country_codes"):
+                existing[list_key] = list(
+                    dict.fromkeys(
+                        list(existing.get(list_key) or []) + list(row.get(list_key) or [])
+                    )
+                )
             for key, value in row.items():
                 if value not in (None, "", [], {}) and existing.get(key) in (
                     None,
@@ -734,7 +883,17 @@ def _merge_market_evidence(
             },
         )
         canonical["claim_id"] = identity
-        claims_by_identity.setdefault(identity, canonical)
+        existing_claim = claims_by_identity.get(identity)
+        if existing_claim:
+            for list_key in ("research_cell_ids", "country_codes"):
+                existing_claim[list_key] = list(
+                    dict.fromkeys(
+                        list(existing_claim.get(list_key) or [])
+                        + list(canonical.get(list_key) or [])
+                    )
+                )
+        else:
+            claims_by_identity[identity] = canonical
 
     return sources, list(claims_by_identity.values())[: policy.maximum_claims]
 
@@ -1352,6 +1511,9 @@ def _executor_rows(
                 "analysis_result_id": context.get("analysis_result_id"),
                 "research_prd": context.get("research_prd"),
                 "location": context.get("location"),
+                "market_scope": context.get("market_scope"),
+                "research_cells": context.get("research_cells"),
+                "cell_coverage": context.get("cell_coverage"),
                 "industry": context.get("industry"),
                 "problem": context.get("problem"),
                 "source_ids": context.get("source_ids", []),
@@ -1448,6 +1610,7 @@ def build_research_bundle(
     research_prd: Dict[str, Any],
     task_context: Optional[Dict[str, Any]] = None,
     agent_candidates: Optional[List[Dict[str, Any]]] = None,
+    performance: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build the durable, portable Orqaly handoff with stable IDs and hashes."""
 
@@ -1486,6 +1649,9 @@ def build_research_bundle(
             request.business_context.location if request.business_context else None,
             255,
         ),
+        "market_scope": _bounded_research_value(grounding.get("market_scope")),
+        "research_cells": _bounded_research_value(grounding.get("research_cells")),
+        "cell_coverage": _bounded_research_value(grounding.get("cell_coverage")),
         "industry": _safe_text(
             request.business_context.industry if request.business_context else None,
             255,
@@ -1646,6 +1812,9 @@ def build_research_bundle(
         "status": "completed",
         "research_prd_hash": research_prd.get("content_hash"),
         "selected_persona_ids": selected_persona_ids,
+        "market_scope": grounding.get("market_scope"),
+        "research_cells": list(grounding.get("research_cells") or []),
+        "cell_coverage": list(grounding.get("cell_coverage") or []),
         "configuration": {
             "pipeline": "hybrid_a_plus_b",
             "research_mode": research_mode.value,
@@ -1678,9 +1847,10 @@ def build_research_bundle(
         "patterns": patterns,
         "contradictions": contradictions,
         "method": {
-            "version": "axwise_grounded_hybrid_method_v1",
+            "version": "axwise_grounded_multi_market_method_v2",
             "sequence": [
-                "regional_registry_and_google_grounding",
+                "country_cell_grounding_with_adaptive_source_diversity",
+                "cross_market_evidence_synthesis",
                 "synthetic_participant_generation",
                 "synthetic_interviews",
                 "empirical_persona_synthesis",
@@ -1710,6 +1880,12 @@ def build_research_bundle(
                 grounding.get("structured_source_count") or len(market_sources)
             ),
             "claim_count": len(market_claims),
+            "market_cell_count": len(grounding.get("cell_coverage") or []),
+            "completed_market_cell_count": sum(
+                row.get("status") == "complete"
+                for row in grounding.get("cell_coverage") or []
+                if isinstance(row, dict)
+            ),
             "participant_count": len(participants),
             "interview_count": len(interviews),
             "customer_persona_count": len(customer_personas),
@@ -1733,6 +1909,7 @@ def build_research_bundle(
                 or len(market_sources) >= grounding_policy.minimum_structured_sources
             ),
         },
+        "performance": _bounded_research_value(performance or {}),
     }
     canonical_bundle = canonical_json_string(bundle)
     if len(canonical_bundle.encode("utf-8")) > MAX_RESEARCH_BUNDLE_BYTES:

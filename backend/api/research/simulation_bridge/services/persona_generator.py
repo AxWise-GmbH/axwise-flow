@@ -4,6 +4,7 @@ AI Persona Generator for Interview Simulation.
 
 import asyncio
 import logging
+import os
 import uuid
 import random
 from typing import List, Dict, Any, Optional
@@ -76,6 +77,7 @@ Return a list of PersonaGenerationItem objects with all fields populated."""
         stakeholder: Stakeholder,
         business_context: BusinessContext,
         config: SimulationConfig,
+        market_offset: int = 0,
     ) -> List[SimulatedPerson]:
         """Generate individual simulated people for a specific stakeholder type."""
 
@@ -95,7 +97,13 @@ Return a list of PersonaGenerationItem objects with all fields populated."""
                 profile = self.ocean_sampler.sample(occupation_code, age)
                 sampled_profiles.append((age, profile))
 
-            prompt = self._build_person_prompt(stakeholder, business_context, config, sampled_profiles)
+            prompt = self._build_person_prompt(
+                stakeholder,
+                business_context,
+                config,
+                sampled_profiles,
+                market_offset=market_offset,
+            )
             logger.info(f"Person generation prompt: {prompt[:200]}...")
 
             # Try with retry logic for Gemini API issues
@@ -245,6 +253,7 @@ Profile Index {idx + 1}:
         business_context: BusinessContext,
         config: SimulationConfig,
         sampled_profiles: List[tuple],
+        market_offset: int = 0,
     ) -> str:
         """Build the prompt for individual person generation."""
 
@@ -270,6 +279,45 @@ Profile Index {idx + 1}:
         )
 
         profiles_desc = self._format_sampled_profiles(sampled_profiles)
+        market_scope = getattr(business_context, "market_scope", None)
+        resolved_markets = list(
+            getattr(getattr(market_scope, "resolved_scope", None), "countries", [])
+            or []
+        )
+        resolved_markets.sort(key=lambda market: market.priority != "primary")
+        if resolved_markets:
+            market_labels = ", ".join(
+                f"{market.country_name} ({market.country_code})"
+                for market in resolved_markets
+            )
+            assignments = []
+            for profile_index in range(len(sampled_profiles)):
+                market = resolved_markets[
+                    (market_offset + profile_index) % len(resolved_markets)
+                ]
+                locality = (
+                    f"; prefer {', '.join(market.localities)}"
+                    if market.localities
+                    else ""
+                )
+                assignments.append(
+                    f"- Profile Index {profile_index + 1}: {market.country_name} "
+                    f"({market.country_code}){locality}"
+                )
+            geography_guidelines = f"""EXACT AUTHORIZED MARKET SCOPE:
+- Countries: {market_labels}
+- Coverage mode: {market_scope.resolved_scope.coverage_mode}
+- Participant assignments for this stakeholder sample:
+{chr(10).join(assignments)}
+
+Use each profile's assigned country. Do not substitute Germany, another nearby market,
+or a generic regional persona. Country-wide evidence coverage is handled separately;
+these assignments define the bounded synthetic-interview sample."""
+        else:
+            geography_guidelines = f"""LOCATION AND GEOGRAPHY GUIDELINES:
+- Treat {primary_location or 'the explicitly authorized market'} as the geographic anchor.
+- Do not infer a country from a city-only or ambiguous label.
+- A different location is allowed only when the business context explicitly supports it."""
 
         return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
@@ -280,13 +328,7 @@ BUSINESS CONTEXT:
 - Industry: {business_context.industry}
 - Primary Business Location: {primary_location or "Not specified"}
 
-LOCATION AND GEOGRAPHY GUIDELINES:
-- Treat the primary business location as the main geographic anchor for this business.
-- The clear majority of people you generate (around 70-80%) should be based in or very near this primary location (same city/region/country where it makes sense).
-- A smaller portion of people (around 20-30%) may be based in other locations, but only when it clearly makes business sense (for example, another office of the same company, an important regional customer or partner, or a key supplier/manufacturing site).
-- Make each person's location plausible and explicitly connected to the business context (for example, "Regional sales manager in Munich for a Stuttgart-based automotive supplier").
-- Avoid placing people in locations that are clearly unrelated to this region unless the business idea explicitly mentions operations there.
-- When you mention institutions, labor practices, or regulations, align them with the appropriate region for each person's location without hard-coding artificial cultural details.
+{geography_guidelines}
 
 STAKEHOLDER TYPE:
 - Name: {stakeholder.name}
@@ -351,13 +393,16 @@ The personas should feel like real people who would genuinely interact with this
         ) or str(getattr(config, "performance_profile", "standard"))
         quality_fast = performance_profile == "quality_fast"
 
-        async def generate_one(stakeholder: Stakeholder):
+        async def generate_one(index: int, stakeholder: Stakeholder):
             logger.info(
                 f"Generating people for stakeholder: {stakeholder.name} (ID: {stakeholder.id})"
             )
             try:
                 people = await self.generate_people(
-                    stakeholder, business_context, config
+                    stakeholder,
+                    business_context,
+                    config,
+                    market_offset=index * max(1, config.people_per_stakeholder),
                 )
                 logger.info(
                     f"Generated {len(people)} people for {stakeholder.name}"
@@ -370,25 +415,35 @@ The personas should feel like real people who would genuinely interact with this
                 )
                 return []
 
-        if quality_fast and len(stakeholder_entries) > 1:
-            # Each call already returns all people for one stakeholder. Running the
-            # independent stakeholder calls concurrently removes the old N-call
-            # latency chain without reducing persona count or prompt detail.
-            max_concurrent = min(5, len(stakeholder_entries))
+        if len(stakeholder_entries) > 1:
+            # Concurrency is an execution property, not a quality downgrade: each
+            # stakeholder keeps the same prompt, sample size, model, and validation.
+            # Quality-fast may use a slightly wider window, while Standard no longer
+            # pays an avoidable N-call latency chain.
+            try:
+                configured = int(
+                    os.getenv(
+                        "AXWISE_PERSONA_CONCURRENCY",
+                        "5" if quality_fast else "4",
+                    )
+                )
+            except ValueError:
+                configured = 5 if quality_fast else 4
+            max_concurrent = min(max(1, configured), 8, len(stakeholder_entries))
             semaphore = asyncio.Semaphore(max_concurrent)
 
-            async def bounded_generate(stakeholder: Stakeholder):
+            async def bounded_generate(index: int, stakeholder: Stakeholder):
                 async with semaphore:
-                    return await generate_one(stakeholder)
+                    return await generate_one(index, stakeholder)
 
             groups = await asyncio.gather(
-                *(bounded_generate(item) for item in stakeholder_entries)
+                *(bounded_generate(index, item) for index, item in enumerate(stakeholder_entries))
             )
             all_people = [person for group in groups for person in group]
         else:
             all_people = []
-            for stakeholder in stakeholder_entries:
-                all_people.extend(await generate_one(stakeholder))
+            for index, stakeholder in enumerate(stakeholder_entries):
+                all_people.extend(await generate_one(index, stakeholder))
 
         logger.info(
             f"Generated {len(all_people)} total people across all stakeholder types"
@@ -443,7 +498,7 @@ REAL DECISION MAKERS TO SIMULATE AND THEIR PRE-ASSIGNED PERSONALITIES:
 
 For each of these decision makers, generate a detailed simulated persona.
 Each persona MUST match the real name, role, and company specified, and must align with the target age and pre-assigned personality traits of their profile.
-If the name is a placeholder like 'Manager at ...' or similar, replace it with a realistic, diverse full name (first name + last name) suitable for a B2B professional in {business_context.location or 'Germany'}.
+If the name is a placeholder like 'Manager at ...' or similar, replace it with a realistic, diverse full name (first name + last name) suitable for a B2B professional in {business_context.location or 'the explicitly authorized market'}. Never infer a country that is absent from the business context.
 
 Generate:
 1. name: Keep the real name if provided, or replace placeholder names with a realistic full name.

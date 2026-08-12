@@ -25,6 +25,7 @@ from backend.domain.orchestration.enums import (
     RoutingMode,
     Urgency,
 )
+from backend.domain.market_scope import MarketScopeV2
 
 
 CONTRACT_VERSION = "1.0"
@@ -252,6 +253,7 @@ class ResearchBriefV1(ContractModel):
     required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
     industry: str = Field(default="general", min_length=1, max_length=120)
     location: Optional[str] = Field(default=None, max_length=255)
+    market_scope: Optional[MarketScopeV2] = None
     depth: Literal["quick", "detailed", "comprehensive"] = "quick"
     sample_size: int = Field(default=2, ge=1, le=10)
 
@@ -379,11 +381,22 @@ class DecisionCreateRequestV1(ContractModel):
             or self.research_policy.minimum_mode
             in {"grounded_fast", "grounded_deep"}
         )
-        if grounded_research and (
-            not self.research_brief
-            or not str(self.research_brief.location or "").strip()
-        ):
-            raise ValueError("grounded research requires research_brief.location")
+        if grounded_research:
+            brief = self.research_brief
+            has_legacy_location = bool(brief and str(brief.location or "").strip())
+            has_confirmed_scope = bool(
+                brief
+                and brief.market_scope
+                and brief.market_scope.resolved_scope.countries
+                and (
+                    not brief.market_scope.confirmation.required
+                    or brief.market_scope.confirmation.confirmed
+                )
+            )
+            if not has_legacy_location and not has_confirmed_scope:
+                raise ValueError(
+                    "grounded research requires a confirmed market_scope or research_brief.location"
+                )
         return self
 
 

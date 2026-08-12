@@ -11,6 +11,8 @@ from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
+from backend.domain.market_scope import MarketScopeV2
+
 
 class DemographicDetails(BaseModel):
     """Structured demographic details for personas."""
@@ -92,6 +94,7 @@ class BusinessContext(BaseModel):
     problem: str
     industry: Optional[str] = "general"
     location: Optional[str] = None
+    market_scope: Optional[MarketScopeV2] = None
 
 
 class Stakeholder(BaseModel):

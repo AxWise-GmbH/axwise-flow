@@ -92,7 +92,7 @@ Return your response strictly as a JSON object with this exact structure:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.6-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -146,7 +146,7 @@ Structure your output beautifully in Markdown, including:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.6-flash",
         contents=prompt
     )
     return response.text
@@ -193,7 +193,7 @@ async def main():
     # 2. Run Forward-Simulation Pipeline with OCEANSampler
     logger.info("Initializing Forward-Simulation Pipeline...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.6-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()

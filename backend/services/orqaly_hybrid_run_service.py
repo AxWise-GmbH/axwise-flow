@@ -57,6 +57,10 @@ PARTNER_ID = "orqaly"
 TERMINAL_STATUSES = {"completed", "completed_with_warnings", "failed", "cancelled"}
 
 
+def _utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
 class HybridRunCancelled(Exception):
     """Raised when a queued or running job was cancelled by its tenant."""
 
@@ -192,14 +196,29 @@ class HybridRunService:
         policy = grounding_policy or HybridGroundingPolicy(required=False)
         if research_mode == HybridResearchMode.SYNTHETIC_ONLY and policy.required:
             raise ValueError("Synthetic-only research cannot require market grounding")
-        if (
-            policy.required
-            and (
-                not request.business_context
-                or not str(request.business_context.location or "").strip()
+        if policy.required:
+            context = request.business_context
+            if (
+                context
+                and context.market_scope
+                and context.market_scope.confirmation.required
+                and not context.market_scope.confirmation.confirmed
+            ):
+                raise ValueError("Required grounding needs confirmed market-scope membership")
+            has_location = bool(context and str(context.location or "").strip())
+            has_confirmed_scope = bool(
+                context
+                and context.market_scope
+                and context.market_scope.resolved_scope.countries
+                and (
+                    not context.market_scope.confirmation.required
+                    or context.market_scope.confirmation.confirmed
+                )
             )
-        ):
-            raise ValueError("Required regional grounding needs business_context.location")
+            if not has_location and not has_confirmed_scope:
+                raise ValueError(
+                    "Required grounding needs a confirmed market_scope or business_context.location"
+                )
         self.validate_callback_url(request.callback_url)
         request_hash = self.request_hash(
             request,
@@ -513,6 +532,19 @@ class HybridRunService:
                     "claim_count": len(structured_claims),
                 }
                 structured_source_count = len(structured_sources)
+                blocked_cells = [
+                    row
+                    for row in grounding.get("cell_coverage") or []
+                    if isinstance(row, dict) and row.get("status") != "complete"
+                ]
+                if grounding_policy.required and blocked_cells:
+                    blocked = ",".join(
+                        str(row.get("cell_id") or "unknown") for row in blocked_cells
+                    )[:500]
+                    raise RuntimeError(
+                        "Required multi-market grounding did not satisfy every country cell "
+                        f"(blocked_cells={blocked})"
+                    )
                 if (
                     grounding_policy.required
                     and structured_source_count
@@ -648,6 +680,7 @@ class HybridRunService:
                     agent_candidates=[
                         item.model_dump(mode="json") for item in agent_candidates
                     ],
+                    performance=self._run_performance(job_id),
                 )
                 result.data = {
                     **(result.data or {}),
@@ -748,18 +781,94 @@ class HybridRunService:
                 return
             run.current_stage = stage
             run.progress_percentage = max(run.progress_percentage or 0, progress)
-            trace = list(run.execution_trace or [])
+            trace = [dict(row) for row in (run.execution_trace or [])]
+            now = datetime.now(timezone.utc)
+            if trace and trace[-1].get("duration_ms") is None:
+                try:
+                    previous = _utc(datetime.fromisoformat(str(trace[-1]["at"])))
+                    trace[-1]["duration_ms"] = max(
+                        0, int((now - previous).total_seconds() * 1000)
+                    )
+                except (KeyError, TypeError, ValueError):
+                    trace[-1]["duration_ms"] = None
             trace.append(
                 {
                     "stage": stage,
                     "progress_percentage": run.progress_percentage,
                     "message": message,
-                    "at": datetime.now(timezone.utc).isoformat(),
+                    "at": now.isoformat(),
+                    "duration_ms": None,
                 }
             )
             run.execution_trace = trace
             run.updated_at = datetime.now(timezone.utc)
             session.commit()
+        finally:
+            session.close()
+
+    @staticmethod
+    def _finalize_stage_trace(run: PipelineRun, now: datetime) -> Dict[str, int]:
+        trace = [dict(row) for row in (run.execution_trace or [])]
+        if trace and trace[-1].get("duration_ms") is None:
+            try:
+                previous = _utc(datetime.fromisoformat(str(trace[-1]["at"])))
+                trace[-1]["duration_ms"] = max(
+                    0, int((now - previous).total_seconds() * 1000)
+                )
+            except (KeyError, TypeError, ValueError):
+                trace[-1]["duration_ms"] = None
+        run.execution_trace = trace
+        durations: Dict[str, int] = {}
+        for row in trace:
+            duration = row.get("duration_ms")
+            stage = str(row.get("stage") or "unknown")
+            if isinstance(duration, int):
+                durations[stage] = durations.get(stage, 0) + duration
+        return durations
+
+    @staticmethod
+    def _stage_performance(run: PipelineRun, now: datetime) -> Dict[str, Any]:
+        trace = [dict(row) for row in (run.execution_trace or [])]
+        durations: Dict[str, int] = {}
+        normalized_trace: List[Dict[str, Any]] = []
+        for index, row in enumerate(trace):
+            duration = row.get("duration_ms")
+            if duration is None and index == len(trace) - 1:
+                try:
+                    started = _utc(datetime.fromisoformat(str(row["at"])))
+                    duration = max(0, int((now - started).total_seconds() * 1000))
+                except (KeyError, TypeError, ValueError):
+                    duration = None
+            stage = str(row.get("stage") or "unknown")
+            if isinstance(duration, int):
+                durations[stage] = durations.get(stage, 0) + duration
+            normalized_trace.append(
+                {
+                    "stage": stage,
+                    "progress_percentage": int(row.get("progress_percentage") or 0),
+                    "at": row.get("at"),
+                    "duration_ms": duration,
+                }
+            )
+        started_at = run.started_at or run.created_at
+        elapsed_ms = (
+            max(0, int((now - _utc(started_at)).total_seconds() * 1000))
+            if started_at
+            else None
+        )
+        return {
+            "elapsed_ms": elapsed_ms,
+            "current_stage": run.current_stage,
+            "progress_percentage": int(run.progress_percentage or 0),
+            "stage_durations_ms": durations,
+            "stage_trace": normalized_trace[-25:],
+        }
+
+    def _run_performance(self, job_id: str) -> Dict[str, Any]:
+        session = self.session_factory()
+        try:
+            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
+            return self._stage_performance(run, datetime.now(timezone.utc)) if run else {}
         finally:
             session.close()
 
@@ -994,6 +1103,8 @@ class HybridRunService:
                 else {}
             )
             bundle_quality = research_bundle.get("quality") or {}
+            completed_at = datetime.now(timezone.utc)
+            stage_durations_ms = self._finalize_stage_trace(run, completed_at)
             summary = {
                 "hybrid_status": "completed",
                 "people_count": len(result.people or []),
@@ -1020,12 +1131,17 @@ class HybridRunService:
                 ),
                 "market_claim_count": bundle_quality.get("claim_count", 0),
                 "artifact_count": bundle_quality.get("artifact_count", 0),
+                "market_cell_count": bundle_quality.get("market_cell_count", 0),
+                "completed_market_cell_count": bundle_quality.get(
+                    "completed_market_cell_count", 0
+                ),
+                "stage_durations_ms": stage_durations_ms,
             }
             run.status = status
             run.current_stage = "completed"
             run.progress_percentage = 100
-            run.completed_at = datetime.now(timezone.utc)
-            run.updated_at = datetime.now(timezone.utc)
+            run.completed_at = completed_at
+            run.updated_at = completed_at
             run.total_duration_seconds = duration
             run.dataset = result.model_dump(mode="json")
             run.result_summary = summary
@@ -1052,11 +1168,13 @@ class HybridRunService:
             run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
             if not run:
                 return
+            completed_at = datetime.now(timezone.utc)
+            self._finalize_stage_trace(run, completed_at)
             run.status = "failed"
             run.current_stage = "failed"
             run.error = error[:4000]
-            run.completed_at = datetime.now(timezone.utc)
-            run.updated_at = datetime.now(timezone.utc)
+            run.completed_at = completed_at
+            run.updated_at = completed_at
             run.total_duration_seconds = duration
             session.commit()
         finally:
@@ -1126,6 +1244,7 @@ class HybridRunService:
 
     @staticmethod
     def serialize_run(run: PipelineRun, include_result: bool = False) -> Dict[str, Any]:
+        performance = HybridRunService._stage_performance(run, datetime.now(timezone.utc))
         data = {
             "job_id": run.job_id,
             "simulation_id": run.simulation_id,
@@ -1142,6 +1261,9 @@ class HybridRunService:
             "error": run.error,
             "warning": run.warning,
             "summary": run.result_summary or {},
+            "elapsed_ms": performance["elapsed_ms"],
+            "stage_durations_ms": performance["stage_durations_ms"],
+            "stage_trace": performance["stage_trace"],
         }
         if include_result and run.status in {"completed", "completed_with_warnings"}:
             data["result"] = run.dataset

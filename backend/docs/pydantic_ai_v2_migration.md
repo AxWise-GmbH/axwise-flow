@@ -1,6 +1,6 @@
 # Pydantic AI V2 Migration Guide & Mapping
 
-This document provides a detailed mapping, technical analysis, and step-by-step instructions for upgrading the backend from **Pydantic AI V1** (`pydantic-ai-slim==1.0.1`) to **Pydantic AI V2** (`v2.0.0` or later), specifically optimized for our primary model: **Gemini 3.5 Flash** (`models/gemini-3.5-flash`).
+This document provides a detailed mapping, technical analysis, and step-by-step instructions for upgrading the backend from **Pydantic AI V1** (`pydantic-ai-slim==1.0.1`) to **Pydantic AI V2** (`v2.0.0` or later), specifically optimized for our primary model: **Gemini 3.6 Flash** (`models/gemini-3.6-flash`).
 
 ---
 
@@ -19,7 +19,7 @@ In **Pydantic AI V2**, the `GeminiModel` class and its parent module are complet
 # ==========================================
 from pydantic_ai.models.gemini import GeminiModel
 
-model = GeminiModel("gemini-2.5-flash")
+model = GeminiModel("gemini-3.6-flash")
 
 # ==========================================
 #  CORRECT & REQUIRED (V2)
@@ -28,7 +28,7 @@ from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
 
 provider = GoogleProvider(api_key=api_key)
-model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+model = GoogleModel("models/gemini-3.6-flash", provider=provider)
 ```
 
 ---
@@ -127,9 +127,9 @@ Replace all legacy `GeminiModel` initializations with native `GoogleModel` insta
 
 ## 3. Native Model Selection Compatibility
 
-Because our codebase initializes all agent instances by directly providing a pre-configured `GoogleModel` object (e.g. `Agent(model=self.model, ...)`), we are **fully shielded** from the V2 breaking change where bare, prefix-less model name strings (like `Agent('gemini-3.5-flash')`) are rejected.
+Because our codebase initializes all agent instances by directly providing a pre-configured `GoogleModel` object (e.g. `Agent(model=self.model, ...)`), we are **fully shielded** from the V2 breaking change where bare, prefix-less model name strings (like `Agent('gemini-3.6-flash')`) are rejected.
 
-The Gemini 3.5 Flash model names configured in our environment variables (e.g. `models/gemini-3.5-flash`) remain 100% compatible.
+The Gemini 3.6 Flash model names configured in our environment variables (e.g. `models/gemini-3.6-flash`) remain 100% compatible.
 
 ---
 
@@ -145,7 +145,7 @@ We can wrap our Gemini models inside a shared concurrency pool:
 from pydantic_ai.models.concurrency import ConcurrencyLimitedModel, ConcurrencyLimiter
 
 # Initialize a global limiter for the Gemini 3.5 Flash pool (e.g., max 15 concurrent calls)
-gemini_limiter = ConcurrencyLimiter(max_running=15, name="gemini-3.5-flash-pool")
+gemini_limiter = ConcurrencyLimiter(max_running=15, name="gemini-3.6-flash-pool")
 
 # Wrap the model for the agents
 self.gemini_model = ConcurrencyLimitedModel(
@@ -160,4 +160,3 @@ self.gemini_model = ConcurrencyLimitedModel(
 
 ### C. Robust Structured JSON Validation
 *   Gemini 3.5 Flash relies heavily on strict JSON schemas. V2 patches a key bug in the Gemini provider ("Don't send Gemini `function_calling_config` without function declarations"), ensuring that structured outputs (like generating OCEAN profiles or `SimulatedPerson` lists) do not crash when no tool is available in that specific turn.
-

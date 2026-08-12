@@ -584,6 +584,9 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     assert bundle["quality"]["grounding_satisfied"] is True
     assert bundle["quality"]["matched_persona_assignment_count"] == 5
     assert bundle["quality"]["pending_persona_assignment_count"] == 0
+    assert bundle["performance"]["elapsed_ms"] >= 0
+    assert bundle["performance"]["stage_durations_ms"]
+    assert bundle["performance"]["stage_trace"]
     hash_input = {key: value for key, value in bundle.items() if key != "bundle_hash"}
     assert bundle["bundle_hash"] == canonical_hash(hash_input)
     assert persisted.result_summary["research_bundle_hash"] == bundle["bundle_hash"]
@@ -606,6 +609,9 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
 
     serialized = service.serialize_run(persisted, include_result=True)
     assert serialized["research_bundle"]["bundle_hash"] == bundle["bundle_hash"]
+    assert serialized["elapsed_ms"] >= 0
+    assert serialized["stage_durations_ms"]
+    assert serialized["stage_trace"][-1]["stage"]
 
     assert service.get_run_for_tenant(run.job_id, "axwise-user-1", "other-org") is None
 

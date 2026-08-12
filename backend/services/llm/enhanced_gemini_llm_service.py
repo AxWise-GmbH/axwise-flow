@@ -455,7 +455,7 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         """
         return {
             "provider": "gemini",
-            "model_name": getattr(self.client, "model_name", "gemini-3-flash-preview"),
+            "model_name": getattr(self.client, "model_name", "gemini-3.6-flash"),
             "service_class": self.__class__.__name__,
             "underlying_service": "AsyncGenAIClient",
             "temperature": self.temperature,

@@ -331,7 +331,7 @@ class SimulationFileProcessor:
                     completed_at=datetime.utcnow(),
                     results=json.dumps(analysis_data),
                     llm_provider="gemini",
-                    llm_model="gemini-3-flash-preview",
+                    llm_model="gemini-3.6-flash",
                     status=analysis_result.status,
                     error_message=analysis_result.error,
                 )

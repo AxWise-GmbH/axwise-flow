@@ -172,6 +172,15 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
     assert service.enqueue_kwargs["request"].config.performance_profile.value == (
         "quality_fast"
     )
+    assert set(service.enqueue_kwargs["request"].questions_data.stakeholders) == {
+        "primary"
+    }
+    assert [
+        stakeholder.id
+        for stakeholder in service.enqueue_kwargs["request"].questions_data.stakeholders[
+            "primary"
+        ]
+    ] == ["problem_experiencer", "decision_authority"]
     assert service.enqueue_kwargs["task_context"].required_execution_roles == (
         payload["research_brief"]["required_execution_roles"]
     )

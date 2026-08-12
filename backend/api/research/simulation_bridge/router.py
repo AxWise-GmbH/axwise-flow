@@ -710,7 +710,7 @@ async def analyze_simulation_results(
 
         analysis_config = {
             "llm_provider": analysis_options.get("llm_provider", "gemini"),
-            "llm_model": analysis_options.get("llm_model", "gemini-3-flash-preview"),
+            "llm_model": analysis_options.get("llm_model", "gemini-3.6-flash"),
             "industry": analysis_options.get("industry", "general"),
             "analysis_type": "comprehensive_simulation",
             "include_stakeholder_breakdown": True,
@@ -860,7 +860,7 @@ async def test_persona_generation(
 
         from pydantic_ai.providers.google import GoogleProvider
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
+        model = GoogleModel("models/gemini-3.6-flash", provider=provider)
         generator = PersonaGenerator(model)
         personas = await generator.generate_personas(
             stakeholder, business_ctx, sim_config
@@ -905,7 +905,7 @@ async def test_interview_simulation(
 
         from pydantic_ai.providers.google import GoogleProvider
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3-flash-preview", provider=provider)
+        model = GoogleModel("models/gemini-3.6-flash", provider=provider)
         simulator = InterviewSimulator(model)
         interview = await simulator.simulate_interview(
             persona, stakeholder, business_ctx, sim_config
@@ -951,7 +951,7 @@ def get_gemini_model():
     if not api_key:
         raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
     provider = GoogleProvider(api_key=api_key)
-    return GoogleModel("models/gemini-3-flash-preview", provider=provider)
+    return GoogleModel("models/gemini-3.6-flash", provider=provider)
 
 
 def get_file_processor():
@@ -1433,4 +1433,3 @@ async def search_grounding_context(
     except Exception as e:
         logger.error(f"Error querying grounding context for partition {partition_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-

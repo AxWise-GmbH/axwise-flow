@@ -91,7 +91,7 @@ Transcript content to analyze:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.6-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -144,7 +144,7 @@ async def main():
     # Step 2: Initialize Forward-Simulation PersonaGenerator with OCEANSampler
     logger.info("Initializing Forward-Simulation PersonaGenerator and OCEAN Sampler...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.6-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()

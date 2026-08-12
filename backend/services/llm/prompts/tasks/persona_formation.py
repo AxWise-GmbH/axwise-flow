@@ -280,7 +280,7 @@ class PersonaFormationPrompts:
         The demographics field must contain these sub-fields, each with value and evidence:
         - experience_level: {{"value": "Senior (7+ years)", "evidence": ["I've been working in this field for 7 years"]}}
         - industry: {{"value": "Technology", "evidence": ["We're a tech company"]}}
-        - location: {{"value": "Bremen, Germany", "evidence": ["I live in Bremen"]}}
+        - location: {{"value": "City, Country", "evidence": ["Direct location quote from the interview"]}}
         - age_range: {{"value": "28-32", "evidence": ["I'm 30 years old"]}}
         - professional_context: {{"value": "Software developer", "evidence": ["I work as a software developer"]}}
         - roles: {{"value": "Team Lead", "evidence": ["I lead a team of developers"]}}
@@ -350,8 +350,8 @@ class PersonaFormationPrompts:
               "evidence": ["We're a tech company focused on innovative solutions"]
             }},
             "location": {{
-              "value": "Bremen, Germany",
-              "evidence": ["I live in Bremen Nord, in one of the newly developed residential areas"]
+              "value": "City, Country",
+              "evidence": ["Direct location quote from the interview"]
             }},
             "age_range": {{
               "value": "28-32",

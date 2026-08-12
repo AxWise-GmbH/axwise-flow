@@ -1,3 +1,4 @@
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -8,6 +9,7 @@ from api.research.simulation_bridge.services.market_scope import (
     resolve_market_scope,
 )
 from api.research.simulation_bridge.services.pipeline import B2BDataPipeline
+from api.research.simulation_bridge.services.regional_service import RegionalService
 from backend.services.generative.gemini_search_service import GeminiSearchService
 from backend.services.generative.searxng_search_service import SearxngSearchService
 
@@ -64,9 +66,17 @@ def test_country_scope_is_generic_and_rejects_cross_market_results():
 
 def test_openregister_is_enabled_only_for_authorized_german_localities():
     assert resolve_market_scope("Bremen, Germany").openregister_locality == "Bremen"
-    assert resolve_market_scope("Munich").openregister_locality == "München"
+    assert resolve_market_scope("Munich").openregister_locality is None
     assert resolve_market_scope("Germany").openregister_locality is None
     assert resolve_market_scope("Tallinn, Estonia").openregister_locality is None
+
+
+def test_regional_fallback_has_no_implicit_german_coordinate_anchor():
+    service = RegionalService(model=object())
+
+    assert service._get_base_coordinates("Tallinn, Estonia") is None
+    assert service._get_base_coordinates("Unknown market") is None
+    assert service._get_base_coordinates("Berlin, Germany") == (52.52, 13.405)
 
 
 @pytest.mark.asyncio
@@ -164,6 +174,38 @@ async def test_cross_market_web_rows_are_rejected_after_provider_parsing():
 
 
 @pytest.mark.asyncio
+async def test_independent_batch_enrichments_run_concurrently_without_losing_rows():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+    )
+    estonian = _company(
+        "Tallinn Pet Foods", "Tallinn, Estonia", "https://example.ee"
+    )
+    pipeline._discover_via_web_search = AsyncMock(return_value=[estonian])
+    active = 0
+    maximum_active = 0
+
+    async def enrich(_rows):
+        nonlocal active, maximum_active
+        active += 1
+        maximum_active = max(maximum_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+
+    pipeline._enrich_contacts_and_people = AsyncMock(side_effect=enrich)
+    pipeline._enrich_with_grounded_pain_points = AsyncMock(side_effect=enrich)
+
+    results = await pipeline.run()
+
+    assert results == [estonian]
+    assert maximum_active == 2
+
+
+@pytest.mark.asyncio
 async def test_web_router_preserves_direct_sources_without_company_extraction():
     pipeline = B2BDataPipeline(
         location="Estonia",
@@ -236,6 +278,70 @@ async def test_web_router_preserves_direct_sources_without_company_extraction():
         }
     ]
     searxng.search_web_general.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_deep_web_router_uses_searxng_only_when_gemini_lacks_authoritative_evidence():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+        minimum_source_count=1,
+        minimum_authoritative_source_count=1,
+    )
+    gemini = MagicMock()
+    gemini.is_available.return_value = True
+    gemini.search_web_general.return_value = {
+        "search_performed": True,
+        "text": "Independent Estonia market report",
+        "sources": [{"title": "Trade press", "url": "https://example.com/estonia"}],
+        "claims": [
+            {
+                "text": "Estonia retail demand is changing.",
+                "source_urls": ["https://example.com/estonia"],
+            }
+        ],
+    }
+    searxng = MagicMock()
+    searxng.is_available.return_value = True
+    searxng.search_web_general.return_value = {
+        "search_performed": True,
+        "text": "European Commission rules apply in Estonia",
+        "sources": [
+            {"title": "European Commission", "url": "https://food.ec.europa.eu/estonia"}
+        ],
+        "claims": [
+            {
+                "text": "European Commission feed rules apply in Estonia.",
+                "source_urls": ["https://food.ec.europa.eu/estonia"],
+            }
+        ],
+    }
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(output=SimpleNamespace(companies=[]))
+    )
+
+    with patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=gemini,
+    ), patch(
+        "backend.services.generative.searxng_search_service.SearxngSearchService",
+        return_value=searxng,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ):
+        await pipeline._discover_via_web_search()
+
+    gemini.search_web_general.assert_called_once()
+    searxng.search_web_general.assert_called_once()
+    assert {row["source_authority"] for row in pipeline.market_sources} == {
+        "independent_web",
+        "official_public",
+    }
 
 
 @pytest.mark.asyncio

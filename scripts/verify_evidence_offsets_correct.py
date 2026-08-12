@@ -109,7 +109,7 @@ async def main():
         sys.exit(1)
 
     provider = GoogleProvider(api_key=api_key)
-    pydantic_ai_model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+    pydantic_ai_model = GoogleModel("models/gemini-3.6-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()
