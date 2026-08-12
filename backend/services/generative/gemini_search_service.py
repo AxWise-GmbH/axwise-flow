@@ -527,19 +527,48 @@ Do NOT use vague language. Include actual facts from search results about {indus
             )
 
             grounding_sources = []
+            grounded_claims = []
             if response.candidates and response.candidates[0].grounding_metadata:
                 metadata = response.candidates[0].grounding_metadata
+                chunk_url_by_index = {}
                 if metadata.grounding_chunks:
-                    for chunk in metadata.grounding_chunks:
+                    for chunk_index, chunk in enumerate(metadata.grounding_chunks):
                         if hasattr(chunk, 'web') and chunk.web:
-                            grounding_sources.append({
+                            source = {
                                 "title": chunk.web.title if hasattr(chunk.web, 'title') else "Unknown",
                                 "url": chunk.web.uri if hasattr(chunk.web, 'uri') else None
-                            })
+                            }
+                            grounding_sources.append(source)
+                            chunk_url_by_index[chunk_index] = source.get("url")
+
+                # Preserve Gemini's claim-to-source relationship instead of
+                # treating the whole generated answer as equally grounded.
+                for support in getattr(metadata, "grounding_supports", None) or []:
+                    segment = getattr(support, "segment", None)
+                    claim_text = getattr(segment, "text", None) if segment else None
+                    if not claim_text:
+                        continue
+                    source_urls = []
+                    for index in getattr(support, "grounding_chunk_indices", None) or []:
+                        if not isinstance(index, int):
+                            continue
+                        source_url = chunk_url_by_index.get(index)
+                        if source_url:
+                            source_urls.append(source_url)
+                    if not source_urls:
+                        continue
+                    grounded_claims.append({
+                        "text": str(claim_text)[:2000],
+                        "source_urls": list(dict.fromkeys(source_urls)),
+                        "confidence_scores": list(
+                            getattr(support, "confidence_scores", None) or []
+                        )[:10],
+                    })
 
             return {
                 "text": response.text or "",
                 "sources": grounding_sources[:10],
+                "claims": grounded_claims[:50],
                 "search_performed": True
             }
         except Exception as e:
@@ -550,5 +579,3 @@ Do NOT use vague language. Include actual facts from search results about {indus
                 "search_performed": False,
                 "error": str(e)
             }
-
-

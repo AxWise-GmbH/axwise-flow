@@ -16,6 +16,7 @@ IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${API_SERVICE}:${REV
 GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.5-flash}"
 OPENREGISTER_SECRET="${OPENREGISTER_SECRET:-OPENREGISTER_API_KEY}"
 REQUIRE_OPENREGISTER="${REQUIRE_OPENREGISTER:-false}"
+SEARXNG_URL="${SEARXNG_URL:-}"
 
 if [[ "${REQUIRE_OPENREGISTER}" != "true" && "${REQUIRE_OPENREGISTER}" != "false" ]]; then
   echo "REQUIRE_OPENREGISTER must be true or false" >&2
@@ -41,6 +42,7 @@ done
 # REQUIRE_OPENREGISTER=true for a release that must not proceed without
 # registry-backed grounding.
 WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
+WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}"
 if gcloud secrets describe "${OPENREGISTER_SECRET}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   WORKER_SECRET_BINDINGS="${WORKER_SECRET_BINDINGS},OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest"
   echo "OpenRegister grounding enabled from Secret Manager secret ${OPENREGISTER_SECRET}"
@@ -49,6 +51,18 @@ elif [[ "${REQUIRE_OPENREGISTER}" == "true" ]]; then
   exit 1
 else
   echo "OpenRegister secret ${OPENREGISTER_SECRET} is unavailable; grounded research will use Google Search sources and fail closed if its source policy is not satisfied" >&2
+fi
+
+# SearXNG is an optional self-hosted secondary search route. Remote cleartext
+# endpoints and credential-bearing URLs are rejected; Gemini Google Search
+# remains the default provider when this is unset.
+if [[ -n "${SEARXNG_URL}" ]]; then
+  if [[ "${SEARXNG_URL}" == *"@"* ]] || [[ ! "${SEARXNG_URL}" =~ ^https:// ]]; then
+    echo "SEARXNG_URL must be a credential-free HTTPS endpoint" >&2
+    exit 1
+  fi
+  WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}"
+  echo "Optional self-hosted SearXNG secondary route enabled"
 fi
 
 echo "Building ${IMAGE}"
@@ -126,7 +140,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --concurrency 1 \
   --min-instances 1 \
   --max-instances 1 \
-  --set-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
+  --set-env-vars "${WORKER_ENV_VARS}" \
   --set-secrets "${WORKER_SECRET_BINDINGS}"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
