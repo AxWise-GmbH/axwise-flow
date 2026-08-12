@@ -145,6 +145,17 @@ class HybridResearchAdapter:
                 ),
             ],
         }
+        # Required grounded Orqaly bundles already synthesize role-specific
+        # executor personas after customer research. Interviewing two more
+        # synthetic "executor" cohorts duplicated that work and turned a
+        # three-customer-cell study into fifteen interview calls. Preserve the
+        # legacy direct-adapter topology, but make explicit grounded bundles
+        # customer-centric: fast covers experiencer + buyer; deep also covers
+        # a distinct beneficiary.
+        policy = request.research_policy
+        if policy.required and policy.minimum_mode in {"grounded_fast", "grounded_deep"}:
+            primary_count = 2 if policy.minimum_mode == "grounded_fast" else 3
+            stakeholders = {"primary": stakeholders["primary"][:primary_count]}
         return QuestionsData(
             stakeholders=stakeholders,
             timeEstimate={"totalQuestions": len(questions)},
@@ -184,7 +195,12 @@ class HybridResearchAdapter:
                 target_customer=brief.target_stakeholders,
                 problem=brief.problem,
                 industry=brief.industry,
-                location=brief.location,
+                location=(
+                    brief.market_scope.raw_input
+                    if brief.market_scope
+                    else brief.location
+                ),
+                market_scope=brief.market_scope,
             ),
             raw_questionnaire_content=raw_questions,
             questions_data=self._questions_data(request),

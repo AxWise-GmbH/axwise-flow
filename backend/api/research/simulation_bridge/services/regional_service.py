@@ -45,14 +45,14 @@ class RegionalService:
             api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
             if api_key:
                 provider = GoogleProvider(api_key=api_key)
-                model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.5-flash")
+                model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
                 self.model = GoogleModel(model_name, provider=provider)
             else:
                 self.model = None
                 logger.warning("No API key set for RegionalService LLM. Ensure GEMINI_API_KEY is configured.")
 
-    def _get_base_coordinates(self, location: str) -> tuple[float, float]:
-        """Get central coordinates for prominent German/European cities."""
+    def _get_base_coordinates(self, location: str) -> Optional[tuple[float, float]]:
+        """Return a verified built-in anchor or no anchor—never a default market."""
         loc_lower = location.lower()
         if "munich" in loc_lower or "münchen" in loc_lower:
             return 48.1351, 11.5820
@@ -68,9 +68,7 @@ class RegionalService:
             return 51.2271, 6.7735
         elif "cologne" in loc_lower or "köln" in loc_lower:
             return 50.9375, 6.9603
-        else:
-            # Default to center of Germany or slightly random offset
-            return 51.1657, 10.4515
+        return None
 
     def _get_scattered_coordinates(self, lat: float, lon: float) -> tuple[float, float]:
         """Scatter coordinates slightly within a 3-5 km radius."""
@@ -100,7 +98,17 @@ class RegionalService:
 
         # Fallback: Generate targets via LLM
         if not companies:
-            lat, lon = self._get_base_coordinates(location)
+            coordinates = self._get_base_coordinates(location)
+            coordinate_instruction = (
+                f"Use the verified anchor Lat: {coordinates[0]}, Lon: {coordinates[1]} "
+                "and remain within roughly 0.04 degrees."
+                if coordinates
+                else (
+                    f"Resolve coordinates only for the exact authorized market '{location}'. "
+                    "If an exact coordinate cannot be supported, use 0.0 rather than a different "
+                    "country or an invented default."
+                )
+            )
 
             agent = Agent(
                 model=self.model,
@@ -115,7 +123,7 @@ For each company, generate:
 3. Specific industry category
 4. Size (e.g. '10-50 employees', '100-500 employees', '1000+ employees')
 5. Specific local address or sub-district location in {location}
-6. Exact Latitude and Longitude coordinates. They must be close to the location's coordinates (Lat: {lat}, Lon: {lon}) but scattered realistically (e.g. within +-0.04 degrees).
+6. Exact Latitude and Longitude coordinates. {coordinate_instruction}
 7. Main B2B decision makers (2 people with titles, e.g. "CEO: Hans Mueller", "IT Director: Anna Schmidt")
 8. Estimated pain points of this company (at least 3 specific points) related to the business problem.
 9. pain_point_sentences: Exactly 3 justification sentences supporting these pain points.
@@ -129,8 +137,8 @@ For each company, generate:
 
             # Verify coordinates are present
             for c in companies:
-                if not c.latitude or not c.longitude:
-                    c.latitude, c.longitude = self._get_scattered_coordinates(lat, lon)
+                if (not c.latitude or not c.longitude) and coordinates:
+                    c.latitude, c.longitude = self._get_scattered_coordinates(*coordinates)
 
         # Enrich and structure decision_maker_details from decision_makers list
         for c in companies:
@@ -162,7 +170,7 @@ For each company, generate:
         # Initialize GeminiService and StakeholderDetector
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         llm_service = GeminiService({
-            "model": os.getenv("GEMINI_MODEL", "models/gemini-3.5-flash"),
+            "model": os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash"),
             "api_key": api_key
         })
         detector = StakeholderDetector()
@@ -799,4 +807,3 @@ Keep suggestions concise and specific.
                     "IT Director"
                 ]
             }
-

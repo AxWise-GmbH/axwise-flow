@@ -7,6 +7,7 @@ Extracts report assembly logic from the monolithic service.
 
 from typing import List, Dict, Any, Optional
 import logging
+import os
 
 from backend.domain.interfaces.llm_unified import ILLMService
 from backend.schemas import (
@@ -69,7 +70,10 @@ class StakeholderReportAssembler:
             provider = GoogleProvider(api_key=api_key)
             # Create multi-stakeholder summary agent
             self.summary_agent = Agent(
-                model=GoogleModel("models/gemini-3-flash-preview", provider=provider),
+                model=GoogleModel(
+                    os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash"),
+                    provider=provider,
+                ),
                 output_type=SummaryLLMOutput,
                 system_prompt=self._get_summary_generation_prompt(),
                 **extra_kwargs,

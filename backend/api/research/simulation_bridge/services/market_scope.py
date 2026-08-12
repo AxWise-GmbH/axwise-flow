@@ -226,13 +226,9 @@ def resolve_market_scope(location: str) -> MarketScope:
                     locality = " ".join(words[:-width]).strip() or None
                     break
     else:
-        known = _GERMAN_LOCALITY_ALIASES.get(_normalized(requested))
-        if known:
-            locality = known
-            country_code = "DE"
-            country_name = "Germany"
-        else:
-            locality = requested or None
+        # A city name is not a country authorization. Keep it unresolved so
+        # callers either supply an explicit country or fail closed upstream.
+        locality = requested or None
 
     return MarketScope(
         requested_location=requested,

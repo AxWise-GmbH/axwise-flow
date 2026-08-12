@@ -2,6 +2,7 @@
 B2B Data Ingestion Pipeline for fetching, scraping, and scoring real-world regional company leads.
 """
 
+import asyncio
 import hashlib
 import logging
 import os
@@ -53,6 +54,7 @@ class B2BDataPipeline:
         model: Optional[Model] = None,
         data_source: str = "hybrid",
         minimum_source_count: int = 3,
+        minimum_authoritative_source_count: int = 0,
     ):
         self.location = location
         self.business_problem = business_problem
@@ -60,6 +62,9 @@ class B2BDataPipeline:
         self.model = model
         self.data_source = data_source
         self.minimum_source_count = max(1, min(int(minimum_source_count), 25))
+        self.minimum_authoritative_source_count = max(
+            0, min(int(minimum_authoritative_source_count), 10)
+        )
         self.market_scope = resolve_market_scope(location)
         self.routing_diagnostics: Dict[str, Any] = {
             "requested_location": location,
@@ -130,7 +135,6 @@ class B2BDataPipeline:
                 web_companies, provider="web"
             )
             if web_companies:
-                await self._enrich_contacts_and_people(web_companies)
                 discovered.extend(
                     self._accept_market_companies(
                         web_companies, provider="web_enrichment"
@@ -145,7 +149,16 @@ class B2BDataPipeline:
                 self.location,
             )
             return []
-        return await self._enrich_with_grounded_pain_points(companies)
+
+        # Contact discovery and pain-point evidence read the same bounded
+        # company snapshot but populate disjoint fields. Running the two batch
+        # routes together removes one full search+parse latency chain without
+        # reducing evidence, sources, or output detail.
+        await asyncio.gather(
+            self._enrich_contacts_and_people(companies),
+            self._enrich_with_grounded_pain_points(companies),
+        )
+        return companies
 
     def _record_provider(
         self,
@@ -669,7 +682,12 @@ Return exactly one coordinate pair per address, in the same order as the input l
         seen_urls = set()
         for provider, search_service in search_services:
             try:
-                search_result = search_service.search_web_general(query)
+                # Both provider SDKs expose synchronous search methods. Run them
+                # off the event loop so independent market cells can genuinely
+                # progress concurrently instead of serializing on network I/O.
+                search_result = await asyncio.to_thread(
+                    search_service.search_web_general, query
+                )
             except Exception as exc:
                 logger.warning(
                     "Grounded search provider %s failed with %s.",
@@ -754,7 +772,16 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 for url in claim.get("source_urls") or []
                 if url in seen_urls
             }
-            if len(linked_urls) >= self.minimum_source_count:
+            authoritative_urls = {
+                row["url"]
+                for row in source_rows
+                if row["url"] in linked_urls
+                and self._source_authority(row["url"]) in {"official_public", "academic"}
+            }
+            if (
+                len(linked_urls) >= self.minimum_source_count
+                and len(authoritative_urls) >= self.minimum_authoritative_source_count
+            ):
                 break
 
         self._store_direct_web_evidence(source_rows, claim_rows)
@@ -868,7 +895,7 @@ CRITICAL RULES:
             f"Only include factual information you can verify in that same market."
         )
         
-        search_result = search_service.search_web_general(query)
+        search_result = await asyncio.to_thread(search_service.search_web_general, query)
         if not search_result.get("search_performed") or not search_result.get("text"):
             logger.info("Contact enrichment search returned no results.")
             return
@@ -950,7 +977,9 @@ Return one result per company, matched by name.
                     f"Include Kununu employee reviews, industry reports, and digital transformation challenges "
                     f"for companies like: {company_names}"
                 )
-                batch_result = search_service.search_web_general(batch_query)
+                batch_result = await asyncio.to_thread(
+                    search_service.search_web_general, batch_query
+                )
                 
                 if batch_result.get("search_performed") and batch_result.get("text"):
                     industry_evidence_text = batch_result["text"][:5000]

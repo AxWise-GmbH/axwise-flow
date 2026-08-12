@@ -93,7 +93,7 @@ Return your response strictly as a JSON object with this exact structure:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.6-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -153,7 +153,7 @@ async def main():
     # 2. Run Forward-Simulation Pipeline with OCEANSampler
     logger.info("Initializing Forward-Simulation Pipeline with dynamic Gaussian age sampling...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.6-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()
@@ -189,7 +189,7 @@ async def main():
     
     report.append(f"\n## ⏱️ Execution Performance Metrics")
     report.append(f"- **E2E Pipeline Processing Time**: `{execution_duration:.2f}` seconds")
-    report.append("- **Core Model Utilized**: `models/gemini-3.5-flash` (PydanticAI & Google GenAI SDK)")
+    report.append("- **Core Model Utilized**: `models/gemini-3.6-flash` (PydanticAI & Google GenAI SDK)")
     report.append("- **Verification Status**: Pass (Gaussian demographic validation complete)")
 
     report.append("\n## I. Extracted Legal & Business Context (Hamburg 2026)")

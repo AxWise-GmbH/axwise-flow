@@ -13,6 +13,7 @@ from backend.api.research.simulation_bridge.models import (
 from backend.api.research.simulation_bridge.services.persona_generator import (
     PersonaGenerator,
 )
+from backend.domain.market_scope import resolve_market_expression
 from backend.services.processing.persona_formation_v2.facade import (
     PersonaFormationFacade,
 )
@@ -68,6 +69,45 @@ def _transcript():
             "document_id": "interview-1",
         },
     ]
+
+
+def test_multi_market_persona_prompt_assigns_exact_country_cells_without_defaulting():
+    generator = object.__new__(PersonaGenerator)
+    generator.used_names_by_category = {}
+    generator.used_names_global = set()
+    trait = SimpleNamespace(
+        openness=0.5,
+        conscientiousness=0.7,
+        extraversion=0.4,
+        agreeableness=0.6,
+        neuroticism=0.3,
+    )
+    context = SimpleNamespace(
+        business_idea="Launch a cat-food product",
+        target_customer="Retail category managers",
+        problem="Validate pricing and channel fit",
+        industry="Pet food",
+        location="BENELUX",
+        market_scope=resolve_market_expression("BENELUX"),
+    )
+    stakeholder = SimpleNamespace(
+        name="Retail decision authority",
+        description="Approves the category listing",
+        questions=["What determines listing approval?"],
+    )
+
+    prompt = generator._build_person_prompt(
+        stakeholder,
+        context,
+        SimulationConfig(people_per_stakeholder=2),
+        [(40, trait), (45, trait)],
+        market_offset=1,
+    )
+
+    assert "Countries: Belgium (BE), Netherlands (NL), Luxembourg (LU)" in prompt
+    assert "Profile Index 1: Netherlands (NL)" in prompt
+    assert "Profile Index 2: Luxembourg (LU)" in prompt
+    assert "Do not substitute Germany" in prompt
 
 
 def _evidence_snapshot(personas):
@@ -177,9 +217,11 @@ async def test_quality_fast_generates_stakeholder_groups_concurrently():
     generator.used_names_global = set()
     active = 0
     maximum_active = 0
+    market_offsets = []
 
-    async def generate_people(_self, stakeholder, business_context, config):
+    async def generate_people(_self, stakeholder, business_context, config, **kwargs):
         nonlocal active, maximum_active
+        market_offsets.append(kwargs["market_offset"])
         active += 1
         maximum_active = max(maximum_active, active)
         await asyncio.sleep(0.02)
@@ -210,4 +252,42 @@ async def test_quality_fast_generates_stakeholder_groups_concurrently():
 
     assert len(people) == 5
     assert maximum_active == 5
+    assert sorted(market_offsets) == [0, 2, 4, 6, 8]
     assert elapsed < 0.06
+
+
+@pytest.mark.asyncio
+async def test_standard_profile_also_parallelizes_independent_stakeholder_groups(monkeypatch):
+    monkeypatch.setenv("AXWISE_PERSONA_CONCURRENCY", "3")
+    generator = object.__new__(PersonaGenerator)
+    generator.used_names_by_category = {}
+    generator.used_names_global = set()
+    active = 0
+    maximum_active = 0
+
+    async def generate_people(_self, stakeholder, business_context, config, **_kwargs):
+        nonlocal active, maximum_active
+        active += 1
+        maximum_active = max(maximum_active, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        return [stakeholder.name]
+
+    generator.generate_people = types.MethodType(generate_people, generator)
+    stakeholders = {
+        "primary": [
+            SimpleNamespace(id=f"primary-{index}", name=f"Primary {index}")
+            for index in range(5)
+        ]
+    }
+    config = SimulationConfig(
+        people_per_stakeholder=2,
+        performance_profile=SimulationPerformanceProfile.STANDARD,
+    )
+
+    people = await generator.generate_all_people(
+        stakeholders, SimpleNamespace(), config
+    )
+
+    assert len(people) == 5
+    assert maximum_active == 3

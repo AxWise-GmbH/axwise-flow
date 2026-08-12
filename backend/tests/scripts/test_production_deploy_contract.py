@@ -29,6 +29,11 @@ def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -
     assert '--set-secrets "${WORKER_SECRET_BINDINGS}"' in script
     assert "GEMINI_API_KEY=GEMINI_API_KEY:latest" in script
     assert "GEMINI_MODEL=${GEMINI_MODEL}" in script
+    assert 'AXWISE_MARKET_CELL_CONCURRENCY="${AXWISE_MARKET_CELL_CONCURRENCY:-6}"' in script
+    assert 'AXWISE_PERSONA_CONCURRENCY="${AXWISE_PERSONA_CONCURRENCY:-5}"' in script
+    assert "AXWISE_MARKET_CELL_CONCURRENCY=${AXWISE_MARKET_CELL_CONCURRENCY}" in script
+    assert "AXWISE_PERSONA_CONCURRENCY=${AXWISE_PERSONA_CONCURRENCY}" in script
+    assert "Research concurrency values must be integers from 1 to 8" in script
 
 
 def test_registry_grounding_can_be_made_a_fail_fast_release_requirement() -> None:

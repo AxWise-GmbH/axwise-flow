@@ -67,7 +67,7 @@ class StakeholderThemeAnalyzer:
 
             provider = GoogleProvider(api_key=api_key)
             # Create theme attribution agent
-            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.5-flash")
+            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
             self.theme_agent = Agent(
                 model=GoogleModel(model_name, provider=provider),
                 output_type=ThemeAttributionModel,

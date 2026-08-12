@@ -10,8 +10,8 @@ and should be referenced by all services that need LLM parameters.
 """
 
 # Gemini model constants
-# Updated to use Gemini 3.5 Flash for best speed/quality balance
-GEMINI_MODEL_NAME = "models/gemini-3.5-flash"
+# One production default across API, worker, grounding, and persona generation.
+GEMINI_MODEL_NAME = "models/gemini-3.6-flash"
 GEMINI_TEMPERATURE = 0.0
 GEMINI_MAX_TOKENS = 65536
 GEMINI_CONTEXT_WINDOW = 1048576

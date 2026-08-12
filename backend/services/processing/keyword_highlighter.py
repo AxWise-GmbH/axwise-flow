@@ -278,8 +278,8 @@ class ContextAwareKeywordHighlighter:
 
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         provider = GoogleProvider(api_key=api_key) if api_key else None
-        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.5-flash")
-        gemini_model = GoogleModel(model_name, provider=provider) if provider else "google:gemini-1.5-flash"
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
+        gemini_model = GoogleModel(model_name, provider=provider) if provider else "google:gemini-3.6-flash"
 
         # Use the new Google GenAI client with PydanticAI
         # PydanticAI automatically handles the google-genai integration

@@ -1,5 +1,7 @@
 """Focused contracts for structured regional grounding and portable bundles."""
 
+import asyncio
+
 import pytest
 
 from backend.api.research.simulation_bridge.models import (
@@ -12,6 +14,7 @@ from backend.api.research.simulation_bridge.models import (
 )
 from backend.api.routes.orqaly_integration import OrqalyHybridAsyncRequest
 from backend.domain.orchestration.models import ResearchPolicyV1
+from backend.domain.market_scope import resolve_market_expression
 from backend.services.orqaly_hybrid_run_service import HybridOutputs
 from backend.services.orqaly_research_bundle_service import (
     HybridGroundingPolicy,
@@ -19,6 +22,7 @@ from backend.services.orqaly_research_bundle_service import (
     _persona_rows,
     canonical_hash,
     canonical_json_string,
+    collect_regional_grounding,
     derive_executor_role_specs,
     normalize_market_grounding,
     request_with_grounding,
@@ -120,6 +124,83 @@ def _request(location="Bremen"):
         questions_data=QuestionsData(stakeholders={}),
         config=SimulationConfig(people_per_stakeholder=1),
     )
+
+
+@pytest.mark.asyncio
+async def test_multi_market_grounding_runs_country_cells_concurrently_and_preserves_coverage(
+    monkeypatch,
+):
+    scope = resolve_market_expression("BENELUX")
+    request = _request("BENELUX").model_copy(
+        update={
+            "business_context": _request("BENELUX").business_context.model_copy(
+                update={"market_scope": scope}
+            )
+        }
+    )
+    active = 0
+    maximum_active = 0
+
+    async def collect_cell(cell_request, _policy):
+        nonlocal active, maximum_active
+        active += 1
+        maximum_active = max(maximum_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        location = cell_request.business_context.location
+        code = {
+            "Belgium": "BE",
+            "Netherlands": "NL",
+            "Luxembourg": "LU",
+        }[location]
+        sources = [
+            {
+                "source_id": f"source-{code}-{index}",
+                "source_type": "google_search_result",
+                "url": f"https://example.{code.casefold()}/{index}",
+                "title": f"{location} source {index}",
+                "source_authority": "official_public" if index == 0 else "independent_web",
+            }
+            for index in range(3)
+        ]
+        return {
+            "market_sources": sources,
+            "market_claims": [
+                {
+                    "claim_id": f"claim-{code}",
+                    "claim_type": "market_fact",
+                    "subject": location,
+                    "predicate": "has_evidence",
+                    "object": f"Evidence for {location}",
+                    "source_ids": [sources[0]["source_id"]],
+                }
+            ],
+            "company_count": 1,
+            "routing_diagnostics": {"providers": [{"provider": "test"}]},
+        }
+
+    monkeypatch.setattr(
+        "backend.services.orqaly_research_bundle_service._collect_single_market_grounding",
+        collect_cell,
+    )
+
+    result = await collect_regional_grounding(
+        request,
+        HybridGroundingPolicy(required=True, minimum_structured_sources=3),
+    )
+
+    assert maximum_active == 3
+    assert result["structured_source_count"] == 9
+    assert [row["status"] for row in result["cell_coverage"]] == [
+        "complete",
+        "complete",
+        "complete",
+    ]
+    assert {tuple(row["country_codes"]) for row in result["market_sources"]} == {
+        ("BE",),
+        ("NL",),
+        ("LU",),
+    }
 
 
 def _company():

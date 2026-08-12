@@ -31,7 +31,7 @@ class GeminiTextService:
         try:
             from google.genai import types  # type: ignore
 
-            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-flash-preview")
+            model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.6-flash")
             cfg = types.GenerateContentConfig(
                 temperature=temperature,
                 response_mime_type="application/json",
@@ -215,4 +215,3 @@ class GeminiTextService:
     def generate_berlin_profile(self, name: str, neighborhood_hint: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Legacy method - calls generate_city_profile with Berlin."""
         return self.generate_city_profile(name, "Berlin", neighborhood_hint)
-

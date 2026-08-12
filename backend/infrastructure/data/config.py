@@ -45,7 +45,9 @@ MODEL_CAPABILITIES = {
     # Gemini models
     "models/gemini-3.5-flash": ModelCapability(1048576, 65536),
     "models/gemini-3-flash-preview": ModelCapability(1048576, 65536),
+    "models/gemini-3.6-flash": ModelCapability(1048576, 65536),
     "gemini-3.5-flash": ModelCapability(1048576, 65536),
+    "gemini-3.6-flash": ModelCapability(1048576, 65536),
 }
 
 @dataclass
