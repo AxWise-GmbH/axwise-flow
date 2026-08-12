@@ -13,6 +13,14 @@ MIGRATION_JOB="${MIGRATION_JOB:-axwise-db-migrate}"
 REPOSITORY="${REPOSITORY:-axwise-backend-repo}"
 REVISION="${REVISION:-$(git rev-parse --short=12 HEAD)-$(date -u +%Y%m%d%H%M%S)}"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${API_SERVICE}:${REVISION}"
+GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.5-flash}"
+OPENREGISTER_SECRET="${OPENREGISTER_SECRET:-OPENREGISTER_API_KEY}"
+REQUIRE_OPENREGISTER="${REQUIRE_OPENREGISTER:-false}"
+
+if [[ "${REQUIRE_OPENREGISTER}" != "true" && "${REQUIRE_OPENREGISTER}" != "false" ]]; then
+  echo "REQUIRE_OPENREGISTER must be true or false" >&2
+  exit 1
+fi
 
 required_secrets=(
   DATABASE_URL
@@ -26,6 +34,22 @@ required_secrets=(
 for secret in "${required_secrets[@]}"; do
   gcloud secrets describe "${secret}" --project "${PROJECT_ID}" >/dev/null
 done
+
+# Google Search grounding uses GEMINI_API_KEY. OpenRegister is optional for
+# hybrid web+registry research, but when its Secret Manager entry exists the
+# durable worker receives it without exposing the value in this script. Set
+# REQUIRE_OPENREGISTER=true for a release that must not proceed without
+# registry-backed grounding.
+WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
+if gcloud secrets describe "${OPENREGISTER_SECRET}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+  WORKER_SECRET_BINDINGS="${WORKER_SECRET_BINDINGS},OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest"
+  echo "OpenRegister grounding enabled from Secret Manager secret ${OPENREGISTER_SECRET}"
+elif [[ "${REQUIRE_OPENREGISTER}" == "true" ]]; then
+  echo "Required Secret Manager secret ${OPENREGISTER_SECRET} is unavailable" >&2
+  exit 1
+else
+  echo "OpenRegister secret ${OPENREGISTER_SECRET} is unavailable; grounded research will use Google Search sources and fail closed if its source policy is not satisfied" >&2
+fi
 
 echo "Building ${IMAGE}"
 gcloud builds submit \
@@ -66,7 +90,7 @@ gcloud run deploy "${API_SERVICE}" \
   --concurrency 5 \
   --min-instances 1 \
   --max-instances 5 \
-  --update-env-vars "^@^AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
+  --update-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
   --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
 
 # Cloud Run preserves an explicit revision pin when a service was previously
@@ -102,8 +126,8 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --concurrency 1 \
   --min-instances 1 \
   --max-instances 1 \
-  --set-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=models/gemini-3.5-flash@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
-  --set-secrets "DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
+  --set-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
+  --set-secrets "${WORKER_SECRET_BINDINGS}"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
 EXPECTED_REVISION="${REVISION}" python3 - "${API_URL}/health" <<'PY'

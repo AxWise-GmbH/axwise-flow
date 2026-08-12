@@ -413,6 +413,16 @@ docker compose up --build
 
 The worker waits for the backend health check, then claims durable queued A+B jobs. Its own health endpoint runs inside the Compose network on port `8080`.
 
+Production grounded research uses the Secret Manager-backed `GEMINI_API_KEY`
+for both Gemini generation and Google Search grounding. The backend deployment
+script also binds `OPENREGISTER_API_KEY` to the durable worker when a Secret
+Manager secret with that name exists; it never reads a key from a checked-in or
+local `.env` file. Provision that secret separately before deployment when
+registry evidence is required, and run the release with
+`REQUIRE_OPENREGISTER=true` to fail before deployment if it is unavailable.
+`OPENREGISTER_SECRET` may name a differently named Secret Manager entry without
+exposing its value.
+
 ### Prerequisites
 * **Python 3.11** (recommended; pandas 2.1.4 requires python 3.11)
 * **PostgreSQL 12+**

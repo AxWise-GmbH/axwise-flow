@@ -101,6 +101,12 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
     assert service.enqueue_kwargs["idempotency_key"] == (
         "orchestration-research:decision-key"
     )
+    outputs = service.enqueue_kwargs["outputs"]
+    assert outputs.prd.enabled is False
+    assert outputs.prd.required is False
+    assert outputs.research_bundle is True
+    assert service.enqueue_kwargs["research_mode"].value == "synthetic_only"
+    assert service.enqueue_kwargs["grounding_policy"].required is False
     simulation = service.enqueue_kwargs["request"]
     assert simulation.config.performance_profile.value == "quality_fast"
     assert simulation.questions_data is not None
@@ -116,6 +122,72 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
         "executor",
         "outcome_definer",
     }
+
+
+def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
+    payload = _ambiguous_research_payload()
+    payload["research_brief"]["location"] = "Bremen"
+    payload["research_brief"]["required_execution_roles"] = [
+        "Marketing ICP Specialist",
+        "Finance Pricing Specialist",
+        "GDPR Legal Compliance Specialist",
+        "Business Development Sales Specialist",
+        "Commercial Risk Analyst",
+    ]
+    payload["research_policy"].update(
+        {
+            "required": True,
+            "minimum_mode": "grounded_fast",
+            "grounding_required": True,
+            "fail_closed": True,
+            "performance_profile": "quality_fast",
+            "required_outputs": [
+                "market_sources",
+                "market_claims",
+                "synthetic_participants",
+                "interviews",
+                "customer_personas",
+                "persona_resolution",
+                "research_prd",
+                "research_bundle",
+            ],
+            "allowed_source_types": ["company_registry"],
+        }
+    )
+    request = DecisionCreateRequestV1.model_validate(payload)
+    service = FakeHybridService()
+    adapter = _adapter(service)
+
+    adapter.start(request, "decision-grounded", "grounded-key")
+
+    assert service.enqueue_kwargs["research_mode"].value == "grounded_hybrid"
+    grounding = service.enqueue_kwargs["grounding_policy"]
+    assert grounding.required is True
+    assert grounding.source_strategy == "registry"
+    assert grounding.allowed_source_types == ["company_registry"]
+    outputs = service.enqueue_kwargs["outputs"]
+    assert outputs.prd.enabled is True
+    assert outputs.prd.required is True
+    assert service.enqueue_kwargs["request"].config.performance_profile.value == (
+        "quality_fast"
+    )
+    assert service.enqueue_kwargs["task_context"].required_execution_roles == (
+        payload["research_brief"]["required_execution_roles"]
+    )
+
+
+def test_grounded_research_contract_requires_an_explicit_location():
+    payload = _ambiguous_research_payload()
+    payload["research_policy"].update(
+        {
+            "minimum_mode": "grounded_fast",
+            "grounding_required": True,
+            "fail_closed": True,
+        }
+    )
+
+    with pytest.raises(ValueError, match="research_brief.location"):
+        DecisionCreateRequestV1.model_validate(payload)
 
 
 def test_hybrid_timeout_cancels_the_bounded_run():

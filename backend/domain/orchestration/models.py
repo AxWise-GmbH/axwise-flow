@@ -182,6 +182,42 @@ class EvidenceItemV1(ContractModel):
 class ResearchPolicyV1(ContractModel):
     allow_existing_evidence: bool = True
     allow_hybrid_research: bool = False
+    required: bool = False
+    minimum_mode: Literal[
+        "instant", "grounded_fast", "grounded_deep", "auto"
+    ] = "instant"
+    grounding_required: bool = False
+    fail_closed: bool = True
+    performance_profile: Literal["standard", "quality_fast"] = "quality_fast"
+    required_outputs: List[
+        Literal[
+            "market_sources",
+            "market_claims",
+            "synthetic_participants",
+            "interviews",
+            "customer_personas",
+            "persona_resolution",
+            "research_prd",
+            "research_bundle",
+        ]
+    ] = Field(
+        default_factory=lambda: [
+            "customer_personas",
+            "persona_resolution",
+        ],
+        min_length=1,
+        max_length=20,
+    )
+    allowed_source_types: Optional[
+        List[
+            Literal[
+                "company_registry",
+                "google_search_result",
+                "official_company_website",
+                "provided_document",
+            ]
+        ]
+    ] = Field(default=None, min_length=1, max_length=4)
     minimum_evidence_sufficiency: float = Field(default=0.65, ge=0.0, le=1.0)
     minimum_value_of_information: float = Field(default=0.35, ge=0.0, le=1.0)
     minimum_evidence_quality: float = Field(default=0.55, ge=0.0, le=1.0)
@@ -193,16 +229,45 @@ class ResearchPolicyV1(ContractModel):
     completed_research_iterations: int = Field(default=0, ge=0, le=3)
     maximum_evidence_items: int = Field(default=25, ge=1, le=100)
 
+    @model_validator(mode="after")
+    def validate_grounding_contract(self) -> "ResearchPolicyV1":
+        self.required_outputs = list(dict.fromkeys(self.required_outputs))
+        if self.allowed_source_types is not None:
+            self.allowed_source_types = list(dict.fromkeys(self.allowed_source_types))
+        if (
+            self.grounding_required
+            or self.minimum_mode in {"grounded_fast", "grounded_deep"}
+        ) and not self.fail_closed:
+            raise ValueError("grounded research must fail closed")
+        if self.minimum_mode == "instant" and self.grounding_required:
+            raise ValueError("instant research cannot require market grounding")
+        return self
+
 
 class ResearchBriefV1(ContractModel):
     business_idea: str = Field(..., min_length=3, max_length=4000)
     target_stakeholders: str = Field(..., min_length=2, max_length=2000)
     problem: str = Field(..., min_length=3, max_length=4000)
     research_questions: List[str] = Field(default_factory=list, max_length=30)
+    required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
     industry: str = Field(default="general", min_length=1, max_length=120)
     location: Optional[str] = Field(default=None, max_length=255)
     depth: Literal["quick", "detailed", "comprehensive"] = "quick"
     sample_size: int = Field(default=2, ge=1, le=10)
+
+    @field_validator("required_execution_roles")
+    @classmethod
+    def deduplicate_execution_roles(cls, values: List[str]) -> List[str]:
+        cleaned: List[str] = []
+        seen = set()
+        for value in values:
+            item = value.strip()
+            if len(item) > 255:
+                raise ValueError("required execution roles are limited to 255 characters")
+            if item and item.casefold() not in seen:
+                seen.add(item.casefold())
+                cleaned.append(item)
+        return cleaned
 
 
 class PlanStepV1(ContractModel):
@@ -309,6 +374,16 @@ class DecisionCreateRequestV1(ContractModel):
             raise ValueError("available_tools must have unique tool_id values")
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("evidence_catalogue must have unique reference_id values")
+        grounded_research = (
+            self.research_policy.grounding_required
+            or self.research_policy.minimum_mode
+            in {"grounded_fast", "grounded_deep"}
+        )
+        if grounded_research and (
+            not self.research_brief
+            or not str(self.research_brief.location or "").strip()
+        ):
+            raise ValueError("grounded research requires research_brief.location")
         return self
 
 

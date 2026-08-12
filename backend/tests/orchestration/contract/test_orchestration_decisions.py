@@ -248,6 +248,7 @@ async def test_idempotent_retry_reuses_snapshot_and_changed_input_conflicts(
     )
 
     assert first.status_code == 201
+    assert first.headers["X-Request-ID"] == "trace-idem-1"
     assert retry.status_code == 200
     assert retry.json()["reused"] is True
     assert retry.json()["decision_id"] == first.json()["decision_id"]
@@ -899,6 +900,12 @@ async def test_final_plan_links_to_the_preplanning_context_decision(
         json=foreign_payload,
     )
     assert foreign.status_code == 404
+    assert foreign.headers["X-Request-ID"] == "trace-linked-foreign"
+    assert foreign.json()["detail"] == {
+        "code": "AXWISE_UPSTREAM_DECISION_NOT_FOUND",
+        "message": "upstream orchestration decision was not found",
+        "request_id": "trace-linked-foreign",
+    }
 
 
 @pytest.mark.asyncio

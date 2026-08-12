@@ -20,7 +20,15 @@ from backend.domain.orchestration.models import (
     ResearchJobV1,
     ResearchResultV1,
 )
-from backend.services.orqaly_hybrid_run_service import HybridOutputs, HybridRunService
+from backend.services.orqaly_hybrid_run_service import (
+    HybridOutputs,
+    HybridPRDOutput,
+    HybridRunService,
+)
+from backend.services.orqaly_research_bundle_service import (
+    HybridGroundingPolicy,
+    HybridResearchMode,
+)
 from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
@@ -37,6 +45,7 @@ class HybridResearchAdapter:
     @staticmethod
     def _task_context(request: DecisionCreateRequestV1) -> OrqalyTaskContext:
         task = request.task
+        brief = request.research_brief
         return OrqalyTaskContext(
             task_id=task.task_id,
             title=task.objective,
@@ -45,6 +54,9 @@ class HybridResearchAdapter:
             category=task.domain,
             constraints=task.constraints,
             required_capabilities=task.required_capabilities,
+            required_execution_roles=(
+                brief.required_execution_roles if brief else []
+            ),
         )
 
     @staticmethod
@@ -150,6 +162,22 @@ class HybridResearchAdapter:
         raw_questions = "\n".join(
             f"- {question}" for question in brief.research_questions
         ) or f"- What evidence would resolve: {request.task.objective}?"
+        policy = request.research_policy
+        grounded = (
+            policy.minimum_mode in {"grounded_fast", "grounded_deep"}
+            or policy.grounding_required
+            or (policy.minimum_mode == "auto" and bool(brief.location))
+        )
+        allowed_sources = set(policy.allowed_source_types or [])
+        if allowed_sources and allowed_sources <= {"company_registry"}:
+            source_strategy = "registry"
+        elif allowed_sources & {
+            "google_search_result",
+            "official_company_website",
+        } and not (allowed_sources & {"company_registry"}):
+            source_strategy = "web"
+        else:
+            source_strategy = "hybrid"
         simulation = SimulationRequest(
             business_context=BusinessContext(
                 business_idea=brief.business_idea,
@@ -164,7 +192,9 @@ class HybridResearchAdapter:
                 depth=brief.depth,
                 people_per_stakeholder=brief.sample_size,
                 include_insights=True,
-                performance_profile=SimulationPerformanceProfile.QUALITY_FAST,
+                performance_profile=SimulationPerformanceProfile(
+                    policy.performance_profile
+                ),
             ),
         )
         run, _ = self.service.enqueue(
@@ -174,6 +204,15 @@ class HybridResearchAdapter:
                 insights=True,
                 analysis_result=True,
                 persona_resolution=True,
+                market_sources=True,
+                market_claims=True,
+                synthetic_participants=True,
+                interviews=True,
+                research_bundle=True,
+                prd=HybridPRDOutput(
+                    enabled="research_prd" in policy.required_outputs,
+                    required="research_prd" in policy.required_outputs,
+                ),
             ),
             user=self.user,
             external_org_id=self.external_org_id,
@@ -182,6 +221,36 @@ class HybridResearchAdapter:
             request_id=decision_id,
             task_context=self._task_context(request),
             agent_candidates=self._agent_candidates(request),
+            research_mode=(
+                HybridResearchMode.GROUNDED_HYBRID
+                if grounded
+                else HybridResearchMode.SYNTHETIC_ONLY
+            ),
+            grounding_policy=HybridGroundingPolicy(
+                required=grounded,
+                research_required=policy.required,
+                requested_mode=policy.minimum_mode,
+                fail_closed=policy.fail_closed,
+                source_strategy=source_strategy,
+                minimum_structured_sources=(
+                    3 if policy.minimum_mode == "grounded_deep" else 1
+                ),
+                maximum_sources=(
+                    50 if policy.minimum_mode == "grounded_deep" else 25
+                ),
+                maximum_claims=(
+                    100 if policy.minimum_mode == "grounded_deep" else 50
+                ),
+                allowed_source_types=(
+                    list(policy.allowed_source_types)
+                    if policy.allowed_source_types
+                    else [
+                        "company_registry",
+                        "google_search_result",
+                        "official_company_website",
+                    ]
+                ),
+            ),
         )
         status = "partial" if run.status == "completed_with_warnings" else run.status
         return ResearchJobV1(

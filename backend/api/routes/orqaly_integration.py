@@ -39,6 +39,10 @@ from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridRunService,
 )
+from backend.services.orqaly_research_bundle_service import (
+    HybridGroundingPolicy,
+    HybridResearchMode,
+)
 from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
@@ -96,6 +100,10 @@ class OrqalyHybridAsyncRequest(SimulationRequest):
 
     tenant: TenantContext
     outputs: HybridOutputs = Field(default_factory=HybridOutputs)
+    research_mode: HybridResearchMode = HybridResearchMode.SYNTHETIC_ONLY
+    grounding_policy: HybridGroundingPolicy = Field(
+        default_factory=lambda: HybridGroundingPolicy(required=False)
+    )
     task_context: Optional[OrqalyTaskContext] = None
     agent_candidates: List[OrqalyAgentCandidate] = Field(default_factory=list)
 
@@ -771,6 +779,8 @@ async def orqaly_simulate_enhanced_async(
             request_id=request_id or str(uuid.uuid4()),
             task_context=request.task_context,
             agent_candidates=request.agent_candidates,
+            research_mode=request.research_mode,
+            grounding_policy=request.grounding_policy,
         )
     except ValueError as exc:
         detail = str(exc)

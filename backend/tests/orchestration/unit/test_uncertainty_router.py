@@ -127,6 +127,40 @@ def test_research_requires_positive_value_and_explicit_bounded_authorization():
     assert "cost and time threshold" in assessment.reasons[-1]
 
 
+def test_explicit_required_policy_routes_bounded_research_even_for_a_clear_task():
+    payload = _ambiguous_research_payload()
+    payload["task"]["objective"] = (
+        "Reconcile approved operational records using documented deterministic rules"
+    )
+    payload["task"]["desired_outcome"] = (
+        "A reconciled report containing every mismatch and its source record"
+    )
+    payload["research_policy"]["required"] = True
+    request = DecisionCreateRequestV1.model_validate(payload)
+
+    assessment = UncertaintyRouter().route(request, [])
+
+    assert assessment.selected_mode.value == "research_assisted"
+    assert "explicitly required" in " ".join(assessment.reasons)
+
+
+def test_required_research_fails_to_human_clarification_when_budget_is_missing():
+    payload = _ambiguous_research_payload()
+    payload["research_policy"].update(
+        {
+            "required": True,
+            "maximum_research_cost": None,
+            "estimated_research_cost": None,
+        }
+    )
+    request = DecisionCreateRequestV1.model_validate(payload)
+
+    assessment = UncertaintyRouter().route(request, [])
+
+    assert assessment.selected_mode.value == "human_clarification"
+    assert "required research cannot run" in " ".join(assessment.reasons)
+
+
 def test_unresolved_customer_context_is_researched_when_bounded_value_is_positive():
     payload = _payload()
     payload["task"].update(

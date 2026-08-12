@@ -1,0 +1,34 @@
+"""Deployment contract for grounded Orqaly research in Cloud Run."""
+
+from pathlib import Path
+import subprocess
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[3]
+DEPLOY_SCRIPT = ROOT / "scripts" / "deploy-production-backend.sh"
+pytestmark = pytest.mark.contract
+
+
+def test_production_backend_deploy_script_is_valid_bash() -> None:
+    subprocess.run(["bash", "-n", str(DEPLOY_SCRIPT)], check=True)
+
+
+def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.5-flash}"' in script
+    assert 'OPENREGISTER_SECRET="${OPENREGISTER_SECRET:-OPENREGISTER_API_KEY}"' in script
+    assert "OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest" in script
+    assert '--set-secrets "${WORKER_SECRET_BINDINGS}"' in script
+    assert "GEMINI_API_KEY=GEMINI_API_KEY:latest" in script
+    assert "GEMINI_MODEL=${GEMINI_MODEL}" in script
+
+
+def test_registry_grounding_can_be_made_a_fail_fast_release_requirement() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'REQUIRE_OPENREGISTER="${REQUIRE_OPENREGISTER:-false}"' in script
+    assert 'elif [[ "${REQUIRE_OPENREGISTER}" == "true" ]]' in script
+    assert "Required Secret Manager secret" in script
