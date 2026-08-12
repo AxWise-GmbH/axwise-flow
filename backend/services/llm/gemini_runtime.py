@@ -1,0 +1,219 @@
+"""Single exact-model runtime for durable Gemini 3.6 research."""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import random
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from typing import Any, Optional
+
+import httpx
+from google.genai.types import HttpRetryOptions
+from pydantic_ai.models.google import GoogleModel
+from pydantic_ai.providers.google import GoogleProvider
+
+
+RESEARCH_MODEL = "gemini-3.6-flash"
+RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
+TRANSIENT_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+RESEARCH_HTTP_ATTEMPTS = 3
+RESEARCH_HTTP_OPERATION_SECONDS = 420.0
+RESEARCH_HTTP_TIMEOUT_SECONDS = 360.0
+MAX_RETRY_AFTER_SECONDS = 20.0
+
+
+class BoundedRetryAsyncClient(httpx.AsyncClient):
+    """HTTPX client with one bounded retry owner for Gemini research calls.
+
+    google-genai 2.17 retries timeouts and connect failures, but does not retry
+    ``RemoteProtocolError`` (the production "server disconnected" failure) or
+    honor ``Retry-After``. This client owns those retries. The SDK retry layer is
+    therefore configured for one attempt in :func:`build_research_model`, which
+    prevents multiplicative 3x3 retries and preserves exact-model routing.
+    """
+
+    _TRANSIENT_ERRORS = (
+        httpx.TimeoutException,
+        httpx.NetworkError,
+        httpx.RemoteProtocolError,
+    )
+
+    def __init__(
+        self,
+        *,
+        attempts: int = RESEARCH_HTTP_ATTEMPTS,
+        operation_seconds: float = RESEARCH_HTTP_OPERATION_SECONDS,
+        initial_delay: float = 1.0,
+        max_delay: float = 12.0,
+        jitter: float = 0.5,
+        **kwargs: Any,
+    ) -> None:
+        if attempts < 1:
+            raise ValueError("attempts must be at least one")
+        if operation_seconds <= 0:
+            raise ValueError("operation_seconds must be positive")
+        self._retry_attempts = attempts
+        self._operation_seconds = operation_seconds
+        self._initial_delay = max(0.0, initial_delay)
+        self._max_delay = max(0.0, max_delay)
+        self._jitter = max(0.0, jitter)
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+        if not value:
+            return None
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            pass
+        try:
+            retry_at = parsedate_to_datetime(value)
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            return max(
+                0.0, (retry_at - datetime.now(timezone.utc)).total_seconds()
+            )
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    def _retry_delay(self, response: Optional[httpx.Response], attempt: int) -> float:
+        exponential = min(
+            self._max_delay,
+            self._initial_delay * (2 ** max(0, attempt - 1)),
+        )
+        randomized = exponential + random.random() * self._jitter
+        retry_after = None
+        if response is not None:
+            retry_after = self._parse_retry_after(
+                response.headers.get("Retry-After")
+            )
+        if retry_after is not None:
+            retry_after = min(retry_after, MAX_RETRY_AFTER_SECONDS)
+        return max(randomized, retry_after or 0.0)
+
+    @staticmethod
+    def _clone_request(request: httpx.Request, content: bytes) -> httpx.Request:
+        # SDK Gemini requests are replayable JSON/GET requests. Buffer once and
+        # reconstruct the Request so a consumed ByteStream is never reused.
+        return httpx.Request(
+            method=request.method,
+            url=request.url,
+            headers=request.headers,
+            content=content,
+            extensions=dict(request.extensions),
+        )
+
+    async def send(
+        self,
+        request: httpx.Request,
+        *,
+        stream: bool = False,
+        auth: Any = httpx.USE_CLIENT_DEFAULT,
+        follow_redirects: Any = httpx.USE_CLIENT_DEFAULT,
+    ) -> httpx.Response:
+        body = await request.aread()
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + self._operation_seconds
+
+        for attempt in range(1, self._retry_attempts + 1):
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                raise httpx.TimeoutException(
+                    "Gemini transport exceeded its bounded operation deadline",
+                    request=request,
+                )
+
+            attempt_request = self._clone_request(request, body)
+            response: Optional[httpx.Response] = None
+            try:
+                response = await asyncio.wait_for(
+                    super().send(
+                        attempt_request,
+                        stream=stream,
+                        auth=auth,
+                        follow_redirects=follow_redirects,
+                    ),
+                    timeout=remaining,
+                )
+            except asyncio.CancelledError:
+                raise
+            except asyncio.TimeoutError as exc:
+                error: BaseException = httpx.ReadTimeout(
+                    "Gemini transport exceeded its bounded operation deadline",
+                    request=attempt_request,
+                )
+                error.__cause__ = exc
+            except self._TRANSIENT_ERRORS as exc:
+                error = exc
+            else:
+                if response.status_code not in TRANSIENT_HTTP_STATUS_CODES:
+                    return response
+                if attempt >= self._retry_attempts:
+                    return response
+                error = httpx.HTTPStatusError(
+                    f"Transient Gemini HTTP status {response.status_code}",
+                    request=attempt_request,
+                    response=response,
+                )
+
+            if attempt >= self._retry_attempts:
+                raise error
+
+            sleep_seconds = self._retry_delay(response, attempt)
+            remaining = deadline - loop.time()
+            if sleep_seconds >= remaining:
+                if response is not None:
+                    await response.aclose()
+                raise httpx.TimeoutException(
+                    "Gemini retry delay exceeded its bounded operation deadline",
+                    request=attempt_request,
+                ) from error
+            if response is not None:
+                await response.aclose()
+            await asyncio.sleep(sleep_seconds)
+
+        raise AssertionError("bounded Gemini retry loop exhausted unexpectedly")
+
+
+def normalized_research_model(value: str) -> str:
+    return str(value or "").strip().removeprefix("models/")
+
+
+def build_research_model(api_key: str) -> GoogleModel:
+    configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
+    if normalized_research_model(configured) != RESEARCH_MODEL:
+        raise RuntimeError(
+            "Durable research requires GEMINI_MODEL=models/gemini-3.6-flash; "
+            f"received {configured!r}. Provider/model fallback is disabled."
+        )
+    http_client = BoundedRetryAsyncClient(
+        timeout=httpx.Timeout(RESEARCH_HTTP_TIMEOUT_SECONDS, connect=10.0),
+        follow_redirects=False,
+    )
+    # Exactly one retry owner. The custom HTTPX client handles all supported
+    # transient transport/status cases and the SDK must not multiply attempts.
+    retry_options = HttpRetryOptions(
+        attempts=1,
+        http_status_codes=TRANSIENT_HTTP_STATUS_CODES,
+    )
+    return GoogleModel(
+        RESEARCH_MODEL_RESOURCE,
+        provider=GoogleProvider(
+            api_key=api_key,
+            http_client=http_client,
+            retry_options=retry_options,
+        ),
+    )
+
+
+def require_search_model() -> str:
+    configured = os.getenv("GEMINI_SEARCH_MODEL", RESEARCH_MODEL)
+    if normalized_research_model(configured) != RESEARCH_MODEL:
+        raise RuntimeError(
+            "Grounded research requires GEMINI_SEARCH_MODEL=gemini-3.6-flash; "
+            f"received {configured!r}. Provider/model fallback is disabled."
+        )
+    return RESEARCH_MODEL

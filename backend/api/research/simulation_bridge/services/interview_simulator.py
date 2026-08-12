@@ -4,8 +4,9 @@ Interview Simulator for generating realistic interview responses.
 
 import logging
 import random
+from dataclasses import dataclass
 from typing import List, Dict, Any
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 from pydantic_ai.models import Model
 
 from ..models import (
@@ -20,6 +21,11 @@ from ..models import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class InterviewRunContract:
+    questions: tuple[str, ...]
+
+
 class InterviewSimulator:
     """Simulates realistic interviews with AI personas."""
 
@@ -27,9 +33,26 @@ class InterviewSimulator:
         self.model = model
         self.agent = Agent(
             model=model,
-            output_type=SimulatedInterview,
+            deps_type=InterviewRunContract,
+            output_type=NativeOutput(SimulatedInterview),
             system_prompt=self._get_system_prompt(),
+            retries={"output": 2},
         )
+        @self.agent.output_validator
+        async def validate_interview(
+            ctx: RunContext[InterviewRunContract], output: SimulatedInterview
+        ) -> SimulatedInterview:
+            questions = list(ctx.deps.questions)
+            observed = [" ".join(item.question.split()).casefold() for item in output.responses]
+            expected = [" ".join(question.split()).casefold() for question in questions]
+            if questions and observed != expected:
+                raise ModelRetry("Return one complete response for every question, in the original order.")
+            if any(
+                len(item.response.strip()) < 20 or not item.sentiment.strip() or not item.key_insights
+                for item in output.responses
+            ):
+                raise ModelRetry("Responses must contain substantive text, sentiment, and concrete insights.")
+            return output
 
     def _get_system_prompt(self) -> str:
         return """You are an expert interview simulator that generates realistic customer interview responses.
@@ -72,29 +95,10 @@ Return a complete SimulatedInterview object with all responses and metadata."""
             prompt = self._build_interview_prompt(
                 persona, stakeholder, business_context, config
             )
+            run_contract = InterviewRunContract(tuple(stakeholder.questions))
             logger.info(f"Interview simulation prompt: {prompt[:200]}...")
 
-            # Try with retry logic for Gemini API issues
-            max_retries = 2
-            for attempt in range(max_retries + 1):
-                try:
-                    # Use user's temperature for creative interview responses
-                    result = await self.agent.run(
-                        prompt, model_settings={"temperature": config.temperature}
-                    )
-                    break  # Success, exit retry loop
-                except Exception as e:
-                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
-                        logger.warning(
-                            f"Gemini API error on attempt {attempt + 1}, retrying with temperature 0..."
-                        )
-                        # Use temperature 0 for retry to ensure valid JSON structure
-                        result = await self.agent.run(
-                            prompt, model_settings={"temperature": 0.0}
-                        )
-                        break
-                    else:
-                        raise  # Re-raise if final attempt or different error
+            result = await self.agent.run(prompt, deps=run_contract)
 
             logger.info(f"PydanticAI interview result: {result}")
             # Use result.output (non-deprecated) - both are identical per our test
@@ -358,28 +362,7 @@ Create a realistic interview that feels like a genuine conversation with this pe
                 question, persona, business_context, config
             )
 
-            # Use temperature from config or default
-            temperature = config.get("temperature", 0.7)
-
-            # Generate response with retry logic
-            max_retries = 2
-            for attempt in range(max_retries + 1):
-                try:
-                    result = await single_response_agent.run(
-                        prompt, model_settings={"temperature": temperature}
-                    )
-                    break  # Success, exit retry loop
-                except Exception as e:
-                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
-                        logger.warning(
-                            f"Gemini API error on attempt {attempt + 1}, retrying with temperature 0..."
-                        )
-                        result = await single_response_agent.run(
-                            prompt, model_settings={"temperature": 0.0}
-                        )
-                        break
-                    else:
-                        raise  # Re-raise if final attempt or different error
+            result = await single_response_agent.run(prompt)
 
             response = result.output
             logger.info(f"Generated response: {response[:100]}...")

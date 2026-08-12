@@ -4,10 +4,10 @@ Parallel Interview Simulator for improved performance and scalability.
 
 import logging
 import asyncio
-import random
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 from pydantic_ai.models import Model
 
 from ..models import (
@@ -22,6 +22,11 @@ from ..models import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class InterviewRunContract:
+    questions: tuple[str, ...]
+
+
 class ParallelInterviewSimulator:
     """
     Enhanced interview simulator with parallel processing capabilities.
@@ -32,9 +37,36 @@ class ParallelInterviewSimulator:
         self.max_concurrent = max_concurrent
         self.agent = Agent(
             model=model,
-            output_type=SimulatedInterview,
+            deps_type=InterviewRunContract,
+            output_type=NativeOutput(SimulatedInterview),
             system_prompt=self._get_system_prompt(),
+            retries={"output": 2},
         )
+        @self.agent.output_validator
+        async def validate_interview(
+            ctx: RunContext[InterviewRunContract], output: SimulatedInterview
+        ) -> SimulatedInterview:
+            questions = list(ctx.deps.questions)
+            if questions and len(output.responses) != len(questions):
+                raise ModelRetry(
+                    f"Return exactly {len(questions)} responses, one per supplied question."
+                )
+            expected_normalized = [" ".join(question.split()).casefold() for question in questions]
+            observed_normalized = [
+                " ".join(item.question.split()).casefold() for item in output.responses
+            ]
+            if questions and observed_normalized != expected_normalized:
+                raise ModelRetry("Preserve every supplied question exactly and in order.")
+            if any(
+                len(item.response.strip()) < 20
+                or not item.sentiment.strip()
+                or not item.key_insights
+                for item in output.responses
+            ):
+                raise ModelRetry(
+                    "Every response needs substantive in-character text, sentiment, and at least one insight."
+                )
+            return output
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._response_cache = {}  # Simple in-memory cache
 
@@ -107,47 +139,12 @@ Return a complete SimulatedInterview object with all responses and metadata."""
             prompt = self._build_interview_prompt(
                 persona, stakeholder, business_context, config
             )
+            run_contract = InterviewRunContract(tuple(stakeholder.questions))
 
-            # Retry logic with exponential backoff
-            max_retries = 3
-            base_delay = 1
-
-            for attempt in range(max_retries + 1):
-                try:
-                    if progress_callback:
-                        progress_callback(
-                            f"Generating responses for {persona.name} (attempt {attempt + 1})",
-                            25,
-                        )
-
-                    # Use user's temperature for creative interview responses
-                    result = await self.agent.run(
-                        prompt, model_settings={"temperature": config.temperature}
-                    )
-
-                    interview = result.output
-                    break  # Success, exit retry loop
-
-                except Exception as e:
-                    if attempt < max_retries:
-                        delay = base_delay * (2**attempt) + random.uniform(0, 1)
-                        logger.warning(
-                            f"Interview simulation failed (attempt {attempt + 1}), retrying in {delay:.2f}s: {str(e)}"
-                        )
-                        await asyncio.sleep(delay)
-
-                        # Try with temperature 0 for stability on retry
-                        if "MALFORMED_FUNCTION_CALL" in str(e):
-                            result = await self.agent.run(
-                                prompt, model_settings={"temperature": 0.0}
-                            )
-                            interview = result.output
-                            break
-                    else:
-                        logger.error(
-                            f"Interview simulation failed after {max_retries + 1} attempts: {str(e)}"
-                        )
-                        raise
+            if progress_callback:
+                progress_callback(f"Generating responses for {persona.name}", 25)
+            result = await self.agent.run(prompt, deps=run_contract)
+            interview = result.output
 
             # Post-process interview
             interview.person_id = persona.id

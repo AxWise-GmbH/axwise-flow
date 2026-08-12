@@ -36,6 +36,62 @@ def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -
     assert "Research concurrency values must be integers from 1 to 8" in script
 
 
+def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    worker_revision = (
+        'WORKER_REVISION="$(gcloud run services describe "${WORKER_SERVICE}"'
+    )
+    worker_traffic_switch = (
+        'gcloud run services update-traffic "${WORKER_SERVICE}"'
+    )
+    worker_traffic_revision = "WORKER_TRAFFIC_REVISION="
+    worker_traffic_percent = "WORKER_TRAFFIC_PERCENT="
+
+    assert worker_revision in script
+    assert '--to-revisions "${WORKER_REVISION}=100"' in script
+    assert worker_traffic_switch in script
+    assert "status.latestReadyRevisionName" in script
+    assert "${WORKER_READY_REVISION}" in script
+    assert "${WORKER_REVISION}" in script
+    assert worker_traffic_revision in script
+    assert worker_traffic_percent in script
+    assert "status.traffic[0].revisionName" in script
+    assert "status.traffic[0].percent" in script
+    assert '"${WORKER_TRAFFIC_PERCENT}" != "100"' in script
+
+    deploy = 'gcloud run deploy "${WORKER_SERVICE}"'
+    switch = script.index(worker_traffic_switch)
+    assert script.index(deploy) < script.index(worker_revision) < switch
+    assert switch < script.index(worker_traffic_revision)
+
+
+def test_authority_proof_secret_is_validated_without_printing_before_build() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    access = "gcloud secrets versions access latest"
+    build = 'echo "Building ${IMAGE}"'
+    binding = (
+        "AXWISE_AUTHORITY_PROOF_SECRET="
+        "AXWISE_AUTHORITY_PROOF_SECRET:latest"
+    )
+
+    assert "AXWISE_AUTHORITY_PROOF_SECRET" in script.split("required_secrets=(", 1)[1]
+    assert access in script
+    assert "--secret AXWISE_AUTHORITY_PROOF_SECRET" in script
+    assert "value = sys.stdin.buffer.read()" in script
+    assert 'value.decode("utf-8")' in script
+    assert "len(value) >= 32" in script
+    assert script.index(access) < script.index(build)
+    assert script.count(binding) == 2
+
+    # The value must flow only from Secret Manager to the validating process;
+    # neither command tracing nor a diagnostic may expose the secret bytes.
+    assert "set -x" not in script
+    assert "print(value)" not in script
+    assert "echo ${AXWISE_AUTHORITY_PROOF_SECRET}" not in script
+
+
 def test_registry_grounding_can_be_made_a_fail_fast_release_requirement() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 

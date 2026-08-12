@@ -36,6 +36,7 @@ required_secrets=(
   DATABASE_URL
   CLERK_SECRET_KEY
   GEMINI_API_KEY
+  AXWISE_AUTHORITY_PROOF_SECRET
   ORQALY_API_KEY
   axwise-orqaly-m2m-key
   axwise-orqaly-webhook-signing-secret
@@ -45,12 +46,30 @@ for secret in "${required_secrets[@]}"; do
   gcloud secrets describe "${secret}" --project "${PROJECT_ID}" >/dev/null
 done
 
+# Authority attestations are only meaningful when every serving process uses a
+# strong shared signing secret. Validate the latest value before the image is
+# built, consume it only through stdin, and never print or interpolate it.
+if ! gcloud secrets versions access latest \
+  --secret AXWISE_AUTHORITY_PROOF_SECRET \
+  --project "${PROJECT_ID}" \
+  | python3 -c 'import sys
+value = sys.stdin.buffer.read()
+try:
+    value.decode("utf-8")
+except UnicodeDecodeError:
+    raise SystemExit(1)
+raise SystemExit(0 if len(value) >= 32 else 1)'
+then
+  echo "Latest AXWISE_AUTHORITY_PROOF_SECRET must be valid UTF-8 and at least 32 bytes" >&2
+  exit 1
+fi
+
 # Google Search grounding uses GEMINI_API_KEY. OpenRegister is optional for
 # hybrid web+registry research, but when its Secret Manager entry exists the
 # durable worker receives it without exposing the value in this script. Set
 # REQUIRE_OPENREGISTER=true for a release that must not proceed without
 # registry-backed grounding.
-WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
+WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest,AXWISE_AUTHORITY_PROOF_SECRET=AXWISE_AUTHORITY_PROOF_SECRET:latest"
 WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@AXWISE_MARKET_CELL_CONCURRENCY=${AXWISE_MARKET_CELL_CONCURRENCY}@AXWISE_PERSONA_CONCURRENCY=${AXWISE_PERSONA_CONCURRENCY}@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}"
 if gcloud secrets describe "${OPENREGISTER_SECRET}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   WORKER_SECRET_BINDINGS="${WORKER_SECRET_BINDINGS},OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest"
@@ -114,7 +133,7 @@ gcloud run deploy "${API_SERVICE}" \
   --min-instances 1 \
   --max-instances 5 \
   --update-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
-  --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest"
+  --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest,AXWISE_AUTHORITY_PROOF_SECRET=AXWISE_AUTHORITY_PROOF_SECRET:latest"
 
 # Cloud Run preserves an explicit revision pin when a service was previously
 # configured with one. Route to the revision created above so the health check
@@ -151,6 +170,24 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --max-instances 1 \
   --set-env-vars "${WORKER_ENV_VARS}" \
   --set-secrets "${WORKER_SECRET_BINDINGS}"
+
+# As with the API, Cloud Run can preserve a previously pinned worker revision.
+# Resolve the revision created by this deployment and route all worker traffic
+# to it before declaring the durable execution path healthy.
+WORKER_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.latestCreatedRevisionName)')"
+if [[ -z "${WORKER_REVISION}" ]]; then
+  echo "Could not determine the newly created worker revision" >&2
+  exit 1
+fi
+
+echo "Switching worker traffic to ${WORKER_REVISION}"
+gcloud run services update-traffic "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --to-revisions "${WORKER_REVISION}=100"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
 EXPECTED_REVISION="${REVISION}" python3 - "${API_URL}/health" <<'PY'
@@ -190,16 +227,25 @@ if [[ "${TRAFFIC_REVISION}" != "${API_REVISION}" || "${TRAFFIC_PERCENT}" != "100
   exit 1
 fi
 
-WORKER_CREATED_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}" \
-  --format='value(status.latestCreatedRevisionName)')"
 WORKER_READY_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --format='value(status.latestReadyRevisionName)')"
-if [[ -z "${WORKER_CREATED_REVISION}" || "${WORKER_READY_REVISION}" != "${WORKER_CREATED_REVISION}" ]]; then
-  echo "Expected worker revision ${WORKER_CREATED_REVISION} to be ready; Cloud Run reports ${WORKER_READY_REVISION}" >&2
+if [[ "${WORKER_READY_REVISION}" != "${WORKER_REVISION}" ]]; then
+  echo "Expected worker revision ${WORKER_REVISION} to be ready; Cloud Run reports ${WORKER_READY_REVISION}" >&2
+  exit 1
+fi
+
+WORKER_TRAFFIC_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.traffic[0].revisionName)')"
+WORKER_TRAFFIC_PERCENT="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.traffic[0].percent)')"
+if [[ "${WORKER_TRAFFIC_REVISION}" != "${WORKER_REVISION}" || "${WORKER_TRAFFIC_PERCENT}" != "100" ]]; then
+  echo "Expected 100% worker traffic on ${WORKER_REVISION}; received ${WORKER_TRAFFIC_REVISION} at ${WORKER_TRAFFIC_PERCENT}%" >&2
   exit 1
 fi
 

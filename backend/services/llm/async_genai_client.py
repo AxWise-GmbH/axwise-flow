@@ -9,14 +9,27 @@ import logging
 import json
 import asyncio
 import re
-import os
 import random
-from typing import Dict, Any, List, Union, Optional, AsyncGenerator, Tuple
+import socket
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from typing import Dict, Any, List, Union, Optional, AsyncGenerator, AsyncIterator
 
 import google.genai as genai
 from google.genai.types import GenerateContentConfig, Content
 
+try:
+    import httpx
+except ImportError:  # pragma: no cover - google-genai installs httpx in production
+    httpx = None  # type: ignore[assignment]
+
+try:
+    import aiohttp
+except ImportError:  # pragma: no cover - the pinned SDK can use httpx only
+    aiohttp = None  # type: ignore[assignment]
+
 from backend.utils.json.json_repair import repair_json
+from backend.infrastructure.constants.llm_constants import GEMINI_MODEL_NAME
 from backend.services.llm.config.genai_config import GenAIConfigFactory, TaskType
 from backend.services.llm.exceptions import (
     LLMAPIError,
@@ -27,6 +40,11 @@ from backend.services.llm.exceptions import (
 
 logger = logging.getLogger(__name__)
 
+TRANSIENT_GEMINI_STATUS_CODES = frozenset({408, 429, 500, 502, 503, 504})
+MAX_GEMINI_ATTEMPTS = 3
+MAX_RETRY_AFTER_SECONDS = 20.0
+MAX_OPERATION_SECONDS = 420.0
+
 
 class AsyncGenAIClient:
     """
@@ -36,7 +54,7 @@ class AsyncGenAIClient:
     asynchronously, with proper error handling, retry logic, and response parsing.
     """
 
-    def __init__(self, api_key: str, model: str = "gemini-3.6-flash"):
+    def __init__(self, api_key: str, model: Optional[str] = GEMINI_MODEL_NAME):
         """
         Initialize the AsyncGenAIClient.
 
@@ -45,7 +63,7 @@ class AsyncGenAIClient:
             model: Model name to use (default: gemini-3.6-flash)
         """
         self.api_key = api_key
-        self.default_model = model
+        self.default_model = model or GEMINI_MODEL_NAME
 
         try:
             # Initialize the client
@@ -84,21 +102,22 @@ class AsyncGenAIClient:
         """
         try:
             # Get configuration for the task
-            config = GenAIConfigFactory.create_config(task, custom_config)
+            config = GenAIConfigFactory.create_config(
+                task,
+                custom_config,
+                model=self.default_model,
+                system_instruction=system_instruction,
+            )
 
-            # Prepare prompt with system instruction if provided
-            final_prompt = self._prepare_prompt(prompt, system_instruction)
+            # Native system_instruction is carried by GenerateContentConfig, not
+            # disguised as a user message in contents.
+            final_prompt = self._prepare_prompt(prompt)
 
-            # Adjust retry/backoff for heavy tasks like PRD generation
-            task_name = task.value if isinstance(task, TaskType) else str(task)
-            local_max_retries = max_retries
+            # ``max_retries`` is retained as the public argument name for
+            # compatibility but means total attempts, including the first call.
+            local_max_retries = min(max(1, max_retries), MAX_GEMINI_ATTEMPTS)
             local_initial_delay = initial_delay
             local_backoff = backoff_factor
-            if task_name == "prd_generation":
-                # More patience for overloaded model scenarios
-                local_max_retries = max(local_max_retries, 5)
-                local_initial_delay = max(local_initial_delay, 2.0)
-                local_backoff = max(local_backoff, 2.5)
 
             # Generate content with retry
             response = await self._generate_with_retry(
@@ -117,6 +136,8 @@ class AsyncGenAIClient:
             # Post-process the response based on task
             return await self._post_process_response(parsed_response, task)
 
+        except asyncio.CancelledError:
+            raise
         except (LLMAPIError, LLMResponseParseError, LLMProcessingError) as e:
             # Re-raise known LLM exceptions
             logger.error(f"Error generating content for task {task}: {str(e)}")
@@ -156,23 +177,21 @@ class AsyncGenAIClient:
         """
         try:
             # Get configuration for the task
-            config = GenAIConfigFactory.create_config(task, custom_config)
+            config = GenAIConfigFactory.create_config(
+                task,
+                custom_config,
+                model=self.default_model,
+                system_instruction=system_instruction,
+            )
 
-            # Prepare prompt with system instruction if provided
-            final_prompt = self._prepare_prompt(prompt, system_instruction)
+            final_prompt = self._prepare_prompt(prompt)
 
-            # Adjust retry/backoff for heavy tasks like PRD generation
-            task_name = task.value if isinstance(task, TaskType) else str(task)
-            local_max_retries = max_retries
+            local_max_retries = min(max(1, max_retries), MAX_GEMINI_ATTEMPTS)
             local_initial_delay = initial_delay
             local_backoff = backoff_factor
-            if task_name == "prd_generation":
-                local_max_retries = max(local_max_retries, 5)
-                local_initial_delay = max(local_initial_delay, 2.0)
-                local_backoff = max(local_backoff, 2.5)
 
             # Generate content stream with retry
-            stream = await self._generate_stream_with_retry(
+            stream, operation_deadline = await self._generate_stream_with_retry(
                 model=self.default_model,
                 prompt=final_prompt,
                 config=config,
@@ -182,14 +201,44 @@ class AsyncGenAIClient:
                 task=task,
             )
 
-            # Yield content chunks
-            async for chunk in stream:
-                try:
-                    yield chunk.text
-                except Exception as e:
-                    logger.error(f"Error extracting text from chunk: {str(e)}")
-                    yield ""
+            # ``generate_content_stream`` returns an async iterator. Bounding only
+            # that coroutine leaves every subsequent ``__anext__`` able to hang
+            # forever, so keep the same absolute deadline while consuming chunks.
+            iterator = stream.__aiter__()
+            try:
+                while True:
+                    remaining = (
+                        operation_deadline - asyncio.get_running_loop().time()
+                    )
+                    if remaining <= 0:
+                        raise LLMAPIError(
+                            "Gemini stream exceeded its bounded operation deadline",
+                            status_code=408,
+                        )
+                    try:
+                        chunk = await asyncio.wait_for(
+                            iterator.__anext__(), timeout=remaining
+                        )
+                    except StopAsyncIteration:
+                        break
+                    except asyncio.TimeoutError as e:
+                        raise LLMAPIError(
+                            "Gemini stream stalled before its bounded operation "
+                            "deadline",
+                            status_code=408,
+                        ) from e
 
+                    self._validate_response_completion(chunk, task)
+                    try:
+                        yield chunk.text
+                    except Exception as e:
+                        logger.error(f"Error extracting text from chunk: {str(e)}")
+                        yield ""
+            finally:
+                await self._close_async_iterator(iterator)
+
+        except asyncio.CancelledError:
+            raise
         except (LLMAPIError, LLMResponseParseError, LLMProcessingError) as e:
             # Re-raise known LLM exceptions
             logger.error(f"Error generating content stream for task {task}: {str(e)}")
@@ -205,49 +254,111 @@ class AsyncGenAIClient:
     def _prepare_prompt(
         self,
         prompt: Union[str, List[Union[str, Content]]],
-        system_instruction: Optional[str] = None,
     ) -> List[Union[str, Content]]:
         """
-        Prepare the prompt with system instruction if provided.
+        Normalize user contents for timeout calculation and the SDK call.
 
         Args:
             prompt: Prompt text or list of Content objects
-            system_instruction: Optional system instruction
-
         Returns:
             Prepared prompt
         """
-        if system_instruction:
-            # Create Content objects with role="user" (Gemini API only accepts "user" and "model" roles)
-            if isinstance(prompt, str):
-                # Convert string content to a list of Content objects
-                user_content = Content(parts=[{"text": prompt}], role="user")
-                system_content = Content(
-                    parts=[{"text": "System instruction: " + system_instruction}],
-                    role="user",
-                )
-                return [system_content, user_content]
-            elif isinstance(prompt, list):
-                # Add system instruction as the first item
-                system_content = Content(
-                    parts=[{"text": "System instruction: " + system_instruction}],
-                    role="user",
-                )
-                if all(isinstance(item, str) for item in prompt):
-                    # Convert all string items to Content objects
-                    content_list = [
-                        Content(parts=[{"text": item}], role="user") for item in prompt
-                    ]
-                    return [system_content] + content_list
-                else:
-                    # Mixed list of strings and Content objects
-                    return [system_content] + list(prompt)
-        else:
-            # No system instruction, just return the prompt
-            if isinstance(prompt, str):
-                return [prompt]
-            else:
-                return prompt
+        if isinstance(prompt, str):
+            return [prompt]
+        return list(prompt)
+
+    @staticmethod
+    def _task_expects_json(task: Union[str, TaskType]) -> bool:
+        """Return whether the task contract requires a complete JSON response."""
+
+        if isinstance(task, str):
+            normalized = task.lower()
+            if normalized in (
+                "text_generation",
+                "conversation_routine",
+                "conversation_routines",
+                "conversation_context_extraction",
+                "conversation_suggestions",
+            ):
+                return False
+            try:
+                return TaskType(task) != TaskType.TEXT_GENERATION
+            except ValueError:
+                # Existing behavior treats unknown task names as structured so
+                # callers do not accidentally publish unvalidated model text.
+                return True
+        return task != TaskType.TEXT_GENERATION
+
+    @staticmethod
+    def _finish_reason_name(reason: Any) -> Optional[str]:
+        """Normalize google-genai enum and string finish reasons."""
+
+        if reason is None:
+            return None
+        value = getattr(reason, "name", None) or getattr(reason, "value", None)
+        normalized = str(value if value is not None else reason).strip()
+        if not normalized:
+            return None
+        normalized = normalized.rsplit(".", 1)[-1].upper()
+        # Streaming chunks may carry the SDK's explicit sentinel until the
+        # final chunk. It does not mean the response was stopped unsuccessfully.
+        if normalized == "FINISH_REASON_UNSPECIFIED":
+            return None
+        return normalized
+
+    @classmethod
+    def _response_finish_reasons(cls, response: Any) -> List[str]:
+        reasons: List[str] = []
+        for candidate in getattr(response, "candidates", None) or []:
+            reason = cls._finish_reason_name(
+                getattr(candidate, "finish_reason", None)
+            )
+            if reason:
+                reasons.append(reason)
+        return reasons
+
+    @classmethod
+    def _validate_response_completion(
+        cls, response: Any, task: Union[str, TaskType]
+    ) -> None:
+        """Reject truncated or explicitly incomplete output before JSON repair."""
+
+        reasons = cls._response_finish_reasons(response)
+        failures = [
+            reason
+            for reason in reasons
+            if reason == "MAX_TOKENS"
+            or (cls._task_expects_json(task) and reason != "STOP")
+        ]
+        if not failures:
+            return
+
+        response_text = None
+        try:
+            response_text = response.text
+        except Exception:
+            pass
+        raise LLMResponseParseError(
+            "Gemini response did not complete cleanly "
+            f"(finish_reason={','.join(failures)}); partial output will not be "
+            "repaired or published",
+            response_text=response_text,
+            details={"finish_reasons": reasons, "task": str(task)},
+        )
+
+    @staticmethod
+    async def _close_async_iterator(iterator: AsyncIterator[Any]) -> None:
+        """Best-effort stream cleanup without swallowing task cancellation."""
+
+        close = getattr(iterator, "aclose", None)
+        if not callable(close):
+            return
+        try:
+            await close()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # pragma: no cover - defensive SDK cleanup
+            logger.warning("Failed to close Gemini stream iterator: %s", e)
 
     def _calculate_dynamic_timeout(
         self, prompt: List[Union[str, Content]], task: Union[str, TaskType] = None
@@ -315,6 +426,103 @@ class AsyncGenAIClient:
 
         return base_timeout
 
+    @staticmethod
+    def _status_code(error: BaseException) -> Optional[int]:
+        """Extract an HTTP status from google-genai and HTTP client errors."""
+
+        candidates = (
+            getattr(error, "status_code", None),
+            getattr(error, "code", None),
+            getattr(getattr(error, "response", None), "status_code", None),
+        )
+        for candidate in candidates:
+            try:
+                if candidate is not None:
+                    return int(candidate)
+            except (TypeError, ValueError):
+                continue
+        return None
+
+    @staticmethod
+    def _parse_retry_after(value: Any) -> Optional[float]:
+        """Parse Retry-After seconds or an HTTP date into a non-negative delay."""
+
+        if value is None:
+            return None
+        try:
+            return max(0.0, float(value))
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            retry_at = parsedate_to_datetime(str(value))
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            return max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    @classmethod
+    def _retry_after_seconds(cls, error: BaseException) -> Optional[float]:
+        """Read Retry-After when the SDK exposes response headers or details."""
+
+        response = getattr(error, "response", None)
+        headers = getattr(response, "headers", None)
+        if headers is not None and hasattr(headers, "get"):
+            parsed = cls._parse_retry_after(
+                headers.get("Retry-After") or headers.get("retry-after")
+            )
+            if parsed is not None:
+                return parsed
+
+        details = getattr(error, "details", None)
+        if isinstance(details, dict):
+            for key in ("retry_after", "retryAfter", "retry_delay", "retryDelay"):
+                if key in details:
+                    value = details[key]
+                    if isinstance(value, str) and value.endswith("s"):
+                        value = value[:-1]
+                    parsed = cls._parse_retry_after(value)
+                    if parsed is not None:
+                        return parsed
+        return None
+
+    @classmethod
+    def _is_transient_error(cls, error: BaseException) -> bool:
+        status_code = cls._status_code(error)
+        if status_code in TRANSIENT_GEMINI_STATUS_CODES:
+            return True
+
+        transport_errors: tuple[type[BaseException], ...] = (
+            ConnectionError,
+            socket.timeout,
+            socket.gaierror,
+        )
+        if httpx is not None:
+            transport_errors += (httpx.TransportError,)
+        if aiohttp is not None:
+            transport_errors += (aiohttp.ClientConnectionError,)
+
+        # The SDK or a wrapper may retain the underlying transport error as the
+        # cause/context. Walk only that bounded exception chain; never infer
+        # retryability from arbitrary error-message text.
+        current: Optional[BaseException] = error
+        seen: set[int] = set()
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            if isinstance(current, transport_errors):
+                return True
+            current = current.__cause__ or current.__context__
+        return False
+
+    @classmethod
+    def _transient_sleep_seconds(cls, error: BaseException, delay: float) -> float:
+        jitter = min(1.0, delay * 0.1) * random.random()
+        retry_after = min(
+            cls._retry_after_seconds(error) or 0.0, MAX_RETRY_AFTER_SECONDS
+        )
+        return max(delay + jitter, retry_after)
+
     async def _generate_with_retry(
         self,
         model: str,
@@ -344,26 +552,23 @@ class AsyncGenAIClient:
 
         # Calculate dynamic timeout based on content size and task complexity
         timeout_seconds = self._calculate_dynamic_timeout(prompt, task)
-
-        # Optional fallback model for overload scenarios
-        fallback_model = os.getenv(
-            "GEMINI_FALLBACK_MODEL", "models/gemini-3.6-flash"
-        )
-        use_fallback_next = False
+        operation_deadline = asyncio.get_running_loop().time() + MAX_OPERATION_SECONDS
 
         for attempt in range(max_retries):
+            remaining = operation_deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                raise LLMAPIError("Gemini operation exceeded its bounded deadline")
             try:
-                # Choose model (fallback after certain errors)
-                effective_model = fallback_model if use_fallback_next else model
-
                 # Make the API call with dynamic timeout
                 response = await asyncio.wait_for(
                     self.client.aio.models.generate_content(
-                        model=effective_model, contents=prompt, config=config
+                        model=model, contents=prompt, config=config
                     ),
-                    timeout=timeout_seconds,
+                    timeout=min(timeout_seconds, remaining),
                 )
                 return response
+            except asyncio.CancelledError:
+                raise
             except asyncio.TimeoutError as e:
                 last_exception = e
                 if attempt < max_retries - 1:
@@ -372,7 +577,7 @@ class AsyncGenAIClient:
                         f"API call timed out (attempt {attempt + 1}/{max_retries}): {str(e)}. "
                         f"Retrying in {delay:.2f}s..."
                     )
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(min(delay, max(0.0, operation_deadline - asyncio.get_running_loop().time())))
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
@@ -384,35 +589,35 @@ class AsyncGenAIClient:
                     ) from e
             except Exception as e:
                 last_exception = e
-                if attempt < max_retries - 1:
-                    # Detect overload/unavailable and consider switching model
-                    message = str(e)
-                    overloaded = any(
-                        s in message for s in ["503", "UNAVAILABLE", "overloaded"]
-                    )
-                    if overloaded:
-                        use_fallback_next = True
-                        logger.warning(
-                            f"API call failed with service unavailable/overload (attempt {attempt + 1}/{max_retries})."
-                            f" Will retry using fallback model '{fallback_model}' in {delay:.2f}s. Error: {message}"
-                        )
-                    else:
-                        logger.warning(
-                            f"API call failed (attempt {attempt + 1}/{max_retries}): {message}. "
-                            f"Retrying in {delay:.2f}s..."
-                        )
-                    # Exponential backoff with small jitter to avoid thundering herd
-                    jitter = min(1.0, delay * 0.1) * random.random()
-                    await asyncio.sleep(delay + jitter)
-                    delay *= backoff_factor
-                else:
-                    # Last attempt failed, raise the exception
-                    logger.error(
-                        f"API call failed after {max_retries} attempts: {str(e)}"
-                    )
+                status_code = self._status_code(e)
+                if not self._is_transient_error(e):
                     raise LLMAPIError(
-                        f"API call failed after {max_retries} attempts: {str(e)}"
+                        f"Non-retryable Gemini API error: {str(e)}",
+                        status_code=status_code,
                     ) from e
+                if attempt >= max_retries - 1:
+                    raise LLMAPIError(
+                        f"Transient Gemini API error after {max_retries} attempts: {str(e)}",
+                        status_code=status_code,
+                    ) from e
+
+                sleep_seconds = self._transient_sleep_seconds(e, delay)
+                logger.warning(
+                    "Transient Gemini API status %s (attempt %s/%s); retrying "
+                    "the same model '%s' in %.2fs",
+                    status_code,
+                    attempt + 1,
+                    max_retries,
+                    model,
+                    sleep_seconds,
+                )
+                await asyncio.sleep(
+                    min(
+                        sleep_seconds,
+                        max(0.0, operation_deadline - asyncio.get_running_loop().time()),
+                    )
+                )
+                delay *= backoff_factor
 
         # This should never happen, but just in case
         raise LLMAPIError(f"API call failed: {str(last_exception)}")
@@ -426,7 +631,7 @@ class AsyncGenAIClient:
         initial_delay: float = 1.0,
         backoff_factor: float = 2.0,
         task: Union[str, TaskType] = None,
-    ) -> AsyncGenerator:
+    ) -> tuple[AsyncIterator[Any], float]:
         """
         Generate content stream with retry logic.
 
@@ -439,31 +644,30 @@ class AsyncGenAIClient:
             backoff_factor: Backoff factor for retry delay
 
         Returns:
-            Async generator for the content stream
+            Async iterator for the content stream and its absolute deadline
         """
         delay = initial_delay
         last_exception = None
 
         # Calculate dynamic timeout based on content size and task complexity
         timeout_seconds = self._calculate_dynamic_timeout(prompt, task)
-
-        # Optional fallback model for overload scenarios
-        fallback_model = os.getenv(
-            "GEMINI_FALLBACK_MODEL", "models/gemini-3.6-flash"
-        )
-        use_fallback_next = False
+        operation_deadline = asyncio.get_running_loop().time() + MAX_OPERATION_SECONDS
 
         for attempt in range(max_retries):
+            remaining = operation_deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                raise LLMAPIError("Gemini stream operation exceeded its bounded deadline")
             try:
-                effective_model = fallback_model if use_fallback_next else model
                 # Make the API call with dynamic timeout
                 stream = await asyncio.wait_for(
                     self.client.aio.models.generate_content_stream(
-                        model=effective_model, contents=prompt, config=config
+                        model=model, contents=prompt, config=config
                     ),
-                    timeout=timeout_seconds,
+                    timeout=min(timeout_seconds, remaining),
                 )
-                return stream
+                return stream, operation_deadline
+            except asyncio.CancelledError:
+                raise
             except asyncio.TimeoutError as e:
                 last_exception = e
                 if attempt < max_retries - 1:
@@ -472,7 +676,12 @@ class AsyncGenAIClient:
                         f"API stream call timed out (attempt {attempt + 1}/{max_retries}): {str(e)}. "
                         f"Retrying in {delay:.2f}s..."
                     )
-                    await asyncio.sleep(delay)
+                    await asyncio.sleep(
+                        min(
+                            delay,
+                            max(0.0, operation_deadline - asyncio.get_running_loop().time()),
+                        )
+                    )
                     delay *= backoff_factor
                 else:
                     # Last attempt failed, raise the exception
@@ -484,33 +693,36 @@ class AsyncGenAIClient:
                     ) from e
             except Exception as e:
                 last_exception = e
-                if attempt < max_retries - 1:
-                    message = str(e)
-                    overloaded = any(
-                        s in message for s in ["503", "UNAVAILABLE", "overloaded"]
-                    )
-                    if overloaded:
-                        use_fallback_next = True
-                        logger.warning(
-                            f"API stream call failed with service unavailable/overload (attempt {attempt + 1}/{max_retries})."
-                            f" Will retry using fallback model '{fallback_model}' in {delay:.2f}s. Error: {message}"
-                        )
-                    else:
-                        logger.warning(
-                            f"API stream call failed (attempt {attempt + 1}/{max_retries}): {message}. "
-                            f"Retrying in {delay:.2f}s..."
-                        )
-                    jitter = min(1.0, delay * 0.1) * random.random()
-                    await asyncio.sleep(delay + jitter)
-                    delay *= backoff_factor
-                else:
-                    # Last attempt failed, raise the exception
-                    logger.error(
-                        f"API stream call failed after {max_retries} attempts: {str(e)}"
-                    )
+                status_code = self._status_code(e)
+                if not self._is_transient_error(e):
                     raise LLMAPIError(
-                        f"API stream call failed after {max_retries} attempts: {str(e)}"
+                        f"Non-retryable Gemini stream API error: {str(e)}",
+                        status_code=status_code,
                     ) from e
+                if attempt >= max_retries - 1:
+                    raise LLMAPIError(
+                        "Transient Gemini stream API error after "
+                        f"{max_retries} attempts: {str(e)}",
+                        status_code=status_code,
+                    ) from e
+
+                sleep_seconds = self._transient_sleep_seconds(e, delay)
+                logger.warning(
+                    "Transient Gemini stream API status %s (attempt %s/%s); "
+                    "retrying the same model '%s' in %.2fs",
+                    status_code,
+                    attempt + 1,
+                    max_retries,
+                    model,
+                    sleep_seconds,
+                )
+                await asyncio.sleep(
+                    min(
+                        sleep_seconds,
+                        max(0.0, operation_deadline - asyncio.get_running_loop().time()),
+                    )
+                )
+                delay *= backoff_factor
 
         # This should never happen, but just in case
         raise LLMAPIError(f"API stream call failed: {str(last_exception)}")
@@ -529,6 +741,11 @@ class AsyncGenAIClient:
             Parsed response as a dictionary
         """
         try:
+            # A schema-valid object may still come from a response stopped by the
+            # token ceiling. Check completion before accepting ``response.parsed``
+            # or attempting the legacy JSON repair path below.
+            self._validate_response_completion(response, task)
+
             # Check if response has parsed property (from schema validation)
             if hasattr(response, "parsed") and response.parsed is not None:
                 logger.info(f"Using schema-validated parsed response for task {task}")
@@ -692,27 +909,8 @@ class AsyncGenAIClient:
                     f"Empty or very short response received for task '{task}'"
                 )
 
-            # Check if task is a JSON task
-            if isinstance(task, str):
-                try:
-                    task_enum = TaskType(task)
-                    is_json_task = task_enum != TaskType.TEXT_GENERATION
-                except ValueError:
-                    # Unknown task, assume it might be JSON
-                    is_json_task = True
-            else:
-                is_json_task = task != TaskType.TEXT_GENERATION
-
             # Parse JSON if needed
-            # Treat certain tasks as non-JSON even if unknown to the enum
-            if isinstance(task, str) and task.lower() in (
-                "text_generation",
-                "conversation_routine",
-                "conversation_routines",
-                "conversation_context_extraction",
-                "conversation_suggestions",
-            ):
-                is_json_task = False
+            is_json_task = self._task_expects_json(task)
             if is_json_task:
                 # Check if JSON is truncated
                 if not text_response.strip().endswith(

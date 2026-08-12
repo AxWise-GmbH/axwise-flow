@@ -22,6 +22,10 @@ from backend.services.llm.exceptions import (
     LLMServiceError,
 )
 from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
+from backend.services.llm.gemini_runtime import (
+    RESEARCH_MODEL,
+    normalized_research_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +57,18 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
             raise ValueError("Gemini API key not found.")
 
         # Initialize the AsyncGenAIClient
-        self.client = AsyncGenAIClient(api_key=api_key, model=config.get("model"))
+        configured_model = config.get("model") or os.getenv(
+            "GEMINI_MODEL", f"models/{RESEARCH_MODEL}"
+        )
+        if normalized_research_model(configured_model) != RESEARCH_MODEL:
+            raise ValueError(
+                "Enhanced Gemini research requires exact gemini-3.6-flash; "
+                "provider/model fallback is disabled"
+            )
+        self.client = AsyncGenAIClient(
+            api_key=api_key,
+            model=f"models/{RESEARCH_MODEL}",
+        )
         logger.info(f"EnhancedGeminiLLMService initialized with AsyncGenAIClient")
 
     # --- Implementation of BaseLLMService abstract methods ---
@@ -69,6 +84,18 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         Returns:
             System message
         """
+        if (
+            task == TaskType.PRD_GENERATION
+            and request.get("document_intent") == "commercial_market_launch"
+        ):
+            # Retrieved web/interview/persona material is untrusted data.  It
+            # must never be elevated into Gemini's native system instruction.
+            from backend.services.llm.prompts.tasks.prd_generation import (
+                PRDGenerationPrompts,
+            )
+
+            return PRDGenerationPrompts.commercial_market_launch_system_prompt()
+
         from backend.services.llm.prompts.gemini_prompts import GeminiPrompts
 
         return GeminiPrompts.get_system_message(task, request)
@@ -91,22 +118,15 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         try:
             # Extract custom configuration parameters if any
             custom_config = {}
-            if "temperature" in request:
-                custom_config["temperature"] = request["temperature"]
             if "max_tokens" in request:
                 custom_config["max_output_tokens"] = request["max_tokens"]
-            if "top_p" in request:
-                custom_config["top_p"] = request["top_p"]
-            if "top_k" in request:
-                custom_config["top_k"] = request["top_k"]
 
             # If caller requests strict JSON, enforce via response_mime_type
             try:
                 if request.get("enforce_json"):
-                    # application/json forces Gemini to emit JSON; keep temp at 0 for structure
+                    # Schema + semantic validation enforce structure. Gemini
+                    # 3.6 deprecates temperature/top_p/top_k.
                     custom_config["response_mime_type"] = "application/json"
-                    # Prefer deterministic output for structured tasks
-                    custom_config.setdefault("temperature", 0.0)
             except Exception:
                 pass
 
@@ -184,14 +204,8 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         try:
             # Extract custom configuration parameters if any
             custom_config = {}
-            if "temperature" in kwargs:
-                custom_config["temperature"] = kwargs["temperature"]
             if "max_tokens" in kwargs:
                 custom_config["max_output_tokens"] = kwargs["max_tokens"]
-            if "top_p" in kwargs:
-                custom_config["top_p"] = kwargs["top_p"]
-            if "top_k" in kwargs:
-                custom_config["top_k"] = kwargs["top_k"]
 
             # Call the AsyncGenAIClient
             response = await self.client.generate_content(
@@ -407,10 +421,11 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
                 custom_config={
                     "response_schema": response_model,
                     "response_mime_type": "application/json",
-                    "temperature": kwargs.get(
-                        "temperature", 0.0
-                    ),  # Lower temp for structured output
-                    **kwargs,
+                    **{
+                        key: value
+                        for key, value in kwargs.items()
+                        if key not in {"temperature", "top_p", "top_k"}
+                    },
                 },
             )
 

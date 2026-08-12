@@ -7,6 +7,12 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from backend.services.research_quality_service import (
+    COMMERCIAL_MARKET_LAUNCH,
+    normalize_research_prd_type,
+    prune_nulls,
+)
+
 
 STOP_WORDS = {
     "and", "are", "for", "from", "into", "that", "the", "their", "this",
@@ -34,6 +40,9 @@ class OrqalyTaskContext(BaseModel):
     constraints: List[str] = Field(default_factory=list)
     required_capabilities: List[str] = Field(default_factory=list)
     required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
+    research_prd_type: Optional[str] = None
+    customer_role_contract: Dict[str, Any] = Field(default_factory=dict)
+    critical_claim_policy: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("required_execution_roles")
     @classmethod
@@ -173,28 +182,134 @@ def is_customer_persona_eligible(persona: Dict[str, Any]) -> bool:
     return normalized not in _NON_CUSTOMER_STAKEHOLDER_TYPES
 
 
-def _pick_customer_persona(personas: List[Dict[str, Any]]) -> Dict[str, Any]:
+_ECONOMIC_BUYER_TERMS = {
+    "ceo", "chief executive", "chief financial", "chief operating", "chief marketing",
+    "cfo", "coo", "cmo", "founder", "owner", "managing director", "geschäftsführer",
+    "geschaeftsfuehrer", "general manager", "budget owner", "economic buyer",
+    "head of finance", "head of procurement", "procurement director", "category buyer",
+    "category manager", "purchasing director", "commercial director",
+}
+_DECISION_AUTHORITY_TERMS = {
+    "decision authority", "decision maker", "decision-maker", "approver",
+    "approval authority", "signing authority", "p&l owner", "pnl owner",
+}
+_OPERATIONAL_USER_TERMS = {
+    "operator", "operational user", "end user", "technician", "coordinator",
+    "administrator", "assistant", "junior", "analyst", "specialist",
+}
+_INFLUENCER_TERMS = {
+    "influencer", "advisor", "adviser", "consultant", "legal counsel",
+    "compliance lead", "subject matter expert",
+}
+_DECISION_ROLE_RANK = {
+    "economic_buyer": 5,
+    "decision_authority": 4,
+    "influencer": 3,
+    "operational_user": 2,
+    "beneficiary": 1,
+}
+
+
+def classify_customer_decision_role(persona: Dict[str, Any]) -> str:
+    """Classify research participants by buying authority, not confidence alone."""
+
+    stakeholder = persona.get("stakeholder_intelligence")
+    metadata = persona.get("persona_metadata")
+    demographics = persona.get("demographics")
+    explicit = " ".join(
+        str(value or "")
+        for value in (
+            stakeholder.get("decision_role") if isinstance(stakeholder, dict) else None,
+            stakeholder.get("stakeholder_type") if isinstance(stakeholder, dict) else None,
+            metadata.get("decision_role") if isinstance(metadata, dict) else None,
+        )
+    ).casefold()
+    if any(term in explicit for term in _DECISION_AUTHORITY_TERMS):
+        return "decision_authority"
+    if any(term in explicit for term in ("economic buyer", "budget owner", "buyer")):
+        return "economic_buyer"
+    if any(term in explicit for term in _INFLUENCER_TERMS):
+        return "influencer"
+    if any(term in explicit for term in _OPERATIONAL_USER_TERMS):
+        return "operational_user"
+
+    # Infer from the persona's own title only. Descriptive prose often mentions
+    # who the participant supports and must not confer that other person's power.
+    own_title = " ".join(
+        str(value or "")
+        for value in (
+            persona.get("role"), persona.get("job_title"),
+            stakeholder.get("role") if isinstance(stakeholder, dict) else None,
+            demographics.get("role") if isinstance(demographics, dict) else None,
+            demographics.get("job_title") if isinstance(demographics, dict) else None,
+            (persona.get("name") or persona.get("persona_name") or "").split(",", 1)[1]
+            if "," in str(persona.get("name") or persona.get("persona_name") or "") else None,
+        )
+    ).casefold()
+    if any(term in own_title for term in _OPERATIONAL_USER_TERMS):
+        return "operational_user"
+    if any(term in own_title for term in _ECONOMIC_BUYER_TERMS):
+        return "economic_buyer"
+    if any(term in own_title for term in _DECISION_AUTHORITY_TERMS):
+        return "decision_authority"
+    if any(term in own_title for term in _INFLUENCER_TERMS):
+        return "influencer"
+    return "beneficiary"
+
+
+def _selection_eligibility(
+    decision_role: str, role_contract: Optional[Dict[str, Any]] = None
+) -> str:
+    primary_roles = set(
+        (role_contract or {}).get("primary_roles")
+        or (role_contract or {}).get("primary_decision_roles")
+        or ["economic_buyer", "decision_authority"]
+    )
+    ineligible_roles = set((role_contract or {}).get("ineligible_roles") or [])
+    if decision_role in ineligible_roles:
+        return "ineligible"
+    if decision_role in primary_roles:
+        return "eligible_primary"
+    return "secondary_only"
+
+
+def _pick_customer_persona(
+    personas: List[Dict[str, Any]],
+    *,
+    role_contract: Optional[Dict[str, Any]] = None,
+    require_primary_buyer: bool = False,
+) -> Dict[str, Any]:
     eligible = [persona for persona in personas if is_customer_persona_eligible(persona)]
     if not eligible:
         raise ValueError("Persona resolution requires an eligible customer persona")
-    ranked = sorted(
-        eligible,
-        key=lambda persona: (_persona_confidence(persona), len(_evidence_items(persona))),
-        reverse=True,
-    )
+    ranked = sorted(eligible, key=lambda persona: (
+        _DECISION_ROLE_RANK[classify_customer_decision_role(persona)],
+        _persona_confidence(persona),
+        len(_evidence_items(persona)),
+    ), reverse=True)
     persona = ranked[0]
+    decision_role = classify_customer_decision_role(persona)
+    eligibility = _selection_eligibility(decision_role, role_contract)
+    if require_primary_buyer and eligibility != "eligible_primary":
+        raise ValueError(
+            "Persona resolution requires an economic buyer or decision authority "
+            "for the primary commercial customer"
+        )
     evidence = _evidence_items(persona)
     public_summary = {
         key: value
         for key, value in persona.items()
         if not str(key).startswith("_") and key not in {"raw_transcript", "source_text"}
     }
-    return {
+    return prune_nulls({
         "name": persona.get("name") or persona.get("persona_name") or "Primary customer persona",
         "confidence": _persona_confidence(persona),
+        "decision_role": decision_role,
+        "buyer_role": decision_role in {"economic_buyer", "decision_authority"},
+        "selection_eligibility": eligibility,
         "profile": public_summary,
         "evidence": evidence,
-    }
+    })
 
 
 def _candidate_score(
@@ -244,7 +359,17 @@ def resolve_orqaly_personas(
     if not empirical_personas:
         raise ValueError("Persona resolution requires empirical customer personas")
 
-    customer = _pick_customer_persona(empirical_personas)
+    semantic_prd_type = normalize_research_prd_type(task_context.research_prd_type)
+    role_contract = dict(task_context.customer_role_contract or {})
+    require_primary_buyer = bool(
+        role_contract.get("require_primary_buyer")
+        or semantic_prd_type == COMMERCIAL_MARKET_LAUNCH
+    )
+    customer = _pick_customer_persona(
+        empirical_personas,
+        role_contract=role_contract,
+        require_primary_buyer=require_primary_buyer,
+    )
     task_tokens = _tokens(
         task_context.title,
         task_context.description,
