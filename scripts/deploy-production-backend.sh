@@ -61,7 +61,7 @@ if [[ -n "${SEARXNG_URL}" ]]; then
     echo "SEARXNG_URL must be a credential-free HTTPS endpoint" >&2
     exit 1
   fi
-  WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}"
+  WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}@SEARXNG_AUTH_MODE=google_identity"
   echo "Optional self-hosted SearXNG secondary route enabled"
 fi
 

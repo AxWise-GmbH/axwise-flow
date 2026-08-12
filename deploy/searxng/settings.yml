@@ -1,0 +1,21 @@
+use_default_settings:
+  engines:
+    keep_only:
+      - bing
+      - brave
+      - duckduckgo
+      - google
+
+general:
+  instance_name: AxWise SearXNG
+
+search:
+  safe_search: 1
+  formats:
+    - json
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  limiter: false
+  public_instance: false

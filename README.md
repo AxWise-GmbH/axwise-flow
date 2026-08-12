@@ -426,6 +426,10 @@ free, self-hosted secondary metasearch route, deploy a private SearXNG instance
 with JSON output enabled and set `SEARXNG_URL` to its credential-free HTTPS
 endpoint. The worker uses it only when earlier grounded evidence does not meet
 the requested source threshold; it does not depend on public SearXNG instances.
+For Google Cloud, provision the `axwise-searxng-secret` Secret Manager value,
+then run `scripts/deploy-searxng-cloud-run.sh`; it pins the upstream image,
+keeps the service private, grants only the AxWise worker `run.invoker`, and
+configures audience-bound identity-token authentication.
 
 ### Prerequisites
 * **Python 3.11** (recommended; pandas 2.1.4 requires python 3.11)

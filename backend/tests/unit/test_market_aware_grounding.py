@@ -341,6 +341,45 @@ def test_searxng_rejects_untrusted_cleartext_remote_endpoint():
     assert SearxngSearchService("http://localhost:8080").is_available() is True
 
 
+def test_searxng_cloud_run_uses_audience_bound_identity_token():
+    service = SearxngSearchService(
+        "https://axwise-searxng.example.run.app",
+        auth_mode="google_identity",
+    )
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"results": []}
+
+    with patch(
+        "google.oauth2.id_token.fetch_id_token",
+        return_value="audience-bound-token",
+    ) as fetch_token, patch(
+        "backend.services.generative.searxng_search_service.httpx.get",
+        return_value=response,
+    ) as request:
+        service.search_web_general("Estonian pet-food market")
+
+    assert fetch_token.call_args.args[1] == "https://axwise-searxng.example.run.app"
+    assert request.call_args.kwargs["headers"] == {
+        "Authorization": "Bearer audience-bound-token"
+    }
+
+
+def test_searxng_rejects_unknown_auth_mode_without_network_request():
+    service = SearxngSearchService(
+        "https://search.example.com", auth_mode="static_key"
+    )
+
+    with patch(
+        "backend.services.generative.searxng_search_service.httpx.get"
+    ) as request:
+        result = service.search_web_general("market")
+
+    assert result["search_performed"] is False
+    assert result["error"] == "ValueError"
+    request.assert_not_called()
+
+
 def test_gemini_search_preserves_claim_to_source_citations():
     service = GeminiSearchService.__new__(GeminiSearchService)
     metadata = SimpleNamespace(
