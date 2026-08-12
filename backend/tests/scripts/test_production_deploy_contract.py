@@ -20,7 +20,7 @@ def test_production_backend_deploy_script_is_valid_bash() -> None:
 def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 
-    assert 'GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.5-flash}"' in script
+    assert 'GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.6-flash}"' in script
     assert 'OPENREGISTER_SECRET="${OPENREGISTER_SECRET:-OPENREGISTER_API_KEY}"' in script
     assert "OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest" in script
     assert '--set-secrets "${WORKER_SECRET_BINDINGS}"' in script
