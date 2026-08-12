@@ -339,7 +339,7 @@ async def test_deep_web_router_uses_searxng_only_when_gemini_lacks_authoritative
     gemini.search_web_general.assert_called_once()
     searxng.search_web_general.assert_called_once()
     assert {row["source_authority"] for row in pipeline.market_sources} == {
-        "independent_web",
+        "unverified_redirect",
         "official_public",
     }
 
@@ -432,12 +432,15 @@ def test_searxng_adapter_is_optional_bounded_and_source_bearing():
         result = service.search_web_general("cat food regulation Estonia")
 
     assert result["search_performed"] is True
-    assert result["sources"] == [
-        {
-            "title": "Estonian Agriculture and Food Board",
-            "url": "https://pta.agri.ee/en",
-        }
-    ]
+    assert len(result["sources"]) == 1
+    assert result["sources"][0]["title"] == (
+        "Estonian Agriculture and Food Board"
+    )
+    assert result["sources"][0]["url"] == "https://pta.agri.ee/en"
+    assert result["sources"][0]["provider"] == "searxng"
+    assert result["sources"][0]["provider_source_id"].startswith("searxng-")
+    assert result["sources"][0]["provider_query_ids"]
+    assert result["sources"][0]["retrieved_at"]
     assert "Official feed and food market guidance" in result["text"]
     assert request.call_args.kwargs["follow_redirects"] is False
 
@@ -488,6 +491,8 @@ def test_searxng_rejects_unknown_auth_mode_without_network_request():
 
 def test_gemini_search_preserves_claim_to_source_citations():
     service = GeminiSearchService.__new__(GeminiSearchService)
+    prefix = "Eesti turuülevaade. "
+    claim_text = "Estonian feed operators must follow applicable feed rules."
     metadata = SimpleNamespace(
         grounding_chunks=[
             SimpleNamespace(
@@ -500,7 +505,10 @@ def test_gemini_search_preserves_claim_to_source_citations():
         grounding_supports=[
             SimpleNamespace(
                 segment=SimpleNamespace(
-                    text="Estonian feed operators must follow applicable feed rules."
+                    text=claim_text,
+                    start_index=0,
+                    end_index=len(claim_text.encode("utf-8")),
+                    part_index=1,
                 ),
                 grounding_chunk_indices=[0],
                 confidence_scores=[0.96],
@@ -509,7 +517,17 @@ def test_gemini_search_preserves_claim_to_source_citations():
     )
     response = SimpleNamespace(
         text="Grounded response",
-        candidates=[SimpleNamespace(grounding_metadata=metadata)],
+        candidates=[
+            SimpleNamespace(
+                grounding_metadata=metadata,
+                content=SimpleNamespace(
+                    parts=[
+                        SimpleNamespace(text=prefix),
+                        SimpleNamespace(text=claim_text),
+                    ]
+                ),
+            )
+        ],
     )
     service._client = SimpleNamespace(
         models=SimpleNamespace(generate_content=MagicMock(return_value=response))
@@ -517,10 +535,15 @@ def test_gemini_search_preserves_claim_to_source_citations():
 
     result = service.search_web_general("Estonian cat food regulation")
 
-    assert result["claims"] == [
-        {
-            "text": "Estonian feed operators must follow applicable feed rules.",
-            "source_urls": ["https://pta.agri.ee/en"],
-            "confidence_scores": [0.96],
-        }
+    assert len(result["claims"]) == 1
+    claim = result["claims"][0]
+    assert claim["text"] == claim_text
+    assert claim["source_urls"] == ["https://pta.agri.ee/en"]
+    assert claim["confidence_scores"] == [0.96]
+    assert claim["part_index"] == 1
+    assert claim["offset_unit"] == "utf8_bytes"
+    assert claim["span_target"] == "provider_response_part"
+    assert claim["provenance_artifact"]["response_parts"] == [
+        prefix,
+        claim_text,
     ]

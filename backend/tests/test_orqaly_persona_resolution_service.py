@@ -177,3 +177,92 @@ def test_rejects_a_weak_cross_domain_candidate_and_normalizes_structured_style()
     assert result["ideal_agent_persona"]["role"] == "Customer-aligned operations specialist"
     assert result["ideal_agent_persona"]["communication_style"] == "methodical and evidence-led"
     assert "better" not in result["ideal_agent_persona"]["required_capabilities"]
+
+
+def test_commercial_customer_prefers_economic_buyer_over_high_confidence_operator():
+    operator = _customer_persona()
+    operator.update(
+        {
+            "name": "Kadri Saar, Retail Operations Analyst",
+            "confidence": 0.99,
+            "stakeholder_intelligence": {"stakeholder_type": "Operational user"},
+        }
+    )
+    buyer = _customer_persona()
+    buyer.update(
+        {
+            "name": "Markus Tamm, Category Manager",
+            "confidence": 0.72,
+            "stakeholder_intelligence": {"stakeholder_type": "Economic buyer"},
+        }
+    )
+
+    result = resolve_orqaly_personas(
+        [operator, buyer],
+        OrqalyTaskContext(
+            title="Launch cat food in Estonia",
+            description="Build the commercial market plan",
+            research_prd_type="commercial_market_launch",
+        ),
+        [],
+    )
+
+    assert result["customer_persona"]["name"] == buyer["name"]
+    assert result["customer_persona"]["decision_role"] == "economic_buyer"
+    assert result["customer_persona"]["buyer_role"] is True
+    assert result["customer_persona"]["selection_eligibility"] == "eligible_primary"
+
+
+def test_commercial_customer_fails_closed_when_only_operator_exists():
+    operator = _customer_persona()
+    operator.update(
+        {
+            "name": "Kadri Saar, Operations Analyst",
+            "stakeholder_intelligence": {"stakeholder_type": "Operational user"},
+        }
+    )
+
+    with pytest.raises(ValueError, match="economic buyer or decision authority"):
+        resolve_orqaly_personas(
+            [operator],
+            OrqalyTaskContext(
+                title="Launch cat food in Estonia",
+                description="Build the commercial market plan",
+                research_prd_type="commercial_market_launch",
+            ),
+            [],
+        )
+
+
+def test_supporting_a_cfo_does_not_promote_a_junior_analyst_to_buyer():
+    junior = _customer_persona()
+    junior.update(
+        {
+            "name": "Liis Kask, Junior Commercial Analyst supporting CFO",
+            "job_title": "Junior Commercial Analyst supporting CFO",
+        }
+    )
+    director = _customer_persona()
+    director.update(
+        {
+            "name": "Marta Saar, Commercial Director",
+            "job_title": "Commercial Director",
+        }
+    )
+
+    result = resolve_orqaly_personas(
+        [junior, director],
+        OrqalyTaskContext(
+            title="Estonia commercial launch",
+            description="Choose the buying persona",
+            research_prd_type="commercial_market_launch",
+            customer_role_contract={
+                "primary_roles": ["economic_buyer"],
+                "require_primary_buyer": True,
+            },
+        ),
+        [],
+    )
+
+    assert result["customer_persona"]["name"] == director["name"]
+    assert result["customer_persona"]["selection_eligibility"] == "eligible_primary"

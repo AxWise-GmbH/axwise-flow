@@ -7,8 +7,9 @@ import logging
 import os
 import uuid
 import random
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 from pydantic_ai.models import Model
 
 from ..models import (
@@ -27,6 +28,13 @@ from .occupation_classifier import OccupationClassifier
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class PersonaRunContract:
+    expected_count: int
+    expected_country_codes: tuple[Optional[str], ...] = ()
+    expected_localities: tuple[frozenset[str], ...] = ()
+
+
 class PersonaGenerator:
     """Generates realistic AI personas for interview simulation."""
 
@@ -41,9 +49,67 @@ class PersonaGenerator:
         self.occupation_classifier = occupation_classifier or OccupationClassifier()
         self.agent = Agent(
             model=model,
-            output_type=List[PersonaGenerationItem],
+            deps_type=PersonaRunContract,
+            output_type=NativeOutput(List[PersonaGenerationItem]),
             system_prompt=self._get_system_prompt(),
+            retries={"output": 2},
         )
+
+        @self.agent.output_validator
+        async def validate_persona_batch(
+            ctx: RunContext[PersonaRunContract], output: List[PersonaGenerationItem]
+        ) -> List[PersonaGenerationItem]:
+            expected = ctx.deps.expected_count
+            indices = [item.profile_index for item in output]
+            if expected is not None and (
+                len(output) != expected or sorted(indices) != list(range(1, expected + 1))
+            ):
+                raise ModelRetry(
+                    "Return exactly one persona for every profile_index, numbered 1 through "
+                    f"{expected}, with no duplicates."
+                )
+            for item in output:
+                position = item.profile_index - 1
+                expected_codes = ctx.deps.expected_country_codes
+                expected_code = (
+                    expected_codes[position]
+                    if 0 <= position < len(expected_codes)
+                    else None
+                )
+                actual_code = str(
+                    item.demographic_details.country_code or ""
+                ).upper()
+                if expected_code and actual_code != expected_code:
+                    raise ModelRetry(
+                        f"Profile {item.profile_index} must use assigned ISO country_code "
+                        f"{expected_code}; do not infer or substitute a nearby market."
+                    )
+                locality_sets = ctx.deps.expected_localities
+                localities = (
+                    locality_sets[position]
+                    if 0 <= position < len(locality_sets)
+                    else frozenset()
+                )
+                if localities:
+                    location = str(item.demographic_details.location or "").casefold()
+                    if not any(locality in location for locality in localities):
+                        raise ModelRetry(
+                            f"Profile {item.profile_index} location must use its assigned "
+                            "authorized locality."
+                        )
+            if any(
+                len(item.name.strip()) < 3
+                or len(item.background.strip()) < 40
+                or len(item.motivations) < 2
+                or len(item.pain_points) < 2
+                or len(item.communication_style.strip()) < 10
+                for item in output
+            ):
+                raise ModelRetry(
+                    "Personas must contain a specific name, substantive background, at least "
+                    "two motivations and pain points, and a concrete communication style."
+                )
+            return output
         self.used_names_by_category = {}  # Track used names per stakeholder category
         self.used_names_global = set()  # Track used first+last names across entire simulation
 
@@ -104,37 +170,35 @@ Return a list of PersonaGenerationItem objects with all fields populated."""
                 sampled_profiles,
                 market_offset=market_offset,
             )
+            scope = getattr(business_context, "market_scope", None)
+            resolved_markets = list(
+                getattr(getattr(scope, "resolved_scope", None), "countries", []) or []
+            )
+            resolved_markets.sort(key=lambda market: market.priority != "primary")
+            assigned_markets = [
+                resolved_markets[(market_offset + index) % len(resolved_markets)]
+                for index in range(config.people_per_stakeholder)
+            ] if resolved_markets else []
+            run_contract = PersonaRunContract(
+                expected_count=config.people_per_stakeholder,
+                expected_country_codes=tuple(
+                    str(market.country_code).upper() for market in assigned_markets
+                ),
+                expected_localities=tuple(
+                    frozenset(
+                        str(locality).casefold()
+                        for locality in market.localities
+                        if str(locality).strip()
+                    )
+                    for market in assigned_markets
+                ),
+            )
             logger.info(f"Person generation prompt: {prompt[:200]}...")
 
-            # Try with retry logic for Gemini API issues
-            max_retries = 2
-            for attempt in range(max_retries + 1):
-                try:
-                    # Use temperature 0 for structured JSON generation to avoid malformed responses
-                    result = await self.agent.run(
-                        prompt, model_settings={"temperature": 0.0}
-                    )
-                    break  # Success, exit retry loop
-                except Exception as e:
-                    if "MALFORMED_FUNCTION_CALL" in str(e) and attempt < max_retries:
-                        logger.warning(
-                            f"Gemini API error on attempt {attempt + 1}, retrying with simpler prompt..."
-                        )
-                        # Simplify the prompt for retry
-                        simple_prompt = f"""Generate {config.people_per_stakeholder} realistic individual people for:
-Stakeholder: {stakeholder.name}
-Business: {business_context.business_idea}
-Target Customer: {business_context.target_customer}
-Problem: {business_context.problem}
-Primary Business Location: {getattr(business_context, 'location', None) or 'Not specified'}
-
-Most people should be based in or very near this primary location. Only a few should be in other clearly relevant locations (such as another office, key regional customer, or supplier site), and all locations must be plausible for this business.
-Keep responses concise and realistic."""
-                        # Re-attach pre-sampled profiles even for simple prompt
-                        prompt = simple_prompt + "\n\nPRE-ASSIGNED PERSONALITY PROFILES:\n" + self._format_sampled_profiles(sampled_profiles)
-                        continue
-                    else:
-                        raise  # Re-raise if final attempt or different error
+            # Gemini 3.6 supports native JSON-schema output. PydanticAI owns
+            # schema-repair retries; provider transport retries remain in the
+            # configured HTTP client and we do not retry arbitrary exceptions.
+            result = await self.agent.run(prompt, deps=run_contract)
 
             logger.info(f"PydanticAI result: {result}")
             people_items = result.output
@@ -319,6 +383,17 @@ these assignments define the bounded synthetic-interview sample."""
 - Do not infer a country from a city-only or ambiguous label.
 - A different location is allowed only when the business context explicitly supports it."""
 
+        grounding_context = getattr(business_context, "grounding_context", None)
+        grounding_section = ""
+        if grounding_context:
+            import json
+            grounding_section = (
+                "\nGROUNDED MARKET DATA — FACT CONTEXT ONLY:\n"
+                + json.dumps(grounding_context, ensure_ascii=False)[:12000]
+                + "\nDo not convert test labels, exclusions, routing instructions, prior failure "
+                "narratives, or market-comparison language into a person's biography.\n"
+            )
+
         return f"""Generate {config.people_per_stakeholder} realistic individual people for the following context:
 
 BUSINESS CONTEXT:
@@ -329,6 +404,7 @@ BUSINESS CONTEXT:
 - Primary Business Location: {primary_location or "Not specified"}
 
 {geography_guidelines}
+{grounding_section}
 
 STAKEHOLDER TYPE:
 - Name: {stakeholder.name}
@@ -506,7 +582,7 @@ Generate:
 3. motivations: specific B2B motivations relevant to the context
 4. pain_points: specific pain points relevant to the business problem
 5. communication_style: their communication preferences (e.g. direct, detail-oriented) reflecting their personality
-6. demographic_details: company size, education, etc.
+6. demographic_details: company size, education, location, and the exact assigned ISO country_code
 7. physical_description: a concise visual description suitable for AI image generation (no text/logos)
 
 CRITICAL REQUIREMENT:
@@ -514,7 +590,10 @@ CRITICAL REQUIREMENT:
 """
         try:
             logger.info(f"Generating personas for {len(decision_makers)} decision makers...")
-            result = await self.agent.run(prompt, model_settings={"temperature": 0.0})
+            fallback_contract = PersonaRunContract(
+                expected_count=len(decision_makers),
+            )
+            result = await self.agent.run(prompt, deps=fallback_contract)
             people_items = result.output
 
             people = []

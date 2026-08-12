@@ -57,6 +57,13 @@ class HybridResearchAdapter:
             required_execution_roles=(
                 brief.required_execution_roles if brief else []
             ),
+            research_prd_type=(brief.research_prd_type if brief else None),
+            customer_role_contract=(
+                brief.customer_role_contract.model_dump(mode="json") if brief else {}
+            ),
+            critical_claim_policy=(
+                brief.critical_claim_policy.model_dump(mode="json") if brief else {}
+            ),
         )
 
     @staticmethod
@@ -228,7 +235,7 @@ class HybridResearchAdapter:
                 prd=HybridPRDOutput(
                     enabled="research_prd" in policy.required_outputs,
                     required="research_prd" in policy.required_outputs,
-                    type="operational",
+                    type=brief.research_prd_type,
                 ),
             ),
             user=self.user,
