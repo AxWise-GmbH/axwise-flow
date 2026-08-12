@@ -421,7 +421,11 @@ local `.env` file. Provision that secret separately before deployment when
 registry evidence is required, and run the release with
 `REQUIRE_OPENREGISTER=true` to fail before deployment if it is unavailable.
 `OPENREGISTER_SECRET` may name a differently named Secret Manager entry without
-exposing its value.
+exposing its value. Gemini Google Search is the default web route. To add a
+free, self-hosted secondary metasearch route, deploy a private SearXNG instance
+with JSON output enabled and set `SEARXNG_URL` to its credential-free HTTPS
+endpoint. The worker uses it only when earlier grounded evidence does not meet
+the requested source threshold; it does not depend on public SearXNG instances.
 
 ### Prerequisites
 * **Python 3.11** (recommended; pandas 2.1.4 requires python 3.11)

@@ -62,6 +62,8 @@ services:
       # LLM
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
       GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+      OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
+      SEARXNG_URL: ${SEARXNG_URL:-}
 
       # Auth disabled for OSS
       ENABLE_CLERK_VALIDATION: "false"
@@ -92,6 +94,8 @@ services:
       DB_NAME: axwise
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
       GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3-flash-preview}
+      OPENREGISTER_API_KEY: ${OPENREGISTER_API_KEY:-}
+      SEARXNG_URL: ${SEARXNG_URL:-}
       ENABLE_CLERK_VALIDATION: "false"
       AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
       WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}

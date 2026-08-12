@@ -32,3 +32,13 @@ def test_registry_grounding_can_be_made_a_fail_fast_release_requirement() -> Non
     assert 'REQUIRE_OPENREGISTER="${REQUIRE_OPENREGISTER:-false}"' in script
     assert 'elif [[ "${REQUIRE_OPENREGISTER}" == "true" ]]' in script
     assert "Required Secret Manager secret" in script
+
+
+def test_optional_searxng_route_requires_a_credential_free_https_endpoint() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'SEARXNG_URL="${SEARXNG_URL:-}"' in script
+    assert '[[ "${SEARXNG_URL}" == *"@"* ]]' in script
+    assert '[[ ! "${SEARXNG_URL}" =~ ^https:// ]]' in script
+    assert 'WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}"' in script
+    assert '--set-env-vars "${WORKER_ENV_VARS}"' in script

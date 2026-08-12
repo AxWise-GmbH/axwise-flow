@@ -416,6 +416,7 @@ def _source_for_registry(company: CompanyDiscoveryItem) -> Optional[Dict[str, An
         "source_type": "company_registry",
         "company_id": _safe_text(company.id, 255),
         "company_name": _safe_text(company.name, 500),
+        "market_location": _safe_text(company.location, 500),
         "registry": registry,
     }
     return {
@@ -424,6 +425,7 @@ def _source_for_registry(company: CompanyDiscoveryItem) -> Optional[Dict[str, An
         "title": f"German company registry {number}",
         "url": None,
         "publisher": "Handelsregister/OpenRegister",
+        "source_authority": "official_registry",
     }
 
 
@@ -444,13 +446,27 @@ def _source_for_url(
         "url": url,
         "company_id": _safe_text(company.id, 255),
         "company_name": _safe_text(company.name, 500),
+        "market_location": _safe_text(company.location, 500),
     }
+    hostname = (urlparse(url).hostname or "").casefold()
+    if source_type == "official_company_website":
+        authority = "official_company"
+    elif (
+        hostname.endswith(".gov")
+        or ".gov." in hostname
+        or hostname.endswith(".europa.eu")
+        or hostname == "europa.eu"
+    ):
+        authority = "official_public"
+    else:
+        authority = "independent_web"
     return {
         "source_id": _stable_id("source", identity),
         **identity,
         "title": _safe_text(title, 500) or _safe_text(company.name, 500) or url,
         "publisher": urlparse(url).hostname,
         "registry": None,
+        "source_authority": authority,
     }
 
 
@@ -603,9 +619,124 @@ async def collect_regional_grounding(
         target_user=context.target_customer,
         model=regional.model,
         data_source=policy.source_strategy,
+        minimum_source_count=policy.minimum_structured_sources,
     )
     companies = await pipeline.run()
-    return normalize_market_grounding(companies, policy)
+    grounding = normalize_market_grounding(companies, policy)
+    sources, claims = _merge_market_evidence(
+        list(grounding.get("market_sources") or []) + list(pipeline.market_sources),
+        list(grounding.get("market_claims") or []) + list(pipeline.market_claims),
+        policy,
+    )
+    grounding["market_sources"] = sources
+    grounding["market_claims"] = claims
+    grounding["structured_source_count"] = len(grounding["market_sources"])
+    grounding["claim_count"] = len(grounding["market_claims"])
+    grounding["routing_diagnostics"] = pipeline.routing_diagnostics
+    return grounding
+
+
+def _merge_market_evidence(
+    source_rows: List[Dict[str, Any]],
+    claim_rows: List[Dict[str, Any]],
+    policy: HybridGroundingPolicy,
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Deduplicate real evidence before evaluating a minimum-source contract."""
+
+    canonical_sources: Dict[str, Dict[str, Any]] = {}
+    source_aliases: Dict[str, str] = {}
+    for row in source_rows:
+        if not isinstance(row, dict):
+            continue
+        source_id = _safe_text(row.get("source_id"), 255)
+        source_type = _safe_text(row.get("source_type"), 80)
+        if not source_id or source_type not in policy.allowed_source_types:
+            continue
+        url = _real_url(row.get("url"))
+        registry = row.get("registry")
+        if source_type == "company_registry":
+            register_number = (
+                _safe_text(registry.get("register_number"), 160)
+                if isinstance(registry, dict)
+                else None
+            )
+            if not register_number:
+                continue
+            evidence_key = f"registry:{register_number.casefold()}"
+        elif source_type == "provided_document":
+            content_hash = _safe_text(row.get("content_hash"), 128)
+            if not content_hash:
+                continue
+            evidence_key = f"document:{content_hash.casefold()}"
+        else:
+            if not url:
+                continue
+            parsed_url = urlparse(url)
+            canonical_host = parsed_url.hostname or ""
+            try:
+                parsed_port = parsed_url.port
+            except ValueError:
+                continue
+            if parsed_port:
+                canonical_host = f"{canonical_host}:{parsed_port}"
+            canonical_path = parsed_url.path.rstrip("/") or "/"
+            # Query strings and fragments often carry search-provider tracking.
+            # Ignore them for minimum-source counting so one document cannot be
+            # counted repeatedly through different provider wrappers.
+            evidence_key = f"url:{canonical_host.casefold()}{canonical_path}"
+
+        existing = canonical_sources.get(evidence_key)
+        if existing:
+            source_aliases[source_id] = str(existing["source_id"])
+            for key, value in row.items():
+                if value not in (None, "", [], {}) and existing.get(key) in (
+                    None,
+                    "",
+                    [],
+                    {},
+                ):
+                    existing[key] = value
+            continue
+        canonical = dict(row)
+        if url:
+            canonical["url"] = url
+        canonical_sources[evidence_key] = canonical
+        source_aliases[source_id] = source_id
+
+    sources = list(canonical_sources.values())[: policy.maximum_sources]
+    retained_source_ids = {str(row["source_id"]) for row in sources}
+    claims_by_identity: Dict[str, Dict[str, Any]] = {}
+    for row in claim_rows:
+        if not isinstance(row, dict):
+            continue
+        source_ids = list(
+            dict.fromkeys(
+                source_aliases[source_id]
+                for source_id in (
+                    _safe_text(value, 255) for value in row.get("source_ids") or []
+                )
+                if source_id in source_aliases
+                and source_aliases[source_id] in retained_source_ids
+            )
+        )
+        if not source_ids:
+            continue
+        canonical = dict(row)
+        canonical["source_ids"] = source_ids
+        identity = _stable_id(
+            "claim",
+            {
+                "claim_type": canonical.get("claim_type"),
+                "subject": canonical.get("subject"),
+                "predicate": canonical.get("predicate"),
+                "object": canonical.get("object"),
+                "source_ids": source_ids,
+            },
+        )
+        canonical["claim_id"] = identity
+        claims_by_identity.setdefault(identity, canonical)
+
+    return sources, list(claims_by_identity.values())[: policy.maximum_claims]
 
 
 def request_with_grounding(

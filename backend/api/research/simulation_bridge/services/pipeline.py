@@ -2,14 +2,19 @@
 B2B Data Ingestion Pipeline for fetching, scraping, and scoring real-world regional company leads.
 """
 
+import hashlib
 import logging
 import os
-from typing import List, Dict, Any, Optional
+import re
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
+
+from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
-from pydantic import BaseModel
 
 from ..models import CompanyDiscoveryItem
+from .market_scope import resolve_market_scope
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +51,28 @@ class B2BDataPipeline:
         business_problem: str, 
         target_user: str, 
         model: Optional[Model] = None,
-        data_source: str = "hybrid"
+        data_source: str = "hybrid",
+        minimum_source_count: int = 3,
     ):
         self.location = location
         self.business_problem = business_problem
         self.target_user = target_user
         self.model = model
         self.data_source = data_source
+        self.minimum_source_count = max(1, min(int(minimum_source_count), 25))
+        self.market_scope = resolve_market_scope(location)
+        self.routing_diagnostics: Dict[str, Any] = {
+            "requested_location": location,
+            "country_code": self.market_scope.country_code,
+            "locality": self.market_scope.locality,
+            "providers": [],
+            "rejected_cross_market": [],
+            "rejected_cross_market_sources": [],
+            "rejected_cross_market_claims": [],
+            "rejected_invalid_sources": [],
+        }
+        self.market_sources: List[Dict[str, Any]] = []
+        self.market_claims: List[Dict[str, Any]] = []
         
         # Load API keys
         self.apollo_key = os.getenv("APOLLO_API_KEY")
@@ -70,32 +90,211 @@ class B2BDataPipeline:
 
     async def run(self) -> List[CompanyDiscoveryItem]:
         """Runs the E2E ingestion and enrichment pipeline."""
-        
-        # 1. Try OpenRegister (German commercial registry)
-        if self.data_source in ("hybrid", "registry") and self.openregister_key:
-            companies = await self._fetch_from_openregister()
-            if companies:
-                logger.info(f"OpenRegister returned {len(companies)} companies.")
-                # Enrich with grounded pain points
-                enriched = await self._enrich_with_grounded_pain_points(companies)
-                return enriched
 
-        # 2. Google Search grounding
+        discovered: List[CompanyDiscoveryItem] = []
+
+        # OpenRegister is a German registry. Never send an unsupported market
+        # to it and never ask a model to replace the authorized geography.
+        if self.data_source in ("hybrid", "registry"):
+            registry_location = self.market_scope.openregister_locality
+            if self.openregister_key and registry_location:
+                registry_companies = await self._fetch_from_openregister()
+                accepted = self._accept_market_companies(
+                    registry_companies, provider="openregister"
+                )
+                discovered.extend(accepted)
+                self._record_provider(
+                    "openregister", attempted=True, accepted=len(accepted)
+                )
+            else:
+                self._record_provider(
+                    "openregister",
+                    attempted=False,
+                    accepted=0,
+                    reason=(
+                        "unsupported_market"
+                        if self.openregister_key
+                        else "not_configured"
+                    ),
+                )
+
+        # Hybrid mode intentionally adds current web evidence even when a
+        # registry returns rows. A single provider must not silently satisfy a
+        # deep-research contract without source diversity.
         if self.data_source in ("hybrid", "web"):
-            logger.info("Discovering via Google Search grounding.")
-            companies = await self._discover_via_web_search()
-            if companies:
-                # Enrich with real websites, people, and employee counts
-                await self._enrich_contacts_and_people(companies)
-                enriched = await self._enrich_with_grounded_pain_points(companies)
-                return enriched
-        
-        logger.warning("All discovery methods exhausted. Returning empty list.")
-        return []
+            logger.info(
+                "Discovering via market-aware web grounding for %s.", self.location
+            )
+            web_companies = await self._discover_via_web_search()
+            web_companies = self._accept_market_companies(
+                web_companies, provider="web"
+            )
+            if web_companies:
+                await self._enrich_contacts_and_people(web_companies)
+                discovered.extend(
+                    self._accept_market_companies(
+                        web_companies, provider="web_enrichment"
+                    )
+                )
+
+        companies = self._deduplicate_companies(discovered)
+        self.routing_diagnostics["accepted_company_count"] = len(companies)
+        if not companies:
+            logger.warning(
+                "All market-compatible discovery methods exhausted for %s.",
+                self.location,
+            )
+            return []
+        return await self._enrich_with_grounded_pain_points(companies)
+
+    def _record_provider(
+        self,
+        provider: str,
+        *,
+        attempted: bool,
+        accepted: int,
+        source_count: int = 0,
+        reason: Optional[str] = None,
+    ) -> None:
+        self.routing_diagnostics["providers"].append(
+            {
+                "provider": provider,
+                "attempted": attempted,
+                "accepted_company_count": accepted,
+                "source_count": source_count,
+                "reason": reason,
+            }
+        )
+
+    @staticmethod
+    def _evidence_id(prefix: str, value: str) -> str:
+        digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:20]
+        return f"{prefix}-{digest}"
+
+    @staticmethod
+    def _source_authority(url: str) -> str:
+        hostname = (urlparse(url).hostname or "").casefold()
+        if (
+            hostname.endswith(".gov")
+            or ".gov." in hostname
+            or hostname == "europa.eu"
+            or hostname.endswith(".europa.eu")
+        ):
+            return "official_public"
+        if hostname.endswith((".edu", ".ac.uk")):
+            return "academic"
+        return "independent_web"
+
+    def _store_direct_web_evidence(
+        self,
+        source_rows: List[Dict[str, Any]],
+        claim_rows: List[Dict[str, Any]],
+    ) -> None:
+        source_id_by_url = {}
+        sources_by_id = {}
+        for row in source_rows:
+            url = str(row.get("url") or "")
+            source_id = self._evidence_id("source", url)
+            source_id_by_url[url] = source_id
+            sources_by_id[source_id] = {
+                "source_id": source_id,
+                "source_type": "google_search_result",
+                "url": url,
+                "title": str(row.get("title") or url)[:500],
+                "publisher": urlparse(url).hostname,
+                "registry": None,
+                "market_location": self.location,
+                "source_authority": self._source_authority(url),
+                "search_provider": row.get("provider"),
+            }
+
+        linked_source_ids = set()
+        for row in claim_rows:
+            if not isinstance(row, dict):
+                continue
+            text = str(row.get("text") or "").strip()[:2000]
+            if text and not self.market_scope.evidence_text_matches(text):
+                self.routing_diagnostics["rejected_cross_market_claims"].append(
+                    {
+                        "text_hash": self._evidence_id("claim", text),
+                    }
+                )
+                continue
+            source_ids = [
+                source_id_by_url[url]
+                for url in row.get("source_urls") or []
+                if url in source_id_by_url
+            ]
+            if not text or not source_ids:
+                continue
+            linked_source_ids.update(source_ids)
+            identity = f"{text}|{'|'.join(sorted(set(source_ids)))}"
+            self.market_claims.append(
+                {
+                    "claim_id": self._evidence_id("claim", identity),
+                    "claim_type": "grounded_web_evidence",
+                    "subject": self.location,
+                    "predicate": "has_market_evidence",
+                    "object": text,
+                    "source_ids": list(dict.fromkeys(source_ids)),
+                    "verification_status": row.get("verification_status")
+                    or "provider_citation_linked_not_independently_verified",
+                    "confidence_scores": list(row.get("confidence_scores") or [])[:10],
+                }
+            )
+        self.market_sources.extend(
+            row
+            for source_id, row in sources_by_id.items()
+            if source_id in linked_source_ids
+        )
+
+    def _accept_market_companies(
+        self, companies: List[CompanyDiscoveryItem], *, provider: str
+    ) -> List[CompanyDiscoveryItem]:
+        accepted = []
+        for company in companies:
+            if self.market_scope.company_matches(company):
+                accepted.append(company)
+                continue
+            self.routing_diagnostics["rejected_cross_market"].append(
+                {
+                    "provider": provider,
+                    "company_id": str(company.id)[:255],
+                    "location": str(company.location)[:500],
+                }
+            )
+        return accepted
+
+    @staticmethod
+    def _deduplicate_companies(
+        companies: List[CompanyDiscoveryItem],
+    ) -> List[CompanyDiscoveryItem]:
+        rows: Dict[str, CompanyDiscoveryItem] = {}
+        for company in companies:
+            identity = str(company.register_number or company.website or company.name)
+            key = re.sub(r"[^a-z0-9]+", "", identity.casefold())
+            existing = rows.get(key)
+            if not existing:
+                rows[key] = company
+                continue
+            existing.pain_point_sources = list(
+                dict.fromkeys(
+                    (existing.pain_point_sources or [])
+                    + (company.pain_point_sources or [])
+                )
+            )
+            for field in ("website", "contact_phone", "email", "register_number"):
+                if not getattr(existing, field, None) and getattr(company, field, None):
+                    setattr(existing, field, getattr(company, field))
+        return list(rows.values())
 
     async def _fetch_from_openregister(self) -> List[CompanyDiscoveryItem]:
         """Queries OpenRegister API with geo-radius search and enriches with real contact/person data."""
-        logger.info(f"Querying OpenRegister for companies in {self.location}...")
+        registry_location = self.market_scope.openregister_locality
+        if not registry_location:
+            logger.info("Skipping OpenRegister: unsupported market %s", self.location)
+            return []
+        logger.info("Querying OpenRegister for companies in %s...", registry_location)
         
         try:
             from openregister import Openregister
@@ -165,8 +364,10 @@ class B2BDataPipeline:
             return []
 
     async def _derive_search_params(self) -> tuple:
-        """Use LLM to derive German city name and search keyword."""
-        german_city = "München" if "munich" in self.location.lower() else self.location
+        """Derive only a keyword; geography remains deterministic and authorized."""
+        german_city = self.market_scope.openregister_locality
+        if not german_city:
+            return "", ""
         search_keyword = ""
         
         if not self.model:
@@ -174,26 +375,24 @@ class B2BDataPipeline:
 
         try:
             class OpenRegisterQueryParams(BaseModel):
-                german_city: str
                 search_keyword: str
 
             agent = Agent(
                 model=self.model,
                 output_type=OpenRegisterQueryParams,
                 system_prompt=f"""You are a German B2B market intelligence assistant.
-Analyze the target location: '{self.location}'
 Analyze the business problem: '{self.business_problem}'
 Analyze the target user: '{self.target_user}'
 
 Determine:
-1. The official German name of the city (e.g. 'München' for Munich, 'Nürnberg' for Nuremberg, 'Köln' for Cologne).
-2. A single highly relevant German keyword for company registry search (e.g., 'Logistik', 'Spedition', 'Software', 'Maschinenbau', 'Handel', 'Pflege').
+1. A single highly relevant German keyword for company registry search (e.g., 'Logistik', 'Spedition', 'Software', 'Maschinenbau', 'Handel', 'Pflege').
+
+The registry locality is fixed by the authorized request and is not yours to infer or change.
 """
             )
             
             params_result = await agent.run("Extract parameters for OpenRegister search.")
             params = params_result.output
-            german_city = params.german_city
             search_keyword = params.search_keyword
         except Exception as param_err:
             logger.error(f"Failed to extract search params via LLM: {param_err}")
@@ -425,7 +624,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
                     c.longitude = base_lon + random.uniform(-0.04, 0.04)
 
     async def _discover_via_web_search(self) -> List[CompanyDiscoveryItem]:
-        """Discovers real companies via Google Search grounding and structures them using Gemini."""
+        """Discover real market entities using bounded, source-bearing web routes."""
         if not self.model:
             return []
 
@@ -435,32 +634,141 @@ Return exactly one coordinate pair per address, in the same order as the input l
             logger.warning("GeminiSearchService not available.")
             return []
         
-        search_service = GeminiSearchService()
-        if not search_service.is_available():
-            logger.warning("GeminiSearchService is not available.")
+        search_services = []
+        gemini_search = GeminiSearchService()
+        if gemini_search.is_available():
+            search_services.append(("gemini_google_search", gemini_search))
+        try:
+            from backend.services.generative.searxng_search_service import (
+                SearxngSearchService,
+            )
+
+            searxng = SearxngSearchService()
+            if searxng.is_available():
+                search_services.append(("searxng", searxng))
+        except ImportError:
+            pass
+
+        if not search_services:
+            logger.warning("No grounded web search provider is available.")
             return []
-            
+
         query = (
-            f"List real B2B companies physically headquartered in {self.location}, Germany "
-            f"that work in industries related to: '{self.business_problem}'. "
-            f"Include their official registered name, industry sector, and headquarters address. "
-            f"Only list companies that actually exist and are registered in Germany."
+            f"Research the market explicitly and only for: '{self.location}'. "
+            f"Do not substitute another city, country, or region. Find current, verifiable "
+            f"evidence relevant to: '{self.business_problem}' and target stakeholder "
+            f"'{self.target_user}'. Prefer national or supranational regulators, official "
+            f"statistics, official company registries, official company websites, and "
+            f"recognized industry bodies. Identify real organizations operating in the "
+            f"authorized market and include an explicit headquarters or operating location."
         )
-                
-        search_result = search_service.search_web_general(query)
-        if not search_result.get("search_performed") or not search_result.get("text"):
-            logger.warning("Google search grounding failed or returned empty text.")
+
+        texts = []
+        source_rows = []
+        claim_rows = []
+        seen_urls = set()
+        for provider, search_service in search_services:
+            try:
+                search_result = search_service.search_web_general(query)
+            except Exception as exc:
+                logger.warning(
+                    "Grounded search provider %s failed with %s.",
+                    provider,
+                    type(exc).__name__,
+                )
+                self._record_provider(
+                    provider,
+                    attempted=True,
+                    accepted=0,
+                    source_count=0,
+                    reason=f"provider_error:{type(exc).__name__}",
+                )
+                continue
+            provider_sources = search_result.get("sources") or []
+            performed = bool(search_result.get("search_performed"))
+            if performed and search_result.get("text"):
+                texts.append(str(search_result["text"])[:12000])
+            claim_rows.extend(
+                row
+                for row in (search_result.get("claims") or [])
+                if isinstance(row, dict)
+            )
+            for source in provider_sources:
+                if not isinstance(source, dict):
+                    continue
+                url = str(source.get("url") or "").strip()
+                if not url or url in seen_urls:
+                    continue
+                try:
+                    parsed_url = urlparse(url)
+                except ValueError:
+                    parsed_url = None
+                if (
+                    not parsed_url
+                    or parsed_url.scheme.casefold() != "https"
+                    or not parsed_url.hostname
+                    or parsed_url.username
+                    or parsed_url.password
+                ):
+                    self.routing_diagnostics["rejected_invalid_sources"].append(
+                        {"provider": provider, "url": url[:2048]}
+                    )
+                    continue
+                if not self.market_scope.source_url_matches(url):
+                    self.routing_diagnostics[
+                        "rejected_cross_market_sources"
+                    ].append(
+                        {
+                            "provider": provider,
+                            "url": url[:2048],
+                        }
+                    )
+                    continue
+                seen_urls.add(url)
+                source_rows.append(
+                    {
+                        "title": str(source.get("title") or "Unknown")[:500],
+                        "url": url,
+                        "provider": provider,
+                    }
+                )
+
+            accepted_provider_urls = {
+                row["url"] for row in source_rows if row["provider"] == provider
+            }
+            self._record_provider(
+                provider,
+                attempted=True,
+                accepted=0,
+                source_count=len(accepted_provider_urls),
+                reason=None if performed else "empty_or_failed",
+            )
+
+            # Use a configured secondary route only when the earlier provider
+            # cannot meet the minimum deep-research source diversity.
+            linked_urls = {
+                str(url)
+                for claim in claim_rows
+                if isinstance(claim, dict)
+                and self.market_scope.evidence_text_matches(claim.get("text"))
+                for url in claim.get("source_urls") or []
+                if url in seen_urls
+            }
+            if len(linked_urls) >= self.minimum_source_count:
+                break
+
+        self._store_direct_web_evidence(source_rows, claim_rows)
+        if not texts or not source_rows:
+            logger.warning("Web grounding returned no source-bearing evidence.")
             return []
-        
-        # Collect REAL grounding source URLs from Gemini's search response
-        real_source_urls = []
-        for src in search_result.get("sources", []):
-            url = src.get("url")
-            title = src.get("title", "Unknown")
-            if url:
-                real_source_urls.append(f"{title}: {url}")
-        
-        logger.info(f"Google Search grounding returned {len(real_source_urls)} source URLs.")
+
+        real_source_urls = [
+            f"{source['title']}: {source['url']}" for source in source_rows[:20]
+        ]
+        logger.info(
+            "Market-aware web grounding returned %s source URLs.",
+            len(real_source_urls),
+        )
             
         class CompaniesListOut(BaseModel):
             companies: List[CompanyDiscoveryItem]
@@ -469,7 +777,8 @@ Return exactly one coordinate pair per address, in the same order as the input l
             model=self.model,
             output_type=CompaniesListOut,
             system_prompt=f"""You are a B2B market intelligence parsing agent.
-Your job is to read grounded search results about companies in {self.location} and extract structured data.
+Your job is to read grounded search results for the authorized market
+'{self.location}' and extract structured data without changing that market.
 
 For each company mentioned in the search text, extract:
 - id: a unique slug (e.g. company-name-slug)
@@ -477,7 +786,7 @@ For each company mentioned in the search text, extract:
 - industry: Industry vertical
 - size: Employee count bucket if mentioned, otherwise 'Unknown'
 - location: Office address in {self.location} if mentioned
-- latitude / longitude: Approximate geocoded coordinates (Munich center ~48.1351, 11.5820)
+- latitude / longitude: Only use coordinates supported by the text; otherwise use 0.0
 - decision_makers: Only include names/titles that are EXPLICITLY mentioned in the search text. If none are mentioned, use an empty list []
 - estimated_pain_points: Set to empty list []
 - insights: "Discovered via Google Search grounding"
@@ -490,26 +799,44 @@ CRITICAL RULES:
 3. If the search text doesn't mention a company's website, leave it as null — do NOT guess a domain
 4. If the search text doesn't name specific people, leave decision_makers as an empty list
 5. Set all optional fields (linkedin_url, xing_url, email, etc.) to null
+6. The location must explicitly demonstrate operation in '{self.location}'. Reject entities from other markets.
 """
         )
         
         sources_text = ""
         if real_source_urls:
-            sources_text = "\n\nGrounding Sources (real URLs from Google Search):\n" + "\n".join(
+            sources_text = "\n\nGrounding Sources (provider-returned URLs):\n" + "\n".join(
                 f"- {s}" for s in real_source_urls
             )
-        
-        prompt = f"""Grounded Search Results:\n{search_result.get('text')}\n{sources_text}"""
+
+        prompt = f"""Grounded Search Results:\n{chr(10).join(texts)}\n{sources_text}"""
         try:
             result = await agent.run(prompt)
             companies = result.output.companies
-            
-            # Attach REAL grounding sources (from Google, not LLM-invented) to each company
+
+            source_urls_by_identity = {
+                source["url"].rstrip("/").casefold(): source["url"]
+                for source in source_rows
+            }
+            # Retain only URLs returned by a grounding provider. Claim/source
+            # linkage is stored separately; never attach every source to every
+            # parsed company as if it supported that entity.
             for company in companies:
-                company.insights = f"Discovered via Google Search grounding. {len(real_source_urls)} web sources consulted."
-                company.pain_point_sources = real_source_urls[:3] if real_source_urls else None
-            
-            return companies
+                company.insights = (
+                    "Discovered via grounded web search. "
+                    f"{len(real_source_urls)} source URLs consulted."
+                )
+                website_identity = str(company.website or "").rstrip("/").casefold()
+                company.website = source_urls_by_identity.get(website_identity)
+                company.pain_point_sources = None
+
+            accepted = self._accept_market_companies(
+                companies, provider="web_parser"
+            )
+            for row in reversed(self.routing_diagnostics["providers"]):
+                if row["provider"] in {"gemini_google_search", "searxng"}:
+                    row["accepted_company_count"] = len(accepted)
+            return accepted
         except Exception as e:
             logger.error(f"Failed to structure web search results: {e}", exc_info=True)
             return []
@@ -535,10 +862,10 @@ CRITICAL RULES:
         names_str = ", ".join(company_names)
         
         query = (
-            f"For these companies in {self.location}, Germany: {names_str}. "
+            f"For these companies in the authorized market '{self.location}': {names_str}. "
             f"Find their official website URLs, approximate number of employees, "
             f"and names of key management (CEO, Geschäftsführer, founder, CTO). "
-            f"Only include factual information you can verify."
+            f"Only include factual information you can verify in that same market."
         )
         
         search_result = search_service.search_web_general(query)

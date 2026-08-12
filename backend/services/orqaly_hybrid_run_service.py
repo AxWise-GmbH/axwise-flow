@@ -518,8 +518,19 @@ class HybridRunService:
                     and structured_source_count
                     < grounding_policy.minimum_structured_sources
                 ):
+                    diagnostics = grounding.get("routing_diagnostics") or {}
+                    providers = ",".join(
+                        str(row.get("provider"))
+                        for row in diagnostics.get("providers") or []
+                        if isinstance(row, dict) and row.get("provider")
+                    )[:300]
+                    rejected = len(diagnostics.get("rejected_cross_market") or [])
                     raise RuntimeError(
-                        "Required market grounding produced no sufficient structured real sources"
+                        "Required market grounding produced no sufficient structured real "
+                        f"sources (market={diagnostics.get('requested_location') or 'unknown'}; "
+                        f"accepted={structured_source_count}; required="
+                        f"{grounding_policy.minimum_structured_sources}; providers="
+                        f"{providers or 'none'}; cross_market_rejected={rejected})"
                     )
                 if grounding_policy.required and not structured_claims:
                     raise RuntimeError(

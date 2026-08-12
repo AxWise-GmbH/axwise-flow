@@ -15,12 +15,13 @@ from backend.domain.orchestration.models import ResearchPolicyV1
 from backend.services.orqaly_hybrid_run_service import HybridOutputs
 from backend.services.orqaly_research_bundle_service import (
     HybridGroundingPolicy,
+    _merge_market_evidence,
+    _persona_rows,
     canonical_hash,
     canonical_json_string,
     derive_executor_role_specs,
     normalize_market_grounding,
     request_with_grounding,
-    _persona_rows,
 )
 
 
@@ -182,6 +183,41 @@ def test_allowed_source_types_are_enforced_before_required_grounding_count():
         claim["source_ids"] == [result["market_sources"][0]["source_id"]]
         for claim in result["market_claims"]
     )
+
+
+def test_combined_providers_cannot_inflate_source_count_with_duplicate_urls():
+    policy = HybridGroundingPolicy(required=True, minimum_structured_sources=3)
+    sources, claims = _merge_market_evidence(
+        [
+            {
+                "source_id": "gemini-source",
+                "source_type": "google_search_result",
+                "url": "https://pta.agri.ee/en/?utm_source=google",
+                "title": "Agriculture and Food Board",
+            },
+            {
+                "source_id": "searx-source",
+                "source_type": "google_search_result",
+                "url": "https://pta.agri.ee/en",
+                "title": "Same authority via a second route",
+            },
+        ],
+        [
+            {
+                "claim_id": "claim-1",
+                "claim_type": "market_rule",
+                "subject": "Estonia",
+                "predicate": "has_rule",
+                "object": "Feed operators follow the applicable rules.",
+                "source_ids": ["searx-source"],
+            }
+        ],
+        policy,
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["source_id"] == "gemini-source"
+    assert claims[0]["source_ids"] == ["gemini-source"]
 
 
 def test_grounded_claims_are_composed_into_pipeline_b_as_data_before_interviews():
