@@ -30,6 +30,7 @@ openregister-sdk>=3.5.1
 # LLM Services
 openai>=1.52.0
 google-genai>=1.10.0  # Required for instructor.from_genai compatibility
+google-auth>=2.40.0  # Cloud Run service-to-service identity tokens
 anthropic>=0.25.0  # Required by instructor library (even for Gemini usage)
 instructor>=1.9.0  # For structured outputs from LLMs (requires from_genai method for google-genai)
 jsonref>=1.1.0  # Required by instructor for JSON schema processing

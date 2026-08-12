@@ -8,11 +8,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 DEPLOY_SCRIPT = ROOT / "scripts" / "deploy-production-backend.sh"
+SEARXNG_DEPLOY_SCRIPT = ROOT / "scripts" / "deploy-searxng-cloud-run.sh"
 pytestmark = pytest.mark.contract
 
 
 def test_production_backend_deploy_script_is_valid_bash() -> None:
     subprocess.run(["bash", "-n", str(DEPLOY_SCRIPT)], check=True)
+    subprocess.run(["bash", "-n", str(SEARXNG_DEPLOY_SCRIPT)], check=True)
 
 
 def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -> None:
@@ -40,5 +42,26 @@ def test_optional_searxng_route_requires_a_credential_free_https_endpoint() -> N
     assert 'SEARXNG_URL="${SEARXNG_URL:-}"' in script
     assert '[[ "${SEARXNG_URL}" == *"@"* ]]' in script
     assert '[[ ! "${SEARXNG_URL}" =~ ^https:// ]]' in script
-    assert 'WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}"' in script
+    assert (
+        'WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}'
+        '@SEARXNG_AUTH_MODE=google_identity"' in script
+    )
     assert '--set-env-vars "${WORKER_ENV_VARS}"' in script
+
+
+def test_private_searxng_deployment_uses_identity_and_pinned_image() -> None:
+    script = SEARXNG_DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    dockerfile = (ROOT / "deploy" / "searxng" / "Dockerfile").read_text(
+        encoding="utf-8"
+    )
+    settings = (ROOT / "deploy" / "searxng" / "settings.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "searxng/searxng@sha256:" in dockerfile
+    assert "--no-allow-unauthenticated" in script
+    assert 'serviceAccount:${WORKER_SERVICE_ACCOUNT}' in script
+    assert "roles/run.invoker" in script
+    assert "SEARXNG_AUTH_MODE=google_identity" in script
+    assert "SEARXNG_SECRET=" in script
+    assert "- json" in settings

@@ -16,8 +16,15 @@ logger = logging.getLogger(__name__)
 class SearxngSearchService:
     """Query a configured SearXNG JSON API without relying on public instances."""
 
-    def __init__(self, base_url: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        auth_mode: Optional[str] = None,
+    ):
         self.base_url = (base_url or os.getenv("SEARXNG_URL") or "").rstrip("/")
+        self.auth_mode = (
+            auth_mode or os.getenv("SEARXNG_AUTH_MODE") or "none"
+        ).casefold()
 
     def is_available(self) -> bool:
         if not self.base_url:
@@ -32,6 +39,7 @@ class SearxngSearchService:
             return {"text": "", "sources": [], "search_performed": False}
 
         try:
+            headers = self._authorization_headers()
             response = httpx.get(
                 f"{self.base_url}/search",
                 params={
@@ -42,6 +50,7 @@ class SearxngSearchService:
                 },
                 timeout=20.0,
                 follow_redirects=False,
+                headers=headers,
             )
             response.raise_for_status()
             payload = response.json()
@@ -84,3 +93,19 @@ class SearxngSearchService:
                 "search_performed": False,
                 "error": type(exc).__name__,
             }
+
+    def _authorization_headers(self) -> Dict[str, str]:
+        """Use a Cloud Run identity token without accepting static bearer keys."""
+
+        if self.auth_mode in {"", "none"}:
+            return {}
+        if self.auth_mode != "google_identity":
+            raise ValueError("unsupported SEARXNG_AUTH_MODE")
+
+        from google.auth.transport.requests import Request
+        from google.oauth2 import id_token
+
+        token = id_token.fetch_id_token(Request(), self.base_url)
+        if not token:
+            raise RuntimeError("SearXNG identity token unavailable")
+        return {"Authorization": f"Bearer {token}"}
