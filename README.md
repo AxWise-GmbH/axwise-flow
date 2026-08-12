@@ -429,7 +429,9 @@ the requested source threshold; it does not depend on public SearXNG instances.
 For Google Cloud, provision the `axwise-searxng-secret` Secret Manager value,
 then run `scripts/deploy-searxng-cloud-run.sh`; it pins the upstream image,
 keeps the service private, grants only the AxWise worker `run.invoker`, and
-configures audience-bound identity-token authentication.
+configures audience-bound identity-token authentication. The deployment expects
+a dedicated `axwise-searxng@<project>.iam.gserviceaccount.com` runtime identity
+with Secret Accessor granted only on `axwise-searxng-secret`.
 
 ### Prerequisites
 * **Python 3.11** (recommended; pandas 2.1.4 requires python 3.11)

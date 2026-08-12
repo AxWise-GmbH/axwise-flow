@@ -12,10 +12,13 @@ SERVICE="${SEARXNG_SERVICE:-axwise-searxng}"
 WORKER_SERVICE="${WORKER_SERVICE:-axwise-orqaly-worker}"
 REPOSITORY="${REPOSITORY:-axwise-backend-repo}"
 SECRET="${SEARXNG_SECRET_NAME:-axwise-searxng-secret}"
+SERVICE_ACCOUNT="${SEARXNG_SERVICE_ACCOUNT:-axwise-searxng@${PROJECT_ID}.iam.gserviceaccount.com}"
 REVISION="${REVISION:-$(git rev-parse --short=12 HEAD)-$(date -u +%Y%m%d%H%M%S)}"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE}:${REVISION}"
 
 gcloud secrets describe "${SECRET}" --project "${PROJECT_ID}" >/dev/null
+gcloud iam service-accounts describe "${SERVICE_ACCOUNT}" \
+  --project "${PROJECT_ID}" >/dev/null
 
 WORKER_SERVICE_ACCOUNT="$(gcloud run services describe "${WORKER_SERVICE}" \
   --region "${REGION}" \
@@ -38,6 +41,7 @@ gcloud run deploy "${SERVICE}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --platform managed \
+  --service-account "${SERVICE_ACCOUNT}" \
   --no-allow-unauthenticated \
   --ingress all \
   --memory 1Gi \
