@@ -17,7 +17,15 @@ from api.research.simulation_bridge.services.regional_service import RegionalSer
 from backend.services.generative.gemini_search_service import GeminiSearchService
 from backend.services.generative.searxng_search_service import SearxngSearchService
 from backend.services.research_quality_service import evaluate_critical_claims
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    build_topic_seed,
+)
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
+    _normalized_document_text,
+    _structured_statistical_observations,
     build_attested_authority_proof,
     build_direct_primary_market_proof,
     build_recognized_root_proof,
@@ -437,7 +445,7 @@ async def test_optional_company_parser_timeout_preserves_verified_evidence(monke
         required_evidence_classes=["statutory_current"],
     )
     source_url = "https://tax.gov.ee/current-vat"
-    claim_text = "Estonia's current VAT rate is 24% effective 2026-01-01."
+    claim_text = "Estonia's current standard VAT rate is 24% effective 2026-01-01."
     retrieved_at = "2026-08-12T12:00:00+00:00"
     gemini = MagicMock()
     gemini.is_available.return_value = True
@@ -825,16 +833,38 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
             "official_statistic",
             "observed_primary_market",
         ],
+        topic_seed_contract=build_topic_seed(
+            ImmutableGoalTopicFields(
+                goal_id="estonia-cat-food-market",
+                title="Commercial cat food market launch",
+                problem_scope="Assess cat food demand and prices.",
+                industry="Pet food",
+                exact_topic_anchors=("cat food",),
+            ),
+            ConfirmedMarketScope(
+                scope_label="Estonia", country_codes=("EE",), confirmed=True
+            ),
+        ).model_dump(mode="json"),
     )
 
     stat_url = "https://www.stat.ee/en/internal-trade"
+    stat_html = """
+    <figure data-uuid="trade-current">
+      <h2>Household expenditure on pets and cat food</h2>
+      <a href="https://andmed.stat.ee/en/stat/KM0107">dataset</a>
+      <table data-series-orientation="column">
+        <thead><tr><th data-series-name="Cat food expenditure"
+          data-series-unit="million euros">Cat food expenditure</th></tr></thead>
+        <tbody><tr><th data-category="1st quarter 2026">1st quarter 2026</th>
+          <td>8,116.2</td></tr></tbody>
+      </table><p>Last updated: 27 May 2026</p>
+    </figure>
+    """
     stat_text = (
         "Statistics Estonia official statistical publisher for Estonia. "
-        + ("Navigation economy internal trade tables " * 50)
-        + "Source data in the statistical database: KM0107 Last updated: "
-        "27 May 2026 08:00 Net sales of trade enterprises 8.12 billion euros "
-        "Q1 2026 Table KM0107"
+        + _normalized_document_text(stat_html, is_html=True)
     )
+    stat_observations = _structured_statistical_observations(stat_html)
     directory_url = "https://european-union.europa.eu/estonia-authorities"
     directory_text = (
         "Official EU member-state directory: Statistics Estonia "
@@ -847,6 +877,8 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         attestation_text=directory_text,
         country_codes=["EE"],
         retrieved_at=retrieved_at,
+        structured_statistical_observations=stat_observations,
+        direct_raw_html=stat_html,
     )
 
     catalog_url = "https://shop.example.ee/cat-food/sheba-340g"
@@ -857,10 +889,18 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         "kastmes, SHEBA, "
         "340 g Osta"
     )
+    catalog_offer_html = (
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"SHEBA-340G","name":"SHEBA","offers":'
+        '{"@type":"Offer","price":"3.29","priceCurrency":"EUR"}}'
+        "</script>"
+    )
     catalog_proof = build_direct_primary_market_proof(
         direct_url=catalog_url,
         direct_text=catalog_text,
         country_codes=["EE"],
+        commercial_offer_evidence=_commercial_offer_evidence(catalog_offer_html),
+        direct_raw_html=f"<div>{catalog_text}</div>{catalog_offer_html}",
         retrieved_at=retrieved_at,
     )
 
@@ -872,6 +912,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         text,
         authority,
         verification,
+        raw_html,
     ):
         return {
             "title": title,
@@ -882,6 +923,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
             "source_authority": authority,
             "authority_verification_status": verification,
             "authority_proof": proof,
+            "_structured_evidence_html": raw_html,
             "retrieved_at": retrieved_at,
             "direct_fetch_status": "retrieved",
             "jurisdiction_binding_status": "verified",
@@ -903,6 +945,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
                 text=stat_text,
                 authority="official_public",
                 verification="independently_attested_direct_domain",
+                raw_html=stat_html,
             ),
             source(
                 url=catalog_url,
@@ -911,6 +954,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
                 text=catalog_text,
                 authority="first_party_catalog",
                 verification="direct_primary_market_observation",
+                raw_html=f"<div>{catalog_text}</div>{catalog_offer_html}",
             ),
         ],
         [],
@@ -926,6 +970,9 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
+            "topic_seed_contract": pipeline.topic_seed_contract.model_dump(
+                mode="json"
+            ),
         },
         ["EE"],
         freshness_days=120,

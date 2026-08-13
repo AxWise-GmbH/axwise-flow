@@ -9,8 +9,10 @@ documents, their final HTTPS hosts, jurisdiction, excerpts, and retrieval time.
 from __future__ import annotations
 
 import asyncio
+import calendar
 import hashlib
 import hmac
+import html
 import ipaddress
 import json
 import os
@@ -18,6 +20,7 @@ import re
 import socket
 import time
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from typing import Any, Awaitable, Callable, Dict, Iterable, Mapping, Optional
 from urllib.parse import urljoin, urlparse
@@ -46,11 +49,18 @@ _ISO_CURRENCY_CODES = "|".join(
     sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
 )
 _PRIMARY_MARKET_VALUE = re.compile(
-    rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
-    rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
-    rf"\b\d[\d\s.,]*\s*(?:{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?|"
-    rf"yen|yuan|rupees?)(?:\b|(?=\s|$))|"
-    rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
+    rf"(?<!\w)(?:"
+    rf"(?:(?:{_ISO_CURRENCY_CODES})|[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])\s*"
+    rf"-?(?:\d{{1,3}}(?:[ \u00a0,]\d{{3}})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)|"
+    rf"-?(?:\d{{1,3}}(?:[ \u00a0,]\d{{3}})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)\s*"
+    rf"(?:{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?|yen|yuan|rupees?|"
+    rf"[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])"
+    rf")(?!\w)",
+    re.IGNORECASE,
+)
+_STRUCTURED_OFFER_FIELDS = re.compile(
+    r"\b(?:sku|gtin(?:8|12|13|14)?|ean|mpn|pricecurrency|pricesimple|"
+    r"availability)\b",
     re.IGNORECASE,
 )
 _MAX_RETAINED_AUTHORITY_TEXT = 100_000
@@ -94,6 +104,554 @@ def _normalized_document_text(value: str, *, is_html: bool) -> str:
         parser.feed(value)
         value = " ".join(parser.parts)
     return " ".join(value.split())[:_MAX_RETAINED_AUTHORITY_TEXT]
+
+
+def _commercial_offer_evidence(value: str) -> list[Dict[str, str]]:
+    """Extract bounded canonical Product/Offer fields from fetched raw HTML."""
+
+    rows: list[Dict[str, str]] = []
+
+    def walk(node: Any) -> Iterable[Mapping[str, Any]]:
+        if isinstance(node, Mapping):
+            yield node
+            for child in node.values():
+                yield from walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                yield from walk(child)
+
+    scripts = re.finditer(
+        r"<script[^>]+type=[\"']application/ld\+json[\"'][^>]*>"
+        r"(?P<body>.*?)</script>",
+        value,
+        re.IGNORECASE | re.DOTALL,
+    )
+    for script in scripts:
+        try:
+            payload = json.loads(html.unescape(script.group("body")))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for product in walk(payload):
+            kinds = product.get("@type")
+            if isinstance(kinds, str):
+                kinds = [kinds]
+            if "Product" not in (kinds or []):
+                continue
+            offers = product.get("offers")
+            offer_rows = offers if isinstance(offers, list) else [offers]
+            for offer in offer_rows:
+                if not isinstance(offer, Mapping):
+                    continue
+                price = str(offer.get("price") or "").strip()
+                currency = str(offer.get("priceCurrency") or "").strip().upper()
+                identity = str(
+                    product.get("sku")
+                    or product.get("gtin13")
+                    or product.get("gtin")
+                    or product.get("mpn")
+                    or ""
+                ).strip()
+                name = " ".join(str(product.get("name") or "").split())[:300]
+                if not price or not re.fullmatch(r"[A-Z]{3}", currency) or not (identity or name):
+                    continue
+                canonical = {
+                    "signal_type": "schema_org_product_offer",
+                    "product_id": identity,
+                    "product_name": name,
+                    "price": price.replace(",", "."),
+                    "price_currency": currency,
+                    "availability": str(offer.get("availability") or "")[:200],
+                }
+                canonical["sha256"] = hashlib.sha256(
+                    _canonical_bytes(canonical)
+                ).hexdigest()
+                rows.append(canonical)
+                if len(rows) >= 24:
+                    return rows
+    # Some first-party storefronts render product grids from an HTML-escaped
+    # component config rather than JSON-LD.  Parse only explicit product rows
+    # with an ID/name, numeric price, and currency carried by that same row.
+    for attribute in re.finditer(
+        r"\bdata-config=(?P<quote>[\"'])(?P<body>.*?)(?P=quote)",
+        value,
+        re.IGNORECASE | re.DOTALL,
+    ):
+        encoded = attribute.group("body")
+        if "priceSimple" not in encoded and "pricesimple" not in encoded.casefold():
+            continue
+        try:
+            payload = json.loads(html.unescape(encoded))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        products = payload.get("products") if isinstance(payload, Mapping) else None
+        if not isinstance(products, list):
+            continue
+        for product in products:
+            if not isinstance(product, Mapping):
+                continue
+            raw_price = product.get("priceSimple")
+            try:
+                price = format(Decimal(str(raw_price)), "f")
+            except (InvalidOperation, ValueError):
+                continue
+            price_markup = html.unescape(str(product.get("price") or ""))
+            _visible_price, currency = _visible_price_currency(price_markup)
+            identity = str(product.get("sku") or product.get("id") or "").strip()
+            name = " ".join(str(product.get("name") or "").split())[:300]
+            if not re.fullmatch(r"[A-Z]{3}", currency) or not (identity or name):
+                continue
+            actions = product.get("actions")
+            canonical = {
+                "signal_type": "merchant_product_config",
+                "product_id": identity,
+                "product_name": name,
+                "price": price,
+                "price_currency": currency,
+                "availability": (
+                    "in_stock"
+                    if isinstance(actions, Mapping)
+                    and actions.get("isSalable") is True
+                    else ""
+                ),
+            }
+            canonical["sha256"] = hashlib.sha256(
+                _canonical_bytes(canonical)
+            ).hexdigest()
+            rows.append(canonical)
+            if len(rows) >= 24:
+                return rows
+    return rows
+
+
+def _structured_statistical_observations(value: str) -> list[Dict[str, str]]:
+    """Extract positional table observations from fetched statistical HTML.
+
+    A flattened visible-text table loses row/column identity.  Only raw HTML
+    can safely bind a value to its series and period without nearest-value
+    guessing.  The canonical observation is HMAC-bound with the direct page.
+    """
+
+    def attrs_value(attrs: str, name: str) -> str:
+        match = re.search(
+            rf"\b{re.escape(name)}=[\"']([^\"']+)[\"']",
+            attrs,
+            re.IGNORECASE,
+        )
+        return html.unescape(match.group(1)).strip() if match else ""
+
+    def period_end(period: str) -> str:
+        text = " ".join(period.split())
+        quarter = re.search(
+            r"\b(?:q([1-4])|([1-4])(?:st|nd|rd|th)?\s+quarter)\D{0,12}(20\d{2})\b",
+            text,
+            re.IGNORECASE,
+        )
+        if quarter:
+            number = int(quarter.group(1) or quarter.group(2))
+            year = int(quarter.group(3))
+            month = number * 3
+            return datetime(
+                year, month, calendar.monthrange(year, month)[1], tzinfo=timezone.utc
+            ).isoformat()
+        dated = re.search(r"\b(20\d{2})-(\d{2})-(\d{2})\b", text)
+        if dated:
+            return datetime(
+                int(dated.group(1)), int(dated.group(2)), int(dated.group(3)),
+                tzinfo=timezone.utc,
+            ).isoformat()
+        month_match = re.search(
+            r"\b(january|february|march|april|may|june|july|august|"
+            r"september|october|november|december)\s+(20\d{2})\b",
+            text,
+            re.IGNORECASE,
+        )
+        if month_match:
+            month = datetime.strptime(month_match.group(1), "%B").month
+            year = int(month_match.group(2))
+            return datetime(
+                year, month, calendar.monthrange(year, month)[1], tzinfo=timezone.utc
+            ).isoformat()
+        year = re.search(r"\b(20\d{2})\b", text)
+        return (
+            datetime(int(year.group(1)), 12, 31, tzinfo=timezone.utc).isoformat()
+            if year
+            else ""
+        )
+
+    def release_date(text: str) -> str:
+        match = re.search(
+            r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+            r"released\s+on)\D{0,30}(\d{1,2})\s+([A-Za-z]+)\s+(20\d{2})",
+            text,
+            re.IGNORECASE,
+        )
+        if not match:
+            return ""
+        try:
+            return datetime(
+                int(match.group(3)),
+                datetime.strptime(match.group(2), "%B").month,
+                int(match.group(1)),
+                tzinfo=timezone.utc,
+            ).isoformat()
+        except ValueError:
+            return ""
+
+    observations: list[Dict[str, str]] = []
+    table_pattern = re.compile(
+        r"<(?P<tag>figure|table)\b(?P<attrs>[^>]*)>(?P<body>.*?)</(?P=tag)>",
+        re.IGNORECASE | re.DOTALL,
+    )
+    for table in table_pattern.finditer(value):
+        block = table.group(0)
+        table_text = _normalized_document_text(block, is_html=True)
+        title_match = re.search(
+            r"<(?:figcaption|h[1-4])\b[^>]*>(?P<body>.*?)</(?:figcaption|h[1-4])>",
+            block,
+            re.IGNORECASE | re.DOTALL,
+        )
+        table_title = (
+            _normalized_document_text(title_match.group("body"), is_html=True)
+            if title_match
+            else ""
+        )
+        published_at = release_date(table_text)
+        table_uuid = attrs_value(table.group("attrs"), "data-uuid") or attrs_value(
+            table.group("attrs"), "data-table-id"
+        ) or attrs_value(table.group("attrs"), "id")
+        dataset = re.search(
+            r"andmed\.stat\.ee/[^\"'<>\s]*/([A-Za-z0-9_-]{3,})",
+            block,
+            re.IGNORECASE,
+        )
+        dataset_id = dataset.group(1) if dataset else ""
+        header_matches = list(
+            re.finditer(
+                r"<th\b(?P<attrs>[^>]*)>(?P<body>.*?)</th>",
+                block,
+                re.IGNORECASE | re.DOTALL,
+            )
+        )
+        series_headers = [
+            {
+                # Keep the visible header as the public series label so the
+                # evaluator can bind it back to the signed normalized page.
+                # Preserve the publisher's machine code separately.
+                "series": _normalized_document_text(
+                    match.group("body"), is_html=True
+                ) or attrs_value(match.group("attrs"), "data-series-name"),
+                "series_code": attrs_value(
+                    match.group("attrs"), "data-series-name"
+                ),
+                "unit": attrs_value(match.group("attrs"), "data-series-unit"),
+            }
+            for match in header_matches
+            if attrs_value(match.group("attrs"), "data-series-name")
+        ]
+        period_headers = [
+            attrs_value(match.group("attrs"), "data-category")
+            for match in header_matches
+            if attrs_value(match.group("attrs"), "data-category")
+        ]
+        rows = list(
+            re.finditer(
+                r"<tr\b(?P<attrs>[^>]*)>(?P<body>.*?)</tr>",
+                block,
+                re.IGNORECASE | re.DOTALL,
+            )
+        )
+        def append_observation(
+            *, series: str, series_code: str = "", unit: str, period: str, cell: str,
+            row_text: str, row_cells: list[str], column_index: int,
+            orientation: str, series_labels: list[str], period_labels: list[str],
+        ) -> None:
+            observation_end = period_end(period)
+            value_match = _PRIMARY_MARKET_VALUE.search(cell) or re.search(
+                r"(?<!\w)-?\d(?:[\d\u00a0 ]|[.,](?=\d))*(?!\w)", cell
+            )
+            if not value_match or not series or not observation_end or not published_at:
+                return
+            # A release cannot authoritatively describe a period that has not
+            # ended yet.  In particular, a heading such as "2026 million
+            # euros" must never turn a partial current year into 31 December.
+            if observation_end > published_at:
+                return
+            canonical = {
+                "table_id": table_uuid,
+                "dataset_id": dataset_id,
+                "table_title": table_title,
+                "series": series,
+                "series_code": series_code,
+                "unit": unit,
+                "period": period,
+                "observation_end": observation_end,
+                "value": value_match.group(0).strip(),
+                "published_at": published_at,
+                "row_text": row_text,
+                "row_cells": list(row_cells),
+                "cell_text": cell,
+                "column_index": str(column_index),
+                "orientation": orientation,
+                "series_labels": list(series_labels),
+                "period_labels": list(period_labels),
+            }
+            canonical["observation_sha256"] = hashlib.sha256(
+                _canonical_bytes(canonical)
+            ).hexdigest()
+            observations.append(canonical)
+
+        for row in rows:
+            period_match = re.search(
+                r"data-category=[\"'](?P<period>[^\"']+)[\"']",
+                row.group(0),
+                re.IGNORECASE,
+            )
+            cells = [
+                _normalized_document_text(match.group("body"), is_html=True)
+                for match in re.finditer(
+                    r"<td\b[^>]*>(?P<body>.*?)</td>",
+                    row.group("body"),
+                    re.IGNORECASE | re.DOTALL,
+                )
+            ]
+            row_text = _normalized_document_text(row.group(0), is_html=True)
+            series_match = re.search(
+                r"<th\b(?P<attrs>[^>]*)>(?P<body>.*?)</th>",
+                row.group("body"),
+                re.IGNORECASE | re.DOTALL,
+            )
+            if period_match and series_headers and len(cells) == len(series_headers):
+                period = _normalized_document_text(period_match.group("period"), is_html=False)
+                column_series_labels = [
+                    str(header.get("series") or "") for header in series_headers
+                ]
+                for column_index, (header, cell) in enumerate(
+                    zip(series_headers, cells)
+                ):
+                    append_observation(
+                        period=period,
+                        cell=cell,
+                        row_text=row_text,
+                        row_cells=cells,
+                        column_index=column_index,
+                        orientation="column",
+                        series_labels=column_series_labels,
+                        period_labels=[],
+                        **header,
+                    )
+            elif (
+                series_match
+                and attrs_value(series_match.group("attrs"), "data-series-name")
+                and period_headers
+                and len(cells) == len(period_headers)
+            ):
+                series_code = attrs_value(
+                    series_match.group("attrs"), "data-series-name"
+                )
+                series = _normalized_document_text(
+                    series_match.group("body"), is_html=True
+                ) or series_code
+                unit = attrs_value(series_match.group("attrs"), "data-series-unit")
+                if not unit and "," in series:
+                    unit = series.rsplit(",", 1)[-1].strip()
+                for column_index, (period, cell) in enumerate(
+                    zip(period_headers, cells)
+                ):
+                    append_observation(
+                        series=series,
+                        series_code=series_code,
+                        unit=unit,
+                        period=period,
+                        cell=cell,
+                        row_text=row_text,
+                        row_cells=cells,
+                        column_index=column_index,
+                        orientation="row",
+                        series_labels=[series],
+                        period_labels=period_headers,
+                    )
+    # HTML tables are often oldest-first. Keep a bounded set from the latest
+    # explicit period rather than truncating to the first historical rows.
+    observations.sort(
+        key=lambda row: str(row.get("observation_end") or ""), reverse=True
+    )
+    latest_by_series: Dict[tuple[str, str, str, str], Dict[str, str]] = {}
+    for observation in observations:
+        identity = (
+            str(observation.get("table_id") or ""),
+            str(observation.get("dataset_id") or ""),
+            str(observation.get("series") or ""),
+            str(observation.get("unit") or ""),
+        )
+        latest_by_series.setdefault(identity, observation)
+    return list(latest_by_series.values())[:12]
+
+
+def _bound_structured_statistical_observations(
+    supplied: Optional[list[Dict[str, str]]],
+    *,
+    direct_raw_html: Optional[str],
+) -> tuple[list[Dict[str, str]], list[Dict[str, Any]], str]:
+    """Re-derive signed table cells from the exact fetched raw document."""
+
+    if not supplied and not direct_raw_html:
+        return [], [], ""
+    if not isinstance(direct_raw_html, str) or not direct_raw_html:
+        raise ValueError("structured statistics require their fetched raw HTML")
+    derived = _structured_statistical_observations(direct_raw_html)
+    if supplied is not None and list(supplied) != derived:
+        raise ValueError("structured statistics do not match fetched raw HTML")
+    return (
+        derived,
+        [],
+        hashlib.sha256(direct_raw_html.encode("utf-8")).hexdigest(),
+    )
+
+
+def _offer_payload_is_valid(row: Mapping[str, Any]) -> bool:
+    unsigned = {str(key): value for key, value in row.items() if key != "sha256"}
+    return bool(
+        row.get("signal_type") in {
+            "schema_org_product_offer",
+            "merchant_product_config",
+        }
+        and (row.get("product_id") or row.get("product_name"))
+        and re.fullmatch(r"-?\d+(?:\.\d+)?", str(row.get("price") or ""))
+        and re.fullmatch(r"[A-Z]{3}", str(row.get("price_currency") or ""))
+        and hashlib.sha256(_canonical_bytes(unsigned)).hexdigest() == row.get("sha256")
+    )
+
+
+def _visible_price_currency(value: str) -> tuple[str, str]:
+    number = re.search(r"-?\d+(?:[.,]\d+)?", value)
+    currency = re.search(rf"\b({_ISO_CURRENCY_CODES})\b", value, re.IGNORECASE)
+    if currency:
+        code = currency.group(1).upper()
+    elif "€" in value:
+        code = "EUR"
+    elif "£" in value:
+        code = "GBP"
+    elif "$" in value:
+        code = ""
+    else:
+        code = ""
+    return (number.group(0).replace(",", ".") if number else "", code)
+
+
+def _matching_commercial_offer_evidence(
+    rows: Any,
+    *,
+    visible_value: str,
+    country_codes: Iterable[str] = (),
+) -> Optional[Dict[str, str]]:
+    if not isinstance(rows, list) or not rows:
+        return None
+    visible_price, visible_currency = _visible_price_currency(visible_value)
+    explicit_currency = bool(visible_currency)
+    ambiguous_symbol = bool(
+        not explicit_currency
+        and re.search(r"[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]", visible_value)
+    )
+    candidates: list[Dict[str, str]] = []
+    for row in rows[:24]:
+        if not isinstance(row, Mapping):
+            continue
+        if _offer_payload_is_valid(row):
+            offer_price = str(row.get("price") or "")
+            offer_currency = str(row.get("price_currency") or "")
+            try:
+                prices_match = Decimal(offer_price) == Decimal(visible_price)
+            except InvalidOperation:
+                prices_match = False
+            if prices_match and (
+                (explicit_currency and offer_currency == visible_currency)
+                or ambiguous_symbol
+            ):
+                candidates.append(dict(row))
+    if explicit_currency:
+        return candidates[0] if candidates else None
+    # Currency symbols can be shared across countries.  Never infer a currency
+    # from the symbol or country; accept only one exact price-matching currency
+    # from raw-derived offers in a single jurisdiction-bound market cell.
+    countries = {str(value).upper() for value in country_codes if value}
+    currencies = {row.get("price_currency") for row in candidates}
+    if len(countries) == 1 and len(currencies) == 1 and candidates:
+        return candidates[0]
+    return None
+
+
+def _offer_identity_occurs_in_text(row: Mapping[str, Any], text: str) -> bool:
+    normalized = " ".join(str(text or "").casefold().split())
+    return any(
+        token and token in normalized
+        for token in (
+            " ".join(str(row.get("product_id") or "").casefold().split()),
+            " ".join(str(row.get("product_name") or "").casefold().split()),
+        )
+    )
+
+
+def _valid_commercial_offer_evidence(rows: Any) -> bool:
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 24:
+        return False
+    return all(
+        isinstance(row, Mapping) and _offer_payload_is_valid(row)
+        for row in rows
+    )
+
+
+def claim_matching_offer_evidence(
+    proof: Mapping[str, Any], claim_text: str
+) -> Optional[Dict[str, str]]:
+    """Return the signed offer whose identity and price occur in an exact claim."""
+
+    normalized = " ".join(str(claim_text or "").casefold().split())
+    for offer in proof.get("commercial_offer_evidence") or []:
+        if not isinstance(offer, Mapping) or not _offer_payload_is_valid(offer):
+            continue
+        product_terms = [
+            " ".join(str(offer.get(key) or "").casefold().split())
+            for key in ("product_id", "product_name")
+            if offer.get(key)
+        ]
+        identity_matches = any(term and term in normalized for term in product_terms)
+        if not identity_matches:
+            continue
+        for visible in _PRIMARY_MARKET_VALUE.finditer(claim_text):
+            matched = _matching_commercial_offer_evidence(
+                [offer],
+                visible_value=visible.group(0),
+                country_codes=proof.get("country_codes") or [],
+            )
+            if matched:
+                return matched
+    return None
+
+
+def fact_matching_offer_evidence(
+    proof: Mapping[str, Any], claim_text: str, fact_value: str
+) -> Optional[Dict[str, str]]:
+    """Bind one extracted price fact to one signed Product/Offer.
+
+    Claim-level matching is deliberately insufficient: a product card may also
+    contain a cart subtotal, delivery threshold, or comparison value.  Only the
+    individual value whose amount/currency matches the signed offer is allowed
+    into the verified fact ledger.
+    """
+
+    for offer in proof.get("commercial_offer_evidence") or []:
+        if (
+            isinstance(offer, Mapping)
+            and _offer_payload_is_valid(offer)
+            and _offer_identity_occurs_in_text(offer, claim_text)
+            and _matching_commercial_offer_evidence(
+                [offer],
+                visible_value=fact_value,
+                country_codes=proof.get("country_codes") or [],
+            )
+        ):
+            return dict(offer)
+    return None
 
 
 def _canonical_bytes(value: Mapping[str, Any]) -> bytes:
@@ -287,6 +845,8 @@ def build_attested_authority_proof(
     attestation_url: str,
     attestation_text: str,
     country_codes: Iterable[str],
+    structured_statistical_observations: Optional[list[Dict[str, str]]] = None,
+    direct_raw_html: Optional[str] = None,
     retrieved_at: Optional[str] = None,
     signing_secret: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -331,6 +891,12 @@ def build_attested_authority_proof(
             "sha256": hashlib.sha256(direct_text[:520].encode("utf-8")).hexdigest(),
         }
     )
+    observations, table_artifacts, structured_source_sha256 = (
+        _bound_structured_statistical_observations(
+            structured_statistical_observations,
+            direct_raw_html=direct_raw_html,
+        )
+    )
     payload = {
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "independent_public_root_attestation",
@@ -351,6 +917,8 @@ def build_attested_authority_proof(
             "excerpt": attestation_excerpt,
         },
         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "structured_statistical_observations": observations,
+        "structured_evidence_source_sha256": structured_source_sha256,
     }
     return {
         **payload,
@@ -364,6 +932,8 @@ def build_recognized_root_proof(
     direct_url: str,
     direct_text: str,
     country_codes: Iterable[str],
+    structured_statistical_observations: Optional[list[Dict[str, str]]] = None,
+    direct_raw_html: Optional[str] = None,
     retrieved_at: Optional[str] = None,
     signing_secret: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -375,6 +945,12 @@ def build_recognized_root_proof(
     if not _recognized_root_covers_jurisdiction(direct_url, country_codes):
         raise ValueError("recognized public root does not cover requested jurisdiction")
     excerpt_text = direct_text[:520]
+    observations, table_artifacts, structured_source_sha256 = (
+        _bound_structured_statistical_observations(
+            structured_statistical_observations,
+            direct_raw_html=direct_raw_html,
+        )
+    )
     payload = {
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "recognized_public_root_direct",
@@ -394,6 +970,8 @@ def build_recognized_root_proof(
             },
         },
         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "structured_statistical_observations": observations,
+        "structured_evidence_source_sha256": structured_source_sha256,
     }
     return {
         **payload,
@@ -407,6 +985,8 @@ def build_direct_primary_market_proof(
     direct_url: str,
     direct_text: str,
     country_codes: Iterable[str],
+    commercial_offer_evidence: Optional[list[Dict[str, str]]] = None,
+    direct_raw_html: Optional[str] = None,
     retrieved_at: Optional[str] = None,
     signing_secret: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -417,20 +997,68 @@ def build_direct_primary_market_proof(
     exact commercial observation appeared on the fetched HTTPS publisher page.
     """
 
+    normalized_country_codes = sorted(
+        {str(value).upper() for value in country_codes if value}
+    )
+    if len(normalized_country_codes) != 1:
+        raise ValueError("primary market proof requires exactly one country cell")
     parsed = urlparse(str(direct_url or ""))
     host = _host(direct_url)
-    language = _PRIMARY_MARKET_LANGUAGE.search(direct_text)
-    value_match = _PRIMARY_MARKET_VALUE.search(direct_text)
+    value_matches = list(_PRIMARY_MARKET_VALUE.finditer(direct_text))
     if parsed.scheme.casefold() != "https" or not host:
         raise ValueError("primary market publisher must be a direct HTTPS URL")
-    if not value_match:
+    jurisdiction_bound = _document_binds_jurisdiction(
+        final_url=direct_url,
+        text=direct_text,
+        country_codes=normalized_country_codes,
+    )
+    if not jurisdiction_bound:
+        raise ValueError("primary market page does not bind requested jurisdiction")
+    if not value_matches:
         raise ValueError("direct page contains no explicit priced market observation")
+    if commercial_offer_evidence or direct_raw_html:
+        if not isinstance(direct_raw_html, str) or not direct_raw_html:
+            raise ValueError("structured product offers require their fetched raw HTML")
+        derived_offers = _commercial_offer_evidence(direct_raw_html)
+        if (
+            commercial_offer_evidence is not None
+            and list(commercial_offer_evidence) != derived_offers
+        ):
+            raise ValueError("structured product offers do not match fetched raw HTML")
+        commercial_offer_evidence = derived_offers
+    matching_pairs = [
+        (match, offer)
+        for match in value_matches
+        if (
+            offer := _matching_commercial_offer_evidence(
+                commercial_offer_evidence,
+                visible_value=match.group(0),
+                country_codes=normalized_country_codes,
+            )
+        )
+        and _offer_identity_occurs_in_text(offer, direct_text)
+    ]
+    if not matching_pairs:
+        raise ValueError("priced page contains no fetched structured Product/Offer evidence")
+    value_match = matching_pairs[0][0]
+    matching_offers: list[Dict[str, str]] = []
+    seen_offer_hashes: set[str] = set()
+    for _match, offer in matching_pairs:
+        offer_hash = str(offer.get("sha256") or "")
+        if offer_hash and offer_hash not in seen_offer_hashes:
+            matching_offers.append(offer)
+            seen_offer_hashes.add(offer_hash)
+        if len(matching_offers) >= 24:
+            break
     direct_excerpt = _excerpt(
         direct_text,
-        (language or value_match).group(0),
+        value_match.group(0),  # type: ignore[union-attr]
         radius=520,
     )
-    if not _PRIMARY_MARKET_VALUE.search(direct_excerpt["text"]):
+    if not (
+        _PRIMARY_MARKET_VALUE.search(direct_excerpt["text"])
+        and matching_offers
+    ):
         # The value and commercial label must occur in the same bounded proof
         # excerpt; a price elsewhere on a large page is not enough.
         raise ValueError("priced observation is not locally bound to the catalogue context")
@@ -438,9 +1066,15 @@ def build_direct_primary_market_proof(
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "direct_primary_market_observation",
         "source_authority": "first_party_catalog",
-        "country_codes": sorted(
-            {str(value).upper() for value in country_codes if value}
-        ),
+        "country_codes": normalized_country_codes,
+        "jurisdiction_binding": {
+            "status": "verified",
+            "basis": (
+                "resolved_publisher_cctld"
+                if _country_code_from_url(direct_url) in normalized_country_codes
+                else "direct_document_country_reference"
+            ),
+        },
         "direct": {
             "final_url": direct_url,
             "final_host": host,
@@ -448,6 +1082,10 @@ def build_direct_primary_market_proof(
             "excerpt": direct_excerpt,
         },
         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
+        "commercial_offer_evidence": matching_offers,
+        "structured_evidence_source_sha256": hashlib.sha256(
+            str(direct_raw_html).encode("utf-8")
+        ).hexdigest(),
     }
     return {
         **payload,
@@ -551,15 +1189,51 @@ def validate_authority_proof(
         expected_authority = "first_party_catalog"
         direct_url = str(direct.get("final_url") or "")
         if (
+            len(proof_countries) != 1
+            or len(source_countries) != 1
+            or (requested and len(requested) != 1)
+            or proof_countries != source_countries
+            or (requested and proof_countries != requested)
+        ):
+            return False
+        if (
             urlparse(direct_url).scheme.casefold() != "https"
             or not _host(direct_url)
             or is_trusted_public_root(direct_url)
             or not _PRIMARY_MARKET_VALUE.search(
                 str(direct_excerpt.get("text") or "")
             )
+            or not _valid_commercial_offer_evidence(
+                proof.get("commercial_offer_evidence")
+            )
+            or not re.fullmatch(
+                r"[a-f0-9]{64}",
+                str(proof.get("structured_evidence_source_sha256") or ""),
+            )
+            or proof.get("jurisdiction_binding", {}).get("status") != "verified"
+        ):
+            return False
+        private_document = source.get("_authority_document_artifact")
+        private_text = (
+            private_document.get("text")
+            if isinstance(private_document, Mapping)
+            else None
+        )
+        if (
+            not isinstance(private_text, str)
+            or not _document_binds_jurisdiction(
+                final_url=direct_url,
+                text=private_text,
+                country_codes=proof_countries,
+            )
         ):
             return False
     else:
+        return False
+    if proof.get("structured_statistical_observations") and not re.fullmatch(
+        r"[a-f0-9]{64}",
+        str(proof.get("structured_evidence_source_sha256") or ""),
+    ):
         return False
     for excerpt in excerpts:
         text = excerpt.get("text")
@@ -783,6 +1457,20 @@ async def fetch_direct_text(
                 "final_url": str(response.url),
                 "text": text,
                 "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                # Internal-only, bounded by ``maximum_bytes`` and stripped
+                # before source persistence. Proof builders re-derive typed
+                # evidence from these exact fetched bytes.
+                "_structured_evidence_html": (
+                    response.text if "html" in content_type else ""
+                ),
+                "commercial_offer_evidence": _commercial_offer_evidence(
+                    response.text
+                ) if "html" in content_type else [],
+                "structured_statistical_observations": (
+                    _structured_statistical_observations(response.text)
+                    if "html" in content_type
+                    else []
+                ),
             }
     raise ValueError("authority URL exceeded redirect limit")
 
@@ -805,6 +1493,15 @@ async def enrich_authority_sources(
                     "final_url": str(cached.get("final_url") or ""),
                     "text": str(cached.get("text") or ""),
                     "retrieved_at": str(cached.get("retrieved_at") or ""),
+                    "commercial_offer_evidence": list(
+                        cached.get("commercial_offer_evidence") or []
+                    ),
+                    "structured_statistical_observations": list(
+                        cached.get("structured_statistical_observations") or []
+                    ),
+                    "_structured_evidence_html": str(
+                        cached.get("_structured_evidence_html") or ""
+                    ),
                 }
             return await fetcher(str(row["url"]))
 
@@ -873,6 +1570,12 @@ async def enrich_authority_sources(
                 direct_url=direct["final_url"],
                 direct_text=direct["text"],
                 country_codes=row.get("country_codes") or [],
+                structured_statistical_observations=list(
+                    direct.get("structured_statistical_observations") or []
+                ),
+                direct_raw_html=str(
+                    direct.get("_structured_evidence_html") or ""
+                ) or None,
                 retrieved_at=retrieved_at,
             )
             row.update(
@@ -914,6 +1617,12 @@ async def enrich_authority_sources(
                     attestation_url=attested["final_url"],
                     attestation_text=attested["text"],
                     country_codes=row.get("country_codes") or [],
+                    structured_statistical_observations=list(
+                        direct.get("structured_statistical_observations") or []
+                    ),
+                    direct_raw_html=str(
+                        direct.get("_structured_evidence_html") or ""
+                    ) or None,
                     retrieved_at=retrieved_at,
                 )
             except ValueError:
@@ -946,6 +1655,12 @@ async def enrich_authority_sources(
                 direct_url=direct["final_url"],
                 direct_text=direct["text"],
                 country_codes=row.get("country_codes") or [],
+                commercial_offer_evidence=list(
+                    direct.get("commercial_offer_evidence") or []
+                ),
+                direct_raw_html=str(
+                    direct.get("_structured_evidence_html") or ""
+                ) or None,
                 retrieved_at=retrieved_at,
             )
         except ValueError:

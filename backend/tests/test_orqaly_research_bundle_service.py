@@ -1,6 +1,8 @@
 """Focused contracts for structured regional grounding and portable bundles."""
 
 import asyncio
+import hashlib
+import os
 
 import pytest
 
@@ -27,6 +29,9 @@ from backend.services.orqaly_research_bundle_service import (
     derive_executor_role_specs,
     normalize_market_grounding,
     request_with_grounding,
+)
+from backend.services.research_source_authority_service import (
+    build_recognized_root_proof,
 )
 
 
@@ -413,6 +418,164 @@ def test_combined_providers_cannot_inflate_source_count_with_duplicate_urls():
     assert len(sources) == 1
     assert sources[0]["source_id"] == "gemini-source"
     assert claims[0]["source_ids"] == ["gemini-source"]
+
+
+def test_signed_direct_source_wins_duplicate_url_and_remaps_weak_claims():
+    policy = HybridGroundingPolicy(required=True)
+    os.environ.setdefault(
+        "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
+    )
+    direct_text = "The current standard rate is 24 percent."
+    signed_url = "https://tax.gov.ee/current-rate"
+    proof = build_recognized_root_proof(
+        direct_url=signed_url,
+        direct_text=direct_text,
+        country_codes=["EE"],
+        retrieved_at="2026-08-13T00:00:00+00:00",
+    )
+    signature = proof["proof_signature"]
+    sources, claims = _merge_market_evidence(
+        [
+            {
+                "source_id": "company-parser-source",
+                "source_type": "google_search_result",
+                "url": signed_url,
+                "source_authority": "independent_web",
+                "research_cell_ids": ["country:EE"],
+            },
+            {
+                "source_id": "signed-direct-source",
+                "source_type": "google_search_result",
+                "url": signed_url,
+                "source_authority": "official_public",
+                "authority_verification_status": "recognized_public_root_direct",
+                "country_codes": ["EE"],
+                "retrieved_at": "2026-08-13T00:00:00+00:00",
+                "authority_proof": proof,
+                # Exact production shape emitted by
+                # B2BDataPipeline._store_direct_web_evidence.
+                "authority_document": {
+                    "artifact_type": "direct_authority_document",
+                    "source_id": "signed-direct-source",
+                    "sha256": hashlib.sha256(direct_text.encode()).hexdigest(),
+                    "authority_proof_signature": signature,
+                    "retrieved_at": "2026-08-13T00:00:00+00:00",
+                },
+            },
+        ],
+        [
+            {
+                "claim_id": "weak-claim",
+                "claim_type": "market_rule",
+                "subject": "Estonia",
+                "predicate": "has_rule",
+                "object": "The current standard rate is 24 percent.",
+                "source_ids": ["company-parser-source"],
+                "citation_metadata": {"source_id": "company-parser-source"},
+            },
+            {
+                "claim_id": "signed-claim",
+                "claim_type": "market_rule",
+                "subject": "Estonia",
+                "predicate": "has_rule",
+                "object": "The current standard rate is 24 percent.",
+                "source_ids": ["signed-direct-source"],
+                "citation_metadata": {"source_id": "signed-direct-source"},
+                "provenance_artifact": {
+                    "artifact_type": "direct_authority_document",
+                    "source_id": "signed-direct-source",
+                    "sha256": "b" * 64,
+                    "authority_proof_signature": signature,
+                    "claim_binding": {
+                        "source_id": "signed-direct-source",
+                        "claim_proof_signature": "c" * 64,
+                    },
+                },
+            },
+        ],
+        policy,
+    )
+
+    assert len(sources) == 1
+    assert sources[0]["source_id"] == "signed-direct-source"
+    assert sources[0]["authority_proof"]["proof_signature"] == signature
+    assert sources[0]["research_cell_ids"] == ["country:EE"]
+    assert sources[0]["country_codes"] == ["EE"]
+    assert len(claims) == 1
+    assert claims[0]["source_ids"] == ["signed-direct-source"]
+    assert claims[0]["citation_metadata"]["source_id"] == "signed-direct-source"
+    assert claims[0]["provenance_artifact"]["source_id"] == "signed-direct-source"
+    assert claims[0]["provenance_artifact"]["claim_binding"]["source_id"] == (
+        "signed-direct-source"
+    )
+
+
+def test_malformed_document_metadata_cannot_displace_valid_signed_duplicate():
+    policy = HybridGroundingPolicy(required=True)
+    direct_text = "The current standard rate is 24 percent."
+    url = "https://tax.gov.ee/current-rate"
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+    proof = build_recognized_root_proof(
+        direct_url=url,
+        direct_text=direct_text,
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+    )
+    signature = proof["proof_signature"]
+    malformed = {
+        "source_id": "malformed-first",
+        "source_type": "google_search_result",
+        "url": url,
+        "source_authority": "official_public",
+        "country_codes": ["EE"],
+        "retrieved_at": retrieved_at,
+        "authority_proof": proof,
+        "authority_document": {
+            "artifact_type": "direct_authority_document",
+            "source_id": "malformed-first",
+            "sha256": "x",
+            "retrieved_at": "wrong",
+            "authority_proof_signature": signature,
+        },
+    }
+    valid = {
+        **malformed,
+        "source_id": "valid-signed",
+        "authority_document": {
+            "artifact_type": "direct_authority_document",
+            "source_id": "valid-signed",
+            "sha256": proof["direct"]["content_sha256"],
+            "retrieved_at": retrieved_at,
+            "authority_proof_signature": signature,
+        },
+    }
+    sources, claims = _merge_market_evidence(
+        [malformed, valid],
+        [{
+            "claim_id": "signed-claim",
+            "claim_type": "market_rule",
+            "subject": "Estonia",
+            "predicate": "has_rule",
+            "object": direct_text,
+            "source_ids": ["valid-signed"],
+            "citation_metadata": {"source_id": "valid-signed"},
+            "provenance_artifact": {
+                "artifact_type": "direct_authority_document",
+                "source_id": "valid-signed",
+                "sha256": "b" * 64,
+                "authority_proof_signature": signature,
+                "claim_binding": {
+                    "source_id": "valid-signed",
+                    "claim_proof_signature": "c" * 64,
+                },
+            },
+        }],
+        policy,
+    )
+
+    assert sources[0]["source_id"] == "valid-signed"
+    assert sources[0]["authority_document"]["sha256"] == proof["direct"]["content_sha256"]
+    assert claims[0]["source_ids"] == ["valid-signed"]
 
 
 def test_grounded_claims_are_composed_into_pipeline_b_as_data_before_interviews():

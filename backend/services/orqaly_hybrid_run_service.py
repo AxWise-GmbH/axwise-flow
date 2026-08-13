@@ -61,6 +61,11 @@ from backend.services.research_quality_service import (
     evaluate_critical_claims,
     normalize_research_prd_type,
 )
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    build_topic_seed,
+)
 from backend.domain.market_scope import resolve_market_expression
 
 
@@ -68,10 +73,43 @@ logger = logging.getLogger(__name__)
 
 PARTNER_ID = "orqaly"
 TERMINAL_STATUSES = {"completed", "completed_with_warnings", "failed", "cancelled"}
+_PRIVATE_GROUNDING_SOURCE_KEYS = {
+    "_authority_document_artifact",
+    "_structured_evidence_html",
+}
 
 
 def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+def _strip_private_grounding_artifacts(grounding: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove evaluator-only fetched documents before any durable handoff."""
+
+    grounding = dict(grounding)
+    grounding["market_sources"] = [
+        {
+            key: value
+            for key, value in source.items()
+            if key not in _PRIVATE_GROUNDING_SOURCE_KEYS
+        }
+        for source in grounding.get("market_sources") or []
+        if isinstance(source, dict)
+    ]
+    for entry in grounding.get("_deferred_company_enrichment") or []:
+        pipeline = entry.get("pipeline") if isinstance(entry, dict) else None
+        if pipeline is None:
+            continue
+        pipeline.market_sources = [
+            {
+                key: value
+                for key, value in source.items()
+                if key not in _PRIVATE_GROUNDING_SOURCE_KEYS
+            }
+            for source in pipeline.market_sources
+            if isinstance(source, dict)
+        ]
+    return grounding
 
 
 class HybridRunCancelled(Exception):
@@ -195,6 +233,71 @@ class HybridRunService:
         )
 
     @staticmethod
+    def _topic_seed_contract(
+        request: SimulationRequest,
+        task_context: Optional[OrqalyTaskContext],
+        country_codes: list[str],
+    ) -> Optional[Dict[str, Any]]:
+        context = request.business_context
+        if not context or not country_codes:
+            return None
+        market_scope = context.market_scope
+        scope_label = (
+            market_scope.raw_input
+            if market_scope and market_scope.raw_input
+            else context.location or ",".join(country_codes)
+        )
+        geography_terms = [scope_label]
+        if context.location:
+            geography_terms.append(context.location)
+        if market_scope:
+            for country in market_scope.resolved_scope.countries:
+                geography_terms.append(country.country_name)
+                geography_terms.extend(country.localities)
+        immutable = {
+            "title": task_context.title if task_context else context.business_idea,
+            "problem_scope": " ".join(
+                value
+                for value in (
+                    task_context.description if task_context else "",
+                    context.problem,
+                )
+                if value
+            ),
+            "desired_outcome": task_context.desired_outcome or ""
+            if task_context
+            else "",
+            "mission": context.business_idea,
+            "industry": context.industry or "",
+            "target_user": context.target_customer,
+        }
+        goal_id = (
+            task_context.task_id
+            if task_context and task_context.task_id
+            else "hybrid-" + hashlib.sha256(
+                json.dumps(immutable, sort_keys=True).encode("utf-8")
+            ).hexdigest()[:32]
+        )
+        try:
+            seed = build_topic_seed(
+                ImmutableGoalTopicFields(goal_id=goal_id, **immutable),
+                ConfirmedMarketScope(
+                    scope_label=scope_label,
+                    country_codes=tuple(country_codes),
+                    confirmed=True,
+                    resolution_hash=(
+                        market_scope.resolution_hash if market_scope else None
+                    ),
+                    geography_terms=tuple(
+                        value for value in dict.fromkeys(geography_terms) if value
+                    ),
+                ),
+            )
+        except (TypeError, ValueError):
+            return None
+        return seed.model_dump(mode="json")
+
+    @staticmethod
     def _evaluate_country_cell_claims(
         grounding: Dict[str, Any],
         *,
@@ -260,7 +363,11 @@ class HybridRunService:
                 )
             ]
             quality = evaluate_critical_claims(
-                {"market_sources": cell_sources, "market_claims": cell_claims},
+                {
+                    "market_sources": cell_sources,
+                    "market_claims": cell_claims,
+                    "topic_seed_contract": grounding.get("topic_seed_contract"),
+                },
                 countries,
                 freshness_days=int(critical_policy.get("freshness_days") or 120),
                 freshness_by_class=critical_policy.get("freshness_by_class") or {},
@@ -780,6 +887,49 @@ class HybridRunService:
                     task_context,
                     mandatory_claim_classes,
                 )
+                applicable_claim_classes = {
+                    str(value).casefold()
+                    for value in claim_class_applicability.get(
+                        "applicable_claim_classes", []
+                    )
+                    if value
+                }
+                requested_country_codes = self._requested_country_codes(request, {})
+                if not requested_country_codes and request.business_context:
+                    raw_location = str(
+                        request.business_context.location or ""
+                    ).strip()
+                    if raw_location:
+                        inferred_scope = resolve_market_expression(raw_location)
+                        if (
+                            inferred_scope.resolved_scope.countries
+                            and not inferred_scope.confirmation.required
+                        ):
+                            requested_country_codes = [
+                                str(country.country_code).upper()
+                                for country in inferred_scope.resolved_scope.countries
+                            ]
+                topic_seed_contract = self._topic_seed_contract(
+                    request,
+                    task_context,
+                    requested_country_codes,
+                )
+                if (
+                    "official_statistic" in applicable_claim_classes
+                    and not topic_seed_contract
+                ):
+                    failure_diagnostics = {
+                        "contract": "sanitized_grounding_failure_v1",
+                        "critical_status": "blocked",
+                        "missing_claim_classes": ["official_statistic"],
+                        "blocked_reason_counts": {
+                            "topic_contract_missing_or_invalid": 1
+                        },
+                    }
+                    raise RuntimeError(
+                        "Applicable official-statistic evidence requires a valid "
+                        "immutable goal topic contract"
+                    )
                 if request.business_context:
                     # Acquisition reads this data-only contract before any
                     # model output exists. It cannot be weakened by a search
@@ -801,6 +951,10 @@ class HybridRunService:
                             else None
                         ),
                     }
+                    if topic_seed_contract:
+                        acquisition_context["critical_claim_acquisition"][
+                            "topic_seed_contract"
+                        ] = topic_seed_contract
                     request = request.model_copy(
                         update={
                             "business_context": request.business_context.model_copy(
@@ -808,6 +962,7 @@ class HybridRunService:
                             )
                         }
                     )
+                expected_topic_seed_contract = topic_seed_contract
                 await self._set_stage(
                     job_id,
                     "grounding_market",
@@ -818,6 +973,25 @@ class HybridRunService:
                     grounding = await self.grounding(request, grounding_policy)
                 except Exception as exc:
                     raise RuntimeError("Regional market grounding failed") from exc
+                if "official_statistic" in applicable_claim_classes:
+                    returned_topic_seed = grounding.get("topic_seed_contract")
+                    if (
+                        not isinstance(returned_topic_seed, dict)
+                        or returned_topic_seed.get("seed_sha256")
+                        != expected_topic_seed_contract.get("seed_sha256")
+                        or returned_topic_seed != expected_topic_seed_contract
+                    ):
+                        failure_diagnostics = {
+                            "contract": "sanitized_grounding_failure_v1",
+                            "critical_status": "blocked",
+                            "missing_claim_classes": ["official_statistic"],
+                            "blocked_reason_counts": {
+                                "topic_contract_missing_or_invalid": 1
+                            },
+                        }
+                        raise RuntimeError(
+                            "Grounding omitted or replaced the immutable goal topic contract"
+                        )
                 structured_sources = valid_structured_market_sources(
                     grounding, grounding_policy
                 )
@@ -903,7 +1077,10 @@ class HybridRunService:
                     critical_policy.get("mandatory_claim_classes") or []
                 )
                 cell_critical_quality = self._evaluate_country_cell_claims(
-                    grounding,
+                    {
+                        **grounding,
+                        "topic_seed_contract": expected_topic_seed_contract,
+                    },
                     critical_policy=critical_policy,
                     claim_class_applicability=claim_class_applicability,
                 )
@@ -924,12 +1101,17 @@ class HybridRunService:
                             mandatory_claim_classes,
                         )
                     ),
+                    topic_seed_contract=expected_topic_seed_contract,
                 )
                 grounding = {
                     **grounding,
                     "critical_claim_quality": critical_quality,
                     "cell_critical_claim_quality": cell_critical_quality,
                 }
+                # Structured cells/offers were independently re-derived above.
+                # Never retain the private full document/raw HTML beyond the
+                # quality boundary, including fail-closed runs.
+                grounding = _strip_private_grounding_artifacts(grounding)
                 failure_diagnostics = self._sanitized_grounding_diagnostics(grounding)
                 blocked_critical_cells = [
                     row
@@ -961,6 +1143,11 @@ class HybridRunService:
                     grounding,
                     grounding_policy,
                 )
+                grounding = _strip_private_grounding_artifacts(grounding)
+            # Non-critical grounded runs may still carry evaluator-only fetch
+            # anchors. Scrub them before composing provider/user payloads or
+            # any result/bundle persistence.
+            grounding = _strip_private_grounding_artifacts(grounding)
             if research_mode == HybridResearchMode.GROUNDED_HYBRID:
                 request = request_with_grounding(request, grounding)
 
@@ -1763,6 +1950,13 @@ class HybridRunService:
             blocked_reason_counts[reason_code_value] = (
                 blocked_reason_counts.get(reason_code_value, 0) + 1
             )
+        candidate_rejection_counts = {
+            str(key)[:80]: max(0, int(value or 0))
+            for key, value in (
+                critical.get("candidate_rejection_counts") or {}
+            ).items()
+            if re.fullmatch(r"[a-z0-9_]{1,80}", str(key))
+        }
         cell_critical = []
         for row in (grounding.get("cell_critical_claim_quality") or [])[:16]:
             if not isinstance(row, dict):
@@ -1818,6 +2012,10 @@ class HybridRunService:
             "required_evidence_classes": list(
                 routing.get("required_evidence_classes") or []
             )[:8],
+            "topic_mismatch_observation_count": min(
+                10_000,
+                max(0, int(routing.get("topic_mismatch_observation_count") or 0)),
+            ),
             "providers": providers,
             "sources": sources,
             "attempted_sources": attempted_sources,
@@ -1863,6 +2061,28 @@ class HybridRunService:
             "missing_claim_classes": missing_classes,
             "blocked_reason_counts": dict(
                 sorted(blocked_reason_counts.items())[:16]
+            ),
+            # Candidate-local failures explain noisy retrieval without being
+            # confused with fatal gate reasons once independent class coverage
+            # is complete.
+            "candidate_rejection_counts": dict(
+                sorted(candidate_rejection_counts.items())[:16]
+            ),
+            "quarantined_count": max(
+                0, int(critical.get("quarantined_count") or 0)
+            ),
+            "topic_contract_status": str(
+                critical.get("topic_contract_status") or ""
+            )[:40]
+            or None,
+            "topic_seed_sha256": (
+                str(critical.get("topic_seed_sha256"))[:64]
+                if critical.get("topic_seed_sha256")
+                else (
+                    str(routing.get("topic_seed_sha256"))[:64]
+                    if routing.get("topic_seed_sha256")
+                    else None
+                )
             ),
             "cell_critical_claim_quality": cell_critical,
         }

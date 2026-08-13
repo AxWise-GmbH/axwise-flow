@@ -22,11 +22,21 @@ from ..models import CompanyDiscoveryItem
 from .market_scope import resolve_market_scope
 from backend.services.research_source_authority_service import (
     build_authority_claim_artifact,
+    claim_matching_offer_evidence,
     enrich_authority_sources,
     is_trusted_public_root,
     trusted_public_root_search_scope,
 )
-from backend.services.research_quality_service import evaluate_critical_claims
+from backend.services.research_quality_service import (
+    _MATERIAL_VALUE,
+    evaluate_critical_claims,
+    extract_material_facts,
+)
+from backend.services.research_topic_contract_service import (
+    TopicSeedContract,
+    match_visible_statistical_topic,
+    retrieval_phrases_for_country,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +140,7 @@ class B2BDataPipeline:
         minimum_source_count: int = 3,
         minimum_authoritative_source_count: int = 0,
         required_evidence_classes: Optional[List[str]] = None,
+        topic_seed_contract: Optional[Dict[str, Any]] = None,
     ):
         self.location = location
         self.business_problem = business_problem
@@ -147,6 +158,11 @@ class B2BDataPipeline:
             )
             if value in _DIRECTED_EVIDENCE_CLASSES
         ]
+        self.topic_seed_contract = (
+            TopicSeedContract.model_validate(topic_seed_contract)
+            if topic_seed_contract
+            else None
+        )
         self.market_scope = resolve_market_scope(location)
         self.routing_diagnostics: Dict[str, Any] = {
             "requested_location": location,
@@ -159,6 +175,12 @@ class B2BDataPipeline:
             "rejected_invalid_sources": [],
             "required_evidence_classes": list(self.required_evidence_classes),
             "directed_queries": [],
+            "topic_seed_sha256": (
+                self.topic_seed_contract.seed_sha256
+                if self.topic_seed_contract
+                else None
+            ),
+            "topic_mismatch_observation_count": 0,
         }
         self.market_sources: List[Dict[str, Any]] = []
         self.market_claims: List[Dict[str, Any]] = []
@@ -347,6 +369,19 @@ class B2BDataPipeline:
             "official_statistic": (
                 f"{market} latest official statistics government statistics office "
                 f"market population demand retail sales for: {problem}. "
+                + (
+                    "Topic phrases: "
+                    + ", ".join(
+                        retrieval_phrases_for_country(
+                            self.topic_seed_contract,
+                            country_code=str(self.market_scope.country_code),
+                        )[:8]
+                    )
+                    + ". "
+                    if self.topic_seed_contract and self.market_scope.country_code
+                    else ""
+                )
+                +
                 "Return the direct latest-release dataset/page with exact observation "
                 "period, value, unit, and explicit latest/current release language."
             ),
@@ -900,7 +935,9 @@ class B2BDataPipeline:
             result["evidence_class"] = "statutory_current"
         elif re.search(
             r"\b(?:market size|population|growth rate|employment|inflation|"
-            r"sales|turnover|households|consumption|imports|exports|volume)\b",
+            r"sales|turnover|households|consumption|imports|exports|volume|"
+            r"(?:consumer|producer|construction|retail)?\s*price\s+index|"
+            r"cpi|ppi)\b",
             lower,
         ):
             result["evidence_class"] = "official_statistic"
@@ -941,37 +978,49 @@ class B2BDataPipeline:
         )
         year = re.search(r"\b(20\d{2})\b", text)
         effective = None
-        if effective_dotted:
-            effective = datetime(
-                int(effective_dotted.group(3)),
-                int(effective_dotted.group(2)),
-                int(effective_dotted.group(1)),
-                tzinfo=timezone.utc,
-            ).isoformat()
-        elif iso_date:
-            effective = f"{iso_date.group(1)}T00:00:00+00:00"
-        elif dotted_date:
-            effective = datetime(
-                int(dotted_date.group(3)),
-                int(dotted_date.group(2)),
-                int(dotted_date.group(1)),
-                tzinfo=timezone.utc,
-            ).isoformat()
-        elif day_month_date:
-            effective = datetime(
-                int(day_month_date.group(3)),
-                datetime.strptime(day_month_date.group(2), "%B").month,
-                int(day_month_date.group(1)),
-                tzinfo=timezone.utc,
-            ).isoformat()
-        elif month_date:
-            month = datetime.strptime(month_date.group(1), "%B").month
-            day_text = (month_date.group(2) or "1").replace(",", "").strip()
-            effective = datetime(
-                int(month_date.group(3)), month, int(day_text), tzinfo=timezone.utc
-            ).isoformat()
-        elif year:
-            effective = datetime(int(year.group(1)), 1, 1, tzinfo=timezone.utc).isoformat()
+        try:
+            if effective_dotted:
+                effective = datetime(
+                    int(effective_dotted.group(3)),
+                    int(effective_dotted.group(2)),
+                    int(effective_dotted.group(1)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            elif iso_date:
+                # Validate before retaining a syntactically ISO-shaped table
+                # token such as 2026-99-16.
+                effective = datetime.fromisoformat(
+                    iso_date.group(1)
+                ).replace(tzinfo=timezone.utc).isoformat()
+            elif dotted_date:
+                effective = datetime(
+                    int(dotted_date.group(3)),
+                    int(dotted_date.group(2)),
+                    int(dotted_date.group(1)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            elif day_month_date:
+                effective = datetime(
+                    int(day_month_date.group(3)),
+                    datetime.strptime(day_month_date.group(2), "%B").month,
+                    int(day_month_date.group(1)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            elif month_date:
+                month = datetime.strptime(month_date.group(1), "%B").month
+                day_text = (month_date.group(2) or "1").replace(",", "").strip()
+                effective = datetime(
+                    int(month_date.group(3)), month, int(day_text), tzinfo=timezone.utc
+                ).isoformat()
+            elif year:
+                effective = datetime(
+                    int(year.group(1)), 1, 1, tzinfo=timezone.utc
+                ).isoformat()
+        except ValueError:
+            # Flattened tables routinely contain date-like numeric cells. An
+            # invalid incidental match is not evidence and must be ignored,
+            # never allowed to crash direct structured evidence consumption.
+            effective = None
 
         if evidence_class == "official_statistic":
             # Publication metadata must be attached to an explicit release
@@ -1181,17 +1230,7 @@ class B2BDataPipeline:
         normalized = " ".join(str(text or "").split())
         if not normalized:
             return []
-        material_value = re.compile(
-            rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
-            rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
-            rf"\b\d[\d\s.,]*\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|"
-            rf"euros?|dollars?|pounds?|yen|yuan|rupees?|"
-            rf"million|billion|thousand|people|persons?|units?|points?|"
-            rf"tonnes?|kilograms?)(?:\b|(?=\s|$))|"
-            rf"\b\d{{1,3}}(?:[ ,.\u00a0]\d{{3}})+\b|"
-            rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
-            re.IGNORECASE,
-        )
+        material_value = _MATERIAL_VALUE
         sentences = [
             value.strip()
             for value in re.split(r"(?<=[.!?])\s+", normalized)
@@ -1304,6 +1343,22 @@ class B2BDataPipeline:
                 retrieved_at=retrieved_at,
             )
             evidence_class = semantics.get("evidence_class")
+            if (
+                evidence_class == "official_statistic"
+                and len(
+                    extract_material_facts(
+                        passage,
+                        evidence_class="official_statistic",
+                        temporal_scope=str(
+                            semantics.get("observation_end") or "candidate"
+                        ),
+                        source_scope=["direct_document_candidate"],
+                    )
+                ) != 1
+            ):
+                # A claim-wide period/series cannot safely identify multiple
+                # flattened values. Keep those cells out of verified evidence.
+                continue
             temporally_proven = (
                 evidence_class == "statutory_current"
                 and semantics.get("current") is True
@@ -1420,6 +1475,15 @@ class B2BDataPipeline:
                     else None
                 ),
                 "_authority_document_artifact": authority_document,
+                # Private trust anchor used only by AxWise quality validation.
+                # It is SHA-bound in the authority proof and scrubbed by the
+                # hybrid service immediately after the critical gate.
+                "_structured_evidence_html": str(
+                    row.get("_structured_evidence_html")
+                    or ((row.get("_direct_document_candidate") or {}).get(
+                        "_structured_evidence_html"
+                    ) or "")
+                )[:2_000_000],
                 "provider": provider,
                 "search_provider": provider,
                 "provider_source_id": provider_source_id or None,
@@ -1462,6 +1526,84 @@ class B2BDataPipeline:
                         ),
                         "provider_queries": list(source.get("provider_queries") or []),
                         "verification_status": "direct_authority_exact_quote",
+                        "_source_id": source_id,
+                    }
+                )
+            structured_observations = list(
+                proof.get("structured_statistical_observations") or []
+            )
+            # One exact atomic observation is enough to cover the class. Rank
+            # commercially interpretable series ahead of generic index deltas
+            # while preserving the publisher/parser order for ties.
+            structured_observations.sort(
+                key=lambda row: (
+                    bool(
+                        re.search(
+                            r"\b(?:retail|sales|turnover|population|households?|"
+                            r"employment|consumption|imports?|exports?)\b",
+                            str((row or {}).get("series") or ""),
+                            re.IGNORECASE,
+                        )
+                    ),
+                    bool(
+                        re.search(
+                            r"\b(?:currency|euros?|dollars?|pounds?|million|billion)\b",
+                            str((row or {}).get("unit") or ""),
+                            re.IGNORECASE,
+                        )
+                    ),
+                ),
+                reverse=True,
+            )
+            if self.topic_seed_contract and self.market_scope.country_code:
+                topic_matched: list[Dict[str, Any]] = []
+                for observation in structured_observations:
+                    topic_match = match_visible_statistical_topic(
+                        self.topic_seed_contract,
+                        {
+                            "title": observation.get("table_title") or "",
+                            "series": [observation.get("series") or ""],
+                        },
+                        country_code=str(self.market_scope.country_code),
+                    )
+                    if topic_match.matched:
+                        # The observation hash is part of the signed authority
+                        # proof. Keep it byte-for-byte unchanged; topic_match is
+                        # independently recomputed by the quality gate.
+                        topic_matched.append(observation)
+                    else:
+                        self.routing_diagnostics[
+                            "topic_mismatch_observation_count"
+                        ] = min(
+                            10_000,
+                            int(
+                                self.routing_diagnostics.get(
+                                    "topic_mismatch_observation_count", 0
+                                )
+                            )
+                            + 1,
+                        )
+                structured_observations = topic_matched
+            for observation in structured_observations[:1]:
+                if not isinstance(observation, dict):
+                    continue
+                row_text = str(observation.get("row_text") or "").strip()
+                if not row_text or document_text.find(row_text) < 0:
+                    continue
+                direct_claim_rows.append(
+                    {
+                        "text": row_text,
+                        "critical": True,
+                        "evidence_class": "official_statistic",
+                        "observation_end": observation.get("observation_end"),
+                        "published_at": observation.get("published_at"),
+                        "latest_release": True,
+                        "latest_release_basis": "signed_structured_table_latest_period",
+                        "structured_statistical_observation": observation,
+                        "source_urls": [source.get("url")],
+                        "provider": "direct_authority_document",
+                        "provider_source_id": source.get("provider_source_id"),
+                        "verification_status": "direct_authority_structured_table_row",
                         "_source_id": source_id,
                     }
                 )
@@ -1583,6 +1725,34 @@ class B2BDataPipeline:
                     direct_document_text=document_text,
                     retrieved_at=source.get("retrieved_at"),
                 )
+                if isinstance(row.get("structured_statistical_observation"), dict):
+                    observation = row["structured_statistical_observation"]
+                    semantic_metadata = {
+                        "critical": True,
+                        "evidence_class": "official_statistic",
+                        "observation_end": observation.get("observation_end"),
+                        "published_at": observation.get("published_at"),
+                        "latest_release": True,
+                        "latest_release_basis": "signed_structured_table_latest_period",
+                        "structured_statistical_observation": observation,
+                        "semantic_extraction": "signed_structured_statistical_table_v1",
+                    }
+                elif semantic_metadata.get("evidence_class") == "observed_primary_market":
+                    matched_offer = claim_matching_offer_evidence(proof, text)
+                    if matched_offer:
+                        semantic_metadata["structured_commercial_offer"] = matched_offer
+                        semantic_metadata["semantic_extraction"] = (
+                            "signed_structured_product_offer_v1"
+                        )
+                    else:
+                        # A currency value on a signed page is not itself proof
+                        # of a first-party offer (cart totals, tax thresholds,
+                        # encyclopaedia prose). Retain it as noncritical data.
+                        semantic_metadata = {
+                            "critical": False,
+                            "evidence_class": "source_linked_observation",
+                            "semantic_extraction": "price_not_bound_to_signed_offer_v1",
+                        }
                 provider_retrieval_provenance = {
                     "provider_response_hash": row.get("provider_response_hash"),
                     "provider_query_ids": list(row.get("provider_query_ids") or []),
@@ -1633,8 +1803,12 @@ class B2BDataPipeline:
                     **semantic_metadata,
                 }
             )
+        # Retain the capped, internal direct-document artifact until the
+        # critical gate has independently re-derived structured table cells.
+        # The hybrid service strips this private key immediately after the
+        # gate, before any result, bundle, callback, or failure persistence.
         self.market_sources.extend(
-            {key: value for key, value in row.items() if not key.startswith("_")}
+            dict(row)
             for source_id, row in sources_by_id.items()
             if source_id in linked_source_ids
         )

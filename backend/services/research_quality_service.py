@@ -9,7 +9,9 @@ in a regression fixture, but the runtime must prove it from current evidence.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence
@@ -18,8 +20,16 @@ from urllib.parse import urlparse
 import pycountry
 
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
+    _structured_statistical_observations,
+    claim_matching_offer_evidence,
+    fact_matching_offer_evidence,
     validate_authority_claim_artifact,
     validate_authority_proof,
+)
+from backend.services.research_topic_contract_service import (
+    TopicSeedContract,
+    match_visible_statistical_topic,
 )
 
 
@@ -55,7 +65,8 @@ _REGULATORY_TERMS = re.compile(
 )
 _STATISTICAL_TERMS = re.compile(
     r"\b(?:market size|population|growth rate|employment|inflation|exchange rate|"
-    r"sales|turnover|consumption|imports|exports|volume)\b",
+    r"sales|turnover|consumption|imports|exports|volume|price\s+index|"
+    r"consumer\s+price\s+index|producer\s+price\s+index|cpi|ppi)\b",
     re.IGNORECASE,
 )
 _COMMERCIAL_OBSERVATION_TERMS = re.compile(
@@ -87,7 +98,8 @@ _ISO_CURRENCY_CODES = "|".join(
 _CURRENCY_SYMBOLS = "€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾"
 _MATERIAL_VALUE = re.compile(
     rf"(?<!\w)(?:(?:{_ISO_CURRENCY_CODES})\s*)?"
-    rf"(?:[{re.escape(_CURRENCY_SYMBOLS)}]\s*)?-?\d[\d\s.,]*"
+    rf"(?:[{re.escape(_CURRENCY_SYMBOLS)}]\s*)?"
+    rf"-?(?:\d{{1,3}}(?:[ \u00a0,]\d{{3}})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)"
     rf"(?:\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|euros?|dollars?|"
     rf"pounds?|yen|yuan|rupees?|million|billion|"
     rf"thousand|days?|months?|years?|[{re.escape(_CURRENCY_SYMBOLS)}]))?(?!\w)",
@@ -290,8 +302,10 @@ def _normalized_value(value: str, unit: str = "") -> str:
     scale_match = re.search(r"\b(thousand|million|billion)\b", lowered)
     lowered = re.sub(r"\b(?:thousand|million|billion)\b", "", lowered)
     lowered = re.sub(r"\s+", "", lowered)
+    if re.fullmatch(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?", lowered):
+        lowered = lowered.replace(",", "")
     # A single comma followed by one or two digits is a decimal separator.
-    if re.fullmatch(r"-?\d+,\d{1,2}", lowered):
+    elif re.fullmatch(r"-?\d+,\d{1,2}", lowered):
         lowered = lowered.replace(",", ".")
     elif re.fullmatch(r"-?\d{1,3}(?:[,. ]\d{3})+", lowered):
         lowered = re.sub(r"[,. ]", "", lowered)
@@ -325,11 +339,183 @@ def _material_unit(value: str) -> str:
         return currency.group(1).casefold()
     word_currency = re.search(r"\b(euros?|dollars?|pounds?|yen|yuan|rupees?)\b", lowered)
     if word_currency:
-        return word_currency.group(1).rstrip("s")
+        return {
+            "euro": "eur",
+            "dollar": "usd",
+            "pound": "gbp",
+        }.get(word_currency.group(1).rstrip("s"), word_currency.group(1).rstrip("s"))
     duration = re.search(r"\b(days?|months?|years?)\b", lowered)
     if duration:
         return duration.group(1).rstrip("s")
     return "number"
+
+
+def _structured_statistical_facts(
+    claim: Mapping[str, Any],
+    linked_sources: Sequence[Mapping[str, Any]],
+    *,
+    claim_id: str,
+    country_codes: Iterable[str],
+    topic_seed_contract: Optional[Mapping[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    observation = claim.get("structured_statistical_observation")
+    if not isinstance(observation, Mapping):
+        return []
+    unsigned = {
+        str(key): value
+        for key, value in observation.items()
+        if key != "observation_sha256"
+    }
+    expected_hash = hashlib.sha256(
+        json.dumps(
+            unsigned,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    if observation.get("observation_sha256") != expected_hash:
+        return []
+    independently_derived: Optional[Mapping[str, Any]] = None
+    for source in linked_sources:
+        proof = source.get("authority_proof")
+        authority_document = source.get("_authority_document_artifact")
+        raw_html = source.get("_structured_evidence_html")
+        if not isinstance(proof, Mapping):
+            continue
+        if not isinstance(authority_document, Mapping):
+            continue
+        direct_text = authority_document.get("text")
+        direct_hash = str((proof.get("direct") or {}).get("content_sha256") or "")
+        if (
+            not isinstance(direct_text, str)
+            or len(direct_text.encode("utf-8")) > 100_000
+            or hashlib.sha256(direct_text.encode("utf-8")).hexdigest() != direct_hash
+            or authority_document.get("sha256") != direct_hash
+        ):
+            continue
+        if (
+            not isinstance(raw_html, str)
+            or not raw_html
+            or len(raw_html.encode("utf-8")) > 2_000_000
+            or hashlib.sha256(raw_html.encode("utf-8")).hexdigest()
+            != proof.get("structured_evidence_source_sha256")
+        ):
+            continue
+        derived = _structured_statistical_observations(raw_html)
+        # The proof's canonical manifest and the individual claim must both be
+        # independently reproduced from the exact private fetched bytes.
+        if (
+            list(proof.get("structured_statistical_observations") or []) == derived
+            and observation in derived
+        ):
+            independently_derived = observation
+        if independently_derived:
+            break
+    if not independently_derived:
+        return []
+    topic_match = None
+    if topic_seed_contract:
+        try:
+            topic_seed = TopicSeedContract.model_validate(topic_seed_contract)
+            topic_country = next(
+                iter(sorted({str(value).upper() for value in country_codes if value})),
+                "",
+            )
+            topic_match = match_visible_statistical_topic(
+                topic_seed,
+                {
+                    "title": observation.get("table_title") or "",
+                    "series": [observation.get("series") or ""],
+                },
+                country_code=topic_country,
+            )
+        except (TypeError, ValueError):
+            return []
+        if not topic_match.matched:
+            return []
+    row_text = str(observation.get("row_text") or "")
+    if row_text != str(claim.get("object") or claim.get("text") or ""):
+        return []
+    series = str(observation.get("series") or "").strip()
+    period = str(observation.get("observation_end") or "").strip()
+    dataset_id = str(observation.get("dataset_id") or "").strip()
+    table_id = str(observation.get("table_id") or "").strip()
+    display_value = " ".join(
+        value
+        for value in (
+            str(observation.get("value") or "").strip(),
+            str(observation.get("unit") or "").strip(),
+        )
+        if value
+    )
+    if not series or not period or not display_value or not (dataset_id or table_id):
+        return []
+    cell_text = str(observation.get("cell_text") or "").strip()
+    column_index = str(observation.get("column_index") or "")
+    row_cells = observation.get("row_cells")
+    period_label = str(observation.get("period") or "").strip()
+    artifact_text = str(
+        ((claim.get("provenance_artifact") or {}).get("text") or "")
+    )
+    if (
+        not cell_text
+        or not column_index.isdigit()
+        or not isinstance(row_cells, list)
+        or int(column_index) >= len(row_cells)
+        or str(row_cells[int(column_index)]).strip() != cell_text
+        or cell_text not in row_text
+        or str(observation.get("value") or "").strip() not in cell_text
+        or not period_label
+        or period_label.casefold() not in artifact_text.casefold()
+    ):
+        return []
+    unit = _material_unit(display_value)
+    scope_text = f"{series} {display_value}"
+    value_match = _MATERIAL_VALUE.search(display_value)
+    if not value_match:
+        return []
+    source_scope = sorted(
+        {str(value) for value in claim.get("source_ids") or [] if value}
+    )
+    countries = sorted({str(value).upper() for value in country_codes if value})
+    # The table parser supplies an explicit dataset/series/unit identity.  Do
+    # not run it back through an English keyword heuristic: national portals
+    # may use local-language or code-only series labels.
+    structured_scope = (
+        f"statistic:structured:dataset={dataset_id or table_id}:"
+        f"series={series.casefold()}:unit={unit}"
+    )
+    identity_complete = bool(
+        countries
+        and source_scope
+        and period
+        and (dataset_id or table_id)
+        and series
+        and unit
+    )
+    return [
+        {
+            "fact_id": f"{claim_id}:fact:structured:0",
+            "claim_id": claim_id,
+            "fact_terms": _fact_terms(scope_text, value_match.start(), value_match.end()),
+            "metric_key": f"{dataset_id or table_id}:{series.casefold()}:{unit}",
+            "unit": unit,
+            "normalized_value": _normalized_value(display_value, unit),
+            "display_value": display_value,
+            "country_codes": countries,
+            "identity_version": "material_fact_v2",
+            "evidence_class": "official_statistic",
+            "temporal_scope": period,
+            "source_scope": source_scope,
+            "semantic_scope": structured_scope,
+            "identity_complete": identity_complete,
+            "structured_observation_sha256": expected_hash,
+            "topic_match": (
+                topic_match.model_dump(mode="json") if topic_match else None
+            ),
+        }
+    ]
 
 
 def _metric_key(text: str, start: int, end: int, unit: str) -> str:
@@ -347,7 +533,7 @@ def _metric_key(text: str, start: int, end: int, unit: str) -> str:
 
 def _fact_terms(text: str, start: int, end: int) -> List[str]:
     window = text[max(0, start - 90): min(len(text), end + 90)].casefold()
-    words = re.findall(r"[a-zà-ž][a-zà-ž0-9-]{2,}", window)
+    words = re.findall(r"[^\W\d_][\w-]{2,}", window, re.UNICODE)
     pack_dimensions = [
         re.sub(r"\s+", "", match.group(0))
         for match in re.finditer(
@@ -380,6 +566,17 @@ def _semantic_fact_scope(
 
     window = text[max(0, start - 140): min(len(text), end + 140)].casefold()
     if evidence_class == "statutory_current":
+        concepts = [
+            label
+            for label, pattern in (
+                ("vat", r"\b(?:vat|value[- ]added\s+tax)\b"),
+                ("gst", r"\bgst\b|\bgoods\s+and\s+services\s+tax\b"),
+                ("duty", r"\b(?:duty|tariff|customs)\b"),
+                ("tax", r"\btax\b"),
+                ("minimum_wage", r"\bminimum\s+wage\b"),
+            )
+            if re.search(pattern, window)
+        ]
         qualifiers = [
             label
             for label, pattern in (
@@ -392,7 +589,9 @@ def _semantic_fact_scope(
             )
             if re.search(pattern, window)
         ]
-        return "statutory:" + ("+".join(qualifiers) or "unqualified")
+        return "statutory:" + ":".join(
+            ["+".join(concepts) or "unspecified", "+".join(qualifiers) or "unqualified"]
+        )
     if evidence_class == "official_statistic":
         concepts = [
             label
@@ -404,12 +603,15 @@ def _semantic_fact_scope(
                 ("exports", r"\bexports?\b"),
                 ("consumption", r"\bconsumption\b"),
                 ("employment", r"\bemployment\b"),
+                ("price_index", r"\b(?:consumer|producer|construction|retail)?\s*price\s+index\b|\b(?:cpi|ppi)\b"),
             )
             if re.search(pattern, window)
         ]
         measure = (
-            "volume_index"
-            if re.search(r"\b(?:volume|index|points?)\b", window)
+            "index_level"
+            if re.search(r"\b(?:price\s+index|cpi|ppi|index\s+points?|points?)\b", window)
+            else "volume_index"
+            if re.search(r"\bvolume(?:\s+index)?\b", window)
             else "monetary_value"
             if re.search(
                 rf"\b(?:value|{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?)\b|"
@@ -438,7 +640,7 @@ def _semantic_fact_scope(
         )
     if evidence_class == "observed_primary_market":
         product_words = re.findall(
-            r"[a-zà-ž][a-zà-ž0-9-]{2,}", window
+            r"[^\W\d_][\w-]{2,}", window, re.UNICODE
         )
         product_identity = [
             word
@@ -502,7 +704,12 @@ def extract_material_facts(
 ) -> List[Dict[str, Any]]:
     """Extract comparable material values without knowing a country in advance."""
 
-    if not text or not _CRITICAL_TERMS.search(text):
+    explicit_material_class = evidence_class in {
+        "statutory_current",
+        "official_statistic",
+        "observed_primary_market",
+    }
+    if not text or (not explicit_material_class and not _CRITICAL_TERMS.search(text)):
         return []
     rows: List[Dict[str, Any]] = []
     for index, match in enumerate(_MATERIAL_VALUE.finditer(text)):
@@ -523,6 +730,31 @@ def extract_material_facts(
         if not terms:
             continue
         unit = _material_unit(raw)
+        if evidence_class == "observed_primary_market":
+            # A typed catalogue observation may be entirely local-language;
+            # currency is the locale-neutral material signal. Navigation/cart
+            # placeholders are not a market price and cannot cover the class.
+            if unit not in {"eur", "usd", "gbp"} and not re.search(
+                rf"\b(?:{_ISO_CURRENCY_CODES})\b|[{re.escape(_CURRENCY_SYMBOLS)}]",
+                raw,
+                re.IGNORECASE,
+            ):
+                continue
+            numeric = re.search(r"-?\d[\d\s.,]*", raw)
+            try:
+                numeric_value = Decimal(
+                    re.sub(r"\s+", "", numeric.group(0)).replace(",", ".")
+                ) if numeric else Decimal("0")
+            except InvalidOperation:
+                numeric_value = Decimal("0")
+            local_context = text[
+                max(0, match.start() - 80): min(len(text), match.end() + 80)
+            ].casefold()
+            if numeric_value <= 0 or re.search(
+                r"\b(?:cart|basket|checkout|subtotal|shipping|quantity|filter)\b",
+                local_context,
+            ):
+                continue
         semantic_scope = _semantic_fact_scope(
             text, match.start(), match.end(), evidence_class
         )
@@ -534,12 +766,13 @@ def extract_material_facts(
             evidence_class == "statutory_current"
             and temporal_scope
             and normalized_countries
-            and semantic_scope != "statutory:unqualified"
+            and not semantic_scope.startswith("statutory:unspecified:")
             or evidence_class == "official_statistic"
             and temporal_scope
             and normalized_countries
             and "unspecified" not in semantic_scope
             or evidence_class == "observed_primary_market"
+            and temporal_scope
             and normalized_sources
             and len(terms) >= 3
         )
@@ -561,6 +794,15 @@ def extract_material_facts(
                 "identity_complete": identity_complete,
             }
         )
+    # A flattened statistical table can carry several series/periods inside a
+    # single claim-wide span. Without per-value span bindings, assigning the
+    # claim's one period/scope to every number would invent target identity and
+    # create false conflicts. Keep the candidates for diagnostics but make
+    # them ineligible for coverage and conflict comparison.
+    if evidence_class == "official_statistic" and len(rows) > 1:
+        for row in rows:
+            row["identity_complete"] = False
+            row["identity_incomplete_reason"] = "ambiguous_multi_value_statistic_passage"
     return rows
 
 
@@ -609,13 +851,13 @@ def _same_fact(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
         if not left_sources or not right_sources or left_sources != right_sources:
             return False
         return bool(left_scope and right_scope and left_scope == right_scope)
-    if left_class == right_class == "official_statistic":
-        # A statistic is comparable only for the same released observation
-        # period and series-like context. This prevents population years and
-        # distinct turnover/index series from being collapsed.
-        if not left_period or not right_period:
-            return False
-        return _terms_overlap(left.get("fact_terms") or [], right.get("fact_terms") or []) >= 0.85
+    if (
+        left.get("identity_version") == "material_fact_v2"
+        and right.get("identity_version") == "material_fact_v2"
+    ):
+        # V2 facts are comparable only by the exact typed identity checked
+        # above. Fuzzy word overlap is candidate discovery, not a safe fact ID.
+        return bool(left_scope and right_scope and left_scope == right_scope)
     return _terms_overlap(left.get("fact_terms") or [], right.get("fact_terms") or []) >= 0.6
 
 
@@ -813,6 +1055,7 @@ def evaluate_critical_claims(
     freshness_by_class: Optional[Mapping[str, int]] = None,
     mandatory_claim_classes: Iterable[str] = (),
     claim_class_applicability: Optional[Mapping[str, Any]] = None,
+    topic_seed_contract: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Validate material claims against dated, jurisdiction-matched evidence.
 
@@ -824,13 +1067,42 @@ def evaluate_critical_claims(
 
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     requested_countries = {str(code).upper() for code in country_codes if code}
+    requested_policy_classes = {
+        str(value).casefold() for value in mandatory_claim_classes if value
+    }
+    applicable_policy_classes = {
+        str(value).casefold()
+        for value in (
+            (claim_class_applicability or {}).get("applicable_claim_classes") or []
+        )
+        if value
+    }
+    official_topic_required = "official_statistic" in requested_policy_classes and (
+        claim_class_applicability is None
+        or "official_statistic" in applicable_policy_classes
+    )
+    raw_topic_seed = topic_seed_contract or grounding.get("topic_seed_contract")
+    validated_topic_seed: Optional[TopicSeedContract] = None
+    topic_contract_status = "not_required"
+    if official_topic_required:
+        topic_contract_status = "missing_or_invalid"
+        try:
+            candidate_topic_seed = TopicSeedContract.model_validate(raw_topic_seed)
+            if requested_countries and not requested_countries.issubset(
+                set(candidate_topic_seed.confirmed_country_codes)
+            ):
+                raise ValueError("topic seed does not cover requested country cells")
+            validated_topic_seed = candidate_topic_seed
+            topic_contract_status = "valid"
+        except (TypeError, ValueError):
+            validated_topic_seed = None
     sources = {
         str(row.get("source_id")): row
         for row in grounding.get("market_sources") or []
         if isinstance(row, dict) and row.get("source_id")
     }
     critical_rows: List[Dict[str, Any]] = []
-    blocked: List[Dict[str, str]] = []
+    candidate_failures: List[Dict[str, str]] = []
 
     for claim in grounding.get("market_claims") or []:
         if not isinstance(claim, dict):
@@ -878,11 +1150,17 @@ def evaluate_critical_claims(
                 or bool(source_countries and requested_countries & source_countries)
             )
             authority = str(source.get("source_authority") or "")
+            proof_requested_countries = (
+                requested_countries & claim_countries
+                if requested_countries & claim_countries
+                else claim_countries or requested_countries
+            )
             direct = bool(
                 not _is_provider_redirect(source)
                 and (
                     validate_authority_proof(
-                        source, requested_country_codes=requested_countries
+                        source,
+                        requested_country_codes=proof_requested_countries,
                     )
                     if authority in {"official_public", "first_party_catalog"}
                     else (
@@ -919,14 +1197,41 @@ def evaluate_critical_claims(
             or claim.get("as_of")
             or ""
         )
-        facts = extract_material_facts(
-            fact_text,
-            claim_id=claim_id,
-            country_codes=claim_countries,
-            evidence_class=evidence_class,
-            temporal_scope=temporal_scope,
-            source_scope=claim.get("source_ids") or [],
+        structured_official_statistic = isinstance(
+            claim.get("structured_statistical_observation"), Mapping
         )
+        facts = (
+            _structured_statistical_facts(
+                claim,
+                linked_sources,
+                claim_id=claim_id,
+                country_codes=claim_countries,
+                topic_seed_contract=(
+                    validated_topic_seed.model_dump(mode="json")
+                    if validated_topic_seed
+                    else None
+                ),
+            )
+            if evidence_class == "official_statistic"
+            and structured_official_statistic
+            and (not official_topic_required or validated_topic_seed is not None)
+            else extract_material_facts(
+                fact_text,
+                claim_id=claim_id,
+                country_codes=claim_countries,
+                evidence_class=evidence_class,
+                temporal_scope=temporal_scope,
+                source_scope=claim.get("source_ids") or [],
+            )
+        )
+        if evidence_class == "official_statistic" and official_topic_required:
+            # Required official statistics must be selected from independently
+            # re-derived visible table metadata under the immutable goal topic
+            # contract. A propagation loss or unstructured/generic statistic
+            # cannot silently satisfy the class.
+            if validated_topic_seed is None or not structured_official_statistic:
+                facts = []
+        complete_facts = [fact for fact in facts if fact.get("identity_complete")]
         exact_provenance = _has_exact_span_provenance(
             claim,
             str(claim.get("object") or claim.get("text") or ""),
@@ -938,6 +1243,47 @@ def evaluate_critical_claims(
                 "observed_primary_market",
             },
         )
+        matched_commercial_offer = None
+        if evidence_class == "observed_primary_market":
+            authorized_fact_ids: set[str] = set()
+            for source in linked_sources:
+                proof = source.get("authority_proof")
+                raw_html = source.get("_structured_evidence_html")
+                if not isinstance(proof, Mapping) or not isinstance(raw_html, str):
+                    continue
+                if (
+                    not raw_html
+                    or len(raw_html.encode("utf-8")) > 2_000_000
+                    or hashlib.sha256(raw_html.encode("utf-8")).hexdigest()
+                    != proof.get("structured_evidence_source_sha256")
+                    or list(proof.get("commercial_offer_evidence") or [])
+                    != _commercial_offer_evidence(raw_html)
+                ):
+                    continue
+                for fact in complete_facts:
+                    offer = fact_matching_offer_evidence(
+                        proof,
+                        fact_text,
+                        str(fact.get("display_value") or ""),
+                    )
+                    if offer:
+                        authorized_fact_ids.add(str(fact.get("fact_id") or ""))
+                        matched_commercial_offer = matched_commercial_offer or offer
+            for fact in facts:
+                if (
+                    fact.get("identity_complete")
+                    and str(fact.get("fact_id") or "") not in authorized_fact_ids
+                ):
+                    fact["identity_complete"] = False
+                    fact["identity_incomplete_reason"] = (
+                        "material_price_not_bound_to_signed_product_offer"
+                    )
+            complete_facts = [
+                fact
+                for fact in facts
+                if fact.get("identity_complete")
+                and str(fact.get("fact_id") or "") in authorized_fact_ids
+            ]
         if evidence_class == "traceable_calculation":
             input_claim_ids = [str(value) for value in claim.get("input_claim_ids") or [] if value]
             formula = str(claim.get("formula") or "").strip()
@@ -952,8 +1298,34 @@ def evaluate_critical_claims(
             reason = None
         elif evidence_class == "traceable_calculation" and status != "verified_traceable_calculation":
             reason = "calculation_inputs_or_formula_missing"
+        elif (
+            evidence_class == "official_statistic"
+            and official_topic_required
+            and validated_topic_seed is None
+        ):
+            reason = "topic_contract_missing_or_invalid"
+        elif (
+            evidence_class == "official_statistic"
+            and official_topic_required
+            and not structured_official_statistic
+        ):
+            reason = "official_statistic_visible_topic_binding_missing"
+        elif (
+            evidence_class == "official_statistic"
+            and official_topic_required
+            and not facts
+        ):
+            reason = "official_statistic_topic_mismatch_or_unbound"
         elif not facts:
             reason = "material_fact_not_extractable"
+        elif evidence_class == "observed_primary_market" and not matched_commercial_offer:
+            reason = "material_price_not_bound_to_signed_product_offer"
+        elif evidence_class in {
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        } and not complete_facts:
+            reason = "material_fact_identity_incomplete"
         elif not linked_sources:
             reason = "source_link_missing"
         elif not direct_authorities:
@@ -978,14 +1350,18 @@ def evaluate_critical_claims(
             "country_codes": sorted(claim_countries),
             "source_ids": [str(source.get("source_id")) for source in linked_sources],
             "authoritative_source_ids": [str(source.get("source_id")) for source in valid_authorities],
-            "facts": facts,
+            # Only complete typed targets can authorize synthesis or conflict
+            # comparison. Candidate facts remain visible for bounded diagnosis.
+            "facts": complete_facts,
+            "candidate_facts": facts,
+            "reason": reason,
             "effective_or_observation_at": (
                 evidence_time.isoformat() if evidence_time else None
             ),
         }
         critical_rows.append(row)
         if reason:
-            blocked.append({"claim_id": claim_id, "reason": reason})
+            candidate_failures.append({"claim_id": claim_id, "reason": reason})
 
     verified_claim_ids = {
         row["claim_id"]
@@ -1007,7 +1383,7 @@ def evaluate_critical_claims(
         inputs = {str(value) for value in claim.get("input_claim_ids") or [] if value}
         if not inputs or not inputs.issubset(verified_claim_ids):
             row["status"] = "blocked_unverified"
-            blocked.append(
+            candidate_failures.append(
                 {
                     "claim_id": row["claim_id"],
                     "reason": "calculation_inputs_not_verified",
@@ -1025,11 +1401,6 @@ def evaluate_critical_claims(
     conflicts: List[Dict[str, Any]] = []
     for index, left in enumerate(verified_facts):
         for right in verified_facts[index + 1:]:
-            # A claim may legitimately contain multiple values (for example a
-            # rate and an effective date). Conflicts are comparisons between
-            # independently sourced assertions of the same typed metric.
-            if left.get("claim_id") and left.get("claim_id") == right.get("claim_id"):
-                continue
             if _same_fact(left, right) and left["normalized_value"] != right["normalized_value"]:
                 conflict = {
                     "left_fact_id": left["fact_id"],
@@ -1037,15 +1408,7 @@ def evaluate_critical_claims(
                     "values": [left["display_value"], right["display_value"]],
                 }
                 conflicts.append(conflict)
-    if conflicts:
-        blocked.extend(
-            {"claim_id": row["left_fact_id"], "reason": "conflicting_material_values"}
-            for row in conflicts
-        )
-
-    requested_classes = {
-        str(value).casefold() for value in mandatory_claim_classes if value
-    }
+    requested_classes = set(requested_policy_classes)
     known_grounding_classes = {
         "statutory_current",
         "official_statistic",
@@ -1056,6 +1419,11 @@ def evaluate_critical_claims(
         row["evidence_class"]
         for row in critical_rows
         if row["evidence_class"] in requested_classes
+        and row["status"] in {
+            "verified_current_authoritative",
+            "verified_traceable_calculation",
+        }
+        and row["facts"]
     }
     goal_applicable_classes = {
         str(value).casefold()
@@ -1067,6 +1435,14 @@ def evaluate_critical_claims(
     # Every actual material class is applicable, even if it was not anticipated
     # by the goal classifier. Conversely, goal-required classes remain required
     # even if retrieval/model output omits them.
+    if claim_class_applicability is None:
+        # Compatibility callers that supply only mandatory classes mean those
+        # classes literally. Production sends the deterministic goal contract.
+        goal_applicable_classes |= {
+            row["evidence_class"]
+            for row in critical_rows
+            if row["evidence_class"] in requested_classes
+        }
     applicable_classes = extracted_applicable_classes | goal_applicable_classes
     not_applicable_classes = sorted(requested_classes - applicable_classes)
     required_classes = applicable_classes
@@ -1077,7 +1453,9 @@ def evaluate_critical_claims(
             "verified_current_authoritative",
             "verified_traceable_calculation",
         }
+        and row["facts"]
     }
+    blocked: List[Dict[str, str]] = []
     for missing_class in sorted(required_classes - verified_classes):
         blocked.append(
             {
@@ -1086,10 +1464,26 @@ def evaluate_critical_claims(
             }
         )
     missing_classes = sorted(required_classes - verified_classes)
+    if conflicts:
+        blocked.extend(
+            {"claim_id": row["left_fact_id"], "reason": "conflicting_material_values"}
+            for row in conflicts
+        )
 
-    status = "passed" if critical_rows and not blocked else "blocked"
-    if not critical_rows:
+    has_complete_verified_fact = bool(verified_facts)
+    coverage_satisfied = has_complete_verified_fact and not missing_classes
+    if not has_complete_verified_fact:
+        # Preserve the most actionable trust/provenance failure for a wholly
+        # invalid evidence set, while also making the empty gate explicit.
+        blocked.extend(candidate_failures)
+        if not candidate_failures:
+            blocked.append(
+                {"claim_id": "", "reason": "no_verified_complete_material_facts"}
+            )
+    status = "passed" if coverage_satisfied and not conflicts else "blocked"
+    if not critical_rows and not blocked:
         blocked.append({"claim_id": "", "reason": "no_material_critical_claims_identified"})
+        status = "blocked"
     evidence_ledger = [
         {
             "claim_id": row["claim_id"],
@@ -1127,6 +1521,7 @@ def evaluate_critical_claims(
         "total_count": len(critical_rows),
         "verified_count": sum(
             row["status"] in {"verified_current_authoritative", "verified_traceable_calculation"}
+            and bool(row["facts"])
             for row in critical_rows
         ),
         "blocked_count": len(blocked),
@@ -1136,6 +1531,14 @@ def evaluate_critical_claims(
         "verified_facts": verified_facts,
         "conflicts": conflicts,
         "blocked_claims": blocked,
+        "quarantined_claims": candidate_failures if coverage_satisfied else [],
+        "quarantined_count": len(candidate_failures) if coverage_satisfied else 0,
+        "candidate_rejection_counts": dict(
+            sorted(Counter(row["reason"] for row in candidate_failures).items())
+        ),
+        "blocked_reason_counts": dict(
+            sorted(Counter(row["reason"] for row in blocked).items())
+        ),
         "mandatory_claim_classes": sorted(required_classes),
         "requested_claim_classes": sorted(requested_classes),
         "applicable_claim_classes": sorted(applicable_classes),
@@ -1169,6 +1572,10 @@ def evaluate_critical_claims(
             if value in applicable_classes and reason
         },
         "verified_claim_classes": sorted(verified_classes),
+        "topic_contract_status": topic_contract_status,
+        "topic_seed_sha256": (
+            validated_topic_seed.seed_sha256 if validated_topic_seed else None
+        ),
         "missing_claim_classes": missing_classes,
         "evidence_ledger": evidence_ledger,
     }
