@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
+import json
 import os
 from datetime import datetime, timezone
 
@@ -10,12 +12,20 @@ import pytest
 
 from backend.api.research.simulation_bridge.services.pipeline import B2BDataPipeline
 from backend.services.research_quality_service import evaluate_critical_claims
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    build_topic_seed,
+)
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
     _normalized_document_text,
     _proof_signature,
+    _structured_statistical_observations,
     build_direct_primary_market_proof,
     build_attested_authority_proof,
     build_recognized_root_proof,
+    claim_matching_offer_evidence,
     enrich_authority_sources,
     trusted_public_root_search_scope,
     validate_authority_proof,
@@ -26,6 +36,15 @@ pytestmark = pytest.mark.contract
 os.environ.setdefault(
     "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
 )
+
+
+def _offer_evidence(*, name: str, price: str, currency: str) -> list[dict]:
+    return _commercial_offer_evidence(
+        '<script type="application/ld+json">'
+        f'{{"@type":"Product","name":"{name}","offers":'
+        f'{{"@type":"Offer","price":"{price}","priceCurrency":"{currency}"}}}}'
+        "</script>"
+    )
 
 
 def _source_row(direct_text: str) -> dict:
@@ -103,7 +122,7 @@ def test_official_claim_is_rebound_to_bounded_signed_direct_document_excerpt():
     stored_claim = pipeline.market_claims[0]
     artifact = stored_claim["provenance_artifact"]
     assert stored_source["source_authority"] == "official_public"
-    assert "_authority_document_artifact" not in stored_source
+    assert stored_source["_authority_document_artifact"]["text"] == direct_text
     assert "text" not in (stored_source.get("authority_document") or {})
     assert artifact["artifact_type"] == "direct_authority_document"
     assert len(artifact["text"]) < 1_000
@@ -156,7 +175,7 @@ def test_official_url_cannot_authorize_a_fabricated_search_snippet():
     assert pipeline.market_claims[0]["critical"] is False
     assert pipeline.market_claims[0]["evidence_class"] == "source_linked_observation"
     assert quality["blocked_claims"] == [
-        {"claim_id": "", "reason": "no_material_critical_claims_identified"}
+        {"claim_id": "", "reason": "no_verified_complete_material_facts"}
     ]
 
 
@@ -207,6 +226,149 @@ def test_authority_html_is_normalized_to_visible_unicode_text():
     assert normalized == "Hind Eestis Kassi toit maksab €2.99."
 
 
+def test_live_shaped_merchant_config_binds_product_price_not_cart_or_other_value():
+    raw_html = """
+    <div>Ostukorv 0,00 €</div>
+    <div data-component="productCategoryList"
+      data-config='{&quot;products&quot;:[{&quot;id&quot;:&quot;45933&quot;,
+      &quot;sku&quot;:&quot;158130&quot;,&quot;name&quot;:&quot;Purenatural Sensitive koeratoit 12 kg&quot;,
+      &quot;price&quot;:&quot;64,90\u00a0€&quot;,&quot;priceSimple&quot;:64.9,
+      &quot;actions&quot;:{&quot;isSalable&quot;:true}}]}'></div>
+    <div>Purenatural Sensitive koeratoit 12 kg Tavahind 64,90 €</div>
+    <div>Unrelated Beta product 999,00 €</div>
+    """
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    offers = _commercial_offer_evidence(raw_html)
+
+    assert len(offers) == 1
+    assert offers[0]["signal_type"] == "merchant_product_config"
+    assert offers[0]["product_id"] == "158130"
+    assert offers[0]["price"] == "64.9"
+    assert offers[0]["price_currency"] == "EUR"
+    proof = build_direct_primary_market_proof(
+        direct_url="https://shop.example.ee/products",
+        direct_text=direct_text,
+        country_codes=["EE"],
+        commercial_offer_evidence=offers,
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-12T12:00:00+00:00",
+    )
+    assert claim_matching_offer_evidence(
+        proof, "Purenatural Sensitive koeratoit 12 kg Tavahind 64,90 €"
+    )
+    assert claim_matching_offer_evidence(proof, "Ostukorv 0,00 €") is None
+    assert claim_matching_offer_evidence(
+        proof, "Unrelated Beta product 999,00 €"
+    ) is None
+
+
+@pytest.mark.parametrize(
+    ("country_code", "visible_price", "currency"),
+    [
+        ("US", "$12.99", "USD"),
+        ("CA", "$12.99", "CAD"),
+        ("TH", "฿499.00", "THB"),
+    ],
+)
+def test_ambiguous_currency_symbol_uses_one_raw_derived_offer_in_one_country(
+    country_code: str,
+    visible_price: str,
+    currency: str,
+):
+    direct_text = f"Alpha cat food SKU A123 current price {visible_price}."
+    raw_html = (
+        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        f'{{"@type":"Product","sku":"A123","name":"Alpha cat food",'
+        f'"offers":{{"@type":"Offer","price":"{visible_price[1:]}",'
+        f'"priceCurrency":"{currency}"}}}}'
+        "</script>"
+    )
+    proof = build_direct_primary_market_proof(
+        direct_url=f"https://shop.example.{country_code.casefold()}/alpha",
+        direct_text=direct_text,
+        country_codes=[country_code],
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-12T12:00:00+00:00",
+    )
+    assert claim_matching_offer_evidence(proof, direct_text)
+
+
+def test_ambiguous_currency_symbol_rejects_multiple_offer_currencies():
+    direct_text = "United States Alpha cat food SKU A123 current price $12.99."
+    raw_html = (
+        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '[{"@type":"Product","sku":"A123","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"USD"}},'
+        '{"@type":"Product","sku":"A123","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"CAD"}}]'
+        "</script>"
+    )
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.com/alpha",
+            direct_text=direct_text,
+            country_codes=["US"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-12T12:00:00+00:00",
+        )
+
+
+def test_ambiguous_symbol_rejects_self_asserted_wrong_country():
+    direct_text = "United States Alpha cat food SKU A123 current price $12.99."
+    raw_html = (
+        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '{"@type":"Product","sku":"A123","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"USD"}}'
+        "</script>"
+    )
+    with pytest.raises(ValueError, match="does not bind requested jurisdiction"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.com/alpha",
+            direct_text=direct_text,
+            country_codes=["CA"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-12T12:00:00+00:00",
+        )
+    with pytest.raises(ValueError, match="exactly one country cell"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.com/alpha",
+            direct_text=direct_text,
+            country_codes=["US", "CA"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-12T12:00:00+00:00",
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "direct_text",
+    [
+        "Wikipedia article: the reported cat-food price was EUR 29.90 on 2026-08-12.",
+        "Government tax guidance: a filing threshold of EUR 29.90 applies in Estonia.",
+    ],
+)
+async def test_generic_currency_page_without_fetched_offer_is_not_first_party_catalog(
+    direct_text: str,
+):
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": "https://publisher.example.ee/article",
+            "text": direct_text,
+            "retrieved_at": "2026-08-12T12:00:00+00:00",
+            "commercial_offer_evidence": [],
+        }
+
+    source = {
+        "url": "https://publisher.example.ee/article",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+
+    assert source.get("source_authority") != "first_party_catalog"
+    assert source.get("authority_proof") is None
+
+
 @pytest.mark.asyncio
 async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
     url = "https://shop.example.ee/cat-food"
@@ -220,6 +382,15 @@ async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
             "final_url": url,
             "text": direct_text,
             "retrieved_at": "2026-08-12T12:00:00+00:00",
+            "commercial_offer_evidence": _offer_evidence(
+                name="premium cat food", price="2.99", currency="EUR"
+            ),
+            "_structured_evidence_html": (
+                f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+                '{"@type":"Product","name":"premium cat food","offers":'
+                '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+                "</script>"
+            ),
         }
 
     source = {
@@ -263,6 +434,114 @@ async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
 
 
 @pytest.mark.asyncio
+async def test_delivery_threshold_is_not_authorized_by_product_offer():
+    url = "https://shop.example.ee/cat-food/alpha-a123"
+    direct_text = (
+        "Alpha kana kassitoit SKU A123 400 g Tavahind 2,99 EUR "
+        "Tellimuse tasuta tarne alampiir 50,00 EUR observed 2026-08-12."
+    )
+    raw_html = (
+        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '{"@type":"Product","sku":"A123","name":"Alpha kana kassitoit",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": "2026-08-12T12:00:00+00:00",
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {"url": url, "country_codes": ["EE"], "market_terms": ["Estonia"]}
+    await enrich_authority_sources([source], fetcher=fetcher)
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food commercially",
+        target_user="Category buyer",
+    )
+    pipeline._store_direct_web_evidence([source], [])
+    quality = evaluate_critical_claims(
+        {"market_sources": pipeline.market_sources, "market_claims": pipeline.market_claims},
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    values = [row["normalized_value"] for row in quality["verified_facts"]]
+    assert values == ["2.99:eur"]
+    assert all("50" not in row["display_value"] for row in quality["verified_facts"])
+
+
+@pytest.mark.asyncio
+async def test_resigned_offer_price_cannot_authorize_delivery_threshold():
+    url = "https://shop.example.ee/cat-food/alpha-a123"
+    direct_text = (
+        "Estonia Alpha kana kassitoit SKU A123 400 g Tavahind 2,99 EUR "
+        "Tellimuse tasuta tarne alampiir 50,00 EUR observed 2026-08-12."
+    )
+    raw_html = (
+        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '{"@type":"Product","sku":"A123","name":"Alpha kana kassitoit",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    proof = build_direct_primary_market_proof(
+        direct_url=url,
+        direct_text=direct_text,
+        country_codes=["EE"],
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-12T12:00:00+00:00",
+    )
+    forged = copy.deepcopy(proof)
+    forged_offer = forged["commercial_offer_evidence"][0]
+    forged_offer["price"] = "50.00"
+    unsigned_offer = {key: value for key, value in forged_offer.items() if key != "sha256"}
+    forged_offer["sha256"] = hashlib.sha256(
+        json.dumps(unsigned_offer, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    ).hexdigest()
+    payload = {
+        key: value for key, value in forged.items()
+        if key not in {"proof_signature", "signature_alg"}
+    }
+    forged["proof_signature"] = _proof_signature(payload)
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "retrieved_at": forged["retrieved_at"],
+        "source_authority": "first_party_catalog",
+        "authority_verification_status": "direct_primary_market_observation",
+        "authority_proof": forged,
+        "jurisdiction_binding_status": "verified",
+        "_structured_evidence_html": raw_html,
+        "authority_document_artifact": {
+            "artifact_type": "direct_authority_document",
+            "text": direct_text,
+            "sha256": forged["direct"]["content_sha256"],
+            "retrieved_at": forged["retrieved_at"],
+            "authority_proof_signature": forged["proof_signature"],
+        },
+    }
+    pipeline = B2BDataPipeline(
+        location="Estonia", business_problem="Launch cat food", target_user="Buyer"
+    )
+    pipeline._store_direct_web_evidence([source], [])
+    quality = evaluate_critical_claims(
+        {"market_sources": pipeline.market_sources, "market_claims": pipeline.market_claims},
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("requested_code", "final_url", "direct_text", "expected"),
     [
@@ -287,7 +566,7 @@ async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
         (
             "EE",
             "https://shop.example.com/cat-food",
-            "Estonia product catalogue. Current retail price is 39,90 €.",
+            "Estonia product catalogue. Current retail price for cat food is 39,90 €.",
             True,
         ),
         (
@@ -305,10 +584,26 @@ async def test_resolved_document_must_bind_requested_jurisdiction(
     expected: bool,
 ):
     async def fetcher(_url: str) -> dict:
+        offer_html = (
+            '<script type="application/ld+json">'
+            f'{{"@type":"Product","name":"cat food","offers":'
+            f'{{"@type":"Offer","price":"39.90","priceCurrency":"'
+            f'{"BRL" if "BRL" in direct_text else "EUR"}"}}}}'
+            "</script>"
+        )
+        offer_rows = (
+            _commercial_offer_evidence(offer_html)
+            if "39" in direct_text
+            else []
+        )
         return {
             "final_url": final_url,
             "text": direct_text,
             "retrieved_at": "2026-08-12T12:00:00+00:00",
+            "commercial_offer_evidence": offer_rows,
+            "_structured_evidence_html": (
+                f"<div>{direct_text}</div>{offer_html}" if offer_rows else ""
+            ),
         }
 
     row = {
@@ -518,6 +813,420 @@ def test_long_punctuation_free_statistics_cards_use_bounded_update_windows():
     assert statistics[1]["latest_release"] is True
 
 
+def test_live_shaped_structured_stat_table_binds_latest_positional_fact():
+    raw_html = """
+    <figure data-uuid="trade-chart">
+      <h2>Household expenditure on pets and cat food</h2>
+      <a href="https://andmed.stat.ee/en/stat/KM0107">dataset</a>
+      <table data-series-orientation="column">
+        <thead><tr>
+          <th data-series-name="Cat food net sales" data-series-unit="million euros">Cat food net sales</th>
+          <th data-series-name="Cat food retail sales" data-series-unit="million euros">Cat food retail sales</th>
+        </tr></thead>
+        <tbody>
+          <tr><th data-category="4th quarter 2025">4th quarter 2025</th><td>7.80</td><td>2.10</td></tr>
+          <tr><th data-category="1st quarter 2026">1st quarter 2026</th><td>8.12</td><td>2.33</td></tr>
+        </tbody>
+      </table>
+      <p>Last updated: 27 May 2026</p>
+    </figure>
+    """
+    observations = _structured_statistical_observations(raw_html)
+
+    assert observations[0]["dataset_id"] == "KM0107"
+    assert observations[0]["series"] == "Cat food net sales"
+    assert observations[0]["unit"] == "million euros"
+    assert observations[0]["period"] == "1st quarter 2026"
+    assert observations[0]["observation_end"] == "2026-03-31T00:00:00+00:00"
+    assert observations[0]["value"] == "8.12"
+    assert observations[0]["row_cells"] == ["8.12", "2.33"]
+    assert all(row["value"] != "2026" for row in observations)
+
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    url = "https://www.stat.example.ee/internal-trade"
+    proof = build_attested_authority_proof(
+        direct_url=url,
+        direct_text="Statistics Estonia official statistics office. " + direct_text,
+        attestation_url="https://european-union.europa.eu/statistics-authorities",
+        attestation_text="Official statistics authority directory: https://www.stat.example.ee",
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+        structured_statistical_observations=observations,
+        direct_raw_html=raw_html,
+    )
+    signed_text = "Statistics Estonia official statistics office. " + direct_text
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="cat-food-stat-test",
+            title="Cat food commercial launch",
+            problem_scope="Assess cat food demand using official statistics.",
+            industry="Pet food",
+            exact_topic_anchors=("cat food",),
+        ),
+        ConfirmedMarketScope(
+            scope_label="Estonia", country_codes=("EE",), confirmed=True
+        ),
+    ).model_dump(mode="json")
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food market assessment",
+        target_user="Retail buyer",
+        model=None,
+        required_evidence_classes=["official_statistic"],
+        topic_seed_contract=topic_seed,
+    )
+    pipeline._store_direct_web_evidence(
+        [
+            {
+                "url": url,
+                "provider": "searxng",
+                "country_codes": ["EE"],
+                "retrieved_at": retrieved_at,
+                "jurisdiction_binding_status": "verified",
+                "source_authority": "official_public",
+                "authority_verification_status": "independently_attested_direct_domain",
+                "authority_proof": proof,
+                "_structured_evidence_html": raw_html,
+                "authority_document_artifact": {
+                    "artifact_type": "direct_authority_document",
+                    "text": signed_text,
+                    "sha256": hashlib.sha256(signed_text.encode()).hexdigest(),
+                    "retrieved_at": retrieved_at,
+                    "authority_proof_signature": proof["proof_signature"],
+                },
+            }
+        ],
+        [],
+    )
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": topic_seed,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["conflict_count"] == 0
+    assert quality["verified_facts"][0]["display_value"] == "8.12 million euros"
+    assert quality["verified_facts"][0]["normalized_value"] == "8120000:eur"
+
+    missing_topic = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+    assert missing_topic["status"] == "blocked"
+    assert missing_topic["topic_contract_status"] == "missing_or_invalid"
+    assert missing_topic["candidate_rejection_counts"] == {
+        "topic_contract_missing_or_invalid": 1
+    }
+
+
+def test_motor_vehicle_statistic_cannot_cover_cat_food_topic():
+    raw_html = """
+    <figure data-uuid="vehicle-trade">
+      <h2>Sale of motor vehicles</h2>
+      <a href="https://andmed.stat.ee/en/stat/VEH001">dataset</a>
+      <table data-series-orientation="column"><thead><tr>
+        <th data-series-name="Motor vehicle retail sales"
+          data-series-unit="million euros">Motor vehicle retail sales</th>
+      </tr></thead><tbody><tr>
+        <th data-category="1st quarter 2026">1st quarter 2026</th><td>8.12</td>
+      </tr></tbody></table><p>Last updated: 27 May 2026</p>
+      <footer hidden>Cat food market report</footer>
+    </figure>
+    """
+    observations = _structured_statistical_observations(raw_html)
+    direct_text = (
+        "Statistics Estonia official statistics office. "
+        + _normalized_document_text(raw_html, is_html=True)
+    )
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    url = "https://www.stat.example.ee/vehicle-trade"
+    proof = build_attested_authority_proof(
+        direct_url=url,
+        direct_text=direct_text,
+        attestation_url="https://european-union.europa.eu/statistics-authorities",
+        attestation_text="Official statistics authority: https://www.stat.example.ee",
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+        structured_statistical_observations=observations,
+        direct_raw_html=raw_html,
+    )
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="cat-food-motor-negative",
+            title="Cat food commercial launch",
+            problem_scope="Assess cat food demand using official statistics.",
+            industry="Pet food",
+            exact_topic_anchors=("cat food",),
+        ),
+        ConfirmedMarketScope(
+            scope_label="Estonia", country_codes=("EE",), confirmed=True
+        ),
+    ).model_dump(mode="json")
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food market assessment",
+        target_user="Retail buyer",
+        required_evidence_classes=["official_statistic"],
+        topic_seed_contract=topic_seed,
+    )
+    pipeline._store_direct_web_evidence(
+        [{
+            "url": url,
+            "country_codes": ["EE"],
+            "retrieved_at": retrieved_at,
+            "jurisdiction_binding_status": "verified",
+            "source_authority": "official_public",
+            "authority_verification_status": "independently_attested_direct_domain",
+            "authority_proof": proof,
+            "_structured_evidence_html": raw_html,
+            "authority_document_artifact": {
+                "artifact_type": "direct_authority_document",
+                "text": direct_text,
+                "sha256": hashlib.sha256(direct_text.encode()).hexdigest(),
+                "retrieved_at": retrieved_at,
+                "authority_proof_signature": proof["proof_signature"],
+            },
+        }],
+        [],
+    )
+
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": topic_seed,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_claim_classes"] == []
+    assert quality["missing_claim_classes"] == ["official_statistic"]
+    assert pipeline.routing_diagnostics["topic_mismatch_observation_count"] == 1
+
+
+def test_row_oriented_stat_table_keeps_latest_bound_series_not_heading_number():
+    raw_html = """
+    <figure data-uuid="km024-chart">
+      <h2>Quarterly trade, 1st quarter 2026, million euros</h2>
+      <a href="https://andmed.stat.ee/en/stat/KM024">dataset</a>
+      <table data-series-orientation="row">
+        <thead><tr><th>Series</th>
+          <th data-category="4th quarter 2025">4th quarter 2025</th>
+          <th data-category="1st quarter 2026">1st quarter 2026</th>
+        </tr></thead>
+        <tbody><tr><th data-series-name="retail-volume-index"
+          data-series-unit="points">Retail turnover volume index</th>
+          <td>97.2</td><td>98.7</td></tr></tbody>
+      </table><p>Last updated: 27 May 2026</p>
+    </figure>
+    """
+
+    observations = _structured_statistical_observations(raw_html)
+
+    assert len(observations) == 1
+    assert observations[0]["dataset_id"] == "KM024"
+    assert observations[0]["series"] == "Retail turnover volume index"
+    assert observations[0]["series_code"] == "retail-volume-index"
+    assert observations[0]["unit"] == "points"
+    assert observations[0]["period"] == "1st quarter 2026"
+    assert observations[0]["value"] == "98.7"
+    assert observations[0]["cell_text"] == "98.7"
+    assert all(row["value"] != "2026" for row in observations)
+
+
+def test_full_flat_stat_table_date_like_cells_do_not_crash_direct_consumption():
+    raw_html = """
+    <figure data-uuid="km024-live-shape">
+      <h2>Quarterly trade 2026, million euros</h2>
+      <a href="https://andmed.stat.ee/en/stat/KM024">dataset</a>
+      <table data-series-orientation="row"><thead><tr><th>Series</th>
+        <th data-category="1st quarter 2026">1st quarter 2026</th></tr></thead>
+        <tbody>
+          <tr><th data-series-name="retail-index" data-series-unit="points">
+            Retail turnover volume index</th><td>98.7</td></tr>
+          <tr><th data-series-name="calendar-like-values" data-series-unit="points">
+            Monthly table changes</th><td>-16</td></tr>
+        </tbody></table><p>Last updated: 31 July 2026 09:00</p>
+    </figure>
+    """
+    normalized = _normalized_document_text(raw_html, is_html=True)
+
+    # Generic exact-quote extraction may decline the flattened table, but it
+    # must never throw before the structured positional path is consumed.
+    B2BDataPipeline._direct_document_claim_passages(
+        normalized, retrieved_at="2026-08-12T12:00:00+00:00"
+    )
+    observations = _structured_statistical_observations(raw_html)
+    assert any(row["value"] == "98.7" for row in observations)
+
+
+def test_resigned_structured_stat_value_not_present_in_cell_is_rejected():
+    raw_html = """
+    <figure data-uuid="trade-chart">
+      <a href="https://andmed.stat.ee/en/stat/KM0107">dataset</a>
+      <table><thead><tr><th data-series-name="retail-sales"
+        data-series-unit="million euros">Retail sales</th></tr></thead>
+        <tbody><tr><th data-category="1st quarter 2026">1st quarter 2026</th>
+          <td>100.0</td></tr></tbody></table>
+      <p>Last updated: 27 May 2026</p>
+    </figure>
+    """
+    direct_text = (
+        "Statistics Estonia official statistics office. "
+        + _normalized_document_text(raw_html, is_html=True)
+    )
+    forged = dict(_structured_statistical_observations(raw_html)[0])
+    forged["value"] = "999.0"
+    unsigned = {
+        key: value for key, value in forged.items() if key != "observation_sha256"
+    }
+    import json
+    forged["observation_sha256"] = hashlib.sha256(
+        json.dumps(
+            unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode()
+    ).hexdigest()
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    url = "https://www.stat.example.ee/retail"
+    with pytest.raises(ValueError, match="do not match fetched raw HTML"):
+        build_attested_authority_proof(
+            direct_url=url,
+            direct_text=direct_text,
+            attestation_url="https://european-union.europa.eu/statistics-authorities",
+            attestation_text="Official statistics directory: https://www.stat.example.ee",
+            country_codes=["EE"],
+            retrieved_at=retrieved_at,
+            structured_statistical_observations=[forged],
+            direct_raw_html=raw_html,
+        )
+
+
+def test_resigned_structured_stat_cannot_map_sibling_cell_to_wrong_series():
+    raw_html = """
+    <figure data-uuid="trade-chart"><a href="https://andmed.stat.ee/en/stat/KM0107">dataset</a>
+      <table><thead><tr>
+        <th data-series-name="net-sales" data-series-unit="million euros">Net sales</th>
+        <th data-series-name="retail-sales" data-series-unit="million euros">Retail sales</th>
+      </tr></thead><tbody><tr><th data-category="1st quarter 2026">1st quarter 2026</th>
+        <td>8,116</td><td>2,773</td></tr></tbody></table>
+      <p>Last updated: 27 May 2026</p></figure>
+    """
+    observations = _structured_statistical_observations(raw_html)
+    retail = next(row for row in observations if row["series_code"] == "retail-sales")
+    forged = dict(retail)
+    forged["value"] = "8,116"
+    forged["cell_text"] = "8,116"
+    unsigned = {
+        key: value for key, value in forged.items() if key != "observation_sha256"
+    }
+    import json
+    forged["observation_sha256"] = hashlib.sha256(
+        json.dumps(
+            unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode()
+    ).hexdigest()
+
+    with pytest.raises(ValueError, match="do not match fetched raw HTML"):
+        build_attested_authority_proof(
+            direct_url="https://www.stat.example.ee/retail",
+            direct_text=(
+                "Statistics Estonia official statistics office. "
+                + _normalized_document_text(raw_html, is_html=True)
+            ),
+            attestation_url="https://european-union.europa.eu/statistics-authorities",
+            attestation_text="Official statistics directory: https://www.stat.example.ee",
+            country_codes=["EE"],
+            retrieved_at="2026-08-12T12:00:00+00:00",
+            structured_statistical_observations=[forged],
+            direct_raw_html=raw_html,
+        )
+
+    direct_text = (
+        "Statistics Estonia official statistics office. "
+        + _normalized_document_text(raw_html, is_html=True)
+    )
+    valid_proof = build_attested_authority_proof(
+        direct_url="https://www.stat.example.ee/retail",
+        direct_text=direct_text,
+        attestation_url="https://european-union.europa.eu/statistics-authorities",
+        attestation_text="Official statistics directory: https://www.stat.example.ee",
+        country_codes=["EE"],
+        retrieved_at="2026-08-12T12:00:00+00:00",
+        structured_statistical_observations=observations,
+        direct_raw_html=raw_html,
+    )
+    # Simulate a compromised producer that can re-sign its own assertion but
+    # cannot change the already fetched private raw document anchor.
+    forged["row_cells"] = ["8,116", "8,116"]
+    forged["series"] = "Cat food sales"
+    forged["series_code"] = "cat-food-sales"
+    unsigned = {
+        key: value for key, value in forged.items() if key != "observation_sha256"
+    }
+    forged["observation_sha256"] = hashlib.sha256(
+        json.dumps(
+            unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode()
+    ).hexdigest()
+    resigned = copy.deepcopy(valid_proof)
+    resigned["structured_statistical_observations"] = [forged]
+    payload = {
+        key: value for key, value in resigned.items()
+        if key not in {"proof_signature", "signature_alg"}
+    }
+    resigned["proof_signature"] = _proof_signature(payload)
+    pipeline = B2BDataPipeline(
+        location="Estonia", business_problem="Cat food market", target_user="Buyer"
+    )
+    pipeline._store_direct_web_evidence(
+        [{
+            "url": "https://www.stat.example.ee/retail",
+            "country_codes": ["EE"],
+            "retrieved_at": resigned["retrieved_at"],
+            "source_authority": "official_public",
+            "authority_verification_status": "independently_attested_direct_domain",
+            "jurisdiction_binding_status": "verified",
+            "authority_proof": resigned,
+            "_structured_evidence_html": raw_html,
+            "authority_document_artifact": {
+                "artifact_type": "direct_authority_document",
+                "text": direct_text,
+                "sha256": resigned["direct"]["content_sha256"],
+                "retrieved_at": resigned["retrieved_at"],
+                "authority_proof_signature": resigned["proof_signature"],
+            },
+        }],
+        [],
+    )
+    quality = evaluate_critical_claims(
+        {"market_sources": pipeline.market_sources, "market_claims": pipeline.market_claims},
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+
+
 def test_partial_year_statistic_never_invents_future_observation_end():
     rows = B2BDataPipeline._direct_document_claim_passages(
         "Posted on 27 May 2026. Internal trade turnover for 2026 was "
@@ -540,7 +1249,7 @@ def test_statistic_period_range_uses_latest_completed_quarter():
     assert rows[0]["observation_end"] == "2026-03-31T00:00:00+00:00"
 
 
-def test_statistic_publication_date_is_bound_to_release_marker_not_table_cell():
+def test_flattened_multi_value_statistic_is_not_promoted_by_release_marker():
     rows = B2BDataPipeline._direct_document_claim_passages(
         "May 2026 -6 -25 June 2026 9 -16 Internal trade turnover by "
         "quarters, 1st quarter 2025 – 1st quarter 2026 was 10.8 billion "
@@ -548,8 +1257,10 @@ def test_statistic_publication_date_is_bound_to_release_marker_not_table_cell():
         retrieved_at="2026-08-12T12:00:00+00:00",
     )
 
-    assert rows[0]["published_at"] == "2026-07-31T00:00:00+00:00"
-    assert rows[0]["observation_end"] == "2026-03-31T00:00:00+00:00"
+    # Several unlabelled table cells occur in one flat span. A publication
+    # marker cannot safely assign them all one series/period identity; the raw
+    # HTML structured-table path handles valid positional cells instead.
+    assert rows == []
 
 
 @pytest.mark.asyncio
@@ -864,10 +1575,20 @@ async def test_brazil_brl_catalogue_proof_extracts_and_passes_quality():
     )
 
     async def fetcher(_url: str) -> dict:
+        offer_html = (
+            '<script type="application/ld+json">'
+            '{"@type":"Product","name":"cat food","offers":'
+            '{"@type":"Offer","price":"39.90","priceCurrency":"BRL"}}'
+            "</script>"
+        )
         return {
             "final_url": url,
             "text": direct_text,
             "retrieved_at": "2026-08-12T12:00:00+00:00",
+            "commercial_offer_evidence": _offer_evidence(
+                name="cat food", price="39.90", currency="BRL"
+            ),
+            "_structured_evidence_html": f"<div>{direct_text}</div>{offer_html}",
         }
 
     source = {

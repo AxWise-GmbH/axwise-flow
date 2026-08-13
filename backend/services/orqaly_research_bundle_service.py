@@ -23,6 +23,7 @@ from backend.domain.market_scope import research_cells
 from backend.services.orqaly_persona_resolution_service import (
     is_customer_persona_eligible,
 )
+from backend.services.research_source_authority_service import validate_authority_proof
 
 
 BUNDLE_VERSION = "axwise_research_bundle_v1"
@@ -796,6 +797,14 @@ async def collect_regional_grounding(
         "research_cells": country_cells,
         "cell_coverage": coverage,
         "routing_diagnostics": diagnostics,
+        "topic_seed_contract": next(
+            (
+                result.get("topic_seed_contract")
+                for result in results
+                if result.get("topic_seed_contract")
+            ),
+            None,
+        ),
         "_deferred_company_enrichment": [
             entry
             for result in results
@@ -839,6 +848,10 @@ async def _collect_single_market_grounding(
             ).get("applicable_claim_classes")
             or []
         ),
+        topic_seed_contract=(
+            ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+            .get("topic_seed_contract")
+        ),
     )
     companies = await pipeline.run()
     grounding = normalize_market_grounding(companies, policy)
@@ -852,6 +865,12 @@ async def _collect_single_market_grounding(
     grounding["structured_source_count"] = len(grounding["market_sources"])
     grounding["claim_count"] = len(grounding["market_claims"])
     grounding["routing_diagnostics"] = pipeline.routing_diagnostics
+    topic_seed_contract = (
+        ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+        .get("topic_seed_contract")
+    )
+    if topic_seed_contract:
+        grounding["topic_seed_contract"] = topic_seed_contract
     if pipeline.deferred_companies:
         grounding["_deferred_company_enrichment"] = [
             {"pipeline": pipeline, "policy": policy}
@@ -898,6 +917,55 @@ def _merge_market_evidence(
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Deduplicate real evidence before evaluating a minimum-source contract."""
 
+    def signed_direct_rank(source: Dict[str, Any]) -> int:
+        """Prefer the source identity cryptographically bound to the document.
+
+        Company parsing can emit a lightweight row for a URL before the direct
+        authority pipeline emits its signed row for the same document.  Keeping
+        the first row used to rewrite the signed claim to the lightweight ID,
+        while its span artifact remained bound to the signed ID.  The quality
+        validator correctly rejected that broken join.  This is precedence,
+        not trust: the proof is still fully validated by the quality gate.
+        """
+
+        proof = source.get("authority_proof")
+        # Pipeline persistence intentionally strips the full fetched text and
+        # publishes only signed document metadata as ``authority_document``.
+        # Accept the internal name as a compatibility fallback for callers
+        # that merge before bundle sanitization.
+        artifact = source.get("authority_document") or source.get(
+            "authority_document_artifact"
+        )
+        if not isinstance(proof, dict) or not isinstance(artifact, dict):
+            return 0
+        source_id = str(source.get("source_id") or "")
+        signature = str(proof.get("proof_signature") or "")
+        artifact_signature = str(artifact.get("authority_proof_signature") or "")
+        artifact_source_id = str(artifact.get("source_id") or "")
+        if (
+            source_id
+            and artifact.get("artifact_type") == "direct_authority_document"
+            and artifact_source_id == source_id
+            and len(signature) == 64
+            and artifact_signature == signature
+            and artifact.get("sha256")
+            == str((proof.get("direct") or {}).get("content_sha256") or "")
+            and artifact.get("retrieved_at") == proof.get("retrieved_at")
+            and validate_authority_proof(
+                source,
+                requested_country_codes=source.get("country_codes") or [],
+            )
+        ):
+            return 2
+        return 0
+
+    def redirect_aliases(old_id: str, new_id: str) -> None:
+        for alias, canonical_id in list(source_aliases.items()):
+            if canonical_id == old_id:
+                source_aliases[alias] = new_id
+        source_aliases[old_id] = new_id
+        source_aliases[new_id] = new_id
+
     canonical_sources: Dict[str, Dict[str, Any]] = {}
     source_aliases: Dict[str, str] = {}
     for row in source_rows:
@@ -942,7 +1010,27 @@ def _merge_market_evidence(
 
         existing = canonical_sources.get(evidence_key)
         if existing:
-            source_aliases[source_id] = str(existing["source_id"])
+            existing_id = str(existing["source_id"])
+            if signed_direct_rank(row) > signed_direct_rank(existing):
+                # Make the cryptographically bound source ID canonical and
+                # remap every earlier lightweight alias to it.  Preserve useful
+                # parser metadata, but the signed row owns all nonempty proof,
+                # identity, authority and direct-document fields.
+                replacement = dict(existing)
+                for key, value in row.items():
+                    if value not in (None, "", [], {}):
+                        replacement[key] = value
+                for list_key in ("research_cell_ids", "country_codes"):
+                    replacement[list_key] = list(
+                        dict.fromkeys(
+                            list(existing.get(list_key) or [])
+                            + list(row.get(list_key) or [])
+                        )
+                    )
+                canonical_sources[evidence_key] = replacement
+                redirect_aliases(existing_id, source_id)
+                continue
+            source_aliases[source_id] = existing_id
             for list_key in ("research_cell_ids", "country_codes"):
                 existing[list_key] = list(
                     dict.fromkeys(
@@ -967,6 +1055,58 @@ def _merge_market_evidence(
     sources = list(canonical_sources.values())[: policy.maximum_sources]
     retained_source_ids = {str(row["source_id"]) for row in sources}
     claims_by_identity: Dict[str, Dict[str, Any]] = {}
+
+    def remap_claim_bindings(claim: Dict[str, Any]) -> None:
+        # Signed claim bindings include source_id in their HMAC payload. Never
+        # mutate them. A signed claim whose source lost canonical precedence is
+        # discarded by the retained-source join below.
+        artifact = claim.get("provenance_artifact")
+        if isinstance(artifact, dict) and isinstance(
+            artifact.get("claim_binding"), dict
+        ):
+            return
+        citation = claim.get("citation_metadata")
+        if isinstance(citation, dict):
+            citation = dict(citation)
+            source_ref = str(citation.get("source_id") or "")
+            if source_ref in source_aliases:
+                citation["source_id"] = source_aliases[source_ref]
+            claim["citation_metadata"] = citation
+        artifact = claim.get("provenance_artifact")
+        if isinstance(artifact, dict):
+            artifact = dict(artifact)
+            source_ref = str(artifact.get("source_id") or "")
+            if source_ref in source_aliases:
+                artifact["source_id"] = source_aliases[source_ref]
+            binding = artifact.get("claim_binding")
+            if isinstance(binding, dict):
+                binding = dict(binding)
+                binding_ref = str(binding.get("source_id") or "")
+                if binding_ref in source_aliases:
+                    binding["source_id"] = source_aliases[binding_ref]
+                artifact["claim_binding"] = binding
+            claim["provenance_artifact"] = artifact
+
+    def signed_claim_rank(claim: Dict[str, Any]) -> int:
+        artifact = claim.get("provenance_artifact")
+        citation = claim.get("citation_metadata")
+        if not isinstance(artifact, dict) or not isinstance(citation, dict):
+            return 0
+        binding = artifact.get("claim_binding")
+        if not isinstance(binding, dict):
+            return 0
+        source_ids = {str(value) for value in claim.get("source_ids") or [] if value}
+        source_id = str(artifact.get("source_id") or "")
+        return int(
+            artifact.get("artifact_type") == "direct_authority_document"
+            and source_id in source_ids
+            and citation.get("source_id") == source_id
+            and binding.get("source_id") == source_id
+            and len(str(artifact.get("sha256") or "")) == 64
+            and len(str(artifact.get("authority_proof_signature") or "")) == 64
+            and len(str(binding.get("claim_proof_signature") or "")) == 64
+        )
+
     for row in claim_rows:
         if not isinstance(row, dict):
             continue
@@ -984,6 +1124,7 @@ def _merge_market_evidence(
             continue
         canonical = dict(row)
         canonical["source_ids"] = source_ids
+        remap_claim_bindings(canonical)
         identity = _stable_id(
             "claim",
             {
@@ -997,6 +1138,16 @@ def _merge_market_evidence(
         canonical["claim_id"] = identity
         existing_claim = claims_by_identity.get(identity)
         if existing_claim:
+            if signed_claim_rank(canonical) > signed_claim_rank(existing_claim):
+                for list_key in ("research_cell_ids", "country_codes"):
+                    canonical[list_key] = list(
+                        dict.fromkeys(
+                            list(existing_claim.get(list_key) or [])
+                            + list(canonical.get(list_key) or [])
+                        )
+                    )
+                claims_by_identity[identity] = canonical
+                continue
             for list_key in ("research_cell_ids", "country_codes"):
                 existing_claim[list_key] = list(
                     dict.fromkeys(
