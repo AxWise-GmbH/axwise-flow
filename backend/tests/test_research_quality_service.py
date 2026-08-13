@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 from datetime import datetime, timezone
 
 import pytest
@@ -14,10 +15,18 @@ from backend.services.research_quality_service import (
     validate_research_prd,
 )
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
+    _normalized_document_text,
+    _structured_statistical_observations,
     build_authority_claim_artifact,
     build_attested_authority_proof,
     build_direct_primary_market_proof,
     is_trusted_public_root,
+)
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    build_topic_seed,
 )
 
 
@@ -73,6 +82,120 @@ pytestmark = pytest.mark.contract
 os.environ.setdefault(
     "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
 )
+
+
+def _cat_food_topic_seed(*country_codes: str) -> dict:
+    return build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="cat-food-quality-test",
+            title="Cat food commercial launch",
+            problem_scope="Assess cat food demand using official statistics.",
+            industry="Pet food",
+            target_user="Pet-food category buyer",
+            exact_topic_anchors=("cat food",),
+        ),
+        ConfirmedMarketScope(
+            scope_label="test market",
+            country_codes=country_codes or ("EE",),
+            confirmed=True,
+        ),
+    ).model_dump(mode="json")
+
+
+def _structured_statistic_grounding(
+    *,
+    source_id: str,
+    source_url: str,
+    value: str,
+    series: str = "Cat food expenditure",
+    period: str = "1st quarter 2026",
+    dataset_id: str = "CAT001",
+    unit: str = "million euros",
+) -> dict:
+    raw_html = f"""
+    <figure data-uuid="cat-food-stat">
+      <h2>Household expenditure on pets and cat food</h2>
+      <a href="https://andmed.stat.ee/en/stat/{dataset_id}">dataset</a>
+      <table data-series-orientation="column"><thead><tr>
+        <th data-series-name="{series}" data-series-unit="{unit}">{series}</th>
+      </tr></thead><tbody><tr>
+        <th data-category="{period}">{period}</th><td>{value}</td>
+      </tr></tbody></table><p>Last updated: 27 May 2026</p>
+    </figure>
+    """
+    observations = _structured_statistical_observations(raw_html)
+    assert len(observations) == 1
+    observation = observations[0]
+    direct_text = (
+        "National public authority and official statistics office. "
+        + _normalized_document_text(raw_html, is_html=True)
+    )
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    proof = build_attested_authority_proof(
+        direct_url=source_url,
+        direct_text=direct_text,
+        attestation_url="https://european-union.europa.eu/authorities",
+        attestation_text=f"Official public authority directory: {source_url}",
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+        structured_statistical_observations=observations,
+        direct_raw_html=raw_html,
+    )
+    document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": source_id,
+        "text": direct_text,
+        "sha256": hashlib.sha256(direct_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    claim_text = observation["row_text"]
+    artifact = build_authority_claim_artifact(
+        source_id=source_id,
+        source_url=source_url,
+        authority_proof=proof,
+        authority_document=document,
+        claim_text=claim_text,
+    )
+    binding = artifact["claim_binding"]
+    return {
+        "market_sources": [{
+            "source_id": source_id,
+            "url": source_url,
+            "publisher": source_url,
+            "provider": "searxng",
+            "country_codes": ["EE"],
+            "source_authority": "official_public",
+            "authority_verification_status": "independently_attested_direct_domain",
+            "retrieved_at": retrieved_at,
+            "authority_proof": proof,
+            "_authority_document_artifact": document,
+            "_structured_evidence_html": raw_html,
+        }],
+        "market_claims": [{
+            "claim_id": f"claim-{source_id}",
+            "subject": "Estonia",
+            "predicate": "official cat food statistic",
+            "object": claim_text,
+            "source_ids": [source_id],
+            "country_codes": ["EE"],
+            "critical": True,
+            "evidence_class": "official_statistic",
+            "observation_end": observation["observation_end"],
+            "published_at": observation["published_at"],
+            "latest_release": True,
+            "structured_statistical_observation": observation,
+            "citation_metadata": {
+                "segment_start": binding["claim_start"],
+                "segment_end": binding["claim_end"],
+                "span_target": "direct_authority_document",
+                "offset_unit": "unicode_codepoints",
+                "source_id": source_id,
+            },
+            "provenance_artifact": artifact,
+        }],
+        "topic_seed_contract": _cat_food_topic_seed("EE"),
+    }
 
 
 def _estonia_vat_grounding(*, value: str = "24%", direct: bool = True):
@@ -240,10 +363,35 @@ def _catalog_grounding(
     direct_text = "Current first-party product catalogue. " + " ".join(
         text for _, text in claims
     )
+    offer_scripts = []
+    for _claim_id, claim_text in claims:
+        visible_price = re.search(
+            r"(?:EUR|BRL|USD|GBP|€|\$|£)\s*(\d+(?:[.,]\d+)?)|"
+            r"(\d+(?:[.,]\d+)?)\s*(€|\$|£)",
+            claim_text,
+            re.IGNORECASE,
+        )
+        if not visible_price:
+            continue
+        price = (visible_price.group(1) or visible_price.group(2)).replace(",", ".")
+        token = visible_price.group(0).upper()
+        currency = "BRL" if "BRL" in token else "USD" if "$" in token or "USD" in token else "GBP" if "£" in token or "GBP" in token else "EUR"
+        product_name = " ".join(claim_text.split()[:4])
+        offer_scripts.append(
+            '<script type="application/ld+json">'
+            f'{{"@type":"Product","name":"{product_name}","offers":'
+            f'{{"@type":"Offer","price":"{price}","priceCurrency":"{currency}"}}}}'
+            "</script>"
+        )
+    offer_html = "".join(offer_scripts)
+    raw_html = f"<div>{direct_text}</div>{offer_html}"
+    structured_offer = _commercial_offer_evidence(offer_html)
     proof = build_direct_primary_market_proof(
         direct_url=source_url,
         direct_text=direct_text,
         country_codes=[country_code],
+        commercial_offer_evidence=structured_offer,
+        direct_raw_html=raw_html,
         retrieved_at=retrieved_at,
     )
     source_id = f"catalog-{country_code.casefold()}"
@@ -298,6 +446,8 @@ def _catalog_grounding(
                 "authority_verification_status": "direct_primary_market_observation",
                 "retrieved_at": retrieved_at,
                 "authority_proof": proof,
+                "_authority_document_artifact": document,
+                "_structured_evidence_html": raw_html,
             }
         ],
         "market_claims": market_claims,
@@ -381,10 +531,17 @@ def _official_grounding(
 
 
 def _merge_grounding(*parts: dict) -> dict:
-    return {
+    merged = {
         "market_sources": [row for part in parts for row in part["market_sources"]],
         "market_claims": [row for part in parts for row in part["market_claims"]],
     }
+    topic_seed = next(
+        (part.get("topic_seed_contract") for part in parts if part.get("topic_seed_contract")),
+        None,
+    )
+    if topic_seed:
+        merged["topic_seed_contract"] = topic_seed
+    return merged
 
 
 def test_estonia_vat_is_verified_from_dynamic_official_evidence_not_catalogue():
@@ -397,6 +554,91 @@ def test_estonia_vat_is_verified_from_dynamic_official_evidence_not_catalogue():
     assert quality["status"] == "passed"
     assert quality["verified_count"] == 1
     assert quality["verified_facts"][0]["display_value"] == "24%"
+
+
+def test_complete_three_class_ledger_quarantines_rejected_candidates():
+    statutory = _estonia_vat_grounding()
+    statistic = _structured_statistic_grounding(
+        source_id="statistics-current",
+        source_url="https://statistics.example.ee/latest",
+        value="1.37",
+        series="Cat food household expenditure",
+        period="2025",
+    )
+    catalogue = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/catalog",
+        claims=[
+            (
+                "local-offer",
+                "Royal Canin kassitoit kana 400 g Tavahind 89,99 €.",
+            ),
+            ("navigation-candidate", "Ostukorv 0,00 €."),
+        ],
+    )
+    grounding = _merge_grounding(statutory, statistic, catalogue)
+    # Reproduce the noisy PR39 candidate ledger without fabricating new source
+    # authority. These exact signed rows remain diagnostic, but none may veto
+    # independently complete mandatory-class coverage.
+    valid_candidate = grounding["market_claims"][-1]
+    for index in range(20):
+        grounding["market_claims"].append(
+            {
+                **valid_candidate,
+                "claim_id": f"navigation-{index}",
+            }
+        )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=[
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        ],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["verified_claim_classes"] == [
+        "observed_primary_market",
+        "official_statistic",
+        "statutory_current",
+    ]
+    assert quality["conflict_count"] == 0
+    assert quality["blocked_claims"] == []
+    assert quality["quarantined_count"] == 21
+    assert quality["candidate_rejection_counts"] == {
+        "material_fact_not_extractable": 21
+    }
+    assert all(
+        fact["identity_complete"]
+        for row in quality["evidence_ledger"]
+        for fact in row["facts"]
+    )
+    assert all(fact["normalized_value"] != "0:eur" for fact in quality["verified_facts"])
+
+
+def test_only_rejected_candidate_still_fails_mandatory_class():
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/cart",
+        claims=[("cart", "Ostukorv Royal Canin 400 g 0,00 €.")],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+    assert quality["missing_claim_classes"] == ["observed_primary_market"]
+    assert quality["evidence_ledger"] == []
 
 
 def test_distinct_catalog_products_and_pack_sizes_are_not_conflicts():
@@ -519,6 +761,9 @@ def test_scaled_statistical_values_normalize_to_same_magnitude():
     assert _normalized_value("1.37 million", "number") == _normalized_value(
         "1,370 thousand", "number"
     )
+    assert _normalized_value(
+        "8,116.2 million euros", "eur"
+    ) == "8116200000:eur"
 
 
 def test_unextractable_signed_statutory_claim_is_not_reported_verified():
@@ -620,27 +865,19 @@ def test_standard_and_reduced_statutory_rates_are_distinct_facts():
 def test_official_series_conflicts_only_for_same_series_and_period():
     same_period = "2026-03-31T00:00:00+00:00"
     conflict = _merge_grounding(
-        _official_grounding(
+        _structured_statistic_grounding(
             source_id="stats-a",
             source_url="https://stats-one.example.ee/q1",
-            claims=[{
-                "claim_id": "turnover-a",
-                "text": "Latest retail turnover for the first quarter 2026 was EUR 10.8 billion.",
-                "evidence_class": "official_statistic",
-                "predicate": "retail turnover monetary value",
-                "temporal": {"observation_end": same_period, "latest_release": True},
-            }],
+            value="10.8",
+            series="Cat food retail turnover",
+            dataset_id="CATTURNOVER",
         ),
-        _official_grounding(
+        _structured_statistic_grounding(
             source_id="stats-b",
             source_url="https://stats-two.example.ee/q1",
-            claims=[{
-                "claim_id": "turnover-b",
-                "text": "Latest retail turnover for the first quarter 2026 was EUR 11.2 billion.",
-                "evidence_class": "official_statistic",
-                "predicate": "retail turnover monetary value",
-                "temporal": {"observation_end": same_period, "latest_release": True},
-            }],
+            value="11.2",
+            series="Cat food retail turnover",
+            dataset_id="CATTURNOVER",
         ),
     )
     conflict_quality = evaluate_critical_claims(
@@ -653,23 +890,22 @@ def test_official_series_conflicts_only_for_same_series_and_period():
     assert conflict_quality["status"] == "blocked"
     assert conflict_quality["conflict_count"] == 1
 
-    different_period = _official_grounding(
-        source_id="stats-periods",
-        source_url="https://stats-periods.example.ee/quarters",
-        claims=[
-            {
-                "claim_id": "q4",
-                "text": "Latest retail turnover for the fourth quarter 2025 was EUR 10.8 billion.",
-                "evidence_class": "official_statistic",
-                "temporal": {"observation_end": "2025-12-31T00:00:00+00:00", "latest_release": True},
-            },
-            {
-                "claim_id": "q1",
-                "text": "Latest retail turnover for the first quarter 2026 was EUR 11.2 billion.",
-                "evidence_class": "official_statistic",
-                "temporal": {"observation_end": same_period, "latest_release": True},
-            },
-        ],
+    different_period = _merge_grounding(
+        _structured_statistic_grounding(
+            source_id="stats-q4",
+            source_url="https://stats-periods.example.ee/q4",
+            value="10.8",
+            series="Cat food retail turnover",
+            period="4th quarter 2025",
+            dataset_id="CATTURNOVER",
+        ),
+        _structured_statistic_grounding(
+            source_id="stats-q1",
+            source_url="https://stats-periods.example.ee/q1",
+            value="11.2",
+            series="Cat food retail turnover",
+            dataset_id="CATTURNOVER",
+        ),
     )
     period_quality = evaluate_critical_claims(
         different_period,
@@ -681,23 +917,21 @@ def test_official_series_conflicts_only_for_same_series_and_period():
     assert period_quality["status"] == "passed", period_quality
     assert period_quality["conflict_count"] == 0
 
-    different_series = _official_grounding(
-        source_id="stats-series",
-        source_url="https://stats-series.example.ee/q1",
-        claims=[
-            {
-                "claim_id": "net-sales",
-                "text": "Latest net sales for the first quarter 2026 were EUR 8.12 billion.",
-                "evidence_class": "official_statistic",
-                "temporal": {"observation_end": same_period, "latest_release": True},
-            },
-            {
-                "claim_id": "retail-sales",
-                "text": "Latest retail sales for the first quarter 2026 were EUR 2.33 billion.",
-                "evidence_class": "official_statistic",
-                "temporal": {"observation_end": same_period, "latest_release": True},
-            },
-        ],
+    different_series = _merge_grounding(
+        _structured_statistic_grounding(
+            source_id="stats-net",
+            source_url="https://stats-series.example.ee/net",
+            value="8.12",
+            series="Cat food net sales",
+            dataset_id="CATSALES",
+        ),
+        _structured_statistic_grounding(
+            source_id="stats-retail",
+            source_url="https://stats-series.example.ee/retail",
+            value="2.33",
+            series="Cat food retail sales",
+            dataset_id="CATSALES",
+        ),
     )
     series_quality = evaluate_critical_claims(
         different_series,
@@ -890,16 +1124,12 @@ def test_old_official_statistic_fetched_today_is_not_current():
 
 
 def test_latest_annual_official_statistic_uses_class_specific_freshness():
-    grounding = _replace_direct_claim(
-        _estonia_vat_grounding(),
-        claim_text="Estonia's latest population was 1.37 million in 2025.",
-        evidence_class="official_statistic",
-        temporal_fields={
-            "observation_end": "2025-12-31T00:00:00+00:00",
-            "latest_release": True,
-            "latest_release_basis": "explicit latest release on direct authority page",
-            "current": None,
-        },
+    grounding = _structured_statistic_grounding(
+        source_id="statistics-annual",
+        source_url="https://statistics.example.ee/cat-food-annual",
+        value="1.37",
+        series="Cat food household expenditure",
+        period="2025",
     )
 
     quality = evaluate_critical_claims(
