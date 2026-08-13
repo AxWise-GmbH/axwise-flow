@@ -374,6 +374,9 @@ async def test_cached_cloudflare_challenge_is_rejected_not_counted_as_retrieved(
             "retrieved_at": "2026-08-13T00:00:00+00:00",
             "commercial_offer_evidence": [],
             "_structured_evidence_html": challenge,
+            # A serialized/cache field is not a trust boundary; challenge
+            # detection must still be re-derived from the raw document.
+            "_retrieval_challenge_checked": True,
         }
 
     source = {

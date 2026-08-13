@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import gc
 import hashlib
 import hmac
 import json
@@ -18,7 +19,9 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 import pytest
 
+from backend.api.research.simulation_bridge.services import pipeline as pipeline_module
 from backend.api.research.simulation_bridge.services.pipeline import B2BDataPipeline
+from backend.services import research_source_authority_service as authority_module
 from backend.services.eurostat_comext_service import (
     BoundedOfficialResponse,
     EurostatComextAcquisition,
@@ -30,6 +33,8 @@ from backend.services.orqaly_hybrid_run_service import (
     _strip_private_grounding_artifacts,
 )
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
+    _normalized_document_text,
     _structured_statistical_observations,
     build_recognized_root_proof,
     enrich_authority_sources,
@@ -567,6 +572,298 @@ async def test_fetch_direct_text_rejects_cloudflare_challenge_even_with_http_200
 
     with pytest.raises(ValueError, match="anti-bot challenge"):
         await fetch_direct_text("https://shop.example.ee/cat-food")
+
+
+@pytest.mark.asyncio
+async def test_direct_fetch_html_interpretation_cannot_block_hard_stage_deadline(
+    monkeypatch,
+):
+    """A production-sized parser stall must not suspend the asyncio deadline."""
+
+    raw = b"<html><body><h1>Estonia catalogue</h1></body></html>"
+
+    class Response:
+        is_redirect = False
+        headers = {"content-type": "text/html; charset=utf-8"}
+        content = raw
+        text = raw.decode("utf-8")
+        url = httpx.URL("https://shop.example.ee/catalogue")
+
+        def raise_for_status(self):
+            return None
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def get(self, *_args, **_kwargs):
+            return Response()
+
+    async def public(_host: str) -> bool:
+        return True
+
+    parser_started = threading.Event()
+    release_parser = threading.Event()
+    real_normalize = authority_module._normalized_document_text
+
+    def blocked_normalize(value: str, *, is_html: bool) -> str:
+        parser_started.set()
+        release_parser.wait(timeout=1.0)
+        return real_normalize(value, is_html=is_html)
+
+    monkeypatch.setattr(authority_module.httpx, "AsyncClient", Client)
+    monkeypatch.setattr(authority_module, "_public_hostname", public)
+    monkeypatch.setattr(
+        authority_module,
+        "_normalized_document_text",
+        blocked_normalize,
+    )
+
+    # Prevent a broken on-loop implementation from hanging the test forever.
+    safety_release = threading.Timer(0.3, release_parser.set)
+    safety_release.start()
+    started = time.monotonic()
+    try:
+        with pytest.raises(asyncio.TimeoutError):
+            await pipeline_module._await_with_hard_stage_deadline(
+                fetch_direct_text("https://shop.example.ee/catalogue"),
+                deadline_seconds=0.05,
+            )
+    finally:
+        release_parser.set()
+        safety_release.cancel()
+
+    assert parser_started.is_set()
+    assert time.monotonic() - started < 0.15
+
+
+@pytest.mark.asyncio
+async def test_pr46_mixed_authority_batch_retains_fast_proofs_and_consumes_failures(
+    monkeypatch,
+):
+    """Fast official/catalogue rows survive slow and failing sibling fetches."""
+
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setattr(authority_module, "_AUTHORITY_ENRICHMENT_SECONDS", 0.2)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PROOF_RESERVE_SECONDS", 0.1)
+
+    retrieved_at = "2026-08-13T16:21:30+00:00"
+    eurostat_url = "https://ec.europa.eu/eurostat/api/comext/estonia"
+    eurostat_text = (
+        "Eurostat official statistics for Estonia. Data published 13 August 2026."
+    )
+    product_url = "https://www.petcity.ee/alpha-kassitoit"
+    product_html = (
+        '<div class="product"><h1>Alpha cat food</h1>'
+        '<div class="price">Current price 10,09 EUR</div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"10.09","priceCurrency":"EUR"}}</script>'
+    )
+    rows = [
+        {
+            "url": eurostat_url,
+            "provider": "eurostat_comext_official",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "acquisition_evidence_classes": ["official_statistic"],
+            "_direct_document_candidate": {
+                "final_url": eurostat_url,
+                "text": eurostat_text,
+                "retrieved_at": retrieved_at,
+                "commercial_offer_evidence": [],
+                "structured_statistical_observations": [],
+                "_structured_evidence_html": "",
+                "_retrieval_challenge_checked": True,
+            },
+        },
+        {
+            "url": product_url,
+            "provider": "gemini_google_search",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "acquisition_evidence_classes": ["observed_primary_market"],
+            "_direct_document_candidate": {
+                "final_url": product_url,
+                "text": _normalized_document_text(product_html, is_html=True),
+                "retrieved_at": retrieved_at,
+                "commercial_offer_evidence": _commercial_offer_evidence(product_html),
+                "structured_statistical_observations": [],
+                "_structured_evidence_html": product_html,
+                "_retrieval_challenge_checked": True,
+            },
+        },
+        *[
+            {
+                "url": f"https://error-{index}.example.ee/source",
+                "provider": "gemini_google_search",
+                "country_codes": ["EE"],
+                "market_terms": ["Estonia"],
+            }
+            for index in range(4)
+        ],
+        *[
+            {
+                "url": f"https://slow-{index}.example.ee/source",
+                "provider": "searxng",
+                "country_codes": ["EE"],
+                "market_terms": ["Estonia"],
+            }
+            for index in range(17)
+        ],
+    ]
+    slow_cancelled = 0
+
+    async def fetcher(url: str):
+        nonlocal slow_cancelled
+        if "error-" in url:
+            raise httpx.ConnectTimeout("production-shaped connection timeout")
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            slow_cancelled += 1
+            raise
+
+    loop = asyncio.get_running_loop()
+    prior_handler = loop.get_exception_handler()
+    unhandled = []
+    loop.set_exception_handler(lambda _loop, context: unhandled.append(context))
+    started = time.monotonic()
+    try:
+        enriched = await enrich_authority_sources(rows, fetcher=fetcher)
+        elapsed = time.monotonic() - started
+        gc.collect()
+        await asyncio.sleep(0.02)
+    finally:
+        loop.set_exception_handler(prior_handler)
+
+    assert elapsed < 0.5
+    assert len(enriched) == 23
+    assert rows[0]["direct_fetch_status"] == "retrieved"
+    assert rows[0]["authority_verification_status"] == (
+        "recognized_public_root_direct"
+    )
+    assert rows[0]["authority_proof"]
+    assert rows[1]["direct_fetch_status"] == "retrieved"
+    assert rows[1]["authority_verification_status"] == (
+        "direct_primary_market_observation"
+    )
+    assert rows[1]["authority_proof"]
+    assert all(
+        row["direct_fetch_status"] == "failed:ConnectTimeout"
+        for row in rows[2:6]
+    )
+    assert all(
+        row["direct_fetch_status"] == "stage_deadline_exceeded"
+        for row in rows[6:]
+    )
+    assert slow_cancelled > 0
+    assert unhandled == []
+
+
+@pytest.mark.asyncio
+async def test_late_cancelled_fetch_cannot_mutate_retained_authority_snapshot(
+    monkeypatch,
+):
+    """A cancellation-resistant sibling is detached without late row writes."""
+
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setattr(authority_module, "_AUTHORITY_ENRICHMENT_SECONDS", 0.08)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PROOF_RESERVE_SECONDS", 0.04)
+
+    product_url = "https://www.petcity.ee/retained-kassitoit"
+    product_html = (
+        '<div class="product"><h1>Retained cat food</h1>'
+        '<div class="price">Current price 4,70 EUR</div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Retained cat food","offers":{"@type":"Offer",'
+        '"price":"4.70","priceCurrency":"EUR"}}</script>'
+    )
+    rows = [
+        {
+            "url": product_url,
+            "provider": "gemini_google_search",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "_direct_document_candidate": {
+                "final_url": product_url,
+                "text": _normalized_document_text(product_html, is_html=True),
+                "retrieved_at": "2026-08-13T16:21:30+00:00",
+                "commercial_offer_evidence": _commercial_offer_evidence(product_html),
+                "structured_statistical_observations": [],
+                "_structured_evidence_html": product_html,
+                "_retrieval_challenge_checked": True,
+            },
+        },
+        {
+            "url": "https://slow.example.ee/irrelevant",
+            "provider": "searxng",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+        },
+    ]
+    cancellation_seen = asyncio.Event()
+    late_release = asyncio.Event()
+    late_finished = asyncio.Event()
+
+    async def cancellation_resistant_fetcher(_url: str):
+        try:
+            while not late_release.is_set():
+                try:
+                    await late_release.wait()
+                except asyncio.CancelledError:
+                    cancellation_seen.set()
+            raise RuntimeError("late sibling failure")
+        finally:
+            late_finished.set()
+
+    loop = asyncio.get_running_loop()
+    prior_handler = loop.get_exception_handler()
+    unhandled = []
+    loop.set_exception_handler(lambda _loop, context: unhandled.append(context))
+    try:
+        enriched = await pipeline_module._await_with_hard_stage_deadline(
+            enrich_authority_sources(
+                rows,
+                fetcher=cancellation_resistant_fetcher,
+            ),
+            # Preserve the production relationship: inner lifecycle budget
+            # (45s) finishes before the outer active budget (49s).
+            deadline_seconds=0.20,
+        )
+        await asyncio.wait_for(cancellation_seen.wait(), timeout=0.1)
+        retained = copy.deepcopy(enriched)
+        retained_json = json.dumps(retained, sort_keys=True)
+
+        assert retained[0]["direct_fetch_status"] == "retrieved"
+        assert retained[0]["authority_verification_status"] == (
+            "direct_primary_market_observation"
+        )
+        assert retained[0]["authority_proof"]
+        assert retained[1]["direct_fetch_status"] == "stage_deadline_exceeded"
+
+        late_release.set()
+        await asyncio.wait_for(late_finished.wait(), timeout=0.1)
+        gc.collect()
+        await asyncio.sleep(0.02)
+
+        assert json.dumps(rows, sort_keys=True) == retained_json
+        assert unhandled == []
+    finally:
+        late_release.set()
+        loop.set_exception_handler(prior_handler)
 
 
 @pytest.mark.asyncio
