@@ -173,7 +173,6 @@ _STATIC_GEOGRAPHY_TOKENS = frozenset(
     }
 )
 
-
 def normalize_topic_phrase(value: str) -> str:
     """Return the sole phrase normalization used by seed, alias, and matcher.
 
@@ -1454,6 +1453,7 @@ def match_visible_statistical_topic(
     *,
     country_code: str,
     expansion: ValidatedTopicAliasExpansion | None = None,
+    source_anchors: Sequence[str] | None = None,
 ) -> TopicMatchResult:
     """Evaluate official-stat topic relevance without probabilistic decisions."""
 
@@ -1467,13 +1467,31 @@ def match_visible_statistical_topic(
         if expansion.seed_sha256 != seed.seed_sha256:
             raise ValueError("alias expansion is bound to a different topic seed")
 
+    allowed_anchors = (
+        set(product_topic_phrases(seed))
+        if source_anchors is not None
+        else set(seed.exact_goal_anchors)
+    )
+    if source_anchors is not None:
+        requested_anchors = {
+            _normalized_bounded_phrase(value, label="topic source anchor")
+            for value in source_anchors
+        }
+        if not requested_anchors.issubset(set(seed.exact_goal_anchors)):
+            raise ValueError("topic source anchors must come from the immutable seed")
+        allowed_anchors = requested_anchors
     candidates: list[tuple[str, str, TopicMatchRelation]] = [
         (anchor, anchor, TopicMatchRelation.EXACT_GOAL_ANCHOR)
         for anchor in seed.exact_goal_anchors
+        if anchor in allowed_anchors
     ]
     if expansion is not None:
         for alias in expansion.aliases:
-            if alias.country_code != code or not alias.evidence_eligible:
+            if (
+                alias.country_code != code
+                or not alias.evidence_eligible
+                or alias.source_anchor not in allowed_anchors
+            ):
                 continue
             relation = (
                 TopicMatchRelation.SURFACE_FORM
@@ -1519,25 +1537,88 @@ def match_visible_statistical_topic(
     )
 
 
+def product_topic_phrases(seed: TopicSeedContract) -> tuple[str, ...]:
+    """Project immutable seed anchors onto product/category retrieval concepts.
+
+    Explicit typed anchors are authoritative and are returned byte-for-byte in
+    normalized form; product names such as ``Quality Street`` or ``Unit 13``
+    must never be mutated by an English stop-list. Without explicit anchors,
+    only the immutable title, then industry, can identify a product/category.
+    Problem, outcome, mission, and audience prose remain retrieval context but
+    cannot authorize evidence. If neither structural tier has a defensible
+    anchor, the projection is empty and downstream evidence fails closed.
+    """
+
+    if not isinstance(seed, TopicSeedContract):
+        seed = TopicSeedContract.model_validate(seed)
+    explicit = tuple(
+        sorted(
+            {
+                binding.phrase
+                for binding in seed.anchor_bindings
+                if binding.derivation == "explicit_exact_span"
+            }
+        )
+    )
+    if explicit:
+        return explicit
+
+    for source_field in ("title", "industry"):
+        candidates = {
+            binding.phrase
+            for binding in seed.anchor_bindings
+            if binding.source_field == source_field
+            and binding.phrase != "other"
+            and (
+                source_field == "industry"
+                or len(_WORD.findall(binding.phrase)) >= 2
+            )
+        }
+        if not candidates:
+            continue
+        # A deterministic extractor may retain overlapping 2-4-token runs.
+        # Keep only maximal exact spans so a brand/category is not silently
+        # broadened to a shorter residual substring.
+        maximal = {
+            phrase
+            for phrase in candidates
+            if not any(
+                phrase != other
+                and _exact_topic_phrase_span(other, phrase) is not None
+                for other in candidates
+            )
+        }
+        return tuple(sorted(maximal))
+    return ()
+
+
 def retrieval_phrases_for_country(
     seed: TopicSeedContract,
     *,
     country_code: str,
     expansion: ValidatedTopicAliasExpansion | None = None,
+    product_only: bool = False,
 ) -> tuple[str, ...]:
     """Return deterministic retrieval phrases, including broader synonyms."""
 
     if not isinstance(seed, TopicSeedContract):
         seed = TopicSeedContract.model_validate(seed)
     code = _validated_country_for_seed(seed, country_code)
-    phrases = set(seed.exact_goal_anchors)
+    source_anchors = (
+        set(product_topic_phrases(seed))
+        if product_only
+        else set(seed.exact_goal_anchors)
+    )
+    phrases = set(source_anchors)
     if expansion is not None:
         if not isinstance(expansion, ValidatedTopicAliasExpansion):
             expansion = ValidatedTopicAliasExpansion.model_validate(expansion)
         if expansion.seed_sha256 != seed.seed_sha256:
             raise ValueError("alias expansion is bound to a different topic seed")
         phrases.update(
-            alias.phrase for alias in expansion.aliases if alias.country_code == code
+            alias.phrase
+            for alias in expansion.aliases
+            if alias.country_code == code and alias.source_anchor in source_anchors
         )
     return tuple(sorted(phrases))
 
@@ -1570,6 +1651,7 @@ __all__ = [
     "exact_topic_phrase_in_visible_text",
     "match_visible_statistical_topic",
     "normalize_topic_phrase",
+    "product_topic_phrases",
     "retrieval_phrases_for_country",
     "validate_alias_expansion",
     "visible_statistical_table_fields",

@@ -636,6 +636,20 @@ async def test_company_parser_normal_response_keeps_existing_schema_and_quality(
 
 
 def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="brazil-cat-food",
+            title="Brazil cat food launch",
+            problem_scope=(
+                "Launch cat food commercially while outperforming the prior "
+                "baseline quality score and defending unit economics."
+            ),
+            target_user="Pet food distributors and launch steering committee",
+        ),
+        ConfirmedMarketScope(
+            scope_label="Brazil", country_codes=("BR",), confirmed=True
+        ),
+    )
     pipeline = B2BDataPipeline(
         location="Brazil",
         business_problem=(
@@ -648,6 +662,7 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
             "official_statistic",
             "observed_primary_market",
         ],
+        topic_seed_contract=topic_seed.model_dump(mode="json"),
     )
     queries = pipeline._directed_evidence_queries()
     assert len(queries) == 3
@@ -670,10 +685,82 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
     assert "Estonia" not in statutory_query
     assert "24%" not in statutory_query
     assert "historic consolidations" in statutory_query
+    for evidence_class in ("official_statistic", "observed_primary_market"):
+        query = next(
+            row["query"]
+            for row in queries
+            if row["evidence_class"] == evidence_class
+        )
+        assert "Exact product/category phrases: cat food." in query
+        assert "baseline quality" not in query
+        assert "unit economics" not in query
     # Three evidence classes plus one batched authority-directory query across
     # two independent providers; each route admits at most two direct sources.
     assert (len(queries) + 1) * 2 == 8
     assert (len(queries) + 1) * 2 * 2 == 16
+
+
+def test_observed_results_are_topic_ranked_before_per_route_source_cap():
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="estonia-cat-food-ranking",
+            title="Estonia cat food launch",
+            problem_scope="Assess cat food prices and demand.",
+            exact_topic_anchors=("cat food",),
+        ),
+        ConfirmedMarketScope(
+            scope_label="Estonia", country_codes=("EE",), confirmed=True
+        ),
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        topic_seed_contract=topic_seed.model_dump(mode="json"),
+    )
+    sources = [
+        {"title": "Dog dry food", "url": "https://shop.example.ee/dog-1"},
+        {"title": "Dog wet food", "url": "https://shop.example.ee/dog-2"},
+        {"title": "Unknown product", "url": "https://shop.example.ee/cat"},
+    ]
+    claims = [
+        {
+            "text": "Current cat food catalogue price",
+            "source_urls": ["https://shop.example.ee/cat"],
+        }
+    ]
+
+    ranked = pipeline._rank_provider_sources_for_topic(
+        "observed_primary_market", sources, claims
+    )
+
+    assert [row["url"] for row in ranked[:2]] == [
+        "https://shop.example.ee/cat",
+        "https://shop.example.ee/dog-1",
+    ]
+    assert pipeline._rank_provider_sources_for_topic(
+        "observed_primary_market", sources, []
+    ) == sources
+
+    statistic_sources = [
+        {"title": "Statistics office", "url": "https://stat.example.ee/home"},
+        {"title": "Grocery turnover", "url": "https://stat.example.ee/grocery"},
+        {"title": "Unknown dataset", "url": "https://stat.example.ee/cat-food"},
+    ]
+    statistic_claims = [{
+        "text": "Official cat food expenditure dataset",
+        "source_urls": ["https://stat.example.ee/cat-food"],
+    }]
+    assert [
+        row["url"]
+        for row in pipeline._rank_provider_sources_for_topic(
+            "official_statistic", statistic_sources, statistic_claims
+        )[:2]
+    ] == [
+        "https://stat.example.ee/cat-food",
+        "https://stat.example.ee/home",
+    ]
 
 
 def test_live_cms_navigation_block_yields_signed_exact_statutory_claim(
@@ -885,13 +972,13 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
     catalog_text = (
         "Estonia online storefront for local shoppers. "
         + ("Navigation categories delivery account " * 50)
-        + "Product catalogue price 3,29 € 9,68 €/kg Täistoit kiisueine lihaga "
-        "kastmes, SHEBA, "
+        + "Product catalogue price 3,29 € 9,68 €/kg SHEBA cat food, Täistoit "
+        "kiisueine lihaga kastmes, "
         "340 g Osta"
     )
     catalog_offer_html = (
         '<script type="application/ld+json">'
-        '{"@type":"Product","sku":"SHEBA-340G","name":"SHEBA","offers":'
+        '{"@type":"Product","sku":"SHEBA-340G","name":"SHEBA cat food","offers":'
         '{"@type":"Offer","price":"3.29","priceCurrency":"EUR"}}'
         "</script>"
     )
