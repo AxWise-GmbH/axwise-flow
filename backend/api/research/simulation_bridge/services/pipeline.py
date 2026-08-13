@@ -22,6 +22,7 @@ from ..models import CompanyDiscoveryItem
 from .market_scope import resolve_market_scope
 from backend.services.research_source_authority_service import (
     build_authority_claim_artifact,
+    build_structured_statistical_claim_artifact,
     claim_matching_offer_evidence,
     enrich_authority_sources,
     is_trusted_public_root,
@@ -32,9 +33,14 @@ from backend.services.research_quality_service import (
     evaluate_critical_claims,
     extract_material_facts,
 )
+from backend.services.eurostat_comext_service import (
+    acquire_eurostat_comext_source,
+)
 from backend.services.research_topic_contract_service import (
     TopicSeedContract,
+    exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
+    product_topic_phrases,
     retrieval_phrases_for_country,
 )
 
@@ -52,6 +58,7 @@ _TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
 _MAX_TARGETED_ATTESTATION_HOSTS = 4
 _STATUTORY_RECOVERY_DEADLINE_SECONDS = 90.0
 _STATUTORY_RECOVERY_SEARCH_SECONDS = 40.0
+_EUROSTAT_COMEXT_STAGE_DEADLINE_SECONDS = 40.0
 _STAGE_CANCELLATION_GRACE_SECONDS = 1.0
 _ISO_CURRENCY_CODES = "|".join(
     sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
@@ -356,6 +363,20 @@ class B2BDataPipeline:
         market = self.location.strip()
         problem = self._bounded_research_topic(self.business_problem, 700)
         target = self._bounded_research_topic(self.target_user, 300)
+        product_topics = (
+            retrieval_phrases_for_country(
+                self.topic_seed_contract,
+                country_code=str(self.market_scope.country_code),
+                product_only=True,
+            )[:8]
+            if self.topic_seed_contract and self.market_scope.country_code
+            else ()
+        )
+        product_topic_clause = (
+            "Exact product/category phrases: " + ", ".join(product_topics) + ". "
+            if product_topics
+            else ""
+        )
         fragments = {
             "statutory_current": (
                 f"{market} official national tax authority current standard VAT GST "
@@ -368,27 +389,17 @@ class B2BDataPipeline:
             ),
             "official_statistic": (
                 f"{market} latest official statistics government statistics office "
-                f"market population demand retail sales for: {problem}. "
-                + (
-                    "Topic phrases: "
-                    + ", ".join(
-                        retrieval_phrases_for_country(
-                            self.topic_seed_contract,
-                            country_code=str(self.market_scope.country_code),
-                        )[:8]
-                    )
-                    + ". "
-                    if self.topic_seed_contract and self.market_scope.country_code
-                    else ""
-                )
+                "market population demand retail sales. "
+                + product_topic_clause
                 +
                 "Return the direct latest-release dataset/page with exact observation "
                 "period, value, unit, and explicit latest/current release language."
             ),
             "observed_primary_market": (
                 f"{market} current first-party retailer distributor supplier product "
-                f"catalogue price in local currency local market for: {problem}; "
-                f"stakeholder: {target}. "
+                "catalogue price in local currency local market. "
+                + product_topic_clause
+                +
                 "Return direct product/catalog pages from publishers operating in the "
                 "market, containing exact price/currency and current availability."
             ),
@@ -398,6 +409,48 @@ class B2BDataPipeline:
             for evidence_class in self.required_evidence_classes
             if evidence_class in fragments
         ]
+
+    def _rank_provider_sources_for_topic(
+        self,
+        evidence_class: str,
+        sources: List[Dict[str, Any]],
+        claims: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Stable-rank observed results by exact immutable product phrases.
+
+        Ranking happens before the per-route cap. Only a source's own title and
+        claims explicitly linked to that URL participate; the shared provider
+        query is intentionally excluded so unrelated results cannot tie on it.
+        """
+
+        if evidence_class not in {
+            "observed_primary_market",
+            "official_statistic",
+        } or not self.topic_seed_contract:
+            return list(sources)
+        phrases = product_topic_phrases(self.topic_seed_contract)
+        if not phrases:
+            return list(sources)
+
+        ranked: list[tuple[int, int, Dict[str, Any]]] = []
+        for index, source in enumerate(sources):
+            url = str(source.get("url") or "")
+            linked_text = " ".join(
+                str(claim.get("text") or claim.get("object") or "")
+                for claim in claims
+                if url and url in {str(value) for value in claim.get("source_urls") or []}
+            )
+            visible_text = " ".join(
+                value for value in (str(source.get("title") or ""), linked_text) if value
+            )
+            score = sum(
+                1
+                for phrase in phrases
+                if exact_topic_phrase_in_visible_text(visible_text, phrase)
+            )
+            ranked.append((score, index, source))
+        ranked.sort(key=lambda row: (-row[0], row[1]))
+        return [row[2] for row in ranked]
 
     def _authority_attestation_query(self) -> Dict[str, str]:
         market = self.location.strip()
@@ -1410,6 +1463,123 @@ class B2BDataPipeline:
                 break
         return accepted
 
+    @classmethod
+    def _structured_offer_claim_passages(
+        cls,
+        text: str,
+        proof: Dict[str, Any],
+        *,
+        retrieved_at: Optional[str],
+        maximum_passages: int = 8,
+        maximum_span: int = 480,
+    ) -> List[Dict[str, Any]]:
+        """Select bounded exact spans joining one signed offer identity and price.
+
+        Product-detail pages often put the visible product heading and price in
+        separate layout blocks. Sentence/value windows can therefore contain
+        only one half. This selector never synthesizes text: it chooses the
+        shortest contiguous substring of the signed normalized document whose
+        visible identity and currency amount match one raw-derived, HMAC-bound
+        Product/Offer. A span crossing another signed product identity is
+        rejected so a neighbouring card cannot lend its price to this offer.
+        """
+
+        normalized = " ".join(str(text or "").split())
+        offers = [
+            row
+            for row in proof.get("commercial_offer_evidence") or []
+            if isinstance(row, dict)
+        ]
+        if not normalized or not offers:
+            return []
+        value_matches = list(_MATERIAL_VALUE.finditer(normalized))
+        results: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for offer in offers[:24]:
+            identities = tuple(
+                dict.fromkeys(
+                    value
+                    for value in (
+                        " ".join(str(offer.get("product_name") or "").split()),
+                        " ".join(str(offer.get("product_id") or "").split()),
+                    )
+                    if len(value) >= 3
+                )
+            )
+            candidates: List[tuple[int, int, str]] = []
+            # Prefer the human-visible product name. A machine identifier is a
+            # fallback only when the name itself is absent from visible text.
+            for identity in identities:
+                identity_spans = [
+                    (match.start(), match.end())
+                    for match in re.finditer(
+                        rf"(?<!\w){re.escape(identity)}(?!\w)",
+                        normalized,
+                        re.IGNORECASE,
+                    )
+                ]
+                for identity_start, identity_end in identity_spans:
+                    for value_match in value_matches:
+                        start = min(identity_start, value_match.start())
+                        end = max(identity_end, value_match.end())
+                        if not (16 <= end - start <= maximum_span):
+                            continue
+                        passage = normalized[start:end]
+                        matched = claim_matching_offer_evidence(
+                            {
+                                "commercial_offer_evidence": [offer],
+                                "country_codes": proof.get("country_codes") or [],
+                            },
+                            passage,
+                        )
+                        if (
+                            not matched
+                            or matched.get("sha256") != offer.get("sha256")
+                        ):
+                            continue
+                        if any(
+                            other is not offer
+                            and any(
+                                other_identity
+                                and re.search(
+                                    rf"(?<!\w){re.escape(other_identity)}(?!\w)",
+                                    passage,
+                                    re.IGNORECASE,
+                                )
+                                for other_identity in (
+                                    str(other.get("product_name") or "").strip(),
+                                    str(other.get("product_id") or "").strip(),
+                                )
+                            )
+                            for other in offers
+                            if isinstance(other, dict)
+                        ):
+                            continue
+                        candidates.append((end - start, start, passage))
+                if candidates:
+                    break
+            if not candidates:
+                continue
+            _length, _start, passage = min(candidates)
+            if passage in seen:
+                continue
+            semantics = cls._direct_claim_semantics(
+                passage,
+                direct_document_text=normalized,
+                retrieved_at=retrieved_at,
+            )
+            if (
+                semantics.get("evidence_class") != "observed_primary_market"
+                or semantics.get("critical") is not True
+                or not semantics.get("observed_at")
+            ):
+                continue
+            seen.add(passage)
+            results.append({"text": passage, **semantics})
+            if len(results) >= maximum_passages:
+                break
+        return results
+
     def _store_direct_web_evidence(
         self,
         source_rows: List[Dict[str, Any]],
@@ -1529,6 +1699,56 @@ class B2BDataPipeline:
                         "_source_id": source_id,
                     }
                 )
+            for extracted in self._structured_offer_claim_passages(
+                document_text,
+                proof,
+                retrieved_at=source.get("retrieved_at"),
+            ):
+                matched_offer = claim_matching_offer_evidence(
+                    proof, str(extracted.get("text") or "")
+                )
+                if matched_offer:
+                    retained_rows: List[Dict[str, Any]] = []
+                    for existing in direct_claim_rows:
+                        existing_offer = (
+                            claim_matching_offer_evidence(
+                                proof, str(existing.get("text") or "")
+                            )
+                            if existing.get("_source_id") == source_id
+                            and existing.get("evidence_class")
+                            == "observed_primary_market"
+                            else None
+                        )
+                        if (
+                            existing_offer
+                            and existing_offer.get("sha256")
+                            == matched_offer.get("sha256")
+                        ):
+                            continue
+                        retained_rows.append(existing)
+                    # Prefer the explicit shortest identity-to-price span over
+                    # a broad punctuation/value window for the same source and
+                    # raw-derived signed offer. This keeps one assertion in the
+                    # verified ledger without collapsing independent sources.
+                    direct_claim_rows[:] = retained_rows
+                direct_claim_rows.append(
+                    {
+                        **extracted,
+                        "source_urls": [source.get("url")],
+                        "provider": "direct_authority_document",
+                        "provider_source_id": source.get("provider_source_id"),
+                        "provider_query_ids": list(
+                            source.get("provider_query_ids") or []
+                        ),
+                        "provider_queries": list(
+                            source.get("provider_queries") or []
+                        ),
+                        "verification_status": (
+                            "direct_authority_structured_offer_span"
+                        ),
+                        "_source_id": source_id,
+                    }
+                )
             structured_observations = list(
                 proof.get("structured_statistical_observations") or []
             )
@@ -1565,6 +1785,9 @@ class B2BDataPipeline:
                             "series": [observation.get("series") or ""],
                         },
                         country_code=str(self.market_scope.country_code),
+                        source_anchors=product_topic_phrases(
+                            self.topic_seed_contract
+                        ),
                     )
                     if topic_match.matched:
                         # The observation hash is part of the signed authority
@@ -1587,8 +1810,16 @@ class B2BDataPipeline:
             for observation in structured_observations[:1]:
                 if not isinstance(observation, dict):
                     continue
-                row_text = str(observation.get("row_text") or "").strip()
-                if not row_text or document_text.find(row_text) < 0:
+                canonical_claim_text = str(
+                    observation.get("canonical_claim_text") or ""
+                ).strip()
+                row_text = canonical_claim_text or str(
+                    observation.get("row_text") or ""
+                ).strip()
+                if not row_text or (
+                    not canonical_claim_text
+                    and document_text.find(row_text) < 0
+                ):
                     continue
                 direct_claim_rows.append(
                     {
@@ -1610,7 +1841,10 @@ class B2BDataPipeline:
 
         linked_source_ids = set()
         stored_identities: set[str] = set()
-        for row in [*claim_rows, *direct_claim_rows]:
+        # Signed raw-derived rows win an identical text/source identity over a
+        # search-provider paraphrase. The latter must never consume the dedupe
+        # slot and suppress a verifiable structured claim.
+        for row in [*direct_claim_rows, *claim_rows]:
             if not isinstance(row, dict):
                 continue
             text = str(row.get("text") or "").strip()[:2000]
@@ -1699,6 +1933,71 @@ class B2BDataPipeline:
                 document_text = document.get("text")
                 if not isinstance(document_text, str):
                     continue
+                structured_observation = row.get(
+                    "structured_statistical_observation"
+                )
+                if (
+                    isinstance(structured_observation, dict)
+                    and structured_observation.get("canonical_claim_text")
+                    == text
+                ):
+                    try:
+                        bound_artifact = (
+                            build_structured_statistical_claim_artifact(
+                                source_id=source_id,
+                                source_url=str(source.get("url") or ""),
+                                authority_proof=proof,
+                                authority_document=document,
+                                observation=structured_observation,
+                            )
+                        )
+                    except ValueError:
+                        continue
+                    citation_metadata = {
+                        "segment_start": 0,
+                        "segment_end": len(text),
+                        "span_target": (
+                            "derived_structured_statistical_observation"
+                        ),
+                        "offset_unit": "unicode_codepoints",
+                        "source_id": source_id,
+                    }
+                    provenance_artifact = bound_artifact
+                    semantic_metadata = {
+                        "critical": True,
+                        "evidence_class": "official_statistic",
+                        "observation_end": structured_observation.get(
+                            "observation_end"
+                        ),
+                        "published_at": structured_observation.get(
+                            "published_at"
+                        ),
+                        "latest_release": True,
+                        "latest_release_basis": (
+                            "signed_structured_table_latest_period"
+                        ),
+                        "structured_statistical_observation": (
+                            structured_observation
+                        ),
+                        "semantic_extraction": (
+                            "signed_structured_statistical_display_v1"
+                        ),
+                    }
+                    provider_retrieval_provenance = {
+                        "provider_response_hash": row.get(
+                            "provider_response_hash"
+                        ),
+                        "provider_query_ids": list(
+                            row.get("provider_query_ids") or []
+                        ),
+                        "citation_metadata": (
+                            provider_retrieval_provenance[
+                                "citation_metadata"
+                            ]
+                        ),
+                    }
+                    bound_to_direct_document = True
+                    break
                 if document_text.find(text) < 0:
                     continue
                 try:
@@ -2201,16 +2500,33 @@ Return exactly one coordinate pair per address, in the same order as the input l
         if not self.model:
             return []
 
+        eurostat_applicable = bool(
+            "official_statistic" in self.required_evidence_classes
+            and self.topic_seed_contract
+            and self.market_scope.country_code
+        )
+        eurostat_task: Optional[asyncio.Task[Any]] = None
+        if eurostat_applicable:
+            # Start the deterministic official-data route before provider
+            # setup/fanout. It is independent of Gemini/SearX availability and
+            # runs concurrently with all generic retrieval calls.
+            eurostat_task = asyncio.create_task(
+                acquire_eurostat_comext_source(
+                    self.topic_seed_contract,
+                    country_code=str(self.market_scope.country_code),
+                    stage_seconds=_EUROSTAT_COMEXT_STAGE_DEADLINE_SECONDS,
+                )
+            )
+
+        search_services = []
         try:
             from backend.services.generative.gemini_search_service import GeminiSearchService
         except ImportError:
             logger.warning("GeminiSearchService not available.")
-            return []
-        
-        search_services = []
-        gemini_search = GeminiSearchService()
-        if gemini_search.is_available():
-            search_services.append(("gemini_google_search", gemini_search))
+        else:
+            gemini_search = GeminiSearchService()
+            if gemini_search.is_available():
+                search_services.append(("gemini_google_search", gemini_search))
         try:
             from backend.services.generative.searxng_search_service import (
                 SearxngSearchService,
@@ -2224,7 +2540,8 @@ Return exactly one coordinate pair per address, in the same order as the input l
 
         if not search_services:
             logger.warning("No grounded web search provider is available.")
-            return []
+            if eurostat_task is None:
+                return []
 
         generic_query = (
             f"Research the market explicitly and only for: '{self.location}'. "
@@ -2274,13 +2591,96 @@ Return exactly one coordinate pair per address, in the same order as the input l
             except Exception as exc:
                 return provider, query_contract["evidence_class"], exc
 
-        provider_results = await asyncio.gather(
-            *(
-                run_provider(provider, service, query_contract)
-                for provider, service in search_services
-                for query_contract in query_contracts
+        try:
+            provider_results = await asyncio.gather(
+                *(
+                    run_provider(provider, service, query_contract)
+                    for provider, service in search_services
+                    for query_contract in query_contracts
+                )
             )
-        )
+        except asyncio.CancelledError:
+            if eurostat_task is not None and not eurostat_task.done():
+                eurostat_task.cancel()
+                await asyncio.gather(eurostat_task, return_exceptions=True)
+            raise
+
+        eurostat_result = None
+        if eurostat_task is not None:
+            try:
+                eurostat_result = await eurostat_task
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning(
+                    "Eurostat Comext acquisition failed with %s.",
+                    type(exc).__name__,
+                )
+                self._record_provider(
+                    "eurostat_comext",
+                    attempted=True,
+                    accepted=0,
+                    source_count=0,
+                    reason=f"adapter_error:{type(exc).__name__}",
+                    details={
+                        "evidence_class": "official_statistic",
+                        "status": "failed_closed",
+                        "deadline_ms": int(
+                            _EUROSTAT_COMEXT_STAGE_DEADLINE_SECONDS * 1_000
+                        ),
+                    },
+                )
+
+        if eurostat_result is not None:
+            raw_diagnostics = (
+                eurostat_result.diagnostics
+                if isinstance(eurostat_result.diagnostics, dict)
+                else {}
+            )
+            safe_diagnostics = {
+                key: raw_diagnostics.get(key)
+                for key in (
+                    "status",
+                    "reason",
+                    "call_count",
+                    "metadata_call_count",
+                    "data_call_count",
+                    "elapsed_ms",
+                    "deadline_ms",
+                    "reporter_code",
+                    "product_code",
+                    "selected_period",
+                )
+                if raw_diagnostics.get(key) is not None
+            }
+            completed_source = (
+                eurostat_result.source
+                if eurostat_result.status == "completed"
+                and isinstance(eurostat_result.source, dict)
+                else None
+            )
+            if completed_source is not None:
+                source_rows.append(completed_source)
+                source_url = str(completed_source.get("url") or "")
+                if source_url:
+                    seen_urls.add(source_url)
+            self.routing_diagnostics["eurostat_comext"] = safe_diagnostics
+            self._record_provider(
+                "eurostat_comext",
+                attempted=True,
+                accepted=0,
+                source_count=1 if completed_source is not None else 0,
+                reason=(
+                    None
+                    if completed_source is not None
+                    else str(eurostat_result.status or "failed_closed")[:80]
+                ),
+                details={
+                    "evidence_class": "official_statistic",
+                    **safe_diagnostics,
+                },
+            )
+
         for provider, evidence_class, search_result in provider_results:
             if isinstance(search_result, BaseException):
                 exc = search_result
@@ -2297,18 +2697,26 @@ Return exactly one coordinate pair per address, in the same order as the input l
                     reason=f"provider_error:{type(exc).__name__}",
                 )
                 continue
-            provider_sources = search_result.get("sources") or []
+            provider_claims = [
+                row
+                for row in search_result.get("claims") or []
+                if isinstance(row, dict)
+            ]
+            provider_sources = self._rank_provider_sources_for_topic(
+                evidence_class,
+                [row for row in search_result.get("sources") or [] if isinstance(row, dict)],
+                provider_claims,
+            )
             performed = bool(search_result.get("search_performed"))
             if performed and search_result.get("text"):
                 texts.append(str(search_result["text"])[:12000])
-            for claim in search_result.get("claims") or []:
-                if isinstance(claim, dict):
-                    claim_rows.append(
-                        {
-                            **claim,
-                            "acquisition_evidence_class": evidence_class,
-                        }
-                    )
+            for claim in provider_claims:
+                claim_rows.append(
+                    {
+                        **claim,
+                        "acquisition_evidence_class": evidence_class,
+                    }
+                )
             accepted_current_urls: set[str] = set()
             for source in provider_sources:
                 if not isinstance(source, dict):

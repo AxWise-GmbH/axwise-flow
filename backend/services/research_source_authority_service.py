@@ -15,6 +15,7 @@ import hmac
 import html
 import ipaddress
 import json
+import math
 import os
 import re
 import socket
@@ -31,6 +32,9 @@ import pycountry
 
 AUTHORITY_PROOF_VERSION = "direct_authority_attestation_v1"
 AUTHORITY_CLAIM_PROOF_VERSION = "direct_authority_claim_span_v1"
+AUTHORITY_STRUCTURED_CLAIM_PROOF_VERSION = (
+    "derived_structured_statistical_claim_v1"
+)
 _AUTHORITY_LANGUAGE = re.compile(
     r"\b(?:government|ministry|tax(?:ation)?(?: and customs)? (?:board|authority)|"
     r"customs (?:board|authority)|public authority|national statistics|statistics "
@@ -80,18 +84,97 @@ _EU_COUNTRY_CODES = {
 class _VisibleTextParser(HTMLParser):
     """Small dependency-free extractor for deterministic citation text."""
 
+    _HTML_VOID_ELEMENTS = frozenset(
+        {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "param",
+            "source",
+            "track",
+            "wbr",
+        }
+    )
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
         self._hidden_depth = 0
+        self._element_stack: list[tuple[str, bool]] = []
+
+    @staticmethod
+    def _element_is_hidden(
+        tag: str, attrs: list[tuple[str, Optional[str]]]
+    ) -> bool:
+        if tag.casefold() in {"script", "style", "noscript", "template"}:
+            return True
+        normalized = {
+            str(name).casefold(): "" if value is None else str(value).strip()
+            for name, value in attrs
+        }
+        if "hidden" in normalized:
+            return True
+        if normalized.get("aria-hidden", "").casefold() == "true":
+            return True
+        style = normalized.get("style", "")
+        return bool(
+            re.search(
+                r"(?:^|;)\s*display\s*:\s*none\s*(?:!\s*important\s*)?(?:;|$)",
+                style,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"(?:^|;)\s*visibility\s*:\s*hidden\s*"
+                r"(?:!\s*important\s*)?(?:;|$)",
+                style,
+                re.IGNORECASE,
+            )
+        )
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
-        if tag.casefold() in {"script", "style", "noscript"}:
+        normalized_tag = tag.casefold()
+        hidden = self._element_is_hidden(normalized_tag, attrs)
+        self._element_stack.append((normalized_tag, hidden))
+        if hidden:
             self._hidden_depth += 1
 
+    def handle_startendtag(
+        self, tag: str, attrs: list[tuple[str, Optional[str]]]
+    ) -> None:
+        normalized_tag = tag.casefold()
+        if normalized_tag in self._HTML_VOID_ELEMENTS:
+            return
+        # In HTML (unlike XML), the self-closing flag on non-void elements is
+        # ignored. Treat ``<div hidden/>``, ``<template/>`` and ``<script/>``
+        # exactly like opening tags so trailing content cannot become visible
+        # in citations when a browser would keep it inside the element.
+        self.handle_starttag(normalized_tag, attrs)
+
     def handle_endtag(self, tag: str) -> None:
-        if tag.casefold() in {"script", "style", "noscript"} and self._hidden_depth:
-            self._hidden_depth -= 1
+        normalized_tag = tag.casefold()
+        matching_index = next(
+            (
+                index
+                for index in range(len(self._element_stack) - 1, -1, -1)
+                if self._element_stack[index][0] == normalized_tag
+            ),
+            None,
+        )
+        if matching_index is None:
+            return
+        removed = self._element_stack[matching_index:]
+        del self._element_stack[matching_index:]
+        self._hidden_depth = max(
+            0,
+            self._hidden_depth - sum(1 for _tag, hidden in removed if hidden),
+        )
 
     def handle_data(self, data: str) -> None:
         if not self._hidden_depth and data.strip():
@@ -228,8 +311,15 @@ def _structured_statistical_observations(value: str) -> list[Dict[str, str]]:
 
     A flattened visible-text table loses row/column identity.  Only raw HTML
     can safely bind a value to its series and period without nearest-value
-    guessing.  The canonical observation is HMAC-bound with the direct page.
+    guessing.  A narrowly validated Eurostat JSON-stat response is also
+    accepted because its dimension indexes bind every value to its official
+    product, reporter, flow, indicator, and period labels.  The canonical
+    observation is HMAC-bound with the exact fetched response in either case.
     """
+
+    json_stat_observations = _eurostat_comext_json_stat_observations(value)
+    if json_stat_observations is not None:
+        return json_stat_observations
 
     def attrs_value(attrs: str, name: str) -> str:
         match = re.search(
@@ -487,6 +577,298 @@ def _structured_statistical_observations(value: str) -> list[Dict[str, str]]:
     return list(latest_by_series.values())[:12]
 
 
+def _eurostat_comext_json_stat_observations(
+    value: str,
+) -> Optional[list[Dict[str, str]]]:
+    """Derive one latest completed Comext observation from exact JSON-stat.
+
+    This is intentionally not a general JSON-stat interpreter.  It recognizes
+    only Eurostat's annual, fully specified DS-045409 import-value response.
+    Every non-time dimension must be a singleton, the response must contain at
+    most three annual periods, and an observation is accepted only after its
+    positional index is re-derived from the official dimension metadata.
+
+    ``None`` means the payload is not this format, allowing the existing HTML
+    table parser to run.  ``[]`` means it claimed to be this format but failed
+    closed validation.
+    """
+
+    stripped = str(value or "").lstrip("\ufeff \t\r\n")
+    if not stripped.startswith("{"):
+        return None
+
+    def reject_duplicate_keys(
+        pairs: list[tuple[str, Any]],
+    ) -> Dict[str, Any]:
+        result: Dict[str, Any] = {}
+        for key, child in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON key")
+            result[key] = child
+        return result
+
+    try:
+        payload = json.loads(stripped, object_pairs_hook=reject_duplicate_keys)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return []
+    if not isinstance(payload, Mapping):
+        return []
+    if not (
+        payload.get("version") == "2.0"
+        and payload.get("class") == "dataset"
+        and payload.get("source") == "ESTAT"
+        and isinstance(payload.get("label"), str)
+        and "trade" in str(payload.get("label") or "").casefold()
+        and "hs2-4-6" in str(payload.get("label") or "").casefold()
+        and payload.get("id")
+        == [
+            "freq",
+            "reporter",
+            "partner",
+            "product",
+            "flow",
+            "indicators",
+            "time",
+        ]
+    ):
+        return []
+
+    sizes = payload.get("size")
+    dimensions = payload.get("dimension")
+    values = payload.get("value")
+    extension = payload.get("extension")
+    if not (
+        isinstance(sizes, list)
+        and len(sizes) == 7
+        and all(type(size) is int for size in sizes)
+        and sizes[:6] == [1, 1, 1, 1, 1, 1]
+        and 1 <= sizes[6] <= 3
+        and isinstance(dimensions, Mapping)
+        and set(dimensions) == set(payload["id"])
+        and isinstance(values, Mapping)
+        and 1 <= len(values) <= 3
+        and isinstance(extension, Mapping)
+        and extension.get("id") == "DS-045409"
+        and extension.get("agencyId") == "ESTAT"
+    ):
+        return []
+
+    def singleton_dimension(name: str) -> tuple[str, str] | None:
+        dimension = dimensions.get(name)
+        category = (
+            dimension.get("category")
+            if isinstance(dimension, Mapping)
+            else None
+        )
+        indexes = category.get("index") if isinstance(category, Mapping) else None
+        labels = category.get("label") if isinstance(category, Mapping) else None
+        if not (
+            isinstance(indexes, Mapping)
+            and len(indexes) == 1
+            and isinstance(labels, Mapping)
+        ):
+            return None
+        code, position = next(iter(indexes.items()))
+        label = labels.get(code)
+        if not (
+            isinstance(code, str)
+            and type(position) is int
+            and position == 0
+            and isinstance(label, str)
+            and label.strip()
+        ):
+            return None
+        return code, " ".join(label.split())
+
+    freq = singleton_dimension("freq")
+    reporter = singleton_dimension("reporter")
+    partner = singleton_dimension("partner")
+    product = singleton_dimension("product")
+    flow = singleton_dimension("flow")
+    indicator = singleton_dimension("indicators")
+    if not all((freq, reporter, partner, product, flow, indicator)):
+        return []
+    assert freq and reporter and partner and product and flow and indicator
+    if not (
+        freq == ("A", "Annual")
+        and re.fullmatch(r"[A-Z]{2}", reporter[0])
+        and partner[0] == "WORLD"
+        and re.search(r"\bworld\b", partner[1], re.IGNORECASE)
+        and re.fullmatch(r"\d{6}|\d{8}", product[0])
+        and flow[0] == "1"
+        and flow[1].casefold() == "import"
+        and indicator == ("VALUE_IN_EUROS", "VALUE_IN_EUROS")
+    ):
+        return []
+
+    time_dimension = dimensions.get("time")
+    time_category = (
+        time_dimension.get("category")
+        if isinstance(time_dimension, Mapping)
+        else None
+    )
+    time_indexes = (
+        time_category.get("index") if isinstance(time_category, Mapping) else None
+    )
+    time_labels = (
+        time_category.get("label") if isinstance(time_category, Mapping) else None
+    )
+    expected_positions = set(range(sizes[6]))
+    if not (
+        isinstance(time_indexes, Mapping)
+        and len(time_indexes) == sizes[6]
+        and isinstance(time_labels, Mapping)
+        and set(time_indexes.values()) == expected_positions
+        and set(values).issubset({str(position) for position in expected_positions})
+    ):
+        return []
+
+    try:
+        published = datetime.fromisoformat(str(payload.get("updated") or ""))
+    except ValueError:
+        return []
+    if published.tzinfo is None:
+        return []
+    published_utc = published.astimezone(timezone.utc)
+
+    normalized_document = " ".join(str(value or "").split())
+    # The pipeline's exact-claim field is capped at 2,000 characters.  Refuse
+    # a response that cannot be retained byte-for-byte after visible-text
+    # normalization rather than silently truncating its signed row identity.
+    if not normalized_document or len(normalized_document) > 2_000:
+        return []
+
+    candidates: list[tuple[datetime, str, str, str]] = []
+    for raw_period, raw_position in time_indexes.items():
+        period = str(raw_period)
+        if not (
+            re.fullmatch(r"20\d{2}", period)
+            and type(raw_position) is int
+            and 0 <= raw_position < sizes[6]
+            and time_labels.get(raw_period) == period
+        ):
+            return []
+        raw_observation = values.get(str(raw_position))
+        if raw_observation is None:
+            continue
+        if (
+            isinstance(raw_observation, bool)
+            or not isinstance(raw_observation, (int, float))
+            or not math.isfinite(float(raw_observation))
+            or raw_observation < 0
+        ):
+            return []
+        if isinstance(raw_observation, float) and not raw_observation.is_integer():
+            return []
+        observation_value = str(int(raw_observation))
+        observation_end = datetime(
+            int(period), 12, 31, tzinfo=timezone.utc
+        )
+        # Annual data is complete only after the reported year has ended.  A
+        # release timestamp early on 31 December must not make that year final.
+        if int(period) < min(published.year, published_utc.year):
+            candidates.append(
+                (
+                    observation_end,
+                    period,
+                    observation_value,
+                    str(raw_position),
+                )
+            )
+    if not candidates:
+        return []
+    observation_end, period, observation_value, value_position = max(candidates)
+    if observation_value not in normalized_document or period not in normalized_document:
+        return []
+
+    series = (
+        f"{product[1]}; annual import value into {reporter[1]} "
+        f"from {partner[1]}"
+    )
+    canonical: Dict[str, Any] = {
+        "table_id": "",
+        "dataset_id": "DS-045409",
+        "table_title": str(payload["label"]).strip(),
+        "series": series,
+        "series_code": f"{product[0]}:{flow[0]}:{indicator[0]}",
+        "unit": "EUR",
+        "period": period,
+        "observation_end": observation_end.isoformat(),
+        "value": observation_value,
+        "published_at": published_utc.isoformat(),
+        "row_text": normalized_document,
+        "row_cells": [observation_value],
+        "cell_text": observation_value,
+        "column_index": "0",
+        "orientation": "eurostat_jsonstat_time_dimension",
+        "series_labels": [product[1], flow[1], reporter[1], partner[1]],
+        "period_labels": [
+            str(period_label)
+            for period_label, position in sorted(
+                time_indexes.items(), key=lambda item: int(item[1])
+            )
+            if str(position) in values
+        ],
+        "reporter_code": reporter[0],
+        "reporter_label": reporter[1],
+        "partner_code": partner[0],
+        "partner_label": partner[1],
+        "product_code": product[0],
+        "product_label": product[1],
+        "flow_code": flow[0],
+        "flow_label": flow[1],
+        "indicator_code": indicator[0],
+        "value_position": value_position,
+    }
+    canonical_claim_text = _canonical_structured_statistical_claim_text(canonical)
+    if not canonical_claim_text:
+        return []
+    # The exact raw JSON remains private and hash-bound on the source.  Public
+    # observation metadata and claims retain only this deterministic display.
+    canonical["row_text"] = canonical_claim_text
+    canonical["canonical_claim_text"] = canonical_claim_text
+    canonical["observation_sha256"] = hashlib.sha256(
+        _canonical_bytes(canonical)
+    ).hexdigest()
+    return [canonical]
+
+
+def _canonical_structured_statistical_claim_text(
+    observation: Mapping[str, Any],
+) -> str:
+    """Render one bounded display strictly from raw-derived official fields."""
+
+    if observation.get("dataset_id") != "DS-045409":
+        return ""
+    fields = {
+        key: " ".join(str(observation.get(key) or "").split())
+        for key in (
+            "product_label",
+            "product_code",
+            "reporter_label",
+            "partner_label",
+            "value",
+            "unit",
+            "period",
+        )
+    }
+    if not (
+        all(fields.values())
+        and re.fullmatch(r"\d{6}|\d{8}", fields["product_code"])
+        and re.fullmatch(r"\d+", fields["value"])
+        and fields["unit"] == "EUR"
+        and re.fullmatch(r"20\d{2}", fields["period"])
+    ):
+        return ""
+    rendered = (
+        f"Eurostat DS-045409 reports the annual import value of "
+        f"{fields['product_label']} (product {fields['product_code']}) into "
+        f"{fields['reporter_label']} from {fields['partner_label']} as "
+        f"{fields['value']} {fields['unit']} in {fields['period']}."
+    )
+    return rendered if len(rendered) <= 500 else ""
+
+
 def _bound_structured_statistical_observations(
     supplied: Optional[list[Dict[str, str]]],
     *,
@@ -583,7 +965,12 @@ def _matching_commercial_offer_evidence(
 def _offer_identity_occurs_in_text(row: Mapping[str, Any], text: str) -> bool:
     normalized = " ".join(str(text or "").casefold().split())
     return any(
-        token and token in normalized
+        token
+        and re.search(
+            rf"(?<!\w){re.escape(token)}(?!\w)",
+            normalized,
+            re.IGNORECASE,
+        )
         for token in (
             " ".join(str(row.get("product_id") or "").casefold().split()),
             " ".join(str(row.get("product_name") or "").casefold().split()),
@@ -605,17 +992,10 @@ def claim_matching_offer_evidence(
 ) -> Optional[Dict[str, str]]:
     """Return the signed offer whose identity and price occur in an exact claim."""
 
-    normalized = " ".join(str(claim_text or "").casefold().split())
     for offer in proof.get("commercial_offer_evidence") or []:
         if not isinstance(offer, Mapping) or not _offer_payload_is_valid(offer):
             continue
-        product_terms = [
-            " ".join(str(offer.get(key) or "").casefold().split())
-            for key in ("product_id", "product_name")
-            if offer.get(key)
-        ]
-        identity_matches = any(term and term in normalized for term in product_terms)
-        if not identity_matches:
+        if not _offer_identity_occurs_in_text(offer, claim_text):
             continue
         for visible in _PRIMARY_MARKET_VALUE.finditer(claim_text):
             matched = _matching_commercial_offer_evidence(
@@ -944,13 +1324,26 @@ def build_recognized_root_proof(
     country_codes = [str(value).upper() for value in country_codes if value]
     if not _recognized_root_covers_jurisdiction(direct_url, country_codes):
         raise ValueError("recognized public root does not cover requested jurisdiction")
-    excerpt_text = direct_text[:520]
     observations, table_artifacts, structured_source_sha256 = (
         _bound_structured_statistical_observations(
             structured_statistical_observations,
             direct_raw_html=direct_raw_html,
         )
     )
+    if any(
+        observation.get("reporter_code")
+        and observation.get("reporter_code") not in set(country_codes)
+        for observation in observations
+    ):
+        raise ValueError(
+            "structured statistic reporter does not match requested jurisdiction"
+        )
+    structured_display = (
+        str(observations[0].get("canonical_claim_text") or "")
+        if len(observations) == 1
+        else ""
+    )
+    excerpt_text = structured_display or direct_text[:520]
     payload = {
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "recognized_public_root_direct",
@@ -967,6 +1360,11 @@ def build_recognized_root_proof(
                 "start": 0,
                 "end": len(excerpt_text),
                 "sha256": hashlib.sha256(excerpt_text.encode("utf-8")).hexdigest(),
+                "representation": (
+                    "raw_derived_structured_display"
+                    if structured_display
+                    else "direct_document_excerpt"
+                ),
             },
         },
         "retrieved_at": retrieved_at or datetime.now(timezone.utc).isoformat(),
@@ -1121,6 +1519,20 @@ def validate_authority_proof(
         or not hmac.compare_digest(expected_signature, supplied_signature)
     ):
         return False
+    private_document = source.get("_authority_document_artifact")
+    if not isinstance(private_document, Mapping):
+        candidate_document = source.get("authority_document_artifact")
+        private_document = (
+            candidate_document
+            if isinstance(candidate_document, Mapping)
+            else None
+        )
+    if (
+        isinstance(private_document, Mapping)
+        and private_document.get("authority_proof_signature")
+        != supplied_signature
+    ):
+        return False
     if proof.get("version") != AUTHORITY_PROOF_VERSION:
         return False
     direct = proof.get("direct")
@@ -1213,7 +1625,6 @@ def validate_authority_proof(
             or proof.get("jurisdiction_binding", {}).get("status") != "verified"
         ):
             return False
-        private_document = source.get("_authority_document_artifact")
         private_text = (
             private_document.get("text")
             if isinstance(private_document, Mapping)
@@ -1233,6 +1644,50 @@ def validate_authority_proof(
     if proof.get("structured_statistical_observations") and not re.fullmatch(
         r"[a-f0-9]{64}",
         str(proof.get("structured_evidence_source_sha256") or ""),
+    ):
+        return False
+    proof_observations = proof.get("structured_statistical_observations")
+    if proof_observations is not None and not (
+        isinstance(proof_observations, list)
+        and len(proof_observations) <= 12
+        and all(isinstance(row, Mapping) for row in proof_observations)
+    ):
+        return False
+    if isinstance(proof_observations, list):
+        # Before persistence, independently bind the signed manifest back to
+        # the exact private fetch response. A caller able to create a fresh
+        # proof HMAC still cannot replace a raw-derived value/series/product
+        # while leaving the fetched JSON/HTML unchanged. After the deliberate
+        # private-artifact scrub, signature-only validation remains available.
+        nested_candidate = source.get("_direct_document_candidate")
+        private_raw_values = [
+            value
+            for value in (
+                source.get("_structured_evidence_html"),
+                (
+                    nested_candidate.get("_structured_evidence_html")
+                    if isinstance(nested_candidate, Mapping)
+                    else None
+                ),
+            )
+            if isinstance(value, str) and value
+        ]
+        for private_raw in private_raw_values:
+            if (
+                hashlib.sha256(private_raw.encode("utf-8")).hexdigest()
+                != proof.get("structured_evidence_source_sha256")
+                or _structured_statistical_observations(private_raw)
+                != proof_observations
+            ):
+                return False
+    if any(
+        isinstance(observation, Mapping)
+        and observation.get("reporter_code")
+        and (
+            len(proof_countries) != 1
+            or observation.get("reporter_code") not in proof_countries
+        )
+        for observation in proof_observations or []
     ):
         return False
     for excerpt in excerpts:
@@ -1311,6 +1766,151 @@ def build_authority_claim_artifact(
             ),
         },
     }
+
+
+def build_structured_statistical_claim_artifact(
+    *,
+    source_id: str,
+    source_url: str,
+    authority_proof: Mapping[str, Any],
+    authority_document: Mapping[str, Any],
+    observation: Mapping[str, Any],
+    signing_secret: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Bind a raw-derived display claim to its signed structured observation."""
+
+    document_text = authority_document.get("text")
+    direct_hash = str((authority_proof.get("direct") or {}).get("content_sha256") or "")
+    proof_signature = str(authority_proof.get("proof_signature") or "")
+    retrieved_at = authority_proof.get("retrieved_at")
+    canonical_text = _canonical_structured_statistical_claim_text(observation)
+    observation_hash = str(observation.get("observation_sha256") or "")
+    unsigned_observation = {
+        str(key): value
+        for key, value in observation.items()
+        if key != "observation_sha256"
+    }
+    if (
+        not isinstance(document_text, str)
+        or not canonical_text
+        or observation.get("canonical_claim_text") != canonical_text
+        or hashlib.sha256(_canonical_bytes(unsigned_observation)).hexdigest()
+        != observation_hash
+        or observation not in (
+            authority_proof.get("structured_statistical_observations") or []
+        )
+        or hashlib.sha256(document_text.encode("utf-8")).hexdigest() != direct_hash
+        or authority_document.get("sha256") != direct_hash
+        or authority_document.get("authority_proof_signature") != proof_signature
+        or authority_document.get("retrieved_at") != retrieved_at
+    ):
+        raise ValueError("structured observation is not bound to authority proof")
+    payload = {
+        "version": AUTHORITY_STRUCTURED_CLAIM_PROOF_VERSION,
+        "source_id": source_id,
+        "source_url": source_url,
+        "authority_proof_signature": proof_signature,
+        "direct_content_sha256": direct_hash,
+        "retrieved_at": retrieved_at,
+        "structured_observation_sha256": observation_hash,
+        "claim_text_sha256": hashlib.sha256(
+            canonical_text.encode("utf-8")
+        ).hexdigest(),
+    }
+    return {
+        "artifact_type": "derived_structured_statistical_observation",
+        "source_id": source_id,
+        "text": canonical_text,
+        "sha256": payload["claim_text_sha256"],
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof_signature,
+        "direct_content_sha256": direct_hash,
+        "structured_observation_sha256": observation_hash,
+        "claim_binding": {
+            **payload,
+            "signature_alg": "hmac-sha256",
+            "claim_proof_signature": _proof_signature(
+                payload,
+                signing_secret=signing_secret,
+            ),
+        },
+    }
+
+
+def validate_structured_statistical_claim_artifact(
+    source: Mapping[str, Any],
+    artifact: Mapping[str, Any],
+    citation: Mapping[str, Any],
+    claim_text: str,
+    observation: Mapping[str, Any],
+    *,
+    signing_secret: Optional[str] = None,
+) -> bool:
+    """Validate a display claim without treating generated prose as a quote."""
+
+    proof = source.get("authority_proof")
+    binding = artifact.get("claim_binding")
+    if not isinstance(proof, Mapping) or not isinstance(binding, Mapping):
+        return False
+    signature = str(binding.get("claim_proof_signature") or "").casefold()
+    payload = {
+        key: value
+        for key, value in binding.items()
+        if key not in {"claim_proof_signature", "signature_alg"}
+    }
+    try:
+        expected_signature = _proof_signature(
+            payload,
+            signing_secret=signing_secret,
+        )
+    except RuntimeError:
+        return False
+    canonical_text = _canonical_structured_statistical_claim_text(observation)
+    observation_hash = str(observation.get("observation_sha256") or "")
+    unsigned_observation = {
+        str(key): value
+        for key, value in observation.items()
+        if key != "observation_sha256"
+    }
+    proof_signature = str(proof.get("proof_signature") or "")
+    direct_hash = str((proof.get("direct") or {}).get("content_sha256") or "")
+    return bool(
+        binding.get("version") == AUTHORITY_STRUCTURED_CLAIM_PROOF_VERSION
+        and binding.get("signature_alg") == "hmac-sha256"
+        and re.fullmatch(r"[a-f0-9]{64}", signature)
+        and hmac.compare_digest(signature, expected_signature)
+        and artifact.get("artifact_type")
+        == "derived_structured_statistical_observation"
+        and artifact.get("source_id") == source.get("source_id")
+        and binding.get("source_id") == source.get("source_id")
+        and str(binding.get("source_url") or "").rstrip("/")
+        == str(source.get("url") or "").rstrip("/")
+        and artifact.get("authority_proof_signature") == proof_signature
+        and binding.get("authority_proof_signature") == proof_signature
+        and artifact.get("direct_content_sha256") == direct_hash
+        and binding.get("direct_content_sha256") == direct_hash
+        and artifact.get("retrieved_at") == proof.get("retrieved_at")
+        and binding.get("retrieved_at") == proof.get("retrieved_at")
+        and source.get("retrieved_at") == proof.get("retrieved_at")
+        and canonical_text
+        and claim_text == canonical_text
+        and artifact.get("text") == canonical_text
+        and artifact.get("sha256")
+        == hashlib.sha256(canonical_text.encode("utf-8")).hexdigest()
+        and binding.get("claim_text_sha256") == artifact.get("sha256")
+        and citation.get("span_target")
+        == "derived_structured_statistical_observation"
+        and citation.get("offset_unit") == "unicode_codepoints"
+        and citation.get("segment_start") == 0
+        and citation.get("segment_end") == len(canonical_text)
+        and citation.get("source_id") == source.get("source_id")
+        and hashlib.sha256(_canonical_bytes(unsigned_observation)).hexdigest()
+        == observation_hash
+        and observation.get("canonical_claim_text") == canonical_text
+        and observation in (proof.get("structured_statistical_observations") or [])
+        and artifact.get("structured_observation_sha256") == observation_hash
+        and binding.get("structured_observation_sha256") == observation_hash
+    )
 
 
 def validate_authority_claim_artifact(
@@ -1447,11 +2047,22 @@ async def fetch_direct_text(
             if len(content) > maximum_bytes:
                 raise ValueError("authority document exceeds size limit")
             content_type = response.headers.get("content-type", "").casefold()
-            if "text" not in content_type and "html" not in content_type and "xml" not in content_type:
+            is_html = "html" in content_type
+            is_json = re.search(
+                r"(?:^|[;/\s])application/(?:[a-z0-9.+-]+\+)?json(?:[;\s]|$)",
+                content_type,
+            ) is not None
+            if (
+                "text" not in content_type
+                and not is_html
+                and "xml" not in content_type
+                and not is_json
+            ):
                 raise ValueError("authority document is not textual")
+            raw_structured_text = response.text if (is_html or is_json) else ""
             text = _normalized_document_text(
                 response.text,
-                is_html="html" in content_type,
+                is_html=is_html,
             )
             return {
                 "final_url": str(response.url),
@@ -1460,15 +2071,15 @@ async def fetch_direct_text(
                 # Internal-only, bounded by ``maximum_bytes`` and stripped
                 # before source persistence. Proof builders re-derive typed
                 # evidence from these exact fetched bytes.
-                "_structured_evidence_html": (
-                    response.text if "html" in content_type else ""
-                ),
+                # Historical key retained for persistence compatibility. Its
+                # content is exact fetched structured text: HTML or JSON-stat.
+                "_structured_evidence_html": raw_structured_text,
                 "commercial_offer_evidence": _commercial_offer_evidence(
                     response.text
-                ) if "html" in content_type else [],
+                ) if is_html else [],
                 "structured_statistical_observations": (
                     _structured_statistical_observations(response.text)
-                    if "html" in content_type
+                    if raw_structured_text
                     else []
                 ),
             }
@@ -1566,18 +2177,24 @@ async def enrich_authority_sources(
             retrieved_at = direct.get("retrieved_at") or datetime.now(
                 timezone.utc
             ).isoformat()
-            proof = build_recognized_root_proof(
-                direct_url=direct["final_url"],
-                direct_text=direct["text"],
-                country_codes=row.get("country_codes") or [],
-                structured_statistical_observations=list(
-                    direct.get("structured_statistical_observations") or []
-                ),
-                direct_raw_html=str(
-                    direct.get("_structured_evidence_html") or ""
-                ) or None,
-                retrieved_at=retrieved_at,
-            )
+            try:
+                proof = build_recognized_root_proof(
+                    direct_url=direct["final_url"],
+                    direct_text=direct["text"],
+                    country_codes=row.get("country_codes") or [],
+                    structured_statistical_observations=list(
+                        direct.get("structured_statistical_observations") or []
+                    ),
+                    direct_raw_html=str(
+                        direct.get("_structured_evidence_html") or ""
+                    ) or None,
+                    retrieved_at=retrieved_at,
+                )
+            except ValueError:
+                row["jurisdiction_binding_status"] = (
+                    "rejected_structured_reporter_jurisdiction"
+                )
+                continue
             row.update(
                 {
                     "url": direct["final_url"],

@@ -20,6 +20,7 @@ from backend.services.research_topic_contract_service import (
     build_trusted_topic_alias_registry,
     match_visible_statistical_topic,
     normalize_topic_phrase,
+    product_topic_phrases,
     retrieval_phrases_for_country,
     validate_alias_expansion,
 )
@@ -51,6 +52,111 @@ def _goal(*anchors: str) -> ImmutableGoalTopicFields:
 def _seed_and_scope(*country_codes: str):
     scope = _scope(*(country_codes or ("EE", "LV")))
     return build_topic_seed(_goal("cat food"), scope), scope
+
+
+def test_product_topic_projection_excludes_pr40_benchmark_and_process_anchors():
+    goal = ImmutableGoalTopicFields(
+        goal_id="pr40",
+        title="PR40 Production E2E — Estonia Cat Food Evidence & Commercial Launch",
+        problem_scope=(
+            "Produce a launch plan for selling cat food in Estonia, outperforming "
+            "the prior Opus baseline quality score of 72. This requires verified "
+            "local demand, statutory requirements, and defensible unit economics."
+        ),
+        desired_outcome="Comprehensive PRD with quality score >= 80.",
+        industry="other",
+        target_user=(
+            "Estonian commercial launch steering committee, pet food distributors, "
+            "retail partners, and the execution team."
+        ),
+    )
+    seed = build_topic_seed(goal, _scope("EE"))
+
+    phrases = product_topic_phrases(seed)
+
+    assert phrases == ("cat food",)
+    assert not any(
+        marker in phrase
+        for phrase in phrases
+        for marker in ("baseline", "quality", "score", "unit economics", "statutory")
+    )
+
+
+def test_product_topic_projection_does_not_broaden_title_category():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="cat-not-dog",
+            title="Cat food launch",
+            problem_scope="Assess cat food demand.",
+            industry="Pet food",
+            target_user="Pet food buyers",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+
+
+@pytest.mark.parametrize(
+    ("product_name", "country_code", "scope_label"),
+    [
+        ("Quality Street chocolate", "GB", "United Kingdom"),
+        ("Unit 13 furniture", "US", "United States"),
+        ("kassitoit", "EE", "Estonia"),
+    ],
+)
+def test_explicit_product_anchor_is_never_mutated_by_language_stop_words(
+    product_name, country_code, scope_label
+):
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id=f"exact-product-{country_code.casefold()}",
+            title=f"{product_name} commercial launch",
+            problem_scope="Validate pricing and demand.",
+            exact_topic_anchors=(product_name,),
+        ),
+        ConfirmedMarketScope(
+            scope_label=scope_label,
+            country_codes=(country_code,),
+            confirmed=True,
+        ),
+    )
+
+    assert product_topic_phrases(seed) == (normalize_topic_phrase(product_name),)
+
+
+def test_localized_process_prose_cannot_become_evidence_product_topic():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="localized-process-only",
+            title="Estonia commercial evidence launch",
+            problem_scope=(
+                "Võrdle varasemat kvaliteediskoori ja ühikute ökonoomikat."
+            ),
+            desired_outcome="Koosta kontrollitud tegevuskava.",
+            industry="other",
+            target_user="Juhtkomitee ja täitmismeeskond",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ()
+
+
+def test_generic_title_falls_back_to_typed_industry_topic():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="industry-fallback",
+            title="Commercial market launch",
+            problem_scope="Validate pricing and demand.",
+            industry="Furniture",
+        ),
+        ConfirmedMarketScope(
+            scope_label="United States", country_codes=("US",), confirmed=True
+        ),
+    )
+
+    assert product_topic_phrases(seed) == ("furniture",)
 
 
 def _alias(

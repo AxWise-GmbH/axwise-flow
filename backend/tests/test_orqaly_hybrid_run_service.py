@@ -929,11 +929,12 @@ async def commercial_grounding(_request, _policy):
         "Germany's latest official market population is 84 million for 2025."
     )
     price_claim = (
-        "The current retail catalogue price for premium cat food is €2.99 on "
+        "The current retail catalogue price for a premium research technology "
+        "subscription is €2.99 on "
         "2026-08-12."
     )
     source_url = "https://tax.gov.de/current-market-facts"
-    catalog_url = "https://shop.example.de/cat-food"
+    catalog_url = "https://shop.example.de/research-technology"
     retrieved_at = "2026-08-12T12:00:00+00:00"
     direct_text = (
         "Government tax authority current value-added tax guidance. " + vat_claim
@@ -986,7 +987,8 @@ async def commercial_grounding(_request, _policy):
     catalog_text = "Official product catalogue for Germany. " + price_claim
     catalog_offer_html = (
         '<script type="application/ld+json">'
-        '{"@type":"Product","sku":"CAT-FOOD","name":"premium cat food","offers":'
+        '{"@type":"Product","sku":"RESEARCH-TECH","name":'
+        '"premium research technology subscription","offers":'
         '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
         "</script>"
     )
@@ -1009,7 +1011,7 @@ async def commercial_grounding(_request, _policy):
     }
     catalog_document = {
         "artifact_type": "direct_authority_document",
-        "source_id": "source-de-cat-catalog",
+        "source_id": "source-de-research-technology-catalog",
         "text": catalog_text,
         "sha256": hashlib.sha256(catalog_text.encode("utf-8")).hexdigest(),
         "retrieved_at": retrieved_at,
@@ -1113,15 +1115,17 @@ async def commercial_grounding(_request, _policy):
                 },
             },
             {
-                "source_id": "source-de-cat-catalog",
+                "source_id": "source-de-research-technology-catalog",
                 "source_type": "google_search_result",
-                "title": "Current German cat food catalogue",
+                "title": "Current German research technology catalogue",
                 "url": catalog_url,
                 "publisher": "shop.example.de",
                 "provider": "searxng",
-                "provider_source_id": "searx-de-cat-price",
-                "provider_query_ids": ["query-de-cat-price"],
-                "provider_queries": ["Germany cat food retail catalogue price"],
+                "provider_source_id": "searx-de-research-technology-price",
+                "provider_query_ids": ["query-de-research-technology-price"],
+                "provider_queries": [
+                    "Germany research technology retail catalogue price"
+                ],
                 "country_codes": ["DE"],
                 "source_authority": "first_party_catalog",
                 "authority_verification_status": "direct_primary_market_observation",
@@ -1166,11 +1170,11 @@ async def commercial_grounding(_request, _policy):
                 "structured_statistical_observation": stat_observations[0],
             },
             claim_row(
-                claim_id="claim-de-cat-price",
+                claim_id="claim-de-research-technology-price",
                 text=price_claim,
                 predicate="observed retail catalogue price",
                 evidence_class="observed_primary_market",
-                source_id="source-de-cat-catalog",
+                source_id="source-de-research-technology-catalog",
                 url=catalog_url,
                 source_proof=catalog_proof,
                 document=catalog_document,
