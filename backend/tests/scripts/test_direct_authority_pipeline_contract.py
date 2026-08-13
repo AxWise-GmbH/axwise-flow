@@ -47,6 +47,24 @@ def _offer_evidence(*, name: str, price: str, currency: str) -> list[dict]:
     )
 
 
+def _offer_topic_seed(
+    *, country_code: str, scope_label: str, product_phrase: str
+) -> dict:
+    return build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id=f"{country_code.casefold()}-offer-topic",
+            title=f"{product_phrase} catalogue validation",
+            problem_scope=f"Assess current {product_phrase} offers.",
+            exact_topic_anchors=(product_phrase,),
+        ),
+        ConfirmedMarketScope(
+            scope_label=scope_label,
+            country_codes=(country_code,),
+            confirmed=True,
+        ),
+    ).model_dump(mode="json")
+
+
 def _source_row(direct_text: str) -> dict:
     source_url = "https://www.emta.ee/en/business-client/taxes-and-payment/value-added-tax"
     retrieved_at = "2026-08-12T12:00:00+00:00"
@@ -425,12 +443,427 @@ async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
+            "topic_seed_contract": _offer_topic_seed(
+                country_code="EE",
+                scope_label="Estonia",
+                product_phrase="premium cat food",
+            ),
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
         mandatory_claim_classes=["observed_primary_market"],
     )
     assert quality["status"] == "passed", quality["blocked_claims"]
+
+
+def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim():
+    url = (
+        "https://www.smartech.ee/en/products/miscellaneous/"
+        "applaws-natural-cat-food-tuna-fillet-with-prawn-wet-cat-food-156g-0/"
+    )
+    product_name = (
+        "Applaws Natural Cat Food Tuna fillet with prawn - wet cat food - 156g"
+    )
+    filler = (
+        "Product images are illustrative. The original product may vary, so "
+        "please refer to the product specifications in the product description. "
+        "Available for delivery in Estonia. "
+    )
+    raw_html = (
+        f"<h1>{product_name}</h1><div>{filler}</div>"
+        "<div>Price <strong>€ 10.90</strong></div>"
+        "<div>Free delivery threshold € 50.00</div>"
+        "<div>EAN 5060122490238</div>"
+        "<article>Premium dog food 156g Price € 12.90</article>"
+        '<script type="application/ld+json">'
+        f'{{"@type":"Product","name":"{product_name}",'
+        '"gtin13":"5060122490238","offers":{"@type":"Offer",'
+        '"price":"10.90","priceCurrency":"EUR"}}'
+        "</script>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Premium dog food 156g",'
+        '"offers":{"@type":"Offer","price":"12.90",'
+        '"priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+    proof = build_direct_primary_market_proof(
+        direct_url=url,
+        direct_text=direct_text,
+        country_codes=["EE"],
+        direct_raw_html=raw_html,
+        retrieved_at=retrieved_at,
+    )
+    document = {
+        "artifact_type": "direct_authority_document",
+        "text": direct_text,
+        "sha256": proof["direct"]["content_sha256"],
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    seed = _offer_topic_seed(
+        country_code="EE",
+        scope_label="Estonia",
+        product_phrase="cat food",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyer",
+        topic_seed_contract=seed,
+    )
+    expected_spans = pipeline._structured_offer_claim_passages(
+        direct_text, proof, retrieved_at=retrieved_at
+    )
+    assert any(
+        product_name in row["text"] and "€ 10.90" in row["text"]
+        for row in expected_spans
+    ), [repr(row["text"]) for row in expected_spans]
+    pipeline._store_direct_web_evidence(
+        [{
+            "title": product_name,
+            "url": url,
+            "provider": "searxng",
+            "country_codes": ["EE"],
+            "source_authority": "first_party_catalog",
+            "authority_verification_status": "direct_primary_market_observation",
+            "jurisdiction_binding_status": "verified",
+            "retrieved_at": retrieved_at,
+            "authority_proof": proof,
+            "authority_document_artifact": document,
+            "_structured_evidence_html": raw_html,
+        }],
+        [],
+    )
+
+    exact = [
+        row
+        for row in pipeline.market_claims
+        if row.get("evidence_class") == "observed_primary_market"
+        and product_name in str(row.get("object") or "")
+        and "€ 10.90" in str(row.get("object") or "")
+    ]
+    assert exact, pipeline.market_claims
+    assert all(str(row["object"]) in direct_text for row in exact)
+    assert min(len(str(row["object"])) for row in exact) <= 480
+    bounded = min((str(row["object"]) for row in exact), key=len)
+    assert "€ 50.00" not in bounded
+    assert "Premium dog food" not in bounded
+
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": seed,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert quality["status"] == "passed", quality
+    assert {row["normalized_value"] for row in quality["verified_facts"]} == {
+        "10.90:eur"
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "hidden_attribute",
+    [
+        "hidden",
+        'aria-hidden="true"',
+        'style="display:none"',
+        'style="visibility: hidden"',
+        'style="DiSpLaY : NoNe ! IMPORTANT"',
+        'style="visibility:hidden!important"',
+    ],
+)
+async def test_hidden_offer_text_cannot_become_primary_market_evidence(
+    hidden_attribute: str,
+):
+    url = "https://shop.example.ee/cat-food/hidden-alpha"
+    raw_html = (
+        f"<div {hidden_attribute}><span>Alpha cat food</span>"
+        "<span>€ 2.99</span></div>"
+        "<div>Estonia product catalogue</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Alpha cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    assert "Alpha cat food" not in direct_text
+    assert "2.99" not in direct_text
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+
+    assert source.get("source_authority") != "first_party_catalog"
+    assert source.get("authority_proof") is None
+
+
+@pytest.mark.asyncio
+async def test_template_offer_text_cannot_become_primary_market_evidence():
+    url = "https://shop.example.ee/cat-food/template-alpha"
+    raw_html = (
+        "<template><div>Alpha cat food € 2.99</div></template>"
+        "<div>Estonia product catalogue</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Alpha cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    assert "Alpha cat food" not in direct_text
+    assert "2.99" not in direct_text
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+    assert source.get("source_authority") != "first_party_catalog"
+    assert source.get("authority_proof") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "non_void_startend_tag",
+    ["<div hidden/>", "<template/>", "<script/>"],
+)
+async def test_non_void_startend_tag_keeps_trailing_offer_text_hidden(
+    non_void_startend_tag: str,
+):
+    url = "https://shop.example.ee/cat-food/non-void-startend"
+    raw_html = (
+        "<div>Estonia product catalogue</div>"
+        + non_void_startend_tag
+        + "Hidden cat food price € 9.99"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Hidden cat food","offers":'
+        '{"@type":"Offer","price":"9.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    assert "Hidden cat food" not in direct_text
+    assert "9.99" not in direct_text
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+    assert source.get("source_authority") != "first_party_catalog"
+    assert source.get("authority_proof") is None
+
+
+def test_unclosed_hidden_subtree_stays_hidden_conservatively():
+    normalized = _normalized_document_text(
+        "<div>Visible catalogue</div><div hidden><span>Alpha cat food € 2.99",
+        is_html=True,
+    )
+
+    assert normalized == "Visible catalogue"
+
+
+@pytest.mark.asyncio
+async def test_offer_identity_cannot_match_inside_larger_visible_word():
+    url = "https://shop.example.ee/copycat-food"
+    raw_html = (
+        "<div>Estonia Copycat food Price € 2.99</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+    assert source.get("source_authority") != "first_party_catalog"
+    assert source.get("authority_proof") is None
+
+
+@pytest.mark.asyncio
+async def test_offer_identity_with_punctuation_boundary_passes_full_path():
+    url = "https://shop.example.ee/cat-food/punctuation"
+    raw_html = (
+        "<div>Estonia Cat food — Product catalogue Price € 2.99</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": retrieved_at,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+    assert source.get("source_authority") == "first_party_catalog"
+
+    seed = _offer_topic_seed(
+        country_code="EE", scope_label="Estonia", product_phrase="cat food"
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyer",
+        topic_seed_contract=seed,
+    )
+    pipeline._store_direct_web_evidence([source], [])
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": seed,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert quality["status"] == "passed", quality
+    assert [row["normalized_value"] for row in quality["verified_facts"]] == [
+        "2.99:eur"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_copycat_candidate_cannot_borrow_valid_offer_elsewhere_on_page():
+    url = "https://shop.example.ee/cat-food/copycat-candidate"
+    copycat_claim = "Copycat food Price € 2.99."
+    raw_html = (
+        "<div>Estonia Cat food — Product catalogue Price € 2.99.</div>"
+        f"<div>{copycat_claim}</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": direct_text,
+            "retrieved_at": retrieved_at,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
+        }
+
+    source = {
+        "url": url,
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+    assert source.get("source_authority") == "first_party_catalog"
+    proof = source["authority_proof"]
+    assert claim_matching_offer_evidence(
+        proof, "Cat food — Product catalogue Price € 2.99."
+    )
+    assert claim_matching_offer_evidence(proof, copycat_claim) is None
+
+    seed = _offer_topic_seed(
+        country_code="EE", scope_label="Estonia", product_phrase="cat food"
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyer",
+        topic_seed_contract=seed,
+    )
+    pipeline._store_direct_web_evidence(
+        [source], [_snippet_claim(url, copycat_claim)]
+    )
+    copycat_rows = [
+        row for row in pipeline.market_claims if row.get("object") == copycat_claim
+    ]
+    assert copycat_rows
+    assert all(
+        row.get("critical") is False
+        and row.get("evidence_class") == "source_linked_observation"
+        for row in copycat_rows
+    )
+
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": seed,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert quality["status"] == "passed", quality
+    copycat_claim_ids = {row["claim_id"] for row in copycat_rows}
+    assert copycat_claim_ids.isdisjoint(
+        {row["claim_id"] for row in quality["evidence_ledger"]}
+    )
+    assert [row["normalized_value"] for row in quality["verified_facts"]] == [
+        "2.99:eur"
+    ]
 
 
 @pytest.mark.asyncio
@@ -465,7 +898,15 @@ async def test_delivery_threshold_is_not_authorized_by_product_offer():
     )
     pipeline._store_direct_web_evidence([source], [])
     quality = evaluate_critical_claims(
-        {"market_sources": pipeline.market_sources, "market_claims": pipeline.market_claims},
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            "topic_seed_contract": _offer_topic_seed(
+                country_code="EE",
+                scope_label="Estonia",
+                product_phrase="alpha kana kassitoit",
+            ),
+        },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
         mandatory_claim_classes=["observed_primary_market"],
@@ -1620,6 +2061,11 @@ async def test_brazil_brl_catalogue_proof_extracts_and_passes_quality():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
+            "topic_seed_contract": _offer_topic_seed(
+                country_code="BR",
+                scope_label="Brazil",
+                product_phrase="cat food",
+            ),
         },
         ["BR"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
