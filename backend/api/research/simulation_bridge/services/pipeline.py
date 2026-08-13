@@ -22,6 +22,7 @@ from pydantic_ai.models import Model
 from ..models import CompanyDiscoveryItem
 from .market_scope import resolve_market_scope
 from backend.services.research_source_authority_service import (
+    authority_attestation_acquisition_hints,
     build_authority_claim_artifact,
     build_structured_statistical_claim_artifact,
     claim_matching_offer_evidence,
@@ -62,6 +63,7 @@ _AUTHORITY_STAGE_DEADLINE_SECONDS = 50.0
 _COMPANY_STRUCTURING_DEADLINE_SECONDS = 120.0
 _TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
 _MAX_TARGETED_ATTESTATION_HOSTS = 4
+_MAX_CODE_OWNED_ATTESTATION_CANDIDATES = 4
 _STATUTORY_RECOVERY_DEADLINE_SECONDS = 90.0
 _STATUTORY_RECOVERY_SEARCH_SECONDS = 40.0
 _EUROSTAT_COMEXT_STAGE_DEADLINE_SECONDS = 40.0
@@ -700,6 +702,102 @@ class B2BDataPipeline:
             healthy.append((provider, service))
         return healthy
 
+    def _code_owned_attestation_candidates(
+        self,
+        publisher_rows: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Materialize bounded acquisition hints without granting authority.
+
+        The registry is selected only by one exact authorized country and one
+        exact publisher host.  These rows are ordinary direct-fetch candidates:
+        no proof or authority label is attached here, and the authority service
+        independently validates the fetched final document before it can attest
+        any publisher.
+        """
+
+        market_code = str(self.market_scope.country_code or "").upper()
+        if not market_code:
+            return []
+        candidates: List[Dict[str, Any]] = []
+        seen_hint_urls: set[str] = set()
+        seen_publishers: set[tuple[str, str]] = set()
+        for row in publisher_rows:
+            country_codes = sorted(
+                {
+                    str(value or "").strip().upper()
+                    for value in row.get("country_codes") or []
+                    if value
+                }
+            )
+            if country_codes != [market_code]:
+                continue
+            publisher_url = str(
+                row.get("resolved_url") or row.get("url") or ""
+            ).strip()
+            publisher_host = (
+                urlparse(publisher_url).hostname or ""
+            ).casefold().rstrip(".")
+            publisher_key = (market_code, publisher_host)
+            if not publisher_host or publisher_key in seen_publishers:
+                continue
+            seen_publishers.add(publisher_key)
+            for hint_url in authority_attestation_acquisition_hints(
+                publisher_url=publisher_url,
+                country_codes=country_codes,
+            ):
+                identity = _authority_retrieval_identity(hint_url)
+                parsed_hint = urlparse(hint_url)
+                if (
+                    identity in seen_hint_urls
+                    or parsed_hint.scheme.casefold() != "https"
+                    or not parsed_hint.hostname
+                    or parsed_hint.username
+                    or parsed_hint.password
+                    or not is_trusted_public_root(hint_url)
+                ):
+                    continue
+                seen_hint_urls.add(identity)
+                candidates.append(
+                    {
+                        "title": "Code-owned public authority attestation candidate",
+                        "url": hint_url,
+                        "provider": "code_owned_authority_attestation_registry",
+                        "provider_source_id": self._evidence_id(
+                            "attestation-hint",
+                            f"{market_code}:{publisher_host}:{hint_url}",
+                        ),
+                        "retrieved_at": None,
+                        "provider_response_hash": None,
+                        "provider_query_ids": [],
+                        "provider_queries": [],
+                        "citation_metadata": {
+                            "discovery": "code_owned_acquisition_hint"
+                        },
+                        "provider_redirect": False,
+                        "country_codes": country_codes,
+                        "market_terms": list(
+                            dict.fromkeys(
+                                value
+                                for value in (
+                                    self.location,
+                                    self.market_scope.locality,
+                                    self.market_scope.country_name,
+                                )
+                                if value
+                            )
+                        ),
+                        "acquisition_evidence_classes": ["authority_attestation"],
+                        "target_authority_host": publisher_host,
+                        "_code_owned_attestation_acquisition_hint": True,
+                    }
+                )
+                if (
+                    len(candidates)
+                    >= _MAX_CODE_OWNED_ATTESTATION_CANDIDATES
+                ):
+                    return candidates
+        return candidates
+
     async def _recover_missing_statutory_evidence(
         self,
         search_services: List[tuple[str, Any]],
@@ -715,7 +813,20 @@ class B2BDataPipeline:
         if self._provisional_statutory_claim_count():
             return 0
         services = self._recovery_search_services(search_services)
-        if not services:
+        existing_unresolved = [
+            row
+            for row in source_rows
+            if not row.get("authority_proof")
+            and not str(row.get("jurisdiction_binding_status") or "").startswith(
+                "rejected"
+            )
+            and "statutory_current"
+            in set(row.get("acquisition_evidence_classes") or [])
+        ]
+        existing_deterministic_candidates = (
+            self._code_owned_attestation_candidates(existing_unresolved)
+        )
+        if not services and not existing_deterministic_candidates:
             self.routing_diagnostics["statutory_recovery"] = {
                 "status": "no_healthy_provider",
                 "route_count": 0,
@@ -758,15 +869,21 @@ class B2BDataPipeline:
             except Exception as exc:
                 return provider, exc
 
-        try:
-            results = await _await_with_hard_stage_deadline(
-                asyncio.gather(*(run(provider, service) for provider, service in services)),
-                deadline_seconds=_STATUTORY_RECOVERY_SEARCH_SECONDS,
-            )
-            search_status = "completed"
-        except asyncio.TimeoutError:
+        if services:
+            try:
+                results = await _await_with_hard_stage_deadline(
+                    asyncio.gather(
+                        *(run(provider, service) for provider, service in services)
+                    ),
+                    deadline_seconds=_STATUTORY_RECOVERY_SEARCH_SECONDS,
+                )
+                search_status = "completed"
+            except asyncio.TimeoutError:
+                results = []
+                search_status = "search_timeout"
+        else:
             results = []
-            search_status = "search_timeout"
+            search_status = "completed"
 
         candidates: List[Dict[str, Any]] = []
         seen_urls = {str(row.get("url") or "") for row in source_rows}
@@ -853,15 +970,46 @@ class B2BDataPipeline:
                 },
             )
 
+        recovery_publishers: List[Dict[str, Any]] = []
+        seen_publisher_identities: set[str] = set()
+        for row in [*existing_unresolved, *candidates]:
+            identity = _authority_retrieval_identity(
+                str(row.get("resolved_url") or row.get("url") or "")
+            )
+            if not identity or identity in seen_publisher_identities:
+                continue
+            seen_publisher_identities.add(identity)
+            recovery_publishers.append(
+                {
+                    **row,
+                    "provider_query_ids": list(row.get("provider_query_ids") or []),
+                    "provider_queries": list(row.get("provider_queries") or []),
+                    "citation_metadata": dict(row.get("citation_metadata") or {}),
+                    "country_codes": list(row.get("country_codes") or []),
+                    "market_terms": list(row.get("market_terms") or []),
+                    "acquisition_evidence_classes": list(
+                        row.get("acquisition_evidence_classes") or []
+                    ),
+                }
+            )
+        deterministic_candidates = (
+            existing_deterministic_candidates
+            or self._code_owned_attestation_candidates(recovery_publishers)
+        )
+        enrichment_candidates = [
+            *deterministic_candidates,
+            *recovery_publishers,
+        ]
+
         remaining = _STATUTORY_RECOVERY_DEADLINE_SECONDS - (
             time.monotonic() - started
         )
         recovery_status = search_status
         enriched: List[Dict[str, Any]] = []
-        if candidates and remaining > 1:
+        if enrichment_candidates and remaining > 1:
             try:
                 enriched = await _await_with_hard_stage_deadline(
-                    enrich_authority_sources(candidates),
+                    enrich_authority_sources(enrichment_candidates),
                     deadline_seconds=min(_AUTHORITY_STAGE_DEADLINE_SECONDS, remaining),
                 )
             except asyncio.TimeoutError:
@@ -873,16 +1021,45 @@ class B2BDataPipeline:
                     for row in enriched
                     if row.get("jurisdiction_binding_status") == "verified"
                     and row.get("authority_proof")
+                    and "statutory_current"
+                    in set(row.get("acquisition_evidence_classes") or [])
                 ]
                 self._store_direct_web_evidence(eligible, [])
-                source_rows.extend(eligible)
+                for eligible_row in eligible:
+                    eligible_identity = _authority_retrieval_identity(
+                        str(
+                            eligible_row.get("resolved_url")
+                            or eligible_row.get("url")
+                            or ""
+                        )
+                    )
+                    existing = next(
+                        (
+                            row
+                            for row in source_rows
+                            if _authority_retrieval_identity(
+                                str(
+                                    row.get("resolved_url")
+                                    or row.get("url")
+                                    or ""
+                                )
+                            )
+                            == eligible_identity
+                        ),
+                        None,
+                    )
+                    if existing is None:
+                        source_rows.append(eligible_row)
+                    else:
+                        existing.clear()
+                        existing.update(eligible_row)
 
         accepted_claims = self._provisional_statutory_claim_count()
         elapsed_ms = int((time.monotonic() - started) * 1000)
         self.routing_diagnostics["statutory_recovery"] = {
             "status": recovery_status,
             "route_count": len(services),
-            "candidate_count": len(candidates),
+            "candidate_count": len(enrichment_candidates),
             "retrieved_count": sum(
                 row.get("direct_fetch_status") == "retrieved" for row in enriched
             ),
@@ -891,12 +1068,16 @@ class B2BDataPipeline:
             "elapsed_ms": elapsed_ms,
             "deadline_ms": int(_STATUTORY_RECOVERY_DEADLINE_SECONDS * 1000),
         }
+        if deterministic_candidates:
+            self.routing_diagnostics["statutory_recovery"][
+                "deterministic_attestation_candidate_count"
+            ] = len(deterministic_candidates)
         logger.info(
             "Missing statutory evidence recovery finished; status=%s elapsed_ms=%s "
             "candidates=%s accepted_verified_claims=%s",
             recovery_status,
             elapsed_ms,
-            len(candidates),
+            len(enrichment_candidates),
             accepted_claims,
         )
         return accepted_claims
@@ -933,8 +1114,17 @@ class B2BDataPipeline:
             host_rows.append((host, row))
             if len(host_rows) >= _MAX_TARGETED_ATTESTATION_HOSTS:
                 break
-        if not host_rows or not search_services:
+        if not host_rows:
             return []
+
+        deterministic_candidates = self._code_owned_attestation_candidates(
+            [row for _host_value, row in host_rows]
+        )
+        covered_hosts = {
+            str(row.get("target_authority_host") or "").casefold().rstrip(".")
+            for row in deterministic_candidates
+            if row.get("target_authority_host")
+        }
 
         market = self.location.strip()
         country_codes = [self.market_scope.country_code] if self.market_scope.country_code else []
@@ -950,6 +1140,7 @@ class B2BDataPipeline:
                 ),
             }
             for host, _row in host_rows
+            if host not in covered_hosts
         ]
         logger.info(
             "Targeted authority attestation search started; hosts=%s routes=%s deadline_ms=%s",
@@ -973,24 +1164,31 @@ class B2BDataPipeline:
                 return provider, query_row, exc
 
         started = time.monotonic()
-        try:
-            results = await _await_with_hard_stage_deadline(
-                asyncio.gather(
-                    *(
-                        run(provider, service, query_row)
-                        for provider, service in search_services
-                        for query_row in query_rows
-                    )
-                ),
-                deadline_seconds=_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS,
-            )
-            status = "completed"
-        except asyncio.TimeoutError:
+        if search_services:
+            try:
+                results = await _await_with_hard_stage_deadline(
+                    asyncio.gather(
+                        *(
+                            run(provider, service, query_row)
+                            for provider, service in search_services
+                            for query_row in query_rows
+                        )
+                    ),
+                    deadline_seconds=_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS,
+                )
+                status = "completed"
+            except asyncio.TimeoutError:
+                results = []
+                status = "timeout"
+        else:
             results = []
-            status = "timeout"
+            status = "completed" if deterministic_candidates else "no_provider"
 
-        candidates: List[Dict[str, Any]] = []
-        seen_urls: set[str] = set()
+        candidates: List[Dict[str, Any]] = list(deterministic_candidates)
+        seen_urls: set[str] = {
+            _authority_retrieval_identity(str(row.get("url") or ""))
+            for row in deterministic_candidates
+        }
         for provider, query_row, result in results:
             query_id = self._evidence_id("query", query_row["query"])
             if isinstance(result, BaseException):
@@ -1014,7 +1212,7 @@ class B2BDataPipeline:
                 parsed = urlparse(url)
                 if (
                     not url
-                    or url in seen_urls
+                    or _authority_retrieval_identity(url) in seen_urls
                     or parsed.scheme.casefold() != "https"
                     or not parsed.hostname
                     or parsed.username
@@ -1022,7 +1220,7 @@ class B2BDataPipeline:
                     or not self.market_scope.source_url_matches(url)
                 ):
                     continue
-                seen_urls.add(url)
+                seen_urls.add(_authority_retrieval_identity(url))
                 accepted += 1
                 candidates.append(
                     {
@@ -1095,6 +1293,13 @@ class B2BDataPipeline:
             "elapsed_ms": elapsed_ms,
             "deadline_ms": int(_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS * 1000),
         }
+        if deterministic_candidates:
+            self.routing_diagnostics["targeted_authority_attestation"][
+                "deterministic_candidate_count"
+            ] = len(deterministic_candidates)
+            self.routing_diagnostics["targeted_authority_attestation"][
+                "requested_host_count"
+            ] = len(host_rows)
         logger.info(
             "Targeted authority attestation search finished; status=%s elapsed_ms=%s "
             "candidates=%s",
