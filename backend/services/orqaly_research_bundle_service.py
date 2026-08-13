@@ -709,6 +709,43 @@ async def collect_regional_grounding(
         merge_policy,
     )
     coverage = [result["cell_coverage"] for result in results]
+    cell_routing = [
+        result.get("routing_diagnostics") or {} for result in results
+    ]
+    evidence_class_acquisition: Dict[str, Dict[str, int]] = {}
+    for routing in cell_routing:
+        for evidence_class, counts in (
+            routing.get("evidence_class_acquisition") or {}
+        ).items():
+            aggregate = evidence_class_acquisition.setdefault(
+                str(evidence_class),
+                {"attempted": 0, "retrieved": 0, "verified": 0, "claim_extracted": 0},
+            )
+            if not isinstance(counts, dict):
+                continue
+            for metric in aggregate:
+                aggregate[metric] += int(counts.get(metric) or 0)
+
+    def aggregate_stage(key: str) -> Dict[str, Any]:
+        rows = [routing.get(key) for routing in cell_routing]
+        rows = [row for row in rows if isinstance(row, dict)]
+        if not rows:
+            return {}
+        statuses = {str(row.get("status") or "unknown") for row in rows}
+        return {
+            "status": next(iter(statuses)) if len(statuses) == 1 else "mixed",
+            "cell_count": len(rows),
+            "host_count": sum(int(row.get("host_count") or 0) for row in rows),
+            "route_count": sum(int(row.get("route_count") or 0) for row in rows),
+            "candidate_count": sum(int(row.get("candidate_count") or 0) for row in rows),
+            "retrieved_count": sum(int(row.get("retrieved_count") or 0) for row in rows),
+            "verified_count": sum(int(row.get("verified_count") or 0) for row in rows),
+            "source_count": sum(int(row.get("source_count") or 0) for row in rows),
+            "company_count": sum(int(row.get("company_count") or 0) for row in rows),
+            "elapsed_ms": max(int(row.get("elapsed_ms") or 0) for row in rows),
+            "deadline_ms": max(int(row.get("deadline_ms") or 0) for row in rows),
+        }
+
     diagnostics = {
         "requested_location": scope.raw_input,
         "market_scope_hash": scope.resolution_hash,
@@ -718,9 +755,30 @@ async def collect_regional_grounding(
         "cell_concurrency": maximum_parallel,
         "providers": [
             provider
-            for result in results
-            for provider in (result.get("routing_diagnostics") or {}).get("providers") or []
+            for routing in cell_routing
+            for provider in routing.get("providers") or []
         ],
+        "required_evidence_classes": list(
+            dict.fromkeys(
+                value
+                for routing in cell_routing
+                for value in routing.get("required_evidence_classes") or []
+            )
+        ),
+        "attempted_sources": [
+            source
+            for routing in cell_routing
+            for source in routing.get("attempted_sources") or []
+        ][:24],
+        "evidence_class_acquisition": evidence_class_acquisition,
+        "authority_resolution": aggregate_stage("authority_resolution"),
+        "targeted_authority_attestation": aggregate_stage(
+            "targeted_authority_attestation"
+        ),
+        "targeted_authority_resolution": aggregate_stage(
+            "targeted_authority_resolution"
+        ),
+        "company_structuring": aggregate_stage("company_structuring"),
         "cells": coverage,
     }
     return {

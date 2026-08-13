@@ -47,6 +47,7 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     )
     worker_traffic_revision = "WORKER_TRAFFIC_REVISION="
     worker_traffic_percent = "WORKER_TRAFFIC_PERCENT="
+    worker_cpu_throttling = "WORKER_CPU_THROTTLING="
 
     assert worker_revision in script
     assert '--to-revisions "${WORKER_REVISION}=100"' in script
@@ -56,14 +57,26 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     assert "${WORKER_REVISION}" in script
     assert worker_traffic_revision in script
     assert worker_traffic_percent in script
+    assert worker_cpu_throttling in script
     assert "status.traffic[0].revisionName" in script
     assert "status.traffic[0].percent" in script
     assert '"${WORKER_TRAFFIC_PERCENT}" != "100"' in script
+    assert "run.googleapis.com/cpu-throttling" in script
+    assert '"${WORKER_CPU_THROTTLING}" != "false"' in script
 
     deploy = 'gcloud run deploy "${WORKER_SERVICE}"'
+    worker_deploy_block = script.split(deploy, 1)[1].split(
+        "# As with the API", 1
+    )[0]
+    assert "--no-cpu-throttling" in worker_deploy_block
+    api_deploy_block = script.split('gcloud run deploy "${API_SERVICE}"', 1)[1].split(
+        "# Cloud Run preserves", 1
+    )[0]
+    assert "--no-cpu-throttling" not in api_deploy_block
     switch = script.index(worker_traffic_switch)
     assert script.index(deploy) < script.index(worker_revision) < switch
     assert switch < script.index(worker_traffic_revision)
+    assert script.index(worker_traffic_revision) < script.index(worker_cpu_throttling)
 
 
 def test_authority_proof_secret_is_validated_without_printing_before_build() -> None:

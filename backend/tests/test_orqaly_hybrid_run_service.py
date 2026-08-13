@@ -1640,6 +1640,15 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
                         "verified": 0,
                     }
                 },
+                "targeted_authority_attestation": {
+                    "status": "mixed",
+                    "cell_count": 3,
+                    "host_count": 6,
+                    "route_count": 12,
+                    "candidate_count": 3,
+                    "elapsed_ms": 25,
+                    "deadline_ms": 90_000,
+                },
             },
             "market_sources": [],
         }
@@ -1656,6 +1665,15 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
         "attempted": 2,
         "retrieved": 1,
         "verified": 0,
+    }
+    assert diagnostics["targeted_authority_attestation"] == {
+        "status": "mixed",
+        "cell_count": 3,
+        "host_count": 6,
+        "route_count": 12,
+        "candidate_count": 3,
+        "elapsed_ms": 25,
+        "deadline_ms": 90_000,
     }
 
 
