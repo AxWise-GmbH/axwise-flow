@@ -4,6 +4,7 @@ Parallel Interview Simulator for improved performance and scalability.
 
 import logging
 import asyncio
+import random
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
