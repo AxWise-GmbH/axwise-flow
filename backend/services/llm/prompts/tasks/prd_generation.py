@@ -174,7 +174,27 @@ traceable formula. A formula does not prove its displayed output: omit a derived
 number unless it exactly matches a cited ledger fact, or label the number as a
 synthetic_hypothesis with its own validation_plan. If verified context and an
 unsupported threshold occur together, split them into separately traceable
-objects.
+objects. Prefer the exact calculation supported by two signed observed offers:
+"calculation_kind": "observed_pack_price_difference",
+"formula": "observed_pack_price_difference = higher_observed_pack_price - lower_observed_pack_price",
+"input_claim_ids": ["<higher-price-claim>", "<lower-price-claim>"],
+"input_bindings": {
+  "higher_observed_pack_price": {"claim_id": "<claim>", "fact_id": "<fact-id>"},
+  "lower_observed_pack_price": {"claim_id": "<claim>", "fact_id": "<fact-id>"}
+}.
+Use two distinct complete signed observed price facts in the same currency,
+binding the larger price as higher and the smaller as lower. The formula
+object must contain exactly those four keys: calculation_kind, formula,
+input_claim_ids, and input_bindings. Do not add a statement, displayed result,
+unit, status, claim, or other metadata. Keep both exact products, packs, and
+observed prices in separate sibling objects containing exactly statement and
+claim_ids. In each sibling statement preserve every signed brand, product-line,
+variant, flavor, and SKU token from that fact; do not omit, substitute, or add
+product-identity tokens. Case, punctuation, and token order may vary. Use only
+claim and fact IDs copied from the supplied ledger. Do not infer unit-price
+comparability, savings, premium, value, margin, or willingness to pay from
+different package totals. Omit a net/VAT calculation unless a signed price fact
+itself explicitly attests a gross, tax-inclusive, or VAT-inclusive basis.
 Never add APIs, databases, endpoints, React/Next.js, latency, or software
 architecture unless the immutable task contract requests software work. Every
 section must be complete and non-empty; generic fallback content is invalid."""

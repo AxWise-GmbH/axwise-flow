@@ -949,10 +949,12 @@ async def fake_grounding(_request, _policy):
 
 
 def _commercial_prd_content() -> dict:
+    lower_claim = "claim-de-research-technology-price-low"
+    higher_claim = "claim-de-research-technology-price-high"
     return {
         "prd_type": "commercial_market_launch",
         "commercial_prd": {
-            "market_scope": {"country": "Germany", "city": "Bremen"},
+            "market_scope": {"countries": ["DE"], "city": "Bremen"},
             "market_and_demand_assessment": ["Grounded local demand assessment"],
             "customer_segments": ["Commercial category buyers"],
             "buying_roles": ["Economic buyer and operational user are separated"],
@@ -965,9 +967,38 @@ def _commercial_prd_content() -> dict:
             "competitors": ["Competitor evidence requires sourced field validation"],
             "suppliers_and_channels": ["Specialist retail and direct channels"],
             "pricing_and_unit_economics": {
-                "statement": "Net price derives from gross price and verified VAT.",
-                "formula": "net_price = gross_price / (1 + vat_rate)",
-                "input_claim_ids": ["claim-de-vat"],
+                "observed_pack_price_difference": {
+                    "calculation_kind": "observed_pack_price_difference",
+                    "formula": (
+                        "observed_pack_price_difference = "
+                        "higher_observed_pack_price - lower_observed_pack_price"
+                    ),
+                    "input_claim_ids": [higher_claim, lower_claim],
+                    "input_bindings": {
+                        "higher_observed_pack_price": {
+                            "claim_id": higher_claim,
+                            "fact_id": f"{higher_claim}:fact:1",
+                        },
+                        "lower_observed_pack_price": {
+                            "claim_id": lower_claim,
+                            "fact_id": f"{lower_claim}:fact:1",
+                        },
+                    },
+                },
+                "lower_observed_offer": {
+                    "statement": (
+                        "Research technology adult subscription basic plan 1 unit "
+                        "current retail price is €2.99."
+                    ),
+                    "claim_ids": [lower_claim],
+                },
+                "higher_observed_offer": {
+                    "statement": (
+                        "Research technology adult subscription advanced plan 1 unit "
+                        "current retail price is €5.99."
+                    ),
+                    "claim_ids": [higher_claim],
+                },
             },
             "go_to_market_plan_90_days": ["Validate", "Pilot", "Scale"],
             "risks_assumptions_and_validation": [
@@ -1075,8 +1106,13 @@ async def commercial_grounding(_request, _policy):
     statistic_claim = (
         "Germany's latest official market population is 84 million for 2025."
     )
-    price_claim = (
-        "premium research technology subscription The current retail price is €2.99"
+    lower_price_claim = (
+        "research technology adult subscription basic plan 1 unit "
+        "The current retail price is €2.99"
+    )
+    higher_price_claim = (
+        "research technology adult subscription advanced plan 1 unit "
+        "The current retail price is €5.99"
     )
     source_url = "https://tax.gov.de/current-market-facts"
     catalog_url = "https://shop.example.de/research-technology"
@@ -1131,16 +1167,25 @@ async def commercial_grounding(_request, _policy):
     }
     catalog_offer_html = (
         '<script type="application/ld+json">'
-        '{"@type":"Product","sku":"RESEARCH-TECH","name":'
-        '"premium research technology subscription","offers":'
+        '{"@type":"Product","sku":"RESEARCH-TECH-BASIC","name":'
+        '"research technology adult subscription basic plan 1 unit","offers":'
         '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"RESEARCH-TECH-ADVANCED","name":'
+        '"research technology adult subscription advanced plan 1 unit","offers":'
+        '{"@type":"Offer","price":"5.99","priceCurrency":"EUR"}}'
         "</script>"
     )
     catalog_raw_html = (
         '<div>Official product catalogue for Germany.</div>'
         '<article class="product-card">'
-        '<h1>premium research technology subscription</h1>'
+        '<h1>research technology adult subscription basic plan 1 unit</h1>'
         '<div class="price">The current retail price is €2.99</div>'
+        '<div>Observed on 2026-08-12.</div></article>'
+        '<article class="product-card">'
+        '<h1>research technology adult subscription advanced plan 1 unit</h1>'
+        '<div class="price">The current retail price is €5.99</div>'
         f'<div>Observed on 2026-08-12.</div></article>{catalog_offer_html}'
     )
     catalog_text = _normalized_document_text(catalog_raw_html, is_html=True)
@@ -1326,8 +1371,19 @@ async def commercial_grounding(_request, _policy):
                 "structured_statistical_observation": stat_observations[0],
             },
             claim_row(
-                claim_id="claim-de-research-technology-price",
-                text=price_claim,
+                claim_id="claim-de-research-technology-price-low",
+                text=lower_price_claim,
+                predicate="observed retail catalogue price",
+                evidence_class="observed_primary_market",
+                source_id="source-de-research-technology-catalog",
+                url=catalog_url,
+                source_proof=catalog_proof,
+                document=catalog_document,
+                observed_at=retrieved_at,
+            ),
+            claim_row(
+                claim_id="claim-de-research-technology-price-high",
+                text=higher_price_claim,
                 predicate="observed retail catalogue price",
                 evidence_class="observed_primary_market",
                 source_id="source-de-research-technology-catalog",
@@ -1338,7 +1394,7 @@ async def commercial_grounding(_request, _policy):
             ),
         ],
         "structured_source_count": 3,
-        "claim_count": 3,
+        "claim_count": 4,
         "company_count": 0,
         "composer_version": "provider_shaped_commercial_fixture_v1",
         "topic_seed_contract": topic_seed_contract,
