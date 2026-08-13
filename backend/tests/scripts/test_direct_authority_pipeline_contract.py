@@ -15,6 +15,7 @@ from backend.services.research_quality_service import evaluate_critical_claims
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
 from backend.services.research_source_authority_service import (
@@ -52,19 +53,42 @@ def _offer_evidence(*, name: str, price: str, currency: str) -> list[dict]:
 def _offer_topic_seed(
     *, country_code: str, scope_label: str, product_phrase: str
 ) -> dict:
-    return build_topic_seed(
+    return _offer_topic_contracts(
+        country_code=country_code,
+        scope_label=scope_label,
+        product_phrase=product_phrase,
+    )["topic_seed_contract"]
+
+
+def _topic_contracts(seed, scope: ConfirmedMarketScope) -> dict:
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+    result = {
+        "topic_seed_contract": seed.model_dump(mode="json"),
+        "topic_market_scope_contract": scope.model_dump(mode="json"),
+    }
+    if expansion is not None:
+        result["topic_alias_expansion"] = expansion.model_dump(mode="json")
+    return result
+
+
+def _offer_topic_contracts(
+    *, country_code: str, scope_label: str, product_phrase: str
+) -> dict:
+    scope = ConfirmedMarketScope(
+        scope_label=scope_label,
+        country_codes=(country_code,),
+        confirmed=True,
+    )
+    seed = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id=f"{country_code.casefold()}-offer-topic",
             title=f"{product_phrase} catalogue validation",
             problem_scope=f"Assess current {product_phrase} offers.",
             exact_topic_anchors=(product_phrase,),
         ),
-        ConfirmedMarketScope(
-            scope_label=scope_label,
-            country_codes=(country_code,),
-            confirmed=True,
-        ),
-    ).model_dump(mode="json")
+        scope,
+    )
+    return _topic_contracts(seed, scope)
 
 
 def _source_row(direct_text: str) -> dict:
@@ -892,7 +916,7 @@ async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": _offer_topic_seed(
+            **_offer_topic_contracts(
                 country_code="EE",
                 scope_label="Estonia",
                 product_phrase="premium cat food",
@@ -953,16 +977,17 @@ def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim(
         "retrieved_at": retrieved_at,
         "authority_proof_signature": proof["proof_signature"],
     }
-    seed = _offer_topic_seed(
+    topic_contracts = _offer_topic_contracts(
         country_code="EE",
         scope_label="Estonia",
         product_phrase="cat food",
     )
+    seed = topic_contracts["topic_seed_contract"]
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Launch cat food",
         target_user="Category buyer",
-        topic_seed_contract=seed,
+        **topic_contracts,
     )
     expected_spans = pipeline._structured_offer_claim_passages(
         direct_text, proof, retrieved_at=retrieved_at
@@ -1006,7 +1031,7 @@ def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim(
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": seed,
+            **topic_contracts,
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -1016,6 +1041,112 @@ def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim(
     assert {row["normalized_value"] for row in quality["verified_facts"]} == {
         "10.90:eur"
     }
+
+
+def test_petcity_shaped_estonian_offer_passes_full_signed_alias_lifecycle():
+    url = "https://www.petcity.ee/royal-canin-light-weight-kassitoit-400-g-001201"
+    product_name = "Royal Canin Light Weight kassitoit 400 g"
+    raw_html = (
+        '<main class="layout-product" data-component="product">'
+        '<div class="layout-product__row wrap-narrow">'
+        '<div class="layout-product__content">'
+        f'<h1 class="page-title" data-component="title">{product_name}</h1>'
+        '<form data-product-sku="001201"><div class="product-pricing">'
+        '<div class="product-pricing__price" data-testid="product-card-price">'
+        '<span class="product-pricing__price-value">'
+        '<span class="product-pricing__price-number">10,09 €</span>'
+        '</span></div></div></form></div></div></main>'
+        '<script type="application/ld+json">'
+        '{"@context":"https://schema.org","@type":"Product",'
+        f'"sku":"001201","name":"{product_name}","offers":'
+        '{"@type":"Offer","price":"10.09","priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}</script>'
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+    offers = _commercial_offer_evidence(raw_html)
+    assert [(row["product_id"], row["price"], row["price_currency"]) for row in offers] == [
+        ("001201", "10.09", "EUR")
+    ]
+    assert offers[0]["visible_binding"]["claim_text"] == (
+        f"{product_name} 10,09 €"
+    )
+    proof = build_direct_primary_market_proof(
+        direct_url=url,
+        direct_text=direct_text,
+        country_codes=["EE"],
+        direct_raw_html=raw_html,
+        retrieved_at=retrieved_at,
+    )
+    topic_contracts = _offer_topic_contracts(
+        country_code="EE",
+        scope_label="Estonia",
+        product_phrase="cat food",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyer",
+        **topic_contracts,
+    )
+    pipeline._store_direct_web_evidence(
+        [{
+            "url": url,
+            "country_codes": ["EE"],
+            "retrieved_at": retrieved_at,
+            "source_authority": "first_party_catalog",
+            "authority_verification_status": "direct_primary_market_observation",
+            "jurisdiction_binding_status": "verified",
+            "authority_proof": proof,
+            "authority_document_artifact": {
+                "artifact_type": "direct_authority_document",
+                "text": direct_text,
+                "sha256": proof["direct"]["content_sha256"],
+                "retrieved_at": retrieved_at,
+                "authority_proof_signature": proof["proof_signature"],
+            },
+            "_structured_evidence_html": raw_html,
+        }],
+        [],
+    )
+
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            **topic_contracts,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["verified_facts"][0]["normalized_value"] == "10.09:eur"
+    assert quality["topic_alias_expansion_sha256"] == (
+        topic_contracts["topic_alias_expansion"]["expansion_sha256"]
+    )
+
+
+def test_price_semantic_attribute_tokens_are_exact_and_preserve_negative_roles():
+    product = (
+        '<div class="product"><h1>Alpha cat food</h1>{price}</div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"Alpha cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+    data_testid_price = product.replace(
+        "{price}",
+        '<span class="amount" data-testid="product-card-price">€2.99</span>',
+    )
+    assert len(_commercial_offer_evidence(data_testid_price)) == 1
+
+    for price_node in (
+        '<span class="pricey" data-testid="product-card-pricey">€2.99</span>',
+        '<div class="delivery"><span data-testid="product-card-price">€2.99</span></div>',
+        '<div class="old-price"><span data-testid="product-card-price">€2.99</span></div>',
+    ):
+        assert _commercial_offer_evidence(product.replace("{price}", price_node)) == []
 
 
 @pytest.mark.asyncio
@@ -1213,21 +1344,22 @@ async def test_offer_identity_with_punctuation_boundary_passes_full_path():
     await enrich_authority_sources([source], fetcher=fetcher)
     assert source.get("source_authority") == "first_party_catalog"
 
-    seed = _offer_topic_seed(
+    topic_contracts = _offer_topic_contracts(
         country_code="EE", scope_label="Estonia", product_phrase="cat food"
     )
+    seed = topic_contracts["topic_seed_contract"]
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Launch cat food",
         target_user="Category buyer",
-        topic_seed_contract=seed,
+        **topic_contracts,
     )
     pipeline._store_direct_web_evidence([source], [])
     quality = evaluate_critical_claims(
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": seed,
+            **topic_contracts,
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -1278,14 +1410,15 @@ async def test_copycat_candidate_cannot_borrow_valid_offer_elsewhere_on_page():
     )
     assert claim_matching_offer_evidence(proof, copycat_claim) is None
 
-    seed = _offer_topic_seed(
+    topic_contracts = _offer_topic_contracts(
         country_code="EE", scope_label="Estonia", product_phrase="cat food"
     )
+    seed = topic_contracts["topic_seed_contract"]
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Launch cat food",
         target_user="Category buyer",
-        topic_seed_contract=seed,
+        **topic_contracts,
     )
     pipeline._store_direct_web_evidence(
         [source], [_snippet_claim(url, copycat_claim)]
@@ -1304,7 +1437,7 @@ async def test_copycat_candidate_cannot_borrow_valid_offer_elsewhere_on_page():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": seed,
+            **topic_contracts,
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -1358,7 +1491,7 @@ async def test_delivery_threshold_is_not_authorized_by_product_offer():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": _offer_topic_seed(
+            **_offer_topic_contracts(
                 country_code="EE",
                 scope_label="Estonia",
                 product_phrase="alpha kana kassitoit",
@@ -1766,7 +1899,10 @@ def test_live_shaped_structured_stat_table_binds_latest_positional_fact():
         direct_raw_html=raw_html,
     )
     signed_text = "Statistics Estonia official statistics office. " + direct_text
-    topic_seed = build_topic_seed(
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    topic_seed_model = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id="cat-food-stat-test",
             title="Cat food commercial launch",
@@ -1774,17 +1910,17 @@ def test_live_shaped_structured_stat_table_binds_latest_positional_fact():
             industry="Pet food",
             exact_topic_anchors=("cat food",),
         ),
-        ConfirmedMarketScope(
-            scope_label="Estonia", country_codes=("EE",), confirmed=True
-        ),
-    ).model_dump(mode="json")
+        topic_scope,
+    )
+    topic_contracts = _topic_contracts(topic_seed_model, topic_scope)
+    topic_seed = topic_contracts["topic_seed_contract"]
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Commercial cat food market assessment",
         target_user="Retail buyer",
         model=None,
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=topic_seed,
+        **topic_contracts,
     )
     pipeline._store_direct_web_evidence(
         [
@@ -1813,7 +1949,7 @@ def test_live_shaped_structured_stat_table_binds_latest_positional_fact():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": topic_seed,
+            **topic_contracts,
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -1874,7 +2010,10 @@ def test_motor_vehicle_statistic_cannot_cover_cat_food_topic():
         structured_statistical_observations=observations,
         direct_raw_html=raw_html,
     )
-    topic_seed = build_topic_seed(
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    topic_seed_model = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id="cat-food-motor-negative",
             title="Cat food commercial launch",
@@ -1882,16 +2021,16 @@ def test_motor_vehicle_statistic_cannot_cover_cat_food_topic():
             industry="Pet food",
             exact_topic_anchors=("cat food",),
         ),
-        ConfirmedMarketScope(
-            scope_label="Estonia", country_codes=("EE",), confirmed=True
-        ),
-    ).model_dump(mode="json")
+        topic_scope,
+    )
+    topic_contracts = _topic_contracts(topic_seed_model, topic_scope)
+    topic_seed = topic_contracts["topic_seed_contract"]
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Commercial cat food market assessment",
         target_user="Retail buyer",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=topic_seed,
+        **topic_contracts,
     )
     pipeline._store_direct_web_evidence(
         [{
@@ -1918,7 +2057,7 @@ def test_motor_vehicle_statistic_cannot_cover_cat_food_topic():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": topic_seed,
+            **topic_contracts,
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -2281,6 +2420,11 @@ async def test_targeted_gemini_redirect_must_fetch_trusted_root_before_attesting
         business_problem="Commercial cat food launch",
         target_user="Retail buyer",
         required_evidence_classes=["official_statistic"],
+        **_offer_topic_contracts(
+            country_code="EE",
+            scope_label="Estonia",
+            product_phrase="cat food",
+        ),
     )
     candidates = await pipeline._targeted_authority_attestation_sources(
         [unresolved], [("gemini_google_search", Gemini())]
@@ -2532,7 +2676,7 @@ async def test_brazil_brl_catalogue_proof_extracts_and_passes_quality():
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": _offer_topic_seed(
+            **_offer_topic_contracts(
                 country_code="BR",
                 scope_label="Brazil",
                 product_phrase="cat food",

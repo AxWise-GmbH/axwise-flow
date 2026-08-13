@@ -10,18 +10,23 @@ from backend.services.research_topic_contract_service import (
     MAX_ALIASES_PER_COUNTRY,
     MAX_TOPIC_PHRASE_CHARS,
     TOPIC_CONTRACT_SCHEMA_VERSION,
+    TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256,
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
     TopicAliasExpansionPayload,
     TopicMatchRelation,
     TopicSeedContract,
     ValidatedTopicAliasExpansion,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
     build_trusted_topic_alias_registry,
+    canonical_topic_sha256,
     match_visible_statistical_topic,
     normalize_topic_phrase,
     product_topic_phrases,
     retrieval_phrases_for_country,
+    trusted_topic_alias_registry,
+    validate_expected_trusted_topic_alias_expansion,
     validate_alias_expansion,
 )
 
@@ -99,6 +104,100 @@ def test_product_topic_projection_excludes_verification_qualifier_from_title():
     )
 
     assert product_topic_phrases(seed) == ("cat food",)
+
+
+def test_product_topic_projection_excludes_closed_commercially_adverb():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="commercially-workflow",
+            title="Cat Food Commercially Verified",
+            problem_scope="Validate current offers.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+
+
+def test_explicit_commercially_brand_anchor_remains_exact():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="commercially-brand",
+            title="Commercially Yours cat food launch",
+            problem_scope="Validate current offers.",
+            exact_topic_anchors=("Commercially Yours",),
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("commercially yours",)
+
+
+def test_product_topic_projection_excludes_closed_trailing_research_workflow():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="pr44",
+            title=(
+                "PR44 Production E2E: launch cat food sales in Estonia using "
+                "Advanced Grounded Deep research."
+            ),
+            problem_scope="Validate current cat food offers.",
+            industry="other",
+            target_user="Estonian cat owners.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+    assert "using advanced" not in seed.exact_goal_anchors
+
+
+def test_closed_research_workflow_is_not_reintroduced_by_copied_mission():
+    production_title = (
+        "PR44 Production E2E: launch cat food sales in Estonia using Advanced "
+        "Grounded Deep research."
+    )
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="pr44-copied-mission",
+            title=production_title,
+            mission=production_title,
+            problem_scope="Validate current cat food offers.",
+            industry="other",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+    assert "using advanced" not in seed.exact_goal_anchors
+
+
+def test_real_product_phrase_named_using_advanced_is_not_pruned():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="advanced-materials",
+            title="Using Advanced Materials for aerospace launch",
+            problem_scope="Validate current offers for advanced materials.",
+            industry="other",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("using advanced materials",)
+
+
+def test_explicit_anchor_inside_workflow_wording_remains_exact():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="explicit-advanced",
+            title="Cat food using Advanced Grounded Deep research",
+            problem_scope="Validate cat food using advanced methods.",
+            exact_topic_anchors=("using advanced",),
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("using advanced",)
 
 
 def test_inferred_brand_prefix_named_verified_is_not_pruned():
@@ -636,6 +735,163 @@ def test_expansion_hash_is_canonical_and_tampering_is_rejected():
     dumped["aliases"][1]["phrase"] = "mootorsõidukid"
     with pytest.raises(ValidationError, match="expansion_sha256"):
         ValidatedTopicAliasExpansion.model_validate(dumped)
+
+
+def test_expected_registry_expansion_is_country_seed_and_hash_bound():
+    seed, scope = _seed_and_scope("EE")
+
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+
+    assert expansion is not None
+    assert [(row.phrase, row.source_anchor) for row in expansion.aliases] == [
+        ("kassitoit", "cat food")
+    ]
+    assert "kassitoit" in retrieval_phrases_for_country(
+        seed,
+        country_code="EE",
+        expansion=expansion,
+        product_only=True,
+    )
+    assert validate_expected_trusted_topic_alias_expansion(
+        seed, scope, expansion.model_dump(mode="json")
+    ) == expansion
+
+
+def test_production_registry_version_has_an_explicit_pinned_hash():
+    assert (
+        trusted_topic_alias_registry().registry_sha256
+        == TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256
+    )
+
+
+def test_global_ee_lv_expansion_filters_aliases_per_country():
+    seed, scope = _seed_and_scope("EE", "LV")
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+
+    assert expansion is not None
+    assert [(row.country_code, row.phrase) for row in expansion.aliases] == [
+        ("EE", "kassitoit")
+    ]
+    assert "kassitoit" in retrieval_phrases_for_country(
+        seed,
+        country_code="EE",
+        expansion=expansion,
+        product_only=True,
+    )
+    assert "kassitoit" not in retrieval_phrases_for_country(
+        seed,
+        country_code="LV",
+        expansion=expansion,
+        product_only=True,
+    )
+    assert match_visible_statistical_topic(
+        seed,
+        {"series": "Kassitoit"},
+        country_code="EE",
+        expansion=expansion,
+        source_anchors=("cat food",),
+    ).matched
+    assert not match_visible_statistical_topic(
+        seed,
+        {"series": "Kassitoit"},
+        country_code="LV",
+        expansion=expansion,
+        source_anchors=("cat food",),
+    ).matched
+
+
+def test_expected_registry_expansion_is_absent_for_wrong_country():
+    seed, scope = _seed_and_scope("LV")
+
+    assert build_expected_trusted_topic_alias_expansion(seed, scope) is None
+
+
+def test_recomputed_model_alias_cannot_replace_expected_trusted_expansion():
+    seed, scope = _seed_and_scope("EE")
+    model_expansion = _expansion(
+        seed,
+        scope,
+        [
+            _alias(
+                "kassitoit",
+                usage="retrieval_only",
+                acceptance_basis="model_proposed",
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="independently derived"):
+        validate_expected_trusted_topic_alias_expansion(
+            seed, scope, model_expansion
+        )
+
+
+def test_applicable_expected_registry_expansion_cannot_be_omitted():
+    seed, scope = _seed_and_scope("EE")
+
+    with pytest.raises(ValueError, match="is missing"):
+        validate_expected_trusted_topic_alias_expansion(seed, scope, None)
+
+
+def test_self_rehashed_alias_tamper_does_not_become_expected_registry_truth():
+    seed, scope = _seed_and_scope("EE")
+    expected = build_expected_trusted_topic_alias_expansion(seed, scope)
+    assert expected is not None
+    tampered = expected.model_dump(mode="json")
+    tampered["aliases"][0]["phrase"] = "koeratoit"
+    tampered["expansion_sha256"] = canonical_topic_sha256(
+        {
+            key: tampered.get(key)
+            for key in (
+                "schema_version",
+                "seed_sha256",
+                "aliases",
+                "trusted_registry_id",
+                "trusted_registry_version",
+                "trusted_registry_sha256",
+            )
+        }
+    )
+    self_consistent = ValidatedTopicAliasExpansion.model_validate(tampered)
+
+    with pytest.raises(ValueError, match="independently derived"):
+        validate_expected_trusted_topic_alias_expansion(
+            seed, scope, self_consistent
+        )
+
+
+def test_expected_registry_builder_rejects_seed_scope_mismatch():
+    seed, _ = _seed_and_scope("EE")
+    wrong_scope = ConfirmedMarketScope(
+        scope_label="Latvia", country_codes=("LV",), confirmed=True
+    )
+
+    with pytest.raises(ValueError, match="countries do not match"):
+        build_expected_trusted_topic_alias_expansion(seed, wrong_scope)
+
+
+def test_unrelated_seed_cannot_accept_a_foreign_alias_expansion():
+    cat_seed, cat_scope = _seed_and_scope("EE")
+    cat_expansion = build_expected_trusted_topic_alias_expansion(
+        cat_seed, cat_scope
+    )
+    furniture_scope = _scope("EE")
+    furniture_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="furniture-ee",
+            title="Children's furniture launch",
+            exact_topic_anchors=("children's furniture",),
+        ),
+        furniture_scope,
+    )
+    assert build_expected_trusted_topic_alias_expansion(
+        furniture_seed, furniture_scope
+    ) is None
+
+    with pytest.raises(ValueError, match="not applicable"):
+        validate_expected_trusted_topic_alias_expansion(
+            furniture_seed, furniture_scope, cat_expansion
+        )
 
 
 def test_expansion_rejects_malformed_schema_model_and_unknown_fields():
