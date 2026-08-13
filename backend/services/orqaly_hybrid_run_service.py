@@ -9,6 +9,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -44,6 +45,7 @@ from backend.services.orqaly_research_bundle_service import (
     build_research_bundle,
     canonical_hash,
     collect_regional_grounding,
+    complete_deferred_grounding_enrichment,
     request_with_grounding,
     valid_structured_market_sources,
 )
@@ -605,6 +607,7 @@ class HybridRunService:
         if not claimed:
             return
         started = time.monotonic()
+        failure_diagnostics: Dict[str, Any] = {}
         try:
             request = SimulationRequest.model_validate(
                 claimed["request_payload"]["simulation"]
@@ -659,6 +662,45 @@ class HybridRunService:
                 "company_count": 0,
             }
             if research_mode == HybridResearchMode.GROUNDED_HYBRID:
+                critical_policy = (
+                    task_context.critical_claim_policy if task_context else {}
+                )
+                mandatory_claim_classes = list(
+                    critical_policy.get("mandatory_claim_classes") or []
+                )
+                claim_class_applicability = self._claim_class_applicability(
+                    request,
+                    task_context,
+                    mandatory_claim_classes,
+                )
+                if request.business_context:
+                    # Acquisition reads this data-only contract before any
+                    # model output exists. It cannot be weakened by a search
+                    # or synthesis model omitting a difficult evidence class.
+                    acquisition_context = dict(
+                        request.business_context.grounding_context or {}
+                    )
+                    acquisition_context["critical_claim_acquisition"] = {
+                        "requested_claim_classes": mandatory_claim_classes,
+                        "applicable_claim_classes": claim_class_applicability.get(
+                            "applicable_claim_classes", []
+                        ),
+                        "applicability_reasons": claim_class_applicability.get(
+                            "applicability_reasons", {}
+                        ),
+                        "research_prd_type": (
+                            task_context.research_prd_type
+                            if task_context
+                            else None
+                        ),
+                    }
+                    request = request.model_copy(
+                        update={
+                            "business_context": request.business_context.model_copy(
+                                update={"grounding_context": acquisition_context}
+                            )
+                        }
+                    )
                 await self._set_stage(
                     job_id,
                     "grounding_market",
@@ -695,6 +737,7 @@ class HybridRunService:
                     "structured_source_count": len(structured_sources),
                     "claim_count": len(structured_claims),
                 }
+                failure_diagnostics = self._sanitized_grounding_diagnostics(grounding)
                 structured_source_count = len(structured_sources)
                 blocked_cells = [
                     row
@@ -760,16 +803,21 @@ class HybridRunService:
                         critical_policy.get("freshness_by_class") or {}
                     ),
                     mandatory_claim_classes=mandatory_claim_classes,
-                    claim_class_applicability=self._claim_class_applicability(
-                        request,
-                        task_context,
-                        mandatory_claim_classes,
+                    claim_class_applicability=(
+                        claim_class_applicability
+                        if research_mode == HybridResearchMode.GROUNDED_HYBRID
+                        else self._claim_class_applicability(
+                            request,
+                            task_context,
+                            mandatory_claim_classes,
+                        )
                     ),
                 )
                 grounding = {
                     **grounding,
                     "critical_claim_quality": critical_quality,
                 }
+                failure_diagnostics = self._sanitized_grounding_diagnostics(grounding)
                 if (
                     critical_policy.get("fail_closed", True)
                     and critical_quality.get("status") != "passed"
@@ -782,6 +830,10 @@ class HybridRunService:
                         "Required current material claims were not verified "
                         f"(reasons={reasons or 'unknown'})"
                     )
+                grounding = await complete_deferred_grounding_enrichment(
+                    grounding,
+                    grounding_policy,
+                )
             if research_mode == HybridResearchMode.GROUNDED_HYBRID:
                 request = request_with_grounding(request, grounding)
 
@@ -925,7 +977,12 @@ class HybridRunService:
             return
         except Exception as exc:
             logger.exception("Hybrid A+B run failed: %s", job_id)
-            self._persist_failure(job_id, str(exc), time.monotonic() - started)
+            self._persist_failure(
+                job_id,
+                str(exc),
+                time.monotonic() - started,
+                diagnostics=failure_diagnostics,
+            )
             await self._deliver_terminal_webhook(job_id, "failed")
 
     async def _claim_specific_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -1083,7 +1140,14 @@ class HybridRunService:
         session = self.session_factory()
         try:
             run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
-            return self._stage_performance(run, datetime.now(timezone.utc)) if run else {}
+            if not run:
+                return {}
+            terminal_time = (
+                _utc(run.completed_at)
+                if run.status in TERMINAL_STATUSES and run.completed_at
+                else datetime.now(timezone.utc)
+            )
+            return self._stage_performance(run, terminal_time)
         finally:
             session.close()
 
@@ -1425,7 +1489,176 @@ class HybridRunService:
         finally:
             session.close()
 
-    def _persist_failure(self, job_id: str, error: str, duration: float) -> None:
+    @staticmethod
+    def _sanitized_grounding_diagnostics(grounding: Dict[str, Any]) -> Dict[str, Any]:
+        safe_reason_codes = {
+            "empty_or_failed",
+            "unavailable",
+            "provider_error",
+            "timeout",
+            "rate_limited",
+            "captcha",
+            "suspended",
+            "unresponsive",
+        }
+
+        def reason_code(value: Any) -> Optional[str]:
+            text = str(value or "").casefold()
+            for candidate in sorted(safe_reason_codes):
+                if candidate.replace("_", " ") in text or candidate in text:
+                    return candidate
+            if text.startswith("provider_error:"):
+                return "provider_error"
+            return None
+
+        def sanitized_runtime(runtime: Dict[str, Any]) -> Dict[str, Any]:
+            row = {
+                key: runtime.get(key)
+                for key in (
+                    "route",
+                    "model",
+                    "status",
+                    "elapsed_ms",
+                    "call_count",
+                    "retry_count",
+                    "deadline_ms",
+                    "fallback_used",
+                    "http_status",
+                    "result_count",
+                )
+                if runtime.get(key) is not None
+            }
+            engines = []
+            for item in (runtime.get("unresponsive_engines") or [])[:20]:
+                if not isinstance(item, dict):
+                    continue
+                engines.append(
+                    {
+                        "engine": re.sub(
+                            r"[^a-z0-9_-]",
+                            "",
+                            str(item.get("engine") or "unknown").casefold(),
+                        )[:40],
+                        "reason_code": reason_code(item.get("reason"))
+                        or "unresponsive",
+                    }
+                )
+            if engines:
+                row["unresponsive_engines"] = engines
+            return row
+
+        routing = grounding.get("routing_diagnostics") or {}
+        providers = []
+        for row in (routing.get("providers") or [])[:24]:
+            if not isinstance(row, dict):
+                continue
+            runtime = row.get("runtime") or {}
+            providers.append(
+                {
+                    "provider": str(row.get("provider") or "")[:120],
+                    "evidence_class": str(row.get("evidence_class") or "")[:80],
+                    "query_id": str(row.get("query_id") or "")[:80],
+                    "source_count": int(row.get("source_count") or 0),
+                    "result_source_count": int(row.get("result_source_count") or 0),
+                    "reason_code": reason_code(row.get("reason")),
+                    "provider_error_type": re.sub(
+                        r"[^A-Za-z0-9_]",
+                        "",
+                        str(row.get("provider_error") or ""),
+                    )[:60]
+                    or None,
+                    "runtime": sanitized_runtime(runtime),
+                }
+            )
+        sources = []
+        for row in (grounding.get("market_sources") or [])[:24]:
+            if not isinstance(row, dict):
+                continue
+            sources.append(
+                {
+                    "host": (urlparse(str(row.get("url") or "")).hostname or "")[:255],
+                    "source_authority": str(row.get("source_authority") or "")[:80],
+                    "authority_status": str(
+                        row.get("authority_verification_status") or ""
+                    )[:120],
+                    "country_codes": list(row.get("country_codes") or [])[:8],
+                }
+            )
+        critical = grounding.get("critical_claim_quality") or {}
+        attempted_sources = []
+        for row in (routing.get("attempted_sources") or [])[:24]:
+            if not isinstance(row, dict):
+                continue
+            attempted_sources.append(
+                {
+                    "retrieval_host": re.sub(
+                        r"[^a-z0-9.-]", "", str(row.get("retrieval_host") or "").casefold()
+                    )[:255],
+                    "final_host": re.sub(
+                        r"[^a-z0-9.-]", "", str(row.get("final_host") or "").casefold()
+                    )[:255],
+                    "acquisition_evidence_classes": [
+                        str(value)[:80]
+                        for value in row.get("acquisition_evidence_classes") or []
+                    ][:4],
+                    "direct_fetch_status": str(
+                        row.get("direct_fetch_status") or ""
+                    )[:80],
+                    "jurisdiction_binding_status": str(
+                        row.get("jurisdiction_binding_status") or ""
+                    )[:80],
+                    "authority_status": str(
+                        row.get("authority_verification_status") or ""
+                    )[:120],
+                }
+            )
+        return {
+            "contract": "sanitized_grounding_failure_v1",
+            "required_evidence_classes": list(
+                routing.get("required_evidence_classes") or []
+            )[:8],
+            "providers": providers,
+            "sources": sources,
+            "attempted_sources": attempted_sources,
+            "evidence_class_acquisition": {
+                str(key)[:80]: {
+                    metric: int(value or 0)
+                    for metric, value in (counts or {}).items()
+                    if metric in {
+                        "attempted",
+                        "retrieved",
+                        "verified",
+                        "claim_extracted",
+                    }
+                }
+                for key, counts in (
+                    routing.get("evidence_class_acquisition") or {}
+                ).items()
+                if isinstance(counts, dict)
+            },
+            "rejected_cross_market_source_count": len(
+                routing.get("rejected_cross_market_sources") or []
+            ),
+            "rejected_invalid_source_count": len(
+                routing.get("rejected_invalid_sources") or []
+            ),
+            "critical_status": critical.get("status"),
+            "verified_evidence_classes": list(
+                critical.get("verified_evidence_classes") or []
+            )[:8],
+            "missing_evidence_classes": list(
+                critical.get("missing_evidence_classes") or []
+            )[:8],
+        }
+
+    def _persist_failure(
+        self,
+        job_id: str,
+        error: str,
+        duration: float,
+        *,
+        diagnostics: Optional[Dict[str, Any]] = None,
+    ) -> None:
         session = self.session_factory()
         try:
             run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
@@ -1436,6 +1669,11 @@ class HybridRunService:
             run.status = "failed"
             run.current_stage = "failed"
             run.error = error[:4000]
+            if diagnostics:
+                run.result_summary = {
+                    **(run.result_summary or {}),
+                    "failure_diagnostics": diagnostics,
+                }
             run.completed_at = completed_at
             run.updated_at = completed_at
             run.total_duration_seconds = duration
@@ -1507,7 +1745,12 @@ class HybridRunService:
 
     @staticmethod
     def serialize_run(run: PipelineRun, include_result: bool = False) -> Dict[str, Any]:
-        performance = HybridRunService._stage_performance(run, datetime.now(timezone.utc))
+        terminal_time = (
+            _utc(run.completed_at)
+            if run.status in TERMINAL_STATUSES and run.completed_at
+            else datetime.now(timezone.utc)
+        )
+        performance = HybridRunService._stage_performance(run, terminal_time)
         data = {
             "job_id": run.job_id,
             "simulation_id": run.simulation_id,

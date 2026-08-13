@@ -19,6 +19,54 @@ from backend.services.research_source_authority_service import (
 )
 
 
+def test_attestation_host_match_rejects_suffix_spoof():
+    with pytest.raises(ValueError, match="does not reference"):
+        build_attested_authority_proof(
+            direct_url="https://stat.ee/data",
+            direct_text="Statistics Estonia published retail turnover data for Estonia.",
+            attestation_url="https://directory.gov/authorities",
+            attestation_text=(
+                "Government agency directory: evilstat.ee is the official statistics office."
+            ),
+            country_codes=["EE"],
+            retrieved_at="2026-08-12T12:00:00+00:00",
+        )
+
+    proof = build_attested_authority_proof(
+        direct_url="https://stat.ee/data",
+        direct_text="Statistics Estonia published retail turnover data for Estonia.",
+        attestation_url="https://directory.gov/authorities",
+        attestation_text=(
+            "Government agency directory: https://stat.ee/data is the official statistics office."
+        ),
+        country_codes=["EE"],
+        retrieved_at="2026-08-12T12:00:00+00:00",
+    )
+    assert proof["proof_type"] == "independent_public_root_attestation"
+
+    for spoof in (
+        "Government directory: https://evil.gov/path/stat.ee is official.",
+        "Government directory: https://evil.gov/stat.ee is official.",
+    ):
+        with pytest.raises(ValueError, match="does not reference"):
+            build_attested_authority_proof(
+                direct_url="https://stat.ee/data",
+                direct_text="Statistics Estonia published data for Estonia.",
+                attestation_url="https://directory.gov/authorities",
+                attestation_text=spoof,
+                country_codes=["EE"],
+            )
+
+    bare = build_attested_authority_proof(
+        direct_url="https://stat.ee/data",
+        direct_text="Statistics Estonia published data for Estonia.",
+        attestation_url="https://directory.gov/authorities",
+        attestation_text="Government statistics office directory (stat.ee).",
+        country_codes=["EE"],
+    )
+    assert bare["proof_type"] == "independent_public_root_attestation"
+
+
 pytestmark = pytest.mark.contract
 os.environ.setdefault(
     "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"

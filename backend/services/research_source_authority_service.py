@@ -16,12 +16,14 @@ import json
 import os
 import re
 import socket
+import time
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from typing import Any, Awaitable, Callable, Dict, Iterable, Mapping, Optional
 from urllib.parse import urljoin, urlparse
 
 import httpx
+import pycountry
 
 
 AUTHORITY_PROOF_VERSION = "direct_authority_attestation_v1"
@@ -32,16 +34,37 @@ _AUTHORITY_LANGUAGE = re.compile(
     r"office|regulator|regulatory authority|state agency|government agency)\b",
     re.IGNORECASE,
 )
+_NAMED_STATISTICS_AUTHORITY = re.compile(
+    r"\bStatistics\s+[A-ZÀ-Ž][A-Za-zÀ-ž-]{2,}\b"
+)
 _PRIMARY_MARKET_LANGUAGE = re.compile(
     r"\b(?:price|priced|cost|fee|retail|catalog(?:ue)?|product|supplier|"
     r"distributor|channel|available|in stock)\b",
     re.IGNORECASE,
 )
+_ISO_CURRENCY_CODES = "|".join(
+    sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
+)
 _PRIMARY_MARKET_VALUE = re.compile(
-    r"(?:[€$£]\s*\d|\b\d[\d\s.,]*\s*(?:EUR|USD|GBP)(?:\b|(?=\s|$)))",
+    rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
+    rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
+    rf"\b\d[\d\s.,]*\s*(?:{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?|"
+    rf"yen|yuan|rupees?)(?:\b|(?=\s|$))|"
+    rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
     re.IGNORECASE,
 )
 _MAX_RETAINED_AUTHORITY_TEXT = 100_000
+_MAX_DIRECT_FETCH_CONCURRENCY = 8
+_MAX_DIRECT_FETCH_REDIRECTS = 3
+_DIRECT_FETCH_OPERATION_SECONDS = 30.0
+_DIRECT_FETCH_ATTEMPT_SECONDS = 10.0
+_DIRECT_FETCH_DNS_SECONDS = 5.0
+_AUTHORITY_ENRICHMENT_SECONDS = 45.0
+_EU_COUNTRY_CODES = {
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
+    "FR", "GR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL",
+    "PT", "RO", "SE", "SI", "SK",
+}
 
 
 class _VisibleTextParser(HTMLParser):
@@ -99,6 +122,72 @@ def _host(url: str) -> str:
     return (urlparse(str(url or "")).hostname or "").casefold().rstrip(".")
 
 
+def _country_code_from_url(url: str) -> Optional[str]:
+    host = _host(url)
+    suffix = host.rsplit(".", 1)[-1] if "." in host else ""
+    if len(suffix) != 2:
+        return None
+    try:
+        return str(pycountry.countries.lookup(suffix).alpha_2).upper()
+    except LookupError:
+        return None
+
+
+def _jurisdiction_terms(country_codes: Iterable[str]) -> set[str]:
+    terms: set[str] = set()
+    for raw_code in country_codes:
+        code = str(raw_code or "").strip().upper()
+        if not code:
+            continue
+        try:
+            country = pycountry.countries.lookup(code)
+        except LookupError:
+            continue
+        for field in ("name", "official_name", "common_name"):
+            value = getattr(country, field, None)
+            if value:
+                terms.add(str(value).casefold())
+    return terms
+
+
+def _document_binds_jurisdiction(
+    *,
+    final_url: str,
+    text: str,
+    country_codes: Iterable[str],
+    market_terms: Iterable[str] = (),
+) -> bool:
+    """Prove that a fetched publisher page belongs to the requested market.
+
+    A caller-supplied country code is policy input, not evidence.  It becomes
+    proof only when the resolved publisher ccTLD matches, or the directly
+    fetched document explicitly names the requested jurisdiction/locality.
+    This also permits supranational official pages only when their text names
+    the requested market.
+    """
+
+    requested = {str(value).upper() for value in country_codes if value}
+    if not requested:
+        return False
+    url_code = _country_code_from_url(final_url)
+    if url_code and url_code in requested:
+        return True
+    if url_code and url_code not in requested:
+        return False
+    normalized_text = " ".join(str(text or "").casefold().split())
+    terms = _jurisdiction_terms(requested)
+    terms.update(
+        " ".join(str(value).casefold().split())
+        for value in market_terms
+        if len(" ".join(str(value).split())) >= 3
+    )
+    return any(
+        re.search(rf"\b{re.escape(term)}\b", normalized_text)
+        for term in terms
+        if term
+    )
+
+
 def is_trusted_public_root(url: str) -> bool:
     host = _host(url)
     labels = host.split(".") if host else []
@@ -113,9 +202,49 @@ def is_trusted_public_root(url: str) -> bool:
     )
 
 
-def _excerpt(text: str, needle: str, radius: int = 260) -> Dict[str, Any]:
-    index = text.casefold().find(needle.casefold())
-    if index < 0:
+def _recognized_root_covers_jurisdiction(
+    url: str,
+    country_codes: Iterable[str],
+) -> bool:
+    host = _host(url)
+    requested = {str(value).upper() for value in country_codes if value}
+    if not host or not requested:
+        return False
+    if host == "europa.eu" or host.endswith(".europa.eu"):
+        return requested.issubset(_EU_COUNTRY_CODES)
+    if host.endswith(".gov"):
+        return requested == {"US"}
+    labels = host.split(".")
+    if len(labels) >= 3 and labels[-2] == "gov" and len(labels[-1]) == 2:
+        return requested == {labels[-1].upper()}
+    return False
+
+
+def _host_reference_match(text: str, host: str) -> Optional[re.Match[str]]:
+    value = str(text or "")
+    normalized_host = host.casefold().rstrip(".")
+    for url_match in re.finditer(r"https?://[^\s<>()\[\]{}]+", value, re.IGNORECASE):
+        token = url_match.group(0).rstrip(".,;:!?'")
+        if _host(token) == normalized_host:
+            return url_match
+    without_urls = re.sub(r"https?://[^\s<>()\[\]{}]+", " ", value, flags=re.IGNORECASE)
+    return re.search(
+        rf"(?<![a-z0-9.-]){re.escape(normalized_host)}(?=[\s,;:)\]\}}]|$)",
+        without_urls,
+        re.IGNORECASE,
+    )
+
+
+def _excerpt(
+    text: str,
+    needle: str,
+    radius: int = 260,
+    *,
+    exact_host: bool = False,
+) -> Dict[str, Any]:
+    match = _host_reference_match(text, needle) if exact_host else None
+    index = match.start() if match else text.casefold().find(needle.casefold())
+    if index < 0 or (exact_host and match is None):
         raise ValueError("authority attestation does not reference the direct publisher")
     start = max(0, index - radius)
     end = min(len(text), index + len(needle) + radius)
@@ -146,11 +275,29 @@ def build_attested_authority_proof(
         raise ValueError("authority publisher must be a direct HTTPS URL")
     if not is_trusted_public_root(attestation_url):
         raise ValueError("authority attestation must come from a government/EU root")
-    if not _AUTHORITY_LANGUAGE.search(direct_text):
-        raise ValueError("direct publisher page does not identify a public authority")
-    attestation_excerpt = _excerpt(attestation_text, direct_host)
-    direct_match = _AUTHORITY_LANGUAGE.search(direct_text)
-    direct_excerpt = _excerpt(direct_text, direct_match.group(0))
+    attestation_excerpt = _excerpt(
+        attestation_text,
+        direct_host,
+        exact_host=True,
+    )
+    direct_match = _AUTHORITY_LANGUAGE.search(
+        direct_text
+    ) or _NAMED_STATISTICS_AUTHORITY.search(direct_text)
+    if not direct_match and not (
+        _AUTHORITY_LANGUAGE.search(attestation_excerpt["text"])
+        or _NAMED_STATISTICS_AUTHORITY.search(attestation_excerpt["text"])
+    ):
+        raise ValueError("trusted attestation does not identify a public authority")
+    direct_excerpt = (
+        _excerpt(direct_text, direct_match.group(0))
+        if direct_match
+        else {
+            "text": direct_text[:520],
+            "start": 0,
+            "end": min(520, len(direct_text)),
+            "sha256": hashlib.sha256(direct_text[:520].encode("utf-8")).hexdigest(),
+        }
+    )
     payload = {
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "independent_public_root_attestation",
@@ -193,13 +340,16 @@ def build_recognized_root_proof(
 
     if not is_trusted_public_root(direct_url):
         raise ValueError("direct source is not a recognized public root")
+    country_codes = [str(value).upper() for value in country_codes if value]
+    if not _recognized_root_covers_jurisdiction(direct_url, country_codes):
+        raise ValueError("recognized public root does not cover requested jurisdiction")
     excerpt_text = direct_text[:520]
     payload = {
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "recognized_public_root_direct",
         "source_authority": "official_public",
         "country_codes": sorted(
-            {str(value).upper() for value in country_codes if value}
+            set(country_codes)
         ),
         "direct": {
             "final_url": direct_url,
@@ -239,11 +389,16 @@ def build_direct_primary_market_proof(
     parsed = urlparse(str(direct_url or ""))
     host = _host(direct_url)
     language = _PRIMARY_MARKET_LANGUAGE.search(direct_text)
+    value_match = _PRIMARY_MARKET_VALUE.search(direct_text)
     if parsed.scheme.casefold() != "https" or not host:
         raise ValueError("primary market publisher must be a direct HTTPS URL")
-    if not language or not _PRIMARY_MARKET_VALUE.search(direct_text):
+    if not value_match:
         raise ValueError("direct page contains no explicit priced market observation")
-    direct_excerpt = _excerpt(direct_text, language.group(0), radius=520)
+    direct_excerpt = _excerpt(
+        direct_text,
+        (language or value_match).group(0),
+        radius=520,
+    )
     if not _PRIMARY_MARKET_VALUE.search(direct_excerpt["text"]):
         # The value and commercial label must occur in the same bounded proof
         # excerpt; a price elsewhere on a large page is not enough.
@@ -313,6 +468,13 @@ def validate_authority_proof(
     if not isinstance(direct_excerpt, Mapping):
         return False
     excerpts = [direct_excerpt]
+    requested = {str(value).upper() for value in requested_country_codes if value}
+    proof_countries = {
+        str(value).upper() for value in proof.get("country_codes") or [] if value
+    }
+    source_countries = {
+        str(value).upper() for value in source.get("country_codes") or [] if value
+    }
     expected_authority = "official_public"
     if proof_type == "independent_public_root_attestation":
         if not isinstance(attestation, Mapping) or not is_trusted_public_root(
@@ -323,12 +485,29 @@ def validate_authority_proof(
         if not isinstance(attestation_excerpt, Mapping):
             return False
         excerpts.append(attestation_excerpt)
-        if _host(source_url) not in str(attestation_excerpt.get("text") or "").casefold():
+        if not _host_reference_match(
+            str(attestation_excerpt.get("text") or ""),
+            _host(source_url),
+        ):
             return False
-        if not _AUTHORITY_LANGUAGE.search(str(direct_excerpt.get("text") or "")):
+        if not (
+            _AUTHORITY_LANGUAGE.search(str(direct_excerpt.get("text") or ""))
+            or _NAMED_STATISTICS_AUTHORITY.search(str(direct_excerpt.get("text") or ""))
+            or _AUTHORITY_LANGUAGE.search(str(attestation_excerpt.get("text") or ""))
+            or _NAMED_STATISTICS_AUTHORITY.search(
+                str(attestation_excerpt.get("text") or "")
+            )
+        ):
             return False
     elif proof_type == "recognized_public_root_direct":
-        if not is_trusted_public_root(str(direct.get("final_url") or "")):
+        asserted_countries = proof_countries | source_countries
+        if (
+            not is_trusted_public_root(str(direct.get("final_url") or ""))
+            or not _recognized_root_covers_jurisdiction(
+                str(direct.get("final_url") or ""),
+                asserted_countries,
+            )
+        ):
             return False
     elif proof_type == "direct_primary_market_observation":
         expected_authority = "first_party_catalog"
@@ -337,9 +516,6 @@ def validate_authority_proof(
             urlparse(direct_url).scheme.casefold() != "https"
             or not _host(direct_url)
             or is_trusted_public_root(direct_url)
-            or not _PRIMARY_MARKET_LANGUAGE.search(
-                str(direct_excerpt.get("text") or "")
-            )
             or not _PRIMARY_MARKET_VALUE.search(
                 str(direct_excerpt.get("text") or "")
             )
@@ -351,9 +527,6 @@ def validate_authority_proof(
         text = excerpt.get("text")
         if not isinstance(text, str) or hashlib.sha256(text.encode("utf-8")).hexdigest() != excerpt.get("sha256"):
             return False
-    requested = {str(value).upper() for value in requested_country_codes if value}
-    proof_countries = {str(value).upper() for value in proof.get("country_codes") or [] if value}
-    source_countries = {str(value).upper() for value in source.get("country_codes") or [] if value}
     return bool(
         proof.get("source_authority") == expected_authority
         and source.get("source_authority") == expected_authority
@@ -504,22 +677,53 @@ async def _public_hostname(host: str) -> bool:
     return bool(infos)
 
 
-async def fetch_direct_text(url: str, *, maximum_bytes: int = 2_000_000) -> Dict[str, str]:
+async def fetch_direct_text(
+    url: str,
+    *,
+    maximum_bytes: int = 2_000_000,
+    operation_seconds: float = _DIRECT_FETCH_OPERATION_SECONDS,
+    attempt_seconds: float = _DIRECT_FETCH_ATTEMPT_SECONDS,
+) -> Dict[str, str]:
     """Fetch text with per-hop SSRF checks and bounded redirects/body size."""
 
     current = str(url or "")
-    async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as client:
-        for _ in range(4):
+    deadline = time.monotonic() + max(1.0, operation_seconds)
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(max(1.0, attempt_seconds)),
+        follow_redirects=False,
+    ) as client:
+        for _ in range(_MAX_DIRECT_FETCH_REDIRECTS + 1):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("authority document fetch deadline exceeded")
             parsed = urlparse(current)
             if (
                 parsed.scheme.casefold() != "https"
                 or not parsed.hostname
                 or parsed.username
                 or parsed.password
-                or not await _public_hostname(parsed.hostname)
             ):
                 raise ValueError("unsafe authority URL")
-            response = await client.get(current, headers={"User-Agent": "AxWiseResearch/1.0"})
+            try:
+                public_host = await asyncio.wait_for(
+                    _public_hostname(parsed.hostname),
+                    timeout=min(_DIRECT_FETCH_DNS_SECONDS, remaining),
+                )
+            except asyncio.TimeoutError as exc:
+                raise TimeoutError("authority DNS resolution deadline exceeded") from exc
+            if not public_host:
+                raise ValueError("unsafe authority URL")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("authority document fetch deadline exceeded")
+            response = await asyncio.wait_for(
+                client.get(
+                    current,
+                    headers={"User-Agent": "AxWiseResearch/1.0"},
+                    timeout=min(max(1.0, attempt_seconds), remaining),
+                ),
+                timeout=remaining,
+            )
             if response.is_redirect:
                 target = response.headers.get("location")
                 if not target:
@@ -552,14 +756,32 @@ async def enrich_authority_sources(
 ) -> list[Dict[str, Any]]:
     """Fetch candidates concurrently and attach independently attested proofs."""
 
-    candidates = [row for row in sources if row.get("url") and not row.get("provider_redirect")]
-    fetched = await asyncio.gather(
-        *(fetcher(str(row["url"])) for row in candidates), return_exceptions=True
-    )
+    candidates = [row for row in sources if row.get("url")]
+    semaphore = asyncio.Semaphore(_MAX_DIRECT_FETCH_CONCURRENCY)
+
+    async def bounded_fetch(row: Dict[str, Any]) -> Dict[str, str]:
+        async with semaphore:
+            return await fetcher(str(row["url"]))
+
+    tasks = [asyncio.create_task(bounded_fetch(row)) for row in candidates]
+    done, pending = await asyncio.wait(tasks, timeout=_AUTHORITY_ENRICHMENT_SECONDS)
+    for task in pending:
+        task.cancel()
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
     documents: list[tuple[Dict[str, Any], Dict[str, str]]] = []
-    for row, document in zip(candidates, fetched):
-        if not isinstance(document, BaseException):
-            documents.append((row, document))
+    for row, task in zip(candidates, tasks):
+        if task not in done:
+            row["direct_fetch_status"] = "stage_deadline_exceeded"
+            continue
+        try:
+            document = task.result()
+        except BaseException as exc:
+            row["direct_fetch_status"] = f"failed:{type(exc).__name__}"
+            continue
+        row["direct_fetch_status"] = "retrieved"
+        row["resolved_url"] = document.get("final_url")
+        documents.append((row, document))
     attestations = [
         (row, doc)
         for row, doc in documents
@@ -567,7 +789,24 @@ async def enrich_authority_sources(
     ]
     for row, direct in documents:
         row.setdefault("retrieval_url", row.get("url"))
+        jurisdiction_bound = _document_binds_jurisdiction(
+            final_url=direct["final_url"],
+            text=direct["text"],
+            country_codes=row.get("country_codes") or [],
+            market_terms=row.get("market_terms") or [],
+        )
+        row["jurisdiction_binding_status"] = (
+            "verified" if jurisdiction_bound else "rejected"
+        )
+        if not jurisdiction_bound:
+            continue
         if is_trusted_public_root(direct["final_url"]):
+            if not _recognized_root_covers_jurisdiction(
+                direct["final_url"],
+                row.get("country_codes") or [],
+            ):
+                row["jurisdiction_binding_status"] = "rejected_authority_jurisdiction"
+                continue
             retrieved_at = direct.get("retrieved_at") or datetime.now(
                 timezone.utc
             ).isoformat()
@@ -584,6 +823,7 @@ async def enrich_authority_sources(
                     "source_authority": "official_public",
                     "authority_verification_status": "recognized_public_root_direct",
                     "authority_proof": proof,
+                    "provider_redirect": False,
                     "retrieved_at": retrieved_at,
                     "authority_document_artifact": {
                         "artifact_type": "direct_authority_document",
@@ -600,7 +840,7 @@ async def enrich_authority_sources(
             (
                 doc
                 for _attestation_row, doc in attestations
-                if direct_host in doc["text"].casefold()
+                if _host_reference_match(doc["text"], direct_host)
             ),
             None,
         )
@@ -627,6 +867,7 @@ async def enrich_authority_sources(
                         "source_authority": "official_public",
                         "authority_verification_status": "independently_attested_direct_domain",
                         "authority_proof": proof,
+                        "provider_redirect": False,
                         "retrieved_at": retrieved_at,
                         "authority_document_artifact": {
                             "artifact_type": "direct_authority_document",
@@ -657,6 +898,7 @@ async def enrich_authority_sources(
                 "source_authority": "first_party_catalog",
                 "authority_verification_status": "direct_primary_market_observation",
                 "authority_proof": proof,
+                "provider_redirect": False,
                 "retrieved_at": retrieved_at,
                 "authority_document_artifact": {
                     "artifact_type": "direct_authority_document",
