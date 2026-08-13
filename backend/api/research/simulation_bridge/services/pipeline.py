@@ -2567,7 +2567,8 @@ Return exactly one coordinate pair per address, in the same order as the input l
             for row in directed_queries
         ]
 
-        texts = []
+        provider_claim_lineage_rows: List[tuple[str, frozenset[str]]] = []
+        provider_lineage_sequence = 0
         source_rows = []
         claim_rows = []
         seen_urls = set()
@@ -2708,8 +2709,6 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 provider_claims,
             )
             performed = bool(search_result.get("search_performed"))
-            if performed and search_result.get("text"):
-                texts.append(str(search_result["text"])[:12000])
             for claim in provider_claims:
                 claim_rows.append(
                     {
@@ -2718,6 +2717,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
                     }
                 )
             accepted_current_urls: set[str] = set()
+            accepted_lineage_by_url: Dict[str, str] = {}
             for source in provider_sources:
                 if not isinstance(source, dict):
                     continue
@@ -2782,7 +2782,12 @@ Return exactly one coordinate pair per address, in the same order as the input l
                     ),
                     "acquisition_evidence_classes": [evidence_class],
                 }
+                provider_lineage_sequence += 1
+                lineage_token = f"provider-source-{provider_lineage_sequence}"
+                source_payload["_provider_lineage_tokens"] = (lineage_token,)
                 accepted_current_urls.add(url)
+                accepted_lineage_by_url[url] = lineage_token
+                accepted_lineage_by_url[url.rstrip("/")] = lineage_token
                 if existing:
                     for key in ("provider_query_ids", "provider_queries"):
                         existing[key] = list(
@@ -2797,9 +2802,37 @@ Return exactly one coordinate pair per address, in the same order as the input l
                             + [evidence_class]
                         )
                     )
+                    existing["_provider_lineage_tokens"] = tuple(
+                        dict.fromkeys(
+                            tuple(existing.get("_provider_lineage_tokens") or ())
+                            + (lineage_token,)
+                        )
+                    )
                     continue
                 seen_urls.add(url)
                 source_rows.append(source_payload)
+
+            if performed and accepted_lineage_by_url:
+                for claim in provider_claims:
+                    claim_text = str(
+                        claim.get("text") or claim.get("object") or ""
+                    ).strip()[:2000]
+                    lineage_tokens = frozenset(
+                        token
+                        for linked_url in claim.get("source_urls") or []
+                        if (
+                            token := accepted_lineage_by_url.get(
+                                str(linked_url)
+                            )
+                            or accepted_lineage_by_url.get(
+                                str(linked_url).rstrip("/")
+                            )
+                        )
+                    )
+                    if claim_text and lineage_tokens:
+                        provider_claim_lineage_rows.append(
+                            (claim_text, lineage_tokens)
+                        )
 
             runtime = search_result.get("runtime_diagnostics") or {}
             self._record_provider(
@@ -3073,13 +3106,45 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 class_counts[evidence_class]["claim_extracted"] = (
                     class_counts[evidence_class].get("claim_extracted", 0) + 1
                 )
-        if not texts or not source_rows:
+        surviving_sources_by_lineage = {
+            str(token): source
+            for source in source_rows
+            for token in source.get("_provider_lineage_tokens") or ()
+        }
+        company_grounding_passages: List[tuple[str, tuple[str, ...]]] = []
+        seen_company_passages: set[tuple[str, tuple[str, ...]]] = set()
+        for claim_text, lineage_tokens in provider_claim_lineage_rows:
+            canonical_urls = tuple(
+                dict.fromkeys(
+                    str(
+                        source.get("resolved_url")
+                        or ((source.get("_direct_document_candidate") or {}).get(
+                            "final_url"
+                        ))
+                        or source.get("url")
+                        or ""
+                    )
+                    for token in sorted(lineage_tokens)
+                    if (source := surviving_sources_by_lineage.get(token))
+                )
+            )
+            canonical_urls = tuple(url for url in canonical_urls if url)
+            passage_identity = (claim_text, canonical_urls)
+            if canonical_urls and passage_identity not in seen_company_passages:
+                seen_company_passages.add(passage_identity)
+                company_grounding_passages.append(passage_identity)
+
+        if not company_grounding_passages:
             logger.warning("Web grounding returned no source-bearing evidence.")
             return []
 
-        real_source_urls = [
-            f"{source['title']}: {source['url']}" for source in source_rows[:20]
-        ]
+        real_source_urls = list(
+            dict.fromkeys(
+                url
+                for _claim_text, source_urls in company_grounding_passages
+                for url in source_urls
+            )
+        )
         logger.info(
             "Market-aware web grounding returned %s source URLs.",
             len(real_source_urls),
@@ -3119,13 +3184,18 @@ CRITICAL RULES:
 """
         )
         
-        sources_text = ""
-        if real_source_urls:
-            sources_text = "\n\nGrounding Sources (provider-returned URLs):\n" + "\n".join(
-                f"- {s}" for s in real_source_urls
-            )
-
-        prompt = f"""Grounded Search Results:\n{chr(10).join(texts)}\n{sources_text}"""
+        claim_passages = "\n\n".join(
+            "Grounded Claim:\n"
+            f"{claim_text}\n"
+            "Sources for this claim:\n"
+            + "\n".join(f"- {url}" for url in source_urls)
+            for claim_text, source_urls in company_grounding_passages
+        )
+        prompt = (
+            "Grounded Search Claims (each exact claim is followed only by its "
+            "own surviving source URLs):\n"
+            f"{claim_passages}"
+        )
         company_structuring_started = time.monotonic()
         company_structuring_deadline_ms = int(
             _COMPANY_STRUCTURING_DEADLINE_SECONDS * 1000
@@ -3147,12 +3217,12 @@ CRITICAL RULES:
             companies = result.output.companies
 
             source_urls_by_identity = {
-                source["url"].rstrip("/").casefold(): source["url"]
-                for source in source_rows
+                url.rstrip("/").casefold(): url
+                for url in real_source_urls
             }
-            # Retain only URLs returned by a grounding provider. Claim/source
-            # linkage is stored separately; never attach every source to every
-            # parsed company as if it supported that entity.
+            # Retain only canonical URLs exposed alongside the exact provider
+            # claim passages given to this parser. Unrelated official evidence
+            # may remain in market_sources but cannot become a company website.
             for company in companies:
                 company.insights = (
                     "Discovered via grounded web search. "
