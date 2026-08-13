@@ -1066,13 +1066,18 @@ async def commercial_grounding(_request, _policy):
             **temporal,
         }
 
-    topic_seed_contract = (
-        (((_request.business_context.grounding_context or {}).get(
+    acquisition_contract = (
+        ((_request.business_context.grounding_context or {}).get(
             "critical_claim_acquisition", {}
-        ) or {}).get("topic_seed_contract"))
+        ) or {})
         if _request.business_context
-        else None
+        else {}
     )
+    topic_seed_contract = acquisition_contract.get("topic_seed_contract")
+    topic_market_scope_contract = acquisition_contract.get(
+        "topic_market_scope_contract"
+    )
+    topic_alias_expansion = acquisition_contract.get("topic_alias_expansion")
     return {
         "market_sources": [
             {
@@ -1190,6 +1195,8 @@ async def commercial_grounding(_request, _policy):
         "company_count": 0,
         "composer_version": "provider_shaped_commercial_fixture_v1",
         "topic_seed_contract": topic_seed_contract,
+        "topic_market_scope_contract": topic_market_scope_contract,
+        "topic_alias_expansion": topic_alias_expansion,
     }
 
 

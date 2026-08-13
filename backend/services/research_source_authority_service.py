@@ -471,6 +471,31 @@ def _visible_dom_projection(
     return " ".join(parts), spans
 
 
+def _dom_semantic_attribute_tokens(
+    node: Tag, *attribute_names: str
+) -> frozenset[str]:
+    """Return exact semantic tokens from bounded DOM role attributes.
+
+    Storefronts commonly encode a role as ``product-pricing__price`` or
+    ``product-card-price``.  Regex word boundaries cannot safely recognize the
+    underscore form because ``_`` is a word character.  Split only structural
+    separators (plus camel-case boundaries) and require exact tokens so a
+    substring such as ``pricey`` never becomes a price role.
+    """
+
+    values: list[str] = []
+    for name in attribute_names:
+        raw = node.get(name)
+        if isinstance(raw, list):
+            values.extend(str(value) for value in raw)
+        elif raw is not None:
+            values.append(str(raw))
+    separated = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", " ".join(values))
+    return frozenset(
+        re.findall(r"[^\W_]+", separated.casefold(), re.UNICODE)
+    )
+
+
 def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
     """Extract bounded canonical Product/Offer fields from fetched raw HTML."""
 
@@ -783,15 +808,16 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
         # A bare amount is allowed when the element has an explicit product
         # price role/class/itemprop; prose amounts require a current/available
         # price label and reject historical/logistics roles.
-        attrs_text = " ".join(
-            [
-                str(node.get("itemprop") or ""),
-                str(node.get("class") or ""),
-                str(node.get("id") or ""),
-                str(node.get("aria-label") or ""),
-                str(node.get("data-testid") or ""),
-            ]
+        role_tokens = _dom_semantic_attribute_tokens(
+            node,
+            "itemprop",
+            "class",
+            "id",
+            "aria-label",
+            "data-testid",
+            "data-component",
         )
+        attrs_text = " ".join(sorted(role_tokens))
         role_text = " ".join((attrs_text, own_text))
         if _NON_OFFER_PRICE_ROLE.search(attrs_text):
             return False
@@ -803,12 +829,7 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
                 ):
                     return False
         explicit_role = bool(
-            re.search(r"\bprice\b", attrs_text, re.IGNORECASE)
-            or re.search(
-                r"(?:^|\s)(?:price|lowprice|highprice)(?:\s|$)",
-                str(node.get("itemprop") or ""),
-                re.IGNORECASE,
-            )
+            bool({"price", "lowprice", "highprice"}.intersection(role_tokens))
             or _CURRENT_PRICE_ROLE.search(own_text)
             or (
                 node.has_attr("itemscope")
@@ -852,23 +873,23 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
                         _visible_dom_text(child, hidden_classes)
                     )
                 ]
-                local_attrs = " ".join(
-                    (
-                        str(node.get("class") or ""),
-                        str(node.get("id") or ""),
-                        str(node.get("itemprop") or ""),
-                        str(node.get("aria-label") or ""),
-                    )
+                local_role_tokens = _dom_semantic_attribute_tokens(
+                    node,
+                    "class",
+                    "id",
+                    "itemprop",
+                    "aria-label",
+                    "data-testid",
+                    "data-component",
                 )
+                local_attrs = " ".join(sorted(local_role_tokens))
                 if (
                     not node.has_attr("itemscope")
                     and priced_children
                     and not (
                         len(priced_children) == 1
-                        and re.search(
-                            r"\b(?:price|offer|availability)\b",
-                            local_attrs,
-                            re.IGNORECASE,
+                        and {"price", "offer", "availability"}.intersection(
+                            local_role_tokens
                         )
                         and not _NON_OFFER_PRICE_ROLE.search(local_attrs)
                     )
@@ -886,9 +907,18 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
                     and _NON_OFFER_PRICE_ROLE.search(
                         " ".join(
                             (
-                                str(ancestor.get("class") or ""),
-                                str(ancestor.get("id") or ""),
-                                str(ancestor.get("aria-label") or ""),
+                                " ".join(
+                                    sorted(
+                                        _dom_semantic_attribute_tokens(
+                                            ancestor,
+                                            "class",
+                                            "id",
+                                            "aria-label",
+                                            "data-testid",
+                                            "data-component",
+                                        )
+                                    )
+                                ),
                                 " ".join(
                                     str(child).strip()
                                     for child in ancestor.children
@@ -903,14 +933,16 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
             )
             if negative_ancestor is not None:
                 continue
-            attrs_role = " ".join(
-                (
-                    str(node.get("class") or ""),
-                    str(node.get("id") or ""),
-                    str(node.get("itemprop") or ""),
-                    str(node.get("aria-label") or ""),
-                )
+            role_tokens = _dom_semantic_attribute_tokens(
+                node,
+                "class",
+                "id",
+                "itemprop",
+                "aria-label",
+                "data-testid",
+                "data-component",
             )
+            attrs_role = " ".join(sorted(role_tokens))
             semantic_container_role = bool(
                 node.name.casefold() in {"div", "span", "p", "strong", "b", "em"}
                 and _CURRENT_PRICE_ROLE.search(own_text)
@@ -932,7 +964,7 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
             )
             if not (
                 semantic_container_role
-                or re.search(r"\b(?:price|offer|availability)\b", attrs_role, re.I)
+                or {"price", "offer", "availability"}.intersection(role_tokens)
                 or itemprop_price_role
             ):
                 continue

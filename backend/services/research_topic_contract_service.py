@@ -34,6 +34,11 @@ MAX_ALIASES_PER_COUNTRY = 12
 MAX_TOPIC_PHRASE_CHARS = 120
 MAX_VISIBLE_FIELD_CHARS = 1_000
 MAX_VISIBLE_SERIES_OR_DIMENSIONS = 32
+TRUSTED_TOPIC_ALIAS_REGISTRY_ID = "axwise-topic-alias-registry"
+TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION = "2026-08-13.v1"
+TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256 = (
+    "051827a878cf54c45234cdc8faa6741f203b8a6c60a50b69f024b1c913e72c09"
+)
 
 _SHA256_PATTERN = r"^[0-9a-f]{64}$"
 _LANGUAGE_PATTERN = r"^[a-z]{2,3}(?:-[A-Z]{2})?$"
@@ -58,6 +63,7 @@ _GENERIC_TOPIC_TOKENS = frozenset(
         "based",
         "business",
         "commercial",
+        "commercially",
         "complete",
         "compliant",
         "consumer",
@@ -171,6 +177,18 @@ _STATIC_GEOGRAPHY_TOKENS = frozenset(
         "sea",
         "worldwide",
     }
+)
+
+# Versioned workflow wording emitted by the research UI may trail a goal title
+# after the actual product/category (for example ``cat food ... using Advanced
+# Grounded Deep research``).  It is not an inferred product anchor.  Match only
+# the complete trailing span; these words remain valid in a real product phrase
+# elsewhere, and an explicit exact anchor is never changed.
+_TRAILING_TITLE_WORKFLOW_SUFFIXES_V1 = (
+    re.compile(
+        r"(?<!\w)using\s+advanced\s+grounded\s+deep\s+research[.!?]*\Z",
+        re.IGNORECASE,
+    ),
 )
 
 def normalize_topic_phrase(value: str) -> str:
@@ -607,7 +625,22 @@ def _derived_anchor_occurrences(
                 )
             )
 
-    for source_field, text in _immutable_topic_sources(goal):
+    for source_field, source_text in _immutable_topic_sources(goal):
+        text = source_text
+        # The UI's business-idea field can be copied into both title and
+        # mission. Strip the same closed complete suffix from every *derived*
+        # immutable source before anchor extraction. Explicit anchors are
+        # resolved against the original source text above and remain exact.
+        suffix = next(
+            (
+                match
+                for pattern in _TRAILING_TITLE_WORKFLOW_SUFFIXES_V1
+                if (match := pattern.search(text)) is not None
+            ),
+            None,
+        )
+        if suffix is not None:
+            text = text[: suffix.start()].rstrip()
         run: list[tuple[str, int, int]] = []
         prior_end: int | None = None
         for match in _WORD.finditer(text):
@@ -1292,6 +1325,146 @@ def validate_alias_expansion(
     )
 
 
+# Evidence-eligible translations are code-reviewed adapters, never model output.
+# Adding or changing a row requires a registry-version change so every consumer
+# independently derives the same immutable payload and hash.
+_TRUSTED_TOPIC_ALIAS_ROWS_V1: tuple[Mapping[str, str], ...] = (
+    {
+        "phrase": "kassitoit",
+        "country_code": "EE",
+        "language_code": "et",
+        "source_anchor": "cat food",
+        "relation": TopicAliasRelation.DIRECT_TRANSLATION.value,
+        "back_translation": "cat food",
+        "acceptance_basis": TopicAliasAcceptanceBasis.TRUSTED_LEXICON.value,
+    },
+)
+
+
+def trusted_topic_alias_registry() -> TrustedTopicAliasRegistry:
+    """Return the sole versioned registry used by production trust boundaries."""
+
+    registry = build_trusted_topic_alias_registry(
+        registry_id=TRUSTED_TOPIC_ALIAS_REGISTRY_ID,
+        registry_version=TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION,
+        entries=_TRUSTED_TOPIC_ALIAS_ROWS_V1,
+    )
+    if registry.registry_sha256 != TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256:
+        raise RuntimeError(
+            "trusted topic alias registry changed without an explicit version/hash update"
+        )
+    return registry
+
+
+def build_expected_trusted_topic_alias_expansion(
+    seed: TopicSeedContract | Mapping[str, Any],
+    market_scope: ConfirmedMarketScope | Mapping[str, Any],
+) -> ValidatedTopicAliasExpansion | None:
+    """Independently derive the exact applicable trusted alias expansion.
+
+    ``None`` means the versioned registry has no mapping for this immutable
+    product-topic/country contract.  Callers must preserve the normal exact
+    topic behaviour in that case; they must not manufacture an empty lifecycle
+    payload or treat an untrusted alias as evidence.
+    """
+
+    if not isinstance(seed, TopicSeedContract):
+        seed = TopicSeedContract.model_validate(seed)
+    if not isinstance(market_scope, ConfirmedMarketScope):
+        market_scope = ConfirmedMarketScope.model_validate(market_scope)
+    registry = trusted_topic_alias_registry()
+    product_anchors = set(product_topic_phrases(seed))
+    applicable = tuple(
+        entry
+        for entry in registry.entries
+        if entry.country_code in seed.confirmed_country_codes
+        and entry.source_anchor in product_anchors
+    )
+    if not applicable:
+        # Still authenticate the seed/scope pair before returning the absence
+        # of an adapter. A mismatched scope must never become a bypass.
+        if tuple(market_scope.country_codes) != tuple(seed.confirmed_country_codes):
+            raise ValueError("market_scope countries do not match topic seed")
+        if canonical_topic_sha256(market_scope.model_dump(mode="json")) != (
+            seed.confirmed_market_scope_sha256
+        ):
+            raise ValueError("market_scope fingerprint does not match topic seed")
+        return None
+    payload = TopicAliasExpansionPayload(
+        schema_version=TOPIC_CONTRACT_SCHEMA_VERSION,
+        seed_sha256=seed.seed_sha256,
+        aliases=tuple(
+            TopicAliasCandidate(
+                **entry.model_dump(mode="json"),
+                usage=TopicAliasUsage.EVIDENCE_AND_RETRIEVAL,
+            )
+            for entry in applicable
+        ),
+    )
+    return validate_alias_expansion(
+        seed,
+        payload,
+        market_scope=market_scope,
+        trusted_registry=registry,
+    )
+
+
+def validate_expected_trusted_topic_alias_expansion(
+    seed: TopicSeedContract | Mapping[str, Any],
+    market_scope: ConfirmedMarketScope | Mapping[str, Any],
+    supplied: ValidatedTopicAliasExpansion | Mapping[str, Any] | None,
+) -> ValidatedTopicAliasExpansion | None:
+    """Require a supplied lifecycle payload to equal independent derivation."""
+
+    expected = build_expected_trusted_topic_alias_expansion(seed, market_scope)
+    if expected is None:
+        if supplied is not None:
+            raise ValueError(
+                "topic alias expansion is not applicable to this seed and market"
+            )
+        return None
+    if supplied is None:
+        raise ValueError("applicable trusted topic alias expansion is missing")
+    candidate = (
+        supplied
+        if isinstance(supplied, ValidatedTopicAliasExpansion)
+        else ValidatedTopicAliasExpansion.model_validate(supplied)
+    )
+    if candidate != expected:
+        raise ValueError(
+            "topic alias expansion does not equal the independently derived contract"
+        )
+    return candidate
+
+
+def evidence_topic_phrases_for_country(
+    seed: TopicSeedContract,
+    *,
+    country_code: str,
+    expansion: ValidatedTopicAliasExpansion | None = None,
+) -> tuple[tuple[str, str], ...]:
+    """Return exact ``(visible phrase, source anchor)`` evidence contracts."""
+
+    if not isinstance(seed, TopicSeedContract):
+        seed = TopicSeedContract.model_validate(seed)
+    code = _validated_country_for_seed(seed, country_code)
+    source_anchors = set(product_topic_phrases(seed))
+    rows = {(anchor, anchor) for anchor in source_anchors}
+    if expansion is not None:
+        if not isinstance(expansion, ValidatedTopicAliasExpansion):
+            expansion = ValidatedTopicAliasExpansion.model_validate(expansion)
+        if expansion.seed_sha256 != seed.seed_sha256:
+            raise ValueError("alias expansion is bound to a different topic seed")
+        rows.update(
+            (alias.phrase, alias.source_anchor)
+            for alias in expansion.aliases
+            if alias.country_code == code
+            and alias.evidence_eligible
+            and alias.source_anchor in source_anchors
+        )
+    return tuple(sorted(rows))
+
+
 def _bounded_visible_text(value: str, *, label: str) -> str:
     if not isinstance(value, str):
         raise TypeError(f"{label} must be a string")
@@ -1667,6 +1840,9 @@ __all__ = [
     "MAX_GOAL_ANCHORS",
     "MAX_TOPIC_PHRASE_CHARS",
     "TOPIC_CONTRACT_SCHEMA_VERSION",
+    "TRUSTED_TOPIC_ALIAS_REGISTRY_ID",
+    "TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION",
+    "TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256",
     "TopicAliasAcceptanceBasis",
     "TopicAliasCandidate",
     "TopicAliasExpansionPayload",
@@ -1682,13 +1858,17 @@ __all__ = [
     "ValidatedTopicAliasExpansion",
     "VisibleStatisticalTableFields",
     "build_topic_seed",
+    "build_expected_trusted_topic_alias_expansion",
     "build_trusted_topic_alias_registry",
     "canonical_topic_sha256",
     "exact_topic_phrase_in_visible_text",
+    "evidence_topic_phrases_for_country",
     "match_visible_statistical_topic",
     "normalize_topic_phrase",
     "product_topic_phrases",
     "retrieval_phrases_for_country",
+    "trusted_topic_alias_registry",
     "validate_alias_expansion",
+    "validate_expected_trusted_topic_alias_expansion",
     "visible_statistical_table_fields",
 ]

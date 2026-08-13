@@ -30,10 +30,14 @@ from backend.services.research_source_authority_service import (
     validate_structured_statistical_claim_artifact,
 )
 from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
     TopicSeedContract,
+    ValidatedTopicAliasExpansion,
+    evidence_topic_phrases_for_country,
     exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
     product_topic_phrases,
+    validate_expected_trusted_topic_alias_expansion,
 )
 
 
@@ -367,6 +371,8 @@ def _structured_statistical_facts(
     claim_id: str,
     country_codes: Iterable[str],
     topic_seed_contract: Optional[Mapping[str, Any]] = None,
+    topic_alias_expansion: Optional[ValidatedTopicAliasExpansion] = None,
+    provenance_source_id: str = "",
 ) -> List[Dict[str, Any]]:
     observation = claim.get("structured_statistical_observation")
     if not isinstance(observation, Mapping):
@@ -397,6 +403,11 @@ def _structured_statistical_facts(
         return []
     independently_derived: Optional[Mapping[str, Any]] = None
     for source in linked_sources:
+        if (
+            not provenance_source_id
+            or str(source.get("source_id") or "") != provenance_source_id
+        ):
+            continue
         proof = source.get("authority_proof")
         authority_document = source.get("_authority_document_artifact")
         raw_html = source.get("_structured_evidence_html")
@@ -448,6 +459,7 @@ def _structured_statistical_facts(
                     "series": [observation.get("series") or ""],
                 },
                 country_code=topic_country,
+                expansion=topic_alias_expansion,
                 source_anchors=product_topic_phrases(topic_seed),
             )
         except (TypeError, ValueError):
@@ -1139,6 +1151,8 @@ def evaluate_critical_claims(
     mandatory_claim_classes: Iterable[str] = (),
     claim_class_applicability: Optional[Mapping[str, Any]] = None,
     topic_seed_contract: Optional[Mapping[str, Any]] = None,
+    topic_market_scope_contract: Optional[Mapping[str, Any]] = None,
+    topic_alias_expansion: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Validate material claims against dated, jurisdiction-matched evidence.
 
@@ -1172,7 +1186,17 @@ def evaluate_critical_claims(
         )
     )
     raw_topic_seed = topic_seed_contract or grounding.get("topic_seed_contract")
+    raw_topic_scope = (
+        topic_market_scope_contract
+        or grounding.get("topic_market_scope_contract")
+    )
+    raw_topic_alias_expansion = (
+        topic_alias_expansion
+        if topic_alias_expansion is not None
+        else grounding.get("topic_alias_expansion")
+    )
     validated_topic_seed: Optional[TopicSeedContract] = None
+    validated_topic_alias_expansion: Optional[ValidatedTopicAliasExpansion] = None
     topic_contract_status = "not_required"
     if official_topic_required or observed_topic_required:
         topic_contract_status = "missing_or_invalid"
@@ -1182,6 +1206,16 @@ def evaluate_critical_claims(
                 set(candidate_topic_seed.confirmed_country_codes)
             ):
                 raise ValueError("topic seed does not cover requested country cells")
+            candidate_topic_scope = ConfirmedMarketScope.model_validate(
+                raw_topic_scope
+            )
+            validated_topic_alias_expansion = (
+                validate_expected_trusted_topic_alias_expansion(
+                    candidate_topic_seed,
+                    candidate_topic_scope,
+                    raw_topic_alias_expansion,
+                )
+            )
             validated_topic_seed = candidate_topic_seed
             topic_contract_status = "valid"
         except (TypeError, ValueError):
@@ -1290,6 +1324,29 @@ def evaluate_critical_claims(
         structured_official_statistic = isinstance(
             claim.get("structured_statistical_observation"), Mapping
         )
+        provenance_source_id = ""
+        citation = claim.get("citation_metadata")
+        artifact = claim.get("provenance_artifact")
+        if isinstance(citation, Mapping) and isinstance(artifact, Mapping):
+            citation_source_id = str(citation.get("source_id") or "")
+            artifact_source_id = str(artifact.get("source_id") or "")
+            if citation_source_id and citation_source_id == artifact_source_id:
+                provenance_source_id = citation_source_id
+        if evidence_class in {
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        }:
+            direct_authorities = [
+                source
+                for source in direct_authorities
+                if str(source.get("source_id") or "") == provenance_source_id
+            ]
+            valid_authorities = [
+                source
+                for source in valid_authorities
+                if str(source.get("source_id") or "") == provenance_source_id
+            ]
         facts = (
             _structured_statistical_facts(
                 claim,
@@ -1301,6 +1358,8 @@ def evaluate_critical_claims(
                     if validated_topic_seed
                     else None
                 ),
+                topic_alias_expansion=validated_topic_alias_expansion,
+                provenance_source_id=provenance_source_id,
             )
             if evidence_class == "official_statistic"
             and structured_official_statistic
@@ -1333,16 +1392,43 @@ def evaluate_critical_claims(
                 "observed_primary_market",
             },
         )
+        valid_authority_source_ids = {
+            str(source.get("source_id") or "") for source in valid_authorities
+        }
         matched_commercial_offer = None
         if evidence_class == "observed_primary_market":
             offer_topic_seed: Optional[TopicSeedContract] = None
-            offer_topic_phrases: tuple[str, ...] = ()
             if validated_topic_seed is not None:
-                offer_topic_phrases = product_topic_phrases(validated_topic_seed)
-                if offer_topic_phrases:
+                direct_product_topics = product_topic_phrases(validated_topic_seed)
+                if direct_product_topics:
                     offer_topic_seed = validated_topic_seed
             authorized_fact_ids: set[str] = set()
             for source in linked_sources:
+                source_id = str(source.get("source_id") or "")
+                if (
+                    not provenance_source_id
+                    or source_id != provenance_source_id
+                    or source_id not in valid_authority_source_ids
+                ):
+                    continue
+                source_topic_contracts: tuple[tuple[str, str], ...] = ()
+                source_topic_countries = {
+                    str(code).upper()
+                    for code in source.get("country_codes") or []
+                    if code
+                }
+                bound_topic_countries = (
+                    source_topic_countries & claim_countries & requested_countries
+                )
+                if offer_topic_seed is not None and len(bound_topic_countries) == 1:
+                    try:
+                        source_topic_contracts = evidence_topic_phrases_for_country(
+                            offer_topic_seed,
+                            country_code=next(iter(bound_topic_countries)),
+                            expansion=validated_topic_alias_expansion,
+                        )
+                    except (TypeError, ValueError):
+                        source_topic_contracts = ()
                 proof = source.get("authority_proof")
                 raw_html = source.get("_structured_evidence_html")
                 authority_document = source.get("_authority_document_artifact")
@@ -1383,7 +1469,7 @@ def evaluate_critical_claims(
                             and exact_topic_phrase_in_visible_text(
                                 product_name, phrase
                             )
-                            for phrase in offer_topic_phrases
+                            for phrase, _source_anchor in source_topic_contracts
                         ):
                             offer = None
                     if offer:
@@ -1752,6 +1838,21 @@ def evaluate_critical_claims(
         "topic_contract_status": topic_contract_status,
         "topic_seed_sha256": (
             validated_topic_seed.seed_sha256 if validated_topic_seed else None
+        ),
+        "topic_alias_expansion_sha256": (
+            validated_topic_alias_expansion.expansion_sha256
+            if validated_topic_alias_expansion
+            else None
+        ),
+        "topic_alias_registry_id": (
+            validated_topic_alias_expansion.trusted_registry_id
+            if validated_topic_alias_expansion
+            else None
+        ),
+        "topic_alias_registry_version": (
+            validated_topic_alias_expansion.trusted_registry_version
+            if validated_topic_alias_expansion
+            else None
         ),
         "missing_claim_classes": missing_classes,
         "evidence_ledger": evidence_ledger,

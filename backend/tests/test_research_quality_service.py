@@ -29,6 +29,7 @@ from backend.services.research_source_authority_service import (
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
 
@@ -88,7 +89,16 @@ os.environ.setdefault(
 
 
 def _cat_food_topic_seed(*country_codes: str) -> dict:
-    return build_topic_seed(
+    return _cat_food_topic_contracts(*country_codes)["topic_seed_contract"]
+
+
+def _cat_food_topic_contracts(*country_codes: str) -> dict:
+    scope = ConfirmedMarketScope(
+        scope_label="test market",
+        country_codes=country_codes or ("EE",),
+        confirmed=True,
+    )
+    seed = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id="cat-food-quality-test",
             title="Cat food commercial launch",
@@ -97,12 +107,16 @@ def _cat_food_topic_seed(*country_codes: str) -> dict:
             target_user="Pet-food category buyer",
             exact_topic_anchors=("cat food",),
         ),
-        ConfirmedMarketScope(
-            scope_label="test market",
-            country_codes=country_codes or ("EE",),
-            confirmed=True,
-        ),
-    ).model_dump(mode="json")
+        scope,
+    )
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+    result = {
+        "topic_seed_contract": seed.model_dump(mode="json"),
+        "topic_market_scope_contract": scope.model_dump(mode="json"),
+    }
+    if expansion is not None:
+        result["topic_alias_expansion"] = expansion.model_dump(mode="json")
+    return result
 
 
 def _structured_statistic_grounding(
@@ -114,6 +128,7 @@ def _structured_statistic_grounding(
     period: str = "1st quarter 2026",
     dataset_id: str = "CAT001",
     unit: str = "million euros",
+    retrieved_at: str = "2026-08-12T12:00:00+00:00",
 ) -> dict:
     raw_html = f"""
     <figure data-uuid="cat-food-stat">
@@ -133,7 +148,6 @@ def _structured_statistic_grounding(
         "National public authority and official statistics office. "
         + _normalized_document_text(raw_html, is_html=True)
     )
-    retrieved_at = "2026-08-12T12:00:00+00:00"
     proof = build_attested_authority_proof(
         direct_url=source_url,
         direct_text=direct_text,
@@ -197,7 +211,7 @@ def _structured_statistic_grounding(
             },
             "provenance_artifact": artifact,
         }],
-        "topic_seed_contract": _cat_food_topic_seed("EE"),
+        **_cat_food_topic_contracts("EE"),
     }
 
 
@@ -506,7 +520,7 @@ def _catalog_grounding(
             }
         ],
         "market_claims": market_claims,
-        "topic_seed_contract": _cat_food_topic_seed(country_code),
+        **_cat_food_topic_contracts(country_code),
     }
 
 
@@ -591,12 +605,15 @@ def _merge_grounding(*parts: dict) -> dict:
         "market_sources": [row for part in parts for row in part["market_sources"]],
         "market_claims": [row for part in parts for row in part["market_claims"]],
     }
-    topic_seed = next(
-        (part.get("topic_seed_contract") for part in parts if part.get("topic_seed_contract")),
-        None,
-    )
-    if topic_seed:
-        merged["topic_seed_contract"] = topic_seed
+    for key in (
+        "topic_seed_contract",
+        "topic_market_scope_contract",
+        "topic_alias_expansion",
+    ):
+        values = [part.get(key) for part in parts if part.get(key) is not None]
+        if values:
+            assert all(value == values[0] for value in values)
+            merged[key] = values[0]
     return merged
 
 
@@ -745,7 +762,7 @@ def test_observed_offer_must_match_immutable_product_topic():
         )],
     )
     for grounding in (cat, dog):
-        grounding["topic_seed_contract"] = _cat_food_topic_seed("EE")
+        grounding.update(_cat_food_topic_contracts("EE"))
 
     cat_quality = evaluate_critical_claims(
         cat,
@@ -769,6 +786,49 @@ def test_observed_offer_must_match_immutable_product_topic():
     }
 
 
+def test_observed_offer_cannot_launder_authority_across_linked_sources():
+    ee_authority = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/alpha-cat-food",
+        claims=[(
+            "ee-offer",
+            "Alpha cat food 400 g current retail price is €4.99 on 2026-08-12.",
+        )],
+    )
+    lv_offer = _catalog_grounding(
+        country_code="LV",
+        source_url="https://shop.example.lv/royal-canin-kassitoit",
+        claims=[(
+            "lv-offer",
+            "Royal Canin kassitoit 400 g current retail price is €2.99 on 2026-08-12.",
+        )],
+    )
+    lv_claim = lv_offer["market_claims"][0]
+    # The exact citation/artifact remains bound to LV while an unrelated valid
+    # EE catalogue is added to the claim. Those authorities cannot be unioned.
+    lv_claim["source_ids"] = ["catalog-ee", "catalog-lv"]
+    lv_claim["country_codes"] = ["EE"]
+    grounding = {
+        "market_sources": [
+            *ee_authority["market_sources"],
+            *lv_offer["market_sources"],
+        ],
+        "market_claims": [lv_claim],
+        **_cat_food_topic_contracts("EE", "LV"),
+    }
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "blocked", quality
+    assert quality["verified_facts"] == []
+    assert quality["missing_claim_classes"] == ["observed_primary_market"]
+
+
 def test_mandatory_observed_offer_fails_closed_without_topic_contract():
     grounding = _catalog_grounding(
         country_code="EE",
@@ -779,7 +839,12 @@ def test_mandatory_observed_offer_fails_closed_without_topic_contract():
             "€2.99 on 2026-08-12.",
         )],
     )
-    grounding.pop("topic_seed_contract")
+    for key in (
+        "topic_seed_contract",
+        "topic_market_scope_contract",
+        "topic_alias_expansion",
+    ):
+        grounding.pop(key, None)
 
     quality = evaluate_critical_claims(
         grounding,
@@ -1047,6 +1112,45 @@ def test_flattened_multi_rate_statutory_passage_is_not_comparable():
     assert {
         fact["identity_incomplete_reason"] for fact in facts
     } == {"ambiguous_multi_value_statutory_passage"}
+
+
+def test_official_statistic_cannot_launder_freshness_across_linked_sources():
+    fresh = _structured_statistic_grounding(
+        source_id="stats-fresh",
+        source_url="https://fresh-stat.example.ee/cat-food",
+        value="8.12",
+    )
+    stale = _structured_statistic_grounding(
+        source_id="stats-stale",
+        source_url="https://stale-stat.example.ee/cat-food",
+        value="8.12",
+        retrieved_at="2024-01-01T00:00:00+00:00",
+    )
+    stale_claim = stale["market_claims"][0]
+    # Citation/artifact are exactly signed by stale B, but claim also links
+    # fresh A with the same structured observation. Freshness and authority
+    # must come from B itself, not the union of linked sources.
+    stale_claim["source_ids"] = ["stats-fresh", "stats-stale"]
+    grounding = {
+        "market_sources": [
+            *fresh["market_sources"],
+            *stale["market_sources"],
+        ],
+        "market_claims": [stale_claim],
+        **_cat_food_topic_contracts("EE"),
+    }
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+
+    assert quality["status"] == "blocked", quality
+    assert quality["verified_facts"] == []
+    assert quality["missing_claim_classes"] == ["official_statistic"]
 
 
 def test_official_series_conflicts_only_for_same_series_and_period():
