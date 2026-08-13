@@ -21,6 +21,7 @@ from backend.services.research_topic_contract_service import (
     build_topic_seed,
     build_trusted_topic_alias_registry,
     canonical_topic_sha256,
+    evidence_topic_phrases_for_country,
     match_visible_statistical_topic,
     normalize_topic_phrase,
     product_topic_phrases,
@@ -744,8 +745,15 @@ def test_expected_registry_expansion_is_country_seed_and_hash_bound():
 
     assert expansion is not None
     assert [(row.phrase, row.source_anchor) for row in expansion.aliases] == [
-        ("kassitoit", "cat food")
+        ("kassi kuivtoit", "cat food"),
+        ("kassitoit", "cat food"),
     ]
+    assert (
+        "kassi kuivtoit",
+        "cat food",
+    ) in evidence_topic_phrases_for_country(
+        seed, country_code="EE", expansion=expansion
+    )
     assert "kassitoit" in retrieval_phrases_for_country(
         seed,
         country_code="EE",
@@ -755,6 +763,37 @@ def test_expected_registry_expansion_is_country_seed_and_hash_bound():
     assert validate_expected_trusted_topic_alias_expansion(
         seed, scope, expansion.model_dump(mode="json")
     ) == expansion
+
+
+def test_expected_registry_authorizes_exact_estonian_dry_cat_food_surface_form():
+    seed, scope = _seed_and_scope("EE")
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+
+    result = match_visible_statistical_topic(
+        seed,
+        {"series": "Applaws kassi kuivtoit, kana/part, 2 kg"},
+        country_code="EE",
+        expansion=expansion,
+        source_anchors=("cat food",),
+    )
+
+    assert result.matched
+    assert result.matched_phrase == "kassi kuivtoit"
+    assert result.source_anchor == "cat food"
+    assert result.relation == TopicMatchRelation.SURFACE_FORM
+
+    for nonmatch in (
+        "Premium koera kuivtoit",
+        "Premium copykassi kuivtoit",
+        "Premium kassi kuivtoitlus",
+    ):
+        assert not match_visible_statistical_topic(
+            seed,
+            {"series": nonmatch},
+            country_code="EE",
+            expansion=expansion,
+            source_anchors=("cat food",),
+        ).matched
 
 
 def test_production_registry_version_has_an_explicit_pinned_hash():
@@ -770,7 +809,8 @@ def test_global_ee_lv_expansion_filters_aliases_per_country():
 
     assert expansion is not None
     assert [(row.country_code, row.phrase) for row in expansion.aliases] == [
-        ("EE", "kassitoit")
+        ("EE", "kassi kuivtoit"),
+        ("EE", "kassitoit"),
     ]
     assert "kassitoit" in retrieval_phrases_for_country(
         seed,
@@ -838,7 +878,9 @@ def test_self_rehashed_alias_tamper_does_not_become_expected_registry_truth():
     expected = build_expected_trusted_topic_alias_expansion(seed, scope)
     assert expected is not None
     tampered = expected.model_dump(mode="json")
-    tampered["aliases"][0]["phrase"] = "koeratoit"
+    next(
+        row for row in tampered["aliases"] if row["phrase"] == "kassitoit"
+    )["phrase"] = "koeratoit"
     tampered["expansion_sha256"] = canonical_topic_sha256(
         {
             key: tampered.get(key)
