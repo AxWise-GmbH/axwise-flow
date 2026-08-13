@@ -12,6 +12,7 @@ import ast
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -38,6 +39,7 @@ from backend.services.research_topic_contract_service import (
     exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
     product_topic_phrases,
+    trusted_topic_alias_registry,
     validate_expected_trusted_topic_alias_expansion,
 )
 
@@ -184,6 +186,37 @@ _PRODUCT_KIND_TERMS = {
     "supplement",
     "toy",
 }
+_BOUND_OFFER_STRUCTURAL_TERMS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "at",
+    "by",
+    "catalog",
+    "catalogue",
+    "current",
+    "each",
+    "eur",
+    "for",
+    "from",
+    "in",
+    "is",
+    "observed",
+    "of",
+    "on",
+    "offer",
+    "per",
+    "price",
+    "retail",
+    "shelf",
+    "the",
+    "to",
+    "unit",
+    "units",
+    "was",
+    "with",
+}
 _COUNTRY_NAME_TO_CODE = {
     str(country.name).casefold(): str(country.alpha_2).upper()
     for country in pycountry.countries
@@ -214,8 +247,9 @@ _COUNTRY_DEMONYM_TO_CODE = {
     "latvian": "LV",
 }
 _TEMPORAL_CUE = re.compile(
-    r"\b(?:as[\s\-–—]+of|takes?[\s\-–—]+effect|"
-    r"effective(?:[\s\-–—]+on)?|from|since)\b",
+    r"\b(?:as[\s\-–—]+of|"
+    r"takes?[\s\-–—]+effect(?:[\s\-–—]+(?:from|since|on))?|"
+    r"effective(?:[\s\-–—]+(?:from|since|on))?|from|since)\b",
     re.IGNORECASE,
 )
 _MONTH_TOKEN = (
@@ -277,6 +311,30 @@ def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
 
 def _explicit_country_codes(text: str) -> set[str]:
     return _jurisdiction_qualifiers(text)[0]
+
+
+def _strict_market_country_codes(value: Any) -> set[str]:
+    """Read formula jurisdictions only from an explicit unique ISO-2 list."""
+
+    if not isinstance(value, Mapping):
+        return set()
+    return _strict_iso_country_code_values(value.get("countries"))
+
+
+def _strict_iso_country_code_values(raw_countries: Any) -> set[str]:
+    if (
+        not isinstance(raw_countries, Sequence)
+        or isinstance(raw_countries, (str, bytes))
+        or not raw_countries
+    ):
+        return set()
+    if any(
+        not isinstance(raw_code, str) or raw_code not in _COUNTRY_CODE_TO_CODE
+        for raw_code in raw_countries
+    ):
+        return set()
+    countries = set(raw_countries)
+    return countries if len(countries) == len(raw_countries) else set()
 
 
 def _parse_date_candidate(raw: str) -> Optional[tuple[str, str]]:
@@ -469,20 +527,28 @@ def _iter_material_nodes(value: Any, path: str = "") -> Iterator[tuple[str, Mapp
         text = " ".join(
             f"{key} {child}"
             for key, child in value.items()
+            if key not in {"calculation_kind", "formula"}
             if isinstance(child, (str, int, float)) and child not in ("", None)
         ).strip()
-        if text and extract_material_facts(
-            text, claim_id=path or "prd", force_material=True
+        if value.get("formula") or (
+            text
+            and extract_material_facts(
+                text, claim_id=path or "prd", force_material=True
+            )
         ):
             yield path or "commercial_prd", value
         for key, child in value.items():
             if key in {
+                "calculation_kind",
                 "claim",
+                "claim_ids",
                 "statement",
                 "value",
                 "description",
                 "text",
                 "formula",
+                "input_bindings",
+                "input_claim_ids",
                 "validation_plan",
             }:
                 continue
@@ -497,91 +563,544 @@ def _iter_material_nodes(value: Any, path: str = "") -> Iterator[tuple[str, Mapp
         yield path or "commercial_prd", {"statement": value}
 
 
-def _has_traceable_calculation(value: Any, verified_claim_ids: set[str]) -> bool:
-    if isinstance(value, Mapping):
-        formula = str(value.get("formula") or "").strip()
-        inputs = {
-            str(item) for item in value.get("input_claim_ids") or [] if item
-        }
-        if (
-            formula
-            and _formula_has_only_neutral_numeric_literals(formula)
-            and inputs
-            and inputs.issubset(verified_claim_ids)
-        ):
-            return True
-        return any(
-            _has_traceable_calculation(child, verified_claim_ids)
-            for child in value.values()
+def _has_traceable_calculation(
+    value: Any,
+    verified_claim_ids: set[str],
+    verified_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+    required_country_codes: set[str],
+) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    calculation_key = "observed_pack_price_difference"
+    calculation = value.get(calculation_key)
+    if not isinstance(calculation, Mapping) or not _formula_has_typed_bindings(
+        calculation,
+        verified_claim_ids=verified_claim_ids,
+        verified_facts_by_claim=verified_facts_by_claim,
+        required_country_codes=required_country_codes,
+    ):
+        return False
+
+    # The machine-only formula cannot hide or replace its human-visible
+    # evidence. Each exact bound offer must appear in its own immediate pricing
+    # sibling, locally citing only that claim and matching only that fact.
+    bindings = calculation["input_bindings"]
+    represented_paths: set[str] = set()
+    for binding in bindings.values():
+        claim_id = str(binding["claim_id"])
+        fact_id = str(binding["fact_id"])
+        matches = [
+            fact
+            for fact in verified_facts_by_claim.get(claim_id, ())
+            if str(fact.get("claim_id") or "") == claim_id
+            and str(fact.get("fact_id") or "") == fact_id
+            and fact.get("identity_complete") is True
+        ]
+        if len(matches) != 1:
+            return False
+        exact_fact_map = {claim_id: matches}
+        eligible_paths: list[str] = []
+        for sibling_key, sibling in value.items():
+            if sibling_key == calculation_key or not isinstance(sibling, Mapping):
+                continue
+            sibling_claims = sibling.get("claim_ids")
+            if (
+                not isinstance(sibling_claims, Sequence)
+                or isinstance(sibling_claims, (str, bytes))
+                or list(sibling_claims) != [claim_id]
+                or set(sibling) != {"statement", "claim_ids"}
+            ):
+                continue
+            if _material_facts_match_cited_evidence(
+                sibling,
+                path=f"pricing_and_unit_economics.{sibling_key}",
+                cited_claim_ids={claim_id},
+                verified_facts_by_claim=exact_fact_map,
+            ) and _bound_observed_offer_sibling_matches(sibling, matches[0]):
+                eligible_paths.append(str(sibling_key))
+        available_paths = [
+            path for path in eligible_paths if path not in represented_paths
+        ]
+        if not available_paths:
+            return False
+        represented_paths.add(available_paths[0])
+    return True
+
+
+def _formula_symbol_matches_observed_pack_price(
+    symbol: str, fact: Mapping[str, Any]
+) -> bool:
+    return bool(
+        symbol
+        in {"higher_observed_pack_price", "lower_observed_pack_price"}
+        and str(fact.get("evidence_class") or "") == "observed_primary_market"
+        and str(fact.get("metric_key") or "").casefold()
+        == f"price:{str(fact.get('unit') or '').casefold()}"
+        and str(fact.get("unit") or "").casefold()
+        not in {"", "number", "percent"}
+        and str(fact.get("semantic_scope") or "").casefold().startswith(
+            "catalog:signed_offer:"
         )
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        return any(
-            _has_traceable_calculation(child, verified_claim_ids)
-            for child in value
+    )
+
+
+def _canonical_observed_pack_tokens(fact: Mapping[str, Any]) -> list[str]:
+    tokens: list[str] = []
+    for term in fact.get("fact_terms") or []:
+        match = re.fullmatch(
+            r"(\d+(?:[.,]\d+)?)(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)",
+            str(term).casefold(),
         )
-    return False
+        if match:
+            tokens.append(f"{match.group(1).replace(',', '.')}{match.group(2)}")
+    return tokens
 
 
-def _formula_has_only_neutral_numeric_literals(formula: str) -> bool:
-    """Reject unsupported numeric targets hidden inside formula strings.
+def _bound_offer_identity_tokens(
+    terms: Iterable[Any], *, country_codes: Iterable[Any]
+) -> set[str]:
+    """Canonical product identity for formula-bound observed offer siblings.
 
-    Formula syntax is not executed or provenance-bound. Zero and one are the
-    only neutral arithmetic identities needed by ordinary ratios such as
-    ``gross / (1 + rate)``; every other numeric input must live in a separately
-    traceable PRD node instead of being smuggled through opaque expression text.
+    The reviewed exclusions are structural catalogue words, exact package
+    tokens, canonical category/kind terms, and exact surfaces from the pinned
+    topic-alias registry. Brand, product-line, variant, flavor, and SKU tokens
+    are intentionally never fuzzy-matched or silently dropped.
     """
 
+    tokens: set[str] = set()
+    for term in terms:
+        normalized_term = unicodedata.normalize("NFKC", str(term or "")).casefold()
+        # A trusted ``3,5kg`` term must be removed as one package identity
+        # before punctuation-aware tokenization; otherwise its decimal prefix
+        # becomes a spurious product token while the candidate pack span is
+        # correctly blanked in full.
+        if re.fullmatch(
+            r"\d+(?:[.,]\d+)?(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)",
+            normalized_term,
+        ):
+            continue
+        tokens.update(re.findall(r"[^\W_]+", normalized_term, re.UNICODE))
+    excluded = set(_BOUND_OFFER_STRUCTURAL_TERMS)
+    excluded.update(_PRODUCT_CATEGORY_TERMS)
+    excluded.update(_PRODUCT_KIND_TERMS)
+    countries = {str(code).upper() for code in country_codes if code}
+    for alias in trusted_topic_alias_registry().entries:
+        alias_tokens = set(alias.phrase.split())
+        if alias.country_code in countries and alias_tokens.issubset(tokens):
+            excluded.update(alias_tokens)
+    return tokens - excluded
+
+
+def _bound_observed_offer_sibling_matches(
+    sibling: Mapping[str, Any], verified: Mapping[str, Any]
+) -> bool:
+    """Require the exact product identity represented by a bound offer fact.
+
+    This is deliberately stricter than ordinary PRD citation paraphrasing. A
+    typed calculation depends on these immediate sibling nodes, so a fuzzy
+    overlap cannot substitute or omit a signed product variant.
+    """
+
+    statement = sibling.get("statement")
+    if not isinstance(statement, str) or not statement.strip():
+        return False
+    verified_packs = _canonical_observed_pack_tokens(verified)
+    pack_matches = list(
+        re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            statement,
+            re.IGNORECASE,
+        )
+    )
+    if len(verified_packs) != 1 or len(pack_matches) != 1:
+        return False
+    pack_match = pack_matches[0]
+    signed_prefix = statement[: pack_match.start()].rstrip()
+    if signed_prefix.endswith(("+", "-")):
+        return False
+    candidate_pack = (
+        f"{pack_match.group(1).replace(',', '.')}"
+        f"{pack_match.group(2).casefold()}"
+    )
+    if candidate_pack != verified_packs[0]:
+        return False
+
+    material_facts = extract_material_facts(
+        statement,
+        claim_id="bound_observed_offer",
+        force_material=True,
+        include_text_spans=True,
+    )
+    pack_start, pack_end = pack_match.span(1)
+    displayed_facts = [
+        fact
+        for fact in material_facts
+        if not (
+            fact.get("unit") == "number"
+            and int(fact.get("_text_start", -1)) < pack_end
+            and int(fact.get("_text_end", -1)) > pack_start
+        )
+    ]
+    if len(displayed_facts) != 1:
+        return False
+    displayed = displayed_facts[0]
+    if (
+        displayed.get("unit") != verified.get("unit")
+        or not _normalized_material_values_equal(
+            displayed.get("normalized_value"), verified.get("normalized_value")
+        )
+    ):
+        return False
+
+    countries = verified.get("country_codes") or []
+    normalized_statement = unicodedata.normalize("NFKC", statement).casefold()
+    normalized_pack_matches = list(
+        re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            normalized_statement,
+            re.IGNORECASE,
+        )
+    )
+    normalized_price_matches = [
+        match
+        for match in _MATERIAL_VALUE.finditer(normalized_statement)
+        if _material_unit(match.group(0)) == verified.get("unit")
+        and _normalized_material_values_equal(
+            _normalized_value(match.group(0), str(verified.get("unit") or "")),
+            verified.get("normalized_value"),
+        )
+    ]
+    if len(normalized_pack_matches) != 1 or len(normalized_price_matches) != 1:
+        return False
+    scrubbed = list(normalized_statement)
+    for match in (normalized_pack_matches[0], normalized_price_matches[0]):
+        scrubbed[match.start():match.end()] = " " * (match.end() - match.start())
+    candidate_identity = _bound_offer_identity_tokens(
+        ["".join(scrubbed)], country_codes=countries
+    )
+    verified_identity = _bound_offer_identity_tokens(
+        verified.get("fact_terms") or (), country_codes=countries
+    )
+    return bool(candidate_identity and candidate_identity == verified_identity)
+
+
+def _observed_fact_topic_signature(
+    fact: Mapping[str, Any]
+) -> tuple[set[str], set[str]]:
+    terms = {str(term).casefold() for term in fact.get("fact_terms") or [] if term}
+    categories = terms & _PRODUCT_CATEGORY_TERMS
+    kinds = terms & _PRODUCT_KIND_TERMS
+    countries = {str(code).upper() for code in fact.get("country_codes") or [] if code}
+    for alias in trusted_topic_alias_registry().entries:
+        if alias.country_code not in countries:
+            continue
+        if not set(alias.phrase.split()).issubset(terms):
+            continue
+        anchor_terms = set(alias.source_anchor.casefold().split())
+        categories.update(anchor_terms & _PRODUCT_CATEGORY_TERMS)
+        kinds.update(anchor_terms & _PRODUCT_KIND_TERMS)
+    return categories, kinds
+
+
+def _strict_positive_fact_decimal(fact: Mapping[str, Any]) -> Optional[Decimal]:
+    unit = str(fact.get("unit") or "").casefold()
+    normalized = str(fact.get("normalized_value") or "")
+    match = re.fullmatch(
+        rf"(0|[1-9]\d*)(?:\.(\d+))?:{re.escape(unit)}", normalized
+    )
+    if not unit or match is None:
+        return None
+    numeric = match.group(1)
+    if match.group(2) is not None:
+        numeric += f".{match.group(2)}"
+    try:
+        value = Decimal(numeric)
+    except (InvalidOperation, ValueError):
+        return None
+    return value if value.is_finite() and value > 0 else None
+
+
+def _parse_formula_assignment(formula: str) -> Optional[tuple[str, ast.AST]]:
+    """Parse the deliberately tiny, non-executable formula language."""
+
     if formula.count("=") != 1:
-        return False
+        return None
     lhs, rhs = (part.strip() for part in formula.split("=", 1))
-    if not re.fullmatch(r"[A-Za-z_]+", lhs):
-        return False
+    if not re.fullmatch(r"[a-z]+(?:_[a-z]+)*", lhs):
+        return None
+    if "target" in lhs.split("_"):
+        return None
     if re.search(r"\d", rhs):
         # Enforce decimal lexical form before Python's AST normalizes 0x1,
         # 0b1, exponent notation or underscored literals to an integer value.
         if re.search(r"[A-Za-z_]\w*\d|\d\w*[A-Za-z_]", rhs):
-            return False
+            return None
         digit_tokens = re.findall(r"(?<![\w.])\d+(?![\w.])", rhs)
-        if any(token not in {"0", "1"} for token in digit_tokens):
-            return False
+        if any(token not in {"0", "1", "100"} for token in digit_tokens):
+            return None
         if sum(len(token) for token in digit_tokens) != sum(char.isdigit() for char in rhs):
-            return False
+            return None
     try:
         expression = ast.parse(rhs, mode="eval")
     except (SyntaxError, ValueError, TypeError, MemoryError, RecursionError):
-        return False
+        return None
     allowed_operators = (ast.Add, ast.Sub, ast.Mult, ast.Div)
-    has_symbol = False
-    has_arithmetic = False
     for node in ast.walk(expression):
         if isinstance(node, ast.Expression):
             continue
         if isinstance(node, ast.BinOp):
-            has_arithmetic = True
             if not isinstance(node.op, allowed_operators):
-                return False
+                return None
             continue
         if isinstance(node, allowed_operators):
             continue
         if isinstance(node, ast.Name):
-            if not re.fullmatch(r"[A-Za-z_]+", node.id):
-                return False
-            has_symbol = True
+            if not re.fullmatch(r"[a-z]+(?:_[a-z]+)*", node.id):
+                return None
             continue
         if isinstance(node, ast.Load):
             continue
         if isinstance(node, ast.Constant):
-            if type(node.value) is not int or node.value not in {0, 1}:
-                return False
+            if type(node.value) is not int or node.value not in {0, 1, 100}:
+                return None
             continue
         # Calls, attributes, subscripts, comparisons, boolean operators,
         # unary signs, strings and every other syntax are outside this narrow
         # non-executable arithmetic contract.
+        return None
+    return lhs, expression.body
+
+
+def _formula_has_typed_bindings(
+    node: Mapping[str, Any],
+    *,
+    verified_claim_ids: set[str],
+    verified_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+    required_country_codes: set[str],
+) -> bool:
+    """Validate exact symbol -> citable fact ownership and unit-safe arithmetic."""
+
+    formula = str(node.get("formula") or "").strip()
+    parsed = _parse_formula_assignment(formula)
+    raw_inputs = node.get("input_claim_ids")
+    bindings = node.get("input_bindings")
+    calculation_kind = str(node.get("calculation_kind") or "")
+    expected_binding_symbols = {
+        "observed_pack_price_difference": {
+            "higher_observed_pack_price",
+            "lower_observed_pack_price",
+        },
+    }.get(calculation_kind)
+    if (
+        set(node)
+        != {
+            "calculation_kind",
+            "formula",
+            "input_bindings",
+            "input_claim_ids",
+        }
+        or expected_binding_symbols is None
+        or parsed is None
+        or not isinstance(raw_inputs, Sequence)
+        or isinstance(raw_inputs, (str, bytes))
+        or not isinstance(bindings, Mapping)
+        or set(bindings) != expected_binding_symbols
+    ):
         return False
-    constants = [
-        node for node in ast.walk(expression) if isinstance(node, ast.Constant)
-    ]
-    return bool(has_symbol and (not constants or has_arithmetic))
+    lhs, rhs = parsed
+    inputs = {str(item) for item in raw_inputs if item}
+    if (
+        len(raw_inputs) != 2
+        or len(inputs) != 2
+        or not inputs.issubset(verified_claim_ids)
+    ):
+        return False
+
+    resolved: dict[str, Mapping[str, Any]] = {}
+    owned_fact_keys: set[tuple[str, str]] = set()
+    owned_fact_ids: set[str] = set()
+    for symbol, binding in bindings.items():
+        if (
+            not isinstance(symbol, str)
+            or not re.fullmatch(r"[a-z]+(?:_[a-z]+)*", symbol)
+            or symbol == lhs
+            or not isinstance(binding, Mapping)
+            or set(binding) != {"claim_id", "fact_id"}
+        ):
+            return False
+        claim_id = str(binding.get("claim_id") or "")
+        fact_id = str(binding.get("fact_id") or "")
+        if claim_id not in inputs or not fact_id:
+            return False
+        global_fact_id_matches = [
+            fact
+            for facts in verified_facts_by_claim.values()
+            for fact in facts
+            if str(fact.get("fact_id") or "") == fact_id
+        ]
+        matches = [
+            fact
+            for owner_claim_id, facts in verified_facts_by_claim.items()
+            for fact in facts
+            if str(fact.get("fact_id") or "") == fact_id
+            and str(owner_claim_id) == claim_id
+            and str(fact.get("claim_id") or "") == claim_id
+            and fact.get("identity_complete") is True
+        ]
+        fact_key = (claim_id, fact_id)
+        if (
+            len(global_fact_id_matches) != 1
+            or len(matches) != 1
+            or fact_key in owned_fact_keys
+            or fact_id in owned_fact_ids
+        ):
+            return False
+        role_matches = _formula_symbol_matches_observed_pack_price(
+            symbol, matches[0]
+        )
+        if not role_matches:
+            return False
+        resolved[symbol] = matches[0]
+        owned_fact_keys.add(fact_key)
+        owned_fact_ids.add(fact_id)
+    if inputs != {str(binding["claim_id"]) for binding in bindings.values()}:
+        return False
+    rhs_names = {item.id for item in ast.walk(rhs) if isinstance(item, ast.Name)}
+    if rhs_names != set(resolved):
+        return False
+
+    # This release intentionally supports reviewed calculations instead of
+    # pretending arbitrary model-authored algebra has known business meaning.
+    # Exact AST shape gives the pack-total subtraction a deterministic meaning
+    # while typed bindings below prove both inputs without executing model code.
+    expected_formula = {
+        "observed_pack_price_difference": (
+            "observed_pack_price_difference",
+            "higher_observed_pack_price - lower_observed_pack_price",
+        ),
+    }[calculation_kind]
+    expected_lhs, expected_rhs_text = expected_formula
+    expected_formula_text = f"{expected_lhs} = {expected_rhs_text}"
+    if formula != expected_formula_text:
+        return False
+    expected_rhs = ast.parse(expected_rhs_text, mode="eval").body
+    if lhs != expected_lhs or ast.dump(
+        rhs, include_attributes=False
+    ) != ast.dump(expected_rhs, include_attributes=False):
+        return False
+    higher_fact = resolved["higher_observed_pack_price"]
+    lower_fact = resolved["lower_observed_pack_price"]
+    higher_countries = {
+        str(code).upper() for code in higher_fact.get("country_codes") or [] if code
+    }
+    lower_countries = {
+        str(code).upper() for code in lower_fact.get("country_codes") or [] if code
+    }
+    higher_scope = str(higher_fact.get("semantic_scope") or "").casefold()
+    lower_scope = str(lower_fact.get("semantic_scope") or "").casefold()
+    higher_basis = re.fullmatch(
+        r"catalog:signed_offer:[^:]+:(per_[a-z]+):([a-z]{3})", higher_scope
+    )
+    lower_basis = re.fullmatch(
+        r"catalog:signed_offer:[^:]+:(per_[a-z]+):([a-z]{3})", lower_scope
+    )
+    higher_topics = _observed_fact_topic_signature(higher_fact)
+    lower_topics = _observed_fact_topic_signature(lower_fact)
+    higher_packs = _canonical_observed_pack_tokens(higher_fact)
+    lower_packs = _canonical_observed_pack_tokens(lower_fact)
+    higher_value = _strict_positive_fact_decimal(higher_fact)
+    lower_value = _strict_positive_fact_decimal(lower_fact)
+    if (
+        len(higher_countries) != 1
+        or len(lower_countries) != 1
+        or higher_countries != lower_countries
+        or not required_country_codes
+        or not higher_countries.issubset(required_country_codes)
+        or higher_fact.get("unit") != lower_fact.get("unit")
+        or higher_basis is None
+        or lower_basis is None
+        or higher_basis.groups() != lower_basis.groups()
+        or higher_basis.group(2) != str(higher_fact.get("unit") or "").casefold()
+        or lower_basis.group(2) != str(lower_fact.get("unit") or "").casefold()
+        or len(higher_packs) != 1
+        or len(lower_packs) != 1
+        or not all(higher_topics)
+        or higher_topics != lower_topics
+        or higher_value is None
+        or lower_value is None
+        or higher_value <= lower_value
+    ):
+        return False
+
+    invalid = object()
+    zero = object()
+
+    def fact_type(fact: Mapping[str, Any]) -> str:
+        unit = str(fact.get("unit") or "").casefold()
+        if unit == "percent":
+            return "percent"
+        if unit in {"eur", "usd", "gbp"} or unit in {
+            str(currency.alpha_3).casefold() for currency in pycountry.currencies
+        }:
+            return f"currency:{unit}"
+        if unit in {"day", "month", "year"}:
+            return f"duration:{unit}"
+        return f"unit:{unit or 'number'}"
+
+    def infer(expression: ast.AST) -> object:
+        if isinstance(expression, ast.Name):
+            return fact_type(resolved[expression.id])
+        if isinstance(expression, ast.Constant):
+            if expression.value == 0:
+                return zero
+            if expression.value == 1:
+                return "dimensionless"
+            return invalid
+        if not isinstance(expression, ast.BinOp):
+            return invalid
+        # One explicit exception to the neutral-literal rule: an exact percent
+        # input may be converted to a ratio only in this immediate AST shape.
+        if (
+            isinstance(expression.op, ast.Div)
+            and isinstance(expression.left, ast.Name)
+            and isinstance(expression.right, ast.Constant)
+            and expression.right.value == 100
+            and str(resolved[expression.left.id].get("unit") or "").casefold()
+            == "percent"
+        ):
+            return "dimensionless"
+        left_type = infer(expression.left)
+        right_type = infer(expression.right)
+        if left_type is invalid or right_type is invalid:
+            return invalid
+        if isinstance(expression.op, (ast.Add, ast.Sub)):
+            if right_type is zero:
+                return left_type
+            if left_type is zero and isinstance(expression.op, ast.Add):
+                return right_type
+            return left_type if left_type == right_type else invalid
+        if isinstance(expression.op, ast.Mult):
+            if left_type is zero or right_type is zero:
+                return invalid
+            if left_type == "dimensionless":
+                return right_type
+            if right_type == "dimensionless":
+                return left_type
+            return invalid
+        if isinstance(expression.op, ast.Div):
+            if right_type == "dimensionless":
+                return left_type
+            if left_type == right_type and left_type is not zero:
+                return "dimensionless"
+            return invalid
+        return invalid
+
+    result_type = infer(rhs)
+    if result_type is invalid or result_type is zero:
+        return False
+    return isinstance(result_type, str) and result_type.startswith("currency:")
 
 
 def _material_facts_match_cited_evidence(
@@ -603,18 +1122,89 @@ def _material_facts_match_cited_evidence(
     text = " ".join(
         f"{key} {child}"
         for key, child in node.items()
+        if key not in {"calculation_kind", "formula"}
         if isinstance(child, (str, int, float)) and child not in ("", None)
     ).strip()
-    material_facts = extract_material_facts(
-        text, claim_id=path or "prd", force_material=True
-    )
-    if not material_facts or not cited_claim_ids:
+    if not cited_claim_ids:
         return False
     cited_facts = [
         fact
         for claim_id in cited_claim_ids
         for fact in verified_facts_by_claim.get(claim_id, ())
     ]
+    material_facts = extract_material_facts(
+        text,
+        claim_id=path or "prd",
+        force_material=True,
+        include_text_spans=True,
+    )
+    if not material_facts or not cited_facts:
+        return False
+
+    # A decimal pack size such as ``3,5 kg`` is an observed-offer identity
+    # qualifier, not a second price. Suppress it only when that exact canonical
+    # pack token is present in a cited, signed observed fact. An invented or
+    # changed pack remains material and therefore fails closed.
+    observed_pack_tokens = {
+        str(term).casefold()
+        for fact in cited_facts
+        if str(fact.get("evidence_class") or "") == "observed_primary_market"
+        for term in fact.get("fact_terms") or []
+        if re.fullmatch(
+            r"\d+(?:[.,]\d+)?(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)",
+            str(term).casefold(),
+        )
+    }
+    observed_facts = [
+        fact
+        for fact in cited_facts
+        if str(fact.get("evidence_class") or "") == "observed_primary_market"
+    ]
+
+    cited_pack_spans: list[tuple[int, int]] = []
+    for pack_match in re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            text,
+            re.IGNORECASE,
+        ):
+        pack_token = re.sub(r"\s+", "", pack_match.group(0)).casefold()
+        if pack_token not in observed_pack_tokens:
+            continue
+        separator = re.match(r"\s*:\s*", text[pack_match.end():])
+        if not separator:
+            continue
+        price_start = pack_match.end() + separator.end()
+        price_match = _MATERIAL_VALUE.match(text, price_start)
+        if not price_match:
+            continue
+        raw_price = price_match.group(0).strip().rstrip(".,;:")
+        price_unit = _material_unit(raw_price)
+        price_value = _normalized_value(raw_price, price_unit)
+        if any(
+            price_unit == fact.get("unit")
+            and _normalized_material_values_equal(
+                price_value, fact.get("normalized_value")
+            )
+            for fact in observed_facts
+        ):
+            cited_pack_spans.append((pack_match.start(1), pack_match.end(1)))
+
+    def is_cited_pack_qualifier(candidate: Mapping[str, Any]) -> bool:
+        if candidate.get("unit") != "number" or not cited_pack_spans:
+            return False
+        candidate_start = int(candidate.get("_text_start", -1))
+        candidate_end = int(candidate.get("_text_end", -1))
+        return any(
+            candidate_start < span_end and candidate_end > span_start
+            for span_start, span_end in cited_pack_spans
+        )
+
+    material_facts = [
+        fact for fact in material_facts if not is_cited_pack_qualifier(fact)
+    ]
+    if not material_facts:
+        return False
 
     candidate_temporal, invalid_temporal = _explicit_temporal_references(text)
     candidate_countries, unknown_jurisdiction = _jurisdiction_qualifiers(text)
@@ -648,9 +1238,41 @@ def _material_facts_match_cited_evidence(
             candidate_official_periods.add(("month", value))
             candidate_official_periods.add(("year", value[:4]))
 
-    def topic_signature(identity: str) -> tuple[set[str], set[str]]:
+    def topic_signature(
+        identity: str,
+        *,
+        country_codes: Iterable[str] = (),
+        identity_terms: Iterable[str] = (),
+    ) -> tuple[set[str], set[str]]:
         tokens = set(re.findall(r"[^\W\d_][\w-]{2,}", identity.casefold()))
-        return tokens & _PRODUCT_CATEGORY_TERMS, tokens & _PRODUCT_KIND_TERMS
+        categories = tokens & _PRODUCT_CATEGORY_TERMS
+        kinds = tokens & _PRODUCT_KIND_TERMS
+        normalized_identity = " ".join(identity.casefold().split())
+        normalized_terms = {str(term).casefold() for term in identity_terms if term}
+        allowed_countries = {str(code).upper() for code in country_codes if code}
+        # Only the hash-pinned, code-reviewed topic registry may translate a
+        # localized product surface into a canonical category/kind.  Model
+        # prose and fuzzy language similarity are never translation authority.
+        for alias in trusted_topic_alias_registry().entries:
+            if alias.country_code not in allowed_countries:
+                continue
+            alias_tokens = set(alias.phrase.split())
+            alias_pattern = re.escape(alias.phrase).replace(r"\ ", r"\s+")
+            exact_surface = bool(
+                re.search(
+                    rf"(?<!\w){alias_pattern}(?!\w)",
+                    normalized_identity,
+                    re.IGNORECASE,
+                )
+            )
+            if not exact_surface and not alias_tokens.issubset(normalized_terms):
+                continue
+            anchor_tokens = set(
+                re.findall(r"[^\W\d_][\w-]{2,}", alias.source_anchor.casefold())
+            )
+            categories.update(anchor_tokens & _PRODUCT_CATEGORY_TERMS)
+            kinds.update(anchor_tokens & _PRODUCT_KIND_TERMS)
+        return categories, kinds
 
     def price_basis(identity: str) -> str:
         lowered = identity.casefold()
@@ -661,6 +1283,28 @@ def _material_facts_match_cited_evidence(
         if re.search(r"\b(?:list|regular)\b", lowered):
             return "list"
         return "baseline"
+
+    def is_localized_catalog_price(candidate: Mapping[str, Any]) -> bool:
+        """Recognize only ``<pack>: <currency amount>`` catalogue surfaces."""
+
+        display_value = str(candidate.get("display_value") or "")
+        if not display_value:
+            return False
+        candidate_start = int(candidate.get("_text_start", -1))
+        candidate_end = int(candidate.get("_text_end", -1))
+        if candidate_start < 0 or candidate_end <= candidate_start:
+            return False
+        prefix = text[max(0, candidate_start - 48):candidate_start]
+        return bool(
+            re.search(
+                r"(?<![\w+\-])\d+(?:[.,]\d+)?\s*"
+                r"(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\s*:\s*$",
+                prefix,
+                re.IGNORECASE,
+            )
+            and text[candidate_start:candidate_end].casefold()
+            == display_value.casefold()
+        )
 
     def temporal_matches(verified: Mapping[str, Any]) -> bool:
         if invalid_temporal:
@@ -699,7 +1343,7 @@ def _material_facts_match_cited_evidence(
         verified_class = str(verified.get("evidence_class") or "")
         if verified_class == "statutory_current":
             statutory_scope = set(
-                str(verified.get("semantic_scope") or "").split(":")
+                re.split(r"[:+]", str(verified.get("semantic_scope") or ""))
             )
             candidate_subtypes = {
                 subtype
@@ -722,7 +1366,14 @@ def _material_facts_match_cited_evidence(
                 )
             )
         if verified_class == "observed_primary_market":
-            if candidate.get("metric_key") != verified.get("metric_key"):
+            exact_metric = candidate.get("metric_key") == verified.get("metric_key")
+            localized_price_metric = bool(
+                candidate.get("metric_key") == candidate.get("unit")
+                and verified.get("metric_key")
+                == f"price:{candidate.get('unit')}"
+                and is_localized_catalog_price(candidate)
+            )
+            if not (exact_metric or localized_price_metric):
                 return False
             candidate_identity = " ".join(
                 [text, " ".join(str(item) for item in candidate_terms)]
@@ -734,14 +1385,22 @@ def _material_facts_match_cited_evidence(
                 ]
             )
             candidate_categories, candidate_kinds = topic_signature(
-                candidate_identity
+                candidate_identity,
+                country_codes=verified_countries,
+                identity_terms=candidate_terms,
             )
             verified_categories, verified_kinds = topic_signature(
-                verified_identity
+                verified_identity,
+                country_codes=verified_countries,
+                identity_terms=verified_terms,
             )
-            if verified_categories and candidate_categories != verified_categories:
+            if candidate_categories != verified_categories and (
+                candidate_categories or verified_categories
+            ):
                 return False
-            if verified_kinds and candidate_kinds != verified_kinds:
+            if candidate_kinds != verified_kinds and (
+                candidate_kinds or verified_kinds
+            ):
                 return False
             if price_basis(candidate_identity) != price_basis(verified_identity):
                 return False
@@ -828,14 +1487,20 @@ def _material_facts_match_cited_evidence(
             >= 0.5
         )
 
-    return all(
-        any(
-            candidate.get("normalized_value") == verified.get("normalized_value")
+    def candidate_matches_verified(
+        candidate: Mapping[str, Any], verified: Mapping[str, Any]
+    ) -> bool:
+        return bool(
+            _normalized_material_values_equal(
+                candidate.get("normalized_value"), verified.get("normalized_value")
+            )
             and candidate.get("unit") == verified.get("unit")
             and identity_matches(candidate, verified)
             and temporal_matches(verified)
-            for verified in cited_facts
         )
+
+    return all(
+        any(candidate_matches_verified(candidate, verified) for verified in cited_facts)
         for candidate in material_facts
     )
 
@@ -888,6 +1553,30 @@ def _normalized_value(value: str, unit: str = "") -> str:
         except InvalidOperation:
             pass
     return f"{lowered}:{unit}" if unit else lowered
+
+
+def _normalized_material_values_equal(left: Any, right: Any) -> bool:
+    """Compare canonical numeric identity without display-scale spelling.
+
+    Signed ledgers may serialize ``26.9`` while a PRD preserves the storefront
+    display ``26.90``. Decimal equality accepts that representational
+    equivalence while the caller still requires an exact unit and fact
+    identity; different values, metrics, products, packs, and claims remain
+    blocked.
+    """
+
+    left_text = str(left or "").strip()
+    right_text = str(right or "").strip()
+    if left_text == right_text:
+        return True
+    left_value, left_separator, left_unit = left_text.rpartition(":")
+    right_value, right_separator, right_unit = right_text.rpartition(":")
+    if not left_separator or not right_separator or left_unit != right_unit:
+        return False
+    try:
+        return Decimal(left_value) == Decimal(right_value)
+    except InvalidOperation:
+        return False
 
 
 def _material_unit(value: str) -> str:
@@ -1348,6 +2037,7 @@ def extract_material_facts(
     temporal_scope: str = "",
     source_scope: Iterable[str] = (),
     force_material: bool = False,
+    include_text_spans: bool = False,
 ) -> List[Dict[str, Any]]:
     """Extract comparable material values without knowing a country in advance."""
 
@@ -1445,8 +2135,7 @@ def extract_material_facts(
             and normalized_sources
             and len(terms) >= 3
         )
-        rows.append(
-            {
+        row = {
                 "fact_id": f"{claim_id or 'claim'}:fact:{index}",
                 "claim_id": claim_id,
                 "fact_terms": terms,
@@ -1462,7 +2151,13 @@ def extract_material_facts(
                 "semantic_scope": semantic_scope,
                 "identity_complete": identity_complete,
             }
-        )
+        if include_text_spans:
+            # Validator-internal coordinates. They are opt-in so durable
+            # evidence identities and synthesis payloads never acquire parser
+            # implementation details.
+            row["_text_start"] = match.start()
+            row["_text_end"] = match.end()
+        rows.append(row)
     # A flattened statistical table can carry several series/periods inside a
     # single claim-wide span. Without per-value span bindings, assigning the
     # claim's one period/scope to every number would invent target identity and
@@ -2264,7 +2959,9 @@ def evaluate_critical_claims(
     conflicts: List[Dict[str, Any]] = []
     for index, left in enumerate(verified_facts):
         for right in verified_facts[index + 1:]:
-            if _same_fact(left, right) and left["normalized_value"] != right["normalized_value"]:
+            if _same_fact(left, right) and not _normalized_material_values_equal(
+                left["normalized_value"], right["normalized_value"]
+            ):
                 conflict = {
                     "left_fact_id": left["fact_id"],
                     "right_fact_id": right["fact_id"],
@@ -2435,6 +3132,10 @@ def evaluate_critical_claims(
             if value in applicable_classes and reason
         },
         "verified_claim_classes": sorted(verified_classes),
+        # This is copied from the server-owned acquisition scope passed into
+        # critical-claim evaluation. Typed calculations cross-check it against
+        # both the PRD's explicit ISO scope and the signed fact jurisdictions.
+        "requested_country_codes": sorted(requested_countries),
         "topic_contract_status": topic_contract_status,
         "topic_seed_sha256": (
             validated_topic_seed.seed_sha256 if validated_topic_seed else None
@@ -2535,7 +3236,7 @@ def validate_research_prd(
         and row.get("claim_id")
         and str(row.get("status") or "") in _CITABLE_EVIDENCE_STATUSES
     }
-    verified_facts_by_claim: Dict[str, List[Mapping[str, Any]]] = {}
+    ledger_facts_by_claim: Dict[str, List[Mapping[str, Any]]] = {}
     for row in quality.get("evidence_ledger") or []:
         if (
             not isinstance(row, Mapping)
@@ -2544,11 +3245,14 @@ def validate_research_prd(
         ):
             continue
         claim_id = str(row["claim_id"])
-        verified_facts_by_claim[claim_id] = [
+        ledger_facts_by_claim[claim_id] = [
             fact
             for fact in row.get("facts") or []
             if isinstance(fact, Mapping) and fact.get("identity_complete") is True
         ]
+    verified_facts_by_claim = {
+        claim_id: list(facts) for claim_id, facts in ledger_facts_by_claim.items()
+    }
     # Compatibility callers may supply verified_facts separately. Fact
     # ownership still comes from each fact's immutable claim_id.
     for fact in verified:
@@ -2566,7 +3270,26 @@ def validate_research_prd(
     if semantic_type == COMMERCIAL_MARKET_LAUNCH and isinstance(
         content.get("commercial_prd"), Mapping
     ):
-        for path, node in _iter_material_nodes(content["commercial_prd"]):
+        commercial = content["commercial_prd"]
+        declared_market_countries = _strict_market_country_codes(
+            commercial.get("market_scope")
+        )
+        raw_immutable_countries = quality.get("requested_country_codes")
+        immutable_market_countries = (
+            None
+            if raw_immutable_countries is None
+            else _strict_iso_country_code_values(raw_immutable_countries)
+        )
+        formula_market_countries = (
+            declared_market_countries
+            if declared_market_countries
+            and (
+                immutable_market_countries is None
+                or immutable_market_countries == declared_market_countries
+            )
+            else set()
+        )
+        for path, node in _iter_material_nodes(commercial):
             cited = {
                 str(value) for value in node.get("claim_ids") or [] if value
             }
@@ -2582,16 +3305,25 @@ def validate_research_prd(
                 traceable = True
             else:
                 fact_claim_ids = cited | inputs
+                typed_formula_valid = bool(
+                    formula
+                    and path
+                    == "pricing_and_unit_economics.observed_pack_price_difference"
+                    and _formula_has_typed_bindings(
+                        node,
+                        verified_claim_ids=verified_claim_ids,
+                        verified_facts_by_claim=ledger_facts_by_claim,
+                        required_country_codes=formula_market_countries,
+                    )
+                )
                 structurally_cited = bool(
                     cited
                     and cited.issubset(verified_claim_ids)
-                    or formula
-                    and _formula_has_only_neutral_numeric_literals(formula)
-                    and inputs
-                    and inputs.issubset(verified_claim_ids)
+                    or typed_formula_valid
                 )
                 traceable = bool(
-                    structurally_cited
+                    typed_formula_valid
+                    or structurally_cited
                     and _material_facts_match_cited_evidence(
                         node,
                         path=path,
@@ -2610,14 +3342,26 @@ def validate_research_prd(
                         ),
                     }
                 )
-        pricing = content["commercial_prd"].get("pricing_and_unit_economics")
-        if not _has_traceable_calculation(pricing, verified_claim_ids):
+        pricing = commercial.get("pricing_and_unit_economics")
+        if not _has_traceable_calculation(
+            pricing,
+            verified_claim_ids,
+            ledger_facts_by_claim,
+            formula_market_countries,
+        ):
             issues.append(
                 {
                     "code": "traceable_unit_economics_missing",
                     "message": (
                         "Pricing and unit economics must contain at least one formula "
-                        "whose input_claim_ids are verified evidence ledger claims."
+                        "with exact input_claim_ids and input_bindings to verified "
+                        "ledger fact IDs. With two compatible signed offers, use "
+                        "calculation_kind observed_pack_price_difference and exactly: "
+                        "observed_pack_price_difference = higher_observed_pack_price "
+                        "- lower_observed_pack_price. The formula object must contain "
+                        "only calculation_kind, formula, input_claim_ids, and "
+                        "input_bindings; keep displayed offer facts in separately "
+                        "cited sibling nodes and do not display the derived result."
                     ),
                 }
             )
@@ -2634,7 +3378,9 @@ def validate_research_prd(
     ]
     for candidate in document_facts:
         for fact in verified:
-            if _same_fact(candidate, fact) and candidate["normalized_value"] != fact["normalized_value"]:
+            if _same_fact(candidate, fact) and not _normalized_material_values_equal(
+                candidate["normalized_value"], fact["normalized_value"]
+            ):
                 issues.append(
                     {
                         "code": "critical_fact_conflict",
