@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import json
 import os
@@ -308,6 +309,284 @@ def _commercial_prd(regulatory_text: str):
             },
             "go_to_market_plan_90_days": ["Validate", "Pilot", "Scale"],
             "risks_assumptions_and_validation": ["Interview buyers"],
+        },
+    }
+
+
+def _traceable_observed_price_difference(quality: dict) -> dict:
+    """Install two exact signed offers for the reviewed price-difference formula."""
+
+    ledger = quality.setdefault("evidence_ledger", [])
+    facts = []
+    for role, product, pack, value in (
+        ("lower", "Alpha cat food", "2kg", "10"),
+        ("higher", "Beta cat food", "3kg", "20"),
+    ):
+        claim_id = f"formula-{role}-observed-price"
+        fact = {
+            "fact_id": f"{claim_id}:fact:0",
+            "claim_id": claim_id,
+            "fact_terms": [pack, *product.casefold().split()],
+            "metric_key": "price:eur",
+            "unit": "eur",
+            "normalized_value": f"{value}:eur",
+            "display_value": f"{value} EUR",
+            "country_codes": ["EE"],
+            "identity_version": "material_fact_v2",
+            "evidence_class": "observed_primary_market",
+            "temporal_scope": "2026-08-12T00:00:00+00:00",
+            "source_scope": [f"formula-{role}-offer-source"],
+            "semantic_scope": (
+                f"catalog:signed_offer:formula-{role}:per_item:eur"
+            ),
+            "identity_complete": True,
+        }
+        ledger.append(
+            {
+                "claim_id": claim_id,
+                "status": "verified_current_authoritative",
+                "evidence_class": "observed_primary_market",
+                "facts": [fact],
+            }
+        )
+        facts.append(fact)
+    lower_fact, higher_fact = facts
+    quality.setdefault("verified_facts", []).extend(facts)
+    calculation = {
+        "calculation_kind": "observed_pack_price_difference",
+        "formula": (
+            "observed_pack_price_difference = higher_observed_pack_price - "
+            "lower_observed_pack_price"
+        ),
+        "input_claim_ids": [higher_fact["claim_id"], lower_fact["claim_id"]],
+        "input_bindings": {
+            "higher_observed_pack_price": {
+                "claim_id": higher_fact["claim_id"],
+                "fact_id": higher_fact["fact_id"],
+            },
+            "lower_observed_pack_price": {
+                "claim_id": lower_fact["claim_id"],
+                "fact_id": lower_fact["fact_id"],
+            },
+        },
+    }
+    return {
+        "observed_pack_price_difference": calculation,
+        "higher_observed_offer": {
+            "statement": "Beta cat food 3kg observed price is 20 EUR.",
+            "claim_ids": [higher_fact["claim_id"]],
+        },
+        "lower_observed_offer": {
+            "statement": "Alpha cat food 2kg observed price is 10 EUR.",
+            "claim_ids": [lower_fact["claim_id"]],
+        },
+    }
+
+
+def _pr50_production_quality() -> dict:
+    rows = [
+        {
+            "claim_id": "claim-1b02a34aeab2ccad20a2",
+            "status": "verified_current_authoritative",
+            "evidence_class": "observed_primary_market",
+            "facts": [
+                {
+                    "fact_id": "claim-1b02a34aeab2ccad20a2:fact:1",
+                    "claim_id": "claim-1b02a34aeab2ccad20a2",
+                    "fact_terms": [
+                        "3,5kg", "appetite", "canin", "care", "control",
+                        "kassi", "kuivtoit", "royal",
+                    ],
+                    "metric_key": "price:eur",
+                    "unit": "eur",
+                    "normalized_value": "56.09:eur",
+                    "display_value": "56,09 €",
+                    "country_codes": ["EE"],
+                    "identity_version": "material_fact_v2",
+                    "evidence_class": "observed_primary_market",
+                    "temporal_scope": "2026-08-13T20:16:37.892083+00:00",
+                    "source_scope": ["source-a5d06228ddfb2aa86c26"],
+                    "semantic_scope": (
+                        "catalog:signed_offer:ee8ba34937f20185:per_item:eur"
+                    ),
+                    "identity_complete": True,
+                }
+            ],
+        },
+        {
+            "claim_id": "claim-2f69c04cb7a60853b850",
+            "status": "verified_current_authoritative",
+            "evidence_class": "statutory_current",
+            "facts": [
+                {
+                    "fact_id": "claim-2f69c04cb7a60853b850:fact:2",
+                    "claim_id": "claim-2f69c04cb7a60853b850",
+                    "fact_terms": ["breadcrumb", "e-services", "sts", "vat"],
+                    "metric_key": "vat:percent",
+                    "unit": "percent",
+                    "normalized_value": "24:percent",
+                    "display_value": "24%",
+                    "country_codes": ["EE"],
+                    "identity_version": "material_fact_v2",
+                    "evidence_class": "statutory_current",
+                    "temporal_scope": "2025-07-01T00:00:00+00:00",
+                    "source_scope": ["source-841217933e7f36ffc2ae"],
+                    "semantic_scope": "statutory:vat:standard+product_specific",
+                    "identity_complete": True,
+                }
+            ],
+        },
+        {
+            "claim_id": "claim-5ceddcd5dd8506071d57",
+            "status": "verified_current_authoritative",
+            "evidence_class": "observed_primary_market",
+            "facts": [
+                {
+                    "fact_id": "claim-5ceddcd5dd8506071d57:fact:1",
+                    "claim_id": "claim-5ceddcd5dd8506071d57",
+                    "fact_terms": [
+                        "2kg", "kassi", "kuivtoit", "linnuliha", "purenatural",
+                        "wilder",
+                    ],
+                    "metric_key": "price:eur",
+                    "unit": "eur",
+                    "normalized_value": "26.9:eur",
+                    "display_value": "26,90 €",
+                    "country_codes": ["EE"],
+                    "identity_version": "material_fact_v2",
+                    "evidence_class": "observed_primary_market",
+                    "temporal_scope": "2026-08-13T20:16:39.936164+00:00",
+                    "source_scope": ["source-79c611f497778450ae0e"],
+                    "semantic_scope": (
+                        "catalog:signed_offer:733f8461300bb4ce:per_item:eur"
+                    ),
+                    "identity_complete": True,
+                }
+            ],
+        },
+    ]
+    return {
+        "status": "passed",
+        "requested_country_codes": ["EE"],
+        "verified_facts": [fact for row in rows for fact in row["facts"]],
+        "evidence_ledger": rows,
+    }
+
+
+def _pr50_production_candidate(*, repaired_formula: bool) -> dict:
+    royal_claim = "claim-1b02a34aeab2ccad20a2"
+    vat_claim = "claim-2f69c04cb7a60853b850"
+    pure_claim = "claim-5ceddcd5dd8506071d57"
+    if repaired_formula:
+        calculation = {
+            "calculation_kind": "observed_pack_price_difference",
+            "formula": (
+                "observed_pack_price_difference = higher_observed_pack_price - "
+                "lower_observed_pack_price"
+            ),
+            "input_claim_ids": [royal_claim, pure_claim],
+            "input_bindings": {
+                "higher_observed_pack_price": {
+                    "claim_id": royal_claim,
+                    "fact_id": f"{royal_claim}:fact:1",
+                },
+                "lower_observed_pack_price": {
+                    "claim_id": pure_claim,
+                    "fact_id": f"{pure_claim}:fact:1",
+                },
+            },
+        }
+    else:
+        calculation = {
+            "statement": (
+                "Net retail price excluding VAT calculated from observed gross "
+                "retail price of 26.90 EUR and statutory VAT rate of 24%."
+            ),
+            "formula": (
+                "Net Price = Gross Retail Price / (1 + (VAT Rate / 100))"
+            ),
+            "input_claim_ids": [pure_claim, vat_claim],
+        }
+    calculation_key = (
+        "observed_pack_price_difference"
+        if repaired_formula
+        else "net_retail_price_calculation"
+    )
+    return {
+        "prd_type": COMMERCIAL_MARKET_LAUNCH,
+        "commercial_prd": {
+            "market_scope": {"countries": ["EE"]},
+            "market_and_demand_assessment": [
+                {
+                    "taxation_environment": {
+                        "statement": (
+                            "Standard VAT rate in Estonia is 24% effective from "
+                            "1 July 2025."
+                        ),
+                        "claim_ids": [vat_claim],
+                    }
+                }
+            ],
+            "customer_segments": ["Estonian cat-food category buyers"],
+            "buying_roles": ["Economic buyer and catalogue operator"],
+            "regulatory_checklist": [
+                {
+                    "statutory_rate": {
+                        "statement": (
+                            "Standard VAT rate in Estonia is 24% effective from "
+                            "1 July 2025."
+                        ),
+                        "claim_ids": [vat_claim],
+                    }
+                }
+            ],
+            "competitors": [
+                {
+                    "observed_product": {
+                        "statement": (
+                            "Purenatural Wilder kassi kuivtoit, linnuliha, "
+                            "2 kg: 26,90 €"
+                        ),
+                        "claim_ids": [pure_claim],
+                    }
+                },
+                {
+                    "observed_product": {
+                        "statement": (
+                            "Royal Canin Appetite Control Care kassi kuivtoit, "
+                            "3,5 kg: 56,09 €"
+                        ),
+                        "claim_ids": [royal_claim],
+                    }
+                },
+            ],
+            "suppliers_and_channels": ["Specialist pet retail"],
+            "pricing_and_unit_economics": {
+                calculation_key: calculation,
+                "observed_market_price_2kg": {
+                    "statement": (
+                        "Purenatural Wilder kassi kuivtoit, linnuliha, "
+                        "2 kg: 26,90 €"
+                    ),
+                    "claim_ids": [pure_claim],
+                },
+                "observed_market_price_3_5kg": {
+                    "statement": (
+                        "Royal Canin Appetite Control Care kassi kuivtoit, "
+                        "3,5 kg: 56,09 €"
+                    ),
+                    "claim_ids": [royal_claim],
+                },
+                "statutory_vat_rate": {
+                    "statement": (
+                        "Standard VAT rate in Estonia is 24% effective from "
+                        "1 July 2025."
+                    ),
+                    "claim_ids": [vat_claim],
+                },
+            },
+            "go_to_market_plan_90_days": ["Validate, pilot, and scale"],
+            "risks_assumptions_and_validation": ["Interview category buyers"],
         },
     }
 
@@ -1755,10 +2034,9 @@ def test_pr49_risk_shape_requires_local_traceability_at_every_material_node():
             "claim_ids": ["vat-current"],
         }
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "formula": "net_price = gross_price / (1 + vat_rate)",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
     content["commercial_prd"]["risks_assumptions_and_validation"] = [
         {
             "risk_category": "Tax & Regulatory Compliance Risk",
@@ -1836,10 +2114,9 @@ def test_pr49_risk_shape_passes_after_recursive_trace_and_hypothesis_split():
             "claim_ids": ["vat-current"],
         }
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "formula": "net_price = gross_price / (1 + vat_rate)",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
     content["commercial_prd"]["risks_assumptions_and_validation"] = [
         {
             "risk_category": "Tax & Regulatory Compliance Risk",
@@ -2000,12 +2277,9 @@ def test_standard_statutory_rate_cannot_authorize_reduced_rate():
     content = _commercial_prd(
         {"statement": statement, "claim_ids": ["vat-current"]}
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": statement,
-        "claim_ids": ["vat-current"],
-        "formula": "vat_rate = statutory_vat_rate",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
 
     validation = validate_research_prd(
         content,
@@ -2081,12 +2355,9 @@ def test_statutory_fact_rejects_temporal_looking_unparseable_date():
     content = _commercial_prd(
         {"statement": statement, "claim_ids": ["vat-current"]}
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": statement,
-        "claim_ids": ["vat-current"],
-        "formula": "vat_rate = statutory_vat_rate",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
 
     validation = validate_research_prd(
         content,
@@ -2111,12 +2382,9 @@ def test_statutory_fact_accepts_matching_explicit_effective_date():
     content = _commercial_prd(
         {"statement": statement, "claim_ids": ["vat-current"]}
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": statement,
-        "claim_ids": ["vat-current"],
-        "formula": "vat_rate = statutory_vat_rate",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
 
     validation = validate_research_prd(
         content,
@@ -2147,12 +2415,9 @@ def test_statutory_fact_accepts_matching_broad_date_forms(statement):
     content = _commercial_prd(
         {"statement": statement, "claim_ids": ["vat-current"]}
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": statement,
-        "claim_ids": ["vat-current"],
-        "formula": "vat_rate = statutory_vat_rate",
-        "input_claim_ids": ["vat-current"],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
 
     validation = validate_research_prd(
         content,
@@ -2212,12 +2477,9 @@ def test_observed_offer_requires_same_product_and_pack_identity():
     content = _commercial_prd(
         {"statement": valid_statement, "claim_ids": [claim_id]}
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": valid_statement,
-        "claim_ids": [claim_id],
-        "formula": "reference_price = observed_price",
-        "input_claim_ids": [claim_id],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
     validation = validate_research_prd(
         content,
         prd_type=COMMERCIAL_MARKET_LAUNCH,
@@ -2281,7 +2543,7 @@ def test_formula_numeric_literals_cannot_launder_unsupported_targets(formula):
         "margin = revenue - costs",
     ],
 )
-def test_symbolic_formula_and_compound_neutral_one_remain_traceable(formula):
+def test_legacy_symbolic_formula_cannot_satisfy_typed_calculation_contract(formula):
     quality = evaluate_critical_claims(
         _estonia_vat_grounding(),
         ["EE"],
@@ -2305,7 +2567,445 @@ def test_symbolic_formula_and_compound_neutral_one_remain_traceable(formula):
         critical_claim_quality=quality,
     )
 
+    assert "traceable_unit_economics_missing" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def test_typed_observed_pack_price_difference_is_traceable():
+    quality = evaluate_critical_claims(
+        _estonia_vat_grounding(),
+        ["EE"],
+        now=datetime(2026, 8, 12, tzinfo=timezone.utc),
+    )
+    content = _commercial_prd(
+        {
+            "statement": "The standard VAT rate is 24%.",
+            "claim_ids": ["vat-current"],
+        }
+    )
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
     assert validation["status"] == "passed", validation["issues"]
+
+
+def test_typed_observed_pack_price_difference_supports_matching_multi_market_scope():
+    quality = evaluate_critical_claims(
+        _estonia_vat_grounding(),
+        ["EE"],
+        now=datetime(2026, 8, 12, tzinfo=timezone.utc),
+    )
+    quality["requested_country_codes"] = ["EE", "LV"]
+    content = _commercial_prd(
+        {
+            "statement": "The standard VAT rate is 24%.",
+            "claim_ids": ["vat-current"],
+        }
+    )
+    content["commercial_prd"]["market_scope"] = {"countries": ["EE", "LV"]}
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+def test_pr50_exact_production_surfaces_only_need_formula_repair():
+    quality = _pr50_production_quality()
+    content = _pr50_production_candidate(repaired_formula=False)
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert {
+        row["message"].split(" at ", 1)[1].split(" must ", 1)[0]
+        for row in validation["issues"]
+        if row["code"] == "material_fact_unlinked"
+    } == {"pricing_and_unit_economics.net_retail_price_calculation"}
+    assert {row["code"] for row in validation["issues"]} == {
+        "material_fact_unlinked",
+        "traceable_unit_economics_missing",
+    }
+
+
+def test_pr50_exact_production_surfaces_pass_with_typed_formula_bindings():
+    quality = _pr50_production_quality()
+    validation = validate_research_prd(
+        _pr50_production_candidate(repaired_formula=True),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_code"),
+    [
+        ("wrong_price", "material_fact_unlinked"),
+        ("wrong_pack", "material_fact_unlinked"),
+        ("wrong_product", "material_fact_unlinked"),
+        ("wrong_date", "material_fact_unlinked"),
+        ("wrong_claim", "material_fact_unlinked"),
+        ("unknown_symbol", "traceable_unit_economics_missing"),
+        ("wrong_formula", "traceable_unit_economics_missing"),
+        ("formula_comment", "traceable_unit_economics_missing"),
+        ("spoof_unit", "traceable_unit_economics_missing"),
+        ("same_fact_id", "traceable_unit_economics_missing"),
+        ("nonfinite_value", "traceable_unit_economics_missing"),
+        ("wrong_currency", "traceable_unit_economics_missing"),
+        ("scope_currency_mismatch", "traceable_unit_economics_missing"),
+        ("wrong_country", "traceable_unit_economics_missing"),
+        ("multiple_countries", "traceable_unit_economics_missing"),
+        ("formula_country_outside_market_scope", "traceable_unit_economics_missing"),
+        ("wrong_topic", "traceable_unit_economics_missing"),
+        ("multiple_pack_tokens", "traceable_unit_economics_missing"),
+        ("missing_sibling", "traceable_unit_economics_missing"),
+        ("wrong_calculation_key", "traceable_unit_economics_missing"),
+        ("multi_id_sibling", "traceable_unit_economics_missing"),
+        ("nested_sibling", "traceable_unit_economics_missing"),
+        ("alternate_same_claim_fact", "traceable_unit_economics_missing"),
+        ("variant_substitution", "traceable_unit_economics_missing"),
+        ("variant_omission", "traceable_unit_economics_missing"),
+        ("variant_addition", "traceable_unit_economics_missing"),
+        ("brand_omission", "traceable_unit_economics_missing"),
+        ("copycat_prefix", "traceable_unit_economics_missing"),
+        ("second_brand_addition", "traceable_unit_economics_missing"),
+        ("sku_addition", "traceable_unit_economics_missing"),
+        ("promotion_basis_addition", "traceable_unit_economics_missing"),
+        ("short_variant_x", "traceable_unit_economics_missing"),
+        ("short_variant_xl", "traceable_unit_economics_missing"),
+        ("short_variant_x1", "traceable_unit_economics_missing"),
+        ("dotted_short_variant", "traceable_unit_economics_missing"),
+        ("hyphenated_short_variant", "traceable_unit_economics_missing"),
+        ("slashed_short_variant", "traceable_unit_economics_missing"),
+        ("short_copycat_brand", "traceable_unit_economics_missing"),
+        ("short_copycat_brand_suffix", "traceable_unit_economics_missing"),
+        ("split_short_brand", "traceable_unit_economics_missing"),
+        ("fullwidth_short_variant", "traceable_unit_economics_missing"),
+        ("zero_width_short_variant", "traceable_unit_economics_missing"),
+        ("numeric_short_variant", "traceable_unit_economics_missing"),
+        ("trusted_short_variant_omission", "traceable_unit_economics_missing"),
+        ("trusted_short_variant_substitution", "traceable_unit_economics_missing"),
+        ("net_from_untyped_gross", "traceable_unit_economics_missing"),
+        ("missing_ledger_fact", "traceable_unit_economics_missing"),
+    ],
+)
+def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
+    mutation, expected_code
+):
+    quality = _pr50_production_quality()
+    content = _pr50_production_candidate(repaired_formula=True)
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    calculation = pricing["observed_pack_price_difference"]
+    if mutation == "wrong_price":
+        pricing["observed_market_price_2kg"]["statement"] = (
+            "Purenatural Wilder kassi kuivtoit, linnuliha, 2 kg: 26,91 €"
+        )
+    elif mutation == "wrong_pack":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care kassi kuivtoit, 2 kg: 56,09 €"
+        )
+    elif mutation == "wrong_product":
+        content["commercial_prd"]["competitors"][1]["observed_product"][
+            "statement"
+        ] = "Royal Canin Appetite Control Care koera kuivtoit, 3,5 kg: 56,09 €"
+    elif mutation == "wrong_date":
+        pricing["statutory_vat_rate"]["statement"] = (
+            "Standard VAT rate in Estonia is 24% effective from 2 July 2025."
+        )
+    elif mutation == "wrong_claim":
+        pricing["observed_market_price_2kg"]["claim_ids"] = [
+            "claim-1b02a34aeab2ccad20a2"
+        ]
+    elif mutation == "unknown_symbol":
+        calculation["formula"] = (
+            "observed_pack_price_difference = arbitrary_price - "
+            "lower_observed_pack_price"
+        )
+    elif mutation == "wrong_formula":
+        calculation["formula"] = (
+            "observed_pack_price_difference = lower_observed_pack_price - "
+            "higher_observed_pack_price"
+        )
+    elif mutation == "formula_comment":
+        calculation["formula"] += " # result is twenty nine euros"
+    elif mutation == "spoof_unit":
+        calculation["output_unit"] = "usd"
+    elif mutation == "same_fact_id":
+        quality["evidence_ledger"][2]["facts"][0]["fact_id"] = (
+            quality["evidence_ledger"][0]["facts"][0]["fact_id"]
+        )
+        calculation["input_bindings"]["lower_observed_pack_price"][
+            "fact_id"
+        ] = quality["evidence_ledger"][0]["facts"][0]["fact_id"]
+    elif mutation == "nonfinite_value":
+        quality["evidence_ledger"][0]["facts"][0]["normalized_value"] = (
+            "Infinity:eur"
+        )
+    elif mutation == "wrong_currency":
+        fact = quality["evidence_ledger"][0]["facts"][0]
+        fact["unit"] = "usd"
+        fact["metric_key"] = "price:usd"
+        fact["normalized_value"] = "56.09:usd"
+        fact["semantic_scope"] = (
+            "catalog:signed_offer:ee8ba34937f20185:per_item:usd"
+        )
+    elif mutation == "scope_currency_mismatch":
+        for row_index in (0, 2):
+            fact = quality["evidence_ledger"][row_index]["facts"][0]
+            fact["semantic_scope"] = str(fact["semantic_scope"]).replace(
+                ":eur", ":usd"
+            )
+    elif mutation == "wrong_country":
+        quality["evidence_ledger"][0]["facts"][0]["country_codes"] = ["LV"]
+    elif mutation == "multiple_countries":
+        for row_index in (0, 2):
+            quality["evidence_ledger"][row_index]["facts"][0][
+                "country_codes"
+            ] = ["EE", "LV"]
+    elif mutation == "formula_country_outside_market_scope":
+        for row_index in (0, 2):
+            quality["evidence_ledger"][row_index]["facts"][0][
+                "country_codes"
+            ] = ["LV"]
+    elif mutation == "wrong_topic":
+        quality["evidence_ledger"][0]["facts"][0]["fact_terms"] = [
+            "3,5kg", "canin", "koera", "kuivtoit", "royal",
+        ]
+    elif mutation == "multiple_pack_tokens":
+        quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("4kg")
+    elif mutation == "missing_sibling":
+        pricing.pop("observed_market_price_2kg")
+    elif mutation == "wrong_calculation_key":
+        pricing["net_retail_price_calculation"] = pricing.pop(
+            "observed_pack_price_difference"
+        )
+    elif mutation == "multi_id_sibling":
+        pricing["observed_market_price_2kg"]["claim_ids"].append(
+            "claim-1b02a34aeab2ccad20a2"
+        )
+    elif mutation == "nested_sibling":
+        pricing["nested_offer"] = {
+            "price": pricing.pop("observed_market_price_2kg")
+        }
+    elif mutation == "alternate_same_claim_fact":
+        lower_row = quality["evidence_ledger"][2]
+        alternate = copy.deepcopy(lower_row["facts"][0])
+        alternate["fact_id"] = f"{lower_row['claim_id']}:fact:alternate"
+        alternate["normalized_value"] = "25:eur"
+        alternate["display_value"] = "25,00 €"
+        lower_row["facts"].append(alternate)
+        quality["verified_facts"].append(alternate)
+        pricing["observed_market_price_2kg"]["statement"] = (
+            "Purenatural Wilder kassi kuivtoit, linnuliha, 2 kg: 25,00 €"
+        )
+    elif mutation == "variant_substitution":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Sterilised kassi kuivtoit, 3,5 kg: 56,09 €"
+        )
+    elif mutation == "variant_omission":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control kassi kuivtoit, 3,5 kg: 56,09 €"
+        )
+    elif mutation == "variant_addition":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care Sterilised kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "brand_omission":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Canin Appetite Control Care kassi kuivtoit, 3,5 kg: 56,09 €"
+        )
+    elif mutation == "copycat_prefix":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Copycat Royal Canin Appetite Control Care kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "second_brand_addition":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Purina Royal Canin Appetite Control Care kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "sku_addition":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care RC123 kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "promotion_basis_addition":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care promotional kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "short_variant_x":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care X kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "short_variant_xl":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care XL kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "short_variant_x1":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care X1 kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "dotted_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care.XL kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "hyphenated_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care-XL kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "slashed_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care/XL kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "short_copycat_brand":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "AC Royal Canin Appetite Control Care kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "short_copycat_brand_suffix":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care AC kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "split_short_brand":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "A-C Royal Canin Appetite Control Care kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "fullwidth_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care ＸＬ kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "zero_width_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care X\u200bL kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "numeric_short_variant":
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care 7 kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "trusted_short_variant_omission":
+        quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
+    elif mutation == "trusted_short_variant_substitution":
+        quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
+        pricing["observed_market_price_3_5kg"]["statement"] = (
+            "Royal Canin Appetite Control Care X1 kassi kuivtoit, "
+            "3,5 kg: 56,09 €"
+        )
+    elif mutation == "net_from_untyped_gross":
+        calculation.clear()
+        calculation.update(
+            {
+                "calculation_kind": "net_price_from_gross_vat",
+                "formula": (
+                    "net_price = gross_price / "
+                    "(1 + vat_rate_percent / 100)"
+                ),
+                "input_claim_ids": [
+                    "claim-5ceddcd5dd8506071d57",
+                    "claim-2f69c04cb7a60853b850",
+                ],
+                "input_bindings": {},
+            }
+        )
+    elif mutation == "missing_ledger_fact":
+        for row in quality["evidence_ledger"]:
+            row["facts"] = []
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert expected_code in {row["code"] for row in validation["issues"]}
+
+
+def test_pr50_bound_offer_identity_allows_case_punctuation_and_reordering():
+    quality = _pr50_production_quality()
+    content = _pr50_production_candidate(repaired_formula=True)
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    pricing["observed_market_price_3_5kg"]["statement"] = (
+        "CARE, control appetite — ROYAL canin; kassi kuivtoit, "
+        "3,5 kg: 56,09 €"
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+def test_pr50_bound_offer_identity_preserves_signed_short_variant():
+    quality = _pr50_production_quality()
+    quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
+    content = _pr50_production_candidate(repaired_formula=True)
+    content["commercial_prd"]["pricing_and_unit_economics"][
+        "observed_market_price_3_5kg"
+    ]["statement"] = (
+        "Royal Canin Appetite Control Care XL kassi kuivtoit, "
+        "3,5 kg: 56,09 €"
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+def test_pr50_pack_identity_suppression_is_occurrence_local():
+    quality = _pr50_production_quality()
+    content = _pr50_production_candidate(repaired_formula=True)
+    node = content["commercial_prd"]["pricing_and_unit_economics"][
+        "observed_market_price_3_5kg"
+    ]
+    node["statement"] += "; minimum order is 3,5 kg"
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert "material_fact_unlinked" in {
+        row["code"] for row in validation["issues"]
+    }
 
 
 def test_blocked_or_incomplete_ledger_fact_cannot_authorize_prd_value():
@@ -2373,12 +3073,9 @@ def test_structured_official_import_statistic_couples_to_prd_paraphrase():
             "claim_ids": [claim_id],
         }
     )
-    content["commercial_prd"]["pricing_and_unit_economics"] = {
-        "statement": "Estonia cat food imports were 54,891,271 EUR in 2025.",
-        "claim_ids": [claim_id],
-        "formula": "market_reference = official_import_value",
-        "input_claim_ids": [claim_id],
-    }
+    content["commercial_prd"]["pricing_and_unit_economics"] = (
+        _traceable_observed_price_difference(quality)
+    )
 
     validation = validate_research_prd(
         content,
@@ -2757,17 +3454,14 @@ def test_commercial_prd_accepts_labeled_hypothesis_with_validation_plan():
             "claim_ids": ["vat-current"],
         }
     )
+    traceable_pricing = _traceable_observed_price_difference(quality)
     content["commercial_prd"]["pricing_and_unit_economics"] = {
         "target_price": {
             "statement": "Hypothesized retail price is €29.90.",
             "evidence_class": "synthetic_hypothesis",
             "validation_plan": "Test with 12 Estonian category buyers before launch.",
         },
-        "verified_vat_input": {
-            "statement": "The standard VAT rate is 24%.",
-            "formula": "vat_rate = statutory_vat_rate",
-            "input_claim_ids": ["vat-current"],
-        },
+        **traceable_pricing,
     }
 
     validation = validate_research_prd(
