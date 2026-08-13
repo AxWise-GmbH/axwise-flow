@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 import os
 from datetime import datetime, timezone
 
@@ -32,6 +33,7 @@ from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridPRDOutput,
     HybridRunService,
+    _strip_private_grounding_artifacts,
 )
 from backend.services.orqaly_research_bundle_service import (
     BUNDLE_VERSION,
@@ -44,15 +46,102 @@ from backend.services.orqaly_persona_resolution_service import (
     OrqalyTaskContext,
 )
 from backend.services.research_source_authority_service import (
+    _commercial_offer_evidence,
+    _normalized_document_text,
+    _structured_statistical_observations,
     build_authority_claim_artifact,
+    build_attested_authority_proof,
     build_direct_primary_market_proof,
     build_recognized_root_proof,
+)
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    TopicSeedContract,
+    build_topic_seed,
 )
 
 pytestmark = pytest.mark.contract
 os.environ.setdefault(
     "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
 )
+
+
+def test_private_direct_documents_are_scrubbed_after_quality_boundary():
+    grounding = {
+        "market_sources": [{
+            "source_id": "signed-source",
+            "url": "https://example.test/evidence",
+            "_authority_document_artifact": {"text": "private normalized page"},
+            "_structured_evidence_html": "<table>private raw table</table>",
+            "authority_document": {"sha256": "a" * 64},
+        }],
+        "market_claims": [],
+    }
+
+    scrubbed = _strip_private_grounding_artifacts(grounding)
+
+    assert "_authority_document_artifact" not in scrubbed["market_sources"][0]
+    assert "_structured_evidence_html" not in scrubbed["market_sources"][0]
+    assert scrubbed["market_sources"][0]["authority_document"] == {"sha256": "a" * 64}
+
+
+def test_topic_seed_maps_immutable_goal_and_confirmed_scope_without_location():
+    request = _request().model_copy(
+        update={
+            "business_context": _request().business_context.model_copy(
+                update={
+                    "business_idea": "Cat food distribution",
+                    "problem": "Assess cat food demand and channel fit",
+                    "industry": "Pet food",
+                    "target_customer": "Pet-food category buyer",
+                    "location": None,
+                    "market_scope": resolve_market_expression(
+                        "United States and Canada"
+                    ),
+                }
+            )
+        }
+    )
+    task = OrqalyTaskContext(
+        task_id="cat-food-us-ca",
+        title="Cat food commercial launch",
+        description="Assess cat food demand in both confirmed markets",
+        desired_outcome="A grounded cat food launch decision",
+        research_prd_type="commercial_market_launch",
+    )
+
+    dumped = HybridRunService._topic_seed_contract(request, task, ["US", "CA"])
+    seed = TopicSeedContract.model_validate(dumped)
+
+    assert "cat food" in seed.exact_goal_anchors
+    assert "pet food" in seed.exact_goal_anchors
+    assert seed.confirmed_country_codes == ("CA", "US")
+    assert seed.confirmed_market_scope_sha256
+    assert all(binding.source_span_sha256 for binding in seed.anchor_bindings)
+
+
+@pytest.mark.parametrize("location", ["Estonia", "Bremen, Germany"])
+def test_location_only_unambiguous_market_builds_topic_seed(location):
+    request = _request().model_copy(
+        update={
+            "business_context": _request().business_context.model_copy(
+                update={"location": location, "market_scope": None}
+            )
+        }
+    )
+    scope = resolve_market_expression(location)
+    country_codes = [
+        country.country_code for country in scope.resolved_scope.countries
+    ]
+
+    seed = HybridRunService._topic_seed_contract(
+        request, _commercial_task_context(), country_codes
+    )
+
+    assert TopicSeedContract.model_validate(seed).confirmed_country_codes == tuple(
+        sorted(country_codes)
+    )
 
 
 @compiles(JSONB, "sqlite")
@@ -411,6 +500,10 @@ async def test_commercial_hybrid_run_repairs_then_caches_and_bundles_valid_prd(
     assert first_envelope["repair_feedback"] == []
     assert second_envelope["repair_feedback"]
     bundle = persisted.dataset["data"]["research_bundle"]
+    serialized_result = json.dumps(persisted.dataset, sort_keys=True)
+    assert "_authority_document_artifact" not in serialized_result
+    assert "_structured_evidence_html" not in serialized_result
+    assert '"raw_html"' not in serialized_result
     assert bundle["research_prd"]["status"] == "completed"
     assert bundle["research_prd"]["prd_type"] == "commercial_market_launch"
     assert bundle["research_prd"]["content"]["metadata"]["validation"][
@@ -568,6 +661,8 @@ async def test_critical_gate_resumes_deferred_company_enrichment_once(session_fa
     assert persisted.status == "completed", persisted.error
     assert deferred.calls == 1
     market_grounding = persisted.dataset["data"]["market_grounding"]
+    assert "_authority_document_artifact" not in json.dumps(market_grounding)
+    assert "_structured_evidence_html" not in json.dumps(market_grounding)
     assert "_deferred_company_enrichment" not in market_grounding
     assert market_grounding["company_count"] == 1
     assert any(
@@ -676,6 +771,69 @@ async def test_failed_critical_gate_never_runs_deferred_company_enrichment(
     assert "secret" not in str(failure).casefold()
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", ["omit", "replace"])
+async def test_process_blocks_omitted_or_replaced_topic_contract(
+    session_factory,
+    mutation,
+):
+    async def grounding(request, policy):
+        result = await commercial_grounding(request, policy)
+        if mutation == "omit":
+            result.pop("topic_seed_contract", None)
+        else:
+            result["topic_seed_contract"] = build_topic_seed(
+                ImmutableGoalTopicFields(
+                    goal_id="different-goal",
+                    title="Industrial robotics deployment",
+                    problem_scope="Assess industrial robotics adoption.",
+                    industry="Industrial robotics",
+                    exact_topic_anchors=("industrial robotics",),
+                ),
+                ConfirmedMarketScope(
+                    scope_label="Germany",
+                    country_codes=("DE",),
+                    confirmed=True,
+                ),
+            ).model_dump(mode="json")
+        return result
+
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        commercial_enrichment,
+        grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        f"idem-topic-{mutation}",
+        f"trace-topic-{mutation}",
+        task_context=_commercial_task_context(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(required=True),
+    )
+
+    await service.process_job(run.job_id)
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+
+    assert persisted.status == "failed"
+    assert "omitted or replaced" in persisted.error
+    failure = persisted.result_summary["failure_diagnostics"]
+    assert failure["blocked_reason_counts"] == {
+        "topic_contract_missing_or_invalid": 1
+    }
+
+
 async def fake_grounding(_request, _policy):
     return {
         "market_sources": [
@@ -778,8 +936,7 @@ async def commercial_grounding(_request, _policy):
     catalog_url = "https://shop.example.de/cat-food"
     retrieved_at = "2026-08-12T12:00:00+00:00"
     direct_text = (
-        "Government tax authority current value-added tax and statistics guidance. "
-        f"{vat_claim} {statistic_claim}"
+        "Government tax authority current value-added tax guidance. " + vat_claim
     )
     proof = build_recognized_root_proof(
         direct_url=source_url,
@@ -787,11 +944,59 @@ async def commercial_grounding(_request, _policy):
         country_codes=["DE"],
         retrieved_at=retrieved_at,
     )
+    stat_html = """
+    <figure data-uuid="research-technology-demand">
+      <h2>Research technology demand</h2>
+      <a href="https://stats.example.de/en/stat/RT001">dataset</a>
+      <table data-series-orientation="column"><thead><tr>
+        <th data-series-name="Research technology buyers"
+          data-series-unit="million persons">Research technology buyers</th>
+      </tr></thead><tbody><tr>
+        <th data-category="2025">2025</th><td>84</td>
+      </tr></tbody></table><p>Last updated: 27 May 2026</p>
+    </figure>
+    """
+    stat_observations = _structured_statistical_observations(stat_html)
+    stat_text = (
+        "German official statistics office. "
+        + _normalized_document_text(stat_html, is_html=True)
+    )
+    stat_url = "https://statistics.gov.de/research-technology-demand"
+    stat_proof = build_attested_authority_proof(
+        direct_url=stat_url,
+        direct_text=stat_text,
+        attestation_url="https://european-union.europa.eu/germany-authorities",
+        attestation_text=(
+            "Official statistics authority directory: https://statistics.gov.de"
+        ),
+        country_codes=["DE"],
+        retrieved_at=retrieved_at,
+        structured_statistical_observations=stat_observations,
+        direct_raw_html=stat_html,
+    )
+    stat_source_id = "source-de-research-technology-stat"
+    stat_document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": stat_source_id,
+        "text": stat_text,
+        "sha256": hashlib.sha256(stat_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": stat_proof["proof_signature"],
+    }
     catalog_text = "Official product catalogue for Germany. " + price_claim
+    catalog_offer_html = (
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"CAT-FOOD","name":"premium cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    catalog_raw_html = f"<div>{catalog_text}</div>{catalog_offer_html}"
     catalog_proof = build_direct_primary_market_proof(
         direct_url=catalog_url,
         direct_text=catalog_text,
         country_codes=["DE"],
+        commercial_offer_evidence=_commercial_offer_evidence(catalog_offer_html),
+        direct_raw_html=catalog_raw_html,
         retrieved_at=retrieved_at,
     )
     authority_document = {
@@ -855,6 +1060,13 @@ async def commercial_grounding(_request, _policy):
             **temporal,
         }
 
+    topic_seed_contract = (
+        (((_request.business_context.grounding_context or {}).get(
+            "critical_claim_acquisition", {}
+        ) or {}).get("topic_seed_contract"))
+        if _request.business_context
+        else None
+    )
     return {
         "market_sources": [
             {
@@ -880,6 +1092,27 @@ async def commercial_grounding(_request, _policy):
                 },
             },
             {
+                "source_id": stat_source_id,
+                "source_type": "google_search_result",
+                "title": "Research technology demand",
+                "url": stat_url,
+                "publisher": "statistics.gov.de",
+                "provider": "searxng",
+                "provider_source_id": "searx-de-research-stat",
+                "provider_query_ids": ["query-de-research-stat"],
+                "provider_queries": ["Germany research technology statistics"],
+                "country_codes": ["DE"],
+                "source_authority": "official_public",
+                "authority_verification_status": "independently_attested_direct_domain",
+                "retrieved_at": retrieved_at,
+                "authority_proof": stat_proof,
+                "_authority_document_artifact": stat_document,
+                "_structured_evidence_html": stat_html,
+                "authority_document": {
+                    key: value for key, value in stat_document.items() if key != "text"
+                },
+            },
+            {
                 "source_id": "source-de-cat-catalog",
                 "source_type": "google_search_result",
                 "title": "Current German cat food catalogue",
@@ -894,6 +1127,8 @@ async def commercial_grounding(_request, _policy):
                 "authority_verification_status": "direct_primary_market_observation",
                 "retrieved_at": retrieved_at,
                 "authority_proof": catalog_proof,
+                "_authority_document_artifact": catalog_document,
+                "_structured_evidence_html": catalog_raw_html,
                 "authority_document": {
                     key: value
                     for key, value in catalog_document.items()
@@ -914,18 +1149,22 @@ async def commercial_grounding(_request, _policy):
                 effective_at="2025-01-01T00:00:00+00:00",
                 current=True,
             ),
-            claim_row(
-                claim_id="claim-de-population",
-                text=statistic_claim,
-                predicate="latest official population",
-                evidence_class="official_statistic",
-                source_id="source-de-government-facts",
-                url=source_url,
-                source_proof=proof,
-                document=authority_document,
-                observation_end="2025-12-31T00:00:00+00:00",
-                latest_release=True,
-            ),
+            {
+                **claim_row(
+                    claim_id="claim-de-population",
+                    text=stat_observations[0]["row_text"],
+                    predicate="latest official research technology demand",
+                    evidence_class="official_statistic",
+                    source_id=stat_source_id,
+                    url=stat_url,
+                    source_proof=stat_proof,
+                    document=stat_document,
+                    observation_end=stat_observations[0]["observation_end"],
+                    published_at=stat_observations[0]["published_at"],
+                    latest_release=True,
+                ),
+                "structured_statistical_observation": stat_observations[0],
+            },
             claim_row(
                 claim_id="claim-de-cat-price",
                 text=price_claim,
@@ -938,10 +1177,11 @@ async def commercial_grounding(_request, _policy):
                 observed_at=retrieved_at,
             ),
         ],
-        "structured_source_count": 2,
+        "structured_source_count": 3,
         "claim_count": 3,
         "company_count": 0,
         "composer_version": "provider_shaped_commercial_fixture_v1",
+        "topic_seed_contract": topic_seed_contract,
     }
 
 
@@ -1676,6 +1916,10 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
                         "reason": "mandatory_claim_class_missing:official_statistic",
                     },
                 ],
+                "candidate_rejection_counts": {
+                    "material_fact_not_extractable": 21,
+                },
+                "quarantined_count": 21,
             },
         }
     )
@@ -1717,6 +1961,10 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
         "mandatory_claim_class_missing": 1,
         "material_fact_not_extractable": 1,
     }
+    assert diagnostics["candidate_rejection_counts"] == {
+        "material_fact_not_extractable": 21,
+    }
+    assert diagnostics["quarantined_count"] == 21
 
 
 def test_multi_market_critical_gate_requires_every_class_in_every_country_cell(
