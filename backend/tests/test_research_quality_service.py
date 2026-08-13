@@ -7,6 +7,7 @@ import pytest
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
     _has_exact_span_provenance,
+    _normalized_value,
     clean_semantic_text,
     determine_claim_class_applicability,
     evaluate_critical_claims,
@@ -15,6 +16,7 @@ from backend.services.research_quality_service import (
 from backend.services.research_source_authority_service import (
     build_authority_claim_artifact,
     build_attested_authority_proof,
+    build_direct_primary_market_proof,
     is_trusted_public_root,
 )
 
@@ -226,6 +228,165 @@ def _replace_direct_claim(
     return grounding
 
 
+def _catalog_grounding(
+    *,
+    country_code: str,
+    source_url: str,
+    claims: list[tuple[str, str]],
+) -> dict:
+    """Build production-shaped exact first-party catalogue observations."""
+
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    direct_text = "Current first-party product catalogue. " + " ".join(
+        text for _, text in claims
+    )
+    proof = build_direct_primary_market_proof(
+        direct_url=source_url,
+        direct_text=direct_text,
+        country_codes=[country_code],
+        retrieved_at=retrieved_at,
+    )
+    source_id = f"catalog-{country_code.casefold()}"
+    document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": source_id,
+        "text": direct_text,
+        "sha256": hashlib.sha256(direct_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    market_claims = []
+    for claim_id, claim_text in claims:
+        artifact = build_authority_claim_artifact(
+            source_id=source_id,
+            source_url=source_url,
+            authority_proof=proof,
+            authority_document=document,
+            claim_text=claim_text,
+        )
+        binding = artifact["claim_binding"]
+        market_claims.append(
+            {
+                "claim_id": claim_id,
+                "subject": country_code,
+                "predicate": "current catalogue product price",
+                "object": claim_text,
+                "source_ids": [source_id],
+                "country_codes": [country_code],
+                "critical": True,
+                "evidence_class": "observed_primary_market",
+                "observed_at": retrieved_at,
+                "citation_metadata": {
+                    "segment_start": binding["claim_start"],
+                    "segment_end": binding["claim_end"],
+                    "span_target": "direct_authority_document",
+                    "offset_unit": "unicode_codepoints",
+                    "source_id": source_id,
+                },
+                "provenance_artifact": artifact,
+            }
+        )
+    return {
+        "market_sources": [
+            {
+                "source_id": source_id,
+                "url": source_url,
+                "publisher": source_url,
+                "provider": "searxng",
+                "country_codes": [country_code],
+                "source_authority": "first_party_catalog",
+                "authority_verification_status": "direct_primary_market_observation",
+                "retrieved_at": retrieved_at,
+                "authority_proof": proof,
+            }
+        ],
+        "market_claims": market_claims,
+    }
+
+
+def _official_grounding(
+    *,
+    source_id: str,
+    source_url: str,
+    claims: list[dict],
+) -> dict:
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    direct_text = (
+        "National public authority, official statistics office and government tax authority. "
+        + " ".join(str(row["text"]) for row in claims)
+    )
+    proof = build_attested_authority_proof(
+        direct_url=source_url,
+        direct_text=direct_text,
+        attestation_url="https://european-union.europa.eu/authorities",
+        attestation_text=f"Official public authority directory: {source_url}",
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+    )
+    document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": source_id,
+        "text": direct_text,
+        "sha256": hashlib.sha256(direct_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": retrieved_at,
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    market_claims = []
+    for row in claims:
+        artifact = build_authority_claim_artifact(
+            source_id=source_id,
+            source_url=source_url,
+            authority_proof=proof,
+            authority_document=document,
+            claim_text=row["text"],
+        )
+        binding = artifact["claim_binding"]
+        market_claims.append(
+            {
+                "claim_id": row["claim_id"],
+                "subject": "Estonia",
+                "predicate": row.get("predicate") or "official material fact",
+                "object": row["text"],
+                "source_ids": [source_id],
+                "country_codes": ["EE"],
+                "critical": True,
+                "evidence_class": row["evidence_class"],
+                "citation_metadata": {
+                    "segment_start": binding["claim_start"],
+                    "segment_end": binding["claim_end"],
+                    "span_target": "direct_authority_document",
+                    "offset_unit": "unicode_codepoints",
+                    "source_id": source_id,
+                },
+                "provenance_artifact": artifact,
+                **row.get("temporal", {}),
+            }
+        )
+    return {
+        "market_sources": [
+            {
+                "source_id": source_id,
+                "url": source_url,
+                "publisher": source_url,
+                "provider": "searxng",
+                "country_codes": ["EE"],
+                "source_authority": "official_public",
+                "authority_verification_status": "official_domain_verified",
+                "retrieved_at": retrieved_at,
+                "authority_proof": proof,
+            }
+        ],
+        "market_claims": market_claims,
+    }
+
+
+def _merge_grounding(*parts: dict) -> dict:
+    return {
+        "market_sources": [row for part in parts for row in part["market_sources"]],
+        "market_claims": [row for part in parts for row in part["market_claims"]],
+    }
+
+
 def test_estonia_vat_is_verified_from_dynamic_official_evidence_not_catalogue():
     quality = evaluate_critical_claims(
         _estonia_vat_grounding(),
@@ -236,6 +397,317 @@ def test_estonia_vat_is_verified_from_dynamic_official_evidence_not_catalogue():
     assert quality["status"] == "passed"
     assert quality["verified_count"] == 1
     assert quality["verified_facts"][0]["display_value"] == "24%"
+
+
+def test_distinct_catalog_products_and_pack_sizes_are_not_conflicts():
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/catalog",
+        claims=[
+            (
+                "adult-chicken",
+                "Adult chicken cat food Brand Alpha 400 g current retail price is €2.99 on 2026-08-12.",
+            ),
+            (
+                "kitten-salmon",
+                "Kitten salmon cat food Brand Beta 1 kg current retail price is EUR 7.49 on 2026-08-12.",
+            ),
+        ],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["verified_count"] == 2
+    assert quality["conflicts"] == []
+
+
+def test_distinct_non_euro_products_are_not_conflicts():
+    grounding = _catalog_grounding(
+        country_code="BR",
+        source_url="https://shop.example.com.br/catalogo",
+        claims=[
+            (
+                "adult-beef",
+                "Adult beef cat food Brand Sul 400 g current retail price is BRL 39.90 on 2026-08-12.",
+            ),
+            (
+                "kitten-fish",
+                "Kitten fish cat food Brand Mar 1 kg current retail price is BRL 72.50 on 2026-08-12.",
+            ),
+        ],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["BR"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["conflict_count"] == 0
+
+
+def test_live_catalog_variants_and_price_denominators_are_distinct_targets():
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://rimi.example.ee/cat-food",
+        claims=[
+            (
+                "royal-canin-chicken",
+                "Royal Canin Adult Chicken 400 g current retail price is €5.99/pcs on 2026-08-12.",
+            ),
+            (
+                "royal-canin-salmon",
+                "Royal Canin Adult Salmon 400 g current retail price is €6.49/pcs on 2026-08-12.",
+            ),
+            (
+                "royal-canin-piece",
+                "Royal Canin Adult Beef 85 g current retail price is €1.69/pcs on 2026-08-12.",
+            ),
+            (
+                "royal-canin-kilo",
+                "Royal Canin Adult Beef 85 g current retail price is €19.88/kg on 2026-08-12.",
+            ),
+        ],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["conflict_count"] == 0
+
+
+def test_same_catalog_target_detects_true_conflict_and_equal_formats_agree():
+    conflict = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/same-sku",
+        claims=[
+            (
+                "sku-a",
+                "Brand Alpha Chicken SKU A123 400 g regular retail price is €2.99/pcs on 2026-08-12.",
+            ),
+            (
+                "sku-b",
+                "Brand Alpha Chicken SKU A123 400 g regular retail price is EUR 3,49/pcs on 2026-08-12.",
+            ),
+        ],
+    )
+    quality = evaluate_critical_claims(
+        conflict,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert quality["status"] == "blocked"
+    assert quality["conflict_count"] == 1
+    assert _normalized_value("€2.99", "eur") == _normalized_value("EUR 2,99", "eur")
+
+
+def test_scaled_statistical_values_normalize_to_same_magnitude():
+    assert _normalized_value("1.37 million", "number") == _normalized_value(
+        "1,370 thousand", "number"
+    )
+
+
+def test_unextractable_signed_statutory_claim_is_not_reported_verified():
+    grounding = _replace_direct_claim(
+        _estonia_vat_grounding(),
+        claim_text="Current tax guidance applies from 1 July 2025.",
+        evidence_class="statutory_current",
+        temporal_fields={
+            "effective_at": "2025-07-01T00:00:00+00:00",
+            "current": True,
+        },
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["statutory_current"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+    assert quality["verified_claim_classes"] == []
+    assert quality["missing_claim_classes"] == ["statutory_current"]
+    assert quality["claims"][0]["status"] == "blocked_unverified"
+
+
+def test_same_current_standard_statutory_rate_from_two_authorities_conflicts():
+    temporal = {"effective_at": "2025-07-01T00:00:00+00:00", "current": True}
+    grounding = _merge_grounding(
+        _official_grounding(
+            source_id="tax-authority-a",
+            source_url="https://tax-one.example.ee/current-rate",
+            claims=[{
+                "claim_id": "standard-a",
+                "text": "The current standard VAT rate is 22% effective 1 July 2025.",
+                "evidence_class": "statutory_current",
+                "predicate": "standard VAT rate",
+                "temporal": temporal,
+            }],
+        ),
+        _official_grounding(
+            source_id="tax-authority-b",
+            source_url="https://tax-two.example.ee/current-rate",
+            claims=[{
+                "claim_id": "standard-b",
+                "text": "The current standard VAT rate is 24 percent effective 1 July 2025.",
+                "evidence_class": "statutory_current",
+                "predicate": "standard VAT rate",
+                "temporal": temporal,
+            }],
+        ),
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["statutory_current"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["conflict_count"] == 1
+
+
+def test_standard_and_reduced_statutory_rates_are_distinct_facts():
+    grounding = _official_grounding(
+        source_id="tax-rates",
+        source_url="https://tax-rates.example.ee/current-rates",
+        claims=[
+            {
+                "claim_id": "standard",
+                "text": "The current standard VAT rate is 24% effective 1 July 2025.",
+                "evidence_class": "statutory_current",
+                "predicate": "standard VAT rate",
+                "temporal": {"effective_at": "2025-07-01T00:00:00+00:00", "current": True},
+            },
+            {
+                "claim_id": "reduced",
+                "text": "The current reduced VAT rate for books is 13% effective 1 July 2025.",
+                "evidence_class": "statutory_current",
+                "predicate": "reduced VAT rate",
+                "temporal": {"effective_at": "2025-07-01T00:00:00+00:00", "current": True},
+            },
+        ],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["statutory_current"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert quality["conflict_count"] == 0
+
+
+def test_official_series_conflicts_only_for_same_series_and_period():
+    same_period = "2026-03-31T00:00:00+00:00"
+    conflict = _merge_grounding(
+        _official_grounding(
+            source_id="stats-a",
+            source_url="https://stats-one.example.ee/q1",
+            claims=[{
+                "claim_id": "turnover-a",
+                "text": "Latest retail turnover for the first quarter 2026 was EUR 10.8 billion.",
+                "evidence_class": "official_statistic",
+                "predicate": "retail turnover monetary value",
+                "temporal": {"observation_end": same_period, "latest_release": True},
+            }],
+        ),
+        _official_grounding(
+            source_id="stats-b",
+            source_url="https://stats-two.example.ee/q1",
+            claims=[{
+                "claim_id": "turnover-b",
+                "text": "Latest retail turnover for the first quarter 2026 was EUR 11.2 billion.",
+                "evidence_class": "official_statistic",
+                "predicate": "retail turnover monetary value",
+                "temporal": {"observation_end": same_period, "latest_release": True},
+            }],
+        ),
+    )
+    conflict_quality = evaluate_critical_claims(
+        conflict,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+    assert conflict_quality["status"] == "blocked"
+    assert conflict_quality["conflict_count"] == 1
+
+    different_period = _official_grounding(
+        source_id="stats-periods",
+        source_url="https://stats-periods.example.ee/quarters",
+        claims=[
+            {
+                "claim_id": "q4",
+                "text": "Latest retail turnover for the fourth quarter 2025 was EUR 10.8 billion.",
+                "evidence_class": "official_statistic",
+                "temporal": {"observation_end": "2025-12-31T00:00:00+00:00", "latest_release": True},
+            },
+            {
+                "claim_id": "q1",
+                "text": "Latest retail turnover for the first quarter 2026 was EUR 11.2 billion.",
+                "evidence_class": "official_statistic",
+                "temporal": {"observation_end": same_period, "latest_release": True},
+            },
+        ],
+    )
+    period_quality = evaluate_critical_claims(
+        different_period,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+    assert period_quality["status"] == "passed", period_quality
+    assert period_quality["conflict_count"] == 0
+
+    different_series = _official_grounding(
+        source_id="stats-series",
+        source_url="https://stats-series.example.ee/q1",
+        claims=[
+            {
+                "claim_id": "net-sales",
+                "text": "Latest net sales for the first quarter 2026 were EUR 8.12 billion.",
+                "evidence_class": "official_statistic",
+                "temporal": {"observation_end": same_period, "latest_release": True},
+            },
+            {
+                "claim_id": "retail-sales",
+                "text": "Latest retail sales for the first quarter 2026 were EUR 2.33 billion.",
+                "evidence_class": "official_statistic",
+                "temporal": {"observation_end": same_period, "latest_release": True},
+            },
+        ],
+    )
+    series_quality = evaluate_critical_claims(
+        different_series,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=["official_statistic"],
+    )
+    assert series_quality["status"] == "passed", series_quality
+    assert series_quality["conflict_count"] == 0
 
 
 def test_commercial_goal_determines_applicability_before_model_output():

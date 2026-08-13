@@ -19,6 +19,7 @@ from backend.services.generative.searxng_search_service import SearxngSearchServ
 from backend.services.research_quality_service import evaluate_critical_claims
 from backend.services.research_source_authority_service import (
     build_recognized_root_proof,
+    enrich_authority_sources as real_enrich_authority_sources,
 )
 
 
@@ -648,10 +649,475 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
     assert all("Brazil" in row["query"] for row in queries)
     assert all("Germany" not in row["query"] for row in queries)
     assert all("EUR" not in row["query"] for row in queries)
+    statutory_query = next(
+        row["query"]
+        for row in queries
+        if row["evidence_class"] == "statutory_current"
+    )
+    assert "official national tax authority" in statutory_query
+    assert "VAT GST sales or consumption tax rate" in statutory_query
+    assert "effective date" in statutory_query
+    assert "Estonia" not in statutory_query
+    assert "24%" not in statutory_query
+    assert "historic consolidations" in statutory_query
     # Three evidence classes plus one batched authority-directory query across
     # two independent providers; each route admits at most two direct sources.
     assert (len(queries) + 1) * 2 == 8
     assert (len(queries) + 1) * 2 * 2 == 16
+
+
+@pytest.mark.asyncio
+async def test_missing_statutory_recovery_uses_one_dynamic_route_and_exact_fact(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food pricing and compliance launch",
+        target_user="Retail category buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    direct_url = "https://taxation-customs.ec.europa.eu/estonia-current-tax"
+    direct_text = (
+        "European Commission current tax guidance for Estonia. From 1 July 2025, "
+        "the standard VAT rate is 24 per cent."
+    )
+
+    class Search:
+        def __init__(self):
+            self.queries = []
+
+        def search_web_general(self, query):
+            self.queries.append(query)
+            return {
+                "search_performed": True,
+                "sources": [{"title": "Current tax authority", "url": direct_url}],
+                "runtime_diagnostics": {
+                    "route": "gemini_google_search",
+                    "model": "models/gemini-3.6-flash",
+                    "status": "completed",
+                    "call_count": 1,
+                },
+            }
+
+    async def recognized_enrich(rows):
+        for row in rows:
+            proof = build_recognized_root_proof(
+                direct_url=direct_url,
+                direct_text=direct_text,
+                country_codes=["EE"],
+                retrieved_at="2026-08-13T00:00:00+00:00",
+            )
+            row.update(
+                {
+                    "url": direct_url,
+                    "resolved_url": direct_url,
+                    "publisher": "taxation-customs.ec.europa.eu",
+                    "source_authority": "official_public",
+                    "authority_verification_status": "recognized_public_root_direct",
+                    "authority_proof": proof,
+                    "provider_redirect": False,
+                    "retrieved_at": "2026-08-13T00:00:00+00:00",
+                    "direct_fetch_status": "retrieved",
+                    "jurisdiction_binding_status": "verified",
+                    "authority_document_artifact": {
+                        "artifact_type": "direct_authority_document",
+                        "text": direct_text,
+                        "sha256": proof["direct"]["content_sha256"],
+                        "retrieved_at": "2026-08-13T00:00:00+00:00",
+                        "authority_proof_signature": proof["proof_signature"],
+                    },
+                }
+            )
+        return rows
+
+    search = Search()
+    sources = []
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=recognized_enrich,
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [("gemini_google_search", search)], sources
+        )
+
+    assert recovered == 1
+    assert len(search.queries) == 1
+    assert "Estonia" in search.queries[0]
+    assert "official national tax authority" in search.queries[0]
+    assert "EMTA" not in search.queries[0]
+    assert "24 per cent" not in search.queries[0]
+    assert pipeline.market_claims[0]["object"] in direct_text
+    assert pipeline.market_claims[0]["evidence_class"] == "statutory_current"
+    assert pipeline.routing_diagnostics["statutory_recovery"] == {
+        "status": "completed",
+        "route_count": 1,
+        "candidate_count": 1,
+        "retrieved_count": 1,
+        "verified_count": 1,
+        "accepted_verified_claims": 1,
+        "elapsed_ms": pipeline.routing_diagnostics["statutory_recovery"]["elapsed_ms"],
+        "deadline_ms": 90_000,
+    }
+
+
+@pytest.mark.asyncio
+async def test_statutory_recovery_skips_unhealthy_secondary_and_stays_fail_closed():
+    pipeline = B2BDataPipeline(
+        location="Brazil",
+        business_problem="Commercial pet food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    pipeline.routing_diagnostics["providers"].append(
+        {
+            "provider": "searxng:statutory_current",
+            "source_count": 0,
+            "runtime": {
+                "status": "empty",
+                "unresponsive_engines": [{"engine": "brave", "reason": "rate_limited"}],
+            },
+        }
+    )
+
+    class EmptySearch:
+        def __init__(self):
+            self.calls = 0
+
+        def search_web_general(self, _query):
+            self.calls += 1
+            return {"search_performed": False, "sources": []}
+
+    gemini = EmptySearch()
+    searx = EmptySearch()
+    recovered = await pipeline._recover_missing_statutory_evidence(
+        [("gemini_google_search", gemini), ("searxng", searx)], []
+    )
+
+    assert recovered == 0
+    assert gemini.calls == 1
+    assert searx.calls == 0
+    assert pipeline.market_claims == []
+    assert pipeline.routing_diagnostics["statutory_recovery"]["route_count"] == 1
+    assert pipeline.routing_diagnostics["statutory_recovery"][
+        "accepted_verified_claims"
+    ] == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "runtime",
+    [
+        {"status": "timeout"},
+        {"status": "failed", "http_status": 429},
+        {"status": "failed", "http_status": 503},
+    ],
+)
+async def test_recovery_skips_unhealthy_gemini_transport_routes(runtime):
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    pipeline.routing_diagnostics["providers"].append(
+        {
+            "provider": "gemini_google_search:statutory_current",
+            "source_count": 0,
+            "runtime": runtime,
+        }
+    )
+    search = MagicMock()
+    recovered = await pipeline._recover_missing_statutory_evidence(
+        [("gemini_google_search", search)], []
+    )
+    assert recovered == 0
+    search.search_web_general.assert_not_called()
+    assert pipeline.routing_diagnostics["statutory_recovery"]["route_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_recovery_retries_completed_gemini_relevance_miss_once():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    pipeline.routing_diagnostics["providers"].append(
+        {
+            "provider": "gemini_google_search:statutory_current",
+            "source_count": 0,
+            "runtime": {"status": "completed", "http_status": 200},
+        }
+    )
+
+    class Search:
+        def __init__(self):
+            self.calls = 0
+
+        def search_web_general(self, _query):
+            self.calls += 1
+            return {"search_performed": False, "sources": []}
+
+    search = Search()
+    recovered = await pipeline._recover_missing_statutory_evidence(
+        [("gemini_google_search", search)], []
+    )
+    assert recovered == 0
+    assert search.calls == 1
+    assert pipeline.routing_diagnostics["statutory_recovery"]["route_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_statutory_recovery_does_not_run_after_initial_signed_exact_fact(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    url = "https://taxation-customs.ec.europa.eu/estonia-tax"
+    text = "Estonia current standard VAT rate is 24% effective 2026-01-01."
+    proof = build_recognized_root_proof(
+        direct_url=url,
+        direct_text=text,
+        country_codes=["EE"],
+        retrieved_at="2026-08-13T00:00:00+00:00",
+    )
+    pipeline._store_direct_web_evidence(
+        [
+            {
+                "title": "Current tax authority",
+                "url": url,
+                "provider": "searxng",
+                "provider_source_id": "tax-source",
+                "retrieved_at": "2026-08-13T00:00:00+00:00",
+                "country_codes": ["EE"],
+                "source_authority": "official_public",
+                "authority_verification_status": "recognized_public_root_direct",
+                "authority_proof": proof,
+                "authority_document_artifact": {
+                    "artifact_type": "direct_authority_document",
+                    "text": text,
+                    "sha256": proof["direct"]["content_sha256"],
+                    "retrieved_at": "2026-08-13T00:00:00+00:00",
+                    "authority_proof_signature": proof["proof_signature"],
+                },
+            }
+        ],
+        [],
+    )
+
+    search = MagicMock()
+    recovered = await pipeline._recover_missing_statutory_evidence(
+        [("gemini_google_search", search)], []
+    )
+
+    assert recovered == 0
+    search.search_web_general.assert_not_called()
+    assert "statutory_recovery" not in pipeline.routing_diagnostics
+
+
+@pytest.mark.asyncio
+async def test_unverified_statutory_paraphrase_does_not_suppress_recovery():
+    pipeline = B2BDataPipeline(
+        location="Brazil",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    pipeline.market_claims.append(
+        {
+            "claim_id": "unverified-provider-paraphrase",
+            "object": "Brazil current standard VAT rate is 18% effective 2026-01-01.",
+            "critical": True,
+            "evidence_class": "statutory_current",
+            "current": True,
+            "effective_at": "2026-01-01T00:00:00+00:00",
+            "source_ids": ["missing-source"],
+            "country_codes": ["BR"],
+        }
+    )
+
+    class EmptySearch:
+        def __init__(self):
+            self.calls = 0
+
+        def search_web_general(self, _query):
+            self.calls += 1
+            return {"search_performed": False, "sources": []}
+
+    search = EmptySearch()
+    recovered = await pipeline._recover_missing_statutory_evidence(
+        [("gemini_google_search", search)], []
+    )
+    assert recovered == 0
+    assert search.calls == 1
+    assert pipeline.routing_diagnostics["statutory_recovery"]["route_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_recovery_attests_dynamic_non_gov_tax_authority_in_same_bounded_route(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial pricing and compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    authority_url = "https://www.emta.ee/en/current-tax-rate"
+    directory_url = "https://european-union.europa.eu/estonia-authorities"
+    authority_text = (
+        "Estonia national tax authority guidance. From 1 July 2025, the current "
+        "standard VAT rate is 24 per cent."
+    )
+    directory_text = (
+        "Official Estonia public authority directory: Estonian Tax and Customs "
+        "Board https://www.emta.ee"
+    )
+
+    class Search:
+        def __init__(self):
+            self.calls = 0
+
+        def search_web_general(self, _query):
+            self.calls += 1
+            return {
+                "search_performed": True,
+                "sources": [
+                    {"title": "Current national tax page", "url": authority_url},
+                    {"title": "EU authority directory", "url": directory_url},
+                ],
+            }
+
+    async def fetcher(url):
+        return {
+            "final_url": url,
+            "text": authority_text if url == authority_url else directory_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+        }
+
+    async def enrich(rows):
+        return await real_enrich_authority_sources(rows, fetcher=fetcher)
+
+    search = Search()
+    source_rows = []
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=enrich,
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [("gemini_google_search", search)], source_rows
+        )
+
+    assert search.calls == 1
+    assert recovered == 1
+    emta = next(row for row in pipeline.market_sources if "emta.ee" in row["url"])
+    assert emta["authority_verification_status"] == (
+        "independently_attested_direct_domain"
+    )
+    assert emta["authority_proof"]["proof_type"] == (
+        "independent_public_root_attestation"
+    )
+    exact = next(
+        row
+        for row in pipeline.market_claims
+        if row["evidence_class"] == "statutory_current"
+    )
+    assert "24 per cent" in exact["object"]
+    assert exact["provenance_artifact"]["artifact_type"] == (
+        "direct_authority_document"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("directory_url", "directory_text"),
+    [
+        (
+            "https://european-union.europa.eu/estonia-authorities",
+            "Official Estonia public authority directory without a publisher link.",
+        ),
+        (
+            "https://trade.gov/estonia",
+            "US government page mentioning Estonia and https://www.emta.ee",
+        ),
+    ],
+)
+async def test_recovery_rejects_unbound_or_wrong_jurisdiction_attestation(
+    monkeypatch,
+    directory_url,
+    directory_text,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    authority_url = "https://www.emta.ee/en/current-tax-rate"
+    authority_text = (
+        "Estonia national tax authority guidance. From 1 July 2025, the current "
+        "standard VAT rate is 24 per cent."
+    )
+
+    class Search:
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "sources": [
+                    {"title": "National tax page", "url": authority_url},
+                    {"title": "Directory", "url": directory_url},
+                ],
+            }
+
+    async def fetcher(url):
+        return {
+            "final_url": url,
+            "text": authority_text if url == authority_url else directory_text,
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+        }
+
+    async def enrich(rows):
+        return await real_enrich_authority_sources(rows, fetcher=fetcher)
+
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=enrich,
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [("gemini_google_search", Search())], []
+        )
+
+    assert recovered == 0
+    assert not pipeline.market_sources
 
 
 @pytest.mark.asyncio
@@ -732,6 +1198,148 @@ async def test_targeted_attestation_is_host_bounded_and_keeps_redirect_untrusted
         ]["elapsed_ms"],
         "deadline_ms": 90_000,
     }
+
+
+@pytest.mark.asyncio
+async def test_targeted_attestation_skips_rejected_jurisdiction_publishers():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current", "official_statistic"],
+    )
+
+    class Search:
+        def __init__(self):
+            self.queries = []
+
+        def search_web_general(self, query):
+            self.queries.append(query)
+            return {"search_performed": False, "sources": []}
+
+    search = Search()
+    await pipeline._targeted_authority_attestation_sources(
+        [
+            {
+                "resolved_url": "https://trade.gov/estonia",
+                "jurisdiction_binding_status": "rejected_authority_jurisdiction",
+            },
+            {
+                "resolved_url": "https://stat.ee/data",
+                "jurisdiction_binding_status": "unverified",
+            },
+        ],
+        [("gemini_google_search", search)],
+    )
+
+    assert len(search.queries) == 1
+    assert '"stat.ee"' in search.queries[0]
+    assert "trade.gov" not in search.queries[0]
+    assert pipeline.routing_diagnostics["targeted_authority_attestation"][
+        "host_count"
+    ] == 1
+
+
+@pytest.mark.asyncio
+async def test_rejected_authority_jurisdiction_is_diagnostic_only_not_evidence(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+    )
+    eu_url = "https://taxation-customs.ec.europa.eu/estonia-tax"
+    eu_text = "Estonia current standard VAT rate is 24% effective 2025-07-01."
+
+    class Gemini:
+        def is_available(self):
+            return True
+
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "text": eu_text,
+                "sources": [
+                    {"title": "Wrong root", "url": "https://trade.gov/estonia"},
+                    {"title": "EU tax authority", "url": eu_url},
+                ],
+                "claims": [{"text": eu_text, "source_urls": [eu_url]}],
+            }
+
+    async def enrich(rows):
+        for row in rows:
+            if "trade.gov" in row["url"]:
+                row.update(
+                    {
+                        "resolved_url": row["url"],
+                        "direct_fetch_status": "retrieved",
+                        "jurisdiction_binding_status": "rejected_authority_jurisdiction",
+                    }
+                )
+                continue
+            proof = build_recognized_root_proof(
+                direct_url=eu_url,
+                direct_text=eu_text,
+                country_codes=["EE"],
+                retrieved_at="2026-08-13T00:00:00+00:00",
+            )
+            row.update(
+                {
+                    "resolved_url": eu_url,
+                    "direct_fetch_status": "retrieved",
+                    "jurisdiction_binding_status": "verified",
+                    "source_authority": "official_public",
+                    "authority_verification_status": "recognized_public_root_direct",
+                    "authority_proof": proof,
+                    "retrieved_at": "2026-08-13T00:00:00+00:00",
+                    "authority_document_artifact": {
+                        "artifact_type": "direct_authority_document",
+                        "text": eu_text,
+                        "sha256": proof["direct"]["content_sha256"],
+                        "retrieved_at": "2026-08-13T00:00:00+00:00",
+                        "authority_proof_signature": proof["proof_signature"],
+                    },
+                }
+            )
+        return rows
+
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(output=SimpleNamespace(companies=[]))
+    )
+    with patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=Gemini(),
+    ), patch(
+        "backend.services.generative.searxng_search_service.SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=enrich,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ):
+        await pipeline._discover_via_web_search()
+
+    assert all("trade.gov" not in row.get("url", "") for row in pipeline.market_sources)
+    assert all(
+        "trade.gov" not in " ".join(row.get("source_ids") or [])
+        for row in pipeline.market_claims
+    )
+    assert any(
+        row.get("reason") == "resolved_document_not_bound_to_requested_market"
+        and "trade.gov" in row.get("url", "")
+        for row in pipeline.routing_diagnostics["rejected_cross_market_sources"]
+    )
 
 
 def test_searxng_adapter_is_optional_bounded_and_source_bearing():
