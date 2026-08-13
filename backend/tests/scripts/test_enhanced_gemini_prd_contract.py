@@ -88,6 +88,8 @@ async def test_commercial_prd_keeps_untrusted_context_out_of_system_instruction(
     assert "parent, sibling, or nested" in call["system_instruction"]
     assert "synthetic validation" in call["system_instruction"]
     assert "formula does not prove its displayed output" in call["system_instruction"]
+    assert "brand, product-line" in call["system_instruction"]
+    assert "do not omit, substitute, or add" in call["system_instruction"]
     assert call["custom_config"] == {"response_mime_type": "application/json"}
 
 
@@ -203,10 +205,46 @@ def test_publishable_candidate_is_strict_json_and_metadata_is_service_owned():
 
 
 def _strict_service_quality() -> dict:
-    fact = {
-        "fact_id": "vat-current:fact:0",
-        "claim_id": "vat-current",
-        "fact_terms": ["estonia", "vat"],
+    observed_claim_id = "claim-5ceddcd5dd8506071d57"
+    observed_fact = {
+        "fact_id": f"{observed_claim_id}:fact:1",
+        "claim_id": observed_claim_id,
+        "fact_terms": [
+            "2kg", "kassi", "kuivtoit", "linnuliha", "purenatural", "wilder",
+        ],
+        "metric_key": "price:eur",
+        "unit": "eur",
+        "normalized_value": "26.9:eur",
+        "display_value": "26,90 €",
+        "country_codes": ["EE"],
+        "evidence_class": "observed_primary_market",
+        "temporal_scope": "2026-08-13T20:16:39.936164+00:00",
+        "semantic_scope": "catalog:signed_offer:733f8461300bb4ce:per_item:eur",
+        "identity_complete": True,
+    }
+    higher_claim_id = "claim-1b02a34aeab2ccad20a2"
+    higher_fact = {
+        "fact_id": f"{higher_claim_id}:fact:1",
+        "claim_id": higher_claim_id,
+        "fact_terms": [
+            "3,5kg", "appetite", "canin", "care", "control", "kassi",
+            "kuivtoit", "royal",
+        ],
+        "metric_key": "price:eur",
+        "unit": "eur",
+        "normalized_value": "56.09:eur",
+        "display_value": "56,09 €",
+        "country_codes": ["EE"],
+        "evidence_class": "observed_primary_market",
+        "temporal_scope": "2026-08-13T20:16:37.892083+00:00",
+        "semantic_scope": "catalog:signed_offer:ee8ba34937f20185:per_item:eur",
+        "identity_complete": True,
+    }
+    vat_claim_id = "claim-2f69c04cb7a60853b850"
+    vat_fact = {
+        "fact_id": f"{vat_claim_id}:fact:2",
+        "claim_id": vat_claim_id,
+        "fact_terms": ["breadcrumb", "e-services", "sts", "vat"],
         "metric_key": "vat:percent",
         "unit": "percent",
         "normalized_value": "24:percent",
@@ -219,19 +257,35 @@ def _strict_service_quality() -> dict:
     }
     return {
         "status": "passed",
-        "verified_facts": [fact],
+        "requested_country_codes": ["EE"],
+        "verified_facts": [observed_fact, higher_fact, vat_fact],
         "evidence_ledger": [
             {
-                "claim_id": "vat-current",
+                "claim_id": higher_claim_id,
+                "status": "verified_current_authoritative",
+                "evidence_class": "observed_primary_market",
+                "facts": [higher_fact],
+            },
+            {
+                "claim_id": observed_claim_id,
+                "status": "verified_current_authoritative",
+                "evidence_class": "observed_primary_market",
+                "facts": [observed_fact],
+            },
+            {
+                "claim_id": vat_claim_id,
                 "status": "verified_current_authoritative",
                 "evidence_class": "statutory_current",
-                "facts": [fact],
+                "facts": [vat_fact],
             }
         ],
     }
 
 
 def _strict_service_candidate() -> dict:
+    observed_claim_id = "claim-5ceddcd5dd8506071d57"
+    higher_claim_id = "claim-1b02a34aeab2ccad20a2"
+    vat_claim_id = "claim-2f69c04cb7a60853b850"
     return {
         "prd_type": "commercial_market_launch",
         "commercial_prd": {
@@ -242,21 +296,76 @@ def _strict_service_candidate() -> dict:
             "regulatory_checklist": [
                 {
                     "statement": "Estonia standard VAT rate is 24%.",
-                    "claim_ids": ["vat-current"],
+                    "claim_ids": [vat_claim_id],
                 }
             ],
             "competitors": ["Evidence-backed competitor set"],
             "suppliers_and_channels": ["Specialist retail"],
             "pricing_and_unit_economics": {
-                "statement": "Estonia standard VAT rate is 24%.",
-                "claim_ids": ["vat-current"],
-                "formula": "net_price = gross_price / (1 + vat_rate)",
-                "input_claim_ids": ["vat-current"],
+                "observed_pack_price_difference": {
+                    "calculation_kind": "observed_pack_price_difference",
+                    "formula": (
+                        "observed_pack_price_difference = "
+                        "higher_observed_pack_price - lower_observed_pack_price"
+                    ),
+                    "input_claim_ids": [higher_claim_id, observed_claim_id],
+                    "input_bindings": {
+                        "higher_observed_pack_price": {
+                            "claim_id": higher_claim_id,
+                            "fact_id": f"{higher_claim_id}:fact:1",
+                        },
+                        "lower_observed_pack_price": {
+                            "claim_id": observed_claim_id,
+                            "fact_id": f"{observed_claim_id}:fact:1",
+                        },
+                    },
+                },
+                "observed_market_price_2kg": {
+                    "statement": (
+                        "Purenatural Wilder kassi kuivtoit, linnuliha, "
+                        "2 kg: 26,90 €"
+                    ),
+                    "claim_ids": [observed_claim_id],
+                },
+                "observed_market_price_3_5kg": {
+                    "statement": (
+                        "Royal Canin Appetite Control Care kassi kuivtoit, "
+                        "3,5 kg: 56,09 €"
+                    ),
+                    "claim_ids": [higher_claim_id],
+                },
+                "statutory_vat_rate": {
+                    "statement": "Estonia standard VAT rate is 24%.",
+                    "claim_ids": [vat_claim_id],
+                },
             },
             "go_to_market_plan_90_days": ["Validate", "Pilot", "Scale"],
             "risks_assumptions_and_validation": ["Interview buyers"],
         },
     }
+
+
+def _pr50_unrepaired_candidate() -> dict:
+    candidate = _strict_service_candidate()
+    observed_claim = "claim-5ceddcd5dd8506071d57"
+    vat_claim = "claim-2f69c04cb7a60853b850"
+    pricing = candidate["commercial_prd"]["pricing_and_unit_economics"]
+    pricing.pop("observed_pack_price_difference")
+    pricing["net_retail_price_calculation"] = {
+        "statement": (
+            "Net retail price excluding VAT calculated from observed gross "
+            "retail price of 26.90 EUR and statutory VAT rate of 24%."
+        ),
+        "formula": "Net Price = Gross Retail Price / (1 + (VAT Rate / 100))",
+        "input_claim_ids": [observed_claim, vat_claim],
+    }
+    pricing["statutory_vat_rate"] = {
+        "statement": (
+            "Standard VAT rate in Estonia is 24% effective from 1 July 2025."
+        ),
+        "claim_ids": [vat_claim],
+    }
+    return candidate
 
 
 class _SequenceLLM:
@@ -267,6 +376,38 @@ class _SequenceLLM:
     async def analyze(self, request):
         self.requests.append(dict(request))
         return self.responses[min(len(self.requests) - 1, len(self.responses) - 1)]
+
+
+@pytest.mark.asyncio
+async def test_pr50_production_shaped_formula_repairs_exact_prior_candidate():
+    invalid = _pr50_unrepaired_candidate()
+    valid = _strict_service_candidate()
+    llm = _SequenceLLM([invalid, valid])
+
+    result = await PRDGenerationService(llm_service=llm).generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="commercial_market_launch",
+        critical_claim_quality=_strict_service_quality(),
+    )
+
+    assert result["metadata"]["validation"]["status"] == "passed"
+    assert result["metadata"]["generation_attempts"] == 2
+    second_envelope = json.loads(llm.requests[1]["text"])
+    assert second_envelope["repair_candidate"] == invalid
+    feedback = {
+        (row["code"], row["message"])
+        for row in second_envelope["repair_feedback"]
+    }
+    assert any(
+        code == "material_fact_unlinked"
+        and "pricing_and_unit_economics.net_retail_price_calculation" in message
+        for code, message in feedback
+    )
+    assert any(code == "traceable_unit_economics_missing" for code, _ in feedback)
+    assert result["commercial_prd"]["pricing_and_unit_economics"][
+        "observed_pack_price_difference"
+    ]["calculation_kind"] == "observed_pack_price_difference"
 
 
 @pytest.mark.asyncio
