@@ -33,6 +33,12 @@ from backend.services.orqaly_research_bundle_service import (
 from backend.services.research_source_authority_service import (
     build_recognized_root_proof,
 )
+from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
+    ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
+    build_topic_seed,
+)
 
 
 pytestmark = pytest.mark.contract
@@ -279,6 +285,96 @@ async def test_multi_market_grounding_runs_country_cells_concurrently_and_preser
         "elapsed_ms": 40,
         "deadline_ms": 90_000,
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tamper_second_cell", [False, True])
+async def test_multi_market_cells_require_one_exact_global_topic_lifecycle(
+    monkeypatch,
+    tamper_second_cell,
+):
+    market_scope = resolve_market_expression("Estonia and Latvia")
+    confirmed_scope = ConfirmedMarketScope(
+        scope_label="Estonia and Latvia",
+        country_codes=("EE", "LV"),
+        confirmed=True,
+    )
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="ee-lv-cat-food",
+            title="Cat food commercial launch",
+            exact_topic_anchors=("cat food",),
+        ),
+        confirmed_scope,
+    )
+    expansion = build_expected_trusted_topic_alias_expansion(
+        seed, confirmed_scope
+    )
+    assert expansion is not None
+    lifecycle = {
+        "topic_seed_contract": seed.model_dump(mode="json"),
+        "topic_market_scope_contract": confirmed_scope.model_dump(mode="json"),
+        "topic_alias_expansion": expansion.model_dump(mode="json"),
+    }
+    request = SimulationRequest(
+        business_context=BusinessContext(
+            business_idea="Cat food distribution",
+            target_customer="Retail category buyers",
+            problem="Verify current cat food evidence",
+            industry="Pet food",
+            location="Estonia and Latvia",
+            market_scope=market_scope,
+            grounding_context={"critical_claim_acquisition": lifecycle},
+        ),
+        questions_data=QuestionsData(stakeholders={}),
+        config=SimulationConfig(people_per_stakeholder=1),
+    )
+
+    async def collect_cell(cell_request, _policy):
+        location = str(cell_request.business_context.location)
+        country_code = "EE" if location == "Estonia" else "LV"
+        returned = dict(lifecycle)
+        if tamper_second_cell and country_code == "LV":
+            returned["topic_alias_expansion"] = {
+                **returned["topic_alias_expansion"],
+                "expansion_sha256": "0" * 64,
+            }
+        return {
+            "market_sources": [{
+                "source_id": f"source-{country_code}",
+                "source_type": "google_search_result",
+                "url": f"https://example.{country_code.casefold()}/evidence",
+                "title": f"{location} evidence",
+                "source_authority": "official_public",
+            }],
+            "market_claims": [],
+            "company_count": 0,
+            "routing_diagnostics": {},
+            **returned,
+        }
+
+    monkeypatch.setattr(
+        "backend.services.orqaly_research_bundle_service._collect_single_market_grounding",
+        collect_cell,
+    )
+
+    if tamper_second_cell:
+        with pytest.raises(ValueError, match="inconsistent topic_alias_expansion"):
+            await collect_regional_grounding(
+                request,
+                HybridGroundingPolicy(required=True, minimum_structured_sources=1),
+            )
+        return
+
+    result = await collect_regional_grounding(
+        request,
+        HybridGroundingPolicy(required=True, minimum_structured_sources=1),
+    )
+    assert result["topic_seed_contract"] == lifecycle["topic_seed_contract"]
+    assert result["topic_market_scope_contract"] == lifecycle[
+        "topic_market_scope_contract"
+    ]
+    assert result["topic_alias_expansion"] == lifecycle["topic_alias_expansion"]
 
 
 def _company():

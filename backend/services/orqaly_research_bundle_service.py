@@ -699,6 +699,19 @@ async def collect_regional_grounding(
             return result
 
     results = await asyncio.gather(*(collect_cell(cell) for cell in country_cells))
+
+    def common_topic_contract(key: str) -> Any:
+        values = [result.get(key) for result in results]
+        present = [value for value in values if value is not None]
+        if not present:
+            return None
+        first = present[0]
+        if len(present) != len(values) or any(value != first for value in present[1:]):
+            raise ValueError(
+                f"multi-market grounding returned inconsistent {key} contracts"
+            )
+        return first
+
     maximum_sources = min(100, max(policy.maximum_sources, len(country_cells) * 5))
     maximum_claims = min(200, max(policy.maximum_claims, len(country_cells) * 10))
     merge_policy = policy.model_copy(
@@ -797,13 +810,12 @@ async def collect_regional_grounding(
         "research_cells": country_cells,
         "cell_coverage": coverage,
         "routing_diagnostics": diagnostics,
-        "topic_seed_contract": next(
-            (
-                result.get("topic_seed_contract")
-                for result in results
-                if result.get("topic_seed_contract")
-            ),
-            None,
+        "topic_seed_contract": common_topic_contract("topic_seed_contract"),
+        "topic_market_scope_contract": common_topic_contract(
+            "topic_market_scope_contract"
+        ),
+        "topic_alias_expansion": common_topic_contract(
+            "topic_alias_expansion"
         ),
         "_deferred_company_enrichment": [
             entry
@@ -852,6 +864,14 @@ async def _collect_single_market_grounding(
             ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
             .get("topic_seed_contract")
         ),
+        topic_market_scope_contract=(
+            ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+            .get("topic_market_scope_contract")
+        ),
+        topic_alias_expansion=(
+            ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+            .get("topic_alias_expansion")
+        ),
     )
     companies = await pipeline.run()
     grounding = normalize_market_grounding(companies, policy)
@@ -871,6 +891,18 @@ async def _collect_single_market_grounding(
     )
     if topic_seed_contract:
         grounding["topic_seed_contract"] = topic_seed_contract
+    topic_market_scope_contract = (
+        ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+        .get("topic_market_scope_contract")
+    )
+    if topic_market_scope_contract:
+        grounding["topic_market_scope_contract"] = topic_market_scope_contract
+    topic_alias_expansion = (
+        ((context.grounding_context or {}).get("critical_claim_acquisition", {}) or {})
+        .get("topic_alias_expansion")
+    )
+    if topic_alias_expansion:
+        grounding["topic_alias_expansion"] = topic_alias_expansion
     if pipeline.deferred_companies:
         grounding["_deferred_company_enrichment"] = [
             {"pipeline": pipeline, "policy": policy}

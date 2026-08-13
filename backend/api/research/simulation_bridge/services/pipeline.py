@@ -37,11 +37,14 @@ from backend.services.eurostat_comext_service import (
     acquire_eurostat_comext_source,
 )
 from backend.services.research_topic_contract_service import (
+    ConfirmedMarketScope,
     TopicSeedContract,
+    ValidatedTopicAliasExpansion,
     exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
     product_topic_phrases,
     retrieval_phrases_for_country,
+    validate_expected_trusted_topic_alias_expansion,
 )
 
 logger = logging.getLogger(__name__)
@@ -253,6 +256,8 @@ class B2BDataPipeline:
         minimum_authoritative_source_count: int = 0,
         required_evidence_classes: Optional[List[str]] = None,
         topic_seed_contract: Optional[Dict[str, Any]] = None,
+        topic_market_scope_contract: Optional[Dict[str, Any]] = None,
+        topic_alias_expansion: Optional[Dict[str, Any]] = None,
     ):
         self.location = location
         self.business_problem = business_problem
@@ -275,6 +280,37 @@ class B2BDataPipeline:
             if topic_seed_contract
             else None
         )
+        self.topic_market_scope_contract = (
+            ConfirmedMarketScope.model_validate(topic_market_scope_contract)
+            if topic_market_scope_contract
+            else None
+        )
+        topic_contract_required = bool(
+            {"official_statistic", "observed_primary_market"}
+            & set(self.required_evidence_classes)
+        )
+        if topic_contract_required and (
+            not self.topic_seed_contract or not self.topic_market_scope_contract
+        ):
+            raise ValueError(
+                "topic-bound evidence acquisition requires a seed and confirmed "
+                "market scope contract"
+            )
+        if bool(self.topic_seed_contract) != bool(self.topic_market_scope_contract):
+            raise ValueError(
+                "topic seed and confirmed market scope must propagate together"
+            )
+        self.topic_alias_expansion: Optional[ValidatedTopicAliasExpansion] = None
+        if self.topic_seed_contract and self.topic_market_scope_contract:
+            self.topic_alias_expansion = (
+                validate_expected_trusted_topic_alias_expansion(
+                    self.topic_seed_contract,
+                    self.topic_market_scope_contract,
+                    topic_alias_expansion,
+                )
+            )
+        elif topic_alias_expansion is not None:
+            raise ValueError("topic alias expansion requires a bound seed and scope")
         self.market_scope = resolve_market_scope(location)
         self.routing_diagnostics: Dict[str, Any] = {
             "requested_location": location,
@@ -290,6 +326,21 @@ class B2BDataPipeline:
             "topic_seed_sha256": (
                 self.topic_seed_contract.seed_sha256
                 if self.topic_seed_contract
+                else None
+            ),
+            "topic_alias_expansion_sha256": (
+                self.topic_alias_expansion.expansion_sha256
+                if self.topic_alias_expansion
+                else None
+            ),
+            "topic_alias_registry_id": (
+                self.topic_alias_expansion.trusted_registry_id
+                if self.topic_alias_expansion
+                else None
+            ),
+            "topic_alias_registry_version": (
+                self.topic_alias_expansion.trusted_registry_version
+                if self.topic_alias_expansion
                 else None
             ),
             "topic_mismatch_observation_count": 0,
@@ -472,6 +523,7 @@ class B2BDataPipeline:
             retrieval_phrases_for_country(
                 self.topic_seed_contract,
                 country_code=str(self.market_scope.country_code),
+                expansion=self.topic_alias_expansion,
                 product_only=True,
             )[:8]
             if self.topic_seed_contract and self.market_scope.country_code
@@ -536,7 +588,12 @@ class B2BDataPipeline:
             "official_statistic",
         } or not self.topic_seed_contract:
             return list(sources)
-        phrases = product_topic_phrases(self.topic_seed_contract)
+        phrases = retrieval_phrases_for_country(
+            self.topic_seed_contract,
+            country_code=str(self.market_scope.country_code),
+            expansion=self.topic_alias_expansion,
+            product_only=True,
+        )
         if not phrases:
             return list(sources)
 
@@ -1845,6 +1902,7 @@ class B2BDataPipeline:
                             "series": [observation.get("series") or ""],
                         },
                         country_code=str(self.market_scope.country_code),
+                        expansion=self.topic_alias_expansion,
                         source_anchors=product_topic_phrases(
                             self.topic_seed_contract
                         ),
