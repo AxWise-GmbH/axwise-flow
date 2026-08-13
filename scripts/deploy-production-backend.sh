@@ -153,6 +153,9 @@ gcloud run services update-traffic "${API_SERVICE}" \
   --project "${PROJECT_ID}" \
   --to-revisions "${API_REVISION}=100"
 
+# The durable worker polls and executes outside an inbound HTTP request. It
+# must retain CPU after startup/request handling or an active research job can
+# freeze indefinitely between provider calls.
 echo "Deploying durable Orqaly A+B worker"
 gcloud run deploy "${WORKER_SERVICE}" \
   --image "${IMAGE}" \
@@ -164,6 +167,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --args=-m,backend.scripts.run_orqaly_hybrid_worker_service \
   --memory 8Gi \
   --cpu 4 \
+  --no-cpu-throttling \
   --timeout 3600 \
   --concurrency 1 \
   --min-instances 1 \
@@ -246,6 +250,18 @@ WORKER_TRAFFIC_PERCENT="$(gcloud run services describe "${WORKER_SERVICE}" \
   --format='value(status.traffic[0].percent)')"
 if [[ "${WORKER_TRAFFIC_REVISION}" != "${WORKER_REVISION}" || "${WORKER_TRAFFIC_PERCENT}" != "100" ]]; then
   echo "Expected 100% worker traffic on ${WORKER_REVISION}; received ${WORKER_TRAFFIC_REVISION} at ${WORKER_TRAFFIC_PERCENT}%" >&2
+  exit 1
+fi
+
+# Verify the live revision retained instance-based CPU allocation. A deploy
+# command can succeed while an unexpected service configuration still leaves
+# this pull worker without CPU between requests.
+WORKER_CPU_THROTTLING="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(spec.template.metadata.annotations."run.googleapis.com/cpu-throttling")')"
+if [[ "${WORKER_CPU_THROTTLING}" != "false" ]]; then
+  echo "Expected worker CPU throttling to be disabled; Cloud Run reports ${WORKER_CPU_THROTTLING:-unset}" >&2
   exit 1
 fi
 

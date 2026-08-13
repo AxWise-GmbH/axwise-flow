@@ -3,10 +3,12 @@ B2B Data Ingestion Pipeline for fetching, scraping, and scoring real-world regio
 """
 
 import asyncio
+import calendar
 import hashlib
 import logging
 import os
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -22,6 +24,7 @@ from backend.services.research_source_authority_service import (
     build_authority_claim_artifact,
     enrich_authority_sources,
     is_trusted_public_root,
+    trusted_public_root_search_scope,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,9 +35,60 @@ _DIRECTED_EVIDENCE_CLASSES = {
     "observed_primary_market",
 }
 _MAX_SOURCES_PER_QUERY_PROVIDER = 2
+_AUTHORITY_STAGE_DEADLINE_SECONDS = 50.0
+_COMPANY_STRUCTURING_DEADLINE_SECONDS = 120.0
+_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
+_MAX_TARGETED_ATTESTATION_HOSTS = 4
+_STAGE_CANCELLATION_GRACE_SECONDS = 1.0
 _ISO_CURRENCY_CODES = "|".join(
     sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
 )
+
+
+def _consume_background_task(task: asyncio.Task[Any]) -> None:
+    """Consume a late task result without extending a caller's hard deadline."""
+
+    try:
+        task.exception()
+    except (asyncio.CancelledError, Exception):
+        pass
+
+
+async def _await_with_hard_stage_deadline(
+    awaitable: Any,
+    *,
+    deadline_seconds: float,
+) -> Any:
+    """Bound an entire stage, including a short cancellation-cleanup window.
+
+    ``asyncio.wait_for`` may exceed its timeout while it waits for cancellation
+    cleanup. Durable research needs the stage itself to have a hard budget, so
+    the active work and cleanup share one deadline. Provider cancellation still
+    propagates normally; a pathological late task is detached only after its
+    result/exception has been made unobservable to the research bundle.
+    """
+
+    budget = max(0.01, float(deadline_seconds))
+    cleanup_budget = min(
+        max(0.001, _STAGE_CANCELLATION_GRACE_SECONDS),
+        budget / 2,
+    )
+    active_budget = max(0.001, budget - cleanup_budget)
+    task = asyncio.ensure_future(awaitable)
+    done, _pending = await asyncio.wait({task}, timeout=active_budget)
+    if task in done:
+        return task.result()
+
+    task.cancel()
+    done, _pending = await asyncio.wait({task}, timeout=cleanup_budget)
+    if task in done:
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+    else:
+        task.add_done_callback(_consume_background_task)
+    raise asyncio.TimeoutError
 
 
 # City coordinate lookup for geo-radius search
@@ -316,6 +370,205 @@ class B2BDataPipeline:
             ),
         }
 
+    async def _targeted_authority_attestation_sources(
+        self,
+        unresolved_rows: List[Dict[str, Any]],
+        search_services: List[tuple[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Find trusted-root pages that name unresolved direct publishers.
+
+        The initial general directory query cannot know which publisher hosts
+        provider redirects will resolve to. This bounded second pass searches
+        for each exact unresolved hostname after resolution. Search output does
+        not grant authority: the returned page must still be fetched from a
+        recognized public root and its visible text must name the exact direct
+        hostname before the HMAC authority proof can be built.
+        """
+
+        host_rows: List[tuple[str, Dict[str, Any]]] = []
+        seen_hosts: set[str] = set()
+        for row in unresolved_rows:
+            host = (
+                urlparse(str(row.get("resolved_url") or row.get("url") or "")).hostname
+                or ""
+            ).casefold()
+            if not host or host in seen_hosts:
+                continue
+            seen_hosts.add(host)
+            host_rows.append((host, row))
+            if len(host_rows) >= _MAX_TARGETED_ATTESTATION_HOSTS:
+                break
+        if not host_rows or not search_services:
+            return []
+
+        market = self.location.strip()
+        country_codes = [self.market_scope.country_code] if self.market_scope.country_code else []
+        root_scope = trusted_public_root_search_scope(country_codes)
+        query_rows = [
+            {
+                "host": host,
+                "query": (
+                    f"{root_scope} {market} official public authority directory exact "
+                    f'publisher hostname "{host}". Return a direct recognized government '
+                    "or supranational directory page whose visible text names or links the "
+                    f'exact hostname "{host}". Do not return the publisher page itself.'
+                ),
+            }
+            for host, _row in host_rows
+        ]
+        logger.info(
+            "Targeted authority attestation search started; hosts=%s routes=%s deadline_ms=%s",
+            len(query_rows),
+            len(query_rows) * len(search_services),
+            int(_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS * 1000),
+        )
+
+        async def run(
+            provider: str,
+            service: Any,
+            query_row: Dict[str, str],
+        ) -> tuple[str, Dict[str, str], Dict[str, Any] | BaseException]:
+            try:
+                result = await asyncio.to_thread(
+                    service.search_web_general,
+                    query_row["query"],
+                )
+                return provider, query_row, result
+            except Exception as exc:
+                return provider, query_row, exc
+
+        started = time.monotonic()
+        try:
+            results = await _await_with_hard_stage_deadline(
+                asyncio.gather(
+                    *(
+                        run(provider, service, query_row)
+                        for provider, service in search_services
+                        for query_row in query_rows
+                    )
+                ),
+                deadline_seconds=_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS,
+            )
+            status = "completed"
+        except asyncio.TimeoutError:
+            results = []
+            status = "timeout"
+
+        candidates: List[Dict[str, Any]] = []
+        seen_urls: set[str] = set()
+        for provider, query_row, result in results:
+            query_id = self._evidence_id("query", query_row["query"])
+            if isinstance(result, BaseException):
+                self._record_provider(
+                    f"{provider}:targeted_authority_attestation",
+                    attempted=True,
+                    accepted=0,
+                    reason=f"provider_error:{type(result).__name__}",
+                    details={
+                        "evidence_class": "targeted_authority_attestation",
+                        "query_id": query_id,
+                    },
+                )
+                continue
+            sources = [row for row in result.get("sources") or [] if isinstance(row, dict)]
+            accepted = 0
+            for source in sources:
+                if accepted >= 1:
+                    break
+                url = str(source.get("url") or "").strip()
+                parsed = urlparse(url)
+                if (
+                    not url
+                    or url in seen_urls
+                    or parsed.scheme.casefold() != "https"
+                    or not parsed.hostname
+                    or parsed.username
+                    or parsed.password
+                    or not self.market_scope.source_url_matches(url)
+                ):
+                    continue
+                seen_urls.add(url)
+                accepted += 1
+                candidates.append(
+                    {
+                        "title": str(source.get("title") or "Authority directory")[:500],
+                        "url": url,
+                        "provider": provider,
+                        "provider_source_id": source.get("provider_source_id"),
+                        "retrieved_at": source.get("retrieved_at"),
+                        "provider_response_hash": source.get("provider_response_hash"),
+                        "provider_query_ids": list(
+                            source.get("provider_query_ids") or [query_id]
+                        ),
+                        "provider_queries": list(
+                            source.get("provider_queries") or [query_row["query"]]
+                        ),
+                        "citation_metadata": source.get("citation_metadata") or {},
+                        "provider_redirect": bool(source.get("provider_redirect")),
+                        "country_codes": country_codes,
+                        "market_terms": list(
+                            dict.fromkeys(
+                                value
+                                for value in (
+                                    self.location,
+                                    self.market_scope.locality,
+                                    self.market_scope.country_name,
+                                )
+                                if value
+                            )
+                        ),
+                        "acquisition_evidence_classes": ["authority_attestation"],
+                        "target_authority_host": query_row["host"],
+                    }
+                )
+            runtime = result.get("runtime_diagnostics") or {}
+            self._record_provider(
+                f"{provider}:targeted_authority_attestation",
+                attempted=True,
+                accepted=0,
+                source_count=accepted,
+                reason=None if accepted else "empty_or_failed",
+                details={
+                    "evidence_class": "targeted_authority_attestation",
+                    "query_id": query_id,
+                    "result_source_count": len(sources),
+                    "runtime": {
+                        key: runtime.get(key)
+                        for key in (
+                            "route",
+                            "model",
+                            "status",
+                            "elapsed_ms",
+                            "call_count",
+                            "retry_count",
+                            "deadline_ms",
+                            "fallback_used",
+                            "http_status",
+                            "result_count",
+                            "unresponsive_engines",
+                        )
+                        if runtime.get(key) is not None
+                    },
+                },
+            )
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        self.routing_diagnostics["targeted_authority_attestation"] = {
+            "status": status,
+            "host_count": len(query_rows),
+            "route_count": len(query_rows) * len(search_services),
+            "candidate_count": len(candidates),
+            "elapsed_ms": elapsed_ms,
+            "deadline_ms": int(_TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS * 1000),
+        }
+        logger.info(
+            "Targeted authority attestation search finished; status=%s elapsed_ms=%s "
+            "candidates=%s",
+            status,
+            elapsed_ms,
+            len(candidates),
+        )
+        return candidates
+
     @staticmethod
     def _evidence_id(prefix: str, value: str) -> str:
         digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:20]
@@ -385,6 +638,8 @@ class B2BDataPipeline:
         else:
             return result
 
+        evidence_class = result["evidence_class"]
+
         effective_dotted = re.search(
             r"\b(?:effective|entry\s+into\s+force|applies?|from)\D{0,40}"
             r"(\d{1,2})\.(\d{1,2})\.(20\d{2})\b",
@@ -437,7 +692,61 @@ class B2BDataPipeline:
         elif year:
             effective = datetime(int(year.group(1)), 1, 1, tzinfo=timezone.utc).isoformat()
 
-        evidence_class = result["evidence_class"]
+        if evidence_class == "official_statistic":
+            # Publication metadata must be attached to an explicit release
+            # marker. Dates elsewhere in a flattened table are observations or
+            # cell values and must never become the publication timestamp.
+            release_day_month = re.search(
+                r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+                r"released\s+on)\D{0,30}(\d{1,2})\s+"
+                r"(january|february|march|april|may|june|july|august|"
+                r"september|october|november|december)\s+(20\d{2})\b",
+                lower,
+            )
+            release_iso = re.search(
+                r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+                r"released\s+on)\D{0,30}(20\d{2}-\d{2}-\d{2})\b",
+                lower,
+            )
+            release_dotted = re.search(
+                r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+                r"released\s+on)\D{0,30}(\d{1,2})\.(\d{1,2})\.(20\d{2})\b",
+                lower,
+            )
+            release_month_day = re.search(
+                r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+                r"released\s+on)\D{0,30}"
+                r"(january|february|march|april|may|june|july|august|"
+                r"september|october|november|december)\s+(\d{1,2}),?\s+"
+                r"(20\d{2})\b",
+                lower,
+            )
+            if release_day_month:
+                effective = datetime(
+                    int(release_day_month.group(3)),
+                    datetime.strptime(release_day_month.group(2), "%B").month,
+                    int(release_day_month.group(1)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            elif release_iso:
+                effective = f"{release_iso.group(1)}T00:00:00+00:00"
+            elif release_dotted:
+                effective = datetime(
+                    int(release_dotted.group(3)),
+                    int(release_dotted.group(2)),
+                    int(release_dotted.group(1)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            elif release_month_day:
+                effective = datetime(
+                    int(release_month_day.group(3)),
+                    datetime.strptime(release_month_day.group(1), "%B").month,
+                    int(release_month_day.group(2)),
+                    tzinfo=timezone.utc,
+                ).isoformat()
+            else:
+                effective = None
+
         if evidence_class == "statutory_current":
             if effective:
                 result["effective_at"] = effective
@@ -450,28 +759,108 @@ class B2BDataPipeline:
                 and not re.search(r"\b(?:former|previous|repealed|superseded|until)\b", lower)
             )
         elif evidence_class == "official_statistic":
-            observation_year_match = re.search(
+            # Observation time is not publication time. Prefer an exact
+            # publisher-stated ``as at`` date or completed period; never turn a
+            # current partial year into a fabricated 31 December observation.
+            as_at_dates = list(re.finditer(
+                r"\b(?:as\s+at|as\s+of)\s+(\d{1,2})\s+"
+                r"(january|february|march|april|may|june|july|august|"
+                r"september|october|november|december)\s+(20\d{2})\b",
+                lower,
+            ))
+            quarter_matches = list(re.finditer(
+                r"\b(?:q([1-4])|([1-4])(?:st|nd|rd|th)\s+quarter|"
+                r"(first|second|third|fourth)\s+quarter)"
+                r"(?:\s+of)?\s+(20\d{2})\b",
+                lower,
+            ))
+            observation_month_matches = list(re.finditer(
+                r"\b(?:in|for|during|as\s+at|as\s+of|month\s+of)\s+"
+                r"(january|february|march|april|may|june|july|august|"
+                r"september|october|november|december)\s+(20\d{2})\b",
+                lower,
+            ))
+            observation_year_matches = list(re.finditer(
                 r"\b(?:in|for|during)\s+(20\d{2})\b", lower
-            )
+            ))
             document_years = [
                 int(value) for value in re.findall(r"\b(20\d{2})\b", direct_document_text)
             ]
-            observed_year = (
-                int(observation_year_match.group(1))
-                if observation_year_match
-                else (
-                    int(year.group(1))
-                    if year
-                    else (int(effective[:4]) if effective else None)
+            observation_candidates: List[datetime] = []
+            observation_candidates.extend(
+                datetime(
+                    int(match.group(3)),
+                    datetime.strptime(match.group(2), "%B").month,
+                    int(match.group(1)),
+                    tzinfo=timezone.utc,
                 )
+                for match in as_at_dates
             )
-            if effective and observed_year:
+            quarter_words = {
+                "first": 1,
+                "second": 2,
+                "third": 3,
+                "fourth": 4,
+            }
+            for match in quarter_matches:
+                quarter = int(
+                    match.group(1)
+                    or match.group(2)
+                    or quarter_words[str(match.group(3))]
+                )
+                quarter_month = quarter * 3
+                quarter_year = int(match.group(4))
+                observation_candidates.append(
+                    datetime(
+                        quarter_year,
+                        quarter_month,
+                        calendar.monthrange(quarter_year, quarter_month)[1],
+                        tzinfo=timezone.utc,
+                    )
+                )
+            for match in observation_month_matches:
+                observation_year = int(match.group(2))
+                observation_month = datetime.strptime(match.group(1), "%B").month
+                observation_candidates.append(
+                    datetime(
+                        observation_year,
+                        observation_month,
+                        calendar.monthrange(observation_year, observation_month)[1],
+                        tzinfo=timezone.utc,
+                    )
+                )
+            publication_time = datetime.fromisoformat(effective) if effective else None
+            for match in observation_year_matches:
+                observation_year = int(match.group(1))
+                candidate_end = datetime(observation_year, 12, 31, tzinfo=timezone.utc)
+                # A completed prior year is a defensible annual observation.
+                # A current partial year needs a quarter/month/as-at marker.
+                if publication_time and candidate_end <= publication_time:
+                    observation_candidates.append(candidate_end)
+
+            if effective:
                 result["published_at"] = effective
-                result["observation_end"] = datetime(
-                    observed_year, 12, 31, tzinfo=timezone.utc
-                ).isoformat()
+            retrieval_time = None
+            if retrieved_at:
+                try:
+                    retrieval_time = datetime.fromisoformat(
+                        retrieved_at.replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    retrieval_time = None
+            temporal_ceiling = min(
+                value
+                for value in (publication_time, retrieval_time, datetime.now(timezone.utc))
+                if value is not None
+            )
+            eligible_observations = [
+                value for value in observation_candidates if value <= temporal_ceiling
+            ]
+            if eligible_observations:
+                result["observation_end"] = max(eligible_observations).isoformat()
             result["latest_release"] = bool(
                 effective
+                and result.get("observation_end")
                 and document_years
                 and int(effective[:4]) == max(document_years)
                 and re.search(
@@ -523,13 +912,55 @@ class B2BDataPipeline:
             (f"{sentences[index]} {sentences[index + 1]}", (index, index + 1))
             for index in range(max(0, len(sentences) - 1))
         )
+        # Statistical portals commonly normalize tables/cards into one long
+        # punctuation-free text block. Build bounded exact windows from explicit
+        # publication/latest markers instead of discarding the entire >1,200
+        # character block. Each window remains a verbatim substring of the
+        # signed document and must still pass the same material-value, semantic,
+        # temporal, and authority checks below.
+        publication_marker = re.compile(
+            r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+            r"data\s+as\s+at|release(?:d)?\s+on)\b",
+            re.IGNORECASE,
+        )
+        # ``data as at`` can occur inside a card headed by ``last updated``;
+        # it is an observation marker, not the beginning of a new card. Only
+        # actual release/update headers delimit adjacent table/card windows.
+        publication_boundary = re.compile(
+            r"\b(?:last\s+updated|updated|posted\s+on|published(?:\s+on)?|"
+            r"release(?:d)?\s+on)\b",
+            re.IGNORECASE,
+        )
+        for marker_index, marker in enumerate(
+            publication_marker.finditer(normalized)
+        ):
+            next_marker = publication_boundary.search(normalized, marker.end())
+            start = max(0, marker.start() - 80)
+            if start:
+                preceding_space = normalized.find(" ", start)
+                if 0 <= preceding_space < marker.start():
+                    start = preceding_space + 1
+            end = min(
+                len(normalized),
+                start + 1_200,
+                next_marker.start() if next_marker else len(normalized),
+            )
+            if end < len(normalized):
+                preceding_space = normalized.rfind(" ", marker.end(), end)
+                if preceding_space > marker.end():
+                    end = preceding_space
+            window = normalized[start:end].strip()
+            if window:
+                candidates.append((window, (-marker_index - 1,)))
 
         material_value = re.compile(
             rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
             rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
             rf"\b\d[\d\s.,]*\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|"
             rf"euros?|dollars?|pounds?|yen|yuan|rupees?|"
-            rf"million|billion|thousand)(?:\b|(?=\s|$))|"
+            rf"million|billion|thousand|people|persons?|units?|points?|"
+            rf"tonnes?|kilograms?)(?:\b|(?=\s|$))|"
+            rf"\b\d{{1,3}}(?:[ ,.\u00a0]\d{{3}})+\b|"
             rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
             re.IGNORECASE,
         )
@@ -1447,8 +1878,148 @@ Return exactly one coordinate pair per address, in the same order as the input l
 
         # Direct publisher verification is independent of retrieval/synthesis.
         # A non-.gov authority can become official only after its fetched page
-        # is linked from a separately fetched government/EU root.
-        await enrich_authority_sources(source_rows)
+        # is linked from a separately fetched government/EU root. Work on a
+        # private snapshot so a pathological cancellation cannot mutate the
+        # evidence rows after the hard stage deadline has returned.
+        authority_started = time.monotonic()
+        authority_candidate_count = len(source_rows)
+        def clone_authority_row(row: Dict[str, Any]) -> Dict[str, Any]:
+            return {
+                **row,
+                "provider_query_ids": list(row.get("provider_query_ids") or []),
+                "provider_queries": list(row.get("provider_queries") or []),
+                "citation_metadata": dict(row.get("citation_metadata") or {}),
+                "country_codes": list(row.get("country_codes") or []),
+                "market_terms": list(row.get("market_terms") or []),
+                "acquisition_evidence_classes": list(
+                    row.get("acquisition_evidence_classes") or []
+                ),
+            }
+
+        authority_working_rows = [clone_authority_row(row) for row in source_rows]
+        logger.info(
+            "Direct authority resolution started; candidates=%s deadline_ms=%s",
+            authority_candidate_count,
+            int(_AUTHORITY_STAGE_DEADLINE_SECONDS * 1000),
+        )
+        authority_status = "completed"
+        try:
+            enriched_rows = await _await_with_hard_stage_deadline(
+                enrich_authority_sources(authority_working_rows),
+                deadline_seconds=_AUTHORITY_STAGE_DEADLINE_SECONDS,
+            )
+            source_rows[:] = enriched_rows
+        except asyncio.TimeoutError:
+            authority_status = "timeout"
+            for row in source_rows:
+                row["direct_fetch_status"] = "outer_stage_deadline_exceeded"
+                row.setdefault("jurisdiction_binding_status", "not_resolved")
+            logger.warning(
+                "Direct authority resolution reached its hard stage deadline; "
+                "candidates=%s deadline_ms=%s",
+                authority_candidate_count,
+                int(_AUTHORITY_STAGE_DEADLINE_SECONDS * 1000),
+            )
+        authority_elapsed_ms = int((time.monotonic() - authority_started) * 1000)
+        authority_retrieved_count = sum(
+            row.get("direct_fetch_status") == "retrieved" for row in source_rows
+        )
+        authority_verified_count = sum(
+            bool(row.get("authority_proof")) for row in source_rows
+        )
+        self.routing_diagnostics["authority_resolution"] = {
+            "status": authority_status,
+            "candidate_count": authority_candidate_count,
+            "retrieved_count": authority_retrieved_count,
+            "verified_count": authority_verified_count,
+            "elapsed_ms": authority_elapsed_ms,
+            "deadline_ms": int(_AUTHORITY_STAGE_DEADLINE_SECONDS * 1000),
+        }
+        logger.info(
+            "Direct authority resolution finished; status=%s elapsed_ms=%s "
+            "retrieved=%s verified=%s",
+            authority_status,
+            authority_elapsed_ms,
+            authority_retrieved_count,
+            authority_verified_count,
+        )
+
+        official_classes = {"statutory_current", "official_statistic"}
+        unresolved_official_rows = [
+            row
+            for row in source_rows
+            if row.get("direct_fetch_status") == "retrieved"
+            and not row.get("authority_proof")
+            and official_classes.intersection(
+                row.get("acquisition_evidence_classes") or []
+            )
+        ]
+        if authority_status == "completed" and unresolved_official_rows:
+            targeted_candidates = await self._targeted_authority_attestation_sources(
+                unresolved_official_rows,
+                search_services,
+            )
+            if targeted_candidates:
+                targeted_started = time.monotonic()
+                targeted_working = [
+                    clone_authority_row(row) for row in unresolved_official_rows
+                ] + [clone_authority_row(row) for row in targeted_candidates]
+                logger.info(
+                    "Targeted authority proof binding started; publishers=%s "
+                    "attestation_candidates=%s deadline_ms=%s",
+                    len(unresolved_official_rows),
+                    len(targeted_candidates),
+                    int(_AUTHORITY_STAGE_DEADLINE_SECONDS * 1000),
+                )
+                targeted_status = "completed"
+                try:
+                    targeted_enriched = await _await_with_hard_stage_deadline(
+                        enrich_authority_sources(targeted_working),
+                        deadline_seconds=_AUTHORITY_STAGE_DEADLINE_SECONDS,
+                    )
+                    for original, enriched in zip(
+                        unresolved_official_rows,
+                        targeted_enriched[: len(unresolved_official_rows)],
+                    ):
+                        original.clear()
+                        original.update(enriched)
+                except asyncio.TimeoutError:
+                    targeted_status = "timeout"
+                targeted_elapsed_ms = int(
+                    (time.monotonic() - targeted_started) * 1000
+                )
+                targeted_verified_count = sum(
+                    bool(row.get("authority_proof"))
+                    for row in unresolved_official_rows
+                )
+                self.routing_diagnostics["targeted_authority_resolution"] = {
+                    "status": targeted_status,
+                    "candidate_count": len(targeted_candidates),
+                    "publisher_count": len(unresolved_official_rows),
+                    "verified_count": targeted_verified_count,
+                    "elapsed_ms": targeted_elapsed_ms,
+                    "deadline_ms": int(_AUTHORITY_STAGE_DEADLINE_SECONDS * 1000),
+                }
+                logger.info(
+                    "Targeted authority proof binding finished; status=%s "
+                    "elapsed_ms=%s verified=%s",
+                    targeted_status,
+                    targeted_elapsed_ms,
+                    targeted_verified_count,
+                )
+                authority_retrieved_count = sum(
+                    row.get("direct_fetch_status") == "retrieved" for row in source_rows
+                )
+                authority_verified_count = sum(
+                    bool(row.get("authority_proof")) for row in source_rows
+                )
+                self.routing_diagnostics["authority_resolution"].update(
+                    {
+                        "retrieved_count": authority_retrieved_count,
+                        "verified_count": authority_verified_count,
+                        "targeted_attestation_used": True,
+                    }
+                )
         rejected_resolved = [
             row for row in source_rows
             if row.get("jurisdiction_binding_status") == "rejected"
@@ -1528,6 +2099,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
         agent = Agent(
             model=self.model,
             output_type=NativeOutput(CompaniesListOut),
+            retries={"output": 1},
             system_prompt=f"""You are a B2B market intelligence parsing agent.
 Your job is to read grounded search results for the authorized market
 '{self.location}' and extract structured data without changing that market.
@@ -1562,8 +2134,24 @@ CRITICAL RULES:
             )
 
         prompt = f"""Grounded Search Results:\n{chr(10).join(texts)}\n{sources_text}"""
+        company_structuring_started = time.monotonic()
+        company_structuring_deadline_ms = int(
+            _COMPANY_STRUCTURING_DEADLINE_SECONDS * 1000
+        )
+        logger.info(
+            "Grounded company structuring started; sources=%s deadline_ms=%s",
+            len(real_source_urls),
+            company_structuring_deadline_ms,
+        )
         try:
-            result = await agent.run(prompt)
+            # This deadline covers the complete Agent run, including PydanticAI
+            # output repair. It prevents a second hidden provider-scale wait
+            # while leaving the existing schema, prompt, and retry quality
+            # unchanged for normal responses.
+            result = await _await_with_hard_stage_deadline(
+                agent.run(prompt),
+                deadline_seconds=_COMPANY_STRUCTURING_DEADLINE_SECONDS,
+            )
             companies = result.output.companies
 
             source_urls_by_identity = {
@@ -1585,11 +2173,106 @@ CRITICAL RULES:
             accepted = self._accept_market_companies(
                 companies, provider="web_parser"
             )
+            elapsed_ms = int(
+                (time.monotonic() - company_structuring_started) * 1000
+            )
+            self.routing_diagnostics["company_structuring"] = {
+                "status": "completed",
+                "source_count": len(real_source_urls),
+                "company_count": len(accepted),
+                "elapsed_ms": elapsed_ms,
+                "deadline_ms": company_structuring_deadline_ms,
+            }
+            self._record_provider(
+                "web_parser",
+                attempted=True,
+                accepted=len(accepted),
+                source_count=len(real_source_urls),
+                details={
+                    "evidence_class": "company_structuring",
+                    "runtime": {
+                        "route": "web_parser",
+                        "status": "completed",
+                        "elapsed_ms": elapsed_ms,
+                        "deadline_ms": company_structuring_deadline_ms,
+                        "call_count": 1,
+                    },
+                },
+            )
+            logger.info(
+                "Grounded company structuring finished; status=completed "
+                "elapsed_ms=%s companies=%s",
+                elapsed_ms,
+                len(accepted),
+            )
             for row in reversed(self.routing_diagnostics["providers"]):
                 if row["provider"] in {"gemini_google_search", "searxng"}:
                     row["accepted_company_count"] = len(accepted)
             return accepted
+        except asyncio.TimeoutError:
+            elapsed_ms = int(
+                (time.monotonic() - company_structuring_started) * 1000
+            )
+            self.routing_diagnostics["company_structuring"] = {
+                "status": "timeout",
+                "source_count": len(real_source_urls),
+                "company_count": 0,
+                "elapsed_ms": elapsed_ms,
+                "deadline_ms": company_structuring_deadline_ms,
+            }
+            self._record_provider(
+                "web_parser",
+                attempted=True,
+                accepted=0,
+                source_count=len(real_source_urls),
+                reason="stage_timeout",
+                details={
+                    "evidence_class": "company_structuring",
+                    "runtime": {
+                        "route": "web_parser",
+                        "status": "timeout",
+                        "elapsed_ms": elapsed_ms,
+                        "deadline_ms": company_structuring_deadline_ms,
+                        "call_count": 1,
+                    },
+                },
+            )
+            logger.warning(
+                "Grounded company structuring reached its hard stage deadline; "
+                "elapsed_ms=%s deadline_ms=%s. Verified sources and claims are retained.",
+                elapsed_ms,
+                company_structuring_deadline_ms,
+            )
+            return []
         except Exception as e:
+            elapsed_ms = int(
+                (time.monotonic() - company_structuring_started) * 1000
+            )
+            self.routing_diagnostics["company_structuring"] = {
+                "status": "failed",
+                "source_count": len(real_source_urls),
+                "company_count": 0,
+                "elapsed_ms": elapsed_ms,
+                "deadline_ms": company_structuring_deadline_ms,
+                "error_type": type(e).__name__,
+            }
+            self._record_provider(
+                "web_parser",
+                attempted=True,
+                accepted=0,
+                source_count=len(real_source_urls),
+                reason=f"parser_error:{type(e).__name__}",
+                details={
+                    "evidence_class": "company_structuring",
+                    "runtime": {
+                        "route": "web_parser",
+                        "status": "failed",
+                        "elapsed_ms": elapsed_ms,
+                        "deadline_ms": company_structuring_deadline_ms,
+                        "call_count": 1,
+                    },
+                },
+            )
             logger.error(f"Failed to structure web search results: {e}", exc_info=True)
             return []
 
