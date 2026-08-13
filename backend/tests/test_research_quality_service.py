@@ -12,6 +12,7 @@ from backend.services.research_quality_service import (
     clean_semantic_text,
     determine_claim_class_applicability,
     evaluate_critical_claims,
+    extract_material_facts,
     validate_research_prd,
 )
 from backend.services.research_source_authority_service import (
@@ -376,7 +377,12 @@ def _catalog_grounding(
         price = (visible_price.group(1) or visible_price.group(2)).replace(",", ".")
         token = visible_price.group(0).upper()
         currency = "BRL" if "BRL" in token else "USD" if "$" in token or "USD" in token else "GBP" if "£" in token or "GBP" in token else "EUR"
-        product_name = " ".join(claim_text.split()[:4])
+        product_name = re.split(
+            r"\b(?:current|regular)\s+retail\s+price\b",
+            claim_text,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
         offer_scripts.append(
             '<script type="application/ld+json">'
             f'{{"@type":"Product","name":"{product_name}","offers":'
@@ -451,6 +457,7 @@ def _catalog_grounding(
             }
         ],
         "market_claims": market_claims,
+        "topic_seed_contract": _cat_food_topic_seed(country_code),
     }
 
 
@@ -569,9 +576,9 @@ def test_complete_three_class_ledger_quarantines_rejected_candidates():
         country_code="EE",
         source_url="https://shop.example.ee/catalog",
         claims=[
-            (
-                "local-offer",
-                "Royal Canin kassitoit kana 400 g Tavahind 89,99 €.",
+                (
+                    "local-offer",
+                    "Royal Canin cat food kana 400 g Tavahind 89,99 €.",
             ),
             ("navigation-candidate", "Ostukorv 0,00 €."),
         ],
@@ -669,6 +676,77 @@ def test_distinct_catalog_products_and_pack_sizes_are_not_conflicts():
     assert quality["conflicts"] == []
 
 
+def test_observed_offer_must_match_immutable_product_topic():
+    cat = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/cat-food",
+        claims=[(
+            "cat-product",
+            "Adult chicken cat food Brand Alpha 400 g current retail price is "
+            "€2.99 on 2026-08-12.",
+        )],
+    )
+    dog = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/dog-food",
+        claims=[(
+            "dog-product",
+            "Adult chicken dog food Brand Alpha 400 g current retail price is "
+            "€2.99 on 2026-08-12.",
+        )],
+    )
+    for grounding in (cat, dog):
+        grounding["topic_seed_contract"] = _cat_food_topic_seed("EE")
+
+    cat_quality = evaluate_critical_claims(
+        cat,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    dog_quality = evaluate_critical_claims(
+        dog,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert cat_quality["status"] == "passed", cat_quality
+    assert dog_quality["status"] == "blocked"
+    assert dog_quality["verified_count"] == 0
+    assert dog_quality["missing_claim_classes"] == ["observed_primary_market"]
+    assert dog_quality["candidate_rejection_counts"] == {
+        "observed_primary_market_topic_mismatch_or_unbound": 1
+    }
+
+
+def test_mandatory_observed_offer_fails_closed_without_topic_contract():
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/cat-food",
+        claims=[(
+            "cat-product",
+            "Adult chicken cat food Brand Alpha 400 g current retail price is "
+            "€2.99 on 2026-08-12.",
+        )],
+    )
+    grounding.pop("topic_seed_contract")
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+    assert quality["missing_claim_classes"] == ["observed_primary_market"]
+    assert quality["candidate_rejection_counts"] == {
+        "topic_contract_missing_or_invalid": 1
+    }
+
+
 def test_distinct_non_euro_products_are_not_conflicts():
     grounding = _catalog_grounding(
         country_code="BR",
@@ -703,19 +781,19 @@ def test_live_catalog_variants_and_price_denominators_are_distinct_targets():
         claims=[
             (
                 "royal-canin-chicken",
-                "Royal Canin Adult Chicken 400 g current retail price is €5.99/pcs on 2026-08-12.",
+                "Royal Canin cat food Adult Chicken 400 g current retail price is €5.99/pcs on 2026-08-12.",
             ),
             (
                 "royal-canin-salmon",
-                "Royal Canin Adult Salmon 400 g current retail price is €6.49/pcs on 2026-08-12.",
+                "Royal Canin cat food Adult Salmon 400 g current retail price is €6.49/pcs on 2026-08-12.",
             ),
             (
                 "royal-canin-piece",
-                "Royal Canin Adult Beef 85 g current retail price is €1.69/pcs on 2026-08-12.",
+                "Royal Canin cat food Adult Beef 85 g current retail price is €1.69/pcs on 2026-08-12.",
             ),
             (
                 "royal-canin-kilo",
-                "Royal Canin Adult Beef 85 g current retail price is €19.88/kg on 2026-08-12.",
+                "Royal Canin cat food Adult Beef 85 g current retail price is €19.88/kg on 2026-08-12.",
             ),
         ],
     )
@@ -738,11 +816,11 @@ def test_same_catalog_target_detects_true_conflict_and_equal_formats_agree():
         claims=[
             (
                 "sku-a",
-                "Brand Alpha Chicken SKU A123 400 g regular retail price is €2.99/pcs on 2026-08-12.",
+                "Brand Alpha cat food Chicken SKU A123 400 g regular retail price is €2.99/pcs on 2026-08-12.",
             ),
             (
                 "sku-b",
-                "Brand Alpha Chicken SKU A123 400 g regular retail price is EUR 3,49/pcs on 2026-08-12.",
+                "Brand Alpha cat food Chicken SKU A123 400 g regular retail price is EUR 3,49/pcs on 2026-08-12.",
             ),
         ],
     )
@@ -860,6 +938,40 @@ def test_standard_and_reduced_statutory_rates_are_distinct_facts():
 
     assert quality["status"] == "passed", quality
     assert quality["conflict_count"] == 0
+
+
+def test_statutory_extraction_rejects_emta_cms_dates_and_contact_numbers():
+    facts = extract_material_facts(
+        "Last updated 04.08. Contact 05.11, postcode 15176, registry code "
+        "70000349. From 1 July 2025 the current standard VAT rate is "
+        "24 per cent.",
+        claim_id="emta-standard-rate",
+        country_codes=["EE"],
+        evidence_class="statutory_current",
+        temporal_scope="2025-07-01T00:00:00+00:00",
+        source_scope=["emta-standard-rate"],
+    )
+
+    assert [fact["display_value"] for fact in facts] == ["24 per cent"]
+    assert facts[0]["identity_complete"] is True
+    assert "standard" in facts[0]["semantic_scope"]
+
+
+def test_flattened_multi_rate_statutory_passage_is_not_comparable():
+    facts = extract_material_facts(
+        "Current VAT rates: standard 24%; reduced categories 13%, 9%, and 0%.",
+        claim_id="emta-rate-list",
+        country_codes=["EE"],
+        evidence_class="statutory_current",
+        temporal_scope="2025-07-01T00:00:00+00:00",
+        source_scope=["emta-rate-list"],
+    )
+
+    assert {fact["display_value"] for fact in facts} == {"24%", "13%", "9%", "0%"}
+    assert all(fact["identity_complete"] is False for fact in facts)
+    assert {
+        fact["identity_incomplete_reason"] for fact in facts
+    } == {"ambiguous_multi_value_statutory_passage"}
 
 
 def test_official_series_conflicts_only_for_same_series_and_period():

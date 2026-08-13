@@ -26,10 +26,13 @@ from backend.services.research_source_authority_service import (
     fact_matching_offer_evidence,
     validate_authority_claim_artifact,
     validate_authority_proof,
+    validate_structured_statistical_claim_artifact,
 )
 from backend.services.research_topic_contract_service import (
     TopicSeedContract,
+    exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
+    product_topic_phrases,
 )
 
 
@@ -103,6 +106,12 @@ _MATERIAL_VALUE = re.compile(
     rf"(?:\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|euros?|dollars?|"
     rf"pounds?|yen|yuan|rupees?|million|billion|"
     rf"thousand|days?|months?|years?|[{re.escape(_CURRENCY_SYMBOLS)}]))?(?!\w)",
+    re.IGNORECASE,
+)
+_STATUTORY_MATERIAL_UNIT = re.compile(
+    rf"[%{re.escape(_CURRENCY_SYMBOLS)}]|\b(?:percent|per\s+cent|"
+    rf"{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?|yen|yuan|rupees?|"
+    r"days?|months?|years?)\b",
     re.IGNORECASE,
 )
 _TECHNICAL_KEY_PATTERN = re.compile(
@@ -376,6 +385,15 @@ def _structured_statistical_facts(
     ).hexdigest()
     if observation.get("observation_sha256") != expected_hash:
         return []
+    requested_countries = {
+        str(value).upper() for value in country_codes if value
+    }
+    reporter_code = str(observation.get("reporter_code") or "").upper()
+    if reporter_code and (
+        len(requested_countries) != 1
+        or reporter_code not in requested_countries
+    ):
+        return []
     independently_derived: Optional[Mapping[str, Any]] = None
     for source in linked_sources:
         proof = source.get("authority_proof")
@@ -429,13 +447,18 @@ def _structured_statistical_facts(
                     "series": [observation.get("series") or ""],
                 },
                 country_code=topic_country,
+                source_anchors=product_topic_phrases(topic_seed),
             )
         except (TypeError, ValueError):
             return []
         if not topic_match.matched:
             return []
-    row_text = str(observation.get("row_text") or "")
-    if row_text != str(claim.get("object") or claim.get("text") or ""):
+    public_claim_text = str(
+        observation.get("canonical_claim_text")
+        or observation.get("row_text")
+        or ""
+    )
+    if public_claim_text != str(claim.get("object") or claim.get("text") or ""):
         return []
     series = str(observation.get("series") or "").strip()
     period = str(observation.get("observation_end") or "").strip()
@@ -464,7 +487,10 @@ def _structured_statistical_facts(
         or not isinstance(row_cells, list)
         or int(column_index) >= len(row_cells)
         or str(row_cells[int(column_index)]).strip() != cell_text
-        or cell_text not in row_text
+        or (
+            not observation.get("canonical_claim_text")
+            and cell_text not in str(observation.get("row_text") or "")
+        )
         or str(observation.get("value") or "").strip() not in cell_text
         or not period_label
         or period_label.casefold() not in artifact_text.casefold()
@@ -478,7 +504,7 @@ def _structured_statistical_facts(
     source_scope = sorted(
         {str(value) for value in claim.get("source_ids") or [] if value}
     )
-    countries = sorted({str(value).upper() for value in country_codes if value})
+    countries = sorted(requested_countries)
     # The table parser supplies an explicit dataset/series/unit identity.  Do
     # not run it back through an English keyword heuristic: national portals
     # may use local-language or code-only series labels.
@@ -566,6 +592,27 @@ def _semantic_fact_scope(
 
     window = text[max(0, start - 140): min(len(text), end + 140)].casefold()
     if evidence_class == "statutory_current":
+        # Statutory identity must come from the value's own clause.  Long CMS
+        # pages often flatten navigation, update dates, contact details and
+        # several tax tiers into one text stream; borrowing qualifiers from a
+        # neighbouring clause made unrelated values look like the same law.
+        left = max(
+            (text.rfind(separator, 0, start) for separator in (".", ";", "\n", "|", "•")),
+            default=-1,
+        )
+        right_candidates = [
+            position
+            for separator in (".", ";", "\n", "|", "•")
+            if (position := text.find(separator, end)) >= 0
+        ]
+        right = min(right_candidates) if right_candidates else len(text)
+        clause = text[left + 1:right].casefold().strip()
+        if clause:
+            window = clause[
+                max(0, start - left - 1 - 180): min(
+                    len(clause), end - left - 1 + 180
+                )
+            ]
         concepts = [
             label
             for label, pattern in (
@@ -716,6 +763,15 @@ def extract_material_facts(
         raw = match.group(0).strip().rstrip(".,;:")
         if not raw:
             continue
+        if (
+            evidence_class == "statutory_current"
+            and not _STATUTORY_MATERIAL_UNIT.search(raw)
+        ):
+            # Dates, CMS update stamps, postcodes, registry numbers and phone
+            # numbers are not material legal values merely because they occur
+            # on a signed authority page.  A statutory fact needs an explicit
+            # rate, amount or duration unit.
+            continue
         # Bare list ordinals and years are not independently useful facts.
         if not re.search(
             rf"[%{re.escape(_CURRENCY_SYMBOLS)}]|\b(?:percent|per\s+cent|"
@@ -799,10 +855,14 @@ def extract_material_facts(
     # claim's one period/scope to every number would invent target identity and
     # create false conflicts. Keep the candidates for diagnostics but make
     # them ineligible for coverage and conflict comparison.
-    if evidence_class == "official_statistic" and len(rows) > 1:
+    if evidence_class in {"official_statistic", "statutory_current"} and len(rows) > 1:
         for row in rows:
             row["identity_complete"] = False
-            row["identity_incomplete_reason"] = "ambiguous_multi_value_statistic_passage"
+            row["identity_incomplete_reason"] = (
+                "ambiguous_multi_value_statistic_passage"
+                if evidence_class == "official_statistic"
+                else "ambiguous_multi_value_statutory_passage"
+            )
     return rows
 
 
@@ -984,6 +1044,28 @@ def _has_exact_span_provenance(
                 source, artifact, citation, claim_text
             )
         )
+    if target == "derived_structured_statistical_observation":
+        source_id = str(citation.get("source_id") or artifact.get("source_id") or "")
+        source = next(
+            (
+                value
+                for value in linked_sources
+                if str(value.get("source_id") or "") == source_id
+            ),
+            None,
+        )
+        observation = claim.get("structured_statistical_observation")
+        return bool(
+            isinstance(source, Mapping)
+            and isinstance(observation, Mapping)
+            and validate_structured_statistical_claim_artifact(
+                source,
+                artifact,
+                citation,
+                claim_text,
+                observation,
+            )
+        )
     if require_direct_authority_document:
         return False
     if not _SHA256.fullmatch(provider_hash):
@@ -1081,10 +1163,17 @@ def evaluate_critical_claims(
         claim_class_applicability is None
         or "official_statistic" in applicable_policy_classes
     )
+    observed_topic_required = (
+        "observed_primary_market" in requested_policy_classes
+        and (
+            claim_class_applicability is None
+            or "observed_primary_market" in applicable_policy_classes
+        )
+    )
     raw_topic_seed = topic_seed_contract or grounding.get("topic_seed_contract")
     validated_topic_seed: Optional[TopicSeedContract] = None
     topic_contract_status = "not_required"
-    if official_topic_required:
+    if official_topic_required or observed_topic_required:
         topic_contract_status = "missing_or_invalid"
         try:
             candidate_topic_seed = TopicSeedContract.model_validate(raw_topic_seed)
@@ -1245,6 +1334,12 @@ def evaluate_critical_claims(
         )
         matched_commercial_offer = None
         if evidence_class == "observed_primary_market":
+            offer_topic_seed: Optional[TopicSeedContract] = None
+            offer_topic_phrases: tuple[str, ...] = ()
+            if validated_topic_seed is not None:
+                offer_topic_phrases = product_topic_phrases(validated_topic_seed)
+                if offer_topic_phrases:
+                    offer_topic_seed = validated_topic_seed
             authorized_fact_ids: set[str] = set()
             for source in linked_sources:
                 proof = source.get("authority_proof")
@@ -1266,6 +1361,15 @@ def evaluate_critical_claims(
                         fact_text,
                         str(fact.get("display_value") or ""),
                     )
+                    if offer and offer_topic_seed is not None:
+                        product_name = str(offer.get("product_name") or "")
+                        if not any(
+                            exact_topic_phrase_in_visible_text(
+                                product_name, phrase
+                            )
+                            for phrase in offer_topic_phrases
+                        ):
+                            offer = None
                     if offer:
                         authorized_fact_ids.add(str(fact.get("fact_id") or ""))
                         matched_commercial_offer = matched_commercial_offer or offer
@@ -1316,10 +1420,20 @@ def evaluate_critical_claims(
             and not facts
         ):
             reason = "official_statistic_topic_mismatch_or_unbound"
+        elif (
+            evidence_class == "observed_primary_market"
+            and observed_topic_required
+            and offer_topic_seed is None
+        ):
+            reason = "topic_contract_missing_or_invalid"
         elif not facts:
             reason = "material_fact_not_extractable"
         elif evidence_class == "observed_primary_market" and not matched_commercial_offer:
-            reason = "material_price_not_bound_to_signed_product_offer"
+            reason = (
+                "observed_primary_market_topic_mismatch_or_unbound"
+                if observed_topic_required
+                else "material_price_not_bound_to_signed_product_offer"
+            )
         elif evidence_class in {
             "statutory_current",
             "official_statistic",
