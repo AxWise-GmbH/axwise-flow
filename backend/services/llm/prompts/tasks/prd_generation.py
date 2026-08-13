@@ -2,11 +2,131 @@
 PRD generation prompt templates for LLM services.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Mapping, Optional
 from backend.services.llm.prompts.industry_guidance import IndustryGuidance
+import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+_CITABLE_EVIDENCE_STATUSES = {
+    "verified_current_authoritative",
+    "verified_traceable_calculation",
+}
+_MAX_COMMERCIAL_PRD_PAYLOAD_BYTES = 256_000
+_MAX_REPAIR_FEEDBACK_ITEMS = 64
+_MAX_REPAIR_FEEDBACK_CODE_BYTES = 96
+_MAX_REPAIR_FEEDBACK_MESSAGE_BYTES = 1_024
+_MAX_RESEARCH_CONTEXT_BYTES = 64_000
+_CITABLE_LEDGER_ROW_FIELDS = {
+    "claim_id",
+    "status",
+    "evidence_class",
+    "country_codes",
+    "source_ids",
+    "effective_or_observation_at",
+}
+_CITABLE_FACT_FIELDS = {
+    "fact_id",
+    "claim_id",
+    "fact_terms",
+    "metric_key",
+    "unit",
+    "normalized_value",
+    "display_value",
+    "country_codes",
+    "identity_version",
+    "evidence_class",
+    "temporal_scope",
+    "source_scope",
+    "semantic_scope",
+    "identity_complete",
+    "structured_observation_sha256",
+    "topic_match",
+}
+_CITABLE_SOURCE_FIELDS = {
+    "source_id",
+    "url",
+    "publisher",
+    "retrieved_at",
+    "source_authority",
+    "authority_proof_signature",
+    "country_codes",
+}
+
+
+def _truncate_utf8(value: Any, max_bytes: int) -> str:
+    encoded = str(value or "").encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return encoded.decode("utf-8")
+    return encoded[:max_bytes].decode("utf-8", errors="ignore")
+
+
+def _bounded_repair_feedback(value: Any) -> list[Dict[str, str]]:
+    rows = []
+    for item in value if isinstance(value, list) else []:
+        if not isinstance(item, Mapping):
+            continue
+        code = _truncate_utf8(item.get("code"), _MAX_REPAIR_FEEDBACK_CODE_BYTES)
+        message = _truncate_utf8(
+            item.get("message"), _MAX_REPAIR_FEEDBACK_MESSAGE_BYTES
+        )
+        if code or message:
+            rows.append({"code": code, "message": message})
+    # Validator paths occur in messages. Canonical ordering preserves the
+    # earliest deterministic paths when an adversarial response yields many.
+    rows.sort(key=lambda row: (row["message"], row["code"]))
+    return rows[:_MAX_REPAIR_FEEDBACK_ITEMS]
+
+
+def _citable_evidence_ledger(value: Any) -> list[Dict[str, Any]]:
+    rows = []
+    for item in value if isinstance(value, list) else []:
+        if (
+            not isinstance(item, Mapping)
+            or str(item.get("status") or "") not in _CITABLE_EVIDENCE_STATUSES
+            or not item.get("claim_id")
+        ):
+            continue
+        # The generation envelope is a deliberately narrow projection, not a
+        # copy of the quality-service diagnostic row. In particular,
+        # ``candidate_facts`` and rejected/incomplete values must never become
+        # synthesis context merely because their sibling claim was verified.
+        row = {
+            str(key): item[key]
+            for key in _CITABLE_LEDGER_ROW_FIELDS
+            if key in item
+        }
+        row["facts"] = [
+            {
+                str(key): fact[key]
+                for key in _CITABLE_FACT_FIELDS
+                if key in fact
+            }
+            for fact in item.get("facts") or []
+            if isinstance(fact, Mapping) and fact.get("identity_complete") is True
+        ]
+        row["sources"] = [
+            {
+                str(key): source[key]
+                for key in _CITABLE_SOURCE_FIELDS
+                if key in source
+            }
+            for source in item.get("sources") or []
+            if isinstance(source, Mapping)
+        ]
+        rows.append(row)
+    return rows
+
+
+def _canonical_json(value: Mapping[str, Any]) -> str:
+    return json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 class PRDGenerationPrompts:
@@ -41,8 +161,20 @@ The exact top-level shape is:
 Each consequential value must be an object with statement/value and either:
 (a) claim_ids from the supplied ledger; (b) formula + input_claim_ids from the
 ledger; or (c) evidence_class="synthetic_hypothesis" plus a concrete
-validation_plan. Never invent IDs. Include economic-buyer versus operator
-differences. Pricing/unit economics must include at least one traceable formula.
+validation_plan. This rule is recursive and local to the object containing the
+material value: claim IDs or hypothesis labels on a parent, sibling, or nested
+object do not authorize another material scalar. Wrap material mitigation and
+validation-question text in their own traceable objects. A synthetic validation
+target must remain a synthetic_hypothesis with its own validation_plan; it must
+not borrow claim IDs from verified context in the same risk. On repair, preserve
+the supplied repair_candidate and change every path in repair_feedback without
+regenerating unrelated valid fields. Never invent IDs. Include economic-buyer
+versus operator differences. Pricing/unit economics must include at least one
+traceable formula. A formula does not prove its displayed output: omit a derived
+number unless it exactly matches a cited ledger fact, or label the number as a
+synthetic_hypothesis with its own validation_plan. If verified context and an
+unsupported threshold occur together, split them into separately traceable
+objects.
 Never add APIs, databases, endpoints, React/Next.js, latency, or software
 architecture unless the immutable task contract requests software work. Every
 section must be complete and non-empty; generic fallback content is invalid."""
@@ -52,23 +184,46 @@ section must be complete and non-empty; generic fallback content is invalid."""
         context: str,
         critical_claim_quality: Dict[str, Any],
         repair_feedback: list,
+        repair_candidate: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Canonical data-only user envelope; no task authority lives here."""
 
-        import json
+        envelope = {
+            "contract": "untrusted_research_data_only_v1",
+            "research_context": _truncate_utf8(
+                context, _MAX_RESEARCH_CONTEXT_BYTES
+            ),
+            "evidence_ledger": _citable_evidence_ledger(
+                critical_claim_quality.get("evidence_ledger") or []
+            ),
+            "repair_feedback": _bounded_repair_feedback(repair_feedback),
+        }
+        if repair_candidate is not None:
+            envelope["repair_candidate"] = repair_candidate
+        try:
+            serialized = _canonical_json(envelope)
+        except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+            raise ValueError("Commercial PRD data envelope is not strict JSON") from exc
+        if len(serialized.encode("utf-8")) <= _MAX_COMMERCIAL_PRD_PAYLOAD_BYTES:
+            return serialized
 
-        return json.dumps(
-            {
-                "contract": "untrusted_research_data_only_v1",
-                "research_context": context,
-                "evidence_ledger": critical_claim_quality.get("evidence_ledger")
-                or [],
-                "repair_feedback": repair_feedback,
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
+        # Candidate repair is optional; verified evidence is not. Drop the
+        # candidate first, then the latest bounded diagnostics, then narrative
+        # context. Every intermediate is re-serialized as valid canonical JSON.
+        envelope.pop("repair_candidate", None)
+        while envelope["repair_feedback"]:
+            serialized = _canonical_json(envelope)
+            if len(serialized.encode("utf-8")) <= _MAX_COMMERCIAL_PRD_PAYLOAD_BYTES:
+                return serialized
+            envelope["repair_feedback"].pop()
+        serialized = _canonical_json(envelope)
+        if len(serialized.encode("utf-8")) <= _MAX_COMMERCIAL_PRD_PAYLOAD_BYTES:
+            return serialized
+        envelope["research_context"] = ""
+        serialized = _canonical_json(envelope)
+        if len(serialized.encode("utf-8")) > _MAX_COMMERCIAL_PRD_PAYLOAD_BYTES:
+            raise ValueError("Verified evidence ledger exceeds PRD payload limit")
+        return serialized
 
     @staticmethod
     def get_prompt(data: Dict[str, Any]) -> str:
@@ -106,6 +261,7 @@ section must be complete and non-empty; generic fallback content is invalid."""
                 context,
                 data.get("critical_claim_quality") or {},
                 data.get("repair_feedback") or [],
+                data.get("repair_candidate"),
             )
 
         # Get industry-specific guidance if available
@@ -123,6 +279,7 @@ section must be complete and non-empty; generic fallback content is invalid."""
         context: str,
         critical_claim_quality: Dict[str, Any],
         repair_feedback: list,
+        repair_candidate: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Commercial research contract; never drifts into software architecture."""
 
@@ -130,7 +287,10 @@ section must be complete and non-empty; generic fallback content is invalid."""
             [
                 PRDGenerationPrompts.commercial_market_launch_system_prompt(),
                 PRDGenerationPrompts.commercial_market_launch_data_payload(
-                    context, critical_claim_quality, repair_feedback
+                    context,
+                    critical_claim_quality,
+                    repair_feedback,
+                    repair_candidate,
                 ),
             ]
         )

@@ -45,7 +45,7 @@ async def test_pydantic_ai():
         # Initialize GoogleModel
         print("🔧 Initializing GoogleModel...")
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+        model = GoogleModel("models/gemini-3.7-flash", provider=provider)
         print("✅ GoogleModel initialized successfully")
 
         # Create agent

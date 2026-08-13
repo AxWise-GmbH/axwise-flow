@@ -219,7 +219,7 @@ Example response:
     try:
         import json
         response = await client.aio.models.generate_content(
-            model="gemini-3-flash-preview",
+            model="gemini-3.7-flash",
             contents=prompt
         )
         response_text = response.text.strip()
@@ -436,4 +436,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

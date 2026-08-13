@@ -43,11 +43,8 @@ MODEL_CAPABILITIES = {
     "gpt-4o-mini-2024-07-18": ModelCapability(128000, 16384),
     "gpt-4o-2024-05-13": ModelCapability(128000, 4096),
     # Gemini models
-    "models/gemini-3.5-flash": ModelCapability(1048576, 65536),
-    "models/gemini-3-flash-preview": ModelCapability(1048576, 65536),
-    "models/gemini-3.6-flash": ModelCapability(1048576, 65536),
-    "gemini-3.5-flash": ModelCapability(1048576, 65536),
-    "gemini-3.6-flash": ModelCapability(1048576, 65536),
+    "models/gemini-3.7-flash": ModelCapability(1048576, 65536),
+    "gemini-3.7-flash": ModelCapability(1048576, 65536),
 }
 
 @dataclass

@@ -2,7 +2,7 @@
 Simplified persona formation prompt templates for LLM services.
 
 This module provides simplified prompts for persona formation that are more
-reliable for LLMs like Gemini 2.5 Flash.
+reliable for LLMs like Gemini 3.7 Flash.
 """
 
 from typing import Dict, Any

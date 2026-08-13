@@ -29,7 +29,7 @@ interface TechItem {
 const techStack: TechItem[] = [
   // AI & ML
   {
-    name: 'Google Gemini 2.5 Flash',
+    name: 'Google Gemini 3.7 Flash',
     description: 'Advanced multimodal AI for text generation, coaching, and intelligence analysis',
     icon: <Sparkles className="h-6 w-6" />,
     color: 'text-blue-600 bg-blue-100',
@@ -194,4 +194,3 @@ export function TechStackTab() {
 }
 
 export default TechStackTab;
-

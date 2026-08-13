@@ -73,7 +73,7 @@ async def test_questionnaire_parsing():
 
         # Create PydanticAI agent for parsing
         provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+        model = GoogleModel("models/gemini-3.7-flash", provider=provider)
         parser_agent = Agent(
             model=model,
             output_type=ParsedQuestionnaire,

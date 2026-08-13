@@ -58,19 +58,19 @@ class ResponseFormat(str, Enum):
     TEXT = "text/plain"
 
 
-# Gemini 3.6 Flash has a documented 65,536-token output ceiling. Google also
-# deprecated sampling controls for Gemini 3.6: they are currently ignored and
-# may become request errors. Keep these capabilities next to config creation so
-# every caller gets the same production-safe behavior.
-GEMINI_36_FLASH_MODEL = "gemini-3.6-flash"
-GEMINI_36_MAX_OUTPUT_TOKENS = 65_536
-GEMINI_36_DEPRECATED_SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
+# Google model metadata for Gemini 3.7 Flash advertises a 65,536-token output
+# ceiling. Keep the established exact-research behavior on model-default
+# sampling rather than letting task-local temperature/top-p/top-k values drift
+# across callers.
+GEMINI_37_FLASH_MODEL = "gemini-3.7-flash"
+GEMINI_37_MAX_OUTPUT_TOKENS = 65_536
+GEMINI_37_OMITTED_SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
 
 
-def is_gemini_36_flash(model: Optional[str]) -> bool:
-    """Return whether ``model`` is exactly the Gemini 3.6 Flash GA model."""
+def is_gemini_37_flash(model: Optional[str]) -> bool:
+    """Return whether ``model`` is exactly the Gemini 3.7 Flash GA model."""
 
-    return bool(model) and str(model).rstrip("/").rsplit("/", 1)[-1] == GEMINI_36_FLASH_MODEL
+    return bool(model) and str(model).rstrip("/").rsplit("/", 1)[-1] == GEMINI_37_FLASH_MODEL
 
 
 # Response schema models for different task types
@@ -306,23 +306,24 @@ class GenAIConfigFactory:
         if system_instruction:
             config_params["system_instruction"] = system_instruction
 
-        if is_gemini_36_flash(selected_model):
+        if is_gemini_37_flash(selected_model):
             requested_tokens = int(
                 config_params.get("max_output_tokens") or GEMINI_MAX_TOKENS
             )
-            if requested_tokens > GEMINI_36_MAX_OUTPUT_TOKENS:
+            if requested_tokens > GEMINI_37_MAX_OUTPUT_TOKENS:
                 logger.warning(
-                    "Clamping Gemini 3.6 Flash max_output_tokens from %s to %s",
+                    "Clamping Gemini 3.7 Flash max_output_tokens from %s to %s",
                     requested_tokens,
-                    GEMINI_36_MAX_OUTPUT_TOKENS,
+                    GEMINI_37_MAX_OUTPUT_TOKENS,
                 )
             config_params["max_output_tokens"] = min(
-                requested_tokens, GEMINI_36_MAX_OUTPUT_TOKENS
+                requested_tokens, GEMINI_37_MAX_OUTPUT_TOKENS
             )
-            for parameter in GEMINI_36_DEPRECATED_SAMPLING_PARAMS:
+            for parameter in GEMINI_37_OMITTED_SAMPLING_PARAMS:
                 if config_params.get(parameter) is not None:
                     logger.debug(
-                        "Omitting deprecated Gemini 3.6 parameter: %s", parameter
+                        "Using Gemini 3.7 model-default sampling; omitting %s",
+                        parameter,
                     )
                 config_params[parameter] = None
 
@@ -366,22 +367,22 @@ class GenAIConfigFactory:
             TaskType.THEME_ANALYSIS,
             TaskType.THEME_ANALYSIS_ENHANCED,
         ]:
-            config_params["max_output_tokens"] = GEMINI_36_MAX_OUTPUT_TOKENS
+            config_params["max_output_tokens"] = GEMINI_37_MAX_OUTPUT_TOKENS
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                "Using full Gemini 3.6 output allowance for %s: max_tokens=%s",
+                "Using full Gemini 3.7 output allowance for %s: max_tokens=%s",
                 task,
-                GEMINI_36_MAX_OUTPUT_TOKENS,
+                GEMINI_37_MAX_OUTPUT_TOKENS,
             )
         elif task == TaskType.PRD_GENERATION:
-            config_params["max_output_tokens"] = GEMINI_36_MAX_OUTPUT_TOKENS
+            config_params["max_output_tokens"] = GEMINI_37_MAX_OUTPUT_TOKENS
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                "Using full Gemini 3.6 output allowance for %s: max_tokens=%s",
+                "Using full Gemini 3.7 output allowance for %s: max_tokens=%s",
                 task,
-                GEMINI_36_MAX_OUTPUT_TOKENS,
+                GEMINI_37_MAX_OUTPUT_TOKENS,
             )
         elif task in [TaskType.PERSONA_FORMATION, TaskType.PATTERN_RECOGNITION]:
             config_params["max_output_tokens"] = 65536
@@ -439,7 +440,7 @@ class GenAIConfigFactory:
 
         generation_params: Dict[str, Any] = {
             "max_output_tokens": config_dict.get(
-                "max_output_tokens", GEMINI_36_MAX_OUTPUT_TOKENS
+                "max_output_tokens", GEMINI_37_MAX_OUTPUT_TOKENS
             ),
             "safety_settings": safety_settings,
         }

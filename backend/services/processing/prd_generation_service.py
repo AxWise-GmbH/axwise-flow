@@ -3,7 +3,7 @@ PRD generation service.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Mapping, Optional
 import json
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -21,6 +21,159 @@ from backend.services.research_quality_service import (
 from backend.services.llm.prompts.tasks.prd_generation import PRDGenerationPrompts
 
 logger = logging.getLogger(__name__)
+
+_MAX_REPAIR_CANDIDATE_BYTES = 128_000
+_MAX_PUBLISHABLE_PRD_BYTES = 256_000
+_MAX_TERMINAL_VALIDATION_ISSUES = 16
+_MAX_TERMINAL_ISSUE_CODE_BYTES = 96
+_MAX_TERMINAL_ISSUE_MESSAGE_BYTES = 512
+_MAX_ERROR_BYTES = 12_000
+
+
+def _truncate_utf8(value: Any, max_bytes: int) -> str:
+    encoded = str(value or "").encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return encoded.decode("utf-8")
+    return encoded[:max_bytes].decode("utf-8", errors="ignore")
+
+
+def _strict_json_object(
+    candidate: Any,
+    *,
+    max_bytes: int,
+    label: str,
+) -> Dict[str, Any]:
+    """Return one bounded canonical strict-JSON object."""
+
+    if not isinstance(candidate, dict):
+        raise ValueError(f"{label} must be a JSON object")
+
+    def validate_json_shape(value: Any, ancestors: set[int]) -> None:
+        if isinstance(value, dict):
+            identity = id(value)
+            if identity in ancestors:
+                raise ValueError(f"{label} contains a cycle")
+            if any(not isinstance(key, str) for key in value):
+                raise ValueError(f"{label} has a non-string key")
+            ancestors.add(identity)
+            try:
+                for child in value.values():
+                    validate_json_shape(child, ancestors)
+            finally:
+                ancestors.remove(identity)
+            return
+        if isinstance(value, list):
+            identity = id(value)
+            if identity in ancestors:
+                raise ValueError(f"{label} contains a cycle")
+            ancestors.add(identity)
+            try:
+                for child in value:
+                    validate_json_shape(child, ancestors)
+            finally:
+                ancestors.remove(identity)
+            return
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return
+        raise ValueError(f"{label} is not strict JSON")
+
+    validate_json_shape(candidate, set())
+    try:
+        serialized = json.dumps(
+            candidate,
+            allow_nan=False,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise ValueError(f"{label} is not strict JSON") from exc
+    if len(serialized.encode("utf-8")) > max_bytes:
+        raise ValueError(f"{label} exceeds the publishable limit")
+    return json.loads(serialized)
+
+
+def _strict_json_model_candidate(candidate: Any) -> Dict[str, Any]:
+    """Canonicalize untrusted model output before it can be validated."""
+
+    canonical = _strict_json_object(
+        candidate,
+        max_bytes=_MAX_PUBLISHABLE_PRD_BYTES,
+        label="Commercial PRD model output",
+    )
+    # Metadata is service-owned. Validate the model-supplied value as strict
+    # JSON above, then discard it before the service constructs its own record.
+    canonical.pop("metadata", None)
+    return canonical
+
+
+def _strict_json_publishable_prd(candidate: Any) -> Dict[str, Any]:
+    """Bound the complete result, including service metadata and validation."""
+
+    return _strict_json_object(
+        candidate,
+        max_bytes=_MAX_PUBLISHABLE_PRD_BYTES,
+        label="Final commercial PRD",
+    )
+
+
+def _bounded_validation_summary(validation: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    raw_issues = [
+        item
+        for item in (validation or {}).get("issues") or []
+        if isinstance(item, Mapping)
+    ]
+    bounded = [
+        {
+            "code": _truncate_utf8(
+                item.get("code"), _MAX_TERMINAL_ISSUE_CODE_BYTES
+            ),
+            "message": _truncate_utf8(
+                item.get("message"), _MAX_TERMINAL_ISSUE_MESSAGE_BYTES
+            ),
+        }
+        for item in raw_issues
+    ]
+    bounded.sort(key=lambda item: (item["message"], item["code"]))
+    return {
+        "issue_count": int(
+            (validation or {}).get("issue_count") or len(raw_issues)
+        ),
+        "issues": bounded[:_MAX_TERMINAL_VALIDATION_ISSUES],
+    }
+
+
+def _bounded_json_repair_candidate(
+    candidate: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Return strict JSON model output for repair without service metadata.
+
+    Repair is best-effort when a provider returns a cyclic, non-JSON, or
+    unexpectedly large dictionary. The semantic validator still fails closed;
+    the second attempt then receives its exact issue list without an unsafe or
+    unbounded copy of the first response.
+    """
+
+    model_candidate = {
+        str(key): value
+        for key, value in candidate.items()
+        if str(key) != "metadata"
+    }
+    try:
+        serialized = json.dumps(
+            model_candidate,
+            allow_nan=False,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        logger.warning("Omitting non-JSON commercial PRD repair candidate")
+        return None
+    if len(serialized.encode("utf-8")) > _MAX_REPAIR_CANDIDATE_BYTES:
+        logger.warning("Omitting oversized commercial PRD repair candidate")
+        return None
+    return json.loads(serialized)
 
 
 class PRDGenerationService:
@@ -73,6 +226,7 @@ class PRDGenerationService:
         Returns:
             Generated PRD
         """
+        terminal_validation_summary: Optional[Dict[str, Any]] = None
         try:
             # Check if user can generate PRD
             if self.db and self.user:
@@ -157,6 +311,7 @@ class PRDGenerationService:
 
             validation = None
             prd_data = None
+            repair_candidate = None
             attempts = 2 if semantic_intent == COMMERCIAL_MARKET_LAUNCH else 1
             for attempt in range(attempts):
                 logger.info("Calling LLM to generate PRD (attempt %s/%s)", attempt + 1, attempts)
@@ -166,9 +321,32 @@ class PRDGenerationService:
                     else (repair_feedback or [])
                 )
                 prompt_data["repair_feedback"] = request_data["repair_feedback"]
+                prompt_data["repair_candidate"] = repair_candidate
                 request_data["text"] = PRDGenerationPrompts.get_prompt(prompt_data)
                 llm_response = await self.llm_service.analyze(request_data)
-                candidate = clean_semantic_text(self._parse_llm_response(llm_response))
+                try:
+                    raw_candidate = _strict_json_model_candidate(
+                        self._parse_llm_response(llm_response)
+                    )
+                    candidate = _strict_json_model_candidate(
+                        clean_semantic_text(raw_candidate)
+                    )
+                except (TypeError, ValueError, OverflowError, RecursionError):
+                    validation = {
+                        "status": "blocked",
+                        "issue_count": 1,
+                        "issues": [
+                            {
+                                "code": "commercial_prd_json_invalid",
+                                "message": (
+                                    "Commercial PRD model output must be a bounded "
+                                    "strict-JSON object with string keys and finite values."
+                                ),
+                            }
+                        ],
+                    }
+                    repair_candidate = None
+                    continue
                 candidate["metadata"] = {
                     "generated_from": {
                         "themes_count": len(themes),
@@ -190,12 +368,27 @@ class PRDGenerationService:
                 if validation["status"] == "passed":
                     prd_data = candidate
                     break
+                if semantic_intent == COMMERCIAL_MARKET_LAUNCH:
+                    # The failed model JSON is untrusted repair data, not system
+                    # authority. Keep it separate from service-owned metadata so
+                    # the bounded second attempt edits the model schema it emitted.
+                    repair_candidate = _bounded_json_repair_candidate(candidate)
             if prd_data is None:
+                terminal_validation_summary = _bounded_validation_summary(validation)
                 raise ValueError(
                     "Research PRD semantic validation failed after bounded same-model repair: "
-                    + json.dumps((validation or {}).get("issues") or [], ensure_ascii=False)
+                    + json.dumps(
+                        terminal_validation_summary,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
                 )
             prd_data["metadata"]["validation"] = validation
+            # The model candidate was bounded before service-owned metadata.
+            # Re-canonicalize the complete durable object so metadata or
+            # validation overhead cannot cross the same publication limit.
+            prd_data = _strict_json_publishable_prd(prd_data)
 
             # Cache the PRD if database session is available
             if self.db and result_id:
@@ -205,14 +398,18 @@ class PRDGenerationService:
             return prd_data
 
         except Exception as e:
-            logger.error(f"Error generating PRD: {str(e)}")
+            bounded_error = _truncate_utf8(str(e), _MAX_ERROR_BYTES)
+            logger.error("Error generating PRD: %s", bounded_error)
             # Fail closed. A generic operational/software fallback must never
             # be published as a completed commercial research document.
-            return {
-                "error": f"Failed to generate PRD: {str(e)}",
+            result = {
+                "error": f"Failed to generate PRD: {bounded_error}",
                 "prd_type": document_intent or prd_type,
                 "status": "blocked",
             }
+            if terminal_validation_summary is not None:
+                result["validation"] = terminal_validation_summary
+            return result
 
     def _extract_json_candidate(self, text: str) -> Optional[str]:
         """Best-effort extraction of a JSON object from free text.

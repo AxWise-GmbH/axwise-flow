@@ -1,7 +1,7 @@
 /**
  * API route for searching local news using Gemini's Google Search grounding.
  *
- * Proxies requests to the Python backend which uses Gemini 2.5's built-in
+ * Proxies requests to the Python backend which uses Gemini 3.7 Flash's built-in
  * Google Search tool for real-time news about specific locations.
  */
 
@@ -91,4 +91,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

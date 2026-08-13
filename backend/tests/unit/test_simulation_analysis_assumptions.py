@@ -247,7 +247,7 @@ async def test_analysis_api_call(analysis_text: str) -> Dict[str, Any]:
         analysis_request = {
             "data_id": mock_upload_response["data_id"],
             "llm_provider": "gemini",
-            "llm_model": "gemini-2.0-flash-exp",
+            "llm_model": "gemini-3.7-flash",
             "is_free_text": False,
             "industry": "technology"
         }
