@@ -94,7 +94,7 @@ export default function HistoryPanel(): JSX.Element {
           createdAt: sim.created_at || new Date().toISOString(),
           status: sim.success ? 'completed' : 'failed',
           fileSize: undefined,
-          llmProvider: 'Gemini 2.5 Flash',
+          llmProvider: 'Gemini 3.7 Flash',
           type: 'simulation',
           totalPersonas: sim.total_personas,
           totalInterviews: sim.total_interviews

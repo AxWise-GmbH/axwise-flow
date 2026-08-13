@@ -52,6 +52,10 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_LARGE_REQUEST_TIMEOUT,
     GEMINI_SAFETY_SETTINGS_BLOCK_NONE,  # Assuming this constant exists for safety settings
 )
+from backend.services.llm.config.genai_config import (
+    GEMINI_37_MAX_OUTPUT_TOKENS,
+    is_gemini_37_flash,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +149,7 @@ class GeminiService:
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                f"Using enhanced config for {task}: max_tokens=131072, top_k=1, top_p=0.95"
+                f"Using enhanced config for {task}: max_tokens={config_params['max_output_tokens']}"
             )
         elif task in ["persona_formation", "pattern_recognition"]:
             # For persona_formation and pattern_recognition, use the maximum configuration to prevent truncation
@@ -175,12 +179,41 @@ class GeminiService:
             config_params["top_k"] = 1
             config_params["top_p"] = 0.95
             logger.info(
-                f"Using specific config for {task}: max_tokens=131072, top_k=1, top_p=0.95"
+                f"Using specific config for {task}: max_tokens={config_params['max_output_tokens']}"
             )
 
         # Remove automatic_function_calling as it's causing validation errors
 
-        return GenerateContentConfig(**config_params)
+        return GenerateContentConfig(
+            **self._provider_safe_config(config_params, self.default_model_name)
+        )
+
+    @staticmethod
+    def _provider_safe_config(
+        config: Dict[str, Any], model_name: str
+    ) -> Dict[str, Any]:
+        """Return a provider-safe copy of a generation config.
+
+        Public callers may keep passing legacy sampling options. Gemini 3.7
+        requires model-default sampling and caps output at 65,536 tokens, so
+        enforce that contract at the final request boundary.
+        """
+
+        safe_config = dict(config or {})
+        if is_gemini_37_flash(model_name):
+            for parameter in (
+                "temperature",
+                "top_p",
+                "top_k",
+                "candidate_count",
+            ):
+                safe_config.pop(parameter, None)
+            requested_tokens = safe_config.get("max_output_tokens")
+            if requested_tokens is not None:
+                safe_config["max_output_tokens"] = min(
+                    int(requested_tokens), GEMINI_37_MAX_OUTPUT_TOKENS
+                )
+        return safe_config
 
     async def _call_llm_api(
         self,
@@ -268,6 +301,7 @@ class GeminiService:
         try:
             # Do NOT add safety_settings to the config
             # Remove automatic_function_calling as it's causing validation errors
+            config_fields = self._provider_safe_config(config_fields, model_name)
             final_config = GenerateContentConfig(**config_fields)
             logger.debug(f"Created GenerateContentConfig with fields: {config_fields}")
         except Exception as e:
@@ -291,6 +325,7 @@ class GeminiService:
                     if hasattr(final_config, "model_dump")
                     else final_config.dict()
                 )
+                config_dict = self._provider_safe_config(config_dict, model_name)
                 final_config = GenerateContentConfig(**config_dict)
 
             # Log the API call details
@@ -319,21 +354,15 @@ class GeminiService:
                     f"Small input detected ({input_tokens:.0f} tokens), using 32K output limit"
                 )
 
-            config = types.GenerateContentConfig(
-                temperature=0.0,
-                max_output_tokens=max_output_tokens,
-                top_k=1,
-                top_p=0.95,
-                safety_settings=safety_settings,
-            )
+            config_kwargs = {
+                "max_output_tokens": max_output_tokens,
+                "safety_settings": safety_settings,
+            }
 
             # Add response_mime_type for JSON tasks
             if "response_mime_type" in config_dict:
                 config_kwargs = {
-                    "temperature": 0.0,
-                    "max_output_tokens": 131072,  # Increased to prevent truncation
-                    "top_k": 1,
-                    "top_p": 0.95,
+                    "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
                     "safety_settings": safety_settings,
                 }
 
@@ -348,7 +377,9 @@ class GeminiService:
                 # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
 
                 # Create a new config with the response_mime_type included
-                config = types.GenerateContentConfig(**config_kwargs)
+            config = types.GenerateContentConfig(
+                **self._provider_safe_config(config_kwargs, model_name)
+            )
 
             # Make the API call with the correct config parameter and timeout protection
             logger.info(f"Making API call with config={config}")
@@ -524,6 +555,9 @@ class GeminiService:
                 try:
                     # Do NOT add safety_settings to the config
                     # Remove automatic_function_calling as it's causing validation errors
+                    config_fields = self._provider_safe_config(
+                        config_fields, model_name
+                    )
                     final_config = GenerateContentConfig(**config_fields)
                     logger.debug(
                         f"Created GenerateContentConfig with fields: {config_fields}"
@@ -547,6 +581,9 @@ class GeminiService:
                         if hasattr(final_config, "model_dump")
                         else final_config.dict()
                     )
+                    config_dict = self._provider_safe_config(
+                        config_dict, model_name
+                    )
                     final_config = GenerateContentConfig(**config_dict)
 
                 # Log the API call details
@@ -557,21 +594,15 @@ class GeminiService:
                 # Create a new config object that includes all necessary parameters
                 from google.genai import types
 
-                config = types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=131072,  # Increased to prevent truncation
-                    top_k=1,
-                    top_p=0.95,
-                    safety_settings=safety_settings,
-                )
+                config_kwargs = {
+                    "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
+                    "safety_settings": safety_settings,
+                }
 
                 # Add response_mime_type for JSON tasks
                 if "response_mime_type" in config_dict:
                     config_kwargs = {
-                        "temperature": 0.0,
-                        "max_output_tokens": 131072,  # Increased to prevent truncation
-                        "top_k": 1,
-                        "top_p": 0.95,
+                        "max_output_tokens": GEMINI_37_MAX_OUTPUT_TOKENS,
                         "safety_settings": safety_settings,
                     }
 
@@ -586,7 +617,9 @@ class GeminiService:
                     # Instead, we'll rely on response_mime_type="application/json" and our JSON repair functions
 
                     # Create a new config with the response_mime_type included
-                    config = types.GenerateContentConfig(**config_kwargs)
+                config = types.GenerateContentConfig(
+                    **self._provider_safe_config(config_kwargs, model_name)
+                )
 
                 # Make the API call with the correct config parameter
                 logger.info(f"Making streaming API call with config={config}")
@@ -750,7 +783,7 @@ class GeminiService:
                     model_class=Persona,
                     temperature=data.get("temperature", 0.0),
                     system_instruction=system_instruction,
-                    max_output_tokens=131072,  # Increased to prevent truncation
+                    max_output_tokens=GEMINI_37_MAX_OUTPUT_TOKENS,
                     response_mime_type="application/json",  # Force JSON output
                 )
             except Exception as e:
@@ -764,7 +797,7 @@ class GeminiService:
                     temperature=0.0,
                     system_instruction=system_instruction
                     + "\nYou MUST output valid JSON that conforms to the schema.",
-                    max_output_tokens=131072,  # Increased to prevent truncation
+                    max_output_tokens=GEMINI_37_MAX_OUTPUT_TOKENS,
                     response_mime_type="application/json",
                     top_p=1.0,
                     top_k=1,
@@ -1190,12 +1223,15 @@ Double-check your JSON for missing commas before responding.
             # This is just a double-check to ensure consistency with the original implementation
             if (
                 task == "persona_formation"
-                and config_params.get("max_output_tokens") != 131072
+                and config_params.get("max_output_tokens")
+                != GEMINI_37_MAX_OUTPUT_TOKENS
             ):
                 logger.warning(
-                    f"Overriding max_output_tokens for persona_formation to 131072 (was {config_params.get('max_output_tokens')})"
+                    "Overriding max_output_tokens for persona_formation to "
+                    f"{GEMINI_37_MAX_OUTPUT_TOKENS} "
+                    f"(was {config_params.get('max_output_tokens')})"
                 )
-                config_params["max_output_tokens"] = 131072
+                config_params["max_output_tokens"] = GEMINI_37_MAX_OUTPUT_TOKENS
                 config_params["top_k"] = 1
                 config_params["top_p"] = 0.95
 
@@ -1220,7 +1256,11 @@ Double-check your JSON for missing commas before responding.
 
         # Create the final GenerateContentConfig object
         try:
-            current_generation_config = GenerateContentConfig(**config_params)
+            current_generation_config = GenerateContentConfig(
+                **self._provider_safe_config(
+                    config_params, self.default_model_name
+                )
+            )
             logger.debug(f"Created GenerateContentConfig with fields: {config_params}")
         except Exception as e:
             logger.error(f"Error creating GenerateContentConfig: {e}")
@@ -2204,9 +2244,5 @@ Double-check your JSON for missing commas before responding.
 
     def get_pydantic_ai_model(self) -> str:
         """Get PydanticAI compatible model string for Google Gemini"""
-        # PydanticAI now supports gemini-3-flash-preview directly, no mapping needed
-        # Based on PydanticAI docs: https://ai.pydantic.dev/api/models/gemini/
-        # LatestGeminiModelNames includes "gemini-3-flash-preview" natively
-
-        # Return the model name as-is since PydanticAI supports it directly
+        # Return the exact configured Google model resource unchanged.
         return self.default_model_name

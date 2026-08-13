@@ -43,7 +43,7 @@ const AnalysisOptions = ({ provider, onProviderChange }: AnalysisOptionsProps): 
 
       <div className="text-sm text-muted-foreground mt-2">
         {provider === 'gemini' ? (
-          <span>Using Gemini 2.5 Flash - Optimized for structured schema-based analysis</span>
+          <span>Using Gemini 3.7 Flash - Optimized for structured schema-based analysis</span>
         ) : (
           <span>Using GPT-4o - Best for nuanced sentiment and theme detection</span>
         )}

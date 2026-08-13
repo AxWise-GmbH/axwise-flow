@@ -95,7 +95,7 @@ async def main():
     # Initialize Forward-Simulation PersonaGenerator
     logger.info("Initializing Forward-Simulation PersonaGenerator with OCEANSampler for internal hiring...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.6-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.7-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()

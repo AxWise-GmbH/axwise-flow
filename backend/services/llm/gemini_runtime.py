@@ -1,4 +1,4 @@
-"""Single exact-model runtime for durable Gemini 3.6 research."""
+"""Single exact-model runtime for durable Gemini 3.7 research."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.providers.google import GoogleProvider
 
 
-RESEARCH_MODEL = "gemini-3.6-flash"
+RESEARCH_MODEL = "gemini-3.7-flash"
 RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
 TRANSIENT_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 RESEARCH_HTTP_ATTEMPTS = 3
@@ -186,7 +186,7 @@ def build_research_model(api_key: str) -> GoogleModel:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Durable research requires GEMINI_MODEL=models/gemini-3.6-flash; "
+            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     http_client = BoundedRetryAsyncClient(
@@ -213,7 +213,7 @@ def require_search_model() -> str:
     configured = os.getenv("GEMINI_SEARCH_MODEL", RESEARCH_MODEL)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
-            "Grounded research requires GEMINI_SEARCH_MODEL=gemini-3.6-flash; "
+            "Grounded research requires GEMINI_SEARCH_MODEL=gemini-3.7-flash; "
             f"received {configured!r}. Provider/model fallback is disabled."
         )
     return RESEARCH_MODEL

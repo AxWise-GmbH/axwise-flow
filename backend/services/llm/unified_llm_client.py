@@ -43,6 +43,10 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_MODEL_NAME, GEMINI_TEMPERATURE, GEMINI_MAX_TOKENS,
     GEMINI_TOP_P, GEMINI_TOP_K, ENV_GEMINI_API_KEY
 )
+from backend.services.llm.config.genai_config import (
+    GEMINI_37_MAX_OUTPUT_TOKENS,
+    is_gemini_37_flash,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +146,13 @@ class UnifiedLLMClient:
                 "top_p": kwargs.get("top_p", GEMINI_TOP_P),
                 "top_k": kwargs.get("top_k", GEMINI_TOP_K)
             }
+            if is_gemini_37_flash(self.model_name):
+                for parameter in ("temperature", "top_p", "top_k", "candidate_count"):
+                    generation_config.pop(parameter, None)
+                generation_config["max_output_tokens"] = min(
+                    int(generation_config["max_output_tokens"]),
+                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                )
             if system_instruction:
                 generation_config["system_instruction"] = system_instruction
             
@@ -205,19 +216,29 @@ class UnifiedLLMClient:
             # Get enhanced client and instructor
             self._get_enhanced_client()
             
-            # Prepare generation config and parameters for Instructor + google-genai style
+            # Instructor 1.15 reads OpenAI-style keys from generation_config,
+            # then creates the native google.genai GenerateContentConfig.
             config_params = {
                 "temperature": kwargs.get("temperature", 0.0),  # Lower temperature for structured output
-                "max_output_tokens": kwargs.get("max_tokens", GEMINI_MAX_TOKENS),
+                "max_tokens": kwargs.get(
+                    "max_tokens",
+                    kwargs.get("max_output_tokens", GEMINI_MAX_TOKENS),
+                ),
                 "top_p": kwargs.get("top_p", 1.0),
-                "top_k": kwargs.get("top_k", 1),
-                "response_mime_type": "application/json"
             }
-            if system_instruction:
-                config_params["system_instruction"] = system_instruction
+            if is_gemini_37_flash(self.model_name):
+                for parameter in ("temperature", "top_p", "top_k", "candidate_count", "n"):
+                    config_params.pop(parameter, None)
+                config_params["max_tokens"] = min(
+                    int(config_params["max_tokens"]),
+                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                )
 
             # Prepare messages
-            messages = [{"role": "user", "content": prompt}]
+            messages = []
+            if system_instruction:
+                messages.append({"role": "system", "content": system_instruction})
+            messages.append({"role": "user", "content": prompt})
             
             # Generate with retry logic
             last_error = None
@@ -231,7 +252,7 @@ class UnifiedLLMClient:
                             model=self.model_name,
                             messages=messages,
                             response_model=model_class,
-                            config=config_params
+                            generation_config=config_params
                         )
                     )
                     

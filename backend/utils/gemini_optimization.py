@@ -35,11 +35,9 @@ class GeminiOptimizer:
         Returns:
             Optimized model settings dictionary
         """
-        settings = {
-            "temperature": temperature,
-            "top_p": top_p,
-            "top_k": top_k,
-        }
+        # Gemini 3.7 uses model-default sampling. Keep the arguments for API
+        # compatibility, but do not return controls that the provider rejects.
+        settings = {}
         
         if max_tokens is not None:
             settings["max_tokens"] = max_tokens
@@ -127,9 +125,6 @@ Your responses must be parseable by standard JSON parsers. Any malformed JSON wi
             Conservative model settings
         """
         return {
-            "temperature": 0.0,  # Maximum determinism
-            "top_p": 0.9,        # More conservative sampling
-            "top_k": 20,         # Reduced options
             "max_tokens": 4000,  # Reasonable limit
         }
     
