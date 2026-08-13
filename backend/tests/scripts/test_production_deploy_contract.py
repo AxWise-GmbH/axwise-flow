@@ -5,11 +5,18 @@ import subprocess
 
 import pytest
 
+from scripts.verify_cloud_run_worker_release import (
+    WorkerReleaseStateError,
+    assert_no_traffic_tags,
+    validate_worker_release_state,
+)
+
 
 ROOT = Path(__file__).resolve().parents[3]
 DEPLOY_SCRIPT = ROOT / "scripts" / "deploy-production-backend.sh"
 SEARXNG_DEPLOY_SCRIPT = ROOT / "scripts" / "deploy-searxng-cloud-run.sh"
 pytestmark = pytest.mark.contract
+TEST_BUILD_REVISION = "abcdef123456"
 
 
 def test_production_backend_deploy_script_is_valid_bash() -> None:
@@ -63,20 +70,450 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     assert '"${WORKER_TRAFFIC_PERCENT}" != "100"' in script
     assert "run.googleapis.com/cpu-throttling" in script
     assert '"${WORKER_CPU_THROTTLING}" != "false"' in script
+    assert script.count("--clear-tags") == 3
+    assert script.count("verify_cloud_run_worker_release.py") == 3
+    assert '--expected-revision "${WORKER_REVISION}"' in script
+    assert '--expected-revision "${QUIESCENCE_REVISION}"' in script
+    assert "--expected-mode health_only" in script
+    assert "--expected-mode poll" in script
+    assert script.count('--expected-build-revision "${REVISION}"') == 2
+    assert '--tags-only' in script
+    assert '"${WORKER_STABLE_URL_AFTER}" != "${WORKER_STABLE_URL}"' in script
 
     deploy = 'gcloud run deploy "${WORKER_SERVICE}"'
-    worker_deploy_block = script.split(deploy, 1)[1].split(
-        "# As with the API", 1
-    )[0]
-    assert "--no-cpu-throttling" in worker_deploy_block
+    assert script.count(deploy) == 2
+    quiescence_deploy = script.index(
+        deploy, script.index('echo "Stopping durable Orqaly queue consumption')
+    )
+    poll_deploy = script.index(
+        deploy, script.index('echo "Deploying durable Orqaly A+B worker')
+    )
+    quiescence_deploy_block = script[quiescence_deploy:script.index(
+        "QUIESCENCE_REVISION=", quiescence_deploy
+    )]
+    poll_deploy_block = script[poll_deploy:script.index(
+        "# As with the API", poll_deploy
+    )]
+    for worker_deploy_block in (quiescence_deploy_block, poll_deploy_block):
+        assert "--no-cpu-throttling" in worker_deploy_block
+        assert "--scaling auto" in worker_deploy_block
+        assert "--min 1" in worker_deploy_block
+        assert "--min-instances default" in worker_deploy_block
+        assert "--min-instances 1" not in worker_deploy_block
+    assert '--revision-suffix "${QUIESCENCE_SUFFIX}"' in quiescence_deploy_block
+    assert (
+        '--set-env-vars "WORKER_MODE=health_only,'
+        'AXWISE_BUILD_REVISION=${REVISION}"' in quiescence_deploy_block
+    )
+    assert "WORKER_ENV_VARS" not in quiescence_deploy_block
+    assert "DATABASE_URL" not in quiescence_deploy_block
+    assert "GEMINI" not in quiescence_deploy_block
+    assert "--set-secrets" not in quiescence_deploy_block
+    assert "--clear-secrets" in quiescence_deploy_block
+    assert '--revision-suffix "${REVISION}"' in poll_deploy_block
+    assert (
+        '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll"'
+        in poll_deploy_block
+    )
+    assert '--set-secrets "${WORKER_SECRET_BINDINGS}"' in poll_deploy_block
     api_deploy_block = script.split('gcloud run deploy "${API_SERVICE}"', 1)[1].split(
         "# Cloud Run preserves", 1
     )[0]
     assert "--no-cpu-throttling" not in api_deploy_block
-    switch = script.index(worker_traffic_switch)
-    assert script.index(deploy) < script.index(worker_revision) < switch
+    switch_marker = script.index('echo "Switching worker traffic')
+    switch = script.index(worker_traffic_switch, switch_marker)
+    predeploy_tag_clear = script.index("Clearing stale worker revision tags")
+    tags_only_guard = script.index("--tags-only")
+    quiescence_guard = script.index(
+        '--expected-revision "${QUIESCENCE_REVISION}"'
+    )
+    final_state_guard = script.index('--expected-revision "${WORKER_REVISION}"')
+    build = script.index('echo "Building ${IMAGE}"')
+    migration_deploy = script.index('echo "Deploying migration job"')
+    migration_execute = script.index('echo "Running migration job"')
+    api_deploy = script.index('gcloud run deploy "${API_SERVICE}"')
+    assert predeploy_tag_clear < tags_only_guard < quiescence_deploy
+    assert tags_only_guard < build < quiescence_deploy < quiescence_guard
+    assert quiescence_guard < migration_deploy < migration_execute < api_deploy
+    assert api_deploy < poll_deploy
+    assert poll_deploy < script.index(worker_revision) < switch
+    expected_worker_revision = (
+        'EXPECTED_WORKER_REVISION="${WORKER_SERVICE}-${REVISION}"'
+    )
+    assert expected_worker_revision in script
+    assert script.index(expected_worker_revision) < poll_deploy
+    assert '"${WORKER_REVISION}" != "${EXPECTED_WORKER_REVISION}"' in script
     assert switch < script.index(worker_traffic_revision)
     assert script.index(worker_traffic_revision) < script.index(worker_cpu_throttling)
+    assert script.index(worker_cpu_throttling) < final_state_guard
+
+
+def _worker_service_state(
+    *,
+    latest_created: str = "axwise-orqaly-worker-00030-new",
+    latest_ready: str = "axwise-orqaly-worker-00030-new",
+    traffic: list[dict] | None = None,
+    spec_traffic: list[dict] | None = None,
+    status_traffic: list[dict] | None = None,
+    service_minimum: str | None = "1",
+    generation: int = 30,
+    observed_generation: int = 30,
+    ready_status: str | None = "True",
+) -> dict:
+    common_traffic = (
+        traffic
+        if traffic is not None
+        else [{"revisionName": latest_created, "percent": 100}]
+    )
+    annotations = {}
+    if service_minimum is not None:
+        annotations["run.googleapis.com/minScale"] = service_minimum
+    conditions = []
+    if ready_status is not None:
+        conditions.append({"type": "Ready", "status": ready_status})
+    return {
+        "metadata": {
+            "annotations": annotations,
+            "generation": generation,
+        },
+        "spec": {
+            "traffic": spec_traffic if spec_traffic is not None else common_traffic
+        },
+        "status": {
+            "latestCreatedRevisionName": latest_created,
+            "latestReadyRevisionName": latest_ready,
+            "observedGeneration": observed_generation,
+            "conditions": conditions,
+            "traffic": (
+                status_traffic if status_traffic is not None else common_traffic
+            ),
+            "url": "https://axwise-orqaly-worker-stable.example.run.app",
+        },
+    }
+
+
+def _worker_revision_state(
+    name: str,
+    *,
+    revision_minimum: str | None = None,
+    retired: bool = False,
+    desired_replicas: int | None = None,
+    mode: str = "poll",
+    build_revision: str = TEST_BUILD_REVISION,
+) -> dict:
+    annotations = {}
+    if revision_minimum is not None:
+        annotations["autoscaling.knative.dev/minScale"] = revision_minimum
+    desired = (0 if retired else 1) if desired_replicas is None else desired_replicas
+    return {
+        "metadata": {"name": name, "annotations": annotations},
+        "spec": {
+            "containers": [
+                {
+                    "env": [
+                        {"name": "WORKER_MODE", "value": mode},
+                        {
+                            "name": "AXWISE_BUILD_REVISION",
+                            "value": build_revision,
+                        },
+                    ]
+                }
+            ]
+        },
+        "status": {
+            "desiredReplicas": desired,
+            "conditions": [
+                {
+                    "type": "Active",
+                    "status": "False" if retired else "True",
+                    **({"reason": "Retired"} if retired else {}),
+                }
+            ],
+        },
+    }
+
+
+def test_worker_release_state_accepts_only_latest_untagged_100_percent_route() -> None:
+    latest = "axwise-orqaly-worker-00030-new"
+    summary = validate_worker_release_state(
+        _worker_service_state(),
+        [
+            _worker_revision_state(latest),
+            # Historical revision minima are immutable but cannot start when
+            # no traffic split or tag references the old revision.
+            _worker_revision_state(
+                "axwise-orqaly-worker-00029-old",
+                revision_minimum="1",
+                retired=True,
+            ),
+        ],
+        expected_revision=latest,
+        expected_mode="poll",
+        expected_build_revision=TEST_BUILD_REVISION,
+    )
+
+    assert summary["latest_revision"] == latest
+    assert summary["traffic_percent"] == 100
+    assert summary["traffic_tag_count"] == 0
+    assert summary["service_minimum_instances"] == 1
+    assert summary["latest_revision_minimum_instances"] == 0
+    assert summary["dormant_nonlatest_revision_minima"] == [
+        "axwise-orqaly-worker-00029-old"
+    ]
+
+
+def test_worker_release_state_rejects_tagged_zero_traffic_minimum_revision() -> None:
+    latest = "axwise-orqaly-worker-00030-new"
+    service = _worker_service_state(
+        traffic=[
+            {"revisionName": latest, "percent": 100},
+            {
+                "revisionName": "axwise-orqaly-worker-00029-del",
+                "percent": 0,
+                "tag": "searx-fix",
+            },
+        ]
+    )
+    revisions = [
+        _worker_revision_state(latest),
+        _worker_revision_state(
+            "axwise-orqaly-worker-00029-del",
+            revision_minimum="1",
+            retired=True,
+        ),
+    ]
+
+    with pytest.raises(WorkerReleaseStateError, match="searx-fix"):
+        validate_worker_release_state(
+            service,
+            revisions,
+            expected_revision=latest,
+            expected_mode="poll",
+            expected_build_revision=TEST_BUILD_REVISION,
+        )
+    with pytest.raises(WorkerReleaseStateError, match="searx-fix"):
+        assert_no_traffic_tags(service)
+
+
+@pytest.mark.parametrize("tag_section", ["spec", "status"])
+def test_worker_release_state_rejects_a_tag_in_either_traffic_view(
+    tag_section: str,
+) -> None:
+    latest = "axwise-orqaly-worker-00030-new"
+    clean = [{"revisionName": latest, "percent": 100}]
+    tagged = [
+        {"revisionName": latest, "percent": 100},
+        {
+            "revisionName": "axwise-orqaly-worker-00029-del",
+            "percent": 0,
+            "tag": "searx-fix",
+        },
+    ]
+    service = _worker_service_state(
+        spec_traffic=tagged if tag_section == "spec" else clean,
+        status_traffic=tagged if tag_section == "status" else clean,
+    )
+
+    with pytest.raises(WorkerReleaseStateError, match=f"{tag_section}:searx-fix"):
+        validate_worker_release_state(
+            service,
+            [
+                _worker_revision_state(latest),
+                _worker_revision_state(
+                    "axwise-orqaly-worker-00029-del", retired=True
+                ),
+            ],
+            expected_revision=latest,
+            expected_mode="poll",
+            expected_build_revision=TEST_BUILD_REVISION,
+        )
+
+
+@pytest.mark.parametrize(
+    ("service", "revisions", "reason"),
+    [
+        (
+            _worker_service_state(
+                latest_ready="axwise-orqaly-worker-00029-old"
+            ),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "latestReady",
+        ),
+        (
+            _worker_service_state(
+                traffic=[
+                    {
+                        "revisionName": "axwise-orqaly-worker-00030-new",
+                        "percent": 99,
+                    },
+                    {
+                        "revisionName": "axwise-orqaly-worker-00029-old",
+                        "percent": 1,
+                    },
+                ]
+            ),
+            [
+                _worker_revision_state("axwise-orqaly-worker-00030-new"),
+                _worker_revision_state(
+                    "axwise-orqaly-worker-00029-old", retired=True
+                ),
+            ],
+            "exactly one",
+        ),
+        (
+            _worker_service_state(service_minimum="0"),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "service-level minimum",
+        ),
+        (
+            _worker_service_state(service_minimum=None),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "service-level minimum",
+        ),
+        (
+            _worker_service_state(),
+            [
+                _worker_revision_state(
+                    "axwise-orqaly-worker-00030-new",
+                    revision_minimum="1",
+                )
+            ],
+            "must not retain revision-level minimum",
+        ),
+        (
+            _worker_service_state(observed_generation=29),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "not reconciled",
+        ),
+        (
+            _worker_service_state(ready_status="False"),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "Ready=True",
+        ),
+        (
+            _worker_service_state(
+                spec_traffic=[
+                    {
+                        "latestRevision": True,
+                        "revisionName": "axwise-orqaly-worker-00030-new",
+                        "percent": 100,
+                    }
+                ]
+            ),
+            [_worker_revision_state("axwise-orqaly-worker-00030-new")],
+            "must not float to latest",
+        ),
+        (
+            _worker_service_state(),
+            [],
+            "absent from revision inventory",
+        ),
+    ],
+)
+def test_worker_release_state_fails_closed_on_ambiguous_polling_state(
+    service: dict,
+    revisions: list[dict],
+    reason: str,
+) -> None:
+    with pytest.raises(WorkerReleaseStateError, match=reason):
+        validate_worker_release_state(
+            service,
+            revisions,
+            expected_revision="axwise-orqaly-worker-00030-new",
+            expected_mode="poll",
+            expected_build_revision=TEST_BUILD_REVISION,
+        )
+
+
+def test_worker_release_state_accepts_quiescence_only_after_old_poller_retires() -> None:
+    quiescence = "axwise-orqaly-worker-00030-quiesce"
+    summary = validate_worker_release_state(
+        _worker_service_state(
+            latest_created=quiescence,
+            latest_ready=quiescence,
+        ),
+        [
+            _worker_revision_state(quiescence, mode="health_only"),
+            _worker_revision_state(
+                "axwise-orqaly-worker-00029-old",
+                revision_minimum="1",
+                retired=True,
+            ),
+        ],
+        expected_revision=quiescence,
+        expected_mode="health_only",
+        expected_build_revision=TEST_BUILD_REVISION,
+    )
+
+    assert summary["worker_mode"] == "health_only"
+    assert summary["active_revision_count"] == 1
+    assert summary["retired_nonlatest_revision_count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("old_revision", "reason"),
+    [
+        (
+            _worker_revision_state(
+                "axwise-orqaly-worker-00029-old",
+                desired_replicas=1,
+            ),
+            "still desires 1 replicas",
+        ),
+        (
+            _worker_revision_state(
+                "axwise-orqaly-worker-00029-old",
+                desired_replicas=0,
+            ),
+            "is not retired",
+        ),
+    ],
+)
+def test_worker_release_state_rejects_nonlatest_runtime_that_can_still_poll(
+    old_revision: dict,
+    reason: str,
+) -> None:
+    latest = "axwise-orqaly-worker-00030-new"
+    with pytest.raises(WorkerReleaseStateError, match=reason):
+        validate_worker_release_state(
+            _worker_service_state(),
+            [_worker_revision_state(latest), old_revision],
+            expected_revision=latest,
+            expected_mode="poll",
+            expected_build_revision=TEST_BUILD_REVISION,
+        )
+
+
+@pytest.mark.parametrize(
+    ("revision", "reason"),
+    [
+        (
+            _worker_revision_state(
+                "axwise-orqaly-worker-00030-new", mode="health_only"
+            ),
+            "mode mismatch",
+        ),
+        (
+            _worker_revision_state(
+                "axwise-orqaly-worker-00030-new",
+                build_revision="wrongbuild1",
+            ),
+            "build mismatch",
+        ),
+    ],
+)
+def test_worker_release_state_rejects_wrong_mode_or_build(
+    revision: dict,
+    reason: str,
+) -> None:
+    with pytest.raises(WorkerReleaseStateError, match=reason):
+        validate_worker_release_state(
+            _worker_service_state(),
+            [revision],
+            expected_revision="axwise-orqaly-worker-00030-new",
+            expected_mode="poll",
+            expected_build_revision=TEST_BUILD_REVISION,
+        )
 
 
 def test_authority_proof_secret_is_validated_without_printing_before_build() -> None:
@@ -149,7 +586,11 @@ def test_searxng_route_is_discovered_and_authenticated_before_build() -> None:
         'WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}'
         '@SEARXNG_AUTH_MODE=google_identity"' in script
     )
-    assert '--set-env-vars "${WORKER_ENV_VARS}"' in script
+    assert (
+        '--set-env-vars "WORKER_MODE=health_only,'
+        'AXWISE_BUILD_REVISION=${REVISION}"' in script
+    )
+    assert '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll"' in script
     assert '--service-account "${WORKER_SERVICE_ACCOUNT}"' in script
 
     # Identity tokens and response bodies must not be written to the deploy log.

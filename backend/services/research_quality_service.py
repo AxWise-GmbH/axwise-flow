@@ -21,6 +21,7 @@ import pycountry
 
 from backend.services.research_source_authority_service import (
     _commercial_offer_evidence,
+    _normalized_document_text,
     _structured_statistical_observations,
     claim_matching_offer_evidence,
     fact_matching_offer_evidence,
@@ -1344,11 +1345,20 @@ def evaluate_critical_claims(
             for source in linked_sources:
                 proof = source.get("authority_proof")
                 raw_html = source.get("_structured_evidence_html")
+                authority_document = source.get("_authority_document_artifact")
                 if not isinstance(proof, Mapping) or not isinstance(raw_html, str):
                     continue
+                direct_text = (
+                    authority_document.get("text")
+                    if isinstance(authority_document, Mapping)
+                    else None
+                )
                 if (
                     not raw_html
                     or len(raw_html.encode("utf-8")) > 2_000_000
+                    or not isinstance(direct_text, str)
+                    or _normalized_document_text(raw_html, is_html=True)
+                    != direct_text
                     or hashlib.sha256(raw_html.encode("utf-8")).hexdigest()
                     != proof.get("structured_evidence_source_sha256")
                     or list(proof.get("commercial_offer_evidence") or [])
@@ -1363,14 +1373,67 @@ def evaluate_critical_claims(
                     )
                     if offer and offer_topic_seed is not None:
                         product_name = str(offer.get("product_name") or "")
+                        # Topic evidence must be present in the exact signed,
+                        # visible claim span. A hidden JSON-LD name must never
+                        # lend category identity to a visible SKU/price row.
                         if not any(
                             exact_topic_phrase_in_visible_text(
+                                fact_text, phrase
+                            )
+                            and exact_topic_phrase_in_visible_text(
                                 product_name, phrase
                             )
                             for phrase in offer_topic_phrases
                         ):
                             offer = None
                     if offer:
+                        # Currency symbols and separator conventions are not
+                        # globally unique. Once the exact fact span is bound to
+                        # one signed raw-derived offer, the ledger canonical
+                        # value comes from that offer rather than reinterpreting
+                        # `$` as USD or `1,299` independently.
+                        fact["unit"] = str(offer.get("price_currency") or "").casefold()
+                        canonical_price = format(
+                            Decimal(str(offer.get("price") or "")), "f"
+                        )
+                        if not canonical_price:
+                            canonical_price = "0"
+                        fact["normalized_value"] = (
+                            f"{canonical_price}:{fact['unit']}"
+                        )
+                        # The signed offer is the currency authority. Do not
+                        # preserve a parser-derived suffix such as ``number``
+                        # (for a symbol the generic fact parser does not map)
+                        # or ``usd`` (for an ambiguous dollar sign).
+                        fact["metric_key"] = f"price:{fact['unit']}"
+                        offer_identity_hash = hashlib.sha256(
+                            json.dumps(
+                                {
+                                    "product_id": offer.get("product_id") or "",
+                                    "product_name": offer.get("product_name") or "",
+                                },
+                                sort_keys=True,
+                                separators=(",", ":"),
+                                ensure_ascii=False,
+                            ).encode("utf-8")
+                        ).hexdigest()[:16]
+                        denominator_match = re.search(
+                            r"^\s*(?:/|\bper\s+)(kg|g|l|ml|pcs?|piece|unit|item)\b",
+                            fact_text[
+                                fact_text.find(str(fact.get("display_value") or ""))
+                                + len(str(fact.get("display_value") or "")) :
+                            ],
+                            re.IGNORECASE,
+                        )
+                        denominator = (
+                            denominator_match.group(1).casefold()
+                            if denominator_match
+                            else "item"
+                        )
+                        fact["semantic_scope"] = (
+                            f"catalog:signed_offer:{offer_identity_hash}:"
+                            f"per_{denominator}:{fact['unit']}"
+                        )
                         authorized_fact_ids.add(str(fact.get("fact_id") or ""))
                         matched_commercial_offer = matched_commercial_offer or offer
             for fact in facts:

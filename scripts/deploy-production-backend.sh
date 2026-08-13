@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
-# Build an immutable backend image, migrate production, then deploy API and worker.
+# Build an immutable image, quiesce the worker, migrate, then deploy API and worker.
 # Required credentials must already exist in Google Secret Manager.
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ID="${PROJECT_ID:-axwise-73425}"
 REGION="${REGION:-europe-west4}"
 API_SERVICE="${API_SERVICE:-axwise-backend}"
@@ -135,6 +136,14 @@ if [[ -z "${WORKER_SERVICE_ACCOUNT}" ]]; then
   echo "Could not determine the AxWise worker service account" >&2
   exit 1
 fi
+WORKER_STABLE_URL="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.url)')"
+if [[ -z "${WORKER_STABLE_URL}" ]]; then
+  echo "Could not determine the stable AxWise worker service URL" >&2
+  exit 1
+fi
 
 if ! gcloud run services get-iam-policy "${SEARXNG_SERVICE}" \
   --region "${REGION}" \
@@ -233,6 +242,22 @@ PY
 WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}@SEARXNG_AUTH_MODE=google_identity"
 echo "Authenticated private SearXNG preflight passed"
 
+# Traffic tags address a revision directly even at 0% ordinary traffic. When
+# combined with a historical revision-level minimum, an old pull worker stays
+# alive and can claim new jobs. Clear every worker tag before the release starts
+# and fail closed unless Cloud Run confirms the tag aliases are gone. This does
+# not change the service's stable status.url or its existing traffic assignment.
+echo "Clearing stale worker revision tags before deployment"
+gcloud run services update-traffic "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --clear-tags
+python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+  --service "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --tags-only
+
 echo "Building ${IMAGE}"
 gcloud builds submit \
   --config cloudbuild.yaml \
@@ -240,6 +265,67 @@ gcloud builds submit \
   --substitutions "_IMAGE_NAME=${IMAGE}" \
   --project "${PROJECT_ID}" \
   .
+
+# Stop queue consumption before switching the API or starting the new poller.
+# Cloud Run provisions a new revision before retiring the previous revision, so
+# a direct poller-to-poller deploy creates a window where either build can win a
+# database claim. The quiescence revision serves health checks but never opens
+# the durable queue. The release proceeds only after Cloud Run reports every
+# previous revision retired with zero desired replicas.
+QUIESCENCE_SUFFIX="${REVISION}-quiesce"
+EXPECTED_QUIESCENCE_REVISION="${WORKER_SERVICE}-${QUIESCENCE_SUFFIX}"
+if (( ${#EXPECTED_QUIESCENCE_REVISION} > 63 )); then
+  echo "Quiescence worker revision name exceeds Cloud Run's 63-character limit" >&2
+  exit 1
+fi
+
+echo "Stopping durable Orqaly queue consumption for release"
+gcloud run deploy "${WORKER_SERVICE}" \
+  --image "${IMAGE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --platform managed \
+  --revision-suffix "${QUIESCENCE_SUFFIX}" \
+  --no-allow-unauthenticated \
+  --service-account "${WORKER_SERVICE_ACCOUNT}" \
+  --command python \
+  --args=-m,backend.scripts.run_orqaly_hybrid_worker_service \
+  --memory 8Gi \
+  --cpu 4 \
+  --no-cpu-throttling \
+  --timeout 3600 \
+  --concurrency 1 \
+  --scaling auto \
+  --min 1 \
+  --min-instances default \
+  --max-instances 1 \
+  --clear-secrets \
+  --set-env-vars "WORKER_MODE=health_only,AXWISE_BUILD_REVISION=${REVISION}"
+
+QUIESCENCE_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.latestCreatedRevisionName)')"
+if [[ "${QUIESCENCE_REVISION}" != "${EXPECTED_QUIESCENCE_REVISION}" ]]; then
+  echo "Expected quiescence revision ${EXPECTED_QUIESCENCE_REVISION}; Cloud Run reports ${QUIESCENCE_REVISION:-unset}" >&2
+  exit 1
+fi
+
+echo "Routing worker service to release quiescence"
+gcloud run services update-traffic "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --clear-tags \
+  --to-revisions "${QUIESCENCE_REVISION}=100"
+
+python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+  --service "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --expected-revision "${QUIESCENCE_REVISION}" \
+  --expected-mode health_only \
+  --expected-build-revision "${REVISION}"
+echo "Durable Orqaly queue consumption stopped; all previous revisions retired"
 
 echo "Deploying migration job"
 gcloud run jobs deploy "${MIGRATION_JOB}" \
@@ -297,11 +383,17 @@ gcloud run services update-traffic "${API_SERVICE}" \
 # must retain CPU after startup/request handling or an active research job can
 # freeze indefinitely between provider calls.
 echo "Deploying durable Orqaly A+B worker"
+EXPECTED_WORKER_REVISION="${WORKER_SERVICE}-${REVISION}"
+if (( ${#EXPECTED_WORKER_REVISION} > 63 )); then
+  echo "Worker revision name exceeds Cloud Run's 63-character limit" >&2
+  exit 1
+fi
 gcloud run deploy "${WORKER_SERVICE}" \
   --image "${IMAGE}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --platform managed \
+  --revision-suffix "${REVISION}" \
   --no-allow-unauthenticated \
   --service-account "${WORKER_SERVICE_ACCOUNT}" \
   --command python \
@@ -311,9 +403,11 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --no-cpu-throttling \
   --timeout 3600 \
   --concurrency 1 \
-  --min-instances 1 \
+  --scaling auto \
+  --min 1 \
+  --min-instances default \
   --max-instances 1 \
-  --set-env-vars "${WORKER_ENV_VARS}" \
+  --set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll" \
   --set-secrets "${WORKER_SECRET_BINDINGS}"
 
 # As with the API, Cloud Run can preserve a previously pinned worker revision.
@@ -327,11 +421,16 @@ if [[ -z "${WORKER_REVISION}" ]]; then
   echo "Could not determine the newly created worker revision" >&2
   exit 1
 fi
+if [[ "${WORKER_REVISION}" != "${EXPECTED_WORKER_REVISION}" ]]; then
+  echo "Expected this deployment to create ${EXPECTED_WORKER_REVISION}; Cloud Run reports ${WORKER_REVISION}" >&2
+  exit 1
+fi
 
 echo "Switching worker traffic to ${WORKER_REVISION}"
 gcloud run services update-traffic "${WORKER_SERVICE}" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
+  --clear-tags \
   --to-revisions "${WORKER_REVISION}=100"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
@@ -405,5 +504,26 @@ if [[ "${WORKER_CPU_THROTTLING}" != "false" ]]; then
   echo "Expected worker CPU throttling to be disabled; Cloud Run reports ${WORKER_CPU_THROTTLING:-unset}" >&2
   exit 1
 fi
+
+WORKER_STABLE_URL_AFTER="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.url)')"
+if [[ "${WORKER_STABLE_URL_AFTER}" != "${WORKER_STABLE_URL}" ]]; then
+  echo "Worker stable URL changed during tag cleanup or deployment" >&2
+  exit 1
+fi
+
+# One final authoritative JSON audit covers conditions that separate scalar
+# format queries can miss: latest-created/latest-ready identity, all traffic
+# entries and tags, service-level minimum instances, revision-level minima,
+# and the complete revision inventory.
+python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+  --service "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --expected-revision "${WORKER_REVISION}" \
+  --expected-mode poll \
+  --expected-build-revision "${REVISION}"
 
 echo "Deployment complete: ${IMAGE} (${API_REVISION})"
