@@ -35,9 +35,9 @@ MAX_TOPIC_PHRASE_CHARS = 120
 MAX_VISIBLE_FIELD_CHARS = 1_000
 MAX_VISIBLE_SERIES_OR_DIMENSIONS = 32
 TRUSTED_TOPIC_ALIAS_REGISTRY_ID = "axwise-topic-alias-registry"
-TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION = "2026-08-13.v1"
+TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION = "2026-08-13.v2"
 TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256 = (
-    "051827a878cf54c45234cdc8faa6741f203b8a6c60a50b69f024b1c913e72c09"
+    "165b45fd71fc26e0f9f09f201c85006777f9e1f7e59a3dc4692d886bab47f35c"
 )
 
 _SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -1328,7 +1328,16 @@ def validate_alias_expansion(
 # Evidence-eligible translations are code-reviewed adapters, never model output.
 # Adding or changing a row requires a registry-version change so every consumer
 # independently derives the same immutable payload and hash.
-_TRUSTED_TOPIC_ALIAS_ROWS_V1: tuple[Mapping[str, str], ...] = (
+_TRUSTED_TOPIC_ALIAS_ROWS_V2: tuple[Mapping[str, str], ...] = (
+    {
+        "phrase": "kassi kuivtoit",
+        "country_code": "EE",
+        "language_code": "et",
+        "source_anchor": "cat food",
+        "relation": TopicAliasRelation.SURFACE_FORM.value,
+        "back_translation": "cat food",
+        "acceptance_basis": TopicAliasAcceptanceBasis.TRUSTED_LEXICON.value,
+    },
     {
         "phrase": "kassitoit",
         "country_code": "EE",
@@ -1347,7 +1356,7 @@ def trusted_topic_alias_registry() -> TrustedTopicAliasRegistry:
     registry = build_trusted_topic_alias_registry(
         registry_id=TRUSTED_TOPIC_ALIAS_REGISTRY_ID,
         registry_version=TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION,
-        entries=_TRUSTED_TOPIC_ALIAS_ROWS_V1,
+        entries=_TRUSTED_TOPIC_ALIAS_ROWS_V2,
     )
     if registry.registry_sha256 != TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256:
         raise RuntimeError(

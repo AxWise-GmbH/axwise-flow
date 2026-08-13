@@ -1046,33 +1046,57 @@ def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim(
     }
 
 
-def test_petcity_shaped_estonian_offer_passes_full_signed_alias_lifecycle():
-    url = "https://www.petcity.ee/royal-canin-light-weight-kassitoit-400-g-001201"
-    product_name = "Royal Canin Light Weight kassitoit 400 g"
+@pytest.mark.parametrize(
+    ("url", "product_name", "sku", "visible_price", "structured_price"),
+    [
+        (
+            "https://www.petcity.ee/royal-canin-light-weight-kassitoit-400-g-001201",
+            "Royal Canin Light Weight kassitoit 400 g",
+            "001201",
+            "10,09 €",
+            "10.09",
+        ),
+        (
+            "https://www.petcity.ee/applaws-kassi-taissoot-kana-part-2kg-pmm0256600ee",
+            "Applaws kassi kuivtoit, kana/part, 2 kg",
+            "103681",
+            "15,99 €",
+            "15.99",
+        ),
+    ],
+)
+def test_petcity_shaped_estonian_offer_passes_full_signed_alias_lifecycle(
+    url: str,
+    product_name: str,
+    sku: str,
+    visible_price: str,
+    structured_price: str,
+):
     raw_html = (
         '<main class="layout-product" data-component="product">'
         '<div class="layout-product__row wrap-narrow">'
         '<div class="layout-product__content">'
         f'<h1 class="page-title" data-component="title">{product_name}</h1>'
-        '<form data-product-sku="001201"><div class="product-pricing">'
+        f'<form data-product-sku="{sku}"><div class="product-pricing">'
         '<div class="product-pricing__price" data-testid="product-card-price">'
         '<span class="product-pricing__price-value">'
-        '<span class="product-pricing__price-number">10,09 €</span>'
+        f'<span class="product-pricing__price-number">{visible_price}</span>'
         '</span></div></div></form></div></div></main>'
         '<script type="application/ld+json">'
         '{"@context":"https://schema.org","@type":"Product",'
-        f'"sku":"001201","name":"{product_name}","offers":'
-        '{"@type":"Offer","price":"10.09","priceCurrency":"EUR",'
+        f'"sku":"{sku}","name":"{product_name}","offers":'
+        f'{{"@type":"Offer","price":"{structured_price}","priceCurrency":"EUR",'
         '"availability":"https://schema.org/InStock"}}</script>'
     )
     direct_text = _normalized_document_text(raw_html, is_html=True)
     retrieved_at = "2026-08-13T00:00:00+00:00"
     offers = _commercial_offer_evidence(raw_html)
-    assert [(row["product_id"], row["price"], row["price_currency"]) for row in offers] == [
-        ("001201", "10.09", "EUR")
-    ]
+    assert [
+        (row["product_id"], row["price"], row["price_currency"])
+        for row in offers
+    ] == [(sku, structured_price, "EUR")]
     assert offers[0]["visible_binding"]["claim_text"] == (
-        f"{product_name} 10,09 €"
+        f"{product_name} {visible_price}"
     )
     proof = build_direct_primary_market_proof(
         direct_url=url,
@@ -1125,7 +1149,9 @@ def test_petcity_shaped_estonian_offer_passes_full_signed_alias_lifecycle():
     )
 
     assert quality["status"] == "passed", quality
-    assert quality["verified_facts"][0]["normalized_value"] == "10.09:eur"
+    assert quality["verified_facts"][0]["normalized_value"] == (
+        f"{structured_price}:eur"
+    )
     assert quality["topic_alias_expansion_sha256"] == (
         topic_contracts["topic_alias_expansion"]["expansion_sha256"]
     )

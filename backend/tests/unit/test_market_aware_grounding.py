@@ -1440,7 +1440,10 @@ def test_estonian_trusted_alias_is_present_in_observed_acquisition_query():
 
     [query] = pipeline._directed_evidence_queries()
 
-    assert "Exact product/category phrases: cat food, kassitoit." in query["query"]
+    assert (
+        "Exact product/category phrases: cat food, kassi kuivtoit, kassitoit."
+        in query["query"]
+    )
     assert pipeline.routing_diagnostics["topic_alias_registry_version"]
 
 
