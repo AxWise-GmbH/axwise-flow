@@ -62,7 +62,7 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         )
         if normalized_research_model(configured_model) != RESEARCH_MODEL:
             raise ValueError(
-                "Enhanced Gemini research requires exact gemini-3.6-flash; "
+                "Enhanced Gemini research requires exact gemini-3.7-flash; "
                 "provider/model fallback is disabled"
             )
         self.client = AsyncGenAIClient(
@@ -125,7 +125,8 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
             try:
                 if request.get("enforce_json"):
                     # Schema + semantic validation enforce structure. Gemini
-                    # 3.6 deprecates temperature/top_p/top_k.
+                    # Exact research calls use model-default sampling; do not
+                    # forward task-local temperature/top_p/top_k controls.
                     custom_config["response_mime_type"] = "application/json"
             except Exception:
                 pass
@@ -470,7 +471,7 @@ class EnhancedGeminiLLMService(BaseLLMService, ILLMService):
         """
         return {
             "provider": "gemini",
-            "model_name": getattr(self.client, "model_name", "gemini-3.6-flash"),
+            "model_name": getattr(self.client, "model_name", "gemini-3.7-flash"),
             "service_class": self.__class__.__name__,
             "underlying_service": "AsyncGenAIClient",
             "temperature": self.temperature,

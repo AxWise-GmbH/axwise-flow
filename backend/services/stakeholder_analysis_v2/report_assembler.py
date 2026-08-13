@@ -61,7 +61,7 @@ class StakeholderReportAssembler:
             try:
                 from pydantic_ai import ModelSettings  # type: ignore
 
-                model_settings = ModelSettings(timeout=300, temperature=0.0)
+                model_settings = ModelSettings(timeout=300)
                 extra_kwargs = {"model_settings": model_settings}
             except Exception:
                 model_settings = None
@@ -71,7 +71,7 @@ class StakeholderReportAssembler:
             # Create multi-stakeholder summary agent
             self.summary_agent = Agent(
                 model=GoogleModel(
-                    os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash"),
+                    os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash"),
                     provider=provider,
                 ),
                 output_type=SummaryLLMOutput,

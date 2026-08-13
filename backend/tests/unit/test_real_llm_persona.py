@@ -41,7 +41,7 @@ async def test_real_llm_persona_generation():
         
         # Create Gemini model
         provider = GoogleProvider(api_key=api_key)
-        gemini_model = GoogleModel("models/gemini-3.5-flash", provider=provider)
+        gemini_model = GoogleModel("models/gemini-3.7-flash", provider=provider)
         print("✅ Gemini model initialized")
         
         # Create PydanticAI agent with SimplifiedPersona (same as real system)

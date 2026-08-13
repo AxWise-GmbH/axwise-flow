@@ -45,7 +45,7 @@ def _get_api_key() -> str:
 
 
 async def analyze_transcript_and_structure_context(transcript_content: str) -> Dict[str, Any]:
-    """Use Gemini 3.5 flash to analyze the pitch transcript and extract the business metadata."""
+    """Use Gemini 3.7 Flash to analyze the pitch transcript and extract business metadata."""
     logger.info("Analyzing transcript using Google GenAI to extract business context & stakeholders...")
     api_key = _get_api_key()
     client = genai.Client(api_key=api_key)
@@ -91,7 +91,7 @@ Transcript content to analyze:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.6-flash",
+        model="gemini-3.7-flash",
         contents=prompt,
         config={"response_mime_type": "application/json"}
     )
@@ -144,7 +144,7 @@ async def main():
     # Step 2: Initialize Forward-Simulation PersonaGenerator with OCEANSampler
     logger.info("Initializing Forward-Simulation PersonaGenerator and OCEAN Sampler...")
     provider = GoogleProvider(api_key=api_key)
-    model = GoogleModel("models/gemini-3.6-flash", provider=provider)
+    model = GoogleModel("models/gemini-3.7-flash", provider=provider)
     
     sampler = OCEANSampler()
     classifier = OccupationClassifier()

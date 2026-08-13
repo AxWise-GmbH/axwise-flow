@@ -60,7 +60,7 @@ class AsyncGenAIClient:
 
         Args:
             api_key: Google API key
-            model: Model name to use (default: gemini-3.6-flash)
+            model: Model name to use (default: gemini-3.7-flash)
         """
         self.api_key = api_key
         self.default_model = model or GEMINI_MODEL_NAME
