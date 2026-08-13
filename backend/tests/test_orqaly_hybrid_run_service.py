@@ -1649,8 +1649,34 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
                     "elapsed_ms": 25,
                     "deadline_ms": 90_000,
                 },
+                "statutory_recovery": {
+                    "status": "completed",
+                    "route_count": 1,
+                    "candidate_count": 2,
+                    "retrieved_count": 2,
+                    "verified_count": 1,
+                    "accepted_verified_claims": 0,
+                    "elapsed_ms": 20_000,
+                    "deadline_ms": 90_000,
+                },
             },
             "market_sources": [],
+            "critical_claim_quality": {
+                "status": "blocked",
+                "verified_claim_classes": [],
+                "missing_claim_classes": ["official_statistic"],
+                "mandatory_claim_classes": ["official_statistic"],
+                "blocked_claims": [
+                    {
+                        "claim_id": "stat-1",
+                        "reason": "material_fact_not_extractable",
+                    },
+                    {
+                        "claim_id": "",
+                        "reason": "mandatory_claim_class_missing:official_statistic",
+                    },
+                ],
+            },
         }
     )
 
@@ -1675,6 +1701,115 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
         "elapsed_ms": 25,
         "deadline_ms": 90_000,
     }
+    assert diagnostics["statutory_recovery"] == {
+        "status": "completed",
+        "route_count": 1,
+        "candidate_count": 2,
+        "retrieved_count": 2,
+        "verified_count": 1,
+        "accepted_verified_claims": 0,
+        "elapsed_ms": 20_000,
+        "deadline_ms": 90_000,
+    }
+    assert diagnostics["verified_claim_classes"] == []
+    assert diagnostics["missing_claim_classes"] == ["official_statistic"]
+    assert diagnostics["blocked_reason_counts"] == {
+        "mandatory_claim_class_missing": 1,
+        "material_fact_not_extractable": 1,
+    }
+
+
+def test_multi_market_critical_gate_requires_every_class_in_every_country_cell(
+    monkeypatch,
+):
+    classes = {
+        "country:BE": ["statutory_current"],
+        "country:NL": ["official_statistic"],
+        "country:LU": ["observed_primary_market"],
+    }
+
+    def grounding_for(cell_classes):
+        sources = []
+        claims = []
+        for cell_id, evidence_classes in cell_classes.items():
+            for index, evidence_class in enumerate(evidence_classes):
+                source_id = f"source-{cell_id}-{index}"
+                sources.append(
+                    {"source_id": source_id, "research_cell_ids": [cell_id]}
+                )
+                claims.append(
+                    {
+                        "claim_id": f"claim-{cell_id}-{index}",
+                        "source_ids": [source_id],
+                        "research_cell_ids": [cell_id],
+                        "evidence_class": evidence_class,
+                    }
+                )
+        return {
+            "market_sources": sources,
+            "market_claims": claims,
+            "cell_coverage": [
+                {
+                    "cell_id": cell_id,
+                    "country_codes": [cell_id.split(":", 1)[1]],
+                    "status": "complete",
+                }
+                for cell_id in cell_classes
+            ],
+        }
+
+    required = {
+        "statutory_current",
+        "official_statistic",
+        "observed_primary_market",
+    }
+
+    def fake_quality(cell_grounding, _countries, **_kwargs):
+        verified = {
+            row["evidence_class"] for row in cell_grounding["market_claims"]
+        }
+        missing = sorted(required - verified)
+        return {
+            "status": "blocked" if missing else "passed",
+            "verified_claim_classes": sorted(verified),
+            "missing_claim_classes": missing,
+            "blocked_claims": [
+                {
+                    "reason": f"mandatory_claim_class_missing:{value}",
+                }
+                for value in missing
+            ],
+        }
+
+    monkeypatch.setattr(
+        "backend.services.orqaly_hybrid_run_service.evaluate_critical_claims",
+        fake_quality,
+    )
+    distributed = grounding_for(classes)
+    rows = HybridRunService._evaluate_country_cell_claims(
+        distributed,
+        critical_policy={"mandatory_claim_classes": sorted(required)},
+        claim_class_applicability={
+            "applicable_claim_classes": sorted(required)
+        },
+    )
+    assert all(row["status"] == "blocked" for row in rows)
+    assert all(row["missing_claim_classes"] for row in rows)
+    assert all(row["status"] == "blocked" for row in distributed["cell_coverage"])
+
+    complete = grounding_for(
+        {cell_id: sorted(required) for cell_id in classes}
+    )
+    rows = HybridRunService._evaluate_country_cell_claims(
+        complete,
+        critical_policy={"mandatory_claim_classes": sorted(required)},
+        claim_class_applicability={
+            "applicable_claim_classes": sorted(required)
+        },
+    )
+    assert all(row["status"] == "passed" for row in rows)
+    assert all(not row["missing_claim_classes"] for row in rows)
+    assert all(row["status"] == "complete" for row in complete["cell_coverage"])
 
 
 def test_terminal_run_performance_is_frozen_at_completed_at():

@@ -469,6 +469,25 @@ def test_real_publisher_shapes_extract_dynamic_dates_percent_and_price_order():
     assert "39,90 €" in catalog_rows[0]["text"]
 
 
+def test_current_tax_authority_page_shape_extracts_material_rule_without_catalogue():
+    direct_page = (
+        "Last updated 1 July 2025. Standard VAT rate. "
+        "From 1 July 2025, the standard VAT rate is 24 per cent. "
+        "The guidance applies to taxable supplies by registered businesses."
+    )
+
+    rows = B2BDataPipeline._direct_document_claim_passages(
+        direct_page,
+        retrieved_at="2026-08-13T00:00:00+00:00",
+    )
+
+    statutory = [row for row in rows if row["evidence_class"] == "statutory_current"]
+    assert len(statutory) == 1
+    assert statutory[0]["effective_at"] == "2025-07-01T00:00:00+00:00"
+    assert statutory[0]["current"] is True
+    assert "24 per cent" in statutory[0]["text"]
+
+
 def test_long_punctuation_free_statistics_cards_use_bounded_update_windows():
     navigation = "Navigation filter category download dataset " * 35
     normalized_page = (
