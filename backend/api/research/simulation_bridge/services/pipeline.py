@@ -4,6 +4,7 @@ B2B Data Ingestion Pipeline for fetching, scraping, and scoring real-world regio
 
 import asyncio
 import calendar
+import copy
 import hashlib
 import logging
 import os
@@ -3071,9 +3072,14 @@ Return exactly one coordinate pair per address, in the same order as the input l
             source_rows[:] = enriched_rows
         except asyncio.TimeoutError:
             authority_status = "timeout"
-            source_rows[:] = scheduled_authority_rows
+            # Enrichment publishes only coordinator-owned completed row copies.
+            # Preserve those fail-closed partial outcomes when the outer guard
+            # fires; late parser/proof threads never mutate these rows.
+            source_rows[:] = [copy.deepcopy(row) for row in authority_working_rows]
             for row in source_rows:
-                row["direct_fetch_status"] = "outer_stage_deadline_exceeded"
+                row.setdefault(
+                    "direct_fetch_status", "outer_stage_deadline_exceeded"
+                )
                 row.setdefault("jurisdiction_binding_status", "not_resolved")
             logger.warning(
                 "Direct authority resolution reached its hard stage deadline; "

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import calendar
+import functools
 import hashlib
 import hmac
 import html
@@ -20,6 +21,7 @@ import os
 import re
 import socket
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
@@ -114,6 +116,15 @@ _DIRECT_FETCH_OPERATION_SECONDS = 30.0
 _DIRECT_FETCH_ATTEMPT_SECONDS = 10.0
 _DIRECT_FETCH_DNS_SECONDS = 5.0
 _AUTHORITY_ENRICHMENT_SECONDS = 45.0
+_AUTHORITY_PROOF_RESERVE_SECONDS = 15.0
+_AUTHORITY_PARSE_EXECUTOR = ThreadPoolExecutor(
+    max_workers=_MAX_DIRECT_FETCH_CONCURRENCY,
+    thread_name_prefix="authority-parse",
+)
+_AUTHORITY_PROOF_EXECUTOR = ThreadPoolExecutor(
+    max_workers=_MAX_DIRECT_FETCH_CONCURRENCY,
+    thread_name_prefix="authority-proof",
+)
 _EU_COUNTRY_CODES = {
     "AT", "BE", "BG", "HR", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
     "FR", "GR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL",
@@ -3468,6 +3479,91 @@ async def _public_hostname(host: str) -> bool:
     return bool(infos)
 
 
+async def _run_authority_cpu(
+    executor: ThreadPoolExecutor,
+    function: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
+    """Run bounded document work without blocking asyncio stage timers."""
+
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        executor,
+        functools.partial(function, *args, **kwargs),
+    )
+
+
+def _consume_authority_task(task: asyncio.Task[Any]) -> None:
+    """Consume a detached child result without publishing late row changes."""
+
+    try:
+        task.result()
+    except BaseException:
+        pass
+
+
+async def _cancel_authority_tasks(
+    tasks: Iterable[asyncio.Task[Any]],
+    *,
+    deadline: float,
+) -> None:
+    """Cancel owned tasks and bound cleanup by the stage's absolute deadline."""
+
+    owned = list(tasks)
+    for task in owned:
+        if not task.done():
+            task.cancel()
+    if not owned:
+        return
+    cleanup_budget = max(0.0, deadline - time.monotonic())
+    done, pending = await asyncio.wait(owned, timeout=cleanup_budget)
+    for task in done:
+        _consume_authority_task(task)
+    for task in pending:
+        task.add_done_callback(_consume_authority_task)
+
+
+def _interpret_direct_response(
+    response: httpx.Response,
+    *,
+    content_type: str,
+    is_html: bool,
+    is_json: bool,
+) -> Dict[str, Any]:
+    """Decode and interpret one bounded response away from the event loop."""
+
+    response_text = response.text
+    if (
+        is_html
+        or str(response.headers.get("cf-mitigated") or "")
+    ) and _looks_like_retrieval_challenge(response.headers, response_text):
+        raise RetrievalChallengeError(
+            "direct retrieval returned an anti-bot challenge"
+        )
+    response.raise_for_status()
+    if (
+        "text" not in content_type
+        and not is_html
+        and "xml" not in content_type
+        and not is_json
+    ):
+        raise ValueError("authority document is not textual")
+    raw_structured_text = response_text if (is_html or is_json) else ""
+    return {
+        "text": _normalized_document_text(response_text, is_html=is_html),
+        "raw_structured_text": raw_structured_text,
+        "commercial_offer_evidence": (
+            _commercial_offer_evidence(response_text) if is_html else []
+        ),
+        "structured_statistical_observations": (
+            _structured_statistical_observations(response_text)
+            if raw_structured_text
+            else []
+        ),
+    }
+
+
 async def fetch_direct_text(
     url: str,
     *,
@@ -3496,10 +3592,10 @@ async def fetch_direct_text(
             ):
                 raise ValueError("unsafe authority URL")
             try:
-                public_host = await asyncio.wait_for(
-                    _public_hostname(parsed.hostname),
-                    timeout=min(_DIRECT_FETCH_DNS_SECONDS, remaining),
-                )
+                async with asyncio.timeout(
+                    min(_DIRECT_FETCH_DNS_SECONDS, remaining)
+                ):
+                    public_host = await _public_hostname(parsed.hostname)
             except asyncio.TimeoutError as exc:
                 raise TimeoutError("authority DNS resolution deadline exceeded") from exc
             if not public_host:
@@ -3507,14 +3603,15 @@ async def fetch_direct_text(
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError("authority document fetch deadline exceeded")
-            response = await asyncio.wait_for(
-                client.get(
-                    current,
-                    headers={"User-Agent": "AxWiseResearch/1.0"},
-                    timeout=min(max(1.0, attempt_seconds), remaining),
-                ),
-                timeout=remaining,
-            )
+            try:
+                async with asyncio.timeout(remaining):
+                    response = await client.get(
+                        current,
+                        headers={"User-Agent": "AxWiseResearch/1.0"},
+                        timeout=min(max(1.0, attempt_seconds), remaining),
+                    )
+            except asyncio.TimeoutError as exc:
+                raise TimeoutError("authority document fetch deadline exceeded") from exc
             if response.is_redirect:
                 target = response.headers.get("location")
                 if not target:
@@ -3530,48 +3627,201 @@ async def fetch_direct_text(
                 r"(?:^|[;/\s])application/(?:[a-z0-9.+-]+\+)?json(?:[;\s]|$)",
                 content_type,
             ) is not None
-            if (
-                is_html
-                or str(response.headers.get("cf-mitigated") or "")
-            ) and _looks_like_retrieval_challenge(
-                response.headers, response.text
-            ):
-                raise RetrievalChallengeError(
-                    "direct retrieval returned an anti-bot challenge"
-                )
-            response.raise_for_status()
-            if (
-                "text" not in content_type
-                and not is_html
-                and "xml" not in content_type
-                and not is_json
-            ):
-                raise ValueError("authority document is not textual")
-            raw_structured_text = response.text if (is_html or is_json) else ""
-            text = _normalized_document_text(
-                response.text,
-                is_html=is_html,
-            )
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("authority document fetch deadline exceeded")
+            try:
+                async with asyncio.timeout(remaining):
+                    interpreted = await _run_authority_cpu(
+                        _AUTHORITY_PARSE_EXECUTOR,
+                        _interpret_direct_response,
+                        response,
+                        content_type=content_type,
+                        is_html=is_html,
+                        is_json=is_json,
+                    )
+            except asyncio.TimeoutError as exc:
+                raise TimeoutError("authority document parse deadline exceeded") from exc
             return {
                 "final_url": str(response.url),
-                "text": text,
+                "text": interpreted["text"],
                 "retrieved_at": datetime.now(timezone.utc).isoformat(),
                 # Internal-only, bounded by ``maximum_bytes`` and stripped
                 # before source persistence. Proof builders re-derive typed
                 # evidence from these exact fetched bytes.
                 # Historical key retained for persistence compatibility. Its
                 # content is exact fetched structured text: HTML or JSON-stat.
-                "_structured_evidence_html": raw_structured_text,
-                "commercial_offer_evidence": _commercial_offer_evidence(
-                    response.text
-                ) if is_html else [],
-                "structured_statistical_observations": (
-                    _structured_statistical_observations(response.text)
-                    if raw_structured_text
-                    else []
-                ),
+                "_structured_evidence_html": interpreted["raw_structured_text"],
+                "commercial_offer_evidence": interpreted["commercial_offer_evidence"],
+                "structured_statistical_observations": interpreted[
+                    "structured_statistical_observations"
+                ],
             }
     raise ValueError("authority URL exceeded redirect limit")
+
+
+def _enrich_authority_row_outcome(
+    source: Mapping[str, Any],
+    direct: Mapping[str, Any],
+    attestation_documents: tuple[Mapping[str, Any], ...],
+) -> Dict[str, Any]:
+    """Build one immutable enrichment outcome on a worker thread."""
+
+    row = dict(source)
+    raw_document = str(
+        direct.get("_structured_evidence_html") or direct.get("text") or ""
+    )
+    if _looks_like_retrieval_challenge({}, raw_document):
+        row["direct_fetch_status"] = "rejected_challenge"
+        row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+        row["resolved_url"] = direct.get("final_url")
+        return row
+
+    row["direct_fetch_status"] = "retrieved"
+    row["resolved_url"] = direct.get("final_url")
+    row["_direct_document_candidate"] = dict(direct)
+    row.setdefault("retrieval_url", row.get("url"))
+    final_url = str(direct.get("final_url") or "")
+    direct_text = str(direct.get("text") or "")
+    jurisdiction_bound = _document_binds_jurisdiction(
+        final_url=final_url,
+        text=direct_text,
+        country_codes=row.get("country_codes") or [],
+        market_terms=row.get("market_terms") or [],
+    )
+    row["jurisdiction_binding_status"] = (
+        "verified" if jurisdiction_bound else "rejected"
+    )
+    if not jurisdiction_bound:
+        return row
+
+    retrieved_at = str(
+        direct.get("retrieved_at") or datetime.now(timezone.utc).isoformat()
+    )
+    raw_structured = str(direct.get("_structured_evidence_html") or "")
+    if is_trusted_public_root(final_url):
+        if not _recognized_root_covers_jurisdiction(
+            final_url,
+            row.get("country_codes") or [],
+        ):
+            row["jurisdiction_binding_status"] = "rejected_authority_jurisdiction"
+            return row
+        try:
+            proof = build_recognized_root_proof(
+                direct_url=final_url,
+                direct_text=direct_text,
+                country_codes=row.get("country_codes") or [],
+                structured_statistical_observations=list(
+                    direct.get("structured_statistical_observations") or []
+                ),
+                direct_raw_html=raw_structured or None,
+                retrieved_at=retrieved_at,
+            )
+        except ValueError:
+            row["jurisdiction_binding_status"] = (
+                "rejected_structured_reporter_jurisdiction"
+            )
+            return row
+        row.update(
+            {
+                "url": final_url,
+                "publisher": _host(final_url),
+                "source_authority": "official_public",
+                "authority_verification_status": "recognized_public_root_direct",
+                "authority_proof": proof,
+                "provider_redirect": False,
+                "retrieved_at": retrieved_at,
+                "authority_document_artifact": {
+                    "artifact_type": "direct_authority_document",
+                    "text": direct_text,
+                    "sha256": proof["direct"]["content_sha256"],
+                    "retrieved_at": retrieved_at,
+                    "authority_proof_signature": proof["proof_signature"],
+                },
+            }
+        )
+        return row
+
+    direct_host = _host(final_url)
+    attested = next(
+        (
+            document
+            for document in attestation_documents
+            if _host_reference_match(str(document.get("text") or ""), direct_host)
+        ),
+        None,
+    )
+    if attested:
+        try:
+            proof = build_attested_authority_proof(
+                direct_url=final_url,
+                direct_text=direct_text,
+                attestation_url=str(attested.get("final_url") or ""),
+                attestation_text=str(attested.get("text") or ""),
+                country_codes=row.get("country_codes") or [],
+                structured_statistical_observations=list(
+                    direct.get("structured_statistical_observations") or []
+                ),
+                direct_raw_html=raw_structured or None,
+                retrieved_at=retrieved_at,
+            )
+        except ValueError:
+            pass
+        else:
+            row.update(
+                {
+                    "url": final_url,
+                    "publisher": _host(final_url),
+                    "source_authority": "official_public",
+                    "authority_verification_status": (
+                        "independently_attested_direct_domain"
+                    ),
+                    "authority_proof": proof,
+                    "provider_redirect": False,
+                    "retrieved_at": retrieved_at,
+                    "authority_document_artifact": {
+                        "artifact_type": "direct_authority_document",
+                        "text": direct_text,
+                        "sha256": proof["direct"]["content_sha256"],
+                        "retrieved_at": retrieved_at,
+                        "authority_proof_signature": proof["proof_signature"],
+                    },
+                }
+            )
+            return row
+
+    try:
+        proof = build_direct_primary_market_proof(
+            direct_url=final_url,
+            direct_text=direct_text,
+            country_codes=row.get("country_codes") or [],
+            commercial_offer_evidence=list(
+                direct.get("commercial_offer_evidence") or []
+            ),
+            direct_raw_html=raw_structured or None,
+            retrieved_at=retrieved_at,
+        )
+    except ValueError:
+        return row
+    row.update(
+        {
+            "url": final_url,
+            "publisher": _host(final_url),
+            "source_authority": "first_party_catalog",
+            "authority_verification_status": "direct_primary_market_observation",
+            "authority_proof": proof,
+            "provider_redirect": False,
+            "retrieved_at": retrieved_at,
+            "authority_document_artifact": {
+                "artifact_type": "direct_authority_document",
+                "text": direct_text,
+                "sha256": proof["direct"]["content_sha256"],
+                "retrieved_at": retrieved_at,
+                "authority_proof_signature": proof["proof_signature"],
+            },
+        }
+    )
+    return row
 
 
 async def enrich_authority_sources(
@@ -3582,9 +3832,11 @@ async def enrich_authority_sources(
     """Fetch candidates concurrently and attach independently attested proofs."""
 
     candidates = [row for row in sources if row.get("url")]
+    stage_deadline = time.monotonic() + _AUTHORITY_ENRICHMENT_SECONDS
     semaphore = asyncio.Semaphore(_MAX_DIRECT_FETCH_CONCURRENCY)
+    owned_tasks: list[asyncio.Task[Any]] = []
 
-    async def bounded_fetch(row: Dict[str, Any]) -> Dict[str, str]:
+    async def bounded_fetch(row: Dict[str, Any]) -> Dict[str, Any]:
         async with semaphore:
             cached = row.get("_direct_document_candidate")
             if isinstance(cached, Mapping):
@@ -3604,202 +3856,100 @@ async def enrich_authority_sources(
                 }
             return await fetcher(str(row["url"]))
 
-    tasks = [asyncio.create_task(bounded_fetch(row)) for row in candidates]
+    fetch_tasks = [asyncio.create_task(bounded_fetch(row)) for row in candidates]
+    owned_tasks.extend(fetch_tasks)
+    documents: list[tuple[Dict[str, Any], Dict[str, Any]]] = []
     try:
-        done, pending = await asyncio.wait(
-            tasks, timeout=_AUTHORITY_ENRICHMENT_SECONDS
+        fetch_budget = max(
+            0.0,
+            stage_deadline
+            - time.monotonic()
+            - _AUTHORITY_PROOF_RESERVE_SECONDS,
         )
-    except asyncio.CancelledError:
-        for task in tasks:
-            if not task.done():
-                task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        raise
-    for task in pending:
-        task.cancel()
-    if pending:
-        await asyncio.gather(*pending, return_exceptions=True)
-    documents: list[tuple[Dict[str, Any], Dict[str, str]]] = []
-    for row, task in zip(candidates, tasks):
-        if task not in done:
-            row["direct_fetch_status"] = "stage_deadline_exceeded"
-            continue
-        try:
-            document = task.result()
-        except RetrievalChallengeError:
-            row["direct_fetch_status"] = "rejected_challenge"
-            row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
-            continue
-        except BaseException as exc:
-            row["direct_fetch_status"] = f"failed:{type(exc).__name__}"
-            continue
-        raw_document = str(
-            document.get("_structured_evidence_html")
-            or document.get("text")
-            or ""
+        done_fetch, pending_fetch = await asyncio.wait(
+            fetch_tasks,
+            timeout=fetch_budget,
         )
-        if _looks_like_retrieval_challenge({}, raw_document):
-            row["direct_fetch_status"] = "rejected_challenge"
-            row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+
+        for row, task in zip(candidates, fetch_tasks):
+            if task not in done_fetch:
+                row["direct_fetch_status"] = "stage_deadline_exceeded"
+                continue
+            try:
+                document = task.result()
+            except RetrievalChallengeError:
+                row["direct_fetch_status"] = "rejected_challenge"
+                row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+                continue
+            except BaseException as exc:
+                row["direct_fetch_status"] = f"failed:{type(exc).__name__}"
+                continue
+            raw_document = str(
+                document.get("_structured_evidence_html")
+                or document.get("text")
+                or ""
+            )
+            if _looks_like_retrieval_challenge({}, raw_document):
+                row["direct_fetch_status"] = "rejected_challenge"
+                row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+                row["resolved_url"] = document.get("final_url")
+                continue
+            row["direct_fetch_status"] = "retrieved"
             row["resolved_url"] = document.get("final_url")
-            continue
-        row["direct_fetch_status"] = "retrieved"
-        row["resolved_url"] = document.get("final_url")
-        row["_direct_document_candidate"] = dict(document)
-        documents.append((row, document))
-    attestations = [
-        (row, doc)
-        for row, doc in documents
-        if is_trusted_public_root(doc["final_url"])
-        and _recognized_root_covers_jurisdiction(
-            doc["final_url"],
-            row.get("country_codes") or [],
-        )
-    ]
-    for row, direct in documents:
-        row.setdefault("retrieval_url", row.get("url"))
-        jurisdiction_bound = _document_binds_jurisdiction(
-            final_url=direct["final_url"],
-            text=direct["text"],
-            country_codes=row.get("country_codes") or [],
-            market_terms=row.get("market_terms") or [],
-        )
-        row["jurisdiction_binding_status"] = (
-            "verified" if jurisdiction_bound else "rejected"
-        )
-        if not jurisdiction_bound:
-            continue
-        if is_trusted_public_root(direct["final_url"]):
-            if not _recognized_root_covers_jurisdiction(
-                direct["final_url"],
+            row["_direct_document_candidate"] = dict(document)
+            documents.append((row, document))
+
+        # Do not let a cancellation-resistant irrelevant fetch prevent proof
+        # construction for already completed official/catalogue documents.
+        for task in pending_fetch:
+            task.cancel()
+
+        attestation_documents = tuple(
+            document
+            for row, document in documents
+            if is_trusted_public_root(str(document.get("final_url") or ""))
+            and _recognized_root_covers_jurisdiction(
+                str(document.get("final_url") or ""),
                 row.get("country_codes") or [],
-            ):
-                row["jurisdiction_binding_status"] = "rejected_authority_jurisdiction"
-                continue
-            retrieved_at = direct.get("retrieved_at") or datetime.now(
-                timezone.utc
-            ).isoformat()
-            try:
-                proof = build_recognized_root_proof(
-                    direct_url=direct["final_url"],
-                    direct_text=direct["text"],
-                    country_codes=row.get("country_codes") or [],
-                    structured_statistical_observations=list(
-                        direct.get("structured_statistical_observations") or []
-                    ),
-                    direct_raw_html=str(
-                        direct.get("_structured_evidence_html") or ""
-                    ) or None,
-                    retrieved_at=retrieved_at,
-                )
-            except ValueError:
-                row["jurisdiction_binding_status"] = (
-                    "rejected_structured_reporter_jurisdiction"
-                )
-                continue
-            row.update(
-                {
-                    "url": direct["final_url"],
-                    "publisher": _host(direct["final_url"]),
-                    "source_authority": "official_public",
-                    "authority_verification_status": "recognized_public_root_direct",
-                    "authority_proof": proof,
-                    "provider_redirect": False,
-                    "retrieved_at": retrieved_at,
-                    "authority_document_artifact": {
-                        "artifact_type": "direct_authority_document",
-                        "text": direct["text"],
-                        "sha256": proof["direct"]["content_sha256"],
-                        "retrieved_at": retrieved_at,
-                        "authority_proof_signature": proof["proof_signature"],
-                    },
-                }
             )
-            continue
-        direct_host = _host(direct["final_url"])
-        attested = next(
-            (
-                doc
-                for _attestation_row, doc in attestations
-                if _host_reference_match(doc["text"], direct_host)
-            ),
-            None,
         )
-        if attested:
-            try:
-                retrieved_at = direct.get("retrieved_at") or datetime.now(
-                    timezone.utc
-                ).isoformat()
-                proof = build_attested_authority_proof(
-                    direct_url=direct["final_url"],
-                    direct_text=direct["text"],
-                    attestation_url=attested["final_url"],
-                    attestation_text=attested["text"],
-                    country_codes=row.get("country_codes") or [],
-                    structured_statistical_observations=list(
-                        direct.get("structured_statistical_observations") or []
-                    ),
-                    direct_raw_html=str(
-                        direct.get("_structured_evidence_html") or ""
-                    ) or None,
-                    retrieved_at=retrieved_at,
+        proof_tasks = [
+            asyncio.create_task(
+                _run_authority_cpu(
+                    _AUTHORITY_PROOF_EXECUTOR,
+                    _enrich_authority_row_outcome,
+                    dict(row),
+                    dict(document),
+                    attestation_documents,
                 )
-            except ValueError:
-                pass
-            else:
-                row.update(
-                    {
-                        "url": direct["final_url"],
-                        "publisher": _host(direct["final_url"]),
-                        "source_authority": "official_public",
-                        "authority_verification_status": "independently_attested_direct_domain",
-                        "authority_proof": proof,
-                        "provider_redirect": False,
-                        "retrieved_at": retrieved_at,
-                        "authority_document_artifact": {
-                            "artifact_type": "direct_authority_document",
-                            "text": direct["text"],
-                            "sha256": proof["direct"]["content_sha256"],
-                            "retrieved_at": retrieved_at,
-                            "authority_proof_signature": proof["proof_signature"],
-                        },
-                    }
-                )
-                continue
-        try:
-            retrieved_at = direct.get("retrieved_at") or datetime.now(
-                timezone.utc
-            ).isoformat()
-            proof = build_direct_primary_market_proof(
-                direct_url=direct["final_url"],
-                direct_text=direct["text"],
-                country_codes=row.get("country_codes") or [],
-                commercial_offer_evidence=list(
-                    direct.get("commercial_offer_evidence") or []
-                ),
-                direct_raw_html=str(
-                    direct.get("_structured_evidence_html") or ""
-                ) or None,
-                retrieved_at=retrieved_at,
             )
-        except ValueError:
-            continue
-        row.update(
-            {
-                "url": direct["final_url"],
-                "publisher": _host(direct["final_url"]),
-                "source_authority": "first_party_catalog",
-                "authority_verification_status": "direct_primary_market_observation",
-                "authority_proof": proof,
-                "provider_redirect": False,
-                "retrieved_at": retrieved_at,
-                "authority_document_artifact": {
-                    "artifact_type": "direct_authority_document",
-                    "text": direct["text"],
-                    "sha256": proof["direct"]["content_sha256"],
-                    "retrieved_at": retrieved_at,
-                    "authority_proof_signature": proof["proof_signature"],
-                },
-            }
-        )
-    return sources
+            for row, document in documents
+        ]
+        owned_tasks.extend(proof_tasks)
+        if proof_tasks:
+            proof_budget = max(0.0, stage_deadline - time.monotonic())
+            done_proofs, pending_proofs = await asyncio.wait(
+                proof_tasks,
+                timeout=proof_budget,
+            )
+        else:
+            done_proofs, pending_proofs = set(), set()
+        for task in pending_proofs:
+            task.cancel()
+        await asyncio.gather(*proof_tasks, return_exceptions=True)
+
+        for (row, _document), task in zip(documents, proof_tasks):
+            if task not in done_proofs:
+                row.setdefault("jurisdiction_binding_status", "not_resolved")
+                row["authority_processing_status"] = "stage_deadline_exceeded"
+                continue
+            try:
+                outcome = task.result()
+            except BaseException as exc:
+                row["authority_processing_status"] = f"failed:{type(exc).__name__}"
+                continue
+            row.clear()
+            row.update(outcome)
+        return sources
+    finally:
+        await _cancel_authority_tasks(owned_tasks, deadline=stage_deadline)
