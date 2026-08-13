@@ -498,6 +498,59 @@ async def test_fetch_direct_text_accepts_application_json_and_retains_exact_raw(
 
 
 @pytest.mark.asyncio
+async def test_fetch_direct_text_rejects_cloudflare_challenge_even_with_http_200(
+    monkeypatch,
+):
+    raw = (
+        b"<!doctype html><title>Just a moment...</title>"
+        b"<script>window._cf_chl_opt={};</script>"
+        b"<script src='/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1'>"
+        b"</script><p>Enable JavaScript and cookies to continue</p>"
+    )
+
+    class Response:
+        is_redirect = False
+        headers = {
+            "content-type": "text/html; charset=UTF-8",
+            "cf-mitigated": "challenge",
+        }
+        content = raw
+        text = raw.decode("utf-8")
+        url = httpx.URL("https://shop.example.ee/cat-food")
+
+        def raise_for_status(self):
+            raise AssertionError("challenge must be rejected before HTTP acceptance")
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def get(self, *_args, **_kwargs):
+            return Response()
+
+    async def public(_host: str) -> bool:
+        return True
+
+    monkeypatch.setattr(
+        "backend.services.research_source_authority_service.httpx.AsyncClient",
+        Client,
+    )
+    monkeypatch.setattr(
+        "backend.services.research_source_authority_service._public_hostname",
+        public,
+    )
+
+    with pytest.raises(ValueError, match="anti-bot challenge"):
+        await fetch_direct_text("https://shop.example.ee/cat-food")
+
+
+@pytest.mark.asyncio
 async def test_reporter_mismatch_with_incidental_country_is_rejected_without_batch_abort():
     bad_raw = _json_bytes(reporter_code="LV", reporter_label="Latvia").decode("utf-8")
     bad_payload = json.loads(bad_raw)

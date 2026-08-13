@@ -1,7 +1,9 @@
 import hashlib
+import json
 import os
 import re
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -361,14 +363,17 @@ def _catalog_grounding(
     """Build production-shaped exact first-party catalogue observations."""
 
     retrieved_at = "2026-08-12T12:00:00+00:00"
-    direct_text = "Current first-party product catalogue. " + " ".join(
-        text for _, text in claims
-    )
+    jurisdiction = {
+        "EE": "Estonia",
+        "BR": "Brazil",
+        "TH": "Thailand",
+    }.get(country_code, country_code)
+    offer_cards = []
     offer_scripts = []
-    for _claim_id, claim_text in claims:
+    for claim_id, claim_text in claims:
         visible_price = re.search(
-            r"(?:EUR|BRL|USD|GBP|€|\$|£)\s*(\d+(?:[.,]\d+)?)|"
-            r"(\d+(?:[.,]\d+)?)\s*(€|\$|£)",
+            r"(?:EUR|BRL|USD|GBP|THB|€|\$|£|฿)\s*(\d+(?:[.,]\d+)?)|"
+            r"(\d+(?:[.,]\d+)?)\s*(€|\$|£|฿)",
             claim_text,
             re.IGNORECASE,
         )
@@ -376,22 +381,38 @@ def _catalog_grounding(
             continue
         price = (visible_price.group(1) or visible_price.group(2)).replace(",", ".")
         token = visible_price.group(0).upper()
-        currency = "BRL" if "BRL" in token else "USD" if "$" in token or "USD" in token else "GBP" if "£" in token or "GBP" in token else "EUR"
+        currency = "BRL" if "BRL" in token else "THB" if "฿" in token or "THB" in token else "USD" if "$" in token or "USD" in token else "GBP" if "£" in token or "GBP" in token else "EUR"
         product_name = re.split(
             r"\b(?:current|regular)\s+retail\s+price\b",
-            claim_text,
+            claim_text[: visible_price.start()],
             maxsplit=1,
             flags=re.IGNORECASE,
-        )[0].strip()
+        )[0]
+        product_name = re.sub(
+            r"\b(?:tavahind|price)\s*$", "", product_name, flags=re.IGNORECASE
+        ).strip(" .:-")
+        sku_match = re.search(r"\bSKU\s+([A-Z0-9-]+)\b", claim_text, re.I)
+        product_id = (
+            sku_match.group(1)
+            if sku_match
+            else f"fixture-{claim_id}"
+        )
         offer_scripts.append(
             '<script type="application/ld+json">'
-            f'{{"@type":"Product","name":"{product_name}","offers":'
+            f'{{"@type":"Product","sku":"{product_id}",'
+            f'"name":"{product_name}","offers":'
             f'{{"@type":"Offer","price":"{price}","priceCurrency":"{currency}"}}}}'
             "</script>"
         )
-    offer_html = "".join(offer_scripts)
-    raw_html = f"<div>{direct_text}</div>{offer_html}"
-    structured_offer = _commercial_offer_evidence(offer_html)
+        offer_cards.append(
+            f'<article class="product-card"><h2>{product_name}</h2>'
+            f'<span>{product_id}</span><span class="price">Current retail '
+            f'price is {visible_price.group(0)}</span></article>'
+        )
+    offer_html = "".join([*offer_cards, *offer_scripts])
+    raw_html = f"<div>{jurisdiction} first-party product catalogue.</div>{offer_html}"
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    structured_offer = _commercial_offer_evidence(raw_html)
     proof = build_direct_primary_market_proof(
         direct_url=source_url,
         direct_text=direct_text,
@@ -410,7 +431,35 @@ def _catalog_grounding(
         "authority_proof_signature": proof["proof_signature"],
     }
     market_claims = []
+    offers = list(proof.get("commercial_offer_evidence") or [])
     for claim_id, claim_text in claims:
+        sku_match = re.search(r"\bSKU\s+([A-Z0-9-]+)\b", claim_text, re.I)
+        product_id = sku_match.group(1) if sku_match else f"fixture-{claim_id}"
+        visible_price = re.search(
+            r"(?:EUR|BRL|USD|GBP|THB|€|\$|£|฿)\s*(\d+(?:[.,]\d+)?)|"
+            r"(\d+(?:[.,]\d+)?)\s*(€|\$|£|฿)",
+            claim_text,
+            re.IGNORECASE,
+        )
+        expected_price = (
+            (visible_price.group(1) or visible_price.group(2)).replace(",", ".")
+            if visible_price
+            else ""
+        )
+        offer = next(
+            (
+                row
+                for row in offers
+                if str(row.get("product_id") or "") == product_id
+                and Decimal(str(row.get("price") or ""))
+                == Decimal(expected_price or "-1")
+            ),
+            None,
+        )
+        if offer is not None:
+            claim_text = str(
+                (offer.get("visible_binding") or {}).get("claim_text") or claim_text
+            )
         artifact = build_authority_claim_artifact(
             source_id=source_id,
             source_url=source_url,
@@ -772,6 +821,32 @@ def test_distinct_non_euro_products_are_not_conflicts():
 
     assert quality["status"] == "passed", quality
     assert quality["conflict_count"] == 0
+
+
+def test_signed_thb_offer_canonicalizes_every_fact_identity_field():
+    grounding = _catalog_grounding(
+        country_code="TH",
+        source_url="https://shop.example.th/cat-food",
+        claims=[(
+            "thai-cat-food",
+            "Alpha cat food 400 g current retail price is ฿499.00 on 2026-08-12.",
+        )],
+    )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["TH"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    fact = quality["evidence_ledger"][0]["facts"][0]
+    assert fact["normalized_value"] == "499.00:thb"
+    assert fact["unit"] == "thb"
+    assert fact["metric_key"] == "price:thb"
+    assert fact["semantic_scope"].endswith(":thb")
+    assert ":number" not in json.dumps(fact)
 
 
 def test_live_catalog_variants_and_price_denominators_are_distinct_targets():
