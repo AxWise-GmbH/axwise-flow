@@ -1,4 +1,7 @@
 import asyncio
+import hashlib
+import time
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,9 +12,14 @@ from api.research.simulation_bridge.services.market_scope import (
     resolve_market_scope,
 )
 from api.research.simulation_bridge.services.pipeline import B2BDataPipeline
+from api.research.simulation_bridge.services import pipeline as pipeline_module
 from api.research.simulation_bridge.services.regional_service import RegionalService
 from backend.services.generative.gemini_search_service import GeminiSearchService
 from backend.services.generative.searxng_search_service import SearxngSearchService
+from backend.services.research_quality_service import evaluate_critical_claims
+from backend.services.research_source_authority_service import (
+    build_recognized_root_proof,
+)
 
 
 pytestmark = pytest.mark.contract
@@ -400,6 +408,7 @@ async def test_web_router_continues_after_a_provider_error():
     assert [row["provider"] for row in pipeline.routing_diagnostics["providers"]] == [
         "gemini_google_search:general_market",
         "searxng:general_market",
+        "web_parser",
     ]
     assert pipeline.routing_diagnostics["providers"][0]["reason"] == (
         "provider_error:RuntimeError"
@@ -407,6 +416,212 @@ async def test_web_router_continues_after_a_provider_error():
     assert len(pipeline.market_sources) == 1
     assert companies[0].website is None
     assert companies[0].pain_point_sources is None
+
+
+@pytest.mark.asyncio
+async def test_optional_company_parser_timeout_preserves_verified_evidence(monkeypatch):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+        minimum_source_count=1,
+        required_evidence_classes=["statutory_current"],
+    )
+    source_url = "https://tax.gov.ee/current-vat"
+    claim_text = "Estonia's current VAT rate is 24% effective 2026-01-01."
+    retrieved_at = "2026-08-12T12:00:00+00:00"
+    gemini = MagicMock()
+    gemini.is_available.return_value = True
+    gemini.search_web_general.return_value = {
+        "search_performed": True,
+        "text": claim_text,
+        "sources": [{"title": "Estonia current VAT guidance", "url": source_url}],
+        "claims": [
+            {
+                "text": claim_text,
+                "source_urls": [source_url],
+            }
+        ],
+    }
+    searxng = MagicMock()
+    searxng.is_available.return_value = False
+    parser = MagicMock()
+    parser.run = AsyncMock()
+
+    async def preserve_authority(rows):
+        proof = build_recognized_root_proof(
+            direct_url=source_url,
+            direct_text=claim_text,
+            country_codes=["EE"],
+            retrieved_at=retrieved_at,
+        )
+        rows[0].update(
+            {
+                "url": source_url,
+                "publisher": "tax.gov.ee",
+                "country_codes": ["EE"],
+                "retrieved_at": retrieved_at,
+                "source_authority": "official_public",
+                "authority_verification_status": "recognized_public_root_direct",
+                "direct_fetch_status": "retrieved",
+                "jurisdiction_binding_status": "verified",
+                "authority_proof": proof,
+                "authority_document_artifact": {
+                    "artifact_type": "direct_authority_document",
+                    "text": claim_text,
+                    "sha256": hashlib.sha256(claim_text.encode("utf-8")).hexdigest(),
+                    "retrieved_at": retrieved_at,
+                    "authority_proof_signature": proof["proof_signature"],
+                },
+            }
+        )
+        return rows
+
+    # Use a dispatching wrapper because each stage passes a newly-created
+    # coroutine to the same deadline helper.
+    calls = 0
+
+    async def dispatch(awaitable, *, deadline_seconds):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return await awaitable
+        awaitable.close()
+        raise asyncio.TimeoutError
+
+    monkeypatch.setattr(
+        pipeline_module,
+        "_await_with_hard_stage_deadline",
+        dispatch,
+    )
+    with patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=gemini,
+    ), patch(
+        "backend.services.generative.searxng_search_service.SearxngSearchService",
+        return_value=searxng,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=preserve_authority,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    assert companies == []
+    assert pipeline.market_sources
+    assert pipeline.market_claims
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["statutory_current"],
+    )
+    assert quality["status"] == "passed", quality["blocked_claims"]
+    assert pipeline.routing_diagnostics["company_structuring"]["status"] == "timeout"
+    assert pipeline.routing_diagnostics["providers"][-1]["provider"] == "web_parser"
+    assert pipeline.routing_diagnostics["providers"][-1]["reason"] == "stage_timeout"
+
+
+@pytest.mark.asyncio
+async def test_hard_stage_deadline_bounds_cancellation_cleanup():
+    release = asyncio.Event()
+    task_seen = asyncio.Event()
+    captured_task = None
+
+    async def cancellation_resistant_stage():
+        nonlocal captured_task
+        captured_task = asyncio.current_task()
+        task_seen.set()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            await release.wait()
+
+    started = time.monotonic()
+    with pytest.raises(asyncio.TimeoutError):
+        await pipeline_module._await_with_hard_stage_deadline(
+            cancellation_resistant_stage(),
+            deadline_seconds=0.04,
+        )
+    elapsed = time.monotonic() - started
+    await task_seen.wait()
+    assert elapsed < 0.1
+    assert captured_task is not None and not captured_task.done()
+    release.set()
+    await asyncio.sleep(0)
+    assert captured_task.done()
+
+
+@pytest.mark.asyncio
+async def test_company_parser_normal_response_keeps_existing_schema_and_quality():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+        minimum_source_count=1,
+    )
+    source_url = "https://retailer.example.ee/cat-food"
+    gemini = MagicMock()
+    gemini.is_available.return_value = True
+    gemini.search_web_general.return_value = {
+        "search_performed": True,
+        "text": "Tallinn Pet Foods operates in Tallinn, Estonia.",
+        "sources": [{"title": "Tallinn Pet Foods", "url": source_url}],
+        "claims": [
+            {
+                "text": "Tallinn Pet Foods operates in Tallinn, Estonia.",
+                "source_urls": [source_url],
+            }
+        ],
+    }
+    searxng = MagicMock()
+    searxng.is_available.return_value = False
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(
+            output=SimpleNamespace(
+                companies=[_company("Tallinn Pet Foods", "Tallinn, Estonia", source_url)]
+            )
+        )
+    )
+
+    async def preserve_authority(rows):
+        return rows
+
+    with patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=gemini,
+    ), patch(
+        "backend.services.generative.searxng_search_service.SearxngSearchService",
+        return_value=searxng,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=preserve_authority,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    assert [row.name for row in companies] == ["Tallinn Pet Foods"]
+    assert parser.run.await_count == 1
+    assert pipeline.routing_diagnostics["company_structuring"]["status"] == "completed"
+    assert pipeline.routing_diagnostics["company_structuring"]["company_count"] == 1
+    assert pipeline.routing_diagnostics["providers"][-1]["provider"] == "web_parser"
+    assert pipeline.routing_diagnostics["providers"][-1]["reason"] is None
 
 
 def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
@@ -437,6 +652,86 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
     # two independent providers; each route admits at most two direct sources.
     assert (len(queries) + 1) * 2 == 8
     assert (len(queries) + 1) * 2 * 2 == 16
+
+
+@pytest.mark.asyncio
+async def test_targeted_attestation_is_host_bounded_and_keeps_redirect_untrusted():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current", "official_statistic"],
+    )
+    unresolved = [
+        {
+            "resolved_url": f"https://publisher-{index}.example.ee/data",
+            "country_codes": ["EE"],
+        }
+        for index in range(5)
+    ]
+
+    class Search:
+        def __init__(self, provider):
+            self.provider = provider
+            self.queries = []
+
+        def search_web_general(self, query):
+            self.queries.append(query)
+            query_hash = hashlib.sha256(query.encode()).hexdigest()[:12]
+            if self.provider == "gemini_google_search":
+                url = (
+                    "https://vertexaisearch.cloud.google.com/"
+                    f"grounding-api-redirect/{query_hash}"
+                )
+            else:
+                url = f"https://commission.europa.eu/authority/{query_hash}"
+            return {
+                "search_performed": True,
+                "sources": [
+                    {
+                        "title": "Authority directory",
+                        "url": url,
+                        "provider_redirect": self.provider
+                        == "gemini_google_search",
+                    },
+                    {"title": "Extra result", "url": f"{url}-extra"},
+                ],
+                "runtime_diagnostics": {
+                    "status": "completed",
+                    "call_count": 1,
+                    "result_count": 2,
+                },
+            }
+
+    gemini = Search("gemini_google_search")
+    searx = Search("searxng")
+    rows = await pipeline._targeted_authority_attestation_sources(
+        unresolved,
+        [("gemini_google_search", gemini), ("searxng", searx)],
+    )
+
+    # Five discovered hosts are capped to four; each of two providers gets one
+    # route and contributes at most one candidate per host/query.
+    assert len(gemini.queries) == len(searx.queries) == 4
+    assert len(rows) == 8
+    assert all("site:europa.eu" in query for query in gemini.queries + searx.queries)
+    assert all(row["target_authority_host"].startswith("publisher-") for row in rows)
+    google_rows = [row for row in rows if row["provider"] == "gemini_google_search"]
+    assert google_rows and all(row["provider_redirect"] for row in google_rows)
+    # Retrieval never self-promotes a redirect or directory result. Strict
+    # direct fetch + trusted-root/exact-host proof runs in the next stage.
+    assert all("authority_proof" not in row for row in rows)
+    assert pipeline.routing_diagnostics["targeted_authority_attestation"] == {
+        "status": "completed",
+        "host_count": 4,
+        "route_count": 8,
+        "candidate_count": 8,
+        "elapsed_ms": pipeline.routing_diagnostics[
+            "targeted_authority_attestation"
+        ]["elapsed_ms"],
+        "deadline_ms": 90_000,
+    }
 
 
 def test_searxng_adapter_is_optional_bounded_and_source_bearing():

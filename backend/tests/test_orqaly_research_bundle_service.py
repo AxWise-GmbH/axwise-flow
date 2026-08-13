@@ -177,7 +177,29 @@ async def test_multi_market_grounding_runs_country_cells_concurrently_and_preser
                 }
             ],
             "company_count": 1,
-            "routing_diagnostics": {"providers": [{"provider": "test"}]},
+            "routing_diagnostics": {
+                "providers": [{"provider": "test"}],
+                "required_evidence_classes": [
+                    "statutory_current",
+                    "official_statistic",
+                ],
+                "evidence_class_acquisition": {
+                    "official_statistic": {
+                        "attempted": 1,
+                        "retrieved": 1,
+                        "verified": 1,
+                        "claim_extracted": 1,
+                    }
+                },
+                "targeted_authority_attestation": {
+                    "status": "timeout" if code == "LU" else "completed",
+                    "host_count": 2,
+                    "route_count": 4,
+                    "candidate_count": 1,
+                    "elapsed_ms": 25,
+                    "deadline_ms": 90_000,
+                },
+            },
         }
 
     monkeypatch.setattr(
@@ -201,6 +223,31 @@ async def test_multi_market_grounding_runs_country_cells_concurrently_and_preser
         ("BE",),
         ("NL",),
         ("LU",),
+    }
+    assert result["routing_diagnostics"]["required_evidence_classes"] == [
+        "statutory_current",
+        "official_statistic",
+    ]
+    assert result["routing_diagnostics"]["evidence_class_acquisition"][
+        "official_statistic"
+    ] == {
+        "attempted": 3,
+        "retrieved": 3,
+        "verified": 3,
+        "claim_extracted": 3,
+    }
+    assert result["routing_diagnostics"]["targeted_authority_attestation"] == {
+        "status": "mixed",
+        "cell_count": 3,
+        "host_count": 6,
+        "route_count": 12,
+        "candidate_count": 3,
+        "retrieved_count": 0,
+        "verified_count": 0,
+        "source_count": 0,
+        "company_count": 0,
+        "elapsed_ms": 25,
+        "deadline_ms": 90_000,
     }
 
 
