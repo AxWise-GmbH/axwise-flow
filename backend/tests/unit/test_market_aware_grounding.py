@@ -398,8 +398,8 @@ async def test_web_router_continues_after_a_provider_error():
         companies = await pipeline._discover_via_web_search()
 
     assert [row["provider"] for row in pipeline.routing_diagnostics["providers"]] == [
-        "gemini_google_search",
-        "searxng",
+        "gemini_google_search:general_market",
+        "searxng:general_market",
     ]
     assert pipeline.routing_diagnostics["providers"][0]["reason"] == (
         "provider_error:RuntimeError"
@@ -407,6 +407,36 @@ async def test_web_router_continues_after_a_provider_error():
     assert len(pipeline.market_sources) == 1
     assert companies[0].website is None
     assert companies[0].pain_point_sources is None
+
+
+def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
+    pipeline = B2BDataPipeline(
+        location="Brazil",
+        business_problem=(
+            "Launch cat food commercially in Brazil. Previous wrong Germany fallback failed."
+        ),
+        target_user="Brazilian retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=[
+            "statutory_current",
+            "official_statistic",
+            "observed_primary_market",
+        ],
+    )
+    queries = pipeline._directed_evidence_queries()
+    assert len(queries) == 3
+    assert {row["evidence_class"] for row in queries} == {
+        "statutory_current",
+        "official_statistic",
+        "observed_primary_market",
+    }
+    assert all("Brazil" in row["query"] for row in queries)
+    assert all("Germany" not in row["query"] for row in queries)
+    assert all("EUR" not in row["query"] for row in queries)
+    # Three evidence classes plus one batched authority-directory query across
+    # two independent providers; each route admits at most two direct sources.
+    assert (len(queries) + 1) * 2 == 8
+    assert (len(queries) + 1) * 2 * 2 == 16
 
 
 def test_searxng_adapter_is_optional_bounded_and_source_bearing():

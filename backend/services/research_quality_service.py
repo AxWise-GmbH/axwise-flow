@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence
 from urllib.parse import urlparse
 
+import pycountry
+
 from backend.services.research_source_authority_service import (
     validate_authority_claim_artifact,
     validate_authority_proof,
@@ -41,7 +43,8 @@ _DIRECT_AUTHORITY_STATUSES = {
 _CRITICAL_TERMS = re.compile(
     r"\b(?:tax|vat|gst|duty|tariff|regulat(?:ion|ory)|licen[cs]e|legal|law|"
     r"compliance|ban|deadline|effective|price|cost|fee|margin|market size|"
-    r"growth rate|population|currency|exchange rate|minimum wage|quota)\b",
+    r"growth rate|population|sales|turnover|consumption|imports|exports|volume|"
+    r"currency|exchange rate|minimum wage|quota)\b",
     re.IGNORECASE,
 )
 _REGULATORY_TERMS = re.compile(
@@ -50,7 +53,8 @@ _REGULATORY_TERMS = re.compile(
     re.IGNORECASE,
 )
 _STATISTICAL_TERMS = re.compile(
-    r"\b(?:market size|population|growth rate|employment|inflation|exchange rate)\b",
+    r"\b(?:market size|population|growth rate|employment|inflation|exchange rate|"
+    r"sales|turnover|consumption|imports|exports|volume)\b",
     re.IGNORECASE,
 )
 _COMMERCIAL_OBSERVATION_TERMS = re.compile(
@@ -76,9 +80,16 @@ _CLAIM_CLASS_APPLICABILITY_PATTERNS = {
         re.IGNORECASE,
     ),
 }
+_ISO_CURRENCY_CODES = "|".join(
+    sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
+)
+_CURRENCY_SYMBOLS = "€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾"
 _MATERIAL_VALUE = re.compile(
-    r"(?<!\w)(?:[€$£]\s*)?-?\d[\d\s.,]*(?:\s*(?:%|percent|EUR|USD|GBP|"
-    r"million|billion|thousand|days?|months?|years?))?(?!\w)",
+    rf"(?<!\w)(?:(?:{_ISO_CURRENCY_CODES})\s*)?"
+    rf"(?:[{re.escape(_CURRENCY_SYMBOLS)}]\s*)?-?\d[\d\s.,]*"
+    rf"(?:\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|euros?|dollars?|"
+    rf"pounds?|yen|yuan|rupees?|million|billion|"
+    rf"thousand|days?|months?|years?|[{re.escape(_CURRENCY_SYMBOLS)}]))?(?!\w)",
     re.IGNORECASE,
 )
 _TECHNICAL_KEY_PATTERN = re.compile(
@@ -269,7 +280,7 @@ def _normalized_value(value: str) -> str:
 
 def _material_unit(value: str) -> str:
     lowered = value.casefold()
-    if "%" in value or "percent" in lowered:
+    if "%" in value or "percent" in lowered or "per cent" in lowered:
         return "percent"
     if "€" in value or re.search(r"\bEUR\b", value, re.I):
         return "eur"
@@ -277,6 +288,12 @@ def _material_unit(value: str) -> str:
         return "usd"
     if "£" in value or re.search(r"\bGBP\b", value, re.I):
         return "gbp"
+    currency = re.search(rf"\b({_ISO_CURRENCY_CODES})\b", value, re.I)
+    if currency:
+        return currency.group(1).casefold()
+    word_currency = re.search(r"\b(euros?|dollars?|pounds?|yen|yuan|rupees?)\b", lowered)
+    if word_currency:
+        return word_currency.group(1).rstrip("s")
     duration = re.search(r"\b(days?|months?|years?)\b", lowered)
     if duration:
         return duration.group(1).rstrip("s")
@@ -327,7 +344,13 @@ def extract_material_facts(
         if not raw:
             continue
         # Bare list ordinals and years are not independently useful facts.
-        if not re.search(r"[%€$£]|\b(?:EUR|USD|GBP|million|billion|thousand|days?|months?|years?)\b", raw, re.I):
+        if not re.search(
+            rf"[%{re.escape(_CURRENCY_SYMBOLS)}]|\b(?:percent|per\s+cent|"
+            rf"{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?|yen|yuan|rupees?|"
+            rf"million|billion|thousand|days?|months?|years?)\b",
+            raw,
+            re.I,
+        ):
             if re.fullmatch(r"\d{1,4}", raw.replace(" ", "")):
                 continue
         terms = _fact_terms(text, match.start(), match.end())

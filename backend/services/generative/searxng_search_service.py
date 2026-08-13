@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import hashlib
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
@@ -38,8 +39,22 @@ class SearxngSearchService:
 
     def search_web_general(self, query: str) -> Dict[str, Any]:
         if not self.is_available():
-            return {"text": "", "sources": [], "search_performed": False}
+            return {
+                "text": "",
+                "sources": [],
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "route": "searxng",
+                    "status": "unavailable",
+                    "elapsed_ms": 0,
+                    "call_count": 0,
+                    "retry_count": 0,
+                    "deadline_ms": 20_000,
+                    "fallback_used": False,
+                },
+            }
 
+        started_at = time.monotonic()
         try:
             headers = self._authorization_headers()
             response = httpx.get(
@@ -63,6 +78,22 @@ class SearxngSearchService:
             response_hash = hashlib.sha256(raw_content).hexdigest()
             query_id = hashlib.sha256(query.encode("utf-8")).hexdigest()[:20]
             rows = payload.get("results") if isinstance(payload, dict) else []
+            unresponsive = []
+            for raw in (
+                payload.get("unresponsive_engines", [])
+                if isinstance(payload, dict)
+                else []
+            )[:20]:
+                if isinstance(raw, (list, tuple)):
+                    engine = str(raw[0] if raw else "unknown")[:80]
+                    reason = str(raw[1] if len(raw) > 1 else "unresponsive")[:120]
+                elif isinstance(raw, dict):
+                    engine = str(raw.get("engine") or raw.get("name") or "unknown")[:80]
+                    reason = str(raw.get("reason") or raw.get("error") or "unresponsive")[:120]
+                else:
+                    engine = str(raw)[:80]
+                    reason = "unresponsive"
+                unresponsive.append({"engine": engine, "reason": reason})
             sources = []
             claims = []
             passages = []
@@ -127,6 +158,20 @@ class SearxngSearchService:
                 "provider_query_ids": [query_id],
                 "provider_queries": [query[:1000]],
                 "search_performed": bool(sources),
+                "runtime_diagnostics": {
+                    "route": "searxng",
+                    "status": "ok" if sources else "empty",
+                    "elapsed_ms": max(
+                        0, round((time.monotonic() - started_at) * 1000)
+                    ),
+                    "call_count": 1,
+                    "retry_count": 0,
+                    "deadline_ms": 20_000,
+                    "fallback_used": False,
+                    "http_status": response.status_code,
+                    "result_count": len(sources),
+                    "unresponsive_engines": unresponsive,
+                },
             }
         except Exception as exc:
             logger.warning("SearXNG search failed: %s", exc)
@@ -135,6 +180,20 @@ class SearxngSearchService:
                 "sources": [],
                 "search_performed": False,
                 "error": type(exc).__name__,
+                "runtime_diagnostics": {
+                    "route": "searxng",
+                    "status": "error",
+                    "elapsed_ms": max(
+                        0, round((time.monotonic() - started_at) * 1000)
+                    ),
+                    "call_count": 1,
+                    "retry_count": 0,
+                    "deadline_ms": 20_000,
+                    "fallback_used": False,
+                    "http_status": getattr(
+                        getattr(exc, "response", None), "status_code", None
+                    ),
+                },
             }
 
     def _authorization_headers(self) -> Dict[str, str]:
