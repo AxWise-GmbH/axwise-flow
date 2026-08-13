@@ -156,10 +156,10 @@ def test_external_cancellation_propagates_without_retry() -> None:
 def test_research_model_has_one_retry_owner_and_exact_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
     model = build_research_model("test-key")
 
-    assert model.model_name == "models/gemini-3.6-flash"
+    assert model.model_name == "models/gemini-3.7-flash"
     api_client = model._provider.client._api_client
     assert isinstance(api_client._async_httpx_client, BoundedRetryAsyncClient)
     assert api_client._http_options.retry_options.attempts == 1

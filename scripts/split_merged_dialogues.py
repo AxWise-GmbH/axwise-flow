@@ -96,7 +96,7 @@ def init_genai_client():
         if not api_key:
             raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable required")
         client = genai.Client(api_key=api_key)
-        model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-2.0-flash")
+        model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.7-flash")
         return client, model_name
     except ImportError:
         raise ImportError("google-genai package required. Install with: pip install google-genai")
@@ -111,7 +111,6 @@ def split_merged_block(text: str, name: str, client_info) -> List[Dict[str, str]
             model=model_name,
             contents=prompt,
             config={
-                "temperature": 0.3,
                 "response_mime_type": "application/json",
             }
         )

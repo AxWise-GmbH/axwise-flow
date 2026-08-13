@@ -59,7 +59,7 @@ class PatternProcessor(IProcessor):
                 os.environ["GEMINI_API_KEY"] = api_key
             provider = GoogleProvider(api_key=api_key)
             self.model = GoogleModel(
-                os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash"),
+                os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash"),
                 provider=provider,
             )
             self.pattern_agent = Agent(

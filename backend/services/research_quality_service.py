@@ -8,6 +8,7 @@ in a regression fixture, but the runtime must prove it from current evidence.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
@@ -42,6 +43,10 @@ from backend.services.research_topic_contract_service import (
 
 
 COMMERCIAL_MARKET_LAUNCH = "commercial_market_launch"
+_CITABLE_EVIDENCE_STATUSES = {
+    "verified_current_authoritative",
+    "verified_traceable_calculation",
+}
 SUPPORTED_RESEARCH_PRD_TYPES = {
     COMMERCIAL_MARKET_LAUNCH,
     "operational_process",
@@ -60,10 +65,12 @@ _DIRECT_AUTHORITY_STATUSES = {
     "publisher_domain_verified",
 }
 _CRITICAL_TERMS = re.compile(
-    r"\b(?:tax|vat|gst|duty|tariff|regulat(?:ion|ory)|licen[cs]e|legal|law|"
-    r"compliance|ban|deadline|effective|price|cost|fee|margin|market size|"
-    r"growth rate|population|sales|turnover|consumption|imports|exports|volume|"
-    r"currency|exchange rate|minimum wage|quota)\b",
+    r"\b(?:tax(?:es)?|vat|gst|dut(?:y|ies)|tariffs?|regulations?|regulatory|"
+    r"licen[cs]es?|legal|laws?|compliance|bans?|deadlines?|effective|prices?|"
+    r"costs?|fees?|margins?|market[\s\-–—]+sizes?|growth[\s\-–—]+rates?|populations?|sales|"
+    r"pricing|revenues?|markups?|discounts?|conversion[\s\-–—]+rates?|cac|"
+    r"profits?|roi|turnovers?|consumptions?|imports?|exports?|volumes?|currenc(?:y|ies)|"
+    r"exchange[\s\-–—]+rates?|minimum[\s\-–—]+wages?|quotas?)\b",
     re.IGNORECASE,
 )
 _REGULATORY_TERMS = re.compile(
@@ -139,6 +146,226 @@ _MONTH_WORDS = {
     "september", "october", "november", "december",
 }
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
+_MATERIAL_DIMENSION_GROUPS = (
+    ("import", "export"),
+    ("retail", "wholesale"),
+    ("consumer", "producer"),
+    ("net", "gross"),
+    ("adjusted", "unadjusted"),
+    ("total", "per_capita"),
+)
+_STATUTORY_RATE_SUBTYPES = {
+    "standard",
+    "reduced",
+    "zero",
+    "exempt",
+    "transitional",
+}
+_PRODUCT_CATEGORY_TERMS = {
+    "adult",
+    "baby",
+    "bird",
+    "cat",
+    "child",
+    "dog",
+    "fish",
+    "horse",
+    "infant",
+    "men",
+    "rabbit",
+    "women",
+}
+_PRODUCT_KIND_TERMS = {
+    "accessory",
+    "food",
+    "medicine",
+    "service",
+    "subscription",
+    "supplement",
+    "toy",
+}
+_COUNTRY_NAME_TO_CODE = {
+    str(country.name).casefold(): str(country.alpha_2).upper()
+    for country in pycountry.countries
+}
+_COUNTRY_NAME_TO_CODE.update(
+    {
+        str(getattr(country, "official_name", "")).casefold(): str(
+            country.alpha_2
+        ).upper()
+        for country in pycountry.countries
+        if getattr(country, "official_name", None)
+    }
+)
+
+_COUNTRY_CODE_TO_CODE = {
+    str(country.alpha_2).upper(): str(country.alpha_2).upper()
+    for country in pycountry.countries
+}
+# ``pycountry`` intentionally models ISO names/codes, not demonyms.  Keep the
+# reviewed aliases that occur in commercial research prose separate from the
+# ISO registry so an adjective can never be guessed into a jurisdiction.
+_COUNTRY_DEMONYM_TO_CODE = {
+    "american": "US",
+    "brazilian": "BR",
+    "british": "GB",
+    "estonian": "EE",
+    "german": "DE",
+    "latvian": "LV",
+}
+_TEMPORAL_CUE = re.compile(
+    r"\b(?:as[\s\-–—]+of|takes?[\s\-–—]+effect|"
+    r"effective(?:[\s\-–—]+on)?|from|since)\b",
+    re.IGNORECASE,
+)
+_MONTH_TOKEN = (
+    r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\.?"
+)
+_DATE_CANDIDATE = re.compile(
+    rf"^(?:"
+    rf"\d{{4}}-\d{{1,2}}-\d{{1,2}}|"
+    rf"\d{{1,2}}[./]\d{{1,2}}[./]\d{{4}}|"
+    rf"\d{{1,2}}\s+{_MONTH_TOKEN}\s+\d{{4}}|"
+    rf"{_MONTH_TOKEN}\s+\d{{1,2}}(?:,)?\s+\d{{4}}|"
+    rf"{_MONTH_TOKEN}\s+\d{{4}}|"
+    rf"\d{{4}}"
+    rf")",
+    re.IGNORECASE,
+)
+_DATE_IN_TEXT = re.compile(_DATE_CANDIDATE.pattern.removeprefix("^"), re.IGNORECASE)
+
+
+def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
+    """Return explicit ISO jurisdictions and whether one is unrecognized.
+
+    Alpha-2/alpha-3 codes are deliberately case-sensitive: ``US`` is a
+    jurisdiction while ordinary prose ``us`` is not. Unknown demonym-shaped
+    qualifiers beside a material concept fail closed instead of being silently
+    treated as product vocabulary.
+    """
+
+    normalized = " ".join(str(text or "").casefold().split())
+    codes: set[str] = set()
+    for name, code in _COUNTRY_NAME_TO_CODE.items():
+        if not name:
+            continue
+        country_pattern = re.escape(name).replace(r"\ ", r"\s+")
+        if re.search(r"(?<!\w)" + country_pattern + r"(?!\w)", normalized):
+            codes.add(code)
+    for demonym, code in _COUNTRY_DEMONYM_TO_CODE.items():
+        if re.search(rf"(?<!\w){re.escape(demonym)}(?!\w)", normalized):
+            codes.add(code)
+    for token in re.findall(r"(?<![A-Za-z])([A-Z]{2})(?![A-Za-z])", str(text or "")):
+        code = _COUNTRY_CODE_TO_CODE.get(token)
+        if code:
+            codes.add(code)
+    known_demonyms = set(_COUNTRY_DEMONYM_TO_CODE)
+    unknown = any(
+        match.group(1).casefold() not in known_demonyms
+        for match in re.finditer(
+            r"\b([A-Za-z]{4,}(?:ian|ese|ish))\b"
+            r"(?=(?:\W+\w+){0,5}\W+(?:vat|gst|tax|prices?|offers?|"
+            r"markets?|imports?|exports?|statistics?|sales|revenues?))",
+            str(text or ""),
+            re.IGNORECASE,
+        )
+    )
+    return codes, unknown
+
+
+def _explicit_country_codes(text: str) -> set[str]:
+    return _jurisdiction_qualifiers(text)[0]
+
+
+def _parse_date_candidate(raw: str) -> Optional[tuple[str, str]]:
+    candidate = re.sub(r"(?<=[A-Za-z])\.", "", raw.strip().rstrip(".,;:"))
+    candidate = re.sub(r"\s+", " ", candidate)
+    for pattern, precision in (
+        ("%Y-%m-%d", "day"),
+        ("%d.%m.%Y", "day"),
+        ("%d/%m/%Y", "day"),
+        ("%d %B %Y", "day"),
+        ("%d %b %Y", "day"),
+        ("%B %d, %Y", "day"),
+        ("%B %d %Y", "day"),
+        ("%b %d, %Y", "day"),
+        ("%b %d %Y", "day"),
+        ("%B %Y", "month"),
+        ("%b %Y", "month"),
+        ("%Y", "year"),
+    ):
+        try:
+            parsed = datetime.strptime(candidate.title(), pattern).date()
+        except (ValueError, OverflowError):
+            continue
+        value = (
+            parsed.isoformat()
+            if precision == "day"
+            else parsed.strftime("%Y-%m")
+            if precision == "month"
+            else parsed.strftime("%Y")
+        )
+        return precision, value
+    return None
+
+
+def _explicit_temporal_references(text: str) -> tuple[list[tuple[str, str]], bool]:
+    """Parse explicit effective/as-of dates without guessing malformed dates."""
+
+    references: list[tuple[str, str]] = []
+    invalid = False
+    for cue in _TEMPORAL_CUE.finditer(str(text or "")):
+        tail = str(text or "")[cue.end():].lstrip(" :,-")[:64]
+        tail = re.sub(r"^on\s+", "", tail, flags=re.IGNORECASE)
+        match = _DATE_CANDIDATE.match(tail)
+        cue_text = cue.group(0).casefold()
+        looks_temporal = bool(
+            match
+            or cue_text != "from"
+            or re.match(rf"(?:\d|{_MONTH_TOKEN}\b)", tail, re.IGNORECASE)
+        )
+        if not looks_temporal:
+            continue
+        if not match:
+            invalid = True
+            continue
+        parsed = _parse_date_candidate(match.group(0))
+        if parsed is None:
+            invalid = True
+        else:
+            references.append(parsed)
+    return references, invalid
+
+
+def _temporal_scope_parts(value: Any) -> set[tuple[str, str]]:
+    text = str(value or "").strip()
+    if not text:
+        return set()
+    parsed_iso = _iso_datetime(text)
+    if parsed_iso:
+        date = parsed_iso.date()
+        return {
+            ("day", date.isoformat()),
+            ("month", date.strftime("%Y-%m")),
+            ("year", date.strftime("%Y")),
+            (
+                "quarter",
+                f"{date.year}-Q{((date.month - 1) // 3) + 1}",
+            ),
+        }
+    quarters = {
+        ("quarter", f"{year}-Q{q_number or ordinal_number}")
+        for q_number, ordinal_number, year in re.findall(
+            r"\b(?:Q([1-4])|([1-4])(?:st|nd|rd|th)?\s+quarter)\s+"
+            r"((?:19|20)\d{2})\b",
+            text,
+            re.IGNORECASE,
+        )
+    }
+    years = re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", text)
+    return quarters | {("year", year) for year in years}
 
 
 def normalize_research_prd_type(value: Any, *, fallback: str = "operational_process") -> str:
@@ -244,7 +471,9 @@ def _iter_material_nodes(value: Any, path: str = "") -> Iterator[tuple[str, Mapp
             for key, child in value.items()
             if isinstance(child, (str, int, float)) and child not in ("", None)
         ).strip()
-        if text and extract_material_facts(text, claim_id=path or "prd"):
+        if text and extract_material_facts(
+            text, claim_id=path or "prd", force_material=True
+        ):
             yield path or "commercial_prd", value
         for key, child in value.items():
             if key in {
@@ -263,7 +492,7 @@ def _iter_material_nodes(value: Any, path: str = "") -> Iterator[tuple[str, Mapp
         for index, child in enumerate(value):
             yield from _iter_material_nodes(child, f"{path}[{index}]")
     elif isinstance(value, str) and extract_material_facts(
-        value, claim_id=path or "prd"
+        value, claim_id=path or "prd", force_material=True
     ):
         yield path or "commercial_prd", {"statement": value}
 
@@ -274,7 +503,12 @@ def _has_traceable_calculation(value: Any, verified_claim_ids: set[str]) -> bool
         inputs = {
             str(item) for item in value.get("input_claim_ids") or [] if item
         }
-        if formula and inputs and inputs.issubset(verified_claim_ids):
+        if (
+            formula
+            and _formula_has_only_neutral_numeric_literals(formula)
+            and inputs
+            and inputs.issubset(verified_claim_ids)
+        ):
             return True
         return any(
             _has_traceable_calculation(child, verified_claim_ids)
@@ -286,6 +520,324 @@ def _has_traceable_calculation(value: Any, verified_claim_ids: set[str]) -> bool
             for child in value
         )
     return False
+
+
+def _formula_has_only_neutral_numeric_literals(formula: str) -> bool:
+    """Reject unsupported numeric targets hidden inside formula strings.
+
+    Formula syntax is not executed or provenance-bound. Zero and one are the
+    only neutral arithmetic identities needed by ordinary ratios such as
+    ``gross / (1 + rate)``; every other numeric input must live in a separately
+    traceable PRD node instead of being smuggled through opaque expression text.
+    """
+
+    if formula.count("=") != 1:
+        return False
+    lhs, rhs = (part.strip() for part in formula.split("=", 1))
+    if not re.fullmatch(r"[A-Za-z_]+", lhs):
+        return False
+    if re.search(r"\d", rhs):
+        # Enforce decimal lexical form before Python's AST normalizes 0x1,
+        # 0b1, exponent notation or underscored literals to an integer value.
+        if re.search(r"[A-Za-z_]\w*\d|\d\w*[A-Za-z_]", rhs):
+            return False
+        digit_tokens = re.findall(r"(?<![\w.])\d+(?![\w.])", rhs)
+        if any(token not in {"0", "1"} for token in digit_tokens):
+            return False
+        if sum(len(token) for token in digit_tokens) != sum(char.isdigit() for char in rhs):
+            return False
+    try:
+        expression = ast.parse(rhs, mode="eval")
+    except (SyntaxError, ValueError, TypeError, MemoryError, RecursionError):
+        return False
+    allowed_operators = (ast.Add, ast.Sub, ast.Mult, ast.Div)
+    has_symbol = False
+    has_arithmetic = False
+    for node in ast.walk(expression):
+        if isinstance(node, ast.Expression):
+            continue
+        if isinstance(node, ast.BinOp):
+            has_arithmetic = True
+            if not isinstance(node.op, allowed_operators):
+                return False
+            continue
+        if isinstance(node, allowed_operators):
+            continue
+        if isinstance(node, ast.Name):
+            if not re.fullmatch(r"[A-Za-z_]+", node.id):
+                return False
+            has_symbol = True
+            continue
+        if isinstance(node, ast.Load):
+            continue
+        if isinstance(node, ast.Constant):
+            if type(node.value) is not int or node.value not in {0, 1}:
+                return False
+            continue
+        # Calls, attributes, subscripts, comparisons, boolean operators,
+        # unary signs, strings and every other syntax are outside this narrow
+        # non-executable arithmetic contract.
+        return False
+    constants = [
+        node for node in ast.walk(expression) if isinstance(node, ast.Constant)
+    ]
+    return bool(has_symbol and (not constants or has_arithmetic))
+
+
+def _material_facts_match_cited_evidence(
+    node: Mapping[str, Any],
+    *,
+    path: str,
+    cited_claim_ids: set[str],
+    verified_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> bool:
+    """Require every material value to match a fact owned by a cited claim.
+
+    PRD facts do not carry trusted evidence-class/temporal/source metadata, so
+    coupling uses the immutable normalized value plus explicit metric identity
+    or conservative term overlap. Merely naming any valid ledger ID is never
+    sufficient, and one matching value cannot launder another value in the
+    same object.
+    """
+
+    text = " ".join(
+        f"{key} {child}"
+        for key, child in node.items()
+        if isinstance(child, (str, int, float)) and child not in ("", None)
+    ).strip()
+    material_facts = extract_material_facts(
+        text, claim_id=path or "prd", force_material=True
+    )
+    if not material_facts or not cited_claim_ids:
+        return False
+    cited_facts = [
+        fact
+        for claim_id in cited_claim_ids
+        for fact in verified_facts_by_claim.get(claim_id, ())
+    ]
+
+    candidate_temporal, invalid_temporal = _explicit_temporal_references(text)
+    candidate_countries, unknown_jurisdiction = _jurisdiction_qualifiers(text)
+    candidate_years = {
+        match.group(1)
+        for match in re.finditer(r"(?<!\d)((?:19|20)\d{2})(?!\d)", text)
+    }
+    candidate_official_periods: set[tuple[str, str]] = {
+        ("year", year) for year in candidate_years
+    }
+    candidate_official_periods.update(
+        {
+            ("quarter", f"{year}-Q{q_number or ordinal_number}")
+            for q_number, ordinal_number, year in re.findall(
+                r"\b(?:Q([1-4])|([1-4])(?:st|nd|rd|th)?\s+quarter)\s+"
+                r"((?:19|20)\d{2})\b",
+                text,
+                re.IGNORECASE,
+            )
+        }
+    )
+    for date_match in _DATE_IN_TEXT.finditer(text):
+        parsed_date = _parse_date_candidate(date_match.group(0))
+        if parsed_date is None:
+            continue
+        precision, value = parsed_date
+        if precision == "day":
+            candidate_official_periods.add(("month", value[:7]))
+            candidate_official_periods.add(("year", value[:4]))
+        elif precision == "month":
+            candidate_official_periods.add(("month", value))
+            candidate_official_periods.add(("year", value[:4]))
+
+    def topic_signature(identity: str) -> tuple[set[str], set[str]]:
+        tokens = set(re.findall(r"[^\W\d_][\w-]{2,}", identity.casefold()))
+        return tokens & _PRODUCT_CATEGORY_TERMS, tokens & _PRODUCT_KIND_TERMS
+
+    def price_basis(identity: str) -> str:
+        lowered = identity.casefold()
+        if re.search(r"\b(?:sale|promo(?:tional)?|discount(?:ed)?)\b", lowered):
+            return "promotion"
+        if re.search(r"\b(?:member|loyalty)\b", lowered):
+            return "member"
+        if re.search(r"\b(?:list|regular)\b", lowered):
+            return "list"
+        return "baseline"
+
+    def temporal_matches(verified: Mapping[str, Any]) -> bool:
+        if invalid_temporal:
+            return False
+        scope_parts = _temporal_scope_parts(verified.get("temporal_scope"))
+        if candidate_temporal and (
+            not scope_parts
+            or any(reference not in scope_parts for reference in candidate_temporal)
+        ):
+            return False
+        if str(verified.get("evidence_class") or "") == "official_statistic":
+            if candidate_official_periods and (
+                not scope_parts
+                or not candidate_official_periods.issubset(scope_parts)
+            ):
+                return False
+        return True
+
+    def identity_matches(
+        candidate: Mapping[str, Any], verified: Mapping[str, Any]
+    ) -> bool:
+        candidate_terms = set(candidate.get("fact_terms") or [])
+        verified_terms = set(verified.get("fact_terms") or [])
+        verified_countries = {
+            str(code).upper() for code in verified.get("country_codes") or [] if code
+        }
+        if unknown_jurisdiction or (
+            candidate_countries
+            and (
+                not verified_countries
+                or candidate_countries != verified_countries
+            )
+        ):
+            return False
+        candidate_metric = str(candidate.get("metric_key") or "").split(":", 1)[0]
+        verified_class = str(verified.get("evidence_class") or "")
+        if verified_class == "statutory_current":
+            statutory_scope = set(
+                str(verified.get("semantic_scope") or "").split(":")
+            )
+            candidate_subtypes = {
+                subtype
+                for subtype in _STATUTORY_RATE_SUBTYPES
+                if re.search(rf"\b{re.escape(subtype)}\b", text, re.IGNORECASE)
+            }
+            verified_subtypes = statutory_scope & _STATUTORY_RATE_SUBTYPES
+            if (
+                candidate_subtypes
+                and verified_subtypes
+                and candidate_subtypes != verified_subtypes
+            ):
+                return False
+            return bool(
+                candidate_metric
+                and (
+                    candidate_metric in statutory_scope
+                    or candidate_metric == "effective"
+                    and candidate_terms & statutory_scope
+                )
+            )
+        if verified_class == "observed_primary_market":
+            if candidate.get("metric_key") != verified.get("metric_key"):
+                return False
+            candidate_identity = " ".join(
+                [text, " ".join(str(item) for item in candidate_terms)]
+            )
+            verified_identity = " ".join(
+                [
+                    str(verified.get("semantic_scope") or ""),
+                    " ".join(str(item) for item in verified_terms),
+                ]
+            )
+            candidate_categories, candidate_kinds = topic_signature(
+                candidate_identity
+            )
+            verified_categories, verified_kinds = topic_signature(
+                verified_identity
+            )
+            if verified_categories and candidate_categories != verified_categories:
+                return False
+            if verified_kinds and candidate_kinds != verified_kinds:
+                return False
+            if price_basis(candidate_identity) != price_basis(verified_identity):
+                return False
+            ignored_offer_terms = {
+                "are", "current", "eur", "food", "is", "offer", "price",
+                "retail", "the", "was",
+            }
+            candidate_product = candidate_terms - ignored_offer_terms
+            verified_product = verified_terms - ignored_offer_terms
+            candidate_packs = {
+                value for value in candidate_product if re.search(r"\d", value)
+            }
+            verified_packs = {
+                value for value in verified_product if re.search(r"\d", value)
+            }
+            if verified_packs and candidate_packs != verified_packs:
+                return False
+            lexical_candidate = candidate_product - candidate_packs
+            lexical_verified = verified_product - verified_packs
+            return bool(
+                lexical_candidate
+                and lexical_verified
+                and _terms_overlap(lexical_candidate, lexical_verified) >= 0.6
+            )
+        if candidate.get("metric_key") == verified.get("metric_key"):
+            return True
+        if verified_class != "official_statistic":
+            return False
+        verified_identity = " ".join(
+            [
+                str(verified.get("metric_key") or ""),
+                str(verified.get("semantic_scope") or ""),
+                " ".join(str(item) for item in verified.get("fact_terms") or []),
+            ]
+        ).casefold()
+        candidate_identity = " ".join(
+            [
+                str(candidate.get("metric_key") or ""),
+                " ".join(str(item) for item in candidate.get("fact_terms") or []),
+            ]
+        ).casefold()
+
+        def dimensions(identity: str) -> set[str]:
+            normalized = re.sub(r"\bper[\s_-]+capita\b", "per_capita", identity)
+            result = set()
+            for group in _MATERIAL_DIMENSION_GROUPS:
+                for value in group:
+                    pattern = (
+                        r"\bimports?\b" if value == "import"
+                        else r"\bexports?\b" if value == "export"
+                        else rf"\b{re.escape(value)}\b"
+                    )
+                    if re.search(pattern, normalized):
+                        result.add(value)
+            return result
+
+        candidate_dimensions = dimensions(candidate_identity)
+        verified_dimensions = dimensions(verified_identity)
+        for group in _MATERIAL_DIMENSION_GROUPS:
+            candidate_group = candidate_dimensions & set(group)
+            verified_group = verified_dimensions & set(group)
+            # A signed narrow series cannot authorize a wider paraphrase. Every
+            # exclusive dimension present in the verified identity must remain
+            # explicit and identical in the PRD statement.
+            if verified_group and candidate_group != verified_group:
+                return False
+        candidate_categories, candidate_kinds = topic_signature(candidate_identity)
+        verified_categories, verified_kinds = topic_signature(verified_identity)
+        if verified_categories and candidate_categories != verified_categories:
+            return False
+        if verified_kinds and candidate_kinds != verified_kinds:
+            return False
+        # Structured observations have dataset/series-specific metric keys.
+        # Couple their public PRD paraphrase only when its canonical critical
+        # concept is visible in that signed series identity; value alone is
+        # never enough.
+        return bool(
+            candidate_metric
+            and re.search(rf"\b{re.escape(candidate_metric)}\b", verified_identity)
+            and _terms_overlap(
+                candidate.get("fact_terms") or [],
+                verified.get("fact_terms") or [],
+            )
+            >= 0.5
+        )
+
+    return all(
+        any(
+            candidate.get("normalized_value") == verified.get("normalized_value")
+            and candidate.get("unit") == verified.get("unit")
+            and identity_matches(candidate, verified)
+            and temporal_matches(verified)
+            for verified in cited_facts
+        )
+        for candidate in material_facts
+    )
 
 
 def _iso_datetime(value: Any) -> Optional[datetime]:
@@ -567,7 +1119,41 @@ def _metric_key(text: str, start: int, end: int, unit: str) -> str:
         candidates,
         key=lambda item: min(abs(item.start() - end), abs(start - item.end())),
     )
-    return f"{nearest.group(0).casefold()}:{unit}"
+    metric = re.sub(r"[\s\-–—]+", " ", nearest.group(0).casefold()).strip()
+    canonical_metrics = {
+        "taxes": "tax",
+        "duties": "duty",
+        "tariffs": "tariff",
+        "regulations": "regulation",
+        "licenses": "license",
+        "licences": "licence",
+        "laws": "law",
+        "bans": "ban",
+        "deadlines": "deadline",
+        "prices": "price",
+        "costs": "cost",
+        "fees": "fee",
+        "margins": "margin",
+        "pricing": "price",
+        "revenues": "revenue",
+        "markups": "markup",
+        "discounts": "discount",
+        "conversion rates": "conversion rate",
+        "profits": "profit",
+        "market sizes": "market size",
+        "growth rates": "growth rate",
+        "populations": "population",
+        "turnovers": "turnover",
+        "consumptions": "consumption",
+        "import": "imports",
+        "export": "exports",
+        "volumes": "volume",
+        "currencies": "currency",
+        "exchange rates": "exchange rate",
+        "minimum wages": "minimum wage",
+        "quotas": "quota",
+    }
+    return f"{canonical_metrics.get(metric, metric)}:{unit}"
 
 
 def _fact_terms(text: str, start: int, end: int) -> List[str]:
@@ -761,6 +1347,7 @@ def extract_material_facts(
     evidence_class: str = "",
     temporal_scope: str = "",
     source_scope: Iterable[str] = (),
+    force_material: bool = False,
 ) -> List[Dict[str, Any]]:
     """Extract comparable material values without knowing a country in advance."""
 
@@ -769,10 +1356,23 @@ def extract_material_facts(
         "official_statistic",
         "observed_primary_market",
     }
-    if not text or (not explicit_material_class and not _CRITICAL_TERMS.search(text)):
+    if not text or (
+        not force_material
+        and not explicit_material_class
+        and not _CRITICAL_TERMS.search(text)
+    ):
         return []
     rows: List[Dict[str, Any]] = []
+    date_spans = [(match.start(), match.end()) for match in _DATE_IN_TEXT.finditer(text)]
     for index, match in enumerate(_MATERIAL_VALUE.finditer(text)):
+        if any(
+            match.start() < date_end and match.end() > date_start
+            for date_start, date_end in date_spans
+        ):
+            # Effective/observation dates have their own identity coupling.
+            # Never reinterpret a dotted or slash-form date fragment as a
+            # price/rate merely because it resembles a decimal.
+            continue
         raw = match.group(0).strip().rstrip(".,;:")
         if not raw:
             continue
@@ -1870,6 +2470,26 @@ def validate_research_prd(
     issues: List[Dict[str, str]] = []
     semantic_type = normalize_research_prd_type(prd_type)
     if semantic_type == COMMERCIAL_MARKET_LAUNCH:
+        allowed_top_level = {"prd_type", "commercial_prd", "metadata"}
+        unexpected_top_level = sorted(
+            str(key) for key in set(content) - allowed_top_level
+        )
+        if content.get("prd_type") != COMMERCIAL_MARKET_LAUNCH:
+            issues.append(
+                {
+                    "code": "commercial_prd_type_invalid",
+                    "message": (
+                        f"prd_type must be exactly {COMMERCIAL_MARKET_LAUNCH}."
+                    ),
+                }
+            )
+        for key in unexpected_top_level:
+            issues.append(
+                {
+                    "code": "commercial_top_level_key_invalid",
+                    "message": f"Unexpected top-level commercial PRD key: {key}",
+                }
+            )
         commercial = content.get("commercial_prd")
         if not isinstance(commercial, dict):
             issues.append({"code": "commercial_prd_missing", "message": "Commercial PRD section is required."})
@@ -1880,6 +2500,13 @@ def validate_research_prd(
                 "suppliers_and_channels", "pricing_and_unit_economics",
                 "go_to_market_plan_90_days", "risks_assumptions_and_validation",
             }
+            for key in sorted(str(key) for key in set(commercial) - required):
+                issues.append(
+                    {
+                        "code": "commercial_section_unexpected",
+                        "message": f"Unexpected commercial PRD section: {key}",
+                    }
+                )
             for key in sorted(required - set(commercial)):
                 issues.append({"code": "commercial_section_missing", "message": f"Required section missing: {key}"})
             for key in sorted(required & set(commercial)):
@@ -1904,8 +2531,38 @@ def validate_research_prd(
     verified_claim_ids = {
         str(row.get("claim_id"))
         for row in quality.get("evidence_ledger") or []
-        if isinstance(row, Mapping) and row.get("claim_id")
+        if isinstance(row, Mapping)
+        and row.get("claim_id")
+        and str(row.get("status") or "") in _CITABLE_EVIDENCE_STATUSES
     }
+    verified_facts_by_claim: Dict[str, List[Mapping[str, Any]]] = {}
+    for row in quality.get("evidence_ledger") or []:
+        if (
+            not isinstance(row, Mapping)
+            or not row.get("claim_id")
+            or str(row.get("status") or "") not in _CITABLE_EVIDENCE_STATUSES
+        ):
+            continue
+        claim_id = str(row["claim_id"])
+        verified_facts_by_claim[claim_id] = [
+            fact
+            for fact in row.get("facts") or []
+            if isinstance(fact, Mapping) and fact.get("identity_complete") is True
+        ]
+    # Compatibility callers may supply verified_facts separately. Fact
+    # ownership still comes from each fact's immutable claim_id.
+    for fact in verified:
+        if (
+            not isinstance(fact, Mapping)
+            or not fact.get("claim_id")
+            or fact.get("identity_complete") is not True
+            or str(fact.get("claim_id")) not in verified_claim_ids
+        ):
+            continue
+        claim_id = str(fact["claim_id"])
+        bucket = verified_facts_by_claim.setdefault(claim_id, [])
+        if fact not in bucket:
+            bucket.append(fact)
     if semantic_type == COMMERCIAL_MARKET_LAUNCH and isinstance(
         content.get("commercial_prd"), Mapping
     ):
@@ -1921,11 +2578,27 @@ def validate_research_prd(
                 node.get("evidence_class") or node.get("claim_type") or ""
             ).casefold() == "synthetic_hypothesis"
             validation_plan = _semantic_nonempty(node.get("validation_plan"))
-            traceable = bool(
-                (cited and cited.issubset(verified_claim_ids))
-                or (formula and inputs and inputs.issubset(verified_claim_ids))
-                or (hypothesis and validation_plan)
-            )
+            if hypothesis and validation_plan and not cited and not inputs:
+                traceable = True
+            else:
+                fact_claim_ids = cited | inputs
+                structurally_cited = bool(
+                    cited
+                    and cited.issubset(verified_claim_ids)
+                    or formula
+                    and _formula_has_only_neutral_numeric_literals(formula)
+                    and inputs
+                    and inputs.issubset(verified_claim_ids)
+                )
+                traceable = bool(
+                    structurally_cited
+                    and _material_facts_match_cited_evidence(
+                        node,
+                        path=path,
+                        cited_claim_ids=fact_claim_ids,
+                        verified_facts_by_claim=verified_facts_by_claim,
+                    )
+                )
             if not traceable:
                 issues.append(
                     {

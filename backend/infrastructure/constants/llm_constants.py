@@ -11,7 +11,7 @@ and should be referenced by all services that need LLM parameters.
 
 # Gemini model constants
 # One production default across API, worker, grounding, and persona generation.
-GEMINI_MODEL_NAME = "models/gemini-3.6-flash"
+GEMINI_MODEL_NAME = "models/gemini-3.7-flash"
 GEMINI_TEMPERATURE = 0.0
 GEMINI_MAX_TOKENS = 65536
 GEMINI_CONTEXT_WINDOW = 1048576
@@ -52,7 +52,7 @@ ENV_OPENAI_CONTEXT_WINDOW = "OPENAI_CONTEXT_WINDOW"
 
 # Task-specific parameters
 PERSONA_FORMATION_MAX_TOKENS = (
-    131072  # Maximum tokens for persona formation, doubled to ensure complete responses
+    65536  # Gemini 3.7 maximum output tokens
 )
 PERSONA_FORMATION_TEMPERATURE = 0.0  # Temperature for persona formation
 

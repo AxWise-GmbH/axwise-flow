@@ -119,7 +119,7 @@ async def test_content_detection():
 
         gemini_config = {
             "api_key": api_key,
-            "model": "models/gemini-2.5-flash",
+            "model": "models/gemini-3.7-flash",
             "temperature": 0.0,
             "max_tokens": 65536,
             "top_p": 0.95,

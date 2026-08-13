@@ -67,12 +67,12 @@ class StakeholderThemeAnalyzer:
 
             provider = GoogleProvider(api_key=api_key)
             # Create theme attribution agent
-            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.6-flash")
+            model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash")
             self.theme_agent = Agent(
                 model=GoogleModel(model_name, provider=provider),
                 output_type=ThemeAttributionModel,
                 system_prompt=self._get_theme_attribution_prompt(),
-                model_settings=ModelSettings(timeout=300, temperature=0.0),
+                model_settings=ModelSettings(timeout=300),
             )
             self.pydantic_ai_available = True
             logger.info("Theme agent initialized successfully")

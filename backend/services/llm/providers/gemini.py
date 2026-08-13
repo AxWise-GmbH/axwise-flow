@@ -21,6 +21,10 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_TOP_K,
     ENV_GEMINI_API_KEY,
 )
+from backend.services.llm.config.genai_config import (
+    GEMINI_37_MAX_OUTPUT_TOKENS,
+    is_gemini_37_flash,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,18 +100,26 @@ class GeminiProvider(BaseLLMProvider):
         try:
             from google.genai.types import GenerateContentConfig
             
-            config = GenerateContentConfig(
-                temperature=kwargs.get("temperature", self.config.temperature),
-                max_output_tokens=kwargs.get("max_tokens", self.config.max_tokens),
-                top_p=kwargs.get("top_p", self.config.top_p),
-            )
+            max_output_tokens = kwargs.get("max_tokens", self.config.max_tokens)
+            config_kwargs = {"max_output_tokens": max_output_tokens}
+            if is_gemini_37_flash(self.config.model):
+                config_kwargs["max_output_tokens"] = min(
+                    max_output_tokens,
+                    GEMINI_37_MAX_OUTPUT_TOKENS,
+                )
+            else:
+                config_kwargs.update(
+                    temperature=kwargs.get(
+                        "temperature", self.config.temperature
+                    ),
+                    top_p=kwargs.get("top_p", self.config.top_p),
+                )
+            if system_instruction:
+                config_kwargs["system_instruction"] = system_instruction
+            config = GenerateContentConfig(**config_kwargs)
             
             # Build content with optional system instruction
-            contents = []
-            if system_instruction:
-                contents.append({"role": "user", "parts": [{"text": system_instruction}]})
-                contents.append({"role": "model", "parts": [{"text": "Understood."}]})
-            contents.append({"role": "user", "parts": [{"text": prompt}]})
+            contents = [{"role": "user", "parts": [{"text": prompt}]}]
             
             response = await client.aio.models.generate_content(
                 model=self.config.model,
@@ -171,4 +183,3 @@ class GeminiProvider(BaseLLMProvider):
 
         # Delegate to the legacy service which handles both calling patterns
         return await service.analyze(text_or_payload, task=task, data=data)
-

@@ -27,6 +27,10 @@ from backend.infrastructure.constants.llm_constants import (
     GEMINI_TOP_K,
     ENV_GEMINI_API_KEY,
 )
+from backend.services.llm.config.genai_config import (
+    GEMINI_37_MAX_OUTPUT_TOKENS,
+    is_gemini_37_flash,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -117,27 +121,11 @@ class EnhancedInstructorGeminiClient:
         self.enable_metrics = enable_metrics
         self.metrics_history: List[GenerationMetrics] = []
 
-        # Retry configuration
-        self.retry_strategies = [
-            {
-                "temperature": 0.0,
-                "top_p": 1.0,
-                "top_k": 1,
-                "response_mime_type": "application/json",
-            },
-            {
-                "temperature": 0.1,
-                "top_p": 0.9,
-                "top_k": 5,
-                "response_mime_type": "application/json",
-            },
-            {
-                "temperature": 0.2,
-                "top_p": 0.8,
-                "top_k": 10,
-                "response_mime_type": "application/json",
-            },
-        ]
+        # Sampling controls are intentionally omitted for Gemini 3.7. Retain
+        # the retry-shape list for backward-compatible metrics and retry flow.
+        # GENAI_TOOLS owns its structured-output transport, so response MIME
+        # must not be forwarded as an extra provider kwarg.
+        self.retry_strategies = [{}, {}, {}]
 
         logger.info(
             f"Initialized EnhancedInstructorGeminiClient with model {model_name}, max_retries={max_retries}"
@@ -200,6 +188,64 @@ class EnhancedInstructorGeminiClient:
             },
         }
 
+    def _instructor_request_config(
+        self,
+        *,
+        temperature: float,
+        max_output_tokens: int,
+        top_p: float,
+        kwargs: Dict[str, Any],
+    ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        """Build the request shape consumed by Instructor 1.15's GenAI adapter.
+
+        Instructor reads OpenAI-style keys from ``generation_config`` and
+        converts them into ``GenerateContentConfig``. Passing ``config`` or
+        native-only keys such as ``max_output_tokens`` here is ineffective
+        because the adapter replaces that object during message processing.
+        """
+
+        provider_kwargs = dict(kwargs)
+        incoming_config = provider_kwargs.pop("generation_config", None)
+        provider_kwargs.pop("config", None)
+
+        requested_max_tokens = provider_kwargs.pop("max_tokens", max_output_tokens)
+        if isinstance(incoming_config, dict):
+            requested_max_tokens = incoming_config.get(
+                "max_tokens",
+                incoming_config.get("max_output_tokens", requested_max_tokens),
+            )
+
+        candidate_count = provider_kwargs.pop(
+            "candidate_count", provider_kwargs.pop("n", None)
+        )
+        # These are either represented by the explicit method arguments or
+        # are not valid extra kwargs for google.genai.generate_content.
+        for parameter in (
+            "temperature",
+            "top_p",
+            "top_k",
+            "response_mime_type",
+            "max_output_tokens",
+        ):
+            provider_kwargs.pop(parameter, None)
+
+        if is_gemini_37_flash(self.model_name):
+            generation_config = {
+                "max_tokens": min(
+                    int(requested_max_tokens), GEMINI_37_MAX_OUTPUT_TOKENS
+                )
+            }
+        else:
+            generation_config = {
+                "temperature": temperature,
+                "max_tokens": int(requested_max_tokens),
+                "top_p": top_p,
+            }
+            if candidate_count is not None:
+                generation_config["n"] = candidate_count
+
+        return generation_config, provider_kwargs
+
     def generate_with_model(
         self,
         prompt: str,
@@ -241,20 +287,12 @@ class EnhancedInstructorGeminiClient:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
 
-        # Base parameters for google.genai
-        base_params = {
-            "model": self.model_name,
-            "messages": messages,
-            "response_model": model_class,
-            "config": {
-                "temperature": temperature,
-                "max_output_tokens": max_output_tokens,
-                "top_p": top_p,
-                "top_k": top_k,
-                "response_mime_type": "application/json",
-            },
-            **kwargs,
-        }
+        generation_config, provider_kwargs = self._instructor_request_config(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            top_p=top_p,
+            kwargs=kwargs,
+        )
 
         last_error = None
 
@@ -264,7 +302,8 @@ class EnhancedInstructorGeminiClient:
                 model=self.model_name,
                 messages=messages,
                 response_model=model_class,
-                **kwargs,
+                generation_config=generation_config,
+                **provider_kwargs,
             )
             self._finalize_metrics(metrics, success=True)
             logger.info(
@@ -297,16 +336,13 @@ class EnhancedInstructorGeminiClient:
                 f"Retry {retry_count + 1}/{self.max_retries} with strategy: {strategy}"
             )
 
-            # Update parameters with retry strategy
-            retry_params = base_params.copy()
-            retry_params.update(strategy)
-
             try:
                 response = self.instructor_client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
                     response_model=model_class,
-                    **kwargs,
+                    generation_config={**generation_config, **strategy},
+                    **provider_kwargs,
                 )
                 self._finalize_metrics(metrics, success=True)
                 logger.info(
@@ -370,7 +406,12 @@ class EnhancedInstructorGeminiClient:
             messages.append({"role": "system", "content": system_instruction})
         messages.append({"role": "user", "content": prompt})
 
-        # Generate content using correct Instructor API for Gemini
+        generation_config, provider_kwargs = self._instructor_request_config(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            top_p=top_p,
+            kwargs=kwargs,
+        )
         try:
             # Use the correct Instructor API for Gemini
             response = await asyncio.get_event_loop().run_in_executor(
@@ -379,7 +420,8 @@ class EnhancedInstructorGeminiClient:
                     model=self.model_name,
                     messages=messages,
                     response_model=model_class,
-                    **kwargs,
+                    generation_config=generation_config,
+                    **provider_kwargs,
                 ),
             )
         except Exception as e:

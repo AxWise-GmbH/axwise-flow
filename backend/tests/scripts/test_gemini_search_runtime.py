@@ -69,7 +69,7 @@ def _http_status_error(code: int, *, retry_after: str | None = None) -> Exceptio
 def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "models/gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels([_response()])
     service = _service(models, clock)
@@ -79,7 +79,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert result["search_performed"] is True
     assert len(models.calls) == 1
     call = models.calls[0]
-    assert call["model"] == "gemini-3.6-flash"
+    assert call["model"] == "gemini-3.7-flash"
     config = call["config"]
     assert config.temperature is None
     assert config.top_p is None
@@ -88,7 +88,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert config.http_options.retry_options.attempts == 1
     assert result["runtime_diagnostics"] == {
         "route": "gemini_google_search",
-        "model": "gemini-3.6-flash",
+        "model": "gemini-3.7-flash",
         "status": "ok",
         "elapsed_ms": 0,
         "call_count": 1,
@@ -101,7 +101,7 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
 def test_transient_disconnect_retries_same_model_with_bounded_call_count(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels(
         [httpx.RemoteProtocolError("Server disconnected"), _response()]
@@ -111,8 +111,8 @@ def test_transient_disconnect_retries_same_model_with_bounded_call_count(
     result = service.search_web_general("Estonian authority sources")
 
     assert [call["model"] for call in models.calls] == [
-        "gemini-3.6-flash",
-        "gemini-3.6-flash",
+        "gemini-3.7-flash",
+        "gemini-3.7-flash",
     ]
     assert clock.sleeps == [1.0]
     assert result["runtime_diagnostics"]["status"] == "ok"
@@ -124,7 +124,7 @@ def test_transient_disconnect_retries_same_model_with_bounded_call_count(
 def test_retry_after_is_honored_without_sdk_retry_multiplication(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels(
         [_http_status_error(429, retry_after="7"), _response()]
@@ -146,7 +146,7 @@ def test_retry_after_is_honored_without_sdk_retry_multiplication(
 def test_non_transient_error_is_not_retried(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels([_http_status_error(400)])
     service = _service(models, clock)
@@ -164,7 +164,7 @@ def test_non_transient_error_is_not_retried(
 def test_retry_delay_cannot_exceed_total_operation_deadline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.6-flash")
+    monkeypatch.setenv("GEMINI_SEARCH_MODEL", "gemini-3.7-flash")
     clock = FakeClock()
     models = SequenceModels([_http_status_error(429, retry_after="20")])
     service = _service(models, clock)

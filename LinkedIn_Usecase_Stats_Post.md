@@ -14,7 +14,7 @@ The results are, frankly, wild. Here is a sneak peek at the performance metrics:
 
 ### 📊 The Raw Performance Stats:
 *   **Average E2E Latency**: **17.5 seconds** per complete run. This includes parsing unstructured business intent, classifying roles, pre-sampling normal age and OCEAN curves, and synthesizing a fully validated, multi-stakeholder report.
-*   **Structured Output Reliability**: **100% JSON validation schema accuracy** (0 malformed function calls or broken schemas across PydanticAI and Gemini 3.5 Flash).
+*   **Structured Output Reliability**: **100% JSON validation schema accuracy** (0 malformed function calls or broken schemas across PydanticAI and Gemini 3.7 Flash).
 *   **Demographic & Personality Fidelity**: **95%+ semantic alignment**. By drawing from normal occupational age distributions and shifting Big Five traits dynamically (e.g., Conscientiousness naturally trends up and Neuroticism down as a simulated persona matures), we completely eliminated professional anachronisms (like a 22-year-old CFO or a 65-year-old junior developer).
 
 ---
