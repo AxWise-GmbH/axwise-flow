@@ -11,7 +11,7 @@ import re
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import pycountry
 from pydantic import BaseModel
@@ -52,6 +52,8 @@ _DIRECTED_EVIDENCE_CLASSES = {
     "observed_primary_market",
 }
 _MAX_SOURCES_PER_QUERY_PROVIDER = 2
+_MAX_OBSERVED_CANDIDATES_PER_QUERY_PROVIDER = 6
+_MAX_AUTHORITY_NETWORK_CANDIDATES = 24
 _AUTHORITY_STAGE_DEADLINE_SECONDS = 50.0
 _COMPANY_STRUCTURING_DEADLINE_SECONDS = 120.0
 _TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
@@ -63,6 +65,109 @@ _STAGE_CANCELLATION_GRACE_SECONDS = 1.0
 _ISO_CURRENCY_CODES = "|".join(
     sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
 )
+
+
+def _authority_retrieval_identity(url: str) -> str:
+    """Canonicalize only semantics that cannot alter the HTTP retrieval."""
+
+    try:
+        parsed = urlparse(url)
+        scheme = parsed.scheme.casefold()
+        hostname = (parsed.hostname or "").casefold()
+        port = parsed.port
+    except ValueError:
+        return url
+    if not scheme or not hostname:
+        return url
+    host = hostname
+    if port is not None and not (
+        (scheme == "https" and port == 443)
+        or (scheme == "http" and port == 80)
+    ):
+        host = f"{host}:{port}"
+    return urlunparse((scheme, host, parsed.path, parsed.params, parsed.query, ""))
+
+
+def _admit_provider_candidate_urls(
+    candidate_urls: List[str],
+    *,
+    existing_urls: set[str],
+    new_url_cap: int,
+) -> tuple[str, ...]:
+    """Admit bounded unique URLs without charging cross-provider duplicates."""
+
+    admitted: List[str] = []
+    admitted_identities: set[str] = set()
+    known = {_authority_retrieval_identity(url) for url in existing_urls}
+    new_count = 0
+    scanned_identities: set[str] = set()
+    for url in candidate_urls[: max(1, new_url_cap * 8)]:
+        identity = _authority_retrieval_identity(url)
+        if identity in admitted_identities:
+            continue
+        if identity not in scanned_identities:
+            if len(scanned_identities) >= new_url_cap * 2:
+                break
+            scanned_identities.add(identity)
+        if identity in known:
+            admitted.append(url)
+            admitted_identities.add(identity)
+            continue
+        if new_count >= new_url_cap:
+            continue
+        admitted.append(url)
+        admitted_identities.add(identity)
+        known.add(identity)
+        new_count += 1
+    return tuple(admitted)
+
+
+def _schedule_authority_candidates(
+    rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Fairly order the bounded direct-fetch lane across class and provider."""
+
+    eurostat_rows = [
+        row
+        for row in rows
+        if str(row.get("provider") or "") == "eurostat_comext_official"
+    ][:1]
+    network_rows = [row for row in rows if row not in eurostat_rows]
+    providers = list(
+        dict.fromkeys(str(row.get("provider") or "unknown") for row in network_rows)
+    )
+    buckets: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
+    for row in network_rows:
+        provider = str(row.get("provider") or "unknown")
+        for evidence_class in row.get("acquisition_evidence_classes") or []:
+            buckets.setdefault((provider, str(evidence_class)), []).append(row)
+
+    scheduled: List[Dict[str, Any]] = []
+    scheduled_ids: set[int] = set()
+
+    def add(row: Optional[Dict[str, Any]]) -> None:
+        if row is not None and id(row) not in scheduled_ids:
+            scheduled_ids.add(id(row))
+            scheduled.append(row)
+
+    # These eight slots for two providers fit inside the fetch semaphore and
+    # prevent a run of slow observed pages from starving statutory/statistical
+    # authority candidates. Observed detail-page recovery remains interleaved.
+    for ordinal in (0, 1):
+        for provider in providers:
+            bucket = buckets.get((provider, "observed_primary_market"), [])
+            add(bucket[ordinal] if ordinal < len(bucket) else None)
+    for evidence_class in ("statutory_current", "official_statistic"):
+        for provider in providers:
+            bucket = buckets.get((provider, evidence_class), [])
+            add(bucket[0] if bucket else None)
+    for ordinal in range(2, _MAX_OBSERVED_CANDIDATES_PER_QUERY_PROVIDER):
+        for provider in providers:
+            bucket = buckets.get((provider, "observed_primary_market"), [])
+            add(bucket[ordinal] if ordinal < len(bucket) else None)
+    for row in network_rows:
+        add(row)
+    return [*eurostat_rows, *scheduled[:_MAX_AUTHORITY_NETWORK_CANDIDATES]]
 
 
 def _consume_background_task(task: asyncio.Task[Any]) -> None:
@@ -400,8 +505,11 @@ class B2BDataPipeline:
                 "catalogue price in local currency local market. "
                 + product_topic_clause
                 +
-                "Return direct product/catalog pages from publishers operating in the "
-                "market, containing exact price/currency and current availability."
+                "Return direct product-detail pages from publishers operating in the "
+                "market where one concrete visible product and its current price, "
+                "currency, and availability are bound in a schema.org Product/Offer "
+                "or equivalent product card. Exclude homepages and category/search "
+                "pages that do not expose a concrete current product offer."
             ),
         }
         return [
@@ -1492,75 +1600,27 @@ class B2BDataPipeline:
         ]
         if not normalized or not offers:
             return []
-        value_matches = list(_MATERIAL_VALUE.finditer(normalized))
         results: List[Dict[str, Any]] = []
         seen: set[str] = set()
         for offer in offers[:24]:
-            identities = tuple(
-                dict.fromkeys(
-                    value
-                    for value in (
-                        " ".join(str(offer.get("product_name") or "").split()),
-                        " ".join(str(offer.get("product_id") or "").split()),
-                    )
-                    if len(value) >= 3
-                )
-            )
-            candidates: List[tuple[int, int, str]] = []
-            # Prefer the human-visible product name. A machine identifier is a
-            # fallback only when the name itself is absent from visible text.
-            for identity in identities:
-                identity_spans = [
-                    (match.start(), match.end())
-                    for match in re.finditer(
-                        rf"(?<!\w){re.escape(identity)}(?!\w)",
-                        normalized,
-                        re.IGNORECASE,
-                    )
-                ]
-                for identity_start, identity_end in identity_spans:
-                    for value_match in value_matches:
-                        start = min(identity_start, value_match.start())
-                        end = max(identity_end, value_match.end())
-                        if not (16 <= end - start <= maximum_span):
-                            continue
-                        passage = normalized[start:end]
-                        matched = claim_matching_offer_evidence(
-                            {
-                                "commercial_offer_evidence": [offer],
-                                "country_codes": proof.get("country_codes") or [],
-                            },
-                            passage,
-                        )
-                        if (
-                            not matched
-                            or matched.get("sha256") != offer.get("sha256")
-                        ):
-                            continue
-                        if any(
-                            other is not offer
-                            and any(
-                                other_identity
-                                and re.search(
-                                    rf"(?<!\w){re.escape(other_identity)}(?!\w)",
-                                    passage,
-                                    re.IGNORECASE,
-                                )
-                                for other_identity in (
-                                    str(other.get("product_name") or "").strip(),
-                                    str(other.get("product_id") or "").strip(),
-                                )
-                            )
-                            for other in offers
-                            if isinstance(other, dict)
-                        ):
-                            continue
-                        candidates.append((end - start, start, passage))
-                if candidates:
-                    break
-            if not candidates:
+            binding = offer.get("visible_binding")
+            if not isinstance(binding, dict):
                 continue
-            _length, _start, passage = min(candidates)
+            scope_text = " ".join(str(binding.get("scope_text") or "").split())
+            if not scope_text or scope_text not in normalized:
+                continue
+            passage = " ".join(str(binding.get("claim_text") or "").split())
+            if not (16 <= len(passage) <= maximum_span) or passage not in scope_text:
+                continue
+            matched = claim_matching_offer_evidence(
+                {
+                    "commercial_offer_evidence": [offer],
+                    "country_codes": proof.get("country_codes") or [],
+                },
+                passage,
+            )
+            if not matched or matched.get("sha256") != offer.get("sha256"):
+                continue
             if passage in seen:
                 continue
             semantics = cls._direct_claim_semantics(
@@ -2718,7 +2778,16 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 )
             accepted_current_urls: set[str] = set()
             accepted_lineage_by_url: Dict[str, str] = {}
-            for source in provider_sources:
+            candidate_cap = (
+                _MAX_OBSERVED_CANDIDATES_PER_QUERY_PROVIDER
+                if evidence_class == "observed_primary_market"
+                else _MAX_SOURCES_PER_QUERY_PROVIDER
+            )
+            valid_sources_by_identity: Dict[str, tuple[str, Dict[str, Any]]] = {}
+            # The scan bound applies to distinct retrieval identities. URL
+            # fragments never reach the server and therefore cannot crowd a
+            # later product detail out of the recovery window.
+            for source in provider_sources[: candidate_cap * 8]:
                 if not isinstance(source, dict):
                     continue
                 url = str(source.get("url") or "").strip()
@@ -2749,10 +2818,30 @@ Return exactly one coordinate pair per address, in the same order as the input l
                         }
                     )
                     continue
-                if len(accepted_current_urls) >= _MAX_SOURCES_PER_QUERY_PROVIDER:
-                    continue
+                identity = _authority_retrieval_identity(url)
+                valid_sources_by_identity.setdefault(identity, (url, source))
+                if len(valid_sources_by_identity) >= candidate_cap * 2:
+                    break
+            valid_sources_by_url = {
+                url: source for url, source in valid_sources_by_identity.values()
+            }
+            admitted_urls = _admit_provider_candidate_urls(
+                list(valid_sources_by_url),
+                existing_urls={str(row.get("url") or "") for row in source_rows},
+                new_url_cap=candidate_cap,
+            )
+            for url in admitted_urls:
+                source = valid_sources_by_url[url]
+                retrieval_identity = _authority_retrieval_identity(url)
                 existing = next(
-                    (row for row in source_rows if row.get("url") == url),
+                    (
+                        row
+                        for row in source_rows
+                        if _authority_retrieval_identity(
+                            str(row.get("url") or "")
+                        )
+                        == retrieval_identity
+                    ),
                     None,
                 )
                 source_payload = {
@@ -2785,7 +2874,6 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 provider_lineage_sequence += 1
                 lineage_token = f"provider-source-{provider_lineage_sequence}"
                 source_payload["_provider_lineage_tokens"] = (lineage_token,)
-                accepted_current_urls.add(url)
                 accepted_lineage_by_url[url] = lineage_token
                 accepted_lineage_by_url[url.rstrip("/")] = lineage_token
                 if existing:
@@ -2809,6 +2897,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
                         )
                     )
                     continue
+                accepted_current_urls.add(url)
                 seen_urls.add(url)
                 source_rows.append(source_payload)
 
@@ -2892,7 +2981,8 @@ Return exactly one coordinate pair per address, in the same order as the input l
         # private snapshot so a pathological cancellation cannot mutate the
         # evidence rows after the hard stage deadline has returned.
         authority_started = time.monotonic()
-        authority_candidate_count = len(source_rows)
+        scheduled_authority_rows = _schedule_authority_candidates(source_rows)
+        authority_candidate_count = len(scheduled_authority_rows)
         def clone_authority_row(row: Dict[str, Any]) -> Dict[str, Any]:
             return {
                 **row,
@@ -2906,7 +2996,9 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 ),
             }
 
-        authority_working_rows = [clone_authority_row(row) for row in source_rows]
+        authority_working_rows = [
+            clone_authority_row(row) for row in scheduled_authority_rows
+        ]
         logger.info(
             "Direct authority resolution started; candidates=%s deadline_ms=%s",
             authority_candidate_count,
@@ -2921,6 +3013,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
             source_rows[:] = enriched_rows
         except asyncio.TimeoutError:
             authority_status = "timeout"
+            source_rows[:] = scheduled_authority_rows
             for row in source_rows:
                 row["direct_fetch_status"] = "outer_stage_deadline_exceeded"
                 row.setdefault("jurisdiction_binding_status", "not_resolved")

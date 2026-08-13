@@ -40,6 +40,8 @@ os.environ.setdefault(
 
 def _offer_evidence(*, name: str, price: str, currency: str) -> list[dict]:
     return _commercial_offer_evidence(
+        f'<div class="product"><h1>{name}</h1>'
+        f'<div class="price">Current price {currency} {price}</div></div>'
         '<script type="application/ld+json">'
         f'{{"@type":"Product","name":"{name}","offers":'
         f'{{"@type":"Offer","price":"{price}","priceCurrency":"{currency}"}}}}'
@@ -252,7 +254,8 @@ def test_live_shaped_merchant_config_binds_product_price_not_cart_or_other_value
       &quot;sku&quot;:&quot;158130&quot;,&quot;name&quot;:&quot;Purenatural Sensitive koeratoit 12 kg&quot;,
       &quot;price&quot;:&quot;64,90\u00a0€&quot;,&quot;priceSimple&quot;:64.9,
       &quot;actions&quot;:{&quot;isSalable&quot;:true}}]}'></div>
-    <div>Purenatural Sensitive koeratoit 12 kg Tavahind 64,90 €</div>
+    <div class="product"><h2>Purenatural Sensitive koeratoit 12 kg</h2>
+      <span class="price">Tavahind 64,90 €</span></div>
     <div>Unrelated Beta product 999,00 €</div>
     """
     direct_text = _normalized_document_text(raw_html, is_html=True)
@@ -280,6 +283,378 @@ def test_live_shaped_merchant_config_binds_product_price_not_cart_or_other_value
     ) is None
 
 
+def test_schema_org_microdata_keeps_product_and_offer_in_the_same_scope():
+    cat_name = "Applaws Natural Cat Food Tuna fillet with prawn 156g"
+    dog_name = "Premium dog food 156g"
+    raw_html = f"""
+    <div itemscope itemtype="http://schema.org/Product">
+      <h1 itemprop="name">{cat_name}</h1>
+      <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+        <meta itemprop="price" content="10.90">
+        <meta itemprop="priceCurrency" content="EUR">
+        <link itemprop="availability" href="http://schema.org/InStock">
+        <span class="grp-price">€ 10.90</span>
+      </div>
+      <meta itemprop="productID" content="sku:CAT-156">
+    </div>
+    <div itemscope itemtype="https://schema.org/Product">
+      <h2 itemprop="name">{dog_name}</h2>
+      <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+        <meta itemprop="price" content="12.90">
+        <meta itemprop="priceCurrency" content="EUR">
+        <span>€ 12.90</span>
+      </div>
+      <meta itemprop="sku" content="DOG-156">
+    </div>
+    """
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    offers = _commercial_offer_evidence(raw_html)
+
+    assert [row["signal_type"] for row in offers] == [
+        "schema_org_product_offer",
+        "schema_org_product_offer",
+    ]
+    assert [row["product_name"] for row in offers] == [cat_name, dog_name]
+    assert [row["product_id"] for row in offers] == ["sku:CAT-156", "DOG-156"]
+    assert [row["price"] for row in offers] == ["10.90", "12.90"]
+
+    proof = build_direct_primary_market_proof(
+        direct_url="https://shop.example.ee/en/product/cat-156",
+        direct_text=direct_text,
+        country_codes=["EE"],
+        commercial_offer_evidence=offers,
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-13T00:00:00+00:00",
+    )
+    assert claim_matching_offer_evidence(
+        proof, f"{cat_name} € 10.90"
+    )["product_id"] == "sku:CAT-156"
+    assert claim_matching_offer_evidence(
+        proof, f"{cat_name} € 12.90"
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_cached_cloudflare_challenge_is_rejected_not_counted_as_retrieved():
+    challenge = (
+        "<title>Just a moment...</title>"
+        "<script>window._cf_chl_opt={};</script>"
+        "<script src='/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1'>"
+        "</script>"
+    )
+
+    async def fetcher(_url: str) -> dict:
+        return {
+            "final_url": "https://shop.example.ee/cat-food",
+            "text": "Just a moment...",
+            "retrieved_at": "2026-08-13T00:00:00+00:00",
+            "commercial_offer_evidence": [],
+            "_structured_evidence_html": challenge,
+        }
+
+    source = {
+        "url": "https://shop.example.ee/cat-food",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+    }
+    await enrich_authority_sources([source], fetcher=fetcher)
+
+    assert source["direct_fetch_status"] == "rejected_challenge"
+    assert source["jurisdiction_binding_status"] == (
+        "rejected_retrieval_challenge"
+    )
+    assert source.get("_direct_document_candidate") is None
+    assert source.get("authority_proof") is None
+
+
+def test_hidden_jsonld_topic_name_cannot_authorize_visible_sku_and_dog_price():
+    raw_html = (
+        "<div>Estonia product catalogue. DOG-SKU dog food price € 10.90.</div>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"DOG-SKU","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"10.90",'
+        '"priceCurrency":"EUR"}}'
+        "</script>"
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    assert _commercial_offer_evidence(raw_html) == []
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.ee/dog-sku",
+            direct_text=direct_text,
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-13T00:00:00+00:00",
+        )
+
+
+@pytest.mark.parametrize(
+    "raw_html",
+    [
+        '<main><h1>Cat food</h1><aside>DOG-SKU premium dog kibble current '
+        'price € 10.90.</aside></main><script type="application/ld+json">'
+        '{"@type":"Product","sku":"DOG-SKU","name":"Cat food","offers":'
+        '{"@type":"Offer","price":"10.90","priceCurrency":"EUR"}}'
+        '</script>',
+        '<section class="product"><h1>Cat food</h1>'
+        '<article class="product-card"><h2>Premium dog kibble</h2>'
+        '<div class="price">Current price €10.90</div></article></section>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Cat food","offers":{"@type":"Offer","price":"10.90",'
+        '"priceCurrency":"EUR"}}</script>',
+        '<article><h1>Alpha cat food</h1><section><h2>Premium dog biscuits</h2>'
+        '<div class="price">Current price €10.90</div></section></article>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"10.90",'
+        '"priceCurrency":"EUR"}}</script>',
+        '<section itemscope itemtype="https://schema.org/Product">'
+        '<h1 itemprop="name">Alpha cat food</h1><div itemprop="offers" '
+        'itemscope itemtype="https://schema.org/Offer">'
+        '<meta itemprop="price" content="2.99">'
+        '<meta itemprop="priceCurrency" content="EUR"></div>'
+        '<article><h2>Dog biscuits</h2><span class="price">Current price '
+        '€2.99</span></article></section>',
+        '<section><h1>Alpha cat food</h1><div>Estonia delivery fee € 2.99.'
+        '</div></section><script type="application/ld+json">'
+        '{"@type":"Product","name":"Alpha cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        '</script>',
+        '<section><h1>Alpha cat food</h1><div>Was price € 3.99; current price '
+        '€ 2.99.</div></section><script type="application/ld+json">'
+        '{"@type":"Product","name":"Alpha cat food","offers":'
+        '{"@type":"Offer","price":"3.99","priceCurrency":"EUR"}}'
+        '</script>',
+        '<div class="product"><h1>Alpha cat food</h1><div class="delivery">'
+        'Shipping fee <span class="price">€2.99</span></div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"2.99",'
+        '"priceCurrency":"EUR"}}</script>',
+        '<div class="product"><h1>Alpha cat food</h1><div class="old-price">'
+        'Was <span class="price">€3.99</span></div>'
+        '<div class="current-price">Now €2.99</div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"3.99",'
+        '"priceCurrency":"EUR"}}</script>',
+        '<div class="product"><h1>Alpha cat food</h1><div class="cart">'
+        'Cart subtotal <span class="price">€2.99</span></div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"2.99",'
+        '"priceCurrency":"EUR"}}</script>',
+    ],
+)
+def test_unscoped_or_noncurrent_offer_amount_cannot_form_visible_binding(raw_html):
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "nested_price_branch",
+    [
+        '<div class="listing-tile"><div class="title">Premium dog biscuits</div>'
+        '<div class="price">Current price €10.90</div></div>',
+        '<section><div>Premium dog biscuits</div>'
+        '<div class="price">Current price €10.90</div></section>',
+        '<div role="group" aria-label="Premium dog biscuits">'
+        '<div class="price">Current price €10.90</div></div>',
+        '<section><div class="price">Premium dog biscuits Current price '
+        '€10.90</div></section>',
+        '<section><div class="price"><span>Premium dog biscuits</span> '
+        'Current price €10.90</div></section>',
+        '<section><div class="price"><span itemprop="name">Member Sale</span> '
+        'Current price €10.90</div></section>',
+        '<section><div class="price"><span aria-label="Other product">'
+        'Member Sale</span> Current price €10.90</div></section>',
+        '<section><div class="price"><span class="title">Member Sale</span> '
+        'Current price €10.90</div></section>',
+        '<section><div class="price"><span role="heading">Member Sale</span> '
+        'Current price €10.90</div></section>',
+        '<section><div class="price"><span id="product-title">Member Sale</span> '
+        'Current price €10.90</div></section>',
+        '<section><div class="price">'
+        + '<i></i>' * 257
+        + '<span itemprop="name">Member Sale</span> Current price €10.90'
+        '</div></section>',
+        '<section><div class="price"><a href="/member-sale">Member Sale</a> '
+        'Current price €10.90</div></section>',
+        '<div class="listing-tile"><div class="price">Current price €10.90'
+        '</div><div class="title">Premium dog biscuits</div></div>',
+        '<section><div class="price">Current price €10.90</div>'
+        '<div role="group" aria-label="Premium dog biscuits"></div></section>',
+        '<section><div class="price">Current price €10.90</div>'
+        '<div>Premium dog biscuits</div></section>',
+        '<section><div class="price">Current price €10.90</div>'
+        '<div>Delivery fee</div></section>',
+        '<section><div class="price">Current price €10.90</div>'
+        '<div>Old list price</div></section>',
+        '<section><div class="price">Current price €10.90</div>'
+        '<div>Cart subtotal</div></section>',
+    ],
+)
+def test_nested_nonheading_product_branch_cannot_lend_price(
+    nested_price_branch: str,
+):
+    raw_html = (
+        '<div>Estonia catalogue</div><div class="product">'
+        f'<h1>Alpha cat food</h1>{nested_price_branch}</div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"10.90","priceCurrency":"EUR"}}</script>'
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+
+    assert _commercial_offer_evidence(raw_html) == []
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.ee/alpha",
+            direct_text=direct_text,
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-13T00:00:00+00:00",
+        )
+
+
+def test_css_id_hidden_product_cannot_form_visible_binding():
+    raw_html = (
+        '<style>#secret{display:none}</style><div id="secret" class="product">'
+        '<h1>Alpha cat food</h1><span class="price">Current price €2.99'
+        '</span></div><div>Estonia catalogue</div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"2.99",'
+        '"priceCurrency":"EUR"}}</script>'
+    )
+
+    assert _normalized_document_text(raw_html, is_html=True) == "Estonia catalogue"
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("wrapper", ["dialog", "details"])
+def test_default_closed_native_container_cannot_authorize_offer(wrapper: str):
+    raw_html = (
+        f'<{wrapper}><div class="product"><h1>Alpha cat food</h1>'
+        '<div class="price">Current price €2.99</div></div>'
+        f'</{wrapper}><div>Estonia catalogue</div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+
+    assert _normalized_document_text(raw_html, is_html=True) == "Estonia catalogue"
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("wrapper", ["dialog open", "details open"])
+def test_open_native_container_can_authorize_visible_offer(wrapper: str):
+    tag = wrapper.split()[0]
+    raw_html = (
+        f'<{wrapper}><div class="product"><h1>Alpha cat food</h1>'
+        '<div class="price">Current price €2.99</div></div>'
+        f'</{tag}><div>Estonia catalogue</div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+
+    assert len(_commercial_offer_evidence(raw_html)) == 1
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    ["opacity:0", "content-visibility:hidden", "visibility:collapse"],
+)
+@pytest.mark.parametrize("via_rule", [False, True])
+def test_high_confidence_hidden_css_cannot_authorize_offer(
+    declaration: str, via_rule: bool
+):
+    style = (
+        f'<style>#secret{{{declaration}}}</style><div id="secret"'
+        if via_rule
+        else f'<div id="secret" style="{declaration}"'
+    )
+    raw_html = (
+        f'{style} class="product"><h1>Alpha cat food</h1>'
+        '<span class="price">Current price €2.99</span></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+
+    assert _normalized_document_text(raw_html, is_html=True) == ""
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_equal_delivery_and_current_amount_cannot_substitute_signed_occurrence():
+    raw_html = (
+        '<div>Estonia catalogue</div><div class="product">'
+        '<h1>Alpha cat food</h1><div class="delivery">Delivery fee €2.99</div>'
+        '<p>Long product description with ingredients, nutritional analysis, '
+        'stock information, package details and shopping notes.</p>'
+        '<div class="current-price">Current product price €2.99</div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+
+    assert _commercial_offer_evidence(raw_html) == []
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.ee/alpha",
+            direct_text=direct_text,
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-13T00:00:00+00:00",
+        )
+
+
+def test_primary_market_proof_rejects_injected_direct_text_not_derived_from_raw():
+    raw_html = (
+        '<div class="product"><h1>Alpha cat food</h1>'
+        '<div class="price">Current price €2.99</div></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+    injected_text = "Estonia catalogue " + _normalized_document_text(
+        raw_html, is_html=True
+    )
+
+    with pytest.raises(ValueError, match="does not match normalized fetched"):
+        build_direct_primary_market_proof(
+            direct_url="https://shop.example.com/alpha",
+            direct_text=injected_text,
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at="2026-08-13T00:00:00+00:00",
+        )
+
+
+def test_microdata_ordinary_element_uses_visible_text_not_content_attribute():
+    raw_html = (
+        '<section itemscope itemtype="https://schema.org/Product">'
+        '<h1 itemprop="name" content="Alpha cat food">Premium dog food</h1>'
+        '<div itemprop="offers" itemscope itemtype="https://schema.org/Offer">'
+        '<meta itemprop="price" content="2.99">'
+        '<meta itemprop="priceCurrency" content="EUR">'
+        '<span class="price">Current price €2.99</span></div></section>'
+    )
+    offers = _commercial_offer_evidence(raw_html)
+
+    assert offers[0]["product_name"] == "Premium dog food"
+    assert "Alpha cat food" not in offers[0]["visible_binding"]["scope_text"]
+
+
+def test_void_input_does_not_hide_following_visible_offer_text():
+    raw_html = (
+        '<div class="product"><input hidden><h1>Alpha cat food</h1>'
+        '<span class="price">Current price €2.99</span></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"2.99",'
+        '"priceCurrency":"EUR"}}</script>'
+    )
+
+    assert "Alpha cat food" in _normalized_document_text(raw_html, is_html=True)
+    assert len(_commercial_offer_evidence(raw_html)) == 1
+
+
 @pytest.mark.parametrize(
     ("country_code", "visible_price", "currency"),
     [
@@ -295,12 +670,14 @@ def test_ambiguous_currency_symbol_uses_one_raw_derived_offer_in_one_country(
 ):
     direct_text = f"Alpha cat food SKU A123 current price {visible_price}."
     raw_html = (
-        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '<div class="product"><h1>Alpha cat food</h1>'
+        f"<div>{direct_text}</div></div><script type=\"application/ld+json\">"
         f'{{"@type":"Product","sku":"A123","name":"Alpha cat food",'
         f'"offers":{{"@type":"Offer","price":"{visible_price[1:]}",'
         f'"priceCurrency":"{currency}"}}}}'
         "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
     proof = build_direct_primary_market_proof(
         direct_url=f"https://shop.example.{country_code.casefold()}/alpha",
         direct_text=direct_text,
@@ -308,19 +685,24 @@ def test_ambiguous_currency_symbol_uses_one_raw_derived_offer_in_one_country(
         direct_raw_html=raw_html,
         retrieved_at="2026-08-12T12:00:00+00:00",
     )
-    assert claim_matching_offer_evidence(proof, direct_text)
+    assert claim_matching_offer_evidence(
+        proof,
+        proof["commercial_offer_evidence"][0]["visible_binding"]["claim_text"],
+    )
 
 
 def test_ambiguous_currency_symbol_rejects_multiple_offer_currencies():
     direct_text = "United States Alpha cat food SKU A123 current price $12.99."
     raw_html = (
-        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '<div class="product"><h1>Alpha cat food</h1>'
+        f"<div>{direct_text}</div></div><script type=\"application/ld+json\">"
         '[{"@type":"Product","sku":"A123","name":"Alpha cat food",'
         '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"USD"}},'
         '{"@type":"Product","sku":"A123","name":"Alpha cat food",'
         '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"CAD"}}]'
         "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
     with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
         build_direct_primary_market_proof(
             direct_url="https://shop.example.com/alpha",
@@ -331,14 +713,81 @@ def test_ambiguous_currency_symbol_rejects_multiple_offer_currencies():
         )
 
 
+def test_two_equal_price_products_keep_independent_visible_bindings_and_claims():
+    raw_html = (
+        '<article class="product-card"><h2>Alpha cat food</h2><div>SKU-A</div>'
+        '<span class="price">Current price €2.99</span></article>'
+        '<article class="product-card"><h2>Alpha cat food</h2><div>SKU-B</div>'
+        '<span class="price">Current price €2.99</span></article>'
+        '<script type="application/ld+json">['
+        '{"@type":"Product","sku":"SKU-A","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}},'
+        '{"@type":"Product","sku":"SKU-B","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}]'
+        '</script>'
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    offers = _commercial_offer_evidence(raw_html)
+    proof = build_direct_primary_market_proof(
+        direct_url="https://shop.example.ee/equal-price",
+        direct_text=direct_text,
+        country_codes=["EE"],
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-13T00:00:00+00:00",
+    )
+    spans = B2BDataPipeline._structured_offer_claim_passages(
+        direct_text, proof, retrieved_at=proof["retrieved_at"]
+    )
+
+    assert [row["product_id"] for row in offers] == ["SKU-A", "SKU-B"]
+    assert [
+        row["visible_binding"]["product_id_text"] for row in offers
+    ] == ["SKU-A", "SKU-B"]
+    assert len(proof["commercial_offer_evidence"]) == 2
+    assert {"SKU-A", "SKU-B"}.issubset(
+        {sku for row in spans for sku in ("SKU-A", "SKU-B") if sku in row["text"]}
+    )
+
+
+def test_hidden_product_ids_cannot_create_two_offers_from_one_visible_card():
+    raw_html = (
+        '<article class="product-card"><h2>Alpha cat food</h2>'
+        '<span class="price">Current price €2.99</span></article>'
+        '<script type="application/ld+json">['
+        '{"@type":"Product","sku":"SKU-A","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}},'
+        '{"@type":"Product","sku":"SKU-B","name":"Alpha cat food",'
+        '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}]'
+        '</script>'
+    )
+
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_machine_decimal_does_not_equal_visible_thousands_grouping():
+    raw_html = (
+        '<div class="product"><h1>Alpha cat food</h1>'
+        '<span class="price">Current price €1,299</span></div>'
+        '<script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer","price":"1.299",'
+        '"priceCurrency":"EUR"}}</script>'
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+    matching_raw_html = raw_html.replace('"price":"1.299"', '"price":"1299"')
+    assert _commercial_offer_evidence(matching_raw_html)[0]["price"] == "1299"
+
+
 def test_ambiguous_symbol_rejects_self_asserted_wrong_country():
     direct_text = "United States Alpha cat food SKU A123 current price $12.99."
     raw_html = (
-        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '<div class="product"><h1>Alpha cat food</h1>'
+        f"<div>{direct_text}</div></div><script type=\"application/ld+json\">"
         '{"@type":"Product","sku":"A123","name":"Alpha cat food",'
         '"offers":{"@type":"Offer","price":"12.99","priceCurrency":"USD"}}'
         "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
     with pytest.raises(ValueError, match="does not bind requested jurisdiction"):
         build_direct_primary_market_proof(
             direct_url="https://shop.example.com/alpha",
@@ -390,25 +839,25 @@ async def test_generic_currency_page_without_fetched_offer_is_not_first_party_ca
 @pytest.mark.asyncio
 async def test_direct_retail_catalogue_price_is_signed_extracted_and_verified():
     url = "https://shop.example.ee/cat-food"
-    direct_text = (
-        "Official product catalogue for Estonia. "
-        "The current retail price for premium cat food is €2.99 on 2026-08-12."
+    raw_html = (
+        '<div>Official product catalogue for Estonia.</div>'
+        '<div class="product"><h1>premium cat food</h1>'
+        '<div class="price">The current retail price is €2.99</div>'
+        '<div>Observed on 2026-08-12.</div></div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","name":"premium cat food","offers":'
+        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
 
     async def fetcher(_url: str) -> dict:
         return {
             "final_url": url,
             "text": direct_text,
             "retrieved_at": "2026-08-12T12:00:00+00:00",
-            "commercial_offer_evidence": _offer_evidence(
-                name="premium cat food", price="2.99", currency="EUR"
-            ),
-            "_structured_evidence_html": (
-                f"<div>{direct_text}</div><script type=\"application/ld+json\">"
-                '{"@type":"Product","name":"premium cat food","offers":'
-                '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
-                "</script>"
-            ),
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "_structured_evidence_html": raw_html,
         }
 
     source = {
@@ -470,11 +919,13 @@ def test_live_shaped_split_product_heading_and_price_form_one_exact_offer_claim(
         "Available for delivery in Estonia. "
     )
     raw_html = (
-        f"<h1>{product_name}</h1><div>{filler}</div>"
-        "<div>Price <strong>€ 10.90</strong></div>"
+        f'<section class="product"><h1>{product_name}</h1><div>{filler}</div>'
+        '<div class="product-info-price"><p>Price</p>'
+        '<strong>€ 10.90</strong></div>'
         "<div>Free delivery threshold € 50.00</div>"
-        "<div>EAN 5060122490238</div>"
-        "<article>Premium dog food 156g Price € 12.90</article>"
+        "<div>EAN 5060122490238</div></section>"
+        '<article class="product-card">Premium dog food 156g '
+        '<span class="price">Price € 12.90</span></article>'
         '<script type="application/ld+json">'
         f'{{"@type":"Product","name":"{product_name}",'
         '"gtin13":"5060122490238","offers":{"@type":"Offer",'
@@ -735,7 +1186,8 @@ async def test_offer_identity_cannot_match_inside_larger_visible_word():
 async def test_offer_identity_with_punctuation_boundary_passes_full_path():
     url = "https://shop.example.ee/cat-food/punctuation"
     raw_html = (
-        "<div>Estonia Cat food — Product catalogue Price € 2.99</div>"
+        '<div>Estonia product catalogue.</div><div class="product">'
+        '<h1>Cat food</h1><div class="price">Price € 2.99</div></div>'
         '<script type="application/ld+json">'
         '{"@type":"Product","name":"Cat food","offers":'
         '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
@@ -792,7 +1244,8 @@ async def test_copycat_candidate_cannot_borrow_valid_offer_elsewhere_on_page():
     url = "https://shop.example.ee/cat-food/copycat-candidate"
     copycat_claim = "Copycat food Price € 2.99."
     raw_html = (
-        "<div>Estonia Cat food — Product catalogue Price € 2.99.</div>"
+        '<div>Estonia product catalogue.</div><div class="product">'
+        '<h1>Cat food</h1><div class="price">Price € 2.99</div></div>'
         f"<div>{copycat_claim}</div>"
         '<script type="application/ld+json">'
         '{"@type":"Product","name":"Cat food","offers":'
@@ -820,7 +1273,8 @@ async def test_copycat_candidate_cannot_borrow_valid_offer_elsewhere_on_page():
     assert source.get("source_authority") == "first_party_catalog"
     proof = source["authority_proof"]
     assert claim_matching_offer_evidence(
-        proof, "Cat food — Product catalogue Price € 2.99."
+        proof,
+        proof["commercial_offer_evidence"][0]["visible_binding"]["claim_text"],
     )
     assert claim_matching_offer_evidence(proof, copycat_claim) is None
 
@@ -874,11 +1328,14 @@ async def test_delivery_threshold_is_not_authorized_by_product_offer():
         "Tellimuse tasuta tarne alampiir 50,00 EUR observed 2026-08-12."
     )
     raw_html = (
-        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '<div class="product"><h1>Alpha kana kassitoit</h1>'
+        '<span class="price">Tavahind 2,99 EUR</span>'
+        f"<div>{direct_text}</div></div><script type=\"application/ld+json\">"
         '{"@type":"Product","sku":"A123","name":"Alpha kana kassitoit",'
         '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
         "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
 
     async def fetcher(_url: str) -> dict:
         return {
@@ -926,11 +1383,14 @@ async def test_resigned_offer_price_cannot_authorize_delivery_threshold():
         "Tellimuse tasuta tarne alampiir 50,00 EUR observed 2026-08-12."
     )
     raw_html = (
-        f"<div>{direct_text}</div><script type=\"application/ld+json\">"
+        '<div class="product"><h1>Alpha kana kassitoit</h1>'
+        '<span class="price">Tavahind 2,99 EUR</span>'
+        f"<div>{direct_text}</div></div><script type=\"application/ld+json\">"
         '{"@type":"Product","sku":"A123","name":"Alpha kana kassitoit",'
         '"offers":{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
         "</script>"
     )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
     proof = build_direct_primary_market_proof(
         direct_url=url,
         direct_text=direct_text,
@@ -1025,11 +1485,17 @@ async def test_resolved_document_must_bind_requested_jurisdiction(
     expected: bool,
 ):
     async def fetcher(_url: str) -> dict:
+        currency = "BRL" if "BRL" in direct_text else "EUR"
+        visible_amount = "BRL 39.90" if currency == "BRL" else "39,90 €"
         offer_html = (
+            f'<div>{direct_text}</div>'
+            '<div class="product"><h1>cat food</h1>'
+            f'<div class="price">Current retail price is {visible_amount}'
+            '</div></div>'
             '<script type="application/ld+json">'
             f'{{"@type":"Product","name":"cat food","offers":'
             f'{{"@type":"Offer","price":"39.90","priceCurrency":"'
-            f'{"BRL" if "BRL" in direct_text else "EUR"}"}}}}'
+            f'{currency}"}}}}'
             "</script>"
         )
         offer_rows = (
@@ -1037,14 +1503,17 @@ async def test_resolved_document_must_bind_requested_jurisdiction(
             if "39" in direct_text
             else []
         )
+        fetched_text = (
+            _normalized_document_text(offer_html, is_html=True)
+            if offer_rows
+            else direct_text
+        )
         return {
             "final_url": final_url,
-            "text": direct_text,
+            "text": fetched_text,
             "retrieved_at": "2026-08-12T12:00:00+00:00",
             "commercial_offer_evidence": offer_rows,
-            "_structured_evidence_html": (
-                f"<div>{direct_text}</div>{offer_html}" if offer_rows else ""
-            ),
+            "_structured_evidence_html": offer_html if offer_rows else "",
         }
 
     row = {
@@ -2017,6 +2486,10 @@ async def test_brazil_brl_catalogue_proof_extracts_and_passes_quality():
 
     async def fetcher(_url: str) -> dict:
         offer_html = (
+            '<div>Brazil product catalogue.</div>'
+            '<div class="product"><h1>cat food</h1>'
+            '<div class="price">Current retail price is BRL 39.90</div>'
+            '<div>Observed on 2026-08-12.</div></div>'
             '<script type="application/ld+json">'
             '{"@type":"Product","name":"cat food","offers":'
             '{"@type":"Offer","price":"39.90","priceCurrency":"BRL"}}'
@@ -2024,12 +2497,10 @@ async def test_brazil_brl_catalogue_proof_extracts_and_passes_quality():
         )
         return {
             "final_url": url,
-            "text": direct_text,
+            "text": _normalized_document_text(offer_html, is_html=True),
             "retrieved_at": "2026-08-12T12:00:00+00:00",
-            "commercial_offer_evidence": _offer_evidence(
-                name="cat food", price="39.90", currency="BRL"
-            ),
-            "_structured_evidence_html": f"<div>{direct_text}</div>{offer_html}",
+            "commercial_offer_evidence": _commercial_offer_evidence(offer_html),
+            "_structured_evidence_html": offer_html,
         }
 
     source = {

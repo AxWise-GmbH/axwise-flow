@@ -612,6 +612,11 @@ def _derived_anchor_occurrences(
         prior_end: int | None = None
         for match in _WORD.finditer(text):
             token = match.group(0)
+            possessive_suffix = bool(
+                token == "s"
+                and run
+                and text[run[-1][2] : match.start()] in {"'", "’"}
+            )
             hard_break = (
                 prior_end is not None
                 and re.search(r"[.!?;:\n]", text[prior_end : match.start()])
@@ -622,10 +627,13 @@ def _derived_anchor_occurrences(
                 or len(token) < 2
                 or any(character.isdigit() for character in token)
             )
-            if hard_break or is_excluded:
+            if hard_break or (is_excluded and not possessive_suffix):
                 retain_run(run, source_field, text)
                 run = []
-            if not is_excluded:
+            if possessive_suffix:
+                prior_token, prior_start, _prior_end = run[-1]
+                run[-1] = (prior_token + "'s", prior_start, match.end())
+            elif not is_excluded:
                 run.append((token, match.start(), match.end()))
             prior_end = match.end()
         retain_run(run, source_field, text)
@@ -1588,6 +1596,34 @@ def product_topic_phrases(seed: TopicSeedContract) -> tuple[str, ...]:
                 for other in candidates
             )
         }
+        if source_field == "title":
+            # Goal titles often append a workflow/evidence qualifier to the
+            # actual product phrase ("cat food verified launch"). Strip only
+            # a closed trailing whole-token qualifier. Never remove the same
+            # word from a prefix or interior position, where it may be part of
+            # an inferred brand such as "Verified Choice cat food".
+            trailing_qualifiers = {
+                "verification",
+                "verified",
+                "verifying",
+            }
+            pruned: set[str] = set()
+            for phrase in maximal:
+                word_matches = list(_WORD.finditer(phrase))
+                if (
+                    len(word_matches) < 3
+                    or word_matches[-1].group(0) not in trailing_qualifiers
+                ):
+                    continue
+                # Slice the normalized source span at the qualifier rather
+                # than rebuilding it from tokens. Punctuation is part of an
+                # exact topic contract: ``cat-food`` must not become
+                # ``cat food`` merely because a workflow suffix was removed.
+                base = phrase[: word_matches[-1].start()].rstrip()
+                if base in candidates:
+                    pruned.add(base)
+            if pruned:
+                maximal = pruned
         return tuple(sorted(maximal))
     return ()
 
