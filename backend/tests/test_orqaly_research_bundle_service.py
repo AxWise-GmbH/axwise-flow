@@ -199,6 +199,16 @@ async def test_multi_market_grounding_runs_country_cells_concurrently_and_preser
                     "elapsed_ms": 25,
                     "deadline_ms": 90_000,
                 },
+                "statutory_recovery": {
+                    "status": "timeout" if code == "LU" else "completed",
+                    "route_count": 1,
+                    "candidate_count": 2,
+                    "retrieved_count": 1,
+                    "verified_count": 1,
+                    "accepted_verified_claims": 1 if code != "LU" else 0,
+                    "elapsed_ms": 20 if code != "LU" else 40,
+                    "deadline_ms": 90_000,
+                },
             },
         }
 
@@ -244,9 +254,24 @@ async def test_multi_market_grounding_runs_country_cells_concurrently_and_preser
         "candidate_count": 3,
         "retrieved_count": 0,
         "verified_count": 0,
+        "accepted_verified_claims": 0,
         "source_count": 0,
         "company_count": 0,
         "elapsed_ms": 25,
+        "deadline_ms": 90_000,
+    }
+    assert result["routing_diagnostics"]["statutory_recovery"] == {
+        "status": "mixed",
+        "cell_count": 3,
+        "host_count": 0,
+        "route_count": 3,
+        "candidate_count": 6,
+        "retrieved_count": 3,
+        "verified_count": 3,
+        "accepted_verified_claims": 2,
+        "source_count": 0,
+        "company_count": 0,
+        "elapsed_ms": 40,
         "deadline_ms": 90_000,
     }
 

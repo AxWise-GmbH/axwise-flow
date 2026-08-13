@@ -195,6 +195,95 @@ class HybridRunService:
         )
 
     @staticmethod
+    def _evaluate_country_cell_claims(
+        grounding: Dict[str, Any],
+        *,
+        critical_policy: Dict[str, Any],
+        claim_class_applicability: Dict[str, Any],
+    ) -> list[Dict[str, Any]]:
+        """Fail closed per confirmed country cell, never on a global union."""
+
+        coverage_rows = [
+            row
+            for row in grounding.get("cell_coverage") or []
+            if isinstance(row, dict) and row.get("cell_id")
+        ]
+        if not coverage_rows:
+            return []
+        sources = [
+            row for row in grounding.get("market_sources") or [] if isinstance(row, dict)
+        ]
+        claims = [
+            row for row in grounding.get("market_claims") or [] if isinstance(row, dict)
+        ]
+        mandatory = list(critical_policy.get("mandatory_claim_classes") or [])
+        results: list[Dict[str, Any]] = []
+        for coverage in coverage_rows:
+            cell_id = str(coverage["cell_id"])
+            countries = [
+                str(value).upper()
+                for value in coverage.get("country_codes") or []
+                if value
+            ]
+            cell_sources = [
+                row
+                for row in sources
+                if cell_id in (row.get("research_cell_ids") or [])
+            ]
+            source_ids = {
+                str(row.get("source_id"))
+                for row in cell_sources
+                if row.get("source_id")
+            }
+            cell_claims = [
+                row
+                for row in claims
+                if cell_id in (row.get("research_cell_ids") or [])
+                and source_ids.intersection(row.get("source_ids") or [])
+            ]
+            quality = evaluate_critical_claims(
+                {"market_sources": cell_sources, "market_claims": cell_claims},
+                countries,
+                freshness_days=int(critical_policy.get("freshness_days") or 120),
+                freshness_by_class=critical_policy.get("freshness_by_class") or {},
+                mandatory_claim_classes=mandatory,
+                claim_class_applicability=claim_class_applicability,
+            )
+            coverage["critical_claim_status"] = quality.get("status")
+            coverage["verified_claim_classes"] = list(
+                quality.get("verified_claim_classes") or []
+            )
+            coverage["missing_claim_classes"] = list(
+                quality.get("missing_claim_classes") or []
+            )
+            if quality.get("status") != "passed":
+                coverage["status"] = "blocked"
+            results.append(
+                {
+                    "cell_id": cell_id,
+                    "country_codes": countries,
+                    "status": quality.get("status"),
+                    "verified_claim_classes": coverage["verified_claim_classes"],
+                    "missing_claim_classes": coverage["missing_claim_classes"],
+                    "blocked_reason_counts": {
+                        reason: sum(
+                            1
+                            for row in quality.get("blocked_claims") or []
+                            if str(row.get("reason") or "").split(":", 1)[0] == reason
+                        )
+                        for reason in sorted(
+                            {
+                                str(row.get("reason") or "").split(":", 1)[0]
+                                for row in quality.get("blocked_claims") or []
+                                if row.get("reason")
+                            }
+                        )
+                    },
+                }
+            )
+        return results
+
+    @staticmethod
     def _with_resolved_required_market(
         request: SimulationRequest,
         policy: HybridGroundingPolicy,
@@ -795,6 +884,11 @@ class HybridRunService:
                 mandatory_claim_classes = list(
                     critical_policy.get("mandatory_claim_classes") or []
                 )
+                cell_critical_quality = self._evaluate_country_cell_claims(
+                    grounding,
+                    critical_policy=critical_policy,
+                    claim_class_applicability=claim_class_applicability,
+                )
                 critical_quality = evaluate_critical_claims(
                     grounding,
                     self._requested_country_codes(request, grounding),
@@ -816,8 +910,23 @@ class HybridRunService:
                 grounding = {
                     **grounding,
                     "critical_claim_quality": critical_quality,
+                    "cell_critical_claim_quality": cell_critical_quality,
                 }
                 failure_diagnostics = self._sanitized_grounding_diagnostics(grounding)
+                blocked_critical_cells = [
+                    row
+                    for row in cell_critical_quality
+                    if row.get("status") != "passed"
+                ]
+                if critical_policy.get("fail_closed", True) and blocked_critical_cells:
+                    cell_summary = ",".join(
+                        f"{row.get('cell_id')}:{'|'.join(row.get('missing_claim_classes') or []) or 'blocked'}"
+                        for row in blocked_critical_cells
+                    )[:1000]
+                    raise RuntimeError(
+                        "Required current material claims were not verified in every "
+                        f"country cell (blocked_cells={cell_summary})"
+                    )
                 if (
                     critical_policy.get("fail_closed", True)
                     and critical_quality.get("status") != "passed"
@@ -1562,6 +1671,7 @@ class HybridRunService:
                     "verified_count",
                     "source_count",
                     "company_count",
+                    "accepted_verified_claims",
                     "cell_count",
                     "elapsed_ms",
                     "deadline_ms",
@@ -1607,6 +1717,57 @@ class HybridRunService:
                 }
             )
         critical = grounding.get("critical_claim_quality") or {}
+        verified_classes = list(
+            critical.get("verified_claim_classes")
+            or critical.get("verified_evidence_classes")
+            or []
+        )[:8]
+        missing_classes = list(
+            critical.get("missing_claim_classes")
+            or critical.get("missing_evidence_classes")
+            or []
+        )[:8]
+        if not missing_classes:
+            required_classes = set(
+                critical.get("mandatory_claim_classes")
+                or critical.get("applicable_claim_classes")
+                or []
+            )
+            missing_classes = sorted(required_classes - set(verified_classes))[:8]
+        blocked_reason_counts: Dict[str, int] = {}
+        for row in (critical.get("blocked_claims") or [])[:100]:
+            if not isinstance(row, dict):
+                continue
+            reason = str(row.get("reason") or "")
+            reason_code_value = reason.split(":", 1)[0]
+            if not re.fullmatch(r"[a-z0-9_]{1,80}", reason_code_value):
+                continue
+            blocked_reason_counts[reason_code_value] = (
+                blocked_reason_counts.get(reason_code_value, 0) + 1
+            )
+        cell_critical = []
+        for row in (grounding.get("cell_critical_claim_quality") or [])[:16]:
+            if not isinstance(row, dict):
+                continue
+            cell_critical.append(
+                {
+                    "cell_id": str(row.get("cell_id") or "")[:120],
+                    "country_codes": list(row.get("country_codes") or [])[:4],
+                    "status": str(row.get("status") or "")[:40],
+                    "verified_claim_classes": list(
+                        row.get("verified_claim_classes") or []
+                    )[:8],
+                    "missing_claim_classes": list(
+                        row.get("missing_claim_classes") or []
+                    )[:8],
+                    "blocked_reason_counts": {
+                        str(key)[:80]: int(value or 0)
+                        for key, value in (
+                            row.get("blocked_reason_counts") or {}
+                        ).items()
+                    },
+                }
+            )
         attempted_sources = []
         for row in (routing.get("attempted_sources") or [])[:24]:
             if not isinstance(row, dict):
@@ -1667,6 +1828,9 @@ class HybridRunService:
             "targeted_authority_resolution": sanitized_stage(
                 routing.get("targeted_authority_resolution")
             ),
+            "statutory_recovery": sanitized_stage(
+                routing.get("statutory_recovery")
+            ),
             "company_structuring": sanitized_stage(
                 routing.get("company_structuring")
             ),
@@ -1677,12 +1841,12 @@ class HybridRunService:
                 routing.get("rejected_invalid_sources") or []
             ),
             "critical_status": critical.get("status"),
-            "verified_evidence_classes": list(
-                critical.get("verified_evidence_classes") or []
-            )[:8],
-            "missing_evidence_classes": list(
-                critical.get("missing_evidence_classes") or []
-            )[:8],
+            "verified_claim_classes": verified_classes,
+            "missing_claim_classes": missing_classes,
+            "blocked_reason_counts": dict(
+                sorted(blocked_reason_counts.items())[:16]
+            ),
+            "cell_critical_claim_quality": cell_critical,
         }
 
     def _persist_failure(

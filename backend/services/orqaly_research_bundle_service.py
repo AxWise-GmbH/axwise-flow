@@ -740,6 +740,9 @@ async def collect_regional_grounding(
             "candidate_count": sum(int(row.get("candidate_count") or 0) for row in rows),
             "retrieved_count": sum(int(row.get("retrieved_count") or 0) for row in rows),
             "verified_count": sum(int(row.get("verified_count") or 0) for row in rows),
+            "accepted_verified_claims": sum(
+                int(row.get("accepted_verified_claims") or 0) for row in rows
+            ),
             "source_count": sum(int(row.get("source_count") or 0) for row in rows),
             "company_count": sum(int(row.get("company_count") or 0) for row in rows),
             "elapsed_ms": max(int(row.get("elapsed_ms") or 0) for row in rows),
@@ -778,6 +781,7 @@ async def collect_regional_grounding(
         "targeted_authority_resolution": aggregate_stage(
             "targeted_authority_resolution"
         ),
+        "statutory_recovery": aggregate_stage("statutory_recovery"),
         "company_structuring": aggregate_stage("company_structuring"),
         "cells": coverage,
     }
