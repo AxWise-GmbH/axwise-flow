@@ -31,6 +31,7 @@ from backend.services.research_source_authority_service import (
 )
 from backend.services.research_topic_contract_service import (
     TopicSeedContract,
+    _unicode_word_character,
     exact_topic_phrase_in_visible_text,
     match_visible_statistical_topic,
     normalize_topic_phrase,
@@ -63,7 +64,8 @@ _DEFAULT_REQUEST_SECONDS = 20.0
 _METADATA_CACHE_SECONDS = 900.0
 _MAX_METADATA_CACHE_ENTRIES = 32
 _NEGATED_TOPIC_PREFIX = re.compile(
-    r"\b(?:excl(?:\.|uded|uding)?|except|other\s+than|not)\b[^.;:]{0,100}$",
+    r"(?:\bexcl\.|\bexcl\b|\bexcluded\b|\bexcluding\b|\bexcept\b|"
+    r"\bother\s+than\b|\bnot\b)[^.;:]{0,100}$",
     re.IGNORECASE,
 )
 
@@ -471,12 +473,31 @@ LIMIT 64"""
 def _topic_is_negated(label: str, phrase: str) -> bool:
     normalized_label = normalize_topic_phrase(label)
     normalized_phrase = normalize_topic_phrase(phrase)
-    start = normalized_label.find(normalized_phrase)
-    if start < 0:
+    if not normalized_phrase:
         return True
-    return _NEGATED_TOPIC_PREFIX.search(
-        normalized_label[max(0, start - 120) : start]
-    ) is not None
+    search_from = 0
+    while True:
+        start = normalized_label.find(normalized_phrase, search_from)
+        if start < 0:
+            break
+        end = start + len(normalized_phrase)
+        search_from = start + 1
+        if not (
+            (start == 0 or not _unicode_word_character(normalized_label[start - 1]))
+            and (
+                end == len(normalized_label)
+                or not _unicode_word_character(normalized_label[end])
+            )
+        ):
+            continue
+        prefix = normalized_label[max(0, start - 120) : start]
+        if _NEGATED_TOPIC_PREFIX.search(prefix) is None:
+            return False
+    # Missing exact occurrences and labels whose every exact occurrence is
+    # negated both fail closed. This boundary rule is shared with the immutable
+    # topic matcher, so an earlier substring such as ``Copycat food`` cannot
+    # distract the negation check from a later exact ``cat food`` occurrence.
+    return True
 
 
 def _parse_commodities(
