@@ -22,6 +22,7 @@ from backend.api.research.simulation_bridge.services.pipeline import B2BDataPipe
 from backend.services.eurostat_comext_service import (
     BoundedOfficialResponse,
     EurostatComextAcquisition,
+    _topic_is_negated,
     acquire_eurostat_comext_source,
 )
 from backend.services.research_quality_service import evaluate_critical_claims
@@ -685,6 +686,135 @@ async def test_acquisition_fails_closed_on_json_csv_or_classifier_disagreement()
 
 
 @pytest.mark.asyncio
+async def test_acquisition_rejects_abbreviated_classifier_exclusion():
+    excluded_product = copy.deepcopy(json.loads(_CLASSIFIER))
+    excluded_product["results"]["bindings"][0]["code"]["value"] = "2309 90"
+    excluded_product["results"]["bindings"][0]["concept"]["value"] = (
+        "http://data.europa.eu/xsp/cn2026/230990000080"
+    )
+    excluded_product["results"]["bindings"][0]["label"]["value"] = (
+        "2309 90 - Preparations, excl. cat food"
+    )
+    excluded_fetcher, _requested = _fixture_fetcher(
+        classifier_content=json.dumps(
+            excluded_product,
+            separators=(",", ":"),
+        ).encode("utf-8"),
+        json_content=_json_bytes(
+            product_code="230990",
+            product_label="Preparations, excl. cat food",
+        ),
+        csv_content=_csv_bytes(product="230990"),
+    )
+
+    result = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=excluded_fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+
+    assert result.status == "failed_closed"
+    assert result.source is None
+    assert result.diagnostics["reason"] == (
+        "eurostat_comext_no_classifier_topic_match"
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "expected"),
+    [
+        ("Preparations, excl. cat food", True),
+        ("Preparations, excl cat food", True),
+        ("Preparations, excluded cat food", True),
+        ("Preparations, excluding cat food", True),
+        ("Preparations, except cat food", True),
+        ("Preparations, other than cat food", True),
+        ("Preparations, not cat food", True),
+        ("Exclusive cat food", False),
+        ("Notable cat food", False),
+        ("Dog or cat food, put up for retail sale", False),
+        ("Copycat food preparations, excl. cat food", True),
+        ("Preparations excluding cat food; cat food preparations", False),
+    ],
+)
+def test_classifier_negation_uses_exact_topic_occurrences(label, expected):
+    assert _topic_is_negated(label, "cat food") is expected
+
+
+@pytest.mark.asyncio
+async def test_acquisition_rejects_negated_exact_match_after_copycat_substring():
+    product_label = "Copycat food preparations, excl. cat food"
+    excluded_product = copy.deepcopy(json.loads(_CLASSIFIER))
+    excluded_product["results"]["bindings"][0]["code"]["value"] = "2309 90"
+    excluded_product["results"]["bindings"][0]["concept"]["value"] = (
+        "http://data.europa.eu/xsp/cn2026/230990000080"
+    )
+    excluded_product["results"]["bindings"][0]["label"]["value"] = (
+        f"2309 90 - {product_label}"
+    )
+    excluded_fetcher, _requested = _fixture_fetcher(
+        classifier_content=json.dumps(
+            excluded_product,
+            separators=(",", ":"),
+        ).encode("utf-8"),
+        json_content=_json_bytes(
+            product_code="230990",
+            product_label=product_label,
+        ),
+        csv_content=_csv_bytes(product="230990"),
+    )
+
+    result = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=excluded_fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+
+    assert result.status == "failed_closed"
+    assert result.source is None
+    assert result.diagnostics["reason"] == (
+        "eurostat_comext_no_classifier_topic_match"
+    )
+
+
+@pytest.mark.asyncio
+async def test_acquisition_accepts_one_unnegated_exact_topic_occurrence():
+    product_label = "Preparations excluding cat food; cat food preparations"
+    matching_product = copy.deepcopy(json.loads(_CLASSIFIER))
+    matching_product["results"]["bindings"][0]["code"]["value"] = "2309 90"
+    matching_product["results"]["bindings"][0]["concept"]["value"] = (
+        "http://data.europa.eu/xsp/cn2026/230990000080"
+    )
+    matching_product["results"]["bindings"][0]["label"]["value"] = (
+        f"2309 90 - {product_label}"
+    )
+    matching_fetcher, _requested = _fixture_fetcher(
+        classifier_content=json.dumps(
+            matching_product,
+            separators=(",", ":"),
+        ).encode("utf-8"),
+        json_content=_json_bytes(
+            product_code="230990",
+            product_label=product_label,
+        ),
+        csv_content=_csv_bytes(product="230990"),
+    )
+
+    result = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=matching_fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+
+    assert result.status == "completed", result.diagnostics
+    assert result.source is not None
+    assert result.diagnostics["product_label"] == product_label
+
+
+@pytest.mark.asyncio
 async def test_metadata_fetches_are_process_bounded_and_singleflight():
     requested: list[tuple[str, int, float]] = []
 
@@ -1067,6 +1197,369 @@ async def test_runtime_adapter_fills_signed_official_class_without_search_provid
     serialized = json.dumps(public)
     assert '"version":"2.0"' not in serialized
     assert "_structured_evidence_html" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_successful_eurostat_does_not_unlock_uncited_provider_company_text():
+    fetcher, _requested = _fixture_fetcher()
+    acquisition = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+    assert acquisition.source is not None
+    await enrich_authority_sources([acquisition.source])
+    assert validate_authority_proof(
+        acquisition.source,
+        requested_country_codes=["EE"],
+    )
+
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyers",
+        model=MagicMock(),
+        data_source="web",
+        required_evidence_classes=["official_statistic"],
+        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+    )
+
+    class UncitedSearch:
+        def is_available(self):
+            return True
+
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "text": "Uncited Example Co operates in Estonia.",
+                "sources": [],
+                "claims": [],
+            }
+
+    async def passthrough(rows):
+        return rows
+
+    with patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "acquire_eurostat_comext_source",
+        new=AsyncMock(return_value=acquisition),
+    ), patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=UncitedSearch(),
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=passthrough,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline.Agent"
+    ) as parser_factory:
+        companies = await pipeline._discover_via_web_search()
+
+    assert companies == []
+    parser_factory.assert_not_called()
+    assert any(
+        claim.get("evidence_class") == "official_statistic"
+        and claim.get("critical") is True
+        for claim in pipeline.market_claims
+    )
+    assert all(
+        claim.get("object") != "Uncited Example Co operates in Estonia."
+        for claim in pipeline.market_claims
+    )
+
+
+@pytest.mark.asyncio
+async def test_successful_eurostat_preserves_source_bearing_provider_company_path():
+    fetcher, _requested = _fixture_fetcher()
+    acquisition = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+    assert acquisition.source is not None
+    await enrich_authority_sources([acquisition.source])
+    official_url = str(acquisition.source["url"])
+
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyers",
+        model=MagicMock(),
+        data_source="web",
+        required_evidence_classes=["official_statistic"],
+        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+    )
+    provider_url = "https://example.com/estonia-cat-food-market"
+    provider_text = "Example Retail OÜ sells cat food in Estonia."
+
+    class SourceBearingSearch:
+        def is_available(self):
+            return True
+
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "text": provider_text,
+                "sources": [
+                    {
+                        "title": "Estonia cat food market source",
+                        "url": provider_url,
+                    }
+                ],
+                "claims": [
+                    {
+                        "text": provider_text,
+                        "source_urls": [provider_url],
+                    }
+                ],
+            }
+
+    async def passthrough(rows):
+        return rows
+
+    parsed_company = SimpleNamespace(
+        id="example-retail",
+        name="Example Retail OÜ",
+        industry="Pet food",
+        size="Unknown",
+        location="Tallinn, Estonia",
+        latitude=0.0,
+        longitude=0.0,
+        decision_makers=[],
+        estimated_pain_points=[],
+        insights=None,
+        website=official_url,
+        contact_phone=None,
+        pain_point_sources=None,
+    )
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(
+            output=SimpleNamespace(companies=[parsed_company])
+        )
+    )
+    with patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "acquire_eurostat_comext_source",
+        new=AsyncMock(return_value=acquisition),
+    ), patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=SourceBearingSearch(),
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=passthrough,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    assert len(companies) == 1
+    assert companies[0].website is None
+    parser.run.assert_awaited_once()
+    prompt = parser.run.await_args.args[0]
+    assert provider_text in prompt
+    assert provider_url in prompt
+    assert official_url not in prompt
+    assert any(
+        source.get("url") == official_url for source in pipeline.market_sources
+    )
+    assert any(
+        source.get("url") == provider_url for source in pipeline.market_sources
+    )
+    assert "_provider_lineage_tokens" not in json.dumps(pipeline.market_sources)
+
+
+@pytest.mark.asyncio
+async def test_company_parser_keeps_only_claims_with_their_own_surviving_sources():
+    fetcher, _requested = _fixture_fetcher()
+    acquisition = await acquire_eurostat_comext_source(
+        _topic_seed(),
+        country_code="EE",
+        fetcher=fetcher,
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+    assert acquisition.source is not None
+    await enrich_authority_sources([acquisition.source])
+    official_url = str(acquisition.source["url"])
+
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyers",
+        model=MagicMock(),
+        data_source="web",
+        required_evidence_classes=["official_statistic"],
+        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+    )
+    valid_url = "https://valid.example.com/estonia-cat-food"
+    rejected_url = "https://rejected.example.com/latvia-cat-food"
+    valid_claim = "Valid Retail OÜ sells cat food in Estonia."
+    rejected_claim = "Rejected Retail SIA sells cat food in Latvia."
+
+    class MixedSearch:
+        def is_available(self):
+            return True
+
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "text": f"{valid_claim} {rejected_claim}",
+                "sources": [
+                    {"title": "Valid source", "url": valid_url},
+                    {"title": "Rejected source", "url": rejected_url},
+                ],
+                "claims": [
+                    {"text": valid_claim, "source_urls": [valid_url]},
+                    {"text": rejected_claim, "source_urls": [rejected_url]},
+                ],
+            }
+
+    async def resolve_mixed_sources(rows):
+        for row in rows:
+            if row.get("url") == rejected_url:
+                row["jurisdiction_binding_status"] = "rejected"
+        return rows
+
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(output=SimpleNamespace(companies=[]))
+    )
+    with patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "acquire_eurostat_comext_source",
+        new=AsyncMock(return_value=acquisition),
+    ), patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=MixedSearch(),
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=resolve_mixed_sources,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    assert companies == []
+    parser.run.assert_awaited_once()
+    prompt = parser.run.await_args.args[0]
+    assert valid_claim in prompt
+    assert valid_url in prompt
+    assert rejected_claim not in prompt
+    assert rejected_url not in prompt
+    assert official_url not in prompt
+    assert any(
+        source.get("url") == official_url for source in pipeline.market_sources
+    )
+    assert all(
+        source.get("url") != rejected_url for source in pipeline.market_sources
+    )
+    assert "_provider_lineage_tokens" not in json.dumps(pipeline.market_sources)
+
+
+@pytest.mark.asyncio
+async def test_company_claim_lineage_survives_verified_source_redirect():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Category buyers",
+        model=MagicMock(),
+        data_source="web",
+    )
+    original_url = "https://redirect.example.com/estonia-retailer"
+    final_url = "https://retailer.example.ee/cat-food"
+    provider_claim = "Redirect Retail OÜ sells cat food in Estonia."
+
+    class RedirectSearch:
+        def is_available(self):
+            return True
+
+        def search_web_general(self, _query):
+            return {
+                "search_performed": True,
+                "text": provider_claim,
+                "sources": [
+                    {"title": "Redirect retailer", "url": original_url}
+                ],
+                "claims": [
+                    {"text": provider_claim, "source_urls": [original_url]}
+                ],
+            }
+
+    async def resolve_redirect(rows):
+        for row in rows:
+            if row.get("url") == original_url:
+                row["retrieval_url"] = original_url
+                row["resolved_url"] = final_url
+                row["url"] = final_url
+                row["jurisdiction_binding_status"] = "verified"
+        return rows
+
+    parsed_company = SimpleNamespace(
+        id="redirect-retail",
+        name="Redirect Retail OÜ",
+        industry="Pet food",
+        size="Unknown",
+        location="Tallinn, Estonia",
+        latitude=0.0,
+        longitude=0.0,
+        decision_makers=[],
+        estimated_pain_points=[],
+        insights=None,
+        website=final_url,
+        contact_phone=None,
+        pain_point_sources=None,
+    )
+    parser = MagicMock()
+    parser.run = AsyncMock(
+        return_value=SimpleNamespace(
+            output=SimpleNamespace(companies=[parsed_company])
+        )
+    )
+    with patch(
+        "backend.services.generative.gemini_search_service.GeminiSearchService",
+        return_value=RedirectSearch(),
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=resolve_redirect,
+    ), patch(
+        "backend.api.research.simulation_bridge.services.pipeline.Agent",
+        return_value=parser,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    assert len(companies) == 1
+    assert companies[0].website == final_url
+    prompt = parser.run.await_args.args[0]
+    assert provider_claim in prompt
+    assert final_url in prompt
+    assert original_url not in prompt
+    assert any(
+        source.get("url") == final_url for source in pipeline.market_sources
+    )
+    assert "_provider_lineage_tokens" not in json.dumps(pipeline.market_sources)
 
 
 @pytest.mark.asyncio
