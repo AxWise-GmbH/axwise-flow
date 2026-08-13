@@ -1812,6 +1812,80 @@ def test_multi_market_critical_gate_requires_every_class_in_every_country_cell(
     assert all(row["status"] == "complete" for row in complete["cell_coverage"])
 
 
+def test_country_cell_gate_recovers_verified_country_join_when_cell_tag_missing(
+    monkeypatch,
+):
+    """A legacy/deferred row may carry EE but miss the transport-only cell tag.
+
+    The source-country proof remains the trust boundary. The fallback is used
+    only for rows without any cell IDs and never lets one tagged cell bleed
+    into another.
+    """
+
+    observed = {}
+
+    def fake_quality(cell_grounding, countries, **_kwargs):
+        observed["sources"] = cell_grounding["market_sources"]
+        observed["claims"] = cell_grounding["market_claims"]
+        observed["countries"] = countries
+        return {
+            "status": "passed",
+            "verified_claim_classes": ["statutory_current"],
+            "missing_claim_classes": [],
+            "blocked_claims": [],
+        }
+
+    monkeypatch.setattr(
+        "backend.services.orqaly_hybrid_run_service.evaluate_critical_claims",
+        fake_quality,
+    )
+    grounding = {
+        "market_sources": [
+            {"source_id": "source-ee", "country_codes": ["EE"]},
+            {
+                "source_id": "source-be",
+                "country_codes": ["BE"],
+                "research_cell_ids": ["country:BE"],
+            },
+        ],
+        "market_claims": [
+            {
+                "claim_id": "claim-ee",
+                "source_ids": ["source-ee"],
+                "country_codes": ["EE"],
+            },
+            {
+                "claim_id": "claim-be",
+                "source_ids": ["source-be"],
+                "country_codes": ["BE"],
+                "research_cell_ids": ["country:BE"],
+            },
+        ],
+        "cell_coverage": [
+            {
+                "cell_id": "country:EE",
+                "country_codes": ["EE"],
+                "status": "complete",
+            }
+        ],
+    }
+
+    rows = HybridRunService._evaluate_country_cell_claims(
+        grounding,
+        critical_policy={
+            "mandatory_claim_classes": ["statutory_current"]
+        },
+        claim_class_applicability={
+            "applicable_claim_classes": ["statutory_current"]
+        },
+    )
+
+    assert rows[0]["status"] == "passed"
+    assert [row["source_id"] for row in observed["sources"]] == ["source-ee"]
+    assert [row["claim_id"] for row in observed["claims"]] == ["claim-ee"]
+    assert observed["countries"] == ["EE"]
+
+
 def test_terminal_run_performance_is_frozen_at_completed_at():
     run = PipelineRun(
         job_id="job-frozen",

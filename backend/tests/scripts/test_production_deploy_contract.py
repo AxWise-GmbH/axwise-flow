@@ -113,17 +113,48 @@ def test_registry_grounding_can_be_made_a_fail_fast_release_requirement() -> Non
     assert "Required Secret Manager secret" in script
 
 
-def test_optional_searxng_route_requires_a_credential_free_https_endpoint() -> None:
+def test_searxng_route_is_discovered_and_authenticated_before_build() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 
+    discovery = 'DISCOVERED_SEARXNG_URL="$(gcloud run services describe "${SEARXNG_SERVICE}"'
+    preflight = 'f"{base_url}/search?{query}"'
+    build = 'echo "Building ${IMAGE}"'
+
+    assert 'SEARXNG_SERVICE="${SEARXNG_SERVICE:-axwise-searxng}"' in script
     assert 'SEARXNG_URL="${SEARXNG_URL:-}"' in script
+    assert discovery in script
+    assert "value(status.url)" in script
+    assert 'SEARXNG_URL="${DISCOVERED_SEARXNG_URL}"' in script
     assert '[[ "${SEARXNG_URL}" == *"@"* ]]' in script
     assert '[[ ! "${SEARXNG_URL}" =~ ^https:// ]]' in script
+    assert '[[ "${SEARXNG_URL}" != "${DISCOVERED_SEARXNG_URL}" ]]' in script
+    assert '[[ "${SEARXNG_URL}" == */search ]]' in script
+    assert 'WORKER_SERVICE_ACCOUNT="$(gcloud run services describe "${WORKER_SERVICE}"' in script
+    assert 'gcloud run services get-iam-policy "${SEARXNG_SERVICE}"' in script
+    assert "bindings.role=roles/run.invoker" in script
+    assert 'bindings.members=serviceAccount:${WORKER_SERVICE_ACCOUNT}' in script
+    assert 'grep -Fxq "serviceAccount:${WORKER_SERVICE_ACCOUNT}"' in script
+    assert "Worker service account lacks roles/run.invoker" in script
+    assert "gcloud" in script
+    assert "auth" in script
+    assert "print-identity-token" in script
+    assert "--impersonate-service-account" not in script
+    assert preflight in script
+    assert '"Authorization": f"Bearer {token}"' in script
+    assert 'content_type != "application/json"' in script
+    assert 'isinstance(payload.get("results"), list)' in script
+    assert "invalid search schema" in script
+    assert script.index(discovery) < script.index(preflight) < script.index(build)
     assert (
         'WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}'
         '@SEARXNG_AUTH_MODE=google_identity"' in script
     )
     assert '--set-env-vars "${WORKER_ENV_VARS}"' in script
+    assert '--service-account "${WORKER_SERVICE_ACCOUNT}"' in script
+
+    # Identity tokens and response bodies must not be written to the deploy log.
+    assert "print(token)" not in script
+    assert "print(body)" not in script
 
 
 def test_private_searxng_deployment_uses_identity_and_pinned_image() -> None:
@@ -144,3 +175,5 @@ def test_private_searxng_deployment_uses_identity_and_pinned_image() -> None:
     assert "SEARXNG_AUTH_MODE=google_identity" in script
     assert "SEARXNG_SECRET=" in script
     assert "- json" in settings
+    for engine in ("bing", "brave", "duckduckgo", "google"):
+        assert f"- name: {engine}\n    disabled: false" in settings

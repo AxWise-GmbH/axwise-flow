@@ -229,6 +229,14 @@ class HybridRunService:
                 row
                 for row in sources
                 if cell_id in (row.get("research_cell_ids") or [])
+                or (
+                    not (row.get("research_cell_ids") or [])
+                    and set(countries).intersection(
+                        str(value).upper()
+                        for value in row.get("country_codes") or []
+                        if value
+                    )
+                )
             ]
             source_ids = {
                 str(row.get("source_id"))
@@ -238,8 +246,18 @@ class HybridRunService:
             cell_claims = [
                 row
                 for row in claims
-                if cell_id in (row.get("research_cell_ids") or [])
-                and source_ids.intersection(row.get("source_ids") or [])
+                if source_ids.intersection(row.get("source_ids") or [])
+                and (
+                    cell_id in (row.get("research_cell_ids") or [])
+                    or (
+                        not (row.get("research_cell_ids") or [])
+                        and set(countries).intersection(
+                            str(value).upper()
+                            for value in row.get("country_codes") or []
+                            if value
+                        )
+                    )
+                )
             ]
             quality = evaluate_critical_claims(
                 {"market_sources": cell_sources, "market_claims": cell_claims},

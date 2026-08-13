@@ -33,8 +33,18 @@ class SearxngSearchService:
         if not self.base_url:
             return False
         parsed = urlparse(self.base_url)
-        return parsed.scheme == "https" or (
+        safe_transport = parsed.scheme == "https" or (
             parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
+        )
+        # Callers append the JSON API path themselves. Rejecting a copied
+        # endpoint URL avoids the silent `/search/search` failure mode.
+        return bool(
+            safe_transport
+            and parsed.username is None
+            and parsed.password is None
+            and parsed.query == ""
+            and parsed.fragment == ""
+            and parsed.path.rstrip("/") not in {"/search"}
         )
 
     def search_web_general(self, query: str) -> Dict[str, Any]:
