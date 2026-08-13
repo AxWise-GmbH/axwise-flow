@@ -202,6 +202,29 @@ def is_trusted_public_root(url: str) -> bool:
     )
 
 
+def trusted_public_root_search_scope(country_codes: Iterable[str]) -> str:
+    """Return bounded search scopes for recognized roots in a jurisdiction.
+
+    This is discovery policy only. A returned result still has to be fetched,
+    recognized by :func:`is_trusted_public_root`, bound to the requested
+    jurisdiction, and contain an exact hostname reference before it can attest
+    a direct publisher.
+    """
+
+    requested = {str(value).upper() for value in country_codes if value}
+    scopes: list[str] = []
+    if requested and requested.issubset(_EU_COUNTRY_CODES):
+        scopes.append("site:europa.eu")
+    if "US" in requested:
+        scopes.append("site:gov")
+    scopes.extend(
+        f"site:gov.{code.casefold()}"
+        for code in sorted(requested - _EU_COUNTRY_CODES - {"US"})
+        if len(code) == 2
+    )
+    return " OR ".join(scopes) or "official government directory"
+
+
 def _recognized_root_covers_jurisdiction(
     url: str,
     country_codes: Iterable[str],
@@ -273,8 +296,18 @@ def build_attested_authority_proof(
     attestation_host = _host(attestation_url)
     if not direct_host or urlparse(direct_url).scheme.casefold() != "https":
         raise ValueError("authority publisher must be a direct HTTPS URL")
+    normalized_country_codes = sorted(
+        {str(value).upper() for value in country_codes if value}
+    )
     if not is_trusted_public_root(attestation_url):
         raise ValueError("authority attestation must come from a government/EU root")
+    if not _recognized_root_covers_jurisdiction(
+        attestation_url,
+        normalized_country_codes,
+    ):
+        raise ValueError(
+            "authority attestation root does not cover requested jurisdiction"
+        )
     attestation_excerpt = _excerpt(
         attestation_text,
         direct_host,
@@ -302,9 +335,7 @@ def build_attested_authority_proof(
         "version": AUTHORITY_PROOF_VERSION,
         "proof_type": "independent_public_root_attestation",
         "source_authority": "official_public",
-        "country_codes": sorted(
-            {str(value).upper() for value in country_codes if value}
-        ),
+        "country_codes": normalized_country_codes,
         "direct": {
             "final_url": direct_url,
             "final_host": direct_host,
@@ -477,8 +508,15 @@ def validate_authority_proof(
     }
     expected_authority = "official_public"
     if proof_type == "independent_public_root_attestation":
-        if not isinstance(attestation, Mapping) or not is_trusted_public_root(
-            str(attestation.get("final_url") or "")
+        effective_countries = proof_countries | source_countries | requested
+        attestation_url = str((attestation or {}).get("final_url") or "")
+        if (
+            not isinstance(attestation, Mapping)
+            or not is_trusted_public_root(attestation_url)
+            or not _recognized_root_covers_jurisdiction(
+                attestation_url,
+                effective_countries,
+            )
         ):
             return False
         attestation_excerpt = attestation.get("excerpt")
@@ -761,10 +799,26 @@ async def enrich_authority_sources(
 
     async def bounded_fetch(row: Dict[str, Any]) -> Dict[str, str]:
         async with semaphore:
+            cached = row.get("_direct_document_candidate")
+            if isinstance(cached, Mapping):
+                return {
+                    "final_url": str(cached.get("final_url") or ""),
+                    "text": str(cached.get("text") or ""),
+                    "retrieved_at": str(cached.get("retrieved_at") or ""),
+                }
             return await fetcher(str(row["url"]))
 
     tasks = [asyncio.create_task(bounded_fetch(row)) for row in candidates]
-    done, pending = await asyncio.wait(tasks, timeout=_AUTHORITY_ENRICHMENT_SECONDS)
+    try:
+        done, pending = await asyncio.wait(
+            tasks, timeout=_AUTHORITY_ENRICHMENT_SECONDS
+        )
+    except asyncio.CancelledError:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
     for task in pending:
         task.cancel()
     if pending:
@@ -781,11 +835,16 @@ async def enrich_authority_sources(
             continue
         row["direct_fetch_status"] = "retrieved"
         row["resolved_url"] = document.get("final_url")
+        row["_direct_document_candidate"] = dict(document)
         documents.append((row, document))
     attestations = [
         (row, doc)
         for row, doc in documents
         if is_trusted_public_root(doc["final_url"])
+        and _recognized_root_covers_jurisdiction(
+            doc["final_url"],
+            row.get("country_codes") or [],
+        )
     ]
     for row, direct in documents:
         row.setdefault("retrieval_url", row.get("url"))

@@ -1547,6 +1547,28 @@ class HybridRunService:
                 row["unresponsive_engines"] = engines
             return row
 
+        def sanitized_stage(value: Any) -> Dict[str, Any]:
+            if not isinstance(value, dict):
+                return {}
+            return {
+                key: value.get(key)
+                for key in (
+                    "status",
+                    "candidate_count",
+                    "publisher_count",
+                    "host_count",
+                    "route_count",
+                    "retrieved_count",
+                    "verified_count",
+                    "source_count",
+                    "company_count",
+                    "cell_count",
+                    "elapsed_ms",
+                    "deadline_ms",
+                )
+                if value.get(key) is not None
+            }
+
         routing = grounding.get("routing_diagnostics") or {}
         providers = []
         for row in (routing.get("providers") or [])[:24]:
@@ -1636,6 +1658,18 @@ class HybridRunService:
                 ).items()
                 if isinstance(counts, dict)
             },
+            "authority_resolution": sanitized_stage(
+                routing.get("authority_resolution")
+            ),
+            "targeted_authority_attestation": sanitized_stage(
+                routing.get("targeted_authority_attestation")
+            ),
+            "targeted_authority_resolution": sanitized_stage(
+                routing.get("targeted_authority_resolution")
+            ),
+            "company_structuring": sanitized_stage(
+                routing.get("company_structuring")
+            ),
             "rejected_cross_market_source_count": len(
                 routing.get("rejected_cross_market_sources") or []
             ),

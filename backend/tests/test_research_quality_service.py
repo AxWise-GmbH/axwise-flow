@@ -24,7 +24,7 @@ def test_attestation_host_match_rejects_suffix_spoof():
         build_attested_authority_proof(
             direct_url="https://stat.ee/data",
             direct_text="Statistics Estonia published retail turnover data for Estonia.",
-            attestation_url="https://directory.gov/authorities",
+            attestation_url="https://directory.europa.eu/authorities",
             attestation_text=(
                 "Government agency directory: evilstat.ee is the official statistics office."
             ),
@@ -35,7 +35,7 @@ def test_attestation_host_match_rejects_suffix_spoof():
     proof = build_attested_authority_proof(
         direct_url="https://stat.ee/data",
         direct_text="Statistics Estonia published retail turnover data for Estonia.",
-        attestation_url="https://directory.gov/authorities",
+        attestation_url="https://directory.europa.eu/authorities",
         attestation_text=(
             "Government agency directory: https://stat.ee/data is the official statistics office."
         ),
@@ -52,7 +52,7 @@ def test_attestation_host_match_rejects_suffix_spoof():
             build_attested_authority_proof(
                 direct_url="https://stat.ee/data",
                 direct_text="Statistics Estonia published data for Estonia.",
-                attestation_url="https://directory.gov/authorities",
+                attestation_url="https://directory.europa.eu/authorities",
                 attestation_text=spoof,
                 country_codes=["EE"],
             )
@@ -60,7 +60,7 @@ def test_attestation_host_match_rejects_suffix_spoof():
     bare = build_attested_authority_proof(
         direct_url="https://stat.ee/data",
         direct_text="Statistics Estonia published data for Estonia.",
-        attestation_url="https://directory.gov/authorities",
+        attestation_url="https://directory.europa.eu/authorities",
         attestation_text="Government statistics office directory (stat.ee).",
         country_codes=["EE"],
     )
