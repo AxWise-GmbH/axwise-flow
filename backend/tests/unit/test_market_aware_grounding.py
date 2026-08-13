@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 import time
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -32,6 +33,7 @@ from backend.services.research_source_authority_service import (
     _commercial_offer_evidence,
     _normalized_document_text,
     _structured_statistical_observations,
+    authority_attestation_acquisition_hints,
     build_attested_authority_proof,
     build_direct_primary_market_proof,
     build_recognized_root_proof,
@@ -85,6 +87,442 @@ def _company(
         estimated_pain_points=[],
         website=website,
     )
+
+
+_EMTA_VAT_URL = "https://www.emta.ee/en/admin/content/handbook_article/39"
+_OLAF_EMTA_DIRECTORY_URL = (
+    "https://anti-fraud.ec.europa.eu/organisations/tax-and-customs-board_en"
+)
+_EMTA_VAT_TEXT = (
+    "Estonian Tax and Customs Board. Standard VAT rate. From 1 July 2025, "
+    "the standard rate of VAT is 24%. The standard rate applies whenever no "
+    "preferential rate or exemption applies. Last updated on 04.08.2026."
+)
+_OLAF_EMTA_DIRECTORY_TEXT = (
+    "European Anti-Fraud Office. Tax and Customs Board. public sector. "
+    "Website: www.emta.ee Country: Estonia."
+)
+_AUTHORITY_RETRIEVED_AT = "2026-08-13T00:00:00+00:00"
+
+
+def _cached_unresolved_emta_row() -> dict:
+    return {
+        "title": "Standard VAT rate",
+        "url": _EMTA_VAT_URL,
+        "resolved_url": _EMTA_VAT_URL,
+        "retrieval_url": _EMTA_VAT_URL,
+        "provider": "searxng",
+        "provider_source_id": "emta-vat",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+        "acquisition_evidence_classes": ["statutory_current"],
+        "direct_fetch_status": "retrieved",
+        "jurisdiction_binding_status": "verified",
+        "_direct_document_candidate": {
+            "final_url": _EMTA_VAT_URL,
+            "text": _EMTA_VAT_TEXT,
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+        },
+    }
+
+
+def _fixture_authority_enricher(
+    *,
+    directory_text: str = _OLAF_EMTA_DIRECTORY_TEXT,
+    directory_final_url: str = _OLAF_EMTA_DIRECTORY_URL,
+    directory_error: BaseException | None = None,
+):
+    async def fetcher(url):
+        if url == _OLAF_EMTA_DIRECTORY_URL:
+            if directory_error is not None:
+                raise directory_error
+            return {
+                "final_url": directory_final_url,
+                "text": directory_text,
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            }
+        if url == _EMTA_VAT_URL:
+            return {
+                "final_url": _EMTA_VAT_URL,
+                "text": _EMTA_VAT_TEXT,
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            }
+        raise AssertionError(f"unexpected authority URL: {url}")
+
+    async def enrich(rows):
+        return await real_enrich_authority_sources(rows, fetcher=fetcher)
+
+    return enrich
+
+
+def test_code_owned_attestation_registry_is_exact_and_acquisition_only():
+    expected = (_OLAF_EMTA_DIRECTORY_URL,)
+    assert authority_attestation_acquisition_hints(
+        publisher_url=_EMTA_VAT_URL,
+        country_codes=["EE"],
+    ) == expected
+
+    rejected = [
+        ("http://www.emta.ee/en/current-vat", ["EE"]),
+        ("https://emta.ee/en/current-vat", ["EE"]),
+        ("https://www.emta.ee.attacker.example/current-vat", ["EE"]),
+        ("https://attacker.www.emta.ee/current-vat", ["EE"]),
+        ("https://user@www.emta.ee/current-vat", ["EE"]),
+        ("https://www.emta.ee:444/current-vat", ["EE"]),
+        (_EMTA_VAT_URL, ["LV"]),
+        (_EMTA_VAT_URL, ["EE", "LV"]),
+    ]
+    for publisher_url, country_codes in rejected:
+        assert authority_attestation_acquisition_hints(
+            publisher_url=publisher_url,
+            country_codes=country_codes,
+        ) == ()
+
+
+@pytest.mark.asyncio
+async def test_primary_targeted_emta_attestation_bypasses_search_and_verifies(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    unresolved = _cached_unresolved_emta_row()
+    search = MagicMock()
+    search.search_web_general.side_effect = AssertionError(
+        "registered publisher must not wait for dynamic attestation search"
+    )
+
+    candidates = await pipeline._targeted_authority_attestation_sources(
+        [unresolved],
+        [("searxng", search)],
+    )
+
+    search.search_web_general.assert_not_called()
+    assert [row["url"] for row in candidates] == [_OLAF_EMTA_DIRECTORY_URL]
+    assert "authority_proof" not in candidates[0]
+    assert candidates[0]["citation_metadata"] == {
+        "discovery": "code_owned_acquisition_hint"
+    }
+    assert pipeline.routing_diagnostics["targeted_authority_attestation"] == {
+        "status": "completed",
+        "host_count": 0,
+        "route_count": 0,
+        "candidate_count": 1,
+        "elapsed_ms": pipeline.routing_diagnostics[
+            "targeted_authority_attestation"
+        ]["elapsed_ms"],
+        "deadline_ms": 90_000,
+        "deterministic_candidate_count": 1,
+        "requested_host_count": 1,
+    }
+
+    enriched = await _fixture_authority_enricher()([unresolved, *candidates])
+    emta = enriched[0]
+    assert emta["authority_verification_status"] == (
+        "independently_attested_direct_domain"
+    )
+    assert emta["authority_proof"]["attestation"]["final_url"] == (
+        _OLAF_EMTA_DIRECTORY_URL
+    )
+    pipeline._store_direct_web_evidence([emta], [])
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        mandatory_claim_classes=["statutory_current"],
+        claim_class_applicability={
+            "applicable_claim_classes": ["statutory_current"]
+        },
+    )
+    assert quality["status"] == "passed", quality["blocked_claims"]
+    persisted = json.dumps(
+        {
+            "sources": pipeline.market_sources,
+            "claims": pipeline.market_claims,
+            "diagnostics": pipeline.routing_diagnostics,
+        }
+    )
+    assert "_code_owned_attestation_acquisition_hint" not in persisted
+    assert "code_owned_acquisition_hint" not in persisted
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("directory_text", "directory_final_url", "directory_error", "target_host"),
+    [
+        (
+            "European Anti-Fraud Office. Tax and Customs Board. Country: Estonia.",
+            _OLAF_EMTA_DIRECTORY_URL,
+            None,
+            "www.emta.ee",
+        ),
+        (
+            _normalized_document_text(
+                "<html><body>European Anti-Fraud Office. Tax and Customs Board. "
+                "Country: Estonia. <script>www.emta.ee</script>"
+                "<span style='display:none'>www.emta.ee</span></body></html>",
+                is_html=True,
+            ),
+            _OLAF_EMTA_DIRECTORY_URL,
+            None,
+            "www.emta.ee",
+        ),
+        (
+            "European Anti-Fraud Office. Tax and Customs Board. Website: "
+            "www.emta.ee Country: Latvia.",
+            _OLAF_EMTA_DIRECTORY_URL,
+            None,
+            "www.emta.ee",
+        ),
+        (
+            _OLAF_EMTA_DIRECTORY_TEXT,
+            "https://attacker.example/redirected-directory",
+            None,
+            "www.emta.ee",
+        ),
+        (
+            _OLAF_EMTA_DIRECTORY_TEXT,
+            _OLAF_EMTA_DIRECTORY_URL,
+            None,
+            "",
+        ),
+        (
+            _OLAF_EMTA_DIRECTORY_TEXT,
+            _OLAF_EMTA_DIRECTORY_URL,
+            TimeoutError("directory unavailable"),
+            "www.emta.ee",
+        ),
+    ],
+    ids=[
+        "tampered-missing-host",
+        "hidden-host-only",
+        "wrong-country",
+        "redirected-final-host",
+        "missing-target-binding",
+        "directory-outage",
+    ],
+)
+async def test_code_owned_attestation_stays_fail_closed_under_adversarial_inputs(
+    monkeypatch,
+    directory_text,
+    directory_final_url,
+    directory_error,
+    target_host,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    [hint] = pipeline._code_owned_attestation_candidates(
+        [_cached_unresolved_emta_row()]
+    )
+    hint["target_authority_host"] = target_host
+    enriched = await _fixture_authority_enricher(
+        directory_text=directory_text,
+        directory_final_url=directory_final_url,
+        directory_error=directory_error,
+    )([hint, _cached_unresolved_emta_row()])
+
+    emta = next(
+        row
+        for row in enriched
+        if "statutory_current"
+        in set(row.get("acquisition_evidence_classes") or [])
+    )
+    assert "authority_proof" not in emta
+    assert emta.get("source_authority") != "official_public"
+
+
+@pytest.mark.asyncio
+async def test_code_owned_attestation_cannot_cross_attest_another_publisher(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    [hint] = pipeline._code_owned_attestation_candidates(
+        [_cached_unresolved_emta_row()]
+    )
+    attacker_url = "https://attacker.example/current-tax"
+    attacker_text = (
+        "Estonia national tax authority. Current VAT is 99% effective "
+        "2026-01-01."
+    )
+
+    async def fetcher(url):
+        if url == _OLAF_EMTA_DIRECTORY_URL:
+            return {
+                "final_url": url,
+                "text": (
+                    _OLAF_EMTA_DIRECTORY_TEXT
+                    + " Unrelated website: attacker.example"
+                ),
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            }
+        if url == attacker_url:
+            return {
+                "final_url": url,
+                "text": attacker_text,
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            }
+        if url == _EMTA_VAT_URL:
+            return {
+                "final_url": url,
+                "text": _EMTA_VAT_TEXT,
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            }
+        raise AssertionError(f"unexpected authority URL: {url}")
+
+    rows = await real_enrich_authority_sources(
+        [
+            hint,
+            _cached_unresolved_emta_row(),
+            {
+                "url": attacker_url,
+                "provider": "searxng",
+                "country_codes": ["EE"],
+                "market_terms": ["Estonia"],
+                "acquisition_evidence_classes": ["statutory_current"],
+            },
+        ],
+        fetcher=fetcher,
+    )
+
+    emta = next(row for row in rows if row.get("url") == _EMTA_VAT_URL)
+    attacker = next(row for row in rows if row.get("url") == attacker_url)
+    assert emta["authority_proof"]["proof_type"] == (
+        "independent_public_root_attestation"
+    )
+    assert "authority_proof" not in attacker
+    assert attacker.get("source_authority") != "official_public"
+
+
+@pytest.mark.asyncio
+async def test_statutory_recovery_uses_cached_emta_hint_without_healthy_provider(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    source_rows = [_cached_unresolved_emta_row()]
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=_fixture_authority_enricher(),
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [], source_rows
+        )
+
+    assert recovered >= 1
+    assert source_rows[0]["authority_proof"]["attestation"]["final_url"] == (
+        _OLAF_EMTA_DIRECTORY_URL
+    )
+    statutory_claims = [
+        row
+        for row in pipeline.market_claims
+        if row.get("evidence_class") == "statutory_current"
+    ]
+    assert statutory_claims
+    assert len({row["claim_id"] for row in statutory_claims}) == len(
+        statutory_claims
+    )
+    assert len({row["source_id"] for row in pipeline.market_sources}) == 1
+    assert pipeline.routing_diagnostics["statutory_recovery"]["route_count"] == 0
+    assert pipeline.routing_diagnostics["statutory_recovery"][
+        "deterministic_attestation_candidate_count"
+    ] == 1
+    persisted = json.dumps(
+        [pipeline.market_sources, pipeline.market_claims, pipeline.routing_diagnostics]
+    )
+    assert "_code_owned_attestation_acquisition_hint" not in persisted
+    assert "code_owned_acquisition_hint" not in persisted
+
+
+@pytest.mark.asyncio
+async def test_statutory_recovery_provider_only_emta_result_is_attested_once(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+
+    class Search:
+        def __init__(self):
+            self.calls = 0
+
+        def search_web_general(self, _query):
+            self.calls += 1
+            return {
+                "search_performed": True,
+                "sources": [{"title": "Standard VAT rate", "url": _EMTA_VAT_URL}],
+                "runtime_diagnostics": {"status": "completed"},
+            }
+
+    search = Search()
+    source_rows = []
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=_fixture_authority_enricher(),
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [("searxng", search)], source_rows
+        )
+
+    assert recovered >= 1
+    assert search.calls == 1
+    assert len(source_rows) == 1
+    assert source_rows[0]["url"] == _EMTA_VAT_URL
+    statutory_claims = [
+        row
+        for row in pipeline.market_claims
+        if row.get("evidence_class") == "statutory_current"
+    ]
+    assert statutory_claims
+    assert len({row["claim_id"] for row in statutory_claims}) == len(
+        statutory_claims
+    )
+    assert len({row["source_id"] for row in pipeline.market_sources}) == 1
 
 
 def test_country_scope_is_generic_and_rejects_cross_market_results():
@@ -1775,6 +2213,15 @@ async def test_recovery_rejects_unbound_or_wrong_jurisdiction_attestation(
             }
 
     async def fetcher(url):
+        if url == _OLAF_EMTA_DIRECTORY_URL:
+            return {
+                "final_url": url,
+                "text": (
+                    "European Anti-Fraud Office. Tax and Customs Board. "
+                    "Country: Estonia."
+                ),
+                "retrieved_at": "2026-08-13T00:00:00+00:00",
+            }
         return {
             "final_url": url,
             "text": authority_text if url == authority_url else directory_text,

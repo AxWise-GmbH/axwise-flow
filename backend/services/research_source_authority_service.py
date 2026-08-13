@@ -131,6 +131,25 @@ _EU_COUNTRY_CODES = {
     "PT", "RO", "SE", "SI", "SK",
 }
 
+# Code-owned acquisition hints for public authority directories whose stable,
+# directly fetchable pages are known independently of search-provider ranking.
+# A registry hit grants no authority.  The hinted page must still pass the same
+# HTTPS/SSRF/redirect/challenge gates, resolve to a recognized public root, bind
+# the requested jurisdiction in visible text, name the exact resolved publisher
+# host, identify a public authority, and participate in the signed two-document
+# proof before a source can be promoted.
+_AUTHORITY_ATTESTATION_ACQUISITION_HINTS: Mapping[
+    tuple[str, str], tuple[str, ...]
+] = {
+    (
+        "EE",
+        "www.emta.ee",
+    ): (
+        "https://anti-fraud.ec.europa.eu/organisations/"
+        "tax-and-customs-board_en",
+    ),
+}
+
 
 class RetrievalChallengeError(ValueError):
     """A fetched response is an anti-bot interstitial, not publisher content."""
@@ -2612,6 +2631,44 @@ def trusted_public_root_search_scope(country_codes: Iterable[str]) -> str:
     return " OR ".join(scopes) or "official government directory"
 
 
+def authority_attestation_acquisition_hints(
+    *,
+    publisher_url: str,
+    country_codes: Iterable[str],
+) -> tuple[str, ...]:
+    """Return bounded discovery hints for one exact country/publisher pair.
+
+    This is deliberately only an acquisition registry.  Callers must fetch the
+    returned URLs and pass their resulting documents through the normal
+    authority enrichment and proof-validation path.  Multi-country requests,
+    malformed URLs, subdomain/suffix lookalikes, and unregistered hosts fail
+    closed with no hint.
+    """
+
+    requested = {
+        str(value or "").strip().upper() for value in country_codes if value
+    }
+    try:
+        parsed_publisher = urlparse(str(publisher_url or ""))
+        publisher_port = parsed_publisher.port
+    except ValueError:
+        return ()
+    publisher_host = (parsed_publisher.hostname or "").casefold().rstrip(".")
+    if (
+        len(requested) != 1
+        or parsed_publisher.scheme.casefold() != "https"
+        or not publisher_host
+        or parsed_publisher.username
+        or parsed_publisher.password
+        or publisher_port not in {None, 443}
+    ):
+        return ()
+    return _AUTHORITY_ATTESTATION_ACQUISITION_HINTS.get(
+        (next(iter(requested)), publisher_host),
+        (),
+    )
+
+
 def _recognized_root_covers_jurisdiction(
     url: str,
     country_codes: Iterable[str],
@@ -3663,7 +3720,9 @@ async def fetch_direct_text(
 def _enrich_authority_row_outcome(
     source: Mapping[str, Any],
     direct: Mapping[str, Any],
-    attestation_documents: tuple[Mapping[str, Any], ...],
+    attestation_documents: tuple[
+        tuple[Mapping[str, Any], Optional[str]], ...
+    ],
 ) -> Dict[str, Any]:
     """Build one immutable enrichment outcome on a worker thread."""
 
@@ -3746,8 +3805,14 @@ def _enrich_authority_row_outcome(
     attested = next(
         (
             document
-            for document in attestation_documents
-            if _host_reference_match(str(document.get("text") or ""), direct_host)
+            for document, target_authority_host in attestation_documents
+            if (
+                not target_authority_host
+                or target_authority_host == direct_host
+            )
+            and _host_reference_match(
+                str(document.get("text") or ""), direct_host
+            )
         ),
         None,
     )
@@ -3905,12 +3970,39 @@ async def enrich_authority_sources(
             task.cancel()
 
         attestation_documents = tuple(
-            document
+            (
+                document,
+                (
+                    str(row.get("target_authority_host") or "")
+                    .casefold()
+                    .rstrip(".")
+                    if row.get("_code_owned_attestation_acquisition_hint")
+                    else None
+                ),
+            )
             for row, document in documents
             if is_trusted_public_root(str(document.get("final_url") or ""))
             and _recognized_root_covers_jurisdiction(
                 str(document.get("final_url") or ""),
                 row.get("country_codes") or [],
+            )
+            and (
+                not row.get("_code_owned_attestation_acquisition_hint")
+                or (
+                    bool(str(row.get("target_authority_host") or "").strip())
+                    and _document_binds_jurisdiction(
+                        final_url=str(document.get("final_url") or ""),
+                        text=str(document.get("text") or ""),
+                        country_codes=row.get("country_codes") or [],
+                        market_terms=row.get("market_terms") or [],
+                    )
+                    and bool(
+                        _host_reference_match(
+                            str(document.get("text") or ""),
+                            str(row.get("target_authority_host") or ""),
+                        )
+                    )
+                )
             )
         )
         proof_tasks = [
