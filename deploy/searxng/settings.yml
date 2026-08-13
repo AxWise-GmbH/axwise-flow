@@ -14,6 +14,20 @@ search:
   formats:
     - json
 
+# Several upstream engines ship disabled by default. keep_only narrows the
+# configured engine set but does not enable a disabled engine, so make the four
+# bounded secondary routes explicit. Runtime diagnostics still surface quota,
+# CAPTCHA, and suspension failures; Gemini grounding remains independent.
+engines:
+  - name: bing
+    disabled: false
+  - name: brave
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: google
+    disabled: false
+
 server:
   bind_address: "0.0.0.0"
   port: 8080

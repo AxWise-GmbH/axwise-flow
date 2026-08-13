@@ -1181,6 +1181,17 @@ class B2BDataPipeline:
         normalized = " ".join(str(text or "").split())
         if not normalized:
             return []
+        material_value = re.compile(
+            rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
+            rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
+            rf"\b\d[\d\s.,]*\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|"
+            rf"euros?|dollars?|pounds?|yen|yuan|rupees?|"
+            rf"million|billion|thousand|people|persons?|units?|points?|"
+            rf"tonnes?|kilograms?)(?:\b|(?=\s|$))|"
+            rf"\b\d{{1,3}}(?:[ ,.\u00a0]\d{{3}})+\b|"
+            rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
+            re.IGNORECASE,
+        )
         sentences = [
             value.strip()
             for value in re.split(r"(?<=[.!?])\s+", normalized)
@@ -1234,17 +1245,45 @@ class B2BDataPipeline:
             if window:
                 candidates.append((window, (-marker_index - 1,)))
 
-        material_value = re.compile(
-            rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
-            rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
-            rf"\b\d[\d\s.,]*\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|"
-            rf"euros?|dollars?|pounds?|yen|yuan|rupees?|"
-            rf"million|billion|thousand|people|persons?|units?|points?|"
-            rf"tonnes?|kilograms?)(?:\b|(?=\s|$))|"
-            rf"\b\d{{1,3}}(?:[ ,.\u00a0]\d{{3}})+\b|"
-            rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
-            re.IGNORECASE,
-        )
+        # Some government/CMS and catalogue pages normalize navigation plus
+        # the first content card into one multi-thousand-character sentence.
+        # A sentence-only parser then discards a perfectly exact fact solely
+        # because unrelated navigation precedes it. Build a bounded verbatim
+        # window around each material value, preferring nearby punctuation.
+        # This does not rewrite or infer a quote: the window remains an exact
+        # substring of the signed direct document and must pass all semantic,
+        # temporal, jurisdiction and authority checks below.
+        for value_index, match in enumerate(material_value.finditer(normalized)):
+            left_floor = max(0, match.start() - 320)
+            right_ceiling = min(len(normalized), match.end() + 480)
+            punctuation_start = max(
+                normalized.rfind(". ", left_floor, match.start()),
+                normalized.rfind("! ", left_floor, match.start()),
+                normalized.rfind("? ", left_floor, match.start()),
+            )
+            start = punctuation_start + 2 if punctuation_start >= 0 else left_floor
+            if start == left_floor and start:
+                next_space = normalized.find(" ", start, match.start())
+                if next_space >= 0:
+                    start = next_space + 1
+            punctuation_ends = [
+                value
+                for value in (
+                    normalized.find(". ", match.end(), right_ceiling),
+                    normalized.find("! ", match.end(), right_ceiling),
+                    normalized.find("? ", match.end(), right_ceiling),
+                )
+                if value >= 0
+            ]
+            end = min(punctuation_ends) + 1 if punctuation_ends else right_ceiling
+            if end == right_ceiling and end < len(normalized):
+                previous_space = normalized.rfind(" ", match.end(), end)
+                if previous_space > match.end():
+                    end = previous_space
+            window = normalized[start:end].strip()
+            if window:
+                candidates.append((window, (-10_000 - value_index,)))
+
         accepted: List[Dict[str, Any]] = []
         seen: set[str] = set()
         covered_sentence_indexes: set[int] = set()
@@ -1279,6 +1318,10 @@ class B2BDataPipeline:
             )
             if semantics.get("critical") is not True or not temporally_proven:
                 continue
+            passage_values = {
+                re.sub(r"\s+", "", match.group(0).casefold())
+                for match in material_value.finditer(passage)
+            }
             if any(
                 row.get("evidence_class") == evidence_class
                 and row.get("effective_at") == semantics.get("effective_at")
@@ -1286,6 +1329,19 @@ class B2BDataPipeline:
                 and (
                     str(row.get("text") or "") in passage
                     or passage in str(row.get("text") or "")
+                    or (
+                        bool(
+                            semantics.get("effective_at")
+                            or semantics.get("observation_end")
+                        )
+                        and passage_values
+                        == {
+                            re.sub(r"\s+", "", match.group(0).casefold())
+                            for match in material_value.finditer(
+                                str(row.get("text") or "")
+                            )
+                        }
+                    )
                 )
                 for row in accepted
             ):
@@ -1311,7 +1367,13 @@ class B2BDataPipeline:
             retrieval_url = str(row.get("retrieval_url") or url)
             provider = str(row.get("provider") or "")
             provider_source_id = str(row.get("provider_source_id") or "")
-            source_id = self._evidence_id("source", provider_source_id or url)
+            # A source is the resolved document, not a provider-specific search
+            # result. Provider IDs vary across queries (and across recovery),
+            # which previously caused the URL deduper to alias a claim's
+            # source_id while leaving the signed citation/artifact bound to the
+            # discarded provider ID. Use the canonical direct URL so every
+            # query route binds the same document to the same durable ID.
+            source_id = self._evidence_id("source", url)
             source_id_by_url[url] = source_id
             source_id_by_url[retrieval_url] = source_id
             inferred_authority = self._source_authority(url, provider=provider)
@@ -1368,6 +1430,9 @@ class B2BDataPipeline:
                 "citation_metadata": row.get("citation_metadata") or {},
                 "provider_redirect": authority == "unverified_redirect",
                 "country_codes": list(row.get("country_codes") or []),
+                "jurisdiction_binding_status": row.get(
+                    "jurisdiction_binding_status"
+                ),
             }
 
         # Build exact direct-document claims in addition to provider claims.
@@ -1407,18 +1472,54 @@ class B2BDataPipeline:
             if not isinstance(row, dict):
                 continue
             text = str(row.get("text") or "").strip()[:2000]
-            if text and not self.market_scope.evidence_text_matches(text):
+            source_ids = [
+                source_id_by_url[url]
+                for url in row.get("source_urls") or []
+                if url in source_id_by_url
+            ]
+            requested_country = str(
+                self.market_scope.country_code or ""
+            ).upper()
+            signed_direct_market_binding = (
+                row.get("provider") == "direct_authority_document"
+                and any(
+                    (sources_by_id.get(source_id) or {}).get(
+                        "jurisdiction_binding_status"
+                    )
+                    == "verified"
+                    and isinstance(
+                        (sources_by_id.get(source_id) or {}).get(
+                            "authority_proof"
+                        ),
+                        dict,
+                    )
+                    and (
+                        not requested_country
+                        or requested_country
+                        in {
+                            str(code).upper()
+                            for code in (
+                                (sources_by_id.get(source_id) or {}).get(
+                                    "country_codes"
+                                )
+                                or []
+                            )
+                        }
+                    )
+                    for source_id in source_ids
+                )
+            )
+            if (
+                text
+                and not self.market_scope.evidence_text_matches(text)
+                and not signed_direct_market_binding
+            ):
                 self.routing_diagnostics["rejected_cross_market_claims"].append(
                     {
                         "text_hash": self._evidence_id("claim", text),
                     }
                 )
                 continue
-            source_ids = [
-                source_id_by_url[url]
-                for url in row.get("source_urls") or []
-                if url in source_id_by_url
-            ]
             if not text or not source_ids:
                 continue
             linked_source_ids.update(source_ids)

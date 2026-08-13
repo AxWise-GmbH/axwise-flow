@@ -18,6 +18,8 @@ from backend.services.generative.gemini_search_service import GeminiSearchServic
 from backend.services.generative.searxng_search_service import SearxngSearchService
 from backend.services.research_quality_service import evaluate_critical_claims
 from backend.services.research_source_authority_service import (
+    build_attested_authority_proof,
+    build_direct_primary_market_proof,
     build_recognized_root_proof,
     enrich_authority_sources as real_enrich_authority_sources,
 )
@@ -664,6 +666,282 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
     # two independent providers; each route admits at most two direct sources.
     assert (len(queries) + 1) * 2 == 8
     assert (len(queries) + 1) * 2 * 2 == 16
+
+
+def test_live_cms_navigation_block_yields_signed_exact_statutory_claim(
+    monkeypatch,
+):
+    """Regression for the production EMTA handbook page shape.
+
+    Drupal navigation and the first content card normalize into one sentence
+    longer than the extraction ceiling. The exact fact also does not repeat
+    the country name; the signed source proof, not a keyword in the quote,
+    supplies that jurisdiction binding.
+    """
+
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    direct_url = "https://www.emta.ee/en/admin/content/handbook_article/39"
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+    direct_text = (
+        ("Navigation private client business client e-services support " * 90)
+        + "Breadcrumb Standard VAT rate From 1 July 2025, the standard rate "
+        "of VAT is 24% . The standard rate applies whenever no preferential "
+        "rate or exemption applies. Last updated on 04.08.2026"
+    )
+    attestation_url = (
+        "https://taxation-customs.ec.europa.eu/document/estonia-contacts"
+    )
+    attestation_text = (
+        "European Commission member-state authority directory. ESTONIA: "
+        "Estonian Tax and Customs Board, Internet https://www.emta.ee"
+    )
+    proof = build_attested_authority_proof(
+        direct_url=direct_url,
+        direct_text=direct_text,
+        attestation_url=attestation_url,
+        attestation_text=attestation_text,
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+    )
+    source = {
+        "title": "Standard VAT rate",
+        "url": direct_url,
+        "provider": "gemini_google_search",
+        "provider_source_id": "provider-route-a",
+        "country_codes": ["EE"],
+        "source_authority": "official_public",
+        "authority_verification_status": (
+            "independently_attested_direct_domain"
+        ),
+        "authority_proof": proof,
+        "retrieved_at": retrieved_at,
+        "direct_fetch_status": "retrieved",
+        "jurisdiction_binding_status": "verified",
+        "authority_document_artifact": {
+            "artifact_type": "direct_authority_document",
+            "text": direct_text,
+            "sha256": proof["direct"]["content_sha256"],
+            "retrieved_at": retrieved_at,
+            "authority_proof_signature": proof["proof_signature"],
+        },
+    }
+
+    # Reaching the same direct page through two provider routes must not change
+    # its durable source ID or break the signed citation during URL dedupe.
+    pipeline._store_direct_web_evidence([source], [])
+    pipeline._store_direct_web_evidence(
+        [{**source, "provider_source_id": "provider-route-b"}], []
+    )
+
+    assert len({row["source_id"] for row in pipeline.market_sources}) == 1
+    statutory = [
+        row
+        for row in pipeline.market_claims
+        if row.get("evidence_class") == "statutory_current"
+    ]
+    assert statutory
+    assert all("From 1 July 2025" in row["object"] for row in statutory)
+    assert not pipeline.routing_diagnostics["rejected_cross_market_claims"]
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        mandatory_claim_classes=["statutory_current"],
+        claim_class_applicability={
+            "applicable_claim_classes": ["statutory_current"]
+        },
+    )
+    assert quality["status"] == "passed", quality["blocked_claims"]
+    assert quality["verified_claim_classes"] == ["statutory_current"]
+
+    # Exercise the production boundary that previously failed: country-cell
+    # metadata is attached after collection, URL dedupe runs, and the cell
+    # evaluator must still be able to join the signed citation to its source.
+    from backend.services.orqaly_hybrid_run_service import HybridRunService
+    from backend.services.orqaly_research_bundle_service import (
+        HybridGroundingPolicy,
+        _merge_market_evidence,
+    )
+
+    for row in [*pipeline.market_sources, *pipeline.market_claims]:
+        row["research_cell_ids"] = ["country:EE"]
+        row["country_codes"] = ["EE"]
+    sources, claims = _merge_market_evidence(
+        pipeline.market_sources,
+        pipeline.market_claims,
+        HybridGroundingPolicy(),
+    )
+    grounding = {
+        "market_sources": sources,
+        "market_claims": claims,
+        "cell_coverage": [
+            {
+                "cell_id": "country:EE",
+                "country_codes": ["EE"],
+                "status": "complete",
+            }
+        ],
+    }
+    cell_quality = HybridRunService._evaluate_country_cell_claims(
+        grounding,
+        critical_policy={
+            "mandatory_claim_classes": ["statutory_current"],
+            "freshness_days": 120,
+        },
+        claim_class_applicability={
+            "applicable_claim_classes": ["statutory_current"]
+        },
+    )
+    assert cell_quality[0]["status"] == "passed"
+    assert cell_quality[0]["verified_claim_classes"] == ["statutory_current"]
+
+
+def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    retrieved_at = "2026-08-13T00:00:00+00:00"
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial cat food market launch",
+        target_user="Retail category buyer",
+        model=MagicMock(),
+        required_evidence_classes=[
+            "official_statistic",
+            "observed_primary_market",
+        ],
+    )
+
+    stat_url = "https://www.stat.ee/en/internal-trade"
+    stat_text = (
+        "Statistics Estonia official statistical publisher for Estonia. "
+        + ("Navigation economy internal trade tables " * 50)
+        + "Source data in the statistical database: KM0107 Last updated: "
+        "27 May 2026 08:00 Net sales of trade enterprises 8.12 billion euros "
+        "Q1 2026 Table KM0107"
+    )
+    directory_url = "https://european-union.europa.eu/estonia-authorities"
+    directory_text = (
+        "Official EU member-state directory: Statistics Estonia "
+        "https://www.stat.ee"
+    )
+    stat_proof = build_attested_authority_proof(
+        direct_url=stat_url,
+        direct_text=stat_text,
+        attestation_url=directory_url,
+        attestation_text=directory_text,
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+    )
+
+    catalog_url = "https://shop.example.ee/cat-food/sheba-340g"
+    catalog_text = (
+        "Estonia online storefront for local shoppers. "
+        + ("Navigation categories delivery account " * 50)
+        + "Product catalogue price 3,29 € 9,68 €/kg Täistoit kiisueine lihaga "
+        "kastmes, SHEBA, "
+        "340 g Osta"
+    )
+    catalog_proof = build_direct_primary_market_proof(
+        direct_url=catalog_url,
+        direct_text=catalog_text,
+        country_codes=["EE"],
+        retrieved_at=retrieved_at,
+    )
+
+    def source(
+        *,
+        url,
+        title,
+        proof,
+        text,
+        authority,
+        verification,
+    ):
+        return {
+            "title": title,
+            "url": url,
+            "provider": "gemini_google_search",
+            "provider_source_id": f"provider-{title}",
+            "country_codes": ["EE"],
+            "source_authority": authority,
+            "authority_verification_status": verification,
+            "authority_proof": proof,
+            "retrieved_at": retrieved_at,
+            "direct_fetch_status": "retrieved",
+            "jurisdiction_binding_status": "verified",
+            "authority_document_artifact": {
+                "artifact_type": "direct_authority_document",
+                "text": text,
+                "sha256": proof["direct"]["content_sha256"],
+                "retrieved_at": retrieved_at,
+                "authority_proof_signature": proof["proof_signature"],
+            },
+        }
+
+    pipeline._store_direct_web_evidence(
+        [
+            source(
+                url=stat_url,
+                title="Internal trade",
+                proof=stat_proof,
+                text=stat_text,
+                authority="official_public",
+                verification="independently_attested_direct_domain",
+            ),
+            source(
+                url=catalog_url,
+                title="Cat food catalogue",
+                proof=catalog_proof,
+                text=catalog_text,
+                authority="first_party_catalog",
+                verification="direct_primary_market_observation",
+            ),
+        ],
+        [],
+    )
+
+    classes = {
+        row.get("evidence_class") for row in pipeline.market_claims
+    }
+    assert "official_statistic" in classes
+    assert "observed_primary_market" in classes
+    assert not pipeline.routing_diagnostics["rejected_cross_market_claims"]
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        freshness_days=120,
+        freshness_by_class={"official_statistic": 730},
+        mandatory_claim_classes=[
+            "official_statistic",
+            "observed_primary_market",
+        ],
+        claim_class_applicability={
+            "applicable_claim_classes": [
+                "official_statistic",
+                "observed_primary_market",
+            ]
+        },
+    )
+    assert quality["status"] == "passed", quality["blocked_claims"]
 
 
 @pytest.mark.asyncio
@@ -1381,6 +1659,20 @@ def test_searxng_adapter_is_optional_bounded_and_source_bearing():
 def test_searxng_rejects_untrusted_cleartext_remote_endpoint():
     assert SearxngSearchService("http://public.example").is_available() is False
     assert SearxngSearchService("http://localhost:8080").is_available() is True
+
+
+def test_searxng_base_url_must_not_include_search_endpoint():
+    service = SearxngSearchService("https://search.axwise.example/search")
+
+    with patch(
+        "backend.services.generative.searxng_search_service.httpx.get"
+    ) as request:
+        result = service.search_web_general("market")
+
+    assert service.is_available() is False
+    assert result["search_performed"] is False
+    assert result["runtime_diagnostics"]["status"] == "unavailable"
+    request.assert_not_called()
 
 
 def test_searxng_cloud_run_uses_audience_bound_identity_token():

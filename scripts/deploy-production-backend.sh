@@ -16,7 +16,9 @@ IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${API_SERVICE}:${REV
 GEMINI_MODEL="${GEMINI_MODEL:-models/gemini-3.6-flash}"
 OPENREGISTER_SECRET="${OPENREGISTER_SECRET:-OPENREGISTER_API_KEY}"
 REQUIRE_OPENREGISTER="${REQUIRE_OPENREGISTER:-false}"
+SEARXNG_SERVICE="${SEARXNG_SERVICE:-axwise-searxng}"
 SEARXNG_URL="${SEARXNG_URL:-}"
+SEARXNG_PREFLIGHT_TIMEOUT_SECONDS="${SEARXNG_PREFLIGHT_TIMEOUT_SECONDS:-30}"
 AXWISE_MARKET_CELL_CONCURRENCY="${AXWISE_MARKET_CELL_CONCURRENCY:-6}"
 AXWISE_PERSONA_CONCURRENCY="${AXWISE_PERSONA_CONCURRENCY:-5}"
 
@@ -31,6 +33,11 @@ for concurrency in "${AXWISE_MARKET_CELL_CONCURRENCY}" "${AXWISE_PERSONA_CONCURR
     exit 1
   fi
 done
+
+if [[ ! "${SEARXNG_PREFLIGHT_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]?$ ]]; then
+  echo "SEARXNG_PREFLIGHT_TIMEOUT_SECONDS must be an integer from 1 to 99" >&2
+  exit 1
+fi
 
 required_secrets=(
   DATABASE_URL
@@ -81,17 +88,150 @@ else
   echo "OpenRegister secret ${OPENREGISTER_SECRET} is unavailable; grounded research will use Google Search sources and fail closed if its source policy is not satisfied" >&2
 fi
 
-# SearXNG is an optional self-hosted secondary search route. Remote cleartext
-# endpoints and credential-bearing URLs are rejected; Gemini Google Search
-# remains the default provider when this is unset.
+# Resolve the private SearXNG service from Cloud Run instead of trusting a
+# copied URL. Cloud Run URLs are project/service specific; accepting an old URL
+# here silently turned every secondary search into a 404 in production.
+DISCOVERED_SEARXNG_URL="$(gcloud run services describe "${SEARXNG_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.url)')"
+DISCOVERED_SEARXNG_URL="${DISCOVERED_SEARXNG_URL%/}"
+if [[ -z "${DISCOVERED_SEARXNG_URL}" ]]; then
+  echo "Could not determine the ${SEARXNG_SERVICE} Cloud Run URL" >&2
+  exit 1
+fi
+if [[ "${DISCOVERED_SEARXNG_URL}" == *"@"* ]] || [[ ! "${DISCOVERED_SEARXNG_URL}" =~ ^https:// ]]; then
+  echo "Discovered SearXNG URL must be a credential-free HTTPS endpoint" >&2
+  exit 1
+fi
+
 if [[ -n "${SEARXNG_URL}" ]]; then
+  SEARXNG_URL="${SEARXNG_URL%/}"
   if [[ "${SEARXNG_URL}" == *"@"* ]] || [[ ! "${SEARXNG_URL}" =~ ^https:// ]]; then
     echo "SEARXNG_URL must be a credential-free HTTPS endpoint" >&2
     exit 1
   fi
-  WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}@SEARXNG_AUTH_MODE=google_identity"
-  echo "Optional self-hosted SearXNG secondary route enabled"
+  if [[ "${SEARXNG_URL}" != "${DISCOVERED_SEARXNG_URL}" ]]; then
+    echo "SEARXNG_URL does not match the live ${SEARXNG_SERVICE} Cloud Run URL" >&2
+    exit 1
+  fi
+else
+  SEARXNG_URL="${DISCOVERED_SEARXNG_URL}"
 fi
+if [[ "${SEARXNG_URL}" == */search ]]; then
+  echo "SEARXNG_URL must be the service base URL, not the /search endpoint" >&2
+  exit 1
+fi
+
+# Pin the worker identity explicitly. Verify its Cloud Run Invoker IAM binding,
+# then use the already-authenticated deploy principal for a real JSON search
+# preflight. This avoids requiring Service Account Token Creator solely for a
+# release check while proving both halves of the production contract.
+WORKER_SERVICE_ACCOUNT="$(gcloud run services describe "${WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(spec.template.spec.serviceAccountName)')"
+if [[ -z "${WORKER_SERVICE_ACCOUNT}" ]]; then
+  echo "Could not determine the AxWise worker service account" >&2
+  exit 1
+fi
+
+if ! gcloud run services get-iam-policy "${SEARXNG_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --flatten='bindings[].members' \
+  --filter="bindings.role=roles/run.invoker AND bindings.members=serviceAccount:${WORKER_SERVICE_ACCOUNT}" \
+  --format='value(bindings.members)' \
+  | grep -Fxq "serviceAccount:${WORKER_SERVICE_ACCOUNT}"; then
+  echo "Worker service account lacks roles/run.invoker on ${SEARXNG_SERVICE}" >&2
+  exit 1
+fi
+
+SEARXNG_URL="${SEARXNG_URL}" \
+SEARXNG_PREFLIGHT_TIMEOUT_SECONDS="${SEARXNG_PREFLIGHT_TIMEOUT_SECONDS}" \
+python3 - <<'PY'
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+base_url = os.environ["SEARXNG_URL"].rstrip("/")
+timeout = int(os.environ["SEARXNG_PREFLIGHT_TIMEOUT_SECONDS"])
+try:
+    token = subprocess.run(
+        [
+            "gcloud",
+            "auth",
+            "print-identity-token",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    ).stdout.strip()
+except (subprocess.SubprocessError, OSError) as exc:
+    raise SystemExit(
+        f"Could not obtain the deploy identity token for SearXNG preflight: {type(exc).__name__}"
+    ) from None
+if not token:
+    raise SystemExit("Deploy identity token for SearXNG preflight was empty")
+
+query = urllib.parse.urlencode(
+    {
+        "q": "AxWise deployment preflight",
+        "format": "json",
+        "categories": "general",
+        "safesearch": "1",
+    }
+)
+request = urllib.request.Request(
+    f"{base_url}/search?{query}",
+    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+)
+try:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        status = int(response.status)
+        content_type = response.headers.get_content_type()
+        body = response.read(2_000_001)
+except urllib.error.HTTPError as exc:
+    raise SystemExit(f"Authenticated SearXNG preflight returned HTTP {exc.code}") from None
+except (urllib.error.URLError, TimeoutError, OSError) as exc:
+    raise SystemExit(
+        f"Authenticated SearXNG preflight failed: {type(exc).__name__}"
+    ) from None
+if status != 200:
+    raise SystemExit(f"Authenticated SearXNG preflight returned HTTP {status}")
+if content_type != "application/json":
+    raise SystemExit(
+        f"Authenticated SearXNG preflight returned non-JSON content type {content_type}"
+    )
+if len(body) > 2_000_000:
+    raise SystemExit("Authenticated SearXNG preflight response exceeded 2 MB")
+try:
+    payload = json.loads(body)
+except (json.JSONDecodeError, UnicodeDecodeError):
+    raise SystemExit("Authenticated SearXNG preflight returned invalid JSON") from None
+if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+    raise SystemExit("Authenticated SearXNG preflight returned an invalid search schema")
+unresponsive = payload.get("unresponsive_engines") or []
+if payload["results"]:
+    print(
+        "SearXNG preflight search route healthy; "
+        f"results={len(payload['results'])} unresponsive_engines={len(unresponsive)}"
+    )
+else:
+    print(
+        "SearXNG preflight search route reachable but returned no results; "
+        f"unresponsive_engines={len(unresponsive)}",
+        file=sys.stderr,
+    )
+PY
+
+WORKER_ENV_VARS="${WORKER_ENV_VARS}@SEARXNG_URL=${SEARXNG_URL}@SEARXNG_AUTH_MODE=google_identity"
+echo "Authenticated private SearXNG preflight passed"
 
 echo "Building ${IMAGE}"
 gcloud builds submit \
@@ -163,6 +303,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --project "${PROJECT_ID}" \
   --platform managed \
   --no-allow-unauthenticated \
+  --service-account "${WORKER_SERVICE_ACCOUNT}" \
   --command python \
   --args=-m,backend.scripts.run_orqaly_hybrid_worker_service \
   --memory 8Gi \
