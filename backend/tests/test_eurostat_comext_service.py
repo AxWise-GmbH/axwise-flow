@@ -39,6 +39,7 @@ from backend.services.research_source_authority_service import (
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
 
@@ -50,11 +51,20 @@ os.environ.setdefault(
 )
 
 
-def _topic_seed(country_code: str = "EE"):
+def _topic_scope(country_code: str = "EE") -> ConfirmedMarketScope:
     country_name = {"EE": "Estonia", "LV": "Latvia"}.get(
         country_code,
         country_code,
     )
+    return ConfirmedMarketScope(
+        scope_label=country_name,
+        country_codes=(country_code,),
+        confirmed=True,
+    )
+
+
+def _topic_seed(country_code: str = "EE"):
+    scope = _topic_scope(country_code)
     return build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id=f"{country_code.casefold()}-cat-food",
@@ -62,12 +72,21 @@ def _topic_seed(country_code: str = "EE"):
             problem_scope="Assess cat food demand using official statistics.",
             exact_topic_anchors=("cat food",),
         ),
-        ConfirmedMarketScope(
-            scope_label=country_name,
-            country_codes=(country_code,),
-            confirmed=True,
-        ),
+        scope,
     )
+
+
+def _topic_lifecycle(country_code: str = "EE") -> dict:
+    scope = _topic_scope(country_code)
+    seed = _topic_seed(country_code)
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+    result = {
+        "topic_seed_contract": seed.model_dump(mode="json"),
+        "topic_market_scope_contract": scope.model_dump(mode="json"),
+    }
+    if expansion is not None:
+        result["topic_alias_expansion"] = expansion.model_dump(mode="json")
+    return result
 
 
 def _jsonstat(
@@ -1037,7 +1056,7 @@ async def test_acquired_source_is_signed_rederived_verified_and_raw_mutation_blo
         location="Estonia",
         business_problem="Launch cat food",
         target_user="Category buyers",
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
     canonical = source["authority_proof"]["structured_statistical_observations"][0][
         "canonical_claim_text"
@@ -1055,7 +1074,7 @@ async def test_acquired_source_is_signed_rederived_verified_and_raw_mutation_blo
     grounding = {
         "market_sources": pipeline.market_sources,
         "market_claims": pipeline.market_claims,
-        "topic_seed_contract": _topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     }
     official_claim = next(
         claim
@@ -1193,7 +1212,7 @@ async def test_runtime_adapter_fills_signed_official_class_without_search_provid
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
 
     with patch(
@@ -1216,7 +1235,7 @@ async def test_runtime_adapter_fills_signed_official_class_without_search_provid
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": _topic_seed().model_dump(mode="json"),
+            **_topic_lifecycle(),
         },
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
@@ -1275,7 +1294,7 @@ async def test_successful_eurostat_does_not_unlock_uncited_provider_company_text
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
 
     class UncitedSearch:
@@ -1346,7 +1365,7 @@ async def test_successful_eurostat_preserves_source_bearing_provider_company_pat
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
     provider_url = "https://example.com/estonia-cat-food-market"
     provider_text = "Example Retail OÜ sells cat food in Estonia."
@@ -1454,7 +1473,7 @@ async def test_company_parser_keeps_only_claims_with_their_own_surviving_sources
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
     valid_url = "https://valid.example.com/estonia-cat-food"
     rejected_url = "https://rejected.example.com/latvia-cat-food"
@@ -1624,7 +1643,7 @@ async def test_runtime_adapter_failure_preserves_generic_search_and_runs_concurr
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
     adapter_started = threading.Event()
     provider_started = threading.Event()
@@ -1724,7 +1743,7 @@ async def test_runtime_cancellation_during_provider_fanout_cancels_adapter():
         model=MagicMock(),
         data_source="web",
         required_evidence_classes=["official_statistic"],
-        topic_seed_contract=_topic_seed().model_dump(mode="json"),
+        **_topic_lifecycle(),
     )
     adapter_started = asyncio.Event()
     adapter_cancelled = asyncio.Event()

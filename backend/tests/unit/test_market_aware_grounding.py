@@ -24,6 +24,7 @@ from backend.services.research_quality_service import evaluate_critical_claims
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
 from backend.services.research_source_authority_service import (
@@ -39,6 +40,32 @@ from backend.services.research_source_authority_service import (
 
 
 pytestmark = pytest.mark.contract
+
+
+def _topic_lifecycle(seed, scope: ConfirmedMarketScope) -> dict:
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+    result = {
+        "topic_seed_contract": seed.model_dump(mode="json"),
+        "topic_market_scope_contract": scope.model_dump(mode="json"),
+    }
+    if expansion is not None:
+        result["topic_alias_expansion"] = expansion.model_dump(mode="json")
+    return result
+
+
+def _ee_cat_food_topic_lifecycle() -> dict:
+    scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="estonia-cat-food-test",
+            title="Cat food commercial launch",
+            exact_topic_anchors=("cat food",),
+        ),
+        scope,
+    )
+    return _topic_lifecycle(seed, scope)
 
 
 def _company(
@@ -641,6 +668,9 @@ async def test_company_parser_normal_response_keeps_existing_schema_and_quality(
 
 
 def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Brazil", country_codes=("BR",), confirmed=True
+    )
     topic_seed = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id="brazil-cat-food",
@@ -651,9 +681,7 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
             ),
             target_user="Pet food distributors and launch steering committee",
         ),
-        ConfirmedMarketScope(
-            scope_label="Brazil", country_codes=("BR",), confirmed=True
-        ),
+        topic_scope,
     )
     pipeline = B2BDataPipeline(
         location="Brazil",
@@ -667,7 +695,7 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
             "official_statistic",
             "observed_primary_market",
         ],
-        topic_seed_contract=topic_seed.model_dump(mode="json"),
+        **_topic_lifecycle(topic_seed, topic_scope),
     )
     queries = pipeline._directed_evidence_queries()
     assert len(queries) == 3
@@ -888,6 +916,9 @@ async def test_sixth_observed_recovery_starts_inside_bounded_fetch_lane(monkeypa
 
 
 def test_observed_results_are_topic_ranked_before_per_route_source_cap():
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
     topic_seed = build_topic_seed(
         ImmutableGoalTopicFields(
             goal_id="estonia-cat-food-ranking",
@@ -895,16 +926,14 @@ def test_observed_results_are_topic_ranked_before_per_route_source_cap():
             problem_scope="Assess cat food prices and demand.",
             exact_topic_anchors=("cat food",),
         ),
-        ConfirmedMarketScope(
-            scope_label="Estonia", country_codes=("EE",), confirmed=True
-        ),
+        topic_scope,
     )
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Commercial launch",
         target_user="Retail buyer",
         model=MagicMock(),
-        topic_seed_contract=topic_seed.model_dump(mode="json"),
+        **_topic_lifecycle(topic_seed, topic_scope),
     )
     sources = [
         {"title": "Dog dry food", "url": "https://shop.example.ee/dog-1"},
@@ -948,6 +977,56 @@ def test_observed_results_are_topic_ranked_before_per_route_source_cap():
         "https://stat.example.ee/cat-food",
         "https://stat.example.ee/home",
     ]
+
+
+def test_estonian_trusted_alias_is_present_in_observed_acquisition_query():
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="estonia-cat-food-query",
+            title="Launch cat food commercially",
+            problem_scope="Assess current cat food offers.",
+            exact_topic_anchors=("cat food",),
+        ),
+        topic_scope,
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food commercially",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_topic_lifecycle(topic_seed, topic_scope),
+    )
+
+    [query] = pipeline._directed_evidence_queries()
+
+    assert "Exact product/category phrases: cat food, kassitoit." in query["query"]
+    assert pipeline.routing_diagnostics["topic_alias_registry_version"]
+
+
+def test_topic_bound_pipeline_rejects_seed_without_confirmed_scope():
+    scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="missing-topic-scope",
+            title="Cat food launch",
+            exact_topic_anchors=("cat food",),
+        ),
+        scope,
+    )
+
+    with pytest.raises(ValueError, match="requires a seed and confirmed market"):
+        B2BDataPipeline(
+            location="Estonia",
+            business_problem="Launch cat food",
+            target_user="Retail buyer",
+            required_evidence_classes=["observed_primary_market"],
+            topic_seed_contract=seed.model_dump(mode="json"),
+        )
 
 
 def test_live_cms_navigation_block_yields_signed_exact_statutory_claim(
@@ -1098,6 +1177,19 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         "test-authority-secret-32-bytes-minimum",
     )
     retrieved_at = "2026-08-13T00:00:00+00:00"
+    topic_scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    topic_seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="estonia-cat-food-market",
+            title="Commercial cat food market launch",
+            problem_scope="Assess cat food demand and prices.",
+            industry="Pet food",
+            exact_topic_anchors=("cat food",),
+        ),
+        topic_scope,
+    )
     pipeline = B2BDataPipeline(
         location="Estonia",
         business_problem="Commercial cat food market launch",
@@ -1107,18 +1199,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
             "official_statistic",
             "observed_primary_market",
         ],
-        topic_seed_contract=build_topic_seed(
-            ImmutableGoalTopicFields(
-                goal_id="estonia-cat-food-market",
-                title="Commercial cat food market launch",
-                problem_scope="Assess cat food demand and prices.",
-                industry="Pet food",
-                exact_topic_anchors=("cat food",),
-            ),
-            ConfirmedMarketScope(
-                scope_label="Estonia", country_codes=("EE",), confirmed=True
-            ),
-        ).model_dump(mode="json"),
+        **_topic_lifecycle(topic_seed, topic_scope),
     )
 
     stat_url = "https://www.stat.ee/en/internal-trade"
@@ -1242,9 +1323,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
         {
             "market_sources": pipeline.market_sources,
             "market_claims": pipeline.market_claims,
-            "topic_seed_contract": pipeline.topic_seed_contract.model_dump(
-                mode="json"
-            ),
+            **_topic_lifecycle(topic_seed, topic_scope),
         },
         ["EE"],
         freshness_days=120,
@@ -1725,6 +1804,7 @@ async def test_targeted_attestation_is_host_bounded_and_keeps_redirect_untrusted
         target_user="Retail buyer",
         model=MagicMock(),
         required_evidence_classes=["statutory_current", "official_statistic"],
+        **_ee_cat_food_topic_lifecycle(),
     )
     unresolved = [
         {
@@ -1805,6 +1885,7 @@ async def test_targeted_attestation_skips_rejected_jurisdiction_publishers():
         target_user="Retail buyer",
         model=MagicMock(),
         required_evidence_classes=["statutory_current", "official_statistic"],
+        **_ee_cat_food_topic_lifecycle(),
     )
 
     class Search:

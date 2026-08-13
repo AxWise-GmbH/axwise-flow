@@ -64,6 +64,7 @@ from backend.services.research_quality_service import (
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
 from backend.domain.market_scope import resolve_market_expression
@@ -233,9 +234,8 @@ class HybridRunService:
         )
 
     @staticmethod
-    def _topic_seed_contract(
+    def _topic_market_scope_contract(
         request: SimulationRequest,
-        task_context: Optional[OrqalyTaskContext],
         country_codes: list[str],
     ) -> Optional[Dict[str, Any]]:
         context = request.business_context
@@ -254,6 +254,34 @@ class HybridRunService:
             for country in market_scope.resolved_scope.countries:
                 geography_terms.append(country.country_name)
                 geography_terms.extend(country.localities)
+        try:
+            scope = ConfirmedMarketScope(
+                scope_label=scope_label,
+                country_codes=tuple(country_codes),
+                confirmed=True,
+                resolution_hash=(
+                    market_scope.resolution_hash if market_scope else None
+                ),
+                geography_terms=tuple(
+                    value for value in dict.fromkeys(geography_terms) if value
+                ),
+            )
+        except (TypeError, ValueError):
+            return None
+        return scope.model_dump(mode="json")
+
+    @staticmethod
+    def _topic_seed_contract(
+        request: SimulationRequest,
+        task_context: Optional[OrqalyTaskContext],
+        country_codes: list[str],
+    ) -> Optional[Dict[str, Any]]:
+        context = request.business_context
+        scope_contract = HybridRunService._topic_market_scope_contract(
+            request, country_codes
+        )
+        if not context or not scope_contract:
+            return None
         immutable = {
             "title": task_context.title if task_context else context.business_idea,
             "problem_scope": " ".join(
@@ -281,17 +309,7 @@ class HybridRunService:
         try:
             seed = build_topic_seed(
                 ImmutableGoalTopicFields(goal_id=goal_id, **immutable),
-                ConfirmedMarketScope(
-                    scope_label=scope_label,
-                    country_codes=tuple(country_codes),
-                    confirmed=True,
-                    resolution_hash=(
-                        market_scope.resolution_hash if market_scope else None
-                    ),
-                    geography_terms=tuple(
-                        value for value in dict.fromkeys(geography_terms) if value
-                    ),
-                ),
+                ConfirmedMarketScope.model_validate(scope_contract),
             )
         except (TypeError, ValueError):
             return None
@@ -367,6 +385,12 @@ class HybridRunService:
                     "market_sources": cell_sources,
                     "market_claims": cell_claims,
                     "topic_seed_contract": grounding.get("topic_seed_contract"),
+                    "topic_market_scope_contract": grounding.get(
+                        "topic_market_scope_contract"
+                    ),
+                    "topic_alias_expansion": grounding.get(
+                        "topic_alias_expansion"
+                    ),
                 },
                 countries,
                 freshness_days=int(critical_policy.get("freshness_days") or 120),
@@ -914,21 +938,49 @@ class HybridRunService:
                     task_context,
                     requested_country_codes,
                 )
+                topic_market_scope_contract = self._topic_market_scope_contract(
+                    request,
+                    requested_country_codes,
+                )
+                topic_alias_expansion = None
+                if topic_seed_contract and topic_market_scope_contract:
+                    try:
+                        expected_alias_expansion = (
+                            build_expected_trusted_topic_alias_expansion(
+                                topic_seed_contract,
+                                topic_market_scope_contract,
+                            )
+                        )
+                        topic_alias_expansion = (
+                            expected_alias_expansion.model_dump(mode="json")
+                            if expected_alias_expansion is not None
+                            else None
+                        )
+                    except (TypeError, ValueError):
+                        topic_seed_contract = None
+                        topic_market_scope_contract = None
+                topic_contract_required = bool(
+                    {"official_statistic", "observed_primary_market"}
+                    & applicable_claim_classes
+                )
                 if (
-                    "official_statistic" in applicable_claim_classes
-                    and not topic_seed_contract
+                    topic_contract_required
+                    and (not topic_seed_contract or not topic_market_scope_contract)
                 ):
                     failure_diagnostics = {
                         "contract": "sanitized_grounding_failure_v1",
                         "critical_status": "blocked",
-                        "missing_claim_classes": ["official_statistic"],
+                        "missing_claim_classes": sorted(
+                            {"official_statistic", "observed_primary_market"}
+                            & applicable_claim_classes
+                        ),
                         "blocked_reason_counts": {
                             "topic_contract_missing_or_invalid": 1
                         },
                     }
                     raise RuntimeError(
-                        "Applicable official-statistic evidence requires a valid "
-                        "immutable goal topic contract"
+                        "Applicable topic-bound evidence requires a valid immutable "
+                        "goal and confirmed-market topic contract"
                     )
                 if request.business_context:
                     # Acquisition reads this data-only contract before any
@@ -955,6 +1007,13 @@ class HybridRunService:
                         acquisition_context["critical_claim_acquisition"][
                             "topic_seed_contract"
                         ] = topic_seed_contract
+                        acquisition_context["critical_claim_acquisition"][
+                            "topic_market_scope_contract"
+                        ] = topic_market_scope_contract
+                        if topic_alias_expansion is not None:
+                            acquisition_context["critical_claim_acquisition"][
+                                "topic_alias_expansion"
+                            ] = topic_alias_expansion
                     request = request.model_copy(
                         update={
                             "business_context": request.business_context.model_copy(
@@ -963,6 +1022,8 @@ class HybridRunService:
                         }
                     )
                 expected_topic_seed_contract = topic_seed_contract
+                expected_topic_market_scope_contract = topic_market_scope_contract
+                expected_topic_alias_expansion = topic_alias_expansion
                 await self._set_stage(
                     job_id,
                     "grounding_market",
@@ -973,24 +1034,37 @@ class HybridRunService:
                     grounding = await self.grounding(request, grounding_policy)
                 except Exception as exc:
                     raise RuntimeError("Regional market grounding failed") from exc
-                if "official_statistic" in applicable_claim_classes:
+                if topic_contract_required:
                     returned_topic_seed = grounding.get("topic_seed_contract")
+                    returned_topic_scope = grounding.get(
+                        "topic_market_scope_contract"
+                    )
+                    returned_topic_alias_expansion = grounding.get(
+                        "topic_alias_expansion"
+                    )
                     if (
                         not isinstance(returned_topic_seed, dict)
                         or returned_topic_seed.get("seed_sha256")
                         != expected_topic_seed_contract.get("seed_sha256")
                         or returned_topic_seed != expected_topic_seed_contract
+                        or returned_topic_scope
+                        != expected_topic_market_scope_contract
+                        or returned_topic_alias_expansion
+                        != expected_topic_alias_expansion
                     ):
                         failure_diagnostics = {
                             "contract": "sanitized_grounding_failure_v1",
                             "critical_status": "blocked",
-                            "missing_claim_classes": ["official_statistic"],
+                            "missing_claim_classes": sorted(
+                                {"official_statistic", "observed_primary_market"}
+                                & applicable_claim_classes
+                            ),
                             "blocked_reason_counts": {
                                 "topic_contract_missing_or_invalid": 1
                             },
                         }
                         raise RuntimeError(
-                            "Grounding omitted or replaced the immutable goal topic contract"
+                            "Grounding omitted or replaced the immutable topic lifecycle"
                         )
                 structured_sources = valid_structured_market_sources(
                     grounding, grounding_policy
@@ -1080,6 +1154,10 @@ class HybridRunService:
                     {
                         **grounding,
                         "topic_seed_contract": expected_topic_seed_contract,
+                        "topic_market_scope_contract": (
+                            expected_topic_market_scope_contract
+                        ),
+                        "topic_alias_expansion": expected_topic_alias_expansion,
                     },
                     critical_policy=critical_policy,
                     claim_class_applicability=claim_class_applicability,
@@ -1102,6 +1180,10 @@ class HybridRunService:
                         )
                     ),
                     topic_seed_contract=expected_topic_seed_contract,
+                    topic_market_scope_contract=(
+                        expected_topic_market_scope_contract
+                    ),
+                    topic_alias_expansion=expected_topic_alias_expansion,
                 )
                 grounding = {
                     **grounding,
