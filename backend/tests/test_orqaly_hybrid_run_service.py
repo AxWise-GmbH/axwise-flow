@@ -929,9 +929,7 @@ async def commercial_grounding(_request, _policy):
         "Germany's latest official market population is 84 million for 2025."
     )
     price_claim = (
-        "The current retail catalogue price for a premium research technology "
-        "subscription is €2.99 on "
-        "2026-08-12."
+        "premium research technology subscription The current retail price is €2.99"
     )
     source_url = "https://tax.gov.de/current-market-facts"
     catalog_url = "https://shop.example.de/research-technology"
@@ -984,7 +982,6 @@ async def commercial_grounding(_request, _policy):
         "retrieved_at": retrieved_at,
         "authority_proof_signature": stat_proof["proof_signature"],
     }
-    catalog_text = "Official product catalogue for Germany. " + price_claim
     catalog_offer_html = (
         '<script type="application/ld+json">'
         '{"@type":"Product","sku":"RESEARCH-TECH","name":'
@@ -992,12 +989,19 @@ async def commercial_grounding(_request, _policy):
         '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
         "</script>"
     )
-    catalog_raw_html = f"<div>{catalog_text}</div>{catalog_offer_html}"
+    catalog_raw_html = (
+        '<div>Official product catalogue for Germany.</div>'
+        '<article class="product-card">'
+        '<h1>premium research technology subscription</h1>'
+        '<div class="price">The current retail price is €2.99</div>'
+        f'<div>Observed on 2026-08-12.</div></article>{catalog_offer_html}'
+    )
+    catalog_text = _normalized_document_text(catalog_raw_html, is_html=True)
     catalog_proof = build_direct_primary_market_proof(
         direct_url=catalog_url,
         direct_text=catalog_text,
         country_codes=["DE"],
-        commercial_offer_evidence=_commercial_offer_evidence(catalog_offer_html),
+        commercial_offer_evidence=_commercial_offer_evidence(catalog_raw_html),
         direct_raw_html=catalog_raw_html,
         retrieved_at=retrieved_at,
     )

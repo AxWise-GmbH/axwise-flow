@@ -13,6 +13,10 @@ from api.research.simulation_bridge.services.market_scope import (
 )
 from api.research.simulation_bridge.services.pipeline import B2BDataPipeline
 from api.research.simulation_bridge.services import pipeline as pipeline_module
+from api.research.simulation_bridge.services.pipeline import (
+    _admit_provider_candidate_urls,
+    _schedule_authority_candidates,
+)
 from api.research.simulation_bridge.services.regional_service import RegionalService
 from backend.services.generative.gemini_search_service import GeminiSearchService
 from backend.services.generative.searxng_search_service import SearxngSearchService
@@ -23,6 +27,7 @@ from backend.services.research_topic_contract_service import (
     build_topic_seed,
 )
 from backend.services.research_source_authority_service import (
+    RetrievalChallengeError,
     _commercial_offer_evidence,
     _normalized_document_text,
     _structured_statistical_observations,
@@ -694,10 +699,192 @@ def test_directed_acquisition_has_bounded_dynamic_query_and_source_ceiling():
         assert "Exact product/category phrases: cat food." in query
         assert "baseline quality" not in query
         assert "unit economics" not in query
+    observed_query = next(
+        row["query"]
+        for row in queries
+        if row["evidence_class"] == "observed_primary_market"
+    )
+    assert "direct product-detail pages" in observed_query
+    assert "schema.org Product/Offer" in observed_query
+    assert "Exclude homepages and category/search pages" in observed_query
     # Three evidence classes plus one batched authority-directory query across
     # two independent providers; each route admits at most two direct sources.
     assert (len(queries) + 1) * 2 == 8
     assert (len(queries) + 1) * 2 * 2 == 16
+
+
+def _authority_candidate(
+    provider: str, evidence_class: str, ordinal: int
+) -> dict:
+    return {
+        "url": f"https://{provider}.example.ee/{evidence_class}/{ordinal}",
+        "provider": provider,
+        "acquisition_evidence_classes": [evidence_class],
+    }
+
+
+def test_authority_scheduler_puts_two_provider_core_wave_before_overflow():
+    rows = [
+        _authority_candidate(provider, "observed_primary_market", ordinal)
+        for provider in ("gemini", "searxng")
+        for ordinal in range(6)
+    ] + [
+        _authority_candidate(provider, evidence_class, 0)
+        for evidence_class in ("statutory_current", "official_statistic")
+        for provider in ("gemini", "searxng")
+    ]
+
+    scheduled = _schedule_authority_candidates(rows)
+
+    assert [
+        (row["provider"], row["acquisition_evidence_classes"][0], row["url"].rsplit("/", 1)[-1])
+        for row in scheduled[:8]
+    ] == [
+        ("gemini", "observed_primary_market", "0"),
+        ("searxng", "observed_primary_market", "0"),
+        ("gemini", "observed_primary_market", "1"),
+        ("searxng", "observed_primary_market", "1"),
+        ("gemini", "statutory_current", "0"),
+        ("searxng", "statutory_current", "0"),
+        ("gemini", "official_statistic", "0"),
+        ("searxng", "official_statistic", "0"),
+    ]
+    assert len(scheduled) == 16
+
+
+def test_observed_candidate_cap_keeps_sixth_recovery_and_excludes_seventh():
+    urls = [f"https://shop.example.ee/challenge-{index}" for index in range(5)]
+    urls.extend(
+        [
+            "https://shop.example.ee/valid-product-offer",
+            "https://shop.example.ee/excluded-overflow",
+        ]
+    )
+
+    admitted = _admit_provider_candidate_urls(
+        urls, existing_urls=set(), new_url_cap=6
+    )
+    scheduled = _schedule_authority_candidates(
+        [
+            {
+                "url": url,
+                "provider": "gemini",
+                "acquisition_evidence_classes": ["observed_primary_market"],
+            }
+            for url in admitted
+        ]
+    )
+
+    assert admitted[-1].endswith("valid-product-offer")
+    assert all("excluded-overflow" not in url for url in admitted)
+    assert scheduled[-1]["url"].endswith("valid-product-offer")
+    assert len(scheduled) == 6
+
+
+def test_duplicate_urls_do_not_charge_second_provider_new_candidate_cap():
+    shared = [f"https://shop.example.ee/shared-{index}" for index in range(6)]
+    unique = "https://shop.example.ee/searxng-unique-product"
+
+    admitted = _admit_provider_candidate_urls(
+        [*shared, unique],
+        existing_urls=set(shared),
+        new_url_cap=6,
+    )
+
+    assert admitted == (*shared, unique)
+
+
+def test_fragment_variants_merge_as_one_retrieval_and_preserve_later_candidate():
+    shared = "https://shop.example.ee/shared-product"
+    fragments = [f"{shared}#section-{index}" for index in range(12)]
+    valid = "https://shop.example.ee/valid-product"
+
+    admitted = _admit_provider_candidate_urls(
+        [*fragments, valid],
+        existing_urls={shared},
+        new_url_cap=6,
+    )
+
+    assert admitted == (fragments[0], valid)
+
+
+def test_authority_scheduler_caps_network_and_preserves_one_eurostat_row():
+    rows = [
+        _authority_candidate(f"provider-{index}", "statutory_current", 0)
+        for index in range(30)
+    ]
+    rows.append(
+        {
+            "url": "https://ec.europa.eu/eurostat/api/data",
+            "provider": "eurostat_comext_official",
+            "acquisition_evidence_classes": ["official_statistic"],
+        }
+    )
+
+    scheduled = _schedule_authority_candidates(rows)
+
+    assert len(scheduled) == 25
+    assert scheduled[0]["provider"] == "eurostat_comext_official"
+
+
+@pytest.mark.asyncio
+async def test_sixth_observed_recovery_starts_inside_bounded_fetch_lane(monkeypatch):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    valid_url = "https://shop.example.ee/valid-product-offer"
+    raw_html = (
+        '<div>Estonia catalogue</div><div class="product">'
+        '<h1>Alpha cat food</h1><div class="price">Current price €2.99</div>'
+        '</div><script type="application/ld+json">{"@type":"Product",'
+        '"name":"Alpha cat food","offers":{"@type":"Offer",'
+        '"price":"2.99","priceCurrency":"EUR"}}</script>'
+    )
+    rows = [
+        {
+            **_authority_candidate("gemini", "observed_primary_market", index),
+            "url": valid_url if index == 5 else f"https://shop.example.ee/challenge-{index}",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+        }
+        for index in range(6)
+    ] + [
+        {
+            **_authority_candidate("gemini", evidence_class, 0),
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+        }
+        for evidence_class in ("statutory_current", "official_statistic")
+    ]
+    scheduled = _schedule_authority_candidates(rows)
+    valid_started = asyncio.Event()
+    release_slow = asyncio.Event()
+
+    async def fetcher(url: str) -> dict:
+        if url == valid_url:
+            valid_started.set()
+            return {
+                "final_url": url,
+                "text": _normalized_document_text(raw_html, is_html=True),
+                "retrieved_at": "2026-08-13T00:00:00+00:00",
+                "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+                "_structured_evidence_html": raw_html,
+            }
+        await release_slow.wait()
+        raise RetrievalChallengeError("challenge")
+
+    task = asyncio.create_task(
+        real_enrich_authority_sources(scheduled, fetcher=fetcher)
+    )
+    await asyncio.wait_for(valid_started.wait(), timeout=0.5)
+    release_slow.set()
+    enriched = await task
+
+    valid = next(row for row in enriched if row["url"] == valid_url)
+    assert valid["authority_proof"]["proof_type"] == (
+        "direct_primary_market_observation"
+    )
 
 
 def test_observed_results_are_topic_ranked_before_per_route_source_cap():
@@ -969,25 +1156,23 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
     )
 
     catalog_url = "https://shop.example.ee/cat-food/sheba-340g"
-    catalog_text = (
-        "Estonia online storefront for local shoppers. "
-        + ("Navigation categories delivery account " * 50)
-        + "Product catalogue price 3,29 € 9,68 €/kg SHEBA cat food, Täistoit "
-        "kiisueine lihaga kastmes, "
-        "340 g Osta"
-    )
     catalog_offer_html = (
+        '<div>Estonia online storefront for local shoppers.</div>'
+        '<article class="product-card"><h1>SHEBA cat food</h1>'
+        '<p>Täistoit kiisueine lihaga kastmes, 340 g Osta</p>'
+        '<div class="price">Current product price 3,29 €</div></article>'
         '<script type="application/ld+json">'
         '{"@type":"Product","sku":"SHEBA-340G","name":"SHEBA cat food","offers":'
         '{"@type":"Offer","price":"3.29","priceCurrency":"EUR"}}'
         "</script>"
     )
+    catalog_text = _normalized_document_text(catalog_offer_html, is_html=True)
     catalog_proof = build_direct_primary_market_proof(
         direct_url=catalog_url,
         direct_text=catalog_text,
         country_codes=["EE"],
         commercial_offer_evidence=_commercial_offer_evidence(catalog_offer_html),
-        direct_raw_html=f"<div>{catalog_text}</div>{catalog_offer_html}",
+        direct_raw_html=catalog_offer_html,
         retrieved_at=retrieved_at,
     )
 
@@ -1041,7 +1226,7 @@ def test_signed_statistic_and_catalog_quotes_need_not_repeat_country(
                 text=catalog_text,
                 authority="first_party_catalog",
                 verification="direct_primary_market_observation",
-                raw_html=f"<div>{catalog_text}</div>{catalog_offer_html}",
+                raw_html=catalog_offer_html,
             ),
         ],
         [],

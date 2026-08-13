@@ -82,6 +82,62 @@ def test_product_topic_projection_excludes_pr40_benchmark_and_process_anchors():
     )
 
 
+def test_product_topic_projection_excludes_verification_qualifier_from_title():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="pr42",
+            title="PR42 Production E2E — Estonia Cat Food Verified Launch",
+            problem_scope=(
+                "Verify current Estonia-specific cat food demand, official "
+                "statistics, and a first-party offer."
+            ),
+            desired_outcome="A verified commercial cat food launch decision.",
+            industry="other",
+            target_user="Estonian cat-food category buyers.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+
+
+def test_inferred_brand_prefix_named_verified_is_not_pruned():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="verified-brand",
+            title="Verified Choice cat food launch",
+            problem_scope="Validate pricing for Verified Choice cat food.",
+            industry="other",
+            target_user="Category buyers.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("verified choice cat food",)
+
+
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [
+        ("Cat-food verified launch", "cat-food"),
+        ("Children's furniture verified launch", "children's furniture"),
+    ],
+)
+def test_title_qualifier_pruning_preserves_exact_punctuation(title, expected):
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="punctuation-topic",
+            title=title,
+            problem_scope="Validate current retail offers.",
+            industry="other",
+            target_user="Category buyers.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == (expected,)
+
+
 def test_product_topic_projection_does_not_broaden_title_category():
     seed = build_topic_seed(
         ImmutableGoalTopicFields(
@@ -103,6 +159,7 @@ def test_product_topic_projection_does_not_broaden_title_category():
         ("Quality Street chocolate", "GB", "United Kingdom"),
         ("Unit 13 furniture", "US", "United States"),
         ("kassitoit", "EE", "Estonia"),
+        ("Verified Choice cat food", "EE", "Estonia"),
     ],
 )
 def test_explicit_product_anchor_is_never_mutated_by_language_stop_words(

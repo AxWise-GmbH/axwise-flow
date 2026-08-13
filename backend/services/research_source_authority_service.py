@@ -28,6 +28,7 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 import pycountry
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 
 AUTHORITY_PROOF_VERSION = "direct_authority_attestation_v1"
@@ -67,6 +68,45 @@ _STRUCTURED_OFFER_FIELDS = re.compile(
     r"availability)\b",
     re.IGNORECASE,
 )
+_CURRENT_PRICE_ROLE = re.compile(
+    r"\b(?:current|our|your|now|sale|promo(?:tional)?|member|online|"
+    r"available|availability|in[ -]?stock|hind|price|cost)\b",
+    re.IGNORECASE,
+)
+_NON_OFFER_PRICE_ROLE = re.compile(
+    r"\b(?:old|was|list|recommended|rrp|msrp|delivery|shipping|"
+    r"postage|fee|cart|basket|checkout|subtotal|threshold)\b",
+    re.IGNORECASE,
+)
+_VISIBLE_CURRENT_PRICE_LABEL_TOKENS_V1 = frozenset(
+    {
+        "available",
+        "availability",
+        "cost",
+        "current",
+        "hind",
+        "in",
+        "instock",
+        "is",
+        "member",
+        "now",
+        "offer",
+        "online",
+        "product",
+        "our",
+        "price",
+        "promo",
+        "promotional",
+        "regular",
+        "retail",
+        "sale",
+        "sku",
+        "stock",
+        "tavahind",
+        "the",
+        "your",
+    }
+)
 _MAX_RETAINED_AUTHORITY_TEXT = 100_000
 _MAX_DIRECT_FETCH_CONCURRENCY = 8
 _MAX_DIRECT_FETCH_REDIRECTS = 3
@@ -79,6 +119,40 @@ _EU_COUNTRY_CODES = {
     "FR", "GR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL",
     "PT", "RO", "SE", "SI", "SK",
 }
+
+
+class RetrievalChallengeError(ValueError):
+    """A fetched response is an anti-bot interstitial, not publisher content."""
+
+
+_HIDDEN_STYLE_DECLARATION = re.compile(
+    r"(?:^|;)\s*(?:"
+    r"display\s*:\s*none|"
+    r"visibility\s*:\s*(?:hidden|collapse)|"
+    r"content-visibility\s*:\s*hidden|"
+    r"opacity\s*:\s*(?:0+(?:\.0+)?|\.0+)"
+    r")\s*(?:!\s*important\s*)?(?:;|$)",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_retrieval_challenge(
+    headers: Mapping[str, Any], body: str
+) -> bool:
+    """Recognize only high-confidence challenge signals and fail closed."""
+
+    mitigated = str(headers.get("cf-mitigated") or "").strip().casefold()
+    if mitigated == "challenge":
+        return True
+    sample = str(body or "")[:100_000].casefold()
+    return (
+        "/cdn-cgi/challenge-platform/" in sample
+        and (
+            "window._cf_chl_opt" in sample
+            or "cf_chl_" in sample
+            or "enable javascript and cookies to continue" in sample
+        )
+    )
 
 
 class _VisibleTextParser(HTMLParser):
@@ -103,14 +177,21 @@ class _VisibleTextParser(HTMLParser):
         }
     )
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        css_hidden_classes: frozenset[str] = frozenset(),
+        css_hidden_ids: frozenset[str] = frozenset(),
+    ) -> None:
         super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
         self._hidden_depth = 0
-        self._element_stack: list[tuple[str, bool]] = []
+        self._element_stack: list[dict[str, Any]] = []
+        self._css_hidden_classes = css_hidden_classes
+        self._css_hidden_ids = css_hidden_ids
 
-    @staticmethod
     def _element_is_hidden(
+        self,
         tag: str, attrs: list[tuple[str, Optional[str]]]
     ) -> bool:
         if tag.casefold() in {"script", "style", "noscript", "template"}:
@@ -123,25 +204,64 @@ class _VisibleTextParser(HTMLParser):
             return True
         if normalized.get("aria-hidden", "").casefold() == "true":
             return True
+        if tag.casefold() == "dialog" and "open" not in normalized:
+            return True
+        if normalized.get("id") in self._css_hidden_ids:
+            return True
+        if self._css_hidden_classes.intersection(
+            normalized.get("class", "").split()
+        ):
+            return True
         style = normalized.get("style", "")
-        return bool(
-            re.search(
-                r"(?:^|;)\s*display\s*:\s*none\s*(?:!\s*important\s*)?(?:;|$)",
-                style,
-                re.IGNORECASE,
-            )
-            or re.search(
-                r"(?:^|;)\s*visibility\s*:\s*hidden\s*"
-                r"(?:!\s*important\s*)?(?:;|$)",
-                style,
-                re.IGNORECASE,
-            )
+        return bool(_HIDDEN_STYLE_DECLARATION.search(style))
+
+    def _closed_details_hides_text(self) -> bool:
+        """Model native closed-details visibility without a browser renderer."""
+
+        nearest_closed = next(
+            (
+                index
+                for index in range(len(self._element_stack) - 1, -1, -1)
+                if self._element_stack[index]["closed_details"]
+            ),
+            None,
+        )
+        if nearest_closed is None:
+            return False
+        return not any(
+            entry["summary_passthrough"]
+            for entry in self._element_stack[nearest_closed + 1 :]
         )
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
         normalized_tag = tag.casefold()
+        if normalized_tag in self._HTML_VOID_ELEMENTS:
+            return
+        normalized_attrs = {
+            str(name).casefold(): "" if value is None else str(value).strip()
+            for name, value in attrs
+        }
+        summary_passthrough = False
+        if (
+            normalized_tag == "summary"
+            and self._element_stack
+            and self._element_stack[-1]["closed_details"]
+            and not self._element_stack[-1]["summary_seen"]
+        ):
+            self._element_stack[-1]["summary_seen"] = True
+            summary_passthrough = True
         hidden = self._element_is_hidden(normalized_tag, attrs)
-        self._element_stack.append((normalized_tag, hidden))
+        self._element_stack.append(
+            {
+                "tag": normalized_tag,
+                "hidden": hidden,
+                "closed_details": (
+                    normalized_tag == "details" and "open" not in normalized_attrs
+                ),
+                "summary_passthrough": summary_passthrough,
+                "summary_seen": False,
+            }
+        )
         if hidden:
             self._hidden_depth += 1
 
@@ -163,7 +283,7 @@ class _VisibleTextParser(HTMLParser):
             (
                 index
                 for index in range(len(self._element_stack) - 1, -1, -1)
-                if self._element_stack[index][0] == normalized_tag
+                if self._element_stack[index]["tag"] == normalized_tag
             ),
             None,
         )
@@ -173,26 +293,256 @@ class _VisibleTextParser(HTMLParser):
         del self._element_stack[matching_index:]
         self._hidden_depth = max(
             0,
-            self._hidden_depth - sum(1 for _tag, hidden in removed if hidden),
+            self._hidden_depth
+            - sum(1 for entry in removed if entry["hidden"]),
         )
 
     def handle_data(self, data: str) -> None:
-        if not self._hidden_depth and data.strip():
+        if (
+            not self._hidden_depth
+            and not self._closed_details_hides_text()
+            and data.strip()
+        ):
             self.parts.append(data)
 
 
 def _normalized_document_text(value: str, *, is_html: bool) -> str:
     if is_html:
-        parser = _VisibleTextParser()
+        hidden_classes, hidden_ids = _css_hidden_selectors_from_html(value)
+        parser = _VisibleTextParser(
+            css_hidden_classes=hidden_classes,
+            css_hidden_ids=hidden_ids,
+        )
         parser.feed(value)
         value = " ".join(parser.parts)
     return " ".join(value.split())[:_MAX_RETAINED_AUTHORITY_TEXT]
 
 
-def _commercial_offer_evidence(value: str) -> list[Dict[str, str]]:
+def _css_hidden_selectors_from_html(
+    value: str,
+) -> tuple[frozenset[str], frozenset[str]]:
+    classes: set[str] = set()
+    ids: set[str] = set()
+    for style in re.finditer(
+        r"<style\b[^>]*>(?P<body>.*?)</style>",
+        str(value or "")[:2_000_000],
+        re.IGNORECASE | re.DOTALL,
+    ):
+        css = style.group("body")[:100_000]
+        for match in re.finditer(
+            r"(?P<kind>[.#])(?P<name>[A-Za-z_][A-Za-z0-9_-]{0,80})"
+            r"\s*\{(?P<body>[^{}]{0,2000})\}",
+            css,
+            re.DOTALL,
+        ):
+            if not _HIDDEN_STYLE_DECLARATION.search(match.group("body")):
+                continue
+            (classes if match.group("kind") == "." else ids).add(
+                match.group("name")
+            )
+    return frozenset(classes), frozenset(ids)
+
+
+def _microdata_property_value(node: Tag) -> str:
+    """Apply the element-specific HTML microdata value algorithm."""
+
+    tag = node.name.casefold()
+    attribute = (
+        "content"
+        if tag == "meta"
+        else "value"
+        if tag in {"data", "meter"}
+        else "href"
+        if tag in {"a", "area", "link"}
+        else "src"
+        if tag in {"audio", "embed", "iframe", "img", "source", "track", "video"}
+        else "datetime"
+        if tag == "time"
+        else None
+    )
+    if attribute:
+        raw = node.attrs.get(attribute)
+        return " ".join(html.unescape(str(raw or "")).split())
+    return " ".join(node.get_text(" ", strip=True).split())
+
+
+def _css_hidden_classes(soup: BeautifulSoup) -> frozenset[str]:
+    """Recognize bounded simple class rules that unambiguously hide content."""
+
+    classes: set[str] = set()
+    for style in soup.find_all("style")[:32]:
+        css = str(style.string or style.get_text(" ", strip=False))[:100_000]
+        for match in re.finditer(
+            r"(?P<kind>[.#])(?P<name>[A-Za-z_][A-Za-z0-9_-]{0,80})"
+            r"\s*\{(?P<body>[^{}]{0,2000})\}",
+            css,
+            re.DOTALL,
+        ):
+            body = match.group("body")
+            if _HIDDEN_STYLE_DECLARATION.search(body):
+                prefix = "#" if match.group("kind") == "#" else ""
+                classes.add(prefix + match.group("name"))
+    return frozenset(classes)
+
+
+def _dom_node_is_hidden(node: Tag, hidden_classes: frozenset[str]) -> bool:
+    original = node
+    current: Any = node
+    while isinstance(current, Tag):
+        tag = current.name.casefold()
+        if tag in {"head", "script", "style", "noscript", "template"}:
+            return True
+        if tag == "dialog" and not current.has_attr("open"):
+            return True
+        if tag == "details" and not current.has_attr("open") and original is not current:
+            first_summary = next(
+                (
+                    child
+                    for child in current.find_all(recursive=False)
+                    if isinstance(child, Tag) and child.name.casefold() == "summary"
+                ),
+                None,
+            )
+            if first_summary is None or not (
+                original is first_summary or first_summary in original.parents
+            ):
+                return True
+        attrs = current.attrs
+        if "hidden" in attrs or str(attrs.get("aria-hidden") or "").casefold() == "true":
+            return True
+        style = str(attrs.get("style") or "")
+        if _HIDDEN_STYLE_DECLARATION.search(style):
+            return True
+        raw_classes = attrs.get("class") or []
+        classes = raw_classes if isinstance(raw_classes, list) else str(raw_classes).split()
+        if hidden_classes.intersection(str(value) for value in classes):
+            return True
+        if f"#{str(attrs.get('id') or '')}" in hidden_classes:
+            return True
+        current = current.parent
+    return False
+
+
+def _visible_dom_text(node: Tag, hidden_classes: frozenset[str]) -> str:
+    parts: list[str] = []
+    for descendant in node.descendants:
+        if not isinstance(descendant, NavigableString):
+            continue
+        parent = descendant.parent
+        if not isinstance(parent, Tag) or _dom_node_is_hidden(parent, hidden_classes):
+            continue
+        if str(descendant).strip():
+            parts.append(str(descendant))
+    return " ".join(" ".join(parts).split())
+
+
+def _visible_dom_projection(
+    node: Tag, hidden_classes: frozenset[str]
+) -> tuple[str, dict[int, tuple[int, int]]]:
+    """Flatten visible DOM text and retain exact element-relative offsets."""
+
+    parts: list[str] = []
+    spans: dict[int, tuple[int, int]] = {}
+    offset = 0
+    for descendant in node.descendants:
+        if not isinstance(descendant, NavigableString):
+            continue
+        parent = descendant.parent
+        if not isinstance(parent, Tag) or _dom_node_is_hidden(parent, hidden_classes):
+            continue
+        value = " ".join(str(descendant).split())
+        if not value:
+            continue
+        if parts:
+            offset += 1
+        start = offset
+        parts.append(value)
+        offset += len(value)
+        current: Any = parent
+        while isinstance(current, Tag):
+            existing = spans.get(id(current))
+            spans[id(current)] = (
+                min(existing[0], start) if existing else start,
+                max(existing[1], offset) if existing else offset,
+            )
+            if current is node:
+                break
+            current = current.parent
+    return " ".join(parts), spans
+
+
+def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
     """Extract bounded canonical Product/Offer fields from fetched raw HTML."""
 
-    rows: list[Dict[str, str]] = []
+    rows: list[Dict[str, Any]] = []
+    seen_offers: set[tuple[str, str, str, str]] = set()
+    scope_hints: dict[tuple[str, str, str, str], tuple[Tag, Tag]] = {}
+
+    def normalized_price(raw: Any) -> str:
+        # Schema.org price is a machine numeric value, not locale-formatted
+        # display text. Accept canonical dot decimals and a single comma with
+        # one/two fractional digits; reject grouping/localized ambiguity.
+        candidate = "".join(str(raw or "").split())
+        if re.fullmatch(r"-?\d+,\d{1,2}", candidate):
+            candidate = candidate.replace(",", ".")
+        if not re.fullmatch(r"-?\d+(?:\.\d+)?", candidate):
+            return ""
+        try:
+            return format(Decimal(candidate), "f")
+        except (InvalidOperation, ValueError):
+            return ""
+
+    def append_offer(
+        *,
+        signal_type: str,
+        product_id: Any,
+        product_name: Any,
+        price: Any,
+        price_currency: Any,
+        availability: Any = "",
+        scope_node: Optional[Tag] = None,
+        offer_node: Optional[Tag] = None,
+    ) -> None:
+        if len(rows) >= 24:
+            return
+        identity = " ".join(str(product_id or "").split())[:300]
+        name = " ".join(str(product_name or "").split())[:300]
+        normalized_value = normalized_price(price)
+        currency = str(price_currency or "").strip().upper()
+        if (
+            not normalized_value
+            or not re.fullmatch(r"[A-Z]{3}", currency)
+            or not (identity or name)
+        ):
+            return
+        # The same offer is commonly emitted as both JSON-LD and microdata.
+        # Keep the first independently parsed representation so duplicate
+        # markup cannot look like independent price corroboration.
+        semantic_key = (
+            name.casefold(),
+            identity.casefold(),
+            normalized_value,
+            currency,
+        )
+        if semantic_key in seen_offers:
+            if scope_node is not None and offer_node is not None:
+                scope_hints[semantic_key] = (scope_node, offer_node)
+            return
+        canonical = {
+            "signal_type": signal_type,
+            "product_id": identity,
+            "product_name": name,
+            "price": normalized_value,
+            "price_currency": currency,
+            "availability": " ".join(str(availability or "").split())[:200],
+        }
+        canonical["sha256"] = hashlib.sha256(
+            _canonical_bytes(canonical)
+        ).hexdigest()
+        rows.append(canonical)
+        seen_offers.add(semantic_key)
+        if scope_node is not None and offer_node is not None:
+            scope_hints[semantic_key] = (scope_node, offer_node)
 
     def walk(node: Any) -> Iterable[Mapping[str, Any]]:
         if isinstance(node, Mapping):
@@ -218,39 +568,131 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, str]]:
             kinds = product.get("@type")
             if isinstance(kinds, str):
                 kinds = [kinds]
-            if "Product" not in (kinds or []):
+            if not any(
+                str(kind).rstrip("/").rsplit("/", 1)[-1].casefold()
+                == "product"
+                for kind in kinds or []
+            ):
                 continue
             offers = product.get("offers")
             offer_rows = offers if isinstance(offers, list) else [offers]
             for offer in offer_rows:
                 if not isinstance(offer, Mapping):
                     continue
-                price = str(offer.get("price") or "").strip()
-                currency = str(offer.get("priceCurrency") or "").strip().upper()
-                identity = str(
-                    product.get("sku")
-                    or product.get("gtin13")
-                    or product.get("gtin")
-                    or product.get("mpn")
-                    or ""
-                ).strip()
-                name = " ".join(str(product.get("name") or "").split())[:300]
-                if not price or not re.fullmatch(r"[A-Z]{3}", currency) or not (identity or name):
+                append_offer(
+                    signal_type="schema_org_product_offer",
+                    product_id=(
+                        product.get("sku")
+                        or product.get("gtin13")
+                        or product.get("gtin")
+                        or product.get("mpn")
+                        or ""
+                    ),
+                    product_name=product.get("name"),
+                    price=offer.get("price"),
+                    price_currency=offer.get("priceCurrency"),
+                    availability=offer.get("availability"),
+                )
+
+    # Older storefronts often expose schema.org Product/Offer as HTML
+    # microdata rather than JSON-LD. Parse only properties whose nearest typed
+    # item scope is the same Product or nested Offer. This prevents a price or
+    # identity from a neighbouring product card from completing another row.
+    try:
+        soup = BeautifulSoup(value, "html.parser")
+    except (TypeError, ValueError):
+        soup = None
+
+    if soup is not None:
+        def attribute_tokens(node: Any, name: str) -> tuple[str, ...]:
+            raw = node.attrs.get(name) if getattr(node, "attrs", None) else None
+            if isinstance(raw, (list, tuple)):
+                values = raw
+            else:
+                values = str(raw or "").split()
+            return tuple(str(item).strip() for item in values if str(item).strip())
+
+        def has_schema_type(node: Any, expected: str) -> bool:
+            return any(
+                re.fullmatch(
+                    rf"https?://schema\.org/{re.escape(expected)}/?",
+                    token,
+                    re.IGNORECASE,
+                )
+                is not None
+                for token in attribute_tokens(node, "itemtype")
+            )
+
+        def nearest_typed_scope(node: Any) -> Any:
+            parent = getattr(node, "parent", None)
+            while parent is not None:
+                if (
+                    getattr(parent, "attrs", None)
+                    and parent.has_attr("itemscope")
+                    and attribute_tokens(parent, "itemtype")
+                ):
+                    return parent
+                parent = getattr(parent, "parent", None)
+            return None
+
+        def property_value(scope: Any, *property_names: str) -> str:
+            wanted = {name.casefold() for name in property_names}
+            for node in scope.find_all(attrs={"itemprop": True}):
+                if nearest_typed_scope(node) is not scope:
                     continue
-                canonical = {
-                    "signal_type": "schema_org_product_offer",
-                    "product_id": identity,
-                    "product_name": name,
-                    "price": price.replace(",", "."),
-                    "price_currency": currency,
-                    "availability": str(offer.get("availability") or "")[:200],
+                properties = {
+                    token.casefold()
+                    for token in attribute_tokens(node, "itemprop")
                 }
-                canonical["sha256"] = hashlib.sha256(
-                    _canonical_bytes(canonical)
-                ).hexdigest()
-                rows.append(canonical)
-                if len(rows) >= 24:
-                    return rows
+                if not wanted.intersection(properties):
+                    continue
+                value = _microdata_property_value(node)
+                if value:
+                    return value
+            return ""
+
+        product_scopes = [
+            node
+            for node in soup.find_all(attrs={"itemscope": True})
+            if has_schema_type(node, "Product")
+        ]
+        for product in product_scopes:
+            product_name = property_value(product, "name")
+            product_id = ""
+            for identity_property in (
+                "sku",
+                "gtin13",
+                "gtin14",
+                "gtin12",
+                "gtin8",
+                "gtin",
+                "mpn",
+                "productid",
+            ):
+                product_id = property_value(product, identity_property)
+                if product_id:
+                    break
+            for offer in product.find_all(attrs={"itemscope": True}):
+                if (
+                    nearest_typed_scope(offer) is not product
+                    or not has_schema_type(offer, "Offer")
+                    or "offers" not in {
+                        token.casefold()
+                        for token in attribute_tokens(offer, "itemprop")
+                    }
+                ):
+                    continue
+                append_offer(
+                    signal_type="schema_org_product_offer",
+                    product_id=product_id,
+                    product_name=product_name,
+                    price=property_value(offer, "price"),
+                    price_currency=property_value(offer, "pricecurrency"),
+                    availability=property_value(offer, "availability"),
+                    scope_node=product,
+                    offer_node=offer,
+                )
+
     # Some first-party storefronts render product grids from an HTML-escaped
     # component config rather than JSON-LD.  Parse only explicit product rows
     # with an ID/name, numeric price, and currency carried by that same row.
@@ -284,26 +726,869 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, str]]:
             if not re.fullmatch(r"[A-Z]{3}", currency) or not (identity or name):
                 continue
             actions = product.get("actions")
-            canonical = {
-                "signal_type": "merchant_product_config",
-                "product_id": identity,
-                "product_name": name,
-                "price": price,
-                "price_currency": currency,
-                "availability": (
+            append_offer(
+                signal_type="merchant_product_config",
+                product_id=identity,
+                product_name=name,
+                price=price,
+                price_currency=currency,
+                availability=(
                     "in_stock"
                     if isinstance(actions, Mapping)
                     and actions.get("isSalable") is True
                     else ""
                 ),
+            )
+    if soup is None:
+        return []
+
+    # Merchant configs carry product rows but not a direct DOM pointer. Match
+    # each row to the smallest visible product-like element/card containing
+    # its exact preferred identity and advertised price. This keeps legacy
+    # storefront support subject to the same visible binding as JSON-LD.
+
+    hidden_classes = _css_hidden_classes(soup)
+
+    def exact_identity_occurs(identity: str, text: str) -> bool:
+        return bool(
+            identity
+            and re.search(
+                rf"(?<!\w){re.escape(identity)}(?!\w)",
+                text,
+                re.IGNORECASE,
+            )
+        )
+
+    def matching_price_text(row: Mapping[str, Any], text: str) -> str:
+        for match in _PRIMARY_MARKET_VALUE.finditer(text):
+            visible_price, visible_currency = _visible_price_currency(match.group(0))
+            try:
+                prices_match = Decimal(str(row.get("price") or "")) == Decimal(
+                    visible_price
+                )
+            except InvalidOperation:
+                prices_match = False
+            if not prices_match:
+                continue
+            if visible_currency and visible_currency != row.get("price_currency"):
+                continue
+            return match.group(0)
+        return ""
+
+    def has_explicit_price_role(node: Tag, price_text: str) -> bool:
+        own_text = _visible_dom_text(node, hidden_classes)
+        if not own_text or price_text not in own_text:
+            return False
+        # Inspect only this local price element, not an arbitrary ancestor.
+        # A bare amount is allowed when the element has an explicit product
+        # price role/class/itemprop; prose amounts require a current/available
+        # price label and reject historical/logistics roles.
+        attrs_text = " ".join(
+            [
+                str(node.get("itemprop") or ""),
+                str(node.get("class") or ""),
+                str(node.get("id") or ""),
+                str(node.get("aria-label") or ""),
+                str(node.get("data-testid") or ""),
+            ]
+        )
+        role_text = " ".join((attrs_text, own_text))
+        if _NON_OFFER_PRICE_ROLE.search(attrs_text):
+            return False
+        for negative in _NON_OFFER_PRICE_ROLE.finditer(own_text):
+            for amount in _PRIMARY_MARKET_VALUE.finditer(own_text):
+                if (
+                    amount.group(0) == price_text
+                    and abs(negative.start() - amount.start()) <= 40
+                ):
+                    return False
+        explicit_role = bool(
+            re.search(r"\bprice\b", attrs_text, re.IGNORECASE)
+            or re.search(
+                r"(?:^|\s)(?:price|lowprice|highprice)(?:\s|$)",
+                str(node.get("itemprop") or ""),
+                re.IGNORECASE,
+            )
+            or _CURRENT_PRICE_ROLE.search(own_text)
+            or (
+                node.has_attr("itemscope")
+                and node.find(
+                    attrs={
+                        "itemprop": re.compile(r"(?:^|\s)price(?:\s|$)", re.I)
+                    }
+                )
+                and node.find(
+                    attrs={
+                        "itemprop": re.compile(
+                            r"(?:^|\s)priceCurrency(?:\s|$)", re.I
+                        )
+                    }
+                )
+            )
+        )
+        return explicit_role
+
+    def visible_price_nodes(row: Mapping[str, Any], container: Tag) -> list[tuple[Tag, str]]:
+        result: list[tuple[Tag, str]] = []
+        nodes = [container, *container.find_all(True)]
+        for node in nodes[:2_000]:
+            if _dom_node_is_hidden(node, hidden_classes):
+                continue
+            # A price role belongs to the node carrying the amount, not an
+            # ancestor which happens to aggregate an unrelated descendant.
+            direct_text = " ".join(
+                str(child).strip()
+                for child in node.children
+                if isinstance(child, NavigableString) and str(child).strip()
+            )
+            own_text = direct_text
+            if not own_text:
+                own_text = _visible_dom_text(node, hidden_classes)
+                priced_children = [
+                    child
+                    for child in node.find_all(recursive=False)
+                    if isinstance(child, Tag)
+                    and _PRIMARY_MARKET_VALUE.search(
+                        _visible_dom_text(child, hidden_classes)
+                    )
+                ]
+                local_attrs = " ".join(
+                    (
+                        str(node.get("class") or ""),
+                        str(node.get("id") or ""),
+                        str(node.get("itemprop") or ""),
+                        str(node.get("aria-label") or ""),
+                    )
+                )
+                if (
+                    not node.has_attr("itemscope")
+                    and priced_children
+                    and not (
+                        len(priced_children) == 1
+                        and re.search(
+                            r"\b(?:price|offer|availability)\b",
+                            local_attrs,
+                            re.IGNORECASE,
+                        )
+                        and not _NON_OFFER_PRICE_ROLE.search(local_attrs)
+                    )
+                ):
+                    continue
+            price_text = matching_price_text(row, own_text)
+            if not price_text:
+                continue
+            negative_ancestor = next(
+                (
+                    ancestor
+                    for ancestor in [node, *node.parents]
+                    if isinstance(ancestor, Tag)
+                    and ancestor is not container
+                    and _NON_OFFER_PRICE_ROLE.search(
+                        " ".join(
+                            (
+                                str(ancestor.get("class") or ""),
+                                str(ancestor.get("id") or ""),
+                                str(ancestor.get("aria-label") or ""),
+                                " ".join(
+                                    str(child).strip()
+                                    for child in ancestor.children
+                                    if isinstance(child, NavigableString)
+                                    and str(child).strip()
+                                ),
+                            )
+                        )
+                    )
+                ),
+                None,
+            )
+            if negative_ancestor is not None:
+                continue
+            attrs_role = " ".join(
+                (
+                    str(node.get("class") or ""),
+                    str(node.get("id") or ""),
+                    str(node.get("itemprop") or ""),
+                    str(node.get("aria-label") or ""),
+                )
+            )
+            semantic_container_role = bool(
+                node.name.casefold() in {"div", "span", "p", "strong", "b", "em"}
+                and _CURRENT_PRICE_ROLE.search(own_text)
+                and not _NON_OFFER_PRICE_ROLE.search(attrs_role)
+            )
+            itemprop_price_role = bool(
+                node.find(
+                    attrs={
+                        "itemprop": re.compile(r"(?:^|\s)price(?:\s|$)", re.I)
+                    }
+                )
+                and node.find(
+                    attrs={
+                        "itemprop": re.compile(
+                            r"(?:^|\s)priceCurrency(?:\s|$)", re.I
+                        )
+                    }
+                )
+            )
+            if not (
+                semantic_container_role
+                or re.search(r"\b(?:price|offer|availability)\b", attrs_role, re.I)
+                or itemprop_price_role
+            ):
+                continue
+            if not has_explicit_price_role(node, price_text):
+                continue
+            # Prefer the smallest explicit price-role element. A parent whose
+            # only role comes from a descendant is not independently eligible.
+            result.append((node, price_text))
+        result.sort(key=lambda item: len(_visible_dom_text(item[0], hidden_classes)))
+        return result
+
+    def visible_binding_for(row: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+        # A supplied human name is authoritative for visible identity. Do not
+        # fall back to a visible SKU when a hidden JSON-LD name exists: that
+        # would let an unrelated product card lend its price to the metadata.
+        identity = " ".join(
+            str(row.get("product_name") or row.get("product_id") or "").split()
+        )
+        if not identity:
+            return None
+        semantic_key = (
+            str(row.get("product_name") or "").casefold(),
+            str(row.get("product_id") or "").casefold(),
+            str(row.get("price") or ""),
+            str(row.get("price_currency") or ""),
+        )
+        candidates: list[tuple[int, int, Dict[str, Any]]] = []
+
+        def closed_price_role_prefix(value: str) -> bool:
+            """Accept only the versioned visible current-price label language."""
+
+            normalized = " ".join(str(value or "").split())
+            for exact in (
+                identity,
+                " ".join(str(row.get("product_id") or "").split()),
+            ):
+                if exact:
+                    normalized = re.sub(
+                        rf"(?<!\w){re.escape(exact)}(?!\w)",
+                        " ",
+                        normalized,
+                        flags=re.IGNORECASE,
+                    )
+            # An unbound numeric/alphanumeric prefix can be another product's
+            # SKU, pack size, or amount; it is never current-price role text.
+            if re.search(r"\d", normalized):
+                return False
+            words = re.findall(r"[^\W\d_]+", normalized.casefold(), re.UNICODE)
+            return all(
+                word in _VISIBLE_CURRENT_PRICE_LABEL_TOKENS_V1 for word in words
+            )
+
+        def is_product_container(node: Tag) -> bool:
+            raw_classes = node.get("class") or []
+            classes = (
+                [str(value).casefold() for value in raw_classes]
+                if isinstance(raw_classes, list)
+                else str(raw_classes).casefold().split()
+            )
+            identifiers = {
+                *classes,
+                str(node.get("id") or "").casefold(),
+                str(node.get("data-component") or "").casefold(),
             }
-            canonical["sha256"] = hashlib.sha256(
-                _canonical_bytes(canonical)
-            ).hexdigest()
-            rows.append(canonical)
-            if len(rows) >= 24:
-                return rows
-    return rows
+            return bool(
+                identifiers.intersection(
+                    {
+                        "product",
+                        "product-card",
+                        "product_card",
+                        "product-item",
+                        "product_item",
+                        "product-detail",
+                        "product_detail",
+                        "item-card",
+                        "item_card",
+                    }
+                )
+                or re.search(
+                    r"https?://schema\.org/Product/?$",
+                    str(node.get("itemtype") or ""),
+                    re.IGNORECASE,
+                )
+            )
+
+        def atomic_binding(
+            *,
+            container: Tag,
+            identity_node: Optional[Tag],
+            price_node: Tag,
+            price_text: str,
+        ) -> Optional[Dict[str, Any]]:
+            scope_text, element_spans = _visible_dom_projection(
+                container, hidden_classes
+            )
+            if not scope_text or len(scope_text) > 6_000:
+                return None
+            price_node_span = element_spans.get(id(price_node))
+            if price_node_span is None:
+                return None
+            price_node_text = _visible_dom_text(price_node, hidden_classes)
+            candidate_id = " ".join(str(row.get("product_id") or "").split())
+            price_descendants = price_node.find_all(True)
+            # Never accept after inspecting only a prefix of the relevant DOM.
+            # Excessive element fan-out is an ambiguous price scope and fails
+            # closed instead of hiding a competing identity past a scan cap.
+            if len(price_descendants) > 2_000:
+                return None
+            for descendant in price_descendants:
+                if _dom_node_is_hidden(descendant, hidden_classes):
+                    continue
+                descendant_text = _visible_dom_text(descendant, hidden_classes)
+                attrs = descendant.attrs
+                class_tokens = (
+                    attrs.get("class")
+                    if isinstance(attrs.get("class"), list)
+                    else str(attrs.get("class") or "").split()
+                )
+                marker_text = " ".join(
+                    str(value)
+                    for value in (
+                        attrs.get("itemprop") or "",
+                        attrs.get("id") or "",
+                        *class_tokens,
+                        attrs.get("role") or "",
+                        attrs.get("data-component") or "",
+                        attrs.get("data-testid") or "",
+                        attrs.get("data-name") or "",
+                    )
+                )
+                accessible_identity = " ".join(
+                    str(attrs.get(name) or "").strip()
+                    for name in ("aria-label", "title", "data-name")
+                    if attrs.get(name)
+                )
+                identity_marked = bool(
+                    descendant.name.casefold()
+                    in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                    or str(attrs.get("role") or "").casefold() == "heading"
+                    or
+                    re.search(
+                        r"(?:^|[\s_-])(?:name|title)(?:[\s_-]|$)|"
+                        r"(?:product|item)[_-]?(?:card|name|title)|"
+                        r"listing[_-]?tile",
+                        marker_text,
+                        re.IGNORECASE,
+                    )
+                )
+                if identity_marked and not (
+                    exact_identity_occurs(identity, descendant_text)
+                    or candidate_id
+                    and exact_identity_occurs(candidate_id, descendant_text)
+                ):
+                    return None
+                if accessible_identity and not (
+                    exact_identity_occurs(identity, accessible_identity)
+                    or candidate_id
+                    and exact_identity_occurs(candidate_id, accessible_identity)
+                    or closed_price_role_prefix(accessible_identity)
+                ):
+                    return None
+                if descendant.name.casefold() == "a" and not (
+                    exact_identity_occurs(identity, descendant_text)
+                    or candidate_id
+                    and exact_identity_occurs(candidate_id, descendant_text)
+                    or _PRIMARY_MARKET_VALUE.search(descendant_text)
+                    and closed_price_role_prefix(
+                        _PRIMARY_MARKET_VALUE.sub(" ", descendant_text)
+                    )
+                ):
+                    return None
+            local_price_occurrences = [
+                (match.start(), match.end())
+                for match in re.finditer(re.escape(price_text), price_node_text)
+            ]
+            if not local_price_occurrences:
+                return None
+            local_price_start, _local_price_end = local_price_occurrences[0]
+            price_role_prefix = price_node_text[:local_price_start]
+            if not closed_price_role_prefix(price_role_prefix):
+                return None
+            price_occurrences = [
+                (match.start(), match.end())
+                for match in re.finditer(re.escape(price_text), scope_text)
+                if price_node_span[0] <= match.start()
+                and match.end() <= price_node_span[1]
+            ]
+            if not price_occurrences:
+                return None
+            identity_span = (
+                element_spans.get(id(identity_node))
+                if isinstance(identity_node, Tag)
+                else None
+            ) or (0, len(scope_text))
+            identity_occurrences = [
+                (match.start(), match.end())
+                for match in re.finditer(
+                    rf"(?<!\w){re.escape(identity)}(?!\w)",
+                    scope_text,
+                    re.IGNORECASE,
+                )
+                if identity_span[0] <= match.start()
+                and match.end() <= identity_span[1]
+            ]
+            if not identity_occurrences:
+                return None
+            identity_start, identity_end, price_start, price_end = min(
+                [
+                    (
+                        identity_start,
+                        identity_end,
+                        price_start,
+                        price_end,
+                    )
+                    for identity_start, identity_end in identity_occurrences
+                    for price_start, price_end in price_occurrences
+                ],
+                key=lambda item: abs(item[0] - item[2]),
+            )
+            # Include the accepted local price-role element so the signed
+            # claim retains labels such as "current price". The interval must
+            # contain exactly the one accepted monetary occurrence; otherwise
+            # an equal delivery/old/cart amount could later be substituted.
+            claim_start = min(identity_start, price_node_span[0])
+            claim_end = max(identity_end, price_end)
+            if not (16 <= claim_end - claim_start <= 480):
+                return None
+            claim_text = scope_text[claim_start:claim_end]
+            value_matches = list(_PRIMARY_MARKET_VALUE.finditer(claim_text))
+            relative_price_start = price_start - claim_start
+            relative_price_end = price_end - claim_start
+            if (
+                len(value_matches) != 1
+                or value_matches[0].span()
+                != (relative_price_start, relative_price_end)
+                or value_matches[0].group(0) != price_text
+            ):
+                return None
+            return {
+                "scope_text": scope_text,
+                "claim_text": claim_text,
+                "claim_start": claim_start,
+                "claim_end": claim_end,
+                "identity_start": identity_start,
+                "identity_end": identity_end,
+                "price_start": price_start,
+                "price_end": price_end,
+            }
+
+        def price_branch_is_product_pure(
+            *, identity_node: Tag, price_node: Tag, price_text: str
+        ) -> bool:
+            """Reject a nested card/group that lends another product's price.
+
+            The exact identity and accepted price may have a common product
+            container, while the price actually belongs to a nested sibling
+            tile. Walk the whole price-side branch below their lowest common
+            ancestor. The signed claim may end at the amount, but ownership
+            checks must also see post-price titles and negative price roles.
+            """
+
+            identity_ancestors = {
+                id(node): node
+                for node in [identity_node, *identity_node.parents]
+                if isinstance(node, Tag)
+            }
+            lca = next(
+                (
+                    node
+                    for node in [price_node, *price_node.parents]
+                    if isinstance(node, Tag) and id(node) in identity_ancestors
+                ),
+                None,
+            )
+            if not isinstance(lca, Tag):
+                return False
+
+            candidate_id = " ".join(str(row.get("product_id") or "").split())
+            def role_only(value: str) -> bool:
+                return closed_price_role_prefix(
+                    _PRIMARY_MARKET_VALUE.sub(" ", value)
+                )
+
+            def semantic_group(node: Tag) -> bool:
+                attrs = node.attrs
+                classes = attrs.get("class") or []
+                class_text = " ".join(
+                    str(value)
+                    for value in (
+                        classes if isinstance(classes, list) else str(classes).split()
+                    )
+                )
+                tokens = " ".join(
+                    (
+                        str(attrs.get("id") or ""),
+                        class_text,
+                        str(attrs.get("role") or ""),
+                        str(attrs.get("data-component") or ""),
+                    )
+                )
+                return bool(
+                    node.name.casefold() in {"article", "aside", "li", "section"}
+                    or str(attrs.get("role") or "").casefold()
+                    in {"group", "listitem", "region"}
+                    or re.search(
+                        r"(?:^|[\s_-])(?:listing|tile|card|item)(?:[\s_-]|$)",
+                        tokens,
+                        re.IGNORECASE,
+                    )
+                )
+
+            def group_has_competing_identity(node: Tag) -> bool:
+                descendants = node.find_all(True)
+                if len(descendants) > 2_000:
+                    return True
+                for descendant in descendants:
+                    if _dom_node_is_hidden(descendant, hidden_classes):
+                        continue
+                    attrs = descendant.attrs
+                    marker = bool(
+                        descendant.name.casefold()
+                        in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                        or str(attrs.get("role") or "").casefold() == "heading"
+                        or re.search(
+                            r"(?:^|[\s_-])(?:name|title)(?:[\s_-]|$)|"
+                            r"(?:product|item)[_-]?(?:card|name|title)|"
+                            r"listing[_-]?tile",
+                            " ".join(
+                                (
+                                    str(attrs.get("itemprop") or ""),
+                                    str(attrs.get("id") or ""),
+                                    str(attrs.get("class") or ""),
+                                    str(attrs.get("data-component") or ""),
+                                    str(attrs.get("data-testid") or ""),
+                                )
+                            ),
+                            re.IGNORECASE,
+                        )
+                    )
+                    if not marker:
+                        continue
+                    text = _visible_dom_text(descendant, hidden_classes)
+                    if not (
+                        exact_identity_occurs(identity, text)
+                        or candidate_id and exact_identity_occurs(candidate_id, text)
+                    ):
+                        return True
+                return False
+
+            descendant_on_path: Tag = price_node
+            current: Any = price_node
+            while isinstance(current, Tag) and current is not lca:
+                if semantic_group(current):
+                    group_text = _visible_dom_text(current, hidden_classes)
+                    if not (
+                        exact_identity_occurs(identity, group_text)
+                        or candidate_id
+                        and exact_identity_occurs(candidate_id, group_text)
+                    ):
+                        return False
+                    if (
+                        _NON_OFFER_PRICE_ROLE.search(group_text)
+                        or group_has_competing_identity(current)
+                    ):
+                        return False
+                accessible_label = " ".join(
+                    str(current.get(name) or "").strip()
+                    for name in ("aria-label", "title", "data-name")
+                    if current.get(name)
+                )
+                if accessible_label and not role_only(accessible_label):
+                    return False
+                itemprop = str(current.get("itemprop") or "")
+                if re.search(r"(?:^|\s)name(?:\s|$)", itemprop, re.I):
+                    item_name = _visible_dom_text(current, hidden_classes)
+                    if item_name and not exact_identity_occurs(identity, item_name):
+                        return False
+                if current is not price_node:
+                    prefix_parts: list[str] = []
+                    for child in current.children:
+                        if child is descendant_on_path:
+                            break
+                        if isinstance(child, NavigableString):
+                            if str(child).strip():
+                                prefix_parts.append(str(child))
+                        elif isinstance(child, Tag) and not _dom_node_is_hidden(
+                            child, hidden_classes
+                        ):
+                            child_text = _visible_dom_text(child, hidden_classes)
+                            if child_text:
+                                prefix_parts.append(child_text)
+                    if prefix_parts and not role_only(" ".join(prefix_parts)):
+                        return False
+                descendant_on_path = current
+                current = current.parent
+            return True
+
+        def consider(
+            container: Tag, priority: int, matched_identity_node: Optional[Tag]
+        ) -> None:
+            if (
+                container.name.casefold()
+                in {
+                    "[document]",
+                    "html",
+                    "body",
+                    "head",
+                    "script",
+                    "style",
+                    "main",
+                }
+                or _dom_node_is_hidden(container, hidden_classes)
+            ):
+                return
+            scope_text = _visible_dom_text(container, hidden_classes)
+            if not scope_text or len(scope_text) > 6_000:
+                return
+            if not exact_identity_occurs(identity, scope_text):
+                return
+            prices = visible_price_nodes(row, container)
+            if not prices:
+                return
+            price_node, price_text = prices[0]
+            exact_identity_nodes = [
+                node
+                for node in [container, *container.find_all(True)[:2_000]]
+                if not _dom_node_is_hidden(node, hidden_classes)
+                and exact_identity_occurs(
+                    identity, _visible_dom_text(node, hidden_classes)
+                )
+            ]
+            structural_identity_node = (
+                min(
+                    exact_identity_nodes,
+                    key=lambda node: len(_visible_dom_text(node, hidden_classes)),
+                )
+                if exact_identity_nodes
+                else matched_identity_node
+            )
+            if not isinstance(structural_identity_node, Tag) or not (
+                price_branch_is_product_pure(
+                    identity_node=structural_identity_node,
+                    price_node=price_node,
+                    price_text=price_text,
+                )
+            ):
+                return
+            nested_product_ancestor = next(
+                (
+                    ancestor
+                    for ancestor in [price_node, *price_node.parents]
+                    if isinstance(ancestor, Tag)
+                    and ancestor is not container
+                    and is_product_container(ancestor)
+                ),
+                None,
+            )
+            intervening_distinct_heading = next(
+                (
+                    ancestor
+                    for ancestor in [price_node, *price_node.parents]
+                    if isinstance(ancestor, Tag)
+                    and ancestor is not container
+                    and any(
+                        heading_text
+                        and not exact_identity_occurs(identity, heading_text)
+                        for heading in ancestor.find_all(
+                            ["h1", "h2", "h3", "h4", "h5", "h6"],
+                            recursive=False,
+                        )
+                        if (
+                            heading_text := _visible_dom_text(
+                                heading, hidden_classes
+                            )
+                        )
+                    )
+                ),
+                None,
+            )
+            if (
+                nested_product_ancestor is not None
+                and not exact_identity_occurs(
+                    identity,
+                    _visible_dom_text(nested_product_ancestor, hidden_classes),
+                )
+            ) or intervening_distinct_heading is not None:
+                return
+            visible_product_id = ""
+            candidate_id = " ".join(str(row.get("product_id") or "").split())
+            if candidate_id and exact_identity_occurs(candidate_id, scope_text):
+                visible_product_id = candidate_id
+            atomic = atomic_binding(
+                container=container,
+                identity_node=structural_identity_node,
+                price_node=price_node,
+                price_text=price_text,
+            )
+            if atomic is None:
+                return
+            atomic["price_text"] = price_text
+            atomic["product_id_text"] = visible_product_id
+            candidates.append((priority, len(scope_text), atomic))
+
+        hinted = scope_hints.get(semantic_key)
+        identity_node: Optional[Tag] = None
+        if isinstance(hinted, tuple):
+            # A typed microdata Product is the strongest same-product scope;
+            # it may carry the visible category description needed to bind a
+            # product whose heading says "Adult Cat" rather than "Cat food".
+            product_scope, offer_scope = hinted
+            product_text = _visible_dom_text(product_scope, hidden_classes)
+            # The exact nested Offer subtree—not merely its parent Product—
+            # must render the amount through a visible price-role element.
+            # This prevents a neighbouring product/card with the same amount
+            # from lending display text to hidden microdata metadata.
+            prices = visible_price_nodes(row, offer_scope)
+            if exact_identity_occurs(identity, product_text) and prices:
+                price_node, price_text = prices[0]
+                # Preserve a bounded Product context for exact topic/category
+                # text, but bind the price to the nested Offer subtree.
+                scope_text = product_text
+                if scope_text and len(scope_text) <= 6_000:
+                    identity_nodes = [
+                        node
+                        for node in product_scope.find_all(True)[:2_000]
+                        if not _dom_node_is_hidden(node, hidden_classes)
+                        and exact_identity_occurs(
+                            identity, _visible_dom_text(node, hidden_classes)
+                        )
+                    ]
+                    matched_identity_node = (
+                        min(
+                            identity_nodes,
+                            key=lambda node: len(
+                                _visible_dom_text(node, hidden_classes)
+                            ),
+                        )
+                        if identity_nodes
+                        else product_scope
+                    )
+                    visible_product_id = ""
+                    candidate_id = " ".join(str(row.get("product_id") or "").split())
+                    if candidate_id and exact_identity_occurs(candidate_id, scope_text):
+                        visible_product_id = candidate_id
+                    atomic = atomic_binding(
+                        container=product_scope,
+                        identity_node=matched_identity_node,
+                        price_node=price_node,
+                        price_text=price_text,
+                    )
+                    if atomic is not None:
+                        atomic["price_text"] = price_text
+                        atomic["product_id_text"] = visible_product_id
+                        candidates.append((0, len(scope_text), atomic))
+        if hinted is None:
+            # JSON-LD has no DOM pointer. Start from an exact visible name node
+            # and climb only through bounded product/card-like containers.
+            # This rejects a global h1 and unrelated aside even when body/main
+            # happen to contain both.
+            for matched_identity_node in soup.find_all(True)[:20_000]:
+                if _dom_node_is_hidden(matched_identity_node, hidden_classes):
+                    continue
+                identity_text = _visible_dom_text(
+                    matched_identity_node, hidden_classes
+                )
+                if not exact_identity_occurs(identity, identity_text):
+                    continue
+                identity_node = matched_identity_node
+                current: Any = matched_identity_node
+                depth = 0
+                while isinstance(current, Tag) and depth <= 4:
+                    if current.name.casefold() in {
+                        "[document]",
+                        "html",
+                        "body",
+                        "main",
+                    }:
+                        break
+                    product_like = is_product_container(current)
+                    if depth == 0 and current.name.casefold() in {
+                        "article",
+                        "li",
+                    }:
+                        product_like = True
+                    if depth == 0 and visible_price_nodes(row, current):
+                        # A single element that itself renders the exact name,
+                        # current-price label, and amount is already a bounded
+                        # product row; no common-ancestor inference is needed.
+                        product_like = True
+                    if product_like:
+                        consider(current, 1, matched_identity_node)
+                    current = current.parent
+                    depth += 1
+        if not candidates:
+            return None
+        candidate_id = " ".join(str(row.get("product_id") or "").split())
+        if candidate_id:
+            id_bound = [
+                candidate
+                for candidate in candidates
+                if candidate[2].get("product_id_text")
+            ]
+            if id_bound:
+                candidates = id_bound
+        _priority, _length, atomic = min(
+            candidates, key=lambda candidate: (candidate[0], candidate[1])
+        )
+        binding: Dict[str, Any] = {
+            "binding_version": "visible_product_offer_binding_v1",
+            "identity_text": identity,
+            **atomic,
+        }
+        binding["sha256"] = hashlib.sha256(_canonical_bytes(binding)).hexdigest()
+        return binding
+
+    bound_rows: list[Dict[str, Any]] = []
+    seen_bound_offers: set[tuple[str, str, str, str]] = set()
+    for row in rows:
+        binding = visible_binding_for(row)
+        if binding is None:
+            continue
+        bound = {key: val for key, val in row.items() if key != "sha256"}
+        bound["visible_binding"] = binding
+        bound["sha256"] = hashlib.sha256(_canonical_bytes(bound)).hexdigest()
+        semantic_key = (
+            str(bound.get("product_name") or "").casefold(),
+            str(bound.get("product_id") or "").casefold(),
+            str(bound.get("price") or ""),
+            str(bound.get("price_currency") or ""),
+        )
+        if semantic_key in seen_bound_offers:
+            continue
+        seen_bound_offers.add(semantic_key)
+        bound_rows.append(bound)
+    collision_groups: dict[tuple[str, str, str, str], list[Dict[str, Any]]] = {}
+    for row in bound_rows:
+        binding = row.get("visible_binding") or {}
+        collision_groups.setdefault(
+            (
+                str(binding.get("scope_text") or ""),
+                str(binding.get("identity_text") or ""),
+                str(binding.get("price_text") or ""),
+                str(row.get("price_currency") or ""),
+            ),
+            [],
+        ).append(row)
+    rejected_hashes = {
+        str(row.get("sha256") or "")
+        for group in collision_groups.values()
+        if len({str(row.get("product_id") or "") for row in group}) > 1
+        for row in group
+        if not str((row.get("visible_binding") or {}).get("product_id_text") or "")
+    }
+    return [
+        row for row in bound_rows if str(row.get("sha256") or "") not in rejected_hashes
+    ]
 
 
 def _structured_statistical_observations(value: str) -> list[Dict[str, str]]:
@@ -900,12 +2185,17 @@ def _offer_payload_is_valid(row: Mapping[str, Any]) -> bool:
         and (row.get("product_id") or row.get("product_name"))
         and re.fullmatch(r"-?\d+(?:\.\d+)?", str(row.get("price") or ""))
         and re.fullmatch(r"[A-Z]{3}", str(row.get("price_currency") or ""))
+        and _visible_offer_binding_is_valid(row)
         and hashlib.sha256(_canonical_bytes(unsigned)).hexdigest() == row.get("sha256")
     )
 
 
 def _visible_price_currency(value: str) -> tuple[str, str]:
-    number = re.search(r"-?\d+(?:[.,]\d+)?", value)
+    number = re.search(
+        r"-?(?:\d{1,3}(?:[ \u00a0,]\d{3})+(?:\.\d+)?|"
+        r"\d{1,3}(?:[ \u00a0.]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)",
+        value,
+    )
     currency = re.search(rf"\b({_ISO_CURRENCY_CODES})\b", value, re.IGNORECASE)
     if currency:
         code = currency.group(1).upper()
@@ -917,7 +2207,109 @@ def _visible_price_currency(value: str) -> tuple[str, str]:
         code = ""
     else:
         code = ""
-    return (number.group(0).replace(",", ".") if number else "", code)
+    raw_number = "".join(number.group(0).split()) if number else ""
+    if re.fullmatch(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?", raw_number):
+        raw_number = raw_number.replace(",", "")
+    elif re.fullmatch(r"-?\d{1,3}(?:\.\d{3})+(?:,\d+)?", raw_number):
+        raw_number = raw_number.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?\d+,\d{1,2}", raw_number):
+        raw_number = raw_number.replace(",", ".")
+    return (raw_number, code)
+
+
+def _visible_offer_binding_is_valid(row: Mapping[str, Any]) -> bool:
+    binding = row.get("visible_binding")
+    if not isinstance(binding, Mapping):
+        return False
+    scope_text = " ".join(str(binding.get("scope_text") or "").split())
+    identity_text = " ".join(str(binding.get("identity_text") or "").split())
+    price_text = " ".join(str(binding.get("price_text") or "").split())
+    claim_text = " ".join(str(binding.get("claim_text") or "").split())
+    product_id_text = " ".join(
+        str(binding.get("product_id_text") or "").split()
+    )
+    preferred_identity = " ".join(
+        str(row.get("product_name") or row.get("product_id") or "").split()
+    )
+    unsigned_binding = {
+        str(key): value for key, value in binding.items() if key != "sha256"
+    }
+    offsets = {
+        key: binding.get(key)
+        for key in (
+            "claim_start",
+            "claim_end",
+            "identity_start",
+            "identity_end",
+            "price_start",
+            "price_end",
+        )
+    }
+    if (
+        binding.get("binding_version") != "visible_product_offer_binding_v1"
+        or
+        not scope_text
+        or len(scope_text) > 6_000
+        or identity_text != preferred_identity
+        or not price_text
+        or not claim_text
+        or any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in offsets.values()
+        )
+        or not (
+            0 <= offsets["claim_start"] < offsets["claim_end"] <= len(scope_text)
+            and offsets["claim_start"]
+            <= offsets["identity_start"]
+            < offsets["identity_end"]
+            <= offsets["claim_end"]
+            and offsets["claim_start"]
+            <= offsets["price_start"]
+            < offsets["price_end"]
+            <= offsets["claim_end"]
+        )
+        or scope_text[offsets["claim_start"] : offsets["claim_end"]]
+        != claim_text
+        or scope_text[offsets["identity_start"] : offsets["identity_end"]].casefold()
+        != identity_text.casefold()
+        or scope_text[offsets["price_start"] : offsets["price_end"]]
+        != price_text
+        or len(list(_PRIMARY_MARKET_VALUE.finditer(claim_text))) != 1
+        or (
+            product_id_text
+            and (
+                product_id_text != " ".join(str(row.get("product_id") or "").split())
+                or not re.search(
+                    rf"(?<!\w){re.escape(product_id_text)}(?!\w)",
+                    scope_text,
+                    re.IGNORECASE,
+                )
+            )
+        )
+        or not re.search(
+            rf"(?<!\w){re.escape(identity_text)}(?!\w)",
+            scope_text,
+            re.IGNORECASE,
+        )
+        or hashlib.sha256(_canonical_bytes(unsigned_binding)).hexdigest()
+        != binding.get("sha256")
+    ):
+        return False
+    visible_price, visible_currency = _visible_price_currency(price_text)
+    try:
+        prices_match = Decimal(str(row.get("price") or "")) == Decimal(
+            visible_price
+        )
+    except InvalidOperation:
+        return False
+    return bool(
+        prices_match
+        and (
+            not visible_currency
+            or visible_currency == str(row.get("price_currency") or "")
+        )
+        and _PRIMARY_MARKET_VALUE.fullmatch(price_text)
+    )
 
 
 def _matching_commercial_offer_evidence(
@@ -964,18 +2356,32 @@ def _matching_commercial_offer_evidence(
 
 def _offer_identity_occurs_in_text(row: Mapping[str, Any], text: str) -> bool:
     normalized = " ".join(str(text or "").casefold().split())
-    return any(
+    # Prefer the human product name whenever metadata supplies one. Falling
+    # back to a visible SKU in that case would allow a hidden name to authorize
+    # an unrelated priced card.
+    token = " ".join(
+        str(row.get("product_name") or row.get("product_id") or "")
+        .casefold()
+        .split()
+    )
+    return bool(
         token
         and re.search(
             rf"(?<!\w){re.escape(token)}(?!\w)",
             normalized,
             re.IGNORECASE,
         )
-        for token in (
-            " ".join(str(row.get("product_id") or "").casefold().split()),
-            " ".join(str(row.get("product_name") or "").casefold().split()),
-        )
     )
+
+
+def _claim_is_within_visible_offer_binding(
+    row: Mapping[str, Any], claim_text: str
+) -> bool:
+    if not _visible_offer_binding_is_valid(row):
+        return False
+    binding = row["visible_binding"]
+    normalized_claim = " ".join(str(claim_text or "").split())
+    return bool(normalized_claim and normalized_claim == binding.get("claim_text"))
 
 
 def _valid_commercial_offer_evidence(rows: Any) -> bool:
@@ -995,7 +2401,7 @@ def claim_matching_offer_evidence(
     for offer in proof.get("commercial_offer_evidence") or []:
         if not isinstance(offer, Mapping) or not _offer_payload_is_valid(offer):
             continue
-        if not _offer_identity_occurs_in_text(offer, claim_text):
+        if not _claim_is_within_visible_offer_binding(offer, claim_text):
             continue
         for visible in _PRIMARY_MARKET_VALUE.finditer(claim_text):
             matched = _matching_commercial_offer_evidence(
@@ -1023,7 +2429,7 @@ def fact_matching_offer_evidence(
         if (
             isinstance(offer, Mapping)
             and _offer_payload_is_valid(offer)
-            and _offer_identity_occurs_in_text(offer, claim_text)
+            and _claim_is_within_visible_offer_binding(offer, claim_text)
             and _matching_commercial_offer_evidence(
                 [offer],
                 visible_value=fact_value,
@@ -1383,7 +2789,7 @@ def build_direct_primary_market_proof(
     direct_url: str,
     direct_text: str,
     country_codes: Iterable[str],
-    commercial_offer_evidence: Optional[list[Dict[str, str]]] = None,
+    commercial_offer_evidence: Optional[list[Dict[str, Any]]] = None,
     direct_raw_html: Optional[str] = None,
     retrieved_at: Optional[str] = None,
     signing_secret: Optional[str] = None,
@@ -1402,6 +2808,11 @@ def build_direct_primary_market_proof(
         raise ValueError("primary market proof requires exactly one country cell")
     parsed = urlparse(str(direct_url or ""))
     host = _host(direct_url)
+    if isinstance(direct_raw_html, str) and direct_raw_html:
+        if _normalized_document_text(direct_raw_html, is_html=True) != direct_text:
+            raise ValueError(
+                "direct text does not match normalized fetched product HTML"
+            )
     value_matches = list(_PRIMARY_MARKET_VALUE.finditer(direct_text))
     if parsed.scheme.casefold() != "https" or not host:
         raise ValueError("primary market publisher must be a direct HTTPS URL")
@@ -1424,35 +2835,63 @@ def build_direct_primary_market_proof(
         ):
             raise ValueError("structured product offers do not match fetched raw HTML")
         commercial_offer_evidence = derived_offers
-    matching_pairs = [
-        (match, offer)
-        for match in value_matches
-        if (
-            offer := _matching_commercial_offer_evidence(
-                commercial_offer_evidence,
-                visible_value=match.group(0),
-                country_codes=normalized_country_codes,
-            )
-        )
-        and _offer_identity_occurs_in_text(offer, direct_text)
-    ]
-    if not matching_pairs:
-        raise ValueError("priced page contains no fetched structured Product/Offer evidence")
-    value_match = matching_pairs[0][0]
-    matching_offers: list[Dict[str, str]] = []
+    matching_offers: list[Dict[str, Any]] = []
     seen_offer_hashes: set[str] = set()
-    for _match, offer in matching_pairs:
-        offer_hash = str(offer.get("sha256") or "")
-        if offer_hash and offer_hash not in seen_offer_hashes:
-            matching_offers.append(offer)
-            seen_offer_hashes.add(offer_hash)
+    for candidate in commercial_offer_evidence or []:
+        if not isinstance(candidate, Mapping) or not _offer_payload_is_valid(candidate):
+            continue
+        binding = candidate.get("visible_binding")
+        if not isinstance(binding, Mapping):
+            continue
+        scope_text = " ".join(str(binding.get("scope_text") or "").split())
+        # Each offer is authorized by its own raw-derived visible Product/card
+        # scope. Iterating offers (instead of values) preserves two distinct
+        # products that happen to have the same price.
+        if not scope_text or scope_text not in direct_text:
+            continue
+        offer_hash = str(candidate.get("sha256") or "")
+        if not offer_hash or offer_hash in seen_offer_hashes:
+            continue
+        matching_offers.append(dict(candidate))
+        seen_offer_hashes.add(offer_hash)
         if len(matching_offers) >= 24:
             break
-    direct_excerpt = _excerpt(
-        direct_text,
-        value_match.group(0),  # type: ignore[union-attr]
-        radius=520,
-    )
+    # One ambiguous symbol may not authorize multiple raw currencies. The
+    # document itself must disambiguate with an ISO code, otherwise the
+    # Product/Offer set is not a unique visible observation.
+    currencies_by_binding: dict[tuple[str, str], set[str]] = {}
+    for offer in matching_offers:
+        binding = offer.get("visible_binding") or {}
+        price_text = str(binding.get("price_text") or "")
+        _visible_amount, visible_currency = _visible_price_currency(price_text)
+        if not visible_currency and re.search(
+            r"[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]", price_text
+        ):
+            key = (
+                str(binding.get("scope_text") or ""),
+                price_text,
+            )
+            currencies_by_binding.setdefault(key, set()).add(
+                str(offer.get("price_currency") or "")
+            )
+    if any(len(currencies) > 1 for currencies in currencies_by_binding.values()):
+        matching_offers = []
+    if not matching_offers:
+        raise ValueError("priced page contains no fetched structured Product/Offer evidence")
+    first_binding = matching_offers[0]["visible_binding"]
+    bound_scope = str(first_binding["scope_text"])
+    scope_start = direct_text.find(bound_scope)
+    excerpt_start = scope_start + int(first_binding["claim_start"])
+    excerpt_end = scope_start + int(first_binding["claim_end"])
+    excerpt_text = direct_text[excerpt_start:excerpt_end]
+    if excerpt_text != first_binding.get("claim_text"):
+        raise ValueError("signed offer claim span does not match direct document")
+    direct_excerpt = {
+        "text": excerpt_text,
+        "start": excerpt_start,
+        "end": excerpt_end,
+        "sha256": hashlib.sha256(excerpt_text.encode("utf-8")).hexdigest(),
+    }
     if not (
         _PRIMARY_MARKET_VALUE.search(direct_excerpt["text"])
         and matching_offers
@@ -1630,8 +3069,16 @@ def validate_authority_proof(
             if isinstance(private_document, Mapping)
             else None
         )
+        private_raw_html = source.get("_structured_evidence_html")
         if (
             not isinstance(private_text, str)
+            or not isinstance(private_raw_html, str)
+            or not private_raw_html
+            or len(private_raw_html.encode("utf-8")) > 2_000_000
+            or hashlib.sha256(private_raw_html.encode("utf-8")).hexdigest()
+            != proof.get("structured_evidence_source_sha256")
+            or _normalized_document_text(private_raw_html, is_html=True)
+            != private_text
             or not _document_binds_jurisdiction(
                 final_url=direct_url,
                 text=private_text,
@@ -2042,7 +3489,6 @@ async def fetch_direct_text(
                     raise ValueError("authority redirect omitted location")
                 current = urljoin(current, target)
                 continue
-            response.raise_for_status()
             content = response.content
             if len(content) > maximum_bytes:
                 raise ValueError("authority document exceeds size limit")
@@ -2052,6 +3498,16 @@ async def fetch_direct_text(
                 r"(?:^|[;/\s])application/(?:[a-z0-9.+-]+\+)?json(?:[;\s]|$)",
                 content_type,
             ) is not None
+            if (
+                is_html
+                or str(response.headers.get("cf-mitigated") or "")
+            ) and _looks_like_retrieval_challenge(
+                response.headers, response.text
+            ):
+                raise RetrievalChallengeError(
+                    "direct retrieval returned an anti-bot challenge"
+                )
+            response.raise_for_status()
             if (
                 "text" not in content_type
                 and not is_html
@@ -2138,8 +3594,22 @@ async def enrich_authority_sources(
             continue
         try:
             document = task.result()
+        except RetrievalChallengeError:
+            row["direct_fetch_status"] = "rejected_challenge"
+            row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+            continue
         except BaseException as exc:
             row["direct_fetch_status"] = f"failed:{type(exc).__name__}"
+            continue
+        raw_document = str(
+            document.get("_structured_evidence_html")
+            or document.get("text")
+            or ""
+        )
+        if _looks_like_retrieval_challenge({}, raw_document):
+            row["direct_fetch_status"] = "rejected_challenge"
+            row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+            row["resolved_url"] = document.get("final_url")
             continue
         row["direct_fetch_status"] = "retrieved"
         row["resolved_url"] = document.get("final_url")
