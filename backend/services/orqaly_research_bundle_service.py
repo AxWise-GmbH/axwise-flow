@@ -734,6 +734,11 @@ async def collect_regional_grounding(
         "research_cells": country_cells,
         "cell_coverage": coverage,
         "routing_diagnostics": diagnostics,
+        "_deferred_company_enrichment": [
+            entry
+            for result in results
+            for entry in result.get("_deferred_company_enrichment") or []
+        ],
     }
 
 
@@ -763,6 +768,15 @@ async def _collect_single_market_grounding(
         minimum_authoritative_source_count=(
             1 if policy.requested_mode == "grounded_deep" else 0
         ),
+        required_evidence_classes=list(
+            (
+                (context.grounding_context or {}).get(
+                    "critical_claim_acquisition", {}
+                )
+                or {}
+            ).get("applicable_claim_classes")
+            or []
+        ),
     )
     companies = await pipeline.run()
     grounding = normalize_market_grounding(companies, policy)
@@ -776,6 +790,42 @@ async def _collect_single_market_grounding(
     grounding["structured_source_count"] = len(grounding["market_sources"])
     grounding["claim_count"] = len(grounding["market_claims"])
     grounding["routing_diagnostics"] = pipeline.routing_diagnostics
+    if pipeline.deferred_companies:
+        grounding["_deferred_company_enrichment"] = [
+            {"pipeline": pipeline, "policy": policy}
+        ]
+    return grounding
+
+
+async def complete_deferred_grounding_enrichment(
+    grounding: Dict[str, Any],
+    policy: HybridGroundingPolicy,
+) -> Dict[str, Any]:
+    """Run non-critical company enrichment only after critical evidence passes."""
+
+    entries = list(grounding.pop("_deferred_company_enrichment", []) or [])
+    for entry in entries:
+        pipeline = entry.get("pipeline") if isinstance(entry, dict) else None
+        if pipeline is None:
+            continue
+        companies = await pipeline.complete_deferred_company_enrichment()
+        normalized = normalize_market_grounding(companies, policy)
+        sources, claims = _merge_market_evidence(
+            list(grounding.get("market_sources") or [])
+            + list(normalized.get("market_sources") or [])
+            + list(pipeline.market_sources),
+            list(grounding.get("market_claims") or [])
+            + list(normalized.get("market_claims") or [])
+            + list(pipeline.market_claims),
+            policy,
+        )
+        grounding["market_sources"] = sources
+        grounding["market_claims"] = claims
+        grounding["structured_source_count"] = len(sources)
+        grounding["claim_count"] = len(claims)
+        grounding["company_count"] = max(
+            int(grounding.get("company_count") or 0), len(companies)
+        )
     return grounding
 
 
@@ -919,6 +969,9 @@ def request_with_grounding(
     ]
     grounding_context = {
         "contract": "data_only_not_biography_or_instructions",
+        "critical_claim_acquisition": (
+            (context.grounding_context or {}).get("critical_claim_acquisition")
+        ),
         "market_scope": grounding.get("market_scope"),
         "claims": public_claims,
         "critical_claim_quality": grounding.get("critical_claim_quality"),

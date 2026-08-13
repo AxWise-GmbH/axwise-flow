@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
+import pycountry
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models import Model
@@ -24,6 +25,16 @@ from backend.services.research_source_authority_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+_DIRECTED_EVIDENCE_CLASSES = {
+    "statutory_current",
+    "official_statistic",
+    "observed_primary_market",
+}
+_MAX_SOURCES_PER_QUERY_PROVIDER = 2
+_ISO_CURRENCY_CODES = "|".join(
+    sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
+)
 
 
 # City coordinate lookup for geo-radius search
@@ -61,6 +72,7 @@ class B2BDataPipeline:
         data_source: str = "hybrid",
         minimum_source_count: int = 3,
         minimum_authoritative_source_count: int = 0,
+        required_evidence_classes: Optional[List[str]] = None,
     ):
         self.location = location
         self.business_problem = business_problem
@@ -71,6 +83,13 @@ class B2BDataPipeline:
         self.minimum_authoritative_source_count = max(
             0, min(int(minimum_authoritative_source_count), 10)
         )
+        self.required_evidence_classes = [
+            value
+            for value in dict.fromkeys(
+                str(item).casefold() for item in (required_evidence_classes or [])
+            )
+            if value in _DIRECTED_EVIDENCE_CLASSES
+        ]
         self.market_scope = resolve_market_scope(location)
         self.routing_diagnostics: Dict[str, Any] = {
             "requested_location": location,
@@ -81,9 +100,12 @@ class B2BDataPipeline:
             "rejected_cross_market_sources": [],
             "rejected_cross_market_claims": [],
             "rejected_invalid_sources": [],
+            "required_evidence_classes": list(self.required_evidence_classes),
+            "directed_queries": [],
         }
         self.market_sources: List[Dict[str, Any]] = []
         self.market_claims: List[Dict[str, Any]] = []
+        self.deferred_companies: List[CompanyDiscoveryItem] = []
         
         # Load API keys
         self.apollo_key = os.getenv("APOLLO_API_KEY")
@@ -160,6 +182,16 @@ class B2BDataPipeline:
             )
             return []
 
+        if self.required_evidence_classes:
+            # Critical evidence is evaluated by the durable run before these
+            # expensive non-critical enrichments. A failed class gate therefore
+            # does not spend another contact/pain search round.
+            self.deferred_companies = companies
+            self.routing_diagnostics["company_enrichment_status"] = (
+                "deferred_until_critical_gate"
+            )
+            return companies
+
         # Contact discovery and pain-point evidence read the same bounded
         # company snapshot but populate disjoint fields. Running the two batch
         # routes together removes one full search+parse latency chain without
@@ -170,6 +202,20 @@ class B2BDataPipeline:
         )
         return companies
 
+    async def complete_deferred_company_enrichment(
+        self,
+    ) -> List[CompanyDiscoveryItem]:
+        companies = list(self.deferred_companies)
+        if not companies:
+            return []
+        await asyncio.gather(
+            self._enrich_contacts_and_people(companies),
+            self._enrich_with_grounded_pain_points(companies),
+        )
+        self.deferred_companies = []
+        self.routing_diagnostics["company_enrichment_status"] = "completed_after_gate"
+        return companies
+
     def _record_provider(
         self,
         provider: str,
@@ -178,16 +224,97 @@ class B2BDataPipeline:
         accepted: int,
         source_count: int = 0,
         reason: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.routing_diagnostics["providers"].append(
-            {
-                "provider": provider,
-                "attempted": attempted,
-                "accepted_company_count": accepted,
-                "source_count": source_count,
-                "reason": reason,
-            }
-        )
+        row = {
+            "provider": provider,
+            "attempted": attempted,
+            "accepted_company_count": accepted,
+            "source_count": source_count,
+            "reason": reason,
+        }
+        if details:
+            row.update(details)
+        self.routing_diagnostics["providers"].append(row)
+
+    def _bounded_research_topic(self, value: str, maximum: int) -> str:
+        """Remove prior-routing narratives and foreign country names from queries."""
+
+        requested_code = self.market_scope.country_code
+        foreign_names: set[str] = set()
+        for country in pycountry.countries:
+            if str(country.alpha_2) == requested_code:
+                continue
+            for field in ("name", "official_name", "common_name"):
+                name = getattr(country, field, None)
+                if name and len(str(name)) >= 4:
+                    foreign_names.add(str(name).casefold())
+        retained = []
+        for sentence in re.split(r"(?<=[.!?])\s+|[\r\n]+", str(value or "")):
+            lower = sentence.casefold()
+            if re.search(
+                r"\b(?:prior|previous|wrong|incorrect|leak(?:age)?|fallback|"
+                r"failure|failed|do not route|must not route)\b",
+                lower,
+            ):
+                continue
+            if any(re.search(rf"\b{re.escape(name)}\b", lower) for name in foreign_names):
+                continue
+            if sentence.strip():
+                retained.append(" ".join(sentence.split()))
+        topic = " ".join(retained).strip()
+        return (topic or "commercial market need described by the goal")[:maximum]
+
+    def _directed_evidence_queries(self) -> List[Dict[str, str]]:
+        """Build dynamic class-specific retrieval queries for this market.
+
+        Query wording describes source/evidence properties rather than naming
+        any country's agencies or truth values. Providers remain free to find
+        the correct local authority, statistics office, or commercial
+        publisher for the resolved jurisdiction.
+        """
+
+        market = self.location.strip()
+        problem = self._bounded_research_topic(self.business_problem, 700)
+        target = self._bounded_research_topic(self.target_user, 300)
+        fragments = {
+            "statutory_current": (
+                f"{market} official government regulator current law tax VAT customs "
+                f"product compliance rules effective date for: {problem}. "
+                "Return direct official publisher pages only, with the exact current "
+                "rate/rule and effective or current-as-of date in the page text."
+            ),
+            "official_statistic": (
+                f"{market} latest official statistics government statistics office "
+                f"market population demand retail sales for: {problem}. "
+                "Return the direct latest-release dataset/page with exact observation "
+                "period, value, unit, and explicit latest/current release language."
+            ),
+            "observed_primary_market": (
+                f"{market} current first-party retailer distributor supplier product "
+                f"catalogue price in local currency local market for: {problem}; "
+                f"stakeholder: {target}. "
+                "Return direct product/catalog pages from publishers operating in the "
+                "market, containing exact price/currency and current availability."
+            ),
+        }
+        return [
+            {"evidence_class": evidence_class, "query": fragments[evidence_class]}
+            for evidence_class in self.required_evidence_classes
+            if evidence_class in fragments
+        ]
+
+    def _authority_attestation_query(self) -> Dict[str, str]:
+        market = self.location.strip()
+        return {
+            "evidence_class": "authority_attestation",
+            "query": (
+                f"{market} official government or supranational public authority "
+                "directory for the national tax regulator and official statistics "
+                "publisher. Return direct government or EU directory pages that name "
+                "and link the authority publisher domains. Authorized market only."
+            ),
+        }
 
     @staticmethod
     def _evidence_id(prefix: str, value: str) -> str:
@@ -226,7 +353,8 @@ class B2BDataPipeline:
             "critical": bool(
                 re.search(
                     r"\b(?:vat|tax|gst|duty|tariff|regulation|legal|law|"
-                    r"compliance|price|cost|fee|market size|population|growth rate)\b",
+                    r"compliance|price|cost|fee|market size|population|growth rate|"
+                    r"sales|turnover|households|consumption|imports|exports|volume)\b",
                     lower,
                 )
             )
@@ -237,16 +365,39 @@ class B2BDataPipeline:
         ):
             result["evidence_class"] = "statutory_current"
         elif re.search(
-            r"\b(?:market size|population|growth rate|employment|inflation)\b",
+            r"\b(?:market size|population|growth rate|employment|inflation|"
+            r"sales|turnover|households|consumption|imports|exports|volume)\b",
             lower,
         ):
             result["evidence_class"] = "official_statistic"
         elif re.search(r"\b(?:price|cost|fee|retail|catalog|supplier)\b", lower):
             result["evidence_class"] = "observed_primary_market"
+        elif re.search(
+            rf"(?:[{re.escape('€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾')}]\s*\d|"
+            rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
+            rf"\b\d[\d\s.,]*\s*(?:{_ISO_CURRENCY_CODES}|euros?|dollars?|"
+            rf"pounds?|yen|yuan|rupees?|[{re.escape('€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾')}]))",
+            text,
+            re.IGNORECASE,
+        ):
+            result["evidence_class"] = "observed_primary_market"
+            result["critical"] = True
         else:
             return result
 
+        effective_dotted = re.search(
+            r"\b(?:effective|entry\s+into\s+force|applies?|from)\D{0,40}"
+            r"(\d{1,2})\.(\d{1,2})\.(20\d{2})\b",
+            text,
+            re.IGNORECASE,
+        )
         iso_date = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", text)
+        dotted_date = re.search(r"\b(\d{1,2})\.(\d{1,2})\.(20\d{2})\b", text)
+        day_month_date = re.search(
+            r"\b(\d{1,2})\s+(january|february|march|april|may|june|july|"
+            r"august|september|october|november|december)\s+(20\d{2})\b",
+            lower,
+        )
         month_date = re.search(
             r"\b(january|february|march|april|may|june|july|august|"
             r"september|october|november|december)\s+(\d{1,2},?\s+)?(20\d{2})\b",
@@ -254,8 +405,29 @@ class B2BDataPipeline:
         )
         year = re.search(r"\b(20\d{2})\b", text)
         effective = None
-        if iso_date:
+        if effective_dotted:
+            effective = datetime(
+                int(effective_dotted.group(3)),
+                int(effective_dotted.group(2)),
+                int(effective_dotted.group(1)),
+                tzinfo=timezone.utc,
+            ).isoformat()
+        elif iso_date:
             effective = f"{iso_date.group(1)}T00:00:00+00:00"
+        elif dotted_date:
+            effective = datetime(
+                int(dotted_date.group(3)),
+                int(dotted_date.group(2)),
+                int(dotted_date.group(1)),
+                tzinfo=timezone.utc,
+            ).isoformat()
+        elif day_month_date:
+            effective = datetime(
+                int(day_month_date.group(3)),
+                datetime.strptime(day_month_date.group(2), "%B").month,
+                int(day_month_date.group(1)),
+                tzinfo=timezone.utc,
+            ).isoformat()
         elif month_date:
             month = datetime.strptime(month_date.group(1), "%B").month
             day_text = (month_date.group(2) or "1").replace(",", "").strip()
@@ -270,23 +442,43 @@ class B2BDataPipeline:
             if effective:
                 result["effective_at"] = effective
             result["current"] = bool(
-                re.search(r"\b(?:current|currently|effective|from|is|are)\b", lower)
+                re.search(
+                    r"\b(?:current|currently|effective|from|is|are|in force|"
+                    r"entry into force|applies)\b",
+                    lower,
+                )
                 and not re.search(r"\b(?:former|previous|repealed|superseded|until)\b", lower)
             )
         elif evidence_class == "official_statistic":
-            if effective:
-                observed_year = int(year.group(1)) if year else int(effective[:4])
-                result["observation_end"] = datetime(
-                    observed_year, 12, 31, tzinfo=timezone.utc
-                ).isoformat()
+            observation_year_match = re.search(
+                r"\b(?:in|for|during)\s+(20\d{2})\b", lower
+            )
             document_years = [
                 int(value) for value in re.findall(r"\b(20\d{2})\b", direct_document_text)
             ]
+            observed_year = (
+                int(observation_year_match.group(1))
+                if observation_year_match
+                else (
+                    int(year.group(1))
+                    if year
+                    else (int(effective[:4]) if effective else None)
+                )
+            )
+            if effective and observed_year:
+                result["published_at"] = effective
+                result["observation_end"] = datetime(
+                    observed_year, 12, 31, tzinfo=timezone.utc
+                ).isoformat()
             result["latest_release"] = bool(
-                year
+                effective
                 and document_years
-                and int(year.group(1)) == max(document_years)
-                and re.search(r"\b(?:latest|most recent|current release)\b", lower)
+                and int(effective[:4]) == max(document_years)
+                and re.search(
+                    r"\b(?:latest|most recent|current release|last updated|updated|"
+                    r"posted on|published|data as at)\b",
+                    lower,
+                )
             )
             result["latest_release_basis"] = (
                 "explicit_latest_language_and_max_year_in_direct_document"
@@ -324,22 +516,33 @@ class B2BDataPipeline:
             for value in re.split(r"(?<=[.!?])\s+", normalized)
             if value.strip()
         ]
-        candidates: List[str] = []
-        for index, sentence in enumerate(sentences):
-            candidates.append(sentence)
-            if index + 1 < len(sentences):
-                candidates.append(f"{sentence} {sentences[index + 1]}")
+        candidates: List[tuple[str, tuple[int, ...]]] = [
+            (sentence, (index,)) for index, sentence in enumerate(sentences)
+        ]
+        candidates.extend(
+            (f"{sentences[index]} {sentences[index + 1]}", (index, index + 1))
+            for index in range(max(0, len(sentences) - 1))
+        )
 
         material_value = re.compile(
-            r"(?:[€$£]\s*\d|\b\d[\d\s.,]*\s*(?:%|percent|EUR|USD|GBP|"
-            r"million|billion|thousand)(?:\b|(?=\s|$)))",
+            rf"(?:[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾]\s*\d|"
+            rf"\b(?:{_ISO_CURRENCY_CODES})\s*\d|"
+            rf"\b\d[\d\s.,]*\s*(?:%|percent|per\s+cent|{_ISO_CURRENCY_CODES}|"
+            rf"euros?|dollars?|pounds?|yen|yuan|rupees?|"
+            rf"million|billion|thousand)(?:\b|(?=\s|$))|"
+            rf"\b\d[\d\s.,]*\s*[€$£¥₹₩₽₺₫฿₱₪₴₦₲₵₡₸₮₾])",
             re.IGNORECASE,
         )
         accepted: List[Dict[str, Any]] = []
         seen: set[str] = set()
-        for passage in candidates:
+        covered_sentence_indexes: set[int] = set()
+        for passage, sentence_indexes in candidates:
             if (
                 passage in seen
+                or (
+                    len(sentence_indexes) > 1
+                    and any(index in covered_sentence_indexes for index in sentence_indexes)
+                )
                 or not (16 <= len(passage) <= 1_200)
                 or not material_value.search(passage)
             ):
@@ -365,6 +568,7 @@ class B2BDataPipeline:
             if semantics.get("critical") is not True or not temporally_proven:
                 continue
             seen.add(passage)
+            covered_sentence_indexes.update(sentence_indexes)
             accepted.append({"text": passage, **semantics})
             if len(accepted) >= maximum_passages:
                 break
@@ -1022,7 +1226,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
             logger.warning("No grounded web search provider is available.")
             return []
 
-        query = (
+        generic_query = (
             f"Research the market explicitly and only for: '{self.location}'. "
             f"Do not substitute another city, country, or region. Find current, verifiable "
             f"evidence relevant to: '{self.business_problem}' and target stakeholder "
@@ -1032,34 +1236,61 @@ Return exactly one coordinate pair per address, in the same order as the input l
             f"authorized market and include an explicit headquarters or operating location."
         )
 
+        directed_queries = self._directed_evidence_queries()
+        query_contracts = (
+            [*directed_queries, self._authority_attestation_query()]
+            if directed_queries
+            else [{"evidence_class": "general_market", "query": generic_query}]
+        )
+        self.routing_diagnostics["directed_queries"] = [
+            {
+                "evidence_class": row["evidence_class"],
+                "query_id": self._evidence_id("query", row["query"]),
+            }
+            for row in directed_queries
+        ]
+
         texts = []
         source_rows = []
         claim_rows = []
         seen_urls = set()
-        async def run_provider(provider: str, search_service: Any) -> tuple[str, Dict[str, Any] | BaseException]:
+        async def run_provider(
+            provider: str,
+            search_service: Any,
+            query_contract: Dict[str, str],
+        ) -> tuple[str, str, Dict[str, Any] | BaseException]:
             try:
                 # Both provider SDKs expose synchronous search methods. Run them
                 # off the event loop so independent market cells can genuinely
                 # progress concurrently instead of serializing on network I/O.
-                return provider, await asyncio.to_thread(
-                    search_service.search_web_general, query
+                return (
+                    provider,
+                    query_contract["evidence_class"],
+                    await asyncio.to_thread(
+                        search_service.search_web_general,
+                        query_contract["query"],
+                    ),
                 )
             except Exception as exc:
-                return provider, exc
+                return provider, query_contract["evidence_class"], exc
 
         provider_results = await asyncio.gather(
-            *(run_provider(provider, service) for provider, service in search_services)
+            *(
+                run_provider(provider, service, query_contract)
+                for provider, service in search_services
+                for query_contract in query_contracts
+            )
         )
-        for provider, search_result in provider_results:
+        for provider, evidence_class, search_result in provider_results:
             if isinstance(search_result, BaseException):
                 exc = search_result
                 logger.warning(
                     "Grounded search provider %s failed with %s.",
-                    provider,
+                    f"{provider}:{evidence_class}",
                     type(exc).__name__,
                 )
                 self._record_provider(
-                    provider,
+                    f"{provider}:{evidence_class}",
                     attempted=True,
                     accepted=0,
                     source_count=0,
@@ -1070,16 +1301,20 @@ Return exactly one coordinate pair per address, in the same order as the input l
             performed = bool(search_result.get("search_performed"))
             if performed and search_result.get("text"):
                 texts.append(str(search_result["text"])[:12000])
-            claim_rows.extend(
-                row
-                for row in (search_result.get("claims") or [])
-                if isinstance(row, dict)
-            )
+            for claim in search_result.get("claims") or []:
+                if isinstance(claim, dict):
+                    claim_rows.append(
+                        {
+                            **claim,
+                            "acquisition_evidence_class": evidence_class,
+                        }
+                    )
+            accepted_current_urls: set[str] = set()
             for source in provider_sources:
                 if not isinstance(source, dict):
                     continue
                 url = str(source.get("url") or "").strip()
-                if not url or url in seen_urls:
+                if not url:
                     continue
                 try:
                     parsed_url = urlparse(url)
@@ -1106,32 +1341,95 @@ Return exactly one coordinate pair per address, in the same order as the input l
                         }
                     )
                     continue
-                seen_urls.add(url)
-                source_rows.append(
-                    {
-                        "title": str(source.get("title") or "Unknown")[:500],
-                        "url": url,
-                        "provider": provider,
-                        "provider_source_id": source.get("provider_source_id"),
-                        "retrieved_at": source.get("retrieved_at"),
-                        "provider_response_hash": source.get("provider_response_hash"),
-                        "provider_query_ids": source.get("provider_query_ids") or [],
-                        "provider_queries": source.get("provider_queries") or [],
-                        "citation_metadata": source.get("citation_metadata") or {},
-                        "country_codes": [self.market_scope.country_code]
-                        if self.market_scope.country_code else [],
-                    }
+                if len(accepted_current_urls) >= _MAX_SOURCES_PER_QUERY_PROVIDER:
+                    continue
+                existing = next(
+                    (row for row in source_rows if row.get("url") == url),
+                    None,
                 )
+                source_payload = {
+                    "title": str(source.get("title") or "Unknown")[:500],
+                    "url": url,
+                    "provider": provider,
+                    "provider_source_id": source.get("provider_source_id"),
+                    "retrieved_at": source.get("retrieved_at"),
+                    "provider_response_hash": source.get("provider_response_hash"),
+                    "provider_query_ids": source.get("provider_query_ids") or [],
+                    "provider_queries": source.get("provider_queries") or [],
+                    "citation_metadata": source.get("citation_metadata") or {},
+                    "provider_redirect": bool(source.get("provider_redirect")),
+                    "country_codes": [self.market_scope.country_code]
+                    if self.market_scope.country_code
+                    else [],
+                    "market_terms": list(
+                        dict.fromkeys(
+                            value
+                            for value in (
+                                self.location,
+                                self.market_scope.locality,
+                                self.market_scope.country_name,
+                            )
+                            if value
+                        )
+                    ),
+                    "acquisition_evidence_classes": [evidence_class],
+                }
+                accepted_current_urls.add(url)
+                if existing:
+                    for key in ("provider_query_ids", "provider_queries"):
+                        existing[key] = list(
+                            dict.fromkeys(
+                                list(existing.get(key) or [])
+                                + list(source_payload.get(key) or [])
+                            )
+                        )
+                    existing["acquisition_evidence_classes"] = list(
+                        dict.fromkeys(
+                            list(existing.get("acquisition_evidence_classes") or [])
+                            + [evidence_class]
+                        )
+                    )
+                    continue
+                seen_urls.add(url)
+                source_rows.append(source_payload)
 
-            accepted_provider_urls = {
-                row["url"] for row in source_rows if row["provider"] == provider
-            }
+            runtime = search_result.get("runtime_diagnostics") or {}
             self._record_provider(
-                provider,
+                f"{provider}:{evidence_class}",
                 attempted=True,
                 accepted=0,
-                source_count=len(accepted_provider_urls),
+                source_count=len(accepted_current_urls),
                 reason=None if performed else "empty_or_failed",
+                details={
+                    "evidence_class": evidence_class,
+                    "query_id": self._evidence_id(
+                        "query",
+                        next(
+                            row["query"]
+                            for row in query_contracts
+                            if row["evidence_class"] == evidence_class
+                        ),
+                    ),
+                    "result_source_count": len(provider_sources),
+                    "runtime": {
+                        key: runtime.get(key)
+                        for key in (
+                            "route",
+                            "model",
+                            "status",
+                            "elapsed_ms",
+                            "call_count",
+                            "retry_count",
+                            "deadline_ms",
+                            "fallback_used",
+                            "http_status",
+                            "result_count",
+                            "unresponsive_engines",
+                        )
+                        if runtime.get(key) is not None
+                    },
+                    "provider_error": search_result.get("error"),
+                },
             )
 
             # Use a configured secondary route only when the earlier provider
@@ -1151,7 +1449,67 @@ Return exactly one coordinate pair per address, in the same order as the input l
         # A non-.gov authority can become official only after its fetched page
         # is linked from a separately fetched government/EU root.
         await enrich_authority_sources(source_rows)
+        rejected_resolved = [
+            row for row in source_rows
+            if row.get("jurisdiction_binding_status") == "rejected"
+        ]
+        for row in rejected_resolved:
+            self.routing_diagnostics["rejected_cross_market_sources"].append(
+                {
+                    "provider": row.get("provider"),
+                    "url": str(row.get("resolved_url") or row.get("url") or "")[:2048],
+                    "reason": "resolved_document_not_bound_to_requested_market",
+                }
+            )
+        attempted_source_ledger = []
+        class_counts: Dict[str, Dict[str, int]] = {}
+        for row in source_rows[:24]:
+            classes = list(row.get("acquisition_evidence_classes") or [])[:4]
+            for evidence_class in classes:
+                counts = class_counts.setdefault(
+                    evidence_class,
+                    {"attempted": 0, "retrieved": 0, "verified": 0},
+                )
+                counts["attempted"] += 1
+                if row.get("direct_fetch_status") == "retrieved":
+                    counts["retrieved"] += 1
+                if row.get("authority_proof"):
+                    counts["verified"] += 1
+            attempted_source_ledger.append(
+                {
+                    "retrieval_host": (
+                        urlparse(str(row.get("retrieval_url") or row.get("url") or "")).hostname
+                        or ""
+                    )[:255],
+                    "final_host": (
+                        urlparse(str(row.get("resolved_url") or row.get("url") or "")).hostname
+                        or ""
+                    )[:255],
+                    "acquisition_evidence_classes": classes,
+                    "direct_fetch_status": str(
+                        row.get("direct_fetch_status") or "not_attempted"
+                    )[:80],
+                    "jurisdiction_binding_status": str(
+                        row.get("jurisdiction_binding_status") or "not_resolved"
+                    )[:80],
+                    "authority_verification_status": str(
+                        row.get("authority_verification_status") or "unverified"
+                    )[:120],
+                }
+            )
+        self.routing_diagnostics["attempted_sources"] = attempted_source_ledger
+        self.routing_diagnostics["evidence_class_acquisition"] = class_counts
+        source_rows[:] = [
+            row for row in source_rows
+            if row.get("jurisdiction_binding_status") != "rejected"
+        ]
         self._store_direct_web_evidence(source_rows, claim_rows)
+        for claim in self.market_claims:
+            evidence_class = str(claim.get("evidence_class") or "")
+            if evidence_class in class_counts:
+                class_counts[evidence_class]["claim_extracted"] = (
+                    class_counts[evidence_class].get("claim_extracted", 0) + 1
+                )
         if not texts or not source_rows:
             logger.warning("Web grounding returned no source-bearing evidence.")
             return []

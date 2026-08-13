@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.api.research.simulation_bridge.models import (
     BusinessContext,
+    CompanyDiscoveryItem,
     DemographicDetails,
     InterviewResponse,
     PersonaPattern,
@@ -526,6 +527,155 @@ async def test_commercial_hybrid_run_blocks_generic_prd_and_does_not_cache(
     session.close()
 
 
+@pytest.mark.asyncio
+async def test_critical_gate_resumes_deferred_company_enrichment_once(session_factory):
+    deferred = DeferredCompanyPipeline()
+
+    async def grounding(request, policy):
+        result = await commercial_grounding(request, policy)
+        result["_deferred_company_enrichment"] = [
+            {"pipeline": deferred, "policy": policy}
+        ]
+        return result
+
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        commercial_enrichment,
+        grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-deferred-pass",
+        "trace-deferred-pass",
+        task_context=_commercial_task_context(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(required=True),
+    )
+
+    await service.process_job(run.job_id)
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "completed", persisted.error
+    assert deferred.calls == 1
+    market_grounding = persisted.dataset["data"]["market_grounding"]
+    assert "_deferred_company_enrichment" not in market_grounding
+    assert market_grounding["company_count"] == 1
+    assert any(
+        row["source_type"] == "official_company_website"
+        for row in market_grounding["market_sources"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_failed_critical_gate_never_runs_deferred_company_enrichment(
+    session_factory,
+):
+    deferred = DeferredCompanyPipeline()
+
+    async def grounding(request, policy):
+        result = await commercial_grounding(request, policy)
+        result["market_claims"] = [
+            row
+            for row in result["market_claims"]
+            if row.get("evidence_class") != "official_statistic"
+        ]
+        result["claim_count"] = len(result["market_claims"])
+        result["routing_diagnostics"] = {
+            "required_evidence_classes": ["official_statistic"],
+            "providers": [
+                {
+                    "provider": "searxng:official_statistic",
+                    "evidence_class": "official_statistic",
+                    "query_id": "query-stat",
+                    "source_count": 0,
+                    "result_source_count": 0,
+                    "reason": "empty_or_failed token=secret",
+                    "runtime": {
+                        "route": "searxng",
+                        "status": "empty",
+                        "elapsed_ms": 1200,
+                        "call_count": 1,
+                        "unresponsive_engines": [
+                            {"engine": "brave", "reason": "suspended token=secret"}
+                        ],
+                    },
+                }
+            ],
+            "attempted_sources": [
+                {
+                    "retrieval_host": "stat.ee",
+                    "final_host": "stat.ee",
+                    "acquisition_evidence_classes": ["official_statistic"],
+                    "direct_fetch_status": "retrieved",
+                    "jurisdiction_binding_status": "verified",
+                    "authority_verification_status": "unverified",
+                }
+            ],
+            "evidence_class_acquisition": {
+                "official_statistic": {
+                    "attempted": 1,
+                    "retrieved": 1,
+                    "verified": 0,
+                    "claim_extracted": 0,
+                }
+            },
+        }
+        result["_deferred_company_enrichment"] = [
+            {"pipeline": deferred, "policy": policy}
+        ]
+        return result
+
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        commercial_enrichment,
+        grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-deferred-block",
+        "trace-deferred-block",
+        task_context=_commercial_task_context(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(required=True),
+    )
+
+    await service.process_job(run.job_id)
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert "mandatory_claim_class_missing:official_statistic" in persisted.error
+    assert deferred.calls == 0
+    failure = persisted.result_summary["failure_diagnostics"]
+    assert failure["evidence_class_acquisition"]["official_statistic"] == {
+        "attempted": 1,
+        "retrieved": 1,
+        "verified": 0,
+        "claim_extracted": 0,
+    }
+    assert failure["attempted_sources"][0]["final_host"] == "stat.ee"
+    assert "secret" not in str(failure).casefold()
+
+
 async def fake_grounding(_request, _policy):
     return {
         "market_sources": [
@@ -793,6 +943,31 @@ async def commercial_grounding(_request, _policy):
         "company_count": 0,
         "composer_version": "provider_shaped_commercial_fixture_v1",
     }
+
+
+class DeferredCompanyPipeline:
+    def __init__(self):
+        self.calls = 0
+        self.market_sources = []
+        self.market_claims = []
+
+    async def complete_deferred_company_enrichment(self):
+        self.calls += 1
+        return [
+            CompanyDiscoveryItem(
+                id="deferred-retailer",
+                name="Deferred Retailer GmbH",
+                industry="Pet retail",
+                size="10-50 employees",
+                location="Bremen, Germany",
+                latitude=0.0,
+                longitude=0.0,
+                decision_makers=[],
+                estimated_pain_points=["Category margin pressure"],
+                website="https://retailer.example.de",
+                pain_point_sources=["https://research.example.de/pet-retail"],
+            )
+        ]
 
 
 def _commercial_task_context() -> OrqalyTaskContext:
@@ -1420,3 +1595,95 @@ async def test_worker_persists_customer_and_execution_persona_resolution(session
     assert resolution["recommended_agent"]["agent_id"] == "agent-research"
     assert persisted.result_summary["persona_resolution_status"] == "matched_candidate"
     assert persisted.result_summary["recommended_agent_id"] == "agent-research"
+
+
+def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
+    diagnostics = HybridRunService._sanitized_grounding_diagnostics(
+        {
+            "routing_diagnostics": {
+                "required_evidence_classes": ["official_statistic"],
+                "providers": [
+                    {
+                        "provider": "searxng:official_statistic",
+                        "evidence_class": "official_statistic",
+                        "query_id": "query-safe",
+                        "reason": "https://internal/?token=secret",
+                        "provider_error": "TimeoutException",
+                        "runtime": {
+                            "route": "searxng",
+                            "status": "empty",
+                            "elapsed_ms": 1500,
+                            "call_count": 1,
+                            "unresponsive_engines": [
+                                {
+                                    "engine": "brave<script>",
+                                    "reason": "suspended https://internal/?token=secret",
+                                }
+                            ],
+                        },
+                    }
+                ],
+                "attempted_sources": [
+                    {
+                        "retrieval_host": "vertexaisearch.cloud.google.com",
+                        "final_host": "stat.ee",
+                        "acquisition_evidence_classes": ["official_statistic"],
+                        "direct_fetch_status": "retrieved",
+                        "jurisdiction_binding_status": "verified",
+                        "authority_verification_status": "unverified",
+                    }
+                ],
+                "evidence_class_acquisition": {
+                    "official_statistic": {
+                        "attempted": 2,
+                        "retrieved": 1,
+                        "verified": 0,
+                    }
+                },
+            },
+            "market_sources": [],
+        }
+    )
+
+    serialized = str(diagnostics).casefold()
+    assert "secret" not in serialized
+    assert "http" not in serialized
+    assert diagnostics["providers"][0]["runtime"]["unresponsive_engines"] == [
+        {"engine": "bravescript", "reason_code": "suspended"}
+    ]
+    assert diagnostics["attempted_sources"][0]["final_host"] == "stat.ee"
+    assert diagnostics["evidence_class_acquisition"]["official_statistic"] == {
+        "attempted": 2,
+        "retrieved": 1,
+        "verified": 0,
+    }
+
+
+def test_terminal_run_performance_is_frozen_at_completed_at():
+    run = PipelineRun(
+        job_id="job-frozen",
+        simulation_id="sim-frozen",
+        status="failed",
+        current_stage="failed",
+        progress_percentage=4,
+        pipeline_mode="hybrid_a_plus_b",
+        request_id="req-frozen",
+        attempt_count=1,
+        created_at=datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc),
+        started_at=datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc),
+        completed_at=datetime(2026, 8, 13, 10, 1, tzinfo=timezone.utc),
+        execution_trace=[
+            {
+                "stage": "grounding_market",
+                "progress_percentage": 3,
+                "message": "grounding",
+                "at": "2026-08-13T10:00:00+00:00",
+                "duration_ms": None,
+            }
+        ],
+    )
+    first = HybridRunService.serialize_run(run)
+    second = HybridRunService.serialize_run(run)
+    assert first["elapsed_ms"] == second["elapsed_ms"]
+    assert first["stage_trace"] == second["stage_trace"]
+    assert first["stage_trace"][0]["duration_ms"] == 60_000

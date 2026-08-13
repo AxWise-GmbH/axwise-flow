@@ -22,6 +22,7 @@ from backend.services.orqaly_research_bundle_service import (
     _persona_rows,
     canonical_hash,
     canonical_json_string,
+    complete_deferred_grounding_enrichment,
     collect_regional_grounding,
     derive_executor_role_specs,
     normalize_market_grounding,
@@ -222,6 +223,47 @@ def _company():
             "Regional market report: https://research.example/bremen-services",
             "No specific public evidence found",
         ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_deferred_company_enrichment_runs_once_after_gate_and_is_stripped():
+    company = _company()
+
+    class DeferredPipeline:
+        def __init__(self):
+            self.calls = 0
+            self.market_sources = []
+            self.market_claims = []
+
+        async def complete_deferred_company_enrichment(self):
+            self.calls += 1
+            return [company]
+
+    pipeline = DeferredPipeline()
+    grounding = {
+        "market_sources": [],
+        "market_claims": [],
+        "company_count": 0,
+        "_deferred_company_enrichment": [
+            {"pipeline": pipeline, "policy": HybridGroundingPolicy(required=True)}
+        ],
+    }
+    completed = await complete_deferred_grounding_enrichment(
+        grounding,
+        HybridGroundingPolicy(required=True),
+    )
+
+    assert pipeline.calls == 1
+    assert "_deferred_company_enrichment" not in completed
+    assert completed["company_count"] == 1
+    assert any(
+        row["source_type"] == "official_company_website"
+        for row in completed["market_sources"]
+    )
+    assert any(
+        row["source_type"] == "google_search_result"
+        for row in completed["market_sources"]
     )
 
 
