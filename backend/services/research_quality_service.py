@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import re
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence
 from urllib.parse import urlparse
 
@@ -274,8 +275,39 @@ def _iso_datetime(value: Any) -> Optional[datetime]:
     return parsed.astimezone(timezone.utc)
 
 
-def _normalized_value(value: str) -> str:
-    return re.sub(r"\s+", "", value.casefold().replace(",", ".").rstrip(".,;:"))
+def _normalized_value(value: str, unit: str = "") -> str:
+    """Normalize equivalent spellings without guessing a measurement scale."""
+
+    lowered = value.casefold().strip().rstrip(".,;:")
+    lowered = re.sub(r"\b(?:percent|per\s+cent)\b", "%", lowered)
+    lowered = re.sub(
+        rf"\b(?:{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?)\b",
+        "",
+        lowered,
+        flags=re.IGNORECASE,
+    )
+    lowered = re.sub(rf"[{re.escape(_CURRENCY_SYMBOLS)}%]", "", lowered)
+    scale_match = re.search(r"\b(thousand|million|billion)\b", lowered)
+    lowered = re.sub(r"\b(?:thousand|million|billion)\b", "", lowered)
+    lowered = re.sub(r"\s+", "", lowered)
+    # A single comma followed by one or two digits is a decimal separator.
+    if re.fullmatch(r"-?\d+,\d{1,2}", lowered):
+        lowered = lowered.replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,3}(?:[,. ]\d{3})+", lowered):
+        lowered = re.sub(r"[,. ]", "", lowered)
+    if scale_match:
+        multiplier = {
+            "thousand": Decimal("1000"),
+            "million": Decimal("1000000"),
+            "billion": Decimal("1000000000"),
+        }[scale_match.group(1)]
+        try:
+            lowered = format(Decimal(lowered) * multiplier, "f")
+            if "." in lowered:
+                lowered = lowered.rstrip("0").rstrip(".")
+        except InvalidOperation:
+            pass
+    return f"{lowered}:{unit}" if unit else lowered
 
 
 def _material_unit(value: str) -> str:
@@ -297,8 +329,7 @@ def _material_unit(value: str) -> str:
     duration = re.search(r"\b(days?|months?|years?)\b", lowered)
     if duration:
         return duration.group(1).rstrip("s")
-    scale = re.search(r"\b(million|billion|thousand)\b", lowered)
-    return scale.group(1) if scale else "number"
+    return "number"
 
 
 def _metric_key(text: str, start: int, end: int, unit: str) -> str:
@@ -317,10 +348,17 @@ def _metric_key(text: str, start: int, end: int, unit: str) -> str:
 def _fact_terms(text: str, start: int, end: int) -> List[str]:
     window = text[max(0, start - 90): min(len(text), end + 90)].casefold()
     words = re.findall(r"[a-zà-ž][a-zà-ž0-9-]{2,}", window)
+    pack_dimensions = [
+        re.sub(r"\s+", "", match.group(0))
+        for match in re.finditer(
+            r"\b\d+(?:[.,]\d+)?\s*(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            window,
+        )
+    ]
     return sorted(
         {
             word
-            for word in words
+            for word in [*words, *pack_dimensions]
             if word not in _FACT_STOP_WORDS
             and word not in _MONTH_WORDS
             and not re.fullmatch(r"\d{4}", word)
@@ -328,11 +366,139 @@ def _fact_terms(text: str, start: int, end: int) -> List[str]:
     )[:32]
 
 
+def _semantic_fact_scope(
+    text: str,
+    start: int,
+    end: int,
+    evidence_class: str,
+) -> str:
+    """Return only explicit dimensions that decide fact comparability.
+
+    Missing dimensions remain empty; they are never invented from a country or
+    provider. The scope complements (rather than replaces) exact source spans.
+    """
+
+    window = text[max(0, start - 140): min(len(text), end + 140)].casefold()
+    if evidence_class == "statutory_current":
+        qualifiers = [
+            label
+            for label, pattern in (
+                ("standard", r"\bstandard\b"),
+                ("reduced", r"\breduced\b"),
+                ("zero", r"\bzero(?:[- ]rated)?\b"),
+                ("exempt", r"\bexempt(?:ion)?\b"),
+                ("transitional", r"\btransitional\b"),
+                ("product_specific", r"\b(?:food|medicine|books?|services?|goods?)\b"),
+            )
+            if re.search(pattern, window)
+        ]
+        return "statutory:" + ("+".join(qualifiers) or "unqualified")
+    if evidence_class == "official_statistic":
+        concepts = [
+            label
+            for label, pattern in (
+                ("population", r"\bpopulation\b"),
+                ("turnover", r"\bturnover\b"),
+                ("sales", r"\bsales\b"),
+                ("imports", r"\bimports?\b"),
+                ("exports", r"\bexports?\b"),
+                ("consumption", r"\bconsumption\b"),
+                ("employment", r"\bemployment\b"),
+            )
+            if re.search(pattern, window)
+        ]
+        measure = (
+            "volume_index"
+            if re.search(r"\b(?:volume|index|points?)\b", window)
+            else "monetary_value"
+            if re.search(
+                rf"\b(?:value|{_ISO_CURRENCY_CODES}|euros?|dollars?|pounds?)\b|"
+                rf"[{re.escape(_CURRENCY_SYMBOLS)}]",
+                window,
+                re.I,
+            )
+            else "count"
+        )
+        dimensions = [
+            label
+            for label, pattern in (
+                ("net", r"\bnet\b"),
+                ("gross", r"\bgross\b"),
+                ("retail", r"\bretail\b"),
+                ("wholesale", r"\bwholesale\b"),
+                ("total", r"\btotal\b"),
+                ("per_capita", r"\bper\s+capita\b"),
+                ("seasonally_adjusted", r"\bseasonally\s+adjusted\b"),
+                ("unadjusted", r"\bunadjusted\b"),
+            )
+            if re.search(pattern, window)
+        ]
+        return "statistic:" + "+".join(
+            [*(concepts or ["unspecified"]), measure, *(dimensions or ["all"])]
+        )
+    if evidence_class == "observed_primary_market":
+        product_words = re.findall(
+            r"[a-zà-ž][a-zà-ž0-9-]{2,}", window
+        )
+        product_identity = [
+            word
+            for word in product_words
+            if word not in _FACT_STOP_WORDS
+            and word not in _MONTH_WORDS
+            and not _COMMERCIAL_OBSERVATION_TERMS.fullmatch(word)
+            and word
+            not in {
+                "current", "retail", "catalogue", "catalog", "product", "food",
+                "brand", "price", "cost", "fee", "eur", "usd", "brl",
+            }
+        ]
+        packs = [
+            re.sub(r"\s+", "", match.group(0))
+            for match in re.finditer(
+                r"\b\d+(?:[.,]\d+)?\s*(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+                window,
+            )
+        ]
+        local_suffix = text[end: min(len(text), end + 24)].casefold()
+        denominator_match = re.search(
+            r"^\s*(?:/|\bper\s+)(kg|g|l|ml|pcs?|piece|unit|item)\b",
+            local_suffix,
+        )
+        denominator = (
+            f"per_{denominator_match.group(1).casefold()}"
+            if denominator_match
+            else "per_item"
+        )
+        price_basis = [
+            label
+            for label, pattern in (
+                ("list", r"\b(?:list|regular) price\b"),
+                ("promotion", r"\b(?:sale|promo(?:tional)?|discount(?:ed)?)\b"),
+                ("member", r"\b(?:member|loyalty) price\b"),
+                ("gross", r"\bgross\b"),
+                ("net", r"\bnet\b"),
+            )
+            if re.search(pattern, window)
+        ]
+        identity_tokens = sorted(set([*product_identity, *packs]))
+        return "catalog:" + ":".join(
+            [
+                "+".join(price_basis) or "stated_price",
+                denominator,
+                "+".join(identity_tokens),
+            ]
+        )
+    return ""
+
+
 def extract_material_facts(
     text: str,
     *,
     claim_id: str = "",
     country_codes: Iterable[str] = (),
+    evidence_class: str = "",
+    temporal_scope: str = "",
+    source_scope: Iterable[str] = (),
 ) -> List[Dict[str, Any]]:
     """Extract comparable material values without knowing a country in advance."""
 
@@ -357,6 +523,26 @@ def extract_material_facts(
         if not terms:
             continue
         unit = _material_unit(raw)
+        semantic_scope = _semantic_fact_scope(
+            text, match.start(), match.end(), evidence_class
+        )
+        normalized_sources = sorted({str(value) for value in source_scope if value})
+        normalized_countries = sorted(
+            {str(code).upper() for code in country_codes if code}
+        )
+        identity_complete = bool(
+            evidence_class == "statutory_current"
+            and temporal_scope
+            and normalized_countries
+            and semantic_scope != "statutory:unqualified"
+            or evidence_class == "official_statistic"
+            and temporal_scope
+            and normalized_countries
+            and "unspecified" not in semantic_scope
+            or evidence_class == "observed_primary_market"
+            and normalized_sources
+            and len(terms) >= 3
+        )
         rows.append(
             {
                 "fact_id": f"{claim_id or 'claim'}:fact:{index}",
@@ -364,9 +550,15 @@ def extract_material_facts(
                 "fact_terms": terms,
                 "metric_key": _metric_key(text, match.start(), match.end(), unit),
                 "unit": unit,
-                "normalized_value": _normalized_value(raw),
+                "normalized_value": _normalized_value(raw, unit),
                 "display_value": raw,
-                "country_codes": sorted({str(code).upper() for code in country_codes if code}),
+                "country_codes": normalized_countries,
+                "identity_version": "material_fact_v2",
+                "evidence_class": str(evidence_class or ""),
+                "temporal_scope": str(temporal_scope or ""),
+                "source_scope": normalized_sources,
+                "semantic_scope": semantic_scope,
+                "identity_complete": identity_complete,
             }
         )
     return rows
@@ -378,6 +570,12 @@ def _terms_overlap(left: Sequence[str], right: Sequence[str]) -> float:
 
 
 def _same_fact(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    if (
+        left.get("identity_version") == "material_fact_v2"
+        and right.get("identity_version") == "material_fact_v2"
+        and not (left.get("identity_complete") and right.get("identity_complete"))
+    ):
+        return False
     left_countries = set(left.get("country_codes") or [])
     right_countries = set(right.get("country_codes") or [])
     if left_countries and right_countries and left_countries.isdisjoint(right_countries):
@@ -387,6 +585,37 @@ def _same_fact(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
     if left.get("metric_key") and right.get("metric_key"):
         if left.get("metric_key") != right.get("metric_key"):
             return False
+    left_class = str(left.get("evidence_class") or "")
+    right_class = str(right.get("evidence_class") or "")
+    if left_class and right_class and left_class != right_class:
+        return False
+
+    left_period = str(left.get("temporal_scope") or "")
+    right_period = str(right.get("temporal_scope") or "")
+    if left_period and right_period and left_period != right_period:
+        return False
+    left_scope = str(left.get("semantic_scope") or "")
+    right_scope = str(right.get("semantic_scope") or "")
+    if left_scope and right_scope and left_scope != right_scope:
+        return False
+
+    left_sources = set(left.get("source_scope") or [])
+    right_sources = set(right.get("source_scope") or [])
+    if left_class == right_class == "observed_primary_market":
+        # Prices from different sellers/catalogues are observations, not
+        # contradictions. Within one catalogue require near-identical product
+        # context so different SKUs, packs, variants and promotion rows remain
+        # independent facts.
+        if not left_sources or not right_sources or left_sources != right_sources:
+            return False
+        return bool(left_scope and right_scope and left_scope == right_scope)
+    if left_class == right_class == "official_statistic":
+        # A statistic is comparable only for the same released observation
+        # period and series-like context. This prevents population years and
+        # distinct turnover/index series from being collapsed.
+        if not left_period or not right_period:
+            return False
+        return _terms_overlap(left.get("fact_terms") or [], right.get("fact_terms") or []) >= 0.85
     return _terms_overlap(left.get("fact_terms") or [], right.get("fact_terms") or []) >= 0.6
 
 
@@ -610,6 +839,12 @@ def evaluate_critical_claims(
             str(claim.get(key) or "")
             for key in ("subject", "predicate", "object", "display_text", "text")
         ).strip()
+        fact_text = str(
+            claim.get("object")
+            or claim.get("display_text")
+            or claim.get("text")
+            or ""
+        ).strip()
         critical_marker = claim.get("critical")
         critical = critical_marker is True or (
             critical_marker is not False and bool(_CRITICAL_TERMS.search(text))
@@ -677,7 +912,21 @@ def evaluate_critical_claims(
                 if evidence_is_current:
                     valid_authorities.append(source)
 
-        facts = extract_material_facts(text, claim_id=claim_id, country_codes=claim_countries)
+        temporal_scope = str(
+            claim.get("observation_end")
+            or claim.get("observed_at")
+            or claim.get("effective_at")
+            or claim.get("as_of")
+            or ""
+        )
+        facts = extract_material_facts(
+            fact_text,
+            claim_id=claim_id,
+            country_codes=claim_countries,
+            evidence_class=evidence_class,
+            temporal_scope=temporal_scope,
+            source_scope=claim.get("source_ids") or [],
+        )
         exact_provenance = _has_exact_span_provenance(
             claim,
             str(claim.get("object") or claim.get("text") or ""),
@@ -717,6 +966,11 @@ def evaluate_critical_claims(
             reason = "fact_effective_or_observation_date_stale"
         elif stale_sources and not valid_authorities:
             reason = "authoritative_source_stale"
+        if reason and status in {
+            "verified_current_authoritative",
+            "verified_traceable_calculation",
+        }:
+            status = "blocked_unverified"
         row = {
             "claim_id": claim_id,
             "status": status,
@@ -769,9 +1023,8 @@ def evaluate_critical_claims(
         for fact in row["facts"]
     ]
     conflicts: List[Dict[str, Any]] = []
-    all_facts = [fact for row in critical_rows for fact in row["facts"]]
-    for index, left in enumerate(all_facts):
-        for right in all_facts[index + 1:]:
+    for index, left in enumerate(verified_facts):
+        for right in verified_facts[index + 1:]:
             # A claim may legitimately contain multiple values (for example a
             # rate and an effective date). Conflicts are comparisons between
             # independently sourced assertions of the same typed metric.
@@ -832,6 +1085,7 @@ def evaluate_critical_claims(
                 "reason": f"mandatory_claim_class_missing:{missing_class}",
             }
         )
+    missing_classes = sorted(required_classes - verified_classes)
 
     status = "passed" if critical_rows and not blocked else "blocked"
     if not critical_rows:
@@ -915,6 +1169,7 @@ def evaluate_critical_claims(
             if value in applicable_classes and reason
         },
         "verified_claim_classes": sorted(verified_classes),
+        "missing_claim_classes": missing_classes,
         "evidence_ledger": evidence_ledger,
     }
 

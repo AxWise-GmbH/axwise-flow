@@ -26,6 +26,7 @@ from backend.services.research_source_authority_service import (
     is_trusted_public_root,
     trusted_public_root_search_scope,
 )
+from backend.services.research_quality_service import evaluate_critical_claims
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,8 @@ _AUTHORITY_STAGE_DEADLINE_SECONDS = 50.0
 _COMPANY_STRUCTURING_DEADLINE_SECONDS = 120.0
 _TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
 _MAX_TARGETED_ATTESTATION_HOSTS = 4
+_STATUTORY_RECOVERY_DEADLINE_SECONDS = 90.0
+_STATUTORY_RECOVERY_SEARCH_SECONDS = 40.0
 _STAGE_CANCELLATION_GRACE_SECONDS = 1.0
 _ISO_CURRENCY_CODES = "|".join(
     sorted(re.escape(str(item.alpha_3)) for item in pycountry.currencies)
@@ -333,10 +336,13 @@ class B2BDataPipeline:
         target = self._bounded_research_topic(self.target_user, 300)
         fragments = {
             "statutory_current": (
-                f"{market} official government regulator current law tax VAT customs "
-                f"product compliance rules effective date for: {problem}. "
-                "Return direct official publisher pages only, with the exact current "
-                "rate/rule and effective or current-as-of date in the page text."
+                f"{market} official national tax authority current standard VAT GST "
+                f"sales or consumption tax rate and effective date for: {problem}. "
+                "Also include an applicable official product regulator rule only when "
+                "it states an exact current numeric threshold, rate, deadline, or a "
+                "dated legal obligation. Return direct current authority pages, not "
+                "historic consolidations, summaries, directories, or news pages; the "
+                "exact material rule/value and effective date must appear on the page."
             ),
             "official_statistic": (
                 f"{market} latest official statistics government statistics office "
@@ -370,6 +376,277 @@ class B2BDataPipeline:
             ),
         }
 
+    def _provisional_statutory_claim_count(self) -> int:
+        """Count only facts that pass the actual signed authority/span gate."""
+
+        quality = evaluate_critical_claims(
+            {
+                "market_sources": self.market_sources,
+                "market_claims": self.market_claims,
+            },
+            [self.market_scope.country_code]
+            if self.market_scope.country_code
+            else [],
+            mandatory_claim_classes=["statutory_current"],
+            claim_class_applicability={
+                "applicable_claim_classes": ["statutory_current"]
+            },
+        )
+        return sum(
+            row.get("evidence_class") == "statutory_current"
+            and row.get("status") == "verified_current_authoritative"
+            for row in quality.get("claims") or []
+        )
+
+    def _recovery_search_services(
+        self,
+        search_services: List[tuple[str, Any]],
+    ) -> List[tuple[str, Any]]:
+        """Skip a secondary route proven unhealthy by the initial class call."""
+
+        healthy: List[tuple[str, Any]] = []
+        provider_rows = self.routing_diagnostics.get("providers") or []
+        for provider, service in search_services:
+            matching = [
+                row
+                for row in provider_rows
+                if isinstance(row, dict)
+                and row.get("provider") == f"{provider}:statutory_current"
+            ]
+            if not matching:
+                healthy.append((provider, service))
+                continue
+            row = matching[-1]
+            runtime = row.get("runtime") or {}
+            engines = runtime.get("unresponsive_engines") or []
+            runtime_status = str(runtime.get("status") or "").casefold()
+            reason = str(row.get("reason") or "").casefold()
+            unhealthy = (
+                int(row.get("source_count") or 0) == 0
+                and (
+                    bool(engines)
+                    or runtime_status
+                    in {
+                        "failed", "deadline_exceeded", "timeout", "unavailable",
+                        "configuration_error", "rate_limited",
+                    }
+                    or int(runtime.get("http_status") or 0) in {403, 429, 500, 502, 503, 504}
+                    or reason.startswith("provider_error:")
+                )
+            )
+            if unhealthy:
+                self._record_provider(
+                    f"{provider}:statutory_recovery",
+                    attempted=False,
+                    accepted=0,
+                    reason="unhealthy_initial_route",
+                    details={"evidence_class": "statutory_recovery"},
+                )
+                continue
+            healthy.append((provider, service))
+        return healthy
+
+    async def _recover_missing_statutory_evidence(
+        self,
+        search_services: List[tuple[str, Any]],
+        source_rows: List[Dict[str, Any]],
+    ) -> int:
+        """Run one bounded, dynamic recovery query per healthy provider.
+
+        Recovery is reached only after exact direct-document extraction found no
+        material statutory fact. It reuses the same fetch, jurisdiction,
+        authority-proof and exact-span pipeline as primary acquisition.
+        """
+
+        if self._provisional_statutory_claim_count():
+            return 0
+        services = self._recovery_search_services(search_services)
+        if not services:
+            self.routing_diagnostics["statutory_recovery"] = {
+                "status": "no_healthy_provider",
+                "route_count": 0,
+                "candidate_count": 0,
+                "accepted_verified_claims": 0,
+                "elapsed_ms": 0,
+                "deadline_ms": int(_STATUTORY_RECOVERY_DEADLINE_SECONDS * 1000),
+            }
+            return 0
+
+        market = self.location.strip()
+        problem = self._bounded_research_topic(self.business_problem, 500)
+        country_codes = (
+            [self.market_scope.country_code]
+            if self.market_scope.country_code
+            else []
+        )
+        root_scope = trusted_public_root_search_scope(country_codes)
+        query = (
+            f"{market} official national tax authority current standard VAT GST "
+            "sales or consumption tax rate effective date. Return the direct "
+            "current tax-authority fact page and, where the national publisher "
+            f"is not on a recognized government root, a {root_scope} official "
+            "directory or supranational page that names/links that publisher. "
+            "The page must contain the exact current material rate/rule and "
+            f"effective date. Goal context: {problem}"
+        )
+        query_id = self._evidence_id("query", query)
+        started = time.monotonic()
+        logger.info(
+            "Missing statutory evidence recovery started; routes=%s deadline_ms=%s",
+            len(services),
+            int(_STATUTORY_RECOVERY_DEADLINE_SECONDS * 1000),
+        )
+
+        async def run(provider: str, service: Any):
+            try:
+                result = await asyncio.to_thread(service.search_web_general, query)
+                return provider, result
+            except Exception as exc:
+                return provider, exc
+
+        try:
+            results = await _await_with_hard_stage_deadline(
+                asyncio.gather(*(run(provider, service) for provider, service in services)),
+                deadline_seconds=_STATUTORY_RECOVERY_SEARCH_SECONDS,
+            )
+            search_status = "completed"
+        except asyncio.TimeoutError:
+            results = []
+            search_status = "search_timeout"
+
+        candidates: List[Dict[str, Any]] = []
+        seen_urls = {str(row.get("url") or "") for row in source_rows}
+        for provider, result in results:
+            if isinstance(result, BaseException):
+                self._record_provider(
+                    f"{provider}:statutory_recovery",
+                    attempted=True,
+                    accepted=0,
+                    reason=f"provider_error:{type(result).__name__}",
+                    details={"evidence_class": "statutory_recovery", "query_id": query_id},
+                )
+                continue
+            accepted = 0
+            provider_sources = [
+                row for row in result.get("sources") or [] if isinstance(row, dict)
+            ]
+            for source in provider_sources:
+                if accepted >= _MAX_SOURCES_PER_QUERY_PROVIDER:
+                    break
+                url = str(source.get("url") or "").strip()
+                parsed = urlparse(url)
+                if (
+                    not url
+                    or url in seen_urls
+                    or parsed.scheme.casefold() != "https"
+                    or not parsed.hostname
+                    or parsed.username
+                    or parsed.password
+                    or not self.market_scope.source_url_matches(url)
+                ):
+                    continue
+                seen_urls.add(url)
+                accepted += 1
+                candidates.append(
+                    {
+                        "title": str(source.get("title") or "Current tax authority")[:500],
+                        "url": url,
+                        "provider": provider,
+                        "provider_source_id": source.get("provider_source_id"),
+                        "retrieved_at": source.get("retrieved_at"),
+                        "provider_response_hash": source.get("provider_response_hash"),
+                        "provider_query_ids": list(
+                            source.get("provider_query_ids") or [query_id]
+                        ),
+                        "provider_queries": list(source.get("provider_queries") or [query]),
+                        "citation_metadata": source.get("citation_metadata") or {},
+                        "provider_redirect": bool(source.get("provider_redirect")),
+                        "country_codes": country_codes,
+                        "market_terms": list(
+                            dict.fromkeys(
+                                value
+                                for value in (
+                                    self.location,
+                                    self.market_scope.locality,
+                                    self.market_scope.country_name,
+                                )
+                                if value
+                            )
+                        ),
+                        "acquisition_evidence_classes": ["statutory_current"],
+                    }
+                )
+            runtime = result.get("runtime_diagnostics") or {}
+            self._record_provider(
+                f"{provider}:statutory_recovery",
+                attempted=True,
+                accepted=0,
+                source_count=accepted,
+                reason=None if accepted else "empty_or_failed",
+                details={
+                    "evidence_class": "statutory_recovery",
+                    "query_id": query_id,
+                    "result_source_count": len(provider_sources),
+                    "runtime": {
+                        key: runtime.get(key)
+                        for key in (
+                            "route", "model", "status", "elapsed_ms", "call_count",
+                            "retry_count", "deadline_ms", "fallback_used", "http_status",
+                            "result_count", "unresponsive_engines",
+                        )
+                        if runtime.get(key) is not None
+                    },
+                },
+            )
+
+        remaining = _STATUTORY_RECOVERY_DEADLINE_SECONDS - (
+            time.monotonic() - started
+        )
+        recovery_status = search_status
+        enriched: List[Dict[str, Any]] = []
+        if candidates and remaining > 1:
+            try:
+                enriched = await _await_with_hard_stage_deadline(
+                    enrich_authority_sources(candidates),
+                    deadline_seconds=min(_AUTHORITY_STAGE_DEADLINE_SECONDS, remaining),
+                )
+            except asyncio.TimeoutError:
+                recovery_status = "authority_timeout"
+            else:
+                recovery_status = "completed"
+                eligible = [
+                    row
+                    for row in enriched
+                    if row.get("jurisdiction_binding_status") == "verified"
+                    and row.get("authority_proof")
+                ]
+                self._store_direct_web_evidence(eligible, [])
+                source_rows.extend(eligible)
+
+        accepted_claims = self._provisional_statutory_claim_count()
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        self.routing_diagnostics["statutory_recovery"] = {
+            "status": recovery_status,
+            "route_count": len(services),
+            "candidate_count": len(candidates),
+            "retrieved_count": sum(
+                row.get("direct_fetch_status") == "retrieved" for row in enriched
+            ),
+            "verified_count": sum(bool(row.get("authority_proof")) for row in enriched),
+            "accepted_verified_claims": accepted_claims,
+            "elapsed_ms": elapsed_ms,
+            "deadline_ms": int(_STATUTORY_RECOVERY_DEADLINE_SECONDS * 1000),
+        }
+        logger.info(
+            "Missing statutory evidence recovery finished; status=%s elapsed_ms=%s "
+            "candidates=%s accepted_verified_claims=%s",
+            recovery_status,
+            elapsed_ms,
+            len(candidates),
+            accepted_claims,
+        )
+        return accepted_claims
+
     async def _targeted_authority_attestation_sources(
         self,
         unresolved_rows: List[Dict[str, Any]],
@@ -388,6 +665,10 @@ class B2BDataPipeline:
         host_rows: List[tuple[str, Dict[str, Any]]] = []
         seen_hosts: set[str] = set()
         for row in unresolved_rows:
+            if str(row.get("jurisdiction_binding_status") or "").startswith(
+                "rejected"
+            ):
+                continue
             host = (
                 urlparse(str(row.get("resolved_url") or row.get("url") or "")).hostname
                 or ""
@@ -997,6 +1278,19 @@ class B2BDataPipeline:
                 and bool(semantics.get("observed_at"))
             )
             if semantics.get("critical") is not True or not temporally_proven:
+                continue
+            if any(
+                row.get("evidence_class") == evidence_class
+                and row.get("effective_at") == semantics.get("effective_at")
+                and row.get("observation_end") == semantics.get("observation_end")
+                and (
+                    str(row.get("text") or "") in passage
+                    or passage in str(row.get("text") or "")
+                )
+                for row in accepted
+            ):
+                # Prefer the already accepted smaller exact sentence over a
+                # later publication-marker window carrying the same fact.
                 continue
             seen.add(passage)
             covered_sentence_indexes.update(sentence_indexes)
@@ -1950,6 +2244,9 @@ Return exactly one coordinate pair per address, in the same order as the input l
             for row in source_rows
             if row.get("direct_fetch_status") == "retrieved"
             and not row.get("authority_proof")
+            and not str(row.get("jurisdiction_binding_status") or "").startswith(
+                "rejected"
+            )
             and official_classes.intersection(
                 row.get("acquisition_evidence_classes") or []
             )
@@ -2022,7 +2319,9 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 )
         rejected_resolved = [
             row for row in source_rows
-            if row.get("jurisdiction_binding_status") == "rejected"
+            if str(row.get("jurisdiction_binding_status") or "").startswith(
+                "rejected"
+            )
         ]
         for row in rejected_resolved:
             self.routing_diagnostics["rejected_cross_market_sources"].append(
@@ -2072,9 +2371,19 @@ Return exactly one coordinate pair per address, in the same order as the input l
         self.routing_diagnostics["evidence_class_acquisition"] = class_counts
         source_rows[:] = [
             row for row in source_rows
-            if row.get("jurisdiction_binding_status") != "rejected"
+            if not str(row.get("jurisdiction_binding_status") or "").startswith(
+                "rejected"
+            )
         ]
         self._store_direct_web_evidence(source_rows, claim_rows)
+        if (
+            "statutory_current" in self.required_evidence_classes
+            and self._provisional_statutory_claim_count() == 0
+        ):
+            await self._recover_missing_statutory_evidence(
+                search_services,
+                source_rows,
+            )
         for claim in self.market_claims:
             evidence_class = str(claim.get("evidence_class") or "")
             if evidence_class in class_counts:
