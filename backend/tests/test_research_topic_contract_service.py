@@ -107,6 +107,61 @@ def test_product_topic_projection_excludes_verification_qualifier_from_title():
     assert product_topic_phrases(seed) == ("cat food",)
 
 
+def test_product_topic_projection_excludes_exact_pr57_signed_evidence_suffix():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="pr57-signed-evidence-suffix",
+            title="PR57 Production V2 — Estonia Cat Food Signed Evidence",
+            problem_scope="Validate current direct product offers.",
+            industry="other",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("cat food",)
+
+
+def test_signed_evidence_suffix_is_case_insensitive_and_allows_final_punctuation():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="signed-evidence-case-punctuation",
+            title="United States Office Furniture sIgNeD eViDeNcE!",
+            problem_scope="Validate current direct product offers.",
+            industry="other",
+        ),
+        ConfirmedMarketScope(
+            scope_label="United States",
+            country_codes=("US",),
+            confirmed=True,
+        ),
+    )
+
+    assert product_topic_phrases(seed) == ("office furniture",)
+
+
+def test_signed_evidence_suffix_restores_trusted_country_alias_expansion():
+    scope = _scope("EE")
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="signed-evidence-alias",
+            title="Estonia Cat Food Signed Evidence",
+            problem_scope="Validate current direct product offers.",
+            industry="other",
+        ),
+        scope,
+    )
+
+    expansion = build_expected_trusted_topic_alias_expansion(seed, scope)
+
+    assert expansion is not None
+    assert retrieval_phrases_for_country(
+        seed,
+        country_code="EE",
+        expansion=expansion,
+        product_only=True,
+    ) == ("cat food", "kassi kuivtoit", "kassitoit")
+
+
 def test_product_topic_projection_excludes_closed_commercially_adverb():
     seed = build_topic_seed(
         ImmutableGoalTopicFields(
@@ -214,6 +269,76 @@ def test_inferred_brand_prefix_named_verified_is_not_pruned():
     )
 
     assert product_topic_phrases(seed) == ("verified choice cat food",)
+
+
+def test_inferred_brand_prefix_named_signed_is_not_pruned():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="signed-brand",
+            title="Signed Choice cat food launch",
+            problem_scope="Validate pricing for Signed Choice cat food.",
+            industry="other",
+            target_user="Category buyers.",
+        ),
+        _scope("EE"),
+    )
+
+    assert product_topic_phrases(seed) == ("signed choice cat food",)
+
+
+def test_inferred_product_name_ending_in_signed_remains_exact():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="inferred-signed-product",
+            title="Acme Document Signed launch",
+            problem_scope="Validate current direct product offers.",
+            industry="other",
+        ),
+        ConfirmedMarketScope(
+            scope_label="United States",
+            country_codes=("US",),
+            confirmed=True,
+        ),
+    )
+
+    assert product_topic_phrases(seed) == ("acme document signed",)
+
+
+def test_explicit_product_name_ending_in_signed_remains_exact():
+    product_name = "Acme Document Signed"
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="explicit-signed-product",
+            title=f"{product_name} commercial launch",
+            problem_scope="Validate current direct product offers.",
+            exact_topic_anchors=(product_name,),
+        ),
+        ConfirmedMarketScope(
+            scope_label="United States",
+            country_codes=("US",),
+            confirmed=True,
+        ),
+    )
+
+    assert product_topic_phrases(seed) == (normalize_topic_phrase(product_name),)
+
+
+def test_signed_inside_inferred_product_name_is_not_pruned():
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="signed-interior-product",
+            title="Digitally Signed Documents launch",
+            problem_scope="Validate current direct product offers.",
+            industry="other",
+        ),
+        ConfirmedMarketScope(
+            scope_label="United States",
+            country_codes=("US",),
+            confirmed=True,
+        ),
+    )
+
+    assert product_topic_phrases(seed) == ("digitally signed documents",)
 
 
 @pytest.mark.parametrize(
