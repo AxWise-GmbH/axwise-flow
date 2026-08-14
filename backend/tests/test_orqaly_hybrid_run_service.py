@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import os
+from copy import deepcopy
 from datetime import datetime, timezone
 
 import pytest
@@ -33,6 +34,7 @@ from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridPRDOutput,
     HybridRunService,
+    _public_grounding_value,
     _strip_private_grounding_artifacts,
 )
 from backend.services.orqaly_research_bundle_service import (
@@ -84,6 +86,35 @@ def test_private_direct_documents_are_scrubbed_after_quality_boundary():
     assert "_authority_document_artifact" not in scrubbed["market_sources"][0]
     assert "_structured_evidence_html" not in scrubbed["market_sources"][0]
     assert scrubbed["market_sources"][0]["authority_document"] == {"sha256": "a" * 64}
+
+
+def test_internal_projection_authorization_is_removed_from_public_grounding():
+    grounding = {
+        "critical_claim_quality": {
+            "evidence_ledger": [
+                {
+                    "facts": [
+                        {
+                            "fact_id": "public-fact-id",
+                            "_physical_product_projection_authorization": {
+                                "mac": "private-hmac"
+                            },
+                        }
+                    ],
+                    "_internal_row_value": "private",
+                }
+            ]
+        }
+    }
+
+    public = _public_grounding_value(grounding)
+
+    assert public["critical_claim_quality"]["evidence_ledger"][0]["facts"] == [
+        {"fact_id": "public-fact-id"}
+    ]
+    assert "private-hmac" not in str(public)
+    assert "_internal_row_value" not in str(public)
+    assert "_physical_product_projection_authorization" in str(grounding)
 
 
 def test_topic_seed_maps_immutable_goal_and_confirmed_scope_without_location():
@@ -442,6 +473,10 @@ def test_analysis_result_prepends_authoritative_goal_contract(session_factory):
         assert "Deliver 3 ICPs, 3 packages" in analysis.results["original_text"]
         assert "No external execution tools" in analysis.results["original_text"]
         assert "SYNTHETIC INTERVIEW CORPUS" in analysis.results["original_text"]
+        assert '"business_evidence_profile"' not in analysis.results[
+            "original_text"
+        ]
+        assert "business_evidence_profile" not in analysis.results
     finally:
         session.close()
 
@@ -584,6 +619,174 @@ async def test_commercial_hybrid_run_repairs_then_caches_and_bundles_valid_prd(
     assert cached.prd_data["prd_type"] == "commercial_market_launch"
     assert cached.prd_data["metadata"]["validation"]["status"] == "passed"
     assert analysis.results["research_bundle"]["bundle_hash"] == bundle["bundle_hash"]
+
+
+@pytest.mark.asyncio
+async def test_noncommercial_physical_profile_derives_live_acquisition_and_quality(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    observed_acquisition_contracts = []
+
+    async def physical_grounding(request, policy):
+        observed_acquisition_contracts.append(
+            deepcopy(
+                request.business_context.grounding_context[
+                    "critical_claim_acquisition"
+                ]
+            )
+        )
+        return await commercial_grounding(request, policy)
+
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        commercial_enrichment,
+        physical_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    task_context = _physical_business_task_context(intent="product_strategy")
+
+    run, reused = service.enqueue(
+        _request(),
+        _bundle_outputs(persona_resolution=True),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-physical-profile-policy",
+        "trace-physical-profile-policy",
+        task_context=task_context,
+        agent_candidates=_bremen_agents(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+
+    assert reused is False
+    persisted_policy = run.request_payload["task_context"][
+        "critical_claim_policy"
+    ]
+    assert persisted_policy["required"] is True
+    assert persisted_policy["fail_closed"] is True
+    assert persisted_policy["mandatory_claim_classes"] == [
+        "observed_primary_market"
+    ]
+    assert persisted_policy["freshness_by_class"][
+        "observed_primary_market"
+    ] == 120
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "completed", persisted.error
+    assert len(observed_acquisition_contracts) == 1
+    acquisition = observed_acquisition_contracts[0]
+    assert acquisition["requested_claim_classes"] == [
+        "observed_primary_market"
+    ]
+    assert acquisition["applicable_claim_classes"] == [
+        "observed_primary_market"
+    ]
+    assert acquisition["applicability_reasons"] == {
+        "observed_primary_market": "physical_product_profile_required"
+    }
+    bundle = persisted.dataset["data"]["research_bundle"]
+    assert bundle["version"] == "axwise_research_bundle_v2"
+    assert len(bundle["facts"]) == 2
+    assert len(bundle["calculations"]) == 1
+    assert bundle["quality"]["critical_claims"]["status"] == "passed"
+    assert bundle["quality"]["critical_claims"][
+        "applicability_reasons"
+    ]["observed_primary_market"] == "physical_product_profile_required"
+    serialized = json.dumps(persisted.dataset, sort_keys=True)
+    assert "_physical_product_projection_authorization" not in serialized
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("insufficient_case", ["one_offer", "equal_offers"])
+async def test_physical_contract_coverage_blocks_before_pipeline_b_or_prd(
+    session_factory, monkeypatch, insufficient_case
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+
+    async def insufficient_grounding(request, policy):
+        grounding = await commercial_grounding(
+            request,
+            policy,
+            higher_price=("2.99" if insufficient_case == "equal_offers" else "5.99"),
+        )
+        if insufficient_case == "one_offer":
+            retained_observed = False
+            claims = []
+            for claim in grounding["market_claims"]:
+                if claim.get("evidence_class") != "observed_primary_market":
+                    claims.append(claim)
+                elif not retained_observed:
+                    claims.append(claim)
+                    retained_observed = True
+            grounding["market_claims"] = claims
+            grounding["claim_count"] = len(claims)
+        return grounding
+
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        commercial_enrichment,
+        insufficient_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        _bundle_outputs(
+            prd=HybridPRDOutput(
+                enabled=True,
+                type="product_strategy",
+                required=True,
+            )
+        ),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        f"idem-physical-preflight-{insufficient_case}",
+        f"trace-physical-preflight-{insufficient_case}",
+        task_context=_physical_business_task_context(intent="product_strategy"),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert "business evidence requirements are not satisfied" in persisted.error
+    assert orchestrator.finalize_flags == []
+    session = session_factory()
+    assert session.query(AnalysisResult).count() == 0
+    assert session.query(CachedPRD).count() == 0
+    session.close()
 
 
 @pytest.mark.asyncio
@@ -1104,18 +1307,24 @@ async def commercial_enrichment(result, request):
     return result
 
 
-async def commercial_grounding(_request, _policy):
+async def commercial_grounding(
+    _request,
+    _policy,
+    *,
+    lower_price: str = "2.99",
+    higher_price: str = "5.99",
+):
     vat_claim = "Germany's standard VAT rate is 19% effective 2025-01-01."
     statistic_claim = (
         "Germany's latest official market population is 84 million for 2025."
     )
     lower_price_claim = (
         "research technology adult subscription basic plan 1 unit "
-        "The current retail price is €2.99"
+        f"The current retail price is €{lower_price}"
     )
     higher_price_claim = (
         "research technology adult subscription advanced plan 1 unit "
-        "The current retail price is €5.99"
+        f"The current retail price is €{higher_price}"
     )
     source_url = "https://tax.gov.de/current-market-facts"
     catalog_url = "https://shop.example.de/research-technology"
@@ -1172,23 +1381,23 @@ async def commercial_grounding(_request, _policy):
         '<script type="application/ld+json">'
         '{"@type":"Product","sku":"RESEARCH-TECH-BASIC","name":'
         '"research technology adult subscription basic plan 1 unit","offers":'
-        '{"@type":"Offer","price":"2.99","priceCurrency":"EUR"}}'
+        f'{{"@type":"Offer","price":"{lower_price}","priceCurrency":"EUR"}}}}'
         "</script>"
         '<script type="application/ld+json">'
         '{"@type":"Product","sku":"RESEARCH-TECH-ADVANCED","name":'
         '"research technology adult subscription advanced plan 1 unit","offers":'
-        '{"@type":"Offer","price":"5.99","priceCurrency":"EUR"}}'
+        f'{{"@type":"Offer","price":"{higher_price}","priceCurrency":"EUR"}}}}'
         "</script>"
     )
     catalog_raw_html = (
         '<div>Official product catalogue for Germany.</div>'
         '<article class="product-card">'
         '<h1>research technology adult subscription basic plan 1 unit</h1>'
-        '<div class="price">The current retail price is €2.99</div>'
+        f'<div class="price">The current retail price is €{lower_price}</div>'
         '<div>Observed on 2026-08-12.</div></article>'
         '<article class="product-card">'
         '<h1>research technology adult subscription advanced plan 1 unit</h1>'
-        '<div class="price">The current retail price is €5.99</div>'
+        f'<div class="price">The current retail price is €{higher_price}</div>'
         f'<div>Observed on 2026-08-12.</div></article>{catalog_offer_html}'
     )
     catalog_text = _normalized_document_text(catalog_raw_html, is_html=True)
@@ -1458,6 +1667,49 @@ def _commercial_task_context() -> OrqalyTaskContext:
     )
 
 
+def _physical_business_task_context(
+    *,
+    intent: str = "product_strategy",
+) -> OrqalyTaskContext:
+    value = _bremen_task_context().model_dump(mode="json")
+    value.update(
+        {
+            "research_prd_type": intent,
+            # Deliberately omit the legacy policy: the enabled producer adapter
+            # owns and derives its acquisition/quality requirements.
+            "critical_claim_policy": {},
+            "business_evidence_profile": {
+                "version": "business_evidence_profile_v1",
+                "intent": intent,
+                "economic_model": "physical_product",
+                "market_scope_hash": "a" * 64,
+                "fact_requirements": [
+                    {
+                        "kind": "physical_product_offer",
+                        "minimum_verified": 2,
+                        "applicability": "required",
+                    }
+                ],
+                "calculation_requirements": [
+                    {
+                        "kind": "physical_offer_price_difference",
+                        "minimum_verified": 1,
+                        "applicability": "required",
+                    }
+                ],
+                "required_role_slots": [
+                    "customer_market",
+                    "pricing_finance",
+                    "legal_compliance",
+                    "sales_distribution",
+                    "risk_operations",
+                ],
+            },
+        }
+    )
+    return OrqalyTaskContext.model_validate(value)
+
+
 @pytest.fixture
 def session_factory(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path}/hybrid.db")
@@ -1542,6 +1794,189 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
             research_mode=HybridResearchMode.GROUNDED_HYBRID,
             grounding_policy=HybridGroundingPolicy(required=True),
         )
+
+
+def test_enqueue_rejects_disabled_business_evidence_adapter_before_persistence(
+    session_factory, monkeypatch
+):
+    monkeypatch.delenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", raising=False
+    )
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator, session_factory, fake_enrichment, fake_grounding
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    task_context = OrqalyTaskContext(
+        task_id="physical-evidence-task",
+        title="Compare observed offers",
+        description="Compare current verified physical offers",
+        desired_outcome="A traceable pack-total comparison",
+        business_evidence_profile={
+            "intent": "commercial_market_launch",
+            "economic_model": "physical_product",
+            "market_scope_hash": "a" * 64,
+            "fact_requirements": [],
+            "calculation_requirements": [],
+            "required_role_slots": [],
+        },
+    )
+
+    with pytest.raises(ValueError, match="physical_product is not enabled"):
+        service.enqueue(
+            _request(),
+            HybridOutputs(),
+            user,
+            "orqaly-org-1",
+            "orqaly-user-1",
+            "idem-disabled-projector",
+            "trace-disabled-projector",
+            task_context=task_context,
+        )
+
+    session = session_factory()
+    assert session.query(PipelineRun).count() == 0
+    session.close()
+
+
+def test_enqueue_rejects_optional_physical_profile_before_persistence(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    task_value = _physical_business_task_context().model_dump(mode="json")
+    task_value["business_evidence_profile"]["fact_requirements"][0][
+        "applicability"
+    ] = "optional"
+    task_context = OrqalyTaskContext.model_validate(task_value)
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+
+    with pytest.raises(ValueError, match="required verified offer"):
+        service.enqueue(
+            _request(),
+            _bundle_outputs(),
+            user,
+            "orqaly-org-1",
+            "orqaly-user-1",
+            "idem-optional-projector",
+            "trace-optional-projector",
+            task_context=task_context,
+            research_mode=HybridResearchMode.GROUNDED_HYBRID,
+            grounding_policy=HybridGroundingPolicy(
+                required=True,
+                requested_mode="grounded_fast",
+            ),
+        )
+
+    session = session_factory()
+    assert session.query(PipelineRun).count() == 0
+    session.close()
+
+
+def test_enqueue_rejects_instant_physical_profile_before_persistence(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+
+    with pytest.raises(ValueError, match="non-instant required grounding"):
+        service.enqueue(
+            _request(),
+            _bundle_outputs(),
+            user,
+            "orqaly-org-1",
+            "orqaly-user-1",
+            "idem-instant-projector",
+            "trace-instant-projector",
+            task_context=_physical_business_task_context(),
+            research_mode=HybridResearchMode.GROUNDED_HYBRID,
+            grounding_policy=HybridGroundingPolicy(required=True),
+        )
+
+    session = session_factory()
+    assert session.query(PipelineRun).count() == 0
+    session.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_revalidates_persisted_physical_grounding_contract(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    grounding_calls = 0
+
+    async def should_not_ground(request, policy):
+        nonlocal grounding_calls
+        grounding_calls += 1
+        return await fake_grounding(request, policy)
+
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        fake_enrichment,
+        should_not_ground,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        _bundle_outputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-worker-projector-policy",
+        "trace-worker-projector-policy",
+        task_context=_physical_business_task_context(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+        ),
+    )
+    session = session_factory()
+    stored = session.query(PipelineRun).filter(PipelineRun.job_id == run.job_id).one()
+    payload = deepcopy(stored.request_payload)
+    payload["grounding_policy"]["requested_mode"] = "instant"
+    stored.request_payload = payload
+    session.commit()
+    session.close()
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert "non-instant required grounding" in persisted.error
+    assert grounding_calls == 0
 
 
 @pytest.mark.asyncio

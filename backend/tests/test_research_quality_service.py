@@ -1039,6 +1039,7 @@ def _separate_visible_pack_producer_prd_case(
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
         mandatory_claim_classes=["observed_primary_market"],
+        physical_product_projection_required=True,
     )
     producer_row = producer_quality["evidence_ledger"][0]
     producer_fact = producer_row["facts"][0]
@@ -1281,12 +1282,53 @@ def test_only_rejected_candidate_still_fails_mandatory_class():
         ["EE"],
         now=datetime(2026, 8, 13, tzinfo=timezone.utc),
         mandatory_claim_classes=["observed_primary_market"],
+        physical_product_projection_required=True,
     )
 
     assert quality["status"] == "blocked"
     assert quality["verified_count"] == 0
     assert quality["missing_claim_classes"] == ["observed_primary_market"]
     assert quality["evidence_ledger"] == []
+
+
+@pytest.mark.parametrize("failure", ["authorization_signing", "unsupported_pack"])
+def test_physical_projection_authorization_failure_blocks_at_quality(
+    monkeypatch, failure
+):
+    pack = "400 mg" if failure == "unsupported_pack" else "400 g"
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/authorization-boundary",
+        claims=[
+            (
+                "authorization-boundary",
+                f"Alpha cat food {pack} current retail price is 15,99 € on 2026-08-12.",
+            )
+        ],
+    )
+    if failure == "authorization_signing":
+        def fail_authorization(**_kwargs):
+            raise RuntimeError("authorization signing unavailable")
+
+        monkeypatch.setattr(
+            "backend.services.research_quality_service."
+            "build_physical_product_fact_authorization",
+            fail_authorization,
+        )
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+        physical_product_projection_required=True,
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_count"] == 0
+    assert quality["missing_claim_classes"] == ["observed_primary_market"]
+    assert quality["verified_facts"] == []
+    assert "_physical_product_projection_authorization" not in str(quality)
 
 
 def test_distinct_catalog_products_and_pack_sizes_are_not_conflicts():

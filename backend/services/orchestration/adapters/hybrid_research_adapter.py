@@ -64,6 +64,11 @@ class HybridResearchAdapter:
             critical_claim_policy=(
                 brief.critical_claim_policy.model_dump(mode="json") if brief else {}
             ),
+            business_evidence_profile=(
+                brief.business_evidence_profile.model_copy()
+                if brief and brief.business_evidence_profile
+                else None
+            ),
         )
 
     @staticmethod

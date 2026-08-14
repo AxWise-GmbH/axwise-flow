@@ -42,6 +42,7 @@ from backend.services.orqaly_research_bundle_service import (
     HybridGroundingPolicy,
     HybridResearchMode,
     GroundingCollector,
+    build_business_evidence_contract_for_grounding,
     build_research_bundle,
     canonical_hash,
     collect_regional_grounding,
@@ -53,6 +54,9 @@ from backend.services.orqaly_persona_resolution_service import (
     OrqalyAgentCandidate,
     OrqalyTaskContext,
     resolve_orqaly_personas,
+)
+from backend.services.business_evidence_projection_service import (
+    effective_business_evidence_claim_policy,
 )
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
@@ -111,6 +115,20 @@ def _strip_private_grounding_artifacts(grounding: Dict[str, Any]) -> Dict[str, A
             if isinstance(source, dict)
         ]
     return grounding
+
+
+def _public_grounding_value(value: Any) -> Any:
+    """Remove internal authorization material from persisted or LLM-facing data."""
+
+    if isinstance(value, list):
+        return [_public_grounding_value(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _public_grounding_value(item)
+            for key, item in value.items()
+            if not str(key).startswith("_")
+        }
+    return value
 
 
 class HybridRunCancelled(Exception):
@@ -203,7 +221,7 @@ class HybridRunService:
         requested_claim_classes: list[str],
     ) -> Dict[str, Any]:
         context = request.business_context
-        return determine_claim_class_applicability(
+        applicability = determine_claim_class_applicability(
             {
                 "research_prd_type": (
                     task_context.research_prd_type if task_context else None
@@ -232,6 +250,31 @@ class HybridRunService:
             },
             requested_claim_classes,
         )
+        profile = task_context.business_evidence_profile if task_context else None
+        if profile and profile.economic_model == "physical_product":
+            requested = set(applicability.get("requested_claim_classes") or [])
+            applicable = set(applicability.get("applicable_claim_classes") or [])
+            requested.add("observed_primary_market")
+            applicable.add("observed_primary_market")
+            reasons = dict(applicability.get("applicability_reasons") or {})
+            reasons["observed_primary_market"] = (
+                "physical_product_profile_required"
+            )
+            applicability = {
+                **applicability,
+                "requested_claim_classes": sorted(requested),
+                "applicable_claim_classes": sorted(applicable),
+                "applicability_reasons": reasons,
+                "not_applicable_claim_classes": [
+                    row
+                    for row in applicability.get(
+                        "not_applicable_claim_classes"
+                    )
+                    or []
+                    if row.get("evidence_class") != "observed_primary_market"
+                ],
+            }
+        return applicability
 
     @staticmethod
     def _topic_market_scope_contract(
@@ -321,6 +364,7 @@ class HybridRunService:
         *,
         critical_policy: Dict[str, Any],
         claim_class_applicability: Dict[str, Any],
+        physical_product_projection_required: bool = False,
     ) -> list[Dict[str, Any]]:
         """Fail closed per confirmed country cell, never on a global union."""
 
@@ -397,6 +441,9 @@ class HybridRunService:
                 freshness_by_class=critical_policy.get("freshness_by_class") or {},
                 mandatory_claim_classes=mandatory,
                 claim_class_applicability=claim_class_applicability,
+                physical_product_projection_required=(
+                    physical_product_projection_required
+                ),
             )
             coverage["critical_claim_status"] = quality.get("status")
             coverage["verified_claim_classes"] = list(
@@ -568,6 +615,23 @@ class HybridRunService:
         grounding_policy: Optional[HybridGroundingPolicy] = None,
     ) -> Tuple[PipelineRun, bool]:
         """Persist a new hybrid run or return the matching idempotent run."""
+        if task_context and task_context.business_evidence_profile:
+            profile = task_context.business_evidence_profile
+            task_context = task_context.model_copy(
+                update={
+                    "critical_claim_policy": effective_business_evidence_claim_policy(
+                        profile,
+                        task_context.critical_claim_policy,
+                    )
+                }
+            )
+            if (
+                profile.economic_model != "none"
+                and research_mode != HybridResearchMode.GROUNDED_HYBRID
+            ):
+                raise ValueError(
+                    "business evidence projection requires grounded_hybrid research"
+                )
         required_output_flags = {"empirical_personas": outputs.empirical_personas}
         if outputs.research_bundle:
             required_output_flags.update(
@@ -588,6 +652,18 @@ class HybridRunService:
         if outputs.persona_resolution and not task_context:
             raise ValueError("Persona resolution requires task_context")
         policy = grounding_policy or HybridGroundingPolicy(required=False)
+        if (
+            task_context
+            and task_context.business_evidence_profile
+            and task_context.business_evidence_profile.economic_model != "none"
+            and (
+                not policy.required
+                or policy.requested_mode == "instant"
+            )
+        ):
+            raise ValueError(
+                "business evidence projection requires non-instant required grounding"
+            )
         request = self._with_resolved_required_market(request, policy)
         if research_mode == HybridResearchMode.SYNTHETIC_ONLY and policy.required:
             raise ValueError("Synthetic-only research cannot require market grounding")
@@ -857,6 +933,17 @@ class HybridRunService:
                 if raw_task_context
                 else None
             )
+            if task_context and task_context.business_evidence_profile:
+                task_context = task_context.model_copy(
+                    update={
+                        "critical_claim_policy": (
+                            effective_business_evidence_claim_policy(
+                                task_context.business_evidence_profile,
+                                task_context.critical_claim_policy,
+                            )
+                        )
+                    }
+                )
             agent_candidates = [
                 OrqalyAgentCandidate.model_validate(item)
                 for item in claimed["request_payload"].get("agent_candidates", [])
@@ -873,6 +960,20 @@ class HybridRunService:
                     "source_strategy": "hybrid",
                 }
             )
+            if (
+                task_context
+                and task_context.business_evidence_profile
+                and task_context.business_evidence_profile.economic_model != "none"
+                and (
+                    research_mode != HybridResearchMode.GROUNDED_HYBRID
+                    or not grounding_policy.required
+                    or grounding_policy.requested_mode == "instant"
+                )
+            ):
+                raise RuntimeError(
+                    "business evidence projection requires grounded_hybrid with "
+                    "non-instant required grounding"
+                )
 
             # API routes parse raw questionnaires before calling the legacy
             # orchestrator, but durable jobs bypass those routes in the worker.
@@ -899,6 +1000,7 @@ class HybridRunService:
                 "claim_count": 0,
                 "company_count": 0,
             }
+            prebuilt_business_evidence_contract = None
             if research_mode == HybridResearchMode.GROUNDED_HYBRID:
                 critical_policy = (
                     task_context.critical_claim_policy if task_context else {}
@@ -1150,6 +1252,12 @@ class HybridRunService:
                 mandatory_claim_classes = list(
                     critical_policy.get("mandatory_claim_classes") or []
                 )
+                physical_product_projection_required = bool(
+                    task_context
+                    and task_context.business_evidence_profile
+                    and task_context.business_evidence_profile.economic_model
+                    == "physical_product"
+                )
                 cell_critical_quality = self._evaluate_country_cell_claims(
                     {
                         **grounding,
@@ -1161,6 +1269,9 @@ class HybridRunService:
                     },
                     critical_policy=critical_policy,
                     claim_class_applicability=claim_class_applicability,
+                    physical_product_projection_required=(
+                        physical_product_projection_required
+                    ),
                 )
                 critical_quality = evaluate_critical_claims(
                     grounding,
@@ -1184,6 +1295,9 @@ class HybridRunService:
                         expected_topic_market_scope_contract
                     ),
                     topic_alias_expansion=expected_topic_alias_expansion,
+                    physical_product_projection_required=(
+                        physical_product_projection_required
+                    ),
                 )
                 grounding = {
                     **grounding,
@@ -1220,6 +1334,13 @@ class HybridRunService:
                     raise RuntimeError(
                         "Required current material claims were not verified "
                         f"(reasons={reasons or 'unknown'})"
+                    )
+                if physical_product_projection_required:
+                    prebuilt_business_evidence_contract = (
+                        build_business_evidence_contract_for_grounding(
+                            grounding,
+                            task_context.business_evidence_profile,
+                        )
                     )
                 grounding = await complete_deferred_grounding_enrichment(
                     grounding,
@@ -1259,7 +1380,15 @@ class HybridRunService:
             self._ensure_active(job_id)
             result.data = {
                 **(result.data or {}),
-                "market_grounding": grounding,
+                # The local `grounding` value retains the internal HMAC-bound
+                # projection authorization until bundle construction below.
+                # It must not enter canonical analysis, PRD prompts, durable
+                # run results, callbacks, or any other citable surface.
+                "market_grounding": (
+                    _public_grounding_value(grounding)
+                    if task_context and task_context.business_evidence_profile
+                    else grounding
+                ),
             }
             result.metadata = {
                 **(result.metadata or {}),
@@ -1344,6 +1473,9 @@ class HybridRunService:
                         item.model_dump(mode="json") for item in agent_candidates
                     ],
                     performance=self._run_performance(job_id),
+                    prebuilt_business_evidence_contract=(
+                        prebuilt_business_evidence_contract
+                    ),
                 )
                 result.data = {
                     **(result.data or {}),
@@ -1581,6 +1713,17 @@ class HybridRunService:
                 "critical_claim_policy": (
                     task_context.critical_claim_policy if task_context else {}
                 ),
+                **(
+                    {
+                        "business_evidence_profile": (
+                            task_context.business_evidence_profile.model_dump(
+                                mode="json"
+                            )
+                        )
+                    }
+                    if task_context and task_context.business_evidence_profile
+                    else {}
+                ),
                 "business_context": (
                     request.business_context.model_dump(mode="json")
                     if request.business_context
@@ -1636,6 +1779,17 @@ class HybridRunService:
                     ((result.data or {}).get("market_grounding") or {}).get(
                         "critical_claim_quality"
                     )
+                ),
+                **(
+                    {
+                        "business_evidence_profile": (
+                            task_context.business_evidence_profile.model_dump(
+                                mode="json"
+                            )
+                        )
+                    }
+                    if task_context and task_context.business_evidence_profile
+                    else {}
                 ),
                 "market_grounding": (result.data or {}).get("market_grounding"),
                 "simulation_insights": (

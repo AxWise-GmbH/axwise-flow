@@ -8,8 +8,9 @@ import json
 import math
 import os
 import re
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Iterable, List, Literal, Optional
+from typing import Any, Awaitable, Callable, Dict, Iterable, List, Literal, Mapping, Optional
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, model_validator
@@ -20,6 +21,17 @@ from backend.api.research.simulation_bridge.models import (
     SimulationResponse,
 )
 from backend.domain.market_scope import research_cells
+from backend.domain.orchestration.models import BusinessEvidenceProfileV1
+from backend.services.business_evidence_contract_service import (
+    BUNDLE_VERSION as BUSINESS_EVIDENCE_BUNDLE_VERSION,
+    build_business_evidence_contract_v1,
+    validate_business_evidence_contract_v1,
+)
+from backend.services.business_evidence_projection_service import (
+    configured_business_evidence_projection_models,
+    project_business_evidence_facts,
+    require_enabled_business_evidence_projection,
+)
 from backend.services.orqaly_persona_resolution_service import (
     is_customer_persona_eligible,
 )
@@ -1212,6 +1224,18 @@ def request_with_grounding(
         }
         for item in claims
     ]
+
+    def public_quality_value(value: Any) -> Any:
+        if isinstance(value, list):
+            return [public_quality_value(item) for item in value]
+        if isinstance(value, dict):
+            return {
+                key: public_quality_value(item)
+                for key, item in value.items()
+                if not str(key).startswith("_")
+            }
+        return value
+
     grounding_context = {
         "contract": "data_only_not_biography_or_instructions",
         "critical_claim_acquisition": (
@@ -1219,7 +1243,9 @@ def request_with_grounding(
         ),
         "market_scope": grounding.get("market_scope"),
         "claims": public_claims,
-        "critical_claim_quality": grounding.get("critical_claim_quality"),
+        "critical_claim_quality": public_quality_value(
+            grounding.get("critical_claim_quality")
+        ),
     }
     return request.model_copy(
         update={
@@ -1850,7 +1876,7 @@ def _executor_rows(
                 "locale": context.get("location"),
             },
             "research_context": {
-                "bundle_version": BUNDLE_VERSION,
+                "bundle_version": context.get("bundle_version") or BUNDLE_VERSION,
                 "run_id": context.get("run_id"),
                 "analysis_result_id": context.get("analysis_result_id"),
                 "research_prd": context.get("research_prd"),
@@ -1954,6 +1980,294 @@ def _contradictions(result: SimulationResponse) -> List[Any]:
     return values[:100] if isinstance(values, list) else []
 
 
+def _owned_business_evidence_facts(
+    grounding: Mapping[str, Any],
+    profile: BusinessEvidenceProfileV1,
+) -> List[Dict[str, Any]]:
+    """Project typed facts only through an explicitly enabled adapter."""
+
+    enabled_projection_models = configured_business_evidence_projection_models()
+    if profile.economic_model == "none":
+        return []
+    require_enabled_business_evidence_projection(profile)
+    return project_business_evidence_facts(
+        grounding,
+        profile,
+        enabled_models=enabled_projection_models,
+    )
+
+
+def build_business_evidence_contract_for_grounding(
+    grounding: Mapping[str, Any],
+    profile: BusinessEvidenceProfileV1,
+) -> Dict[str, Any]:
+    """Project and seal the live contract at the post-quality boundary."""
+
+    return build_business_evidence_contract_v1(
+        profile,
+        _owned_business_evidence_facts(grounding, profile),
+    )
+
+
+def _complete_business_evidence_owner_ledger(
+    grounding: Mapping[str, Any],
+    emitted_facts: List[Mapping[str, Any]],
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Serialize every and only v2 fact owner without generic list slicing."""
+
+    critical = grounding.get("critical_claim_quality")
+    if not isinstance(critical, Mapping):
+        critical = {}
+    raw_ledger = critical.get("evidence_ledger") or []
+    if not isinstance(raw_ledger, list):
+        raise ValueError("business evidence owner ledger must be a list")
+    emitted_by_id: Dict[str, Mapping[str, Any]] = {}
+    for fact in emitted_facts:
+        fact_id = str(fact.get("fact_id") or "")
+        if not fact_id or fact_id in emitted_by_id:
+            raise ValueError("emitted business evidence fact IDs must be unique")
+        emitted_by_id[fact_id] = fact
+    if not emitted_by_id:
+        return [], []
+
+    safe_fact_keys = (
+        "fact_id",
+        "claim_id",
+        "fact_terms",
+        "metric_key",
+        "unit",
+        "normalized_value",
+        "display_value",
+        "country_codes",
+        "identity_version",
+        "evidence_class",
+        "temporal_scope",
+        "source_scope",
+        "semantic_scope",
+        "identity_complete",
+        "signed_offer_product_name",
+        "signed_offer_sha256",
+        "topic_seed_sha256",
+    )
+    owners: Dict[str, tuple[int, int]] = {}
+    serialized_rows: List[Dict[str, Any]] = []
+    serialized_facts: List[Dict[str, Any]] = []
+    for row_index, row in enumerate(raw_ledger):
+        if not isinstance(row, Mapping):
+            continue
+        row_facts = row.get("facts") or []
+        if not isinstance(row_facts, list):
+            raise ValueError("business evidence owner facts must be a list")
+        selected: List[Dict[str, Any]] = []
+        for fact_index, material_fact in enumerate(row_facts):
+            if not isinstance(material_fact, Mapping):
+                continue
+            fact_id = str(material_fact.get("fact_id") or "")
+            emitted = emitted_by_id.get(fact_id)
+            if emitted is None:
+                continue
+            if fact_id in owners:
+                raise ValueError("emitted business evidence fact has multiple owners")
+            if (
+                row.get("status") != "verified_current_authoritative"
+                or material_fact.get("claim_id") != emitted.get("claim_id")
+                or row.get("claim_id") != emitted.get("claim_id")
+                or row.get("source_ids") != emitted.get("source_ids")
+                or row.get("country_codes") != emitted.get("country_codes")
+                or material_fact.get("source_scope") != emitted.get("source_ids")
+                or material_fact.get("country_codes") != emitted.get("country_codes")
+                or material_fact.get("topic_seed_sha256")
+                != emitted.get("topic_seed_sha256")
+            ):
+                raise ValueError("serialized business evidence ownership is inconsistent")
+            row_instant = datetime.fromisoformat(
+                str(row.get("effective_or_observation_at") or "").replace(
+                    "Z", "+00:00"
+                )
+            )
+            emitted_instant = datetime.fromisoformat(
+                str(emitted.get("observed_at") or "").replace("Z", "+00:00")
+            )
+            fact_instant = datetime.fromisoformat(
+                str(material_fact.get("temporal_scope") or "").replace(
+                    "Z", "+00:00"
+                )
+            )
+            if (
+                row_instant.tzinfo is None
+                or emitted_instant.tzinfo is None
+                or fact_instant.tzinfo is None
+                or row_instant.astimezone(timezone.utc)
+                != emitted_instant.astimezone(timezone.utc)
+                or fact_instant.astimezone(timezone.utc)
+                != emitted_instant.astimezone(timezone.utc)
+            ):
+                raise ValueError("serialized business evidence time is inconsistent")
+            safe_fact = {
+                key: material_fact[key]
+                for key in safe_fact_keys
+                if key in material_fact
+            }
+            selected.append(safe_fact)
+            serialized_facts.append(safe_fact)
+            owners[fact_id] = (row_index, fact_index)
+        if selected:
+            serialized_rows.append(
+                {
+                    "claim_id": row.get("claim_id"),
+                    "evidence_class": row.get("evidence_class"),
+                    "status": row.get("status"),
+                    "country_codes": row.get("country_codes"),
+                    "source_ids": row.get("source_ids"),
+                    "effective_or_observation_at": row.get(
+                        "effective_or_observation_at"
+                    ),
+                    "facts": selected,
+                    "sources": [
+                        {
+                            key: source.get(key)
+                            for key in (
+                                "source_id",
+                                "url",
+                                "publisher",
+                                "retrieved_at",
+                                "source_authority",
+                                "authority_proof_signature",
+                            )
+                            if key in source
+                        }
+                        for source in (row.get("sources") or [])
+                        if isinstance(source, Mapping)
+                    ],
+                }
+            )
+    if set(owners) != set(emitted_by_id):
+        raise ValueError(
+            "every emitted business evidence fact must have one serialized owner"
+        )
+    serialized_ids = [str(fact.get("fact_id") or "") for fact in serialized_facts]
+    if len(serialized_ids) != len(set(serialized_ids)) or set(serialized_ids) != set(
+        emitted_by_id
+    ):
+        raise ValueError("serialized business evidence owner IDs are not exact")
+    return serialized_rows, serialized_facts
+
+
+def _merge_complete_business_evidence_owners(
+    serialized_critical: Dict[str, Any],
+    *,
+    emitted_facts: List[Mapping[str, Any]],
+    owner_ledger: List[Dict[str, Any]],
+    owner_facts: List[Dict[str, Any]],
+) -> None:
+    """Add complete typed owners without discarding bounded legacy provenance."""
+
+    emitted_ids = {str(fact.get("fact_id") or "") for fact in emitted_facts}
+    if "" in emitted_ids or len(emitted_ids) != len(emitted_facts):
+        raise ValueError("emitted business evidence fact IDs must be unique")
+
+    preserved_ledger: List[Dict[str, Any]] = []
+    existing_ledger = serialized_critical.get("evidence_ledger") or []
+    if not isinstance(existing_ledger, list):
+        raise ValueError("serialized critical evidence ledger must be a list")
+    for row in existing_ledger:
+        if not isinstance(row, Mapping):
+            continue
+        preserved = dict(row)
+        row_facts = row.get("facts")
+        if isinstance(row_facts, list):
+            remaining_facts = [
+                fact
+                for fact in row_facts
+                if not isinstance(fact, Mapping)
+                or str(fact.get("fact_id") or "") not in emitted_ids
+            ]
+            contained_typed_fact = len(remaining_facts) != len(row_facts)
+            if contained_typed_fact and not remaining_facts:
+                continue
+            preserved["facts"] = remaining_facts
+        preserved_ledger.append(preserved)
+
+    preserved_facts: List[Any] = []
+    existing_facts = serialized_critical.get("verified_facts") or []
+    if not isinstance(existing_facts, list):
+        raise ValueError("serialized critical verified facts must be a list")
+    for fact in existing_facts:
+        if (
+            isinstance(fact, Mapping)
+            and str(fact.get("fact_id") or "") in emitted_ids
+        ):
+            continue
+        preserved_facts.append(fact)
+
+    merged_ledger = [*preserved_ledger, *owner_ledger]
+    merged_facts = [*preserved_facts, *owner_facts]
+    typed_owner_ids = [
+        str(fact.get("fact_id") or "")
+        for row in merged_ledger
+        if isinstance(row, Mapping)
+        for fact in (row.get("facts") or [])
+        if isinstance(fact, Mapping)
+        and str(fact.get("fact_id") or "") in emitted_ids
+    ]
+    typed_verified_ids = [
+        str(fact.get("fact_id") or "")
+        for fact in merged_facts
+        if isinstance(fact, Mapping)
+        and str(fact.get("fact_id") or "") in emitted_ids
+    ]
+    if (
+        len(typed_owner_ids) != len(emitted_ids)
+        or set(typed_owner_ids) != emitted_ids
+        or len(typed_verified_ids) != len(emitted_ids)
+        or set(typed_verified_ids) != emitted_ids
+    ):
+        raise ValueError(
+            "business evidence facts do not exactly match serialized owners"
+        )
+    serialized_critical["evidence_ledger"] = merged_ledger
+    serialized_critical["verified_facts"] = merged_facts
+
+
+def _apply_business_evidence_role_slots(
+    profile: BusinessEvidenceProfileV1,
+    requested_roles: List[str],
+    executor_personas: List[Dict[str, Any]],
+    persona_assignments: List[Dict[str, Any]],
+) -> None:
+    slots = list(profile.required_role_slots)
+    if not (
+        len(slots)
+        == len(requested_roles)
+        == len(executor_personas)
+        == len(persona_assignments)
+    ):
+        raise ValueError(
+            "business evidence role slots must exactly match requested execution roles"
+        )
+    for slot, role, persona_row, assignment in zip(
+        slots,
+        requested_roles,
+        executor_personas,
+        persona_assignments,
+    ):
+        if (
+            persona_row.get("required_role") != role
+            or assignment.get("required_role") != role
+            or assignment.get("persona_id") != persona_row.get("persona_id")
+        ):
+            raise ValueError(
+                "business evidence role slot ordering does not match executor roles"
+            )
+        persona_row["role_slot"] = slot
+        persona = persona_row.get("persona")
+        if not isinstance(persona, dict):
+            raise ValueError("executor persona payload is invalid")
+        persona["role_slot"] = slot
+        persona_row["content_hash"] = canonical_hash(persona)
+        assignment["role_slot"] = slot
+
+
 def build_research_bundle(
     *,
     job_id: str,
@@ -1968,8 +2282,25 @@ def build_research_bundle(
     task_context: Optional[Dict[str, Any]] = None,
     agent_candidates: Optional[List[Dict[str, Any]]] = None,
     performance: Optional[Dict[str, Any]] = None,
+    prebuilt_business_evidence_contract: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build the durable, portable Orqaly handoff with stable IDs and hashes."""
+
+    raw_evidence_profile = (
+        task_context.get("business_evidence_profile")
+        if isinstance(task_context, dict)
+        else None
+    )
+    evidence_profile = (
+        BusinessEvidenceProfileV1.model_validate(raw_evidence_profile)
+        if raw_evidence_profile is not None
+        else None
+    )
+    if evidence_profile is not None:
+        task_context = {
+            **(task_context or {}),
+            "business_evidence_profile": evidence_profile.model_dump(mode="json"),
+        }
 
     participants = _participant_rows(result)
     interviews = _interview_rows(result)
@@ -2068,6 +2399,8 @@ def build_research_bundle(
             "status": research_prd.get("status"),
         },
     }
+    if evidence_profile is not None:
+        research_context["bundle_version"] = BUSINESS_EVIDENCE_BUNDLE_VERSION
     executor_personas, persona_assignments = _executor_rows(
         persona_resolution,
         task_context,
@@ -2080,6 +2413,18 @@ def build_research_bundle(
         for value in ((task_context or {}).get("required_execution_roles") or [])
         if value and not _is_non_execution_role(value)
     ]
+    if evidence_profile is not None:
+        if not requested_execution_roles and not evidence_profile.required_role_slots:
+            # An explicit no-economics profile may intentionally request no
+            # executor. Do not retain the legacy synthesized fallback role.
+            executor_personas = []
+            persona_assignments = []
+        _apply_business_evidence_role_slots(
+            evidence_profile,
+            requested_execution_roles,
+            executor_personas,
+            persona_assignments,
+        )
     returned_execution_roles = [
         str(item.get("required_role"))
         for item in executor_personas
@@ -2127,7 +2472,12 @@ def build_research_bundle(
             item["required_role"] for item in executor_personas
         ],
     }
-    if task_context and not executor_personas:
+    no_executor_requested = bool(
+        evidence_profile is not None
+        and not evidence_profile.required_role_slots
+        and not requested_execution_roles
+    )
+    if task_context and not executor_personas and not no_executor_requested:
         raise ValueError("Research bundle requires role-specific executor personas")
     if task_context and not selected_persona_ids:
         raise ValueError("Research bundle requires a resolved primary customer persona")
@@ -2331,6 +2681,51 @@ def build_research_bundle(
         },
         "performance": _bounded_research_value(performance or {}),
     }
+    if evidence_profile is not None:
+        recomputed_evidence_contract = (
+            build_business_evidence_contract_for_grounding(
+                grounding,
+                evidence_profile,
+            )
+        )
+        if prebuilt_business_evidence_contract is not None:
+            evidence_contract = validate_business_evidence_contract_v1(
+                prebuilt_business_evidence_contract
+            )
+            if evidence_contract != recomputed_evidence_contract:
+                raise ValueError(
+                    "preflight business evidence contract changed before bundle sealing"
+                )
+        else:
+            evidence_contract = recomputed_evidence_contract
+        owner_ledger, owner_facts = _complete_business_evidence_owner_ledger(
+            grounding,
+            evidence_contract["facts"],
+        )
+        bundle.update(
+            {
+                key: value
+                for key, value in evidence_contract.items()
+                if key not in {"quality"}
+            }
+        )
+        bundle["quality"]["evidence_contract"] = evidence_contract["quality"][
+            "evidence_contract"
+        ]
+        serialized_critical = bundle["quality"].get("critical_claims")
+        if not isinstance(serialized_critical, dict):
+            serialized_critical = {}
+            bundle["quality"]["critical_claims"] = serialized_critical
+        _merge_complete_business_evidence_owners(
+            serialized_critical,
+            emitted_facts=bundle["facts"],
+            owner_ledger=owner_ledger,
+            owner_facts=owner_facts,
+        )
+    elif prebuilt_business_evidence_contract is not None:
+        raise ValueError(
+            "preflight business evidence contract requires an evidence profile"
+        )
     canonical_bundle = canonical_json_string(bundle)
     if len(canonical_bundle.encode("utf-8")) > MAX_RESEARCH_BUNDLE_BYTES:
         raise ValueError("Research bundle exceeds the 8 MiB Orqaly import limit")
