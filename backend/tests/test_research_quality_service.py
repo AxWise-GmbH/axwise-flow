@@ -87,6 +87,7 @@ pytestmark = pytest.mark.contract
 os.environ.setdefault(
     "AXWISE_AUTHORITY_PROOF_SECRET", "test-authority-secret-32-bytes-minimum"
 )
+_TEST_TOPIC_SEED_SHA256 = "a" * 64
 
 
 def _cat_food_topic_seed(*country_codes: str) -> dict:
@@ -316,6 +317,10 @@ def _commercial_prd(regulatory_text: str):
 def _traceable_observed_price_difference(quality: dict) -> dict:
     """Install two exact signed offers for the reviewed price-difference formula."""
 
+    topic_seed_sha256 = str(
+        quality.get("topic_seed_sha256") or _TEST_TOPIC_SEED_SHA256
+    )
+    quality["topic_seed_sha256"] = topic_seed_sha256
     ledger = quality.setdefault("evidence_ledger", [])
     facts = []
     for role, product, pack, value in (
@@ -327,6 +332,8 @@ def _traceable_observed_price_difference(quality: dict) -> dict:
             "fact_id": f"{claim_id}:fact:0",
             "claim_id": claim_id,
             "fact_terms": [pack, *product.casefold().split()],
+            "signed_offer_product_name": f"{product} {pack}",
+            "topic_seed_sha256": topic_seed_sha256,
             "metric_key": "price:eur",
             "unit": "eur",
             "normalized_value": f"{value}:eur",
@@ -372,12 +379,12 @@ def _traceable_observed_price_difference(quality: dict) -> dict:
     }
     return {
         "observed_pack_price_difference": calculation,
-        "higher_observed_offer": {
-            "statement": "Beta cat food 3kg observed price is 20 EUR.",
+        "higher_observed_benchmark_pack": {
+            "statement": "Beta cat food, 3kg: 20 EUR.",
             "claim_ids": [higher_fact["claim_id"]],
         },
-        "lower_observed_offer": {
-            "statement": "Alpha cat food 2kg observed price is 10 EUR.",
+        "lower_observed_benchmark_pack": {
+            "statement": "Alpha cat food, 2kg: 10 EUR.",
             "claim_ids": [lower_fact["claim_id"]],
         },
     }
@@ -397,6 +404,10 @@ def _pr50_production_quality() -> dict:
                         "3,5kg", "appetite", "canin", "care", "control",
                         "kassi", "kuivtoit", "royal",
                     ],
+                    "signed_offer_product_name": (
+                        "Royal Canin Appetite Control Care kassi kuivtoit, 3,5 kg"
+                    ),
+                    "topic_seed_sha256": _TEST_TOPIC_SEED_SHA256,
                     "metric_key": "price:eur",
                     "unit": "eur",
                     "normalized_value": "56.09:eur",
@@ -448,6 +459,10 @@ def _pr50_production_quality() -> dict:
                         "2kg", "kassi", "kuivtoit", "linnuliha", "purenatural",
                         "wilder",
                     ],
+                    "signed_offer_product_name": (
+                        "Purenatural Wilder kassi kuivtoit, linnuliha, 2 kg"
+                    ),
+                    "topic_seed_sha256": _TEST_TOPIC_SEED_SHA256,
                     "metric_key": "price:eur",
                     "unit": "eur",
                     "normalized_value": "26.9:eur",
@@ -468,6 +483,7 @@ def _pr50_production_quality() -> dict:
     return {
         "status": "passed",
         "requested_country_codes": ["EE"],
+        "topic_seed_sha256": _TEST_TOPIC_SEED_SHA256,
         "verified_facts": [fact for row in rows for fact in row["facts"]],
         "evidence_ledger": rows,
     }
@@ -563,14 +579,14 @@ def _pr50_production_candidate(*, repaired_formula: bool) -> dict:
             "suppliers_and_channels": ["Specialist pet retail"],
             "pricing_and_unit_economics": {
                 calculation_key: calculation,
-                "observed_market_price_2kg": {
+                "lower_observed_benchmark_pack": {
                     "statement": (
                         "Purenatural Wilder kassi kuivtoit, linnuliha, "
                         "2 kg: 26,90 €"
                     ),
                     "claim_ids": [pure_claim],
                 },
-                "observed_market_price_3_5kg": {
+                "higher_observed_benchmark_pack": {
                     "statement": (
                         "Royal Canin Appetite Control Care kassi kuivtoit, "
                         "3,5 kg: 56,09 €"
@@ -584,6 +600,191 @@ def _pr50_production_candidate(*, repaired_formula: bool) -> dict:
                     ),
                     "claim_ids": [vat_claim],
                 },
+            },
+            "go_to_market_plan_90_days": ["Validate, pilot, and scale"],
+            "risks_assumptions_and_validation": ["Interview category buyers"],
+        },
+    }
+
+
+def _pr53_production_quality() -> dict:
+    quality = copy.deepcopy(_pr50_production_quality())
+    observed_rows = {
+        row["claim_id"]: row
+        for row in quality["evidence_ledger"]
+        if row["evidence_class"] == "observed_primary_market"
+    }
+    observed_rows["claim-1b02a34aeab2ccad20a2"]["facts"][0][
+        "temporal_scope"
+    ] = "2026-08-14T06:16:39.367077+00:00"
+    observed_rows["claim-5ceddcd5dd8506071d57"]["facts"][0][
+        "temporal_scope"
+    ] = "2026-08-14T06:16:40.457094+00:00"
+    for claim_id, terms, signed_name, value, display, scope, observed_at in (
+        (
+            "claim-155cb06b43477b87ad88",
+            ["400g", "canin", "kassitoit", "light", "royal", "weight"],
+            "Royal Canin Light Weight kassitoit 400 g",
+            "10.09:eur",
+            "10,09 €",
+            "catalog:signed_offer:15516581d10f1878:per_item:eur",
+            "2026-08-14T06:16:35.841585+00:00",
+        ),
+        (
+            "claim-f77a674d9cd76effcafd",
+            ["2kg", "applaws", "kana", "kassi", "kuivtoit", "part"],
+            "Applaws kassi kuivtoit, kana/part, 2 kg",
+            "15.99:eur",
+            "15,99 €",
+            "catalog:signed_offer:f2ad5e3bbd2c956d:per_item:eur",
+            "2026-08-14T06:16:36.114176+00:00",
+        ),
+    ):
+        fact = {
+            "fact_id": f"{claim_id}:fact:1",
+            "claim_id": claim_id,
+            "fact_terms": terms,
+            "signed_offer_product_name": signed_name,
+            "topic_seed_sha256": _TEST_TOPIC_SEED_SHA256,
+            "metric_key": "price:eur",
+            "unit": "eur",
+            "normalized_value": value,
+            "display_value": display,
+            "country_codes": ["EE"],
+            "identity_version": "material_fact_v2",
+            "evidence_class": "observed_primary_market",
+            "temporal_scope": observed_at,
+            "source_scope": [f"source-{claim_id}"],
+            "semantic_scope": scope,
+            "identity_complete": True,
+        }
+        quality["evidence_ledger"].append(
+            {
+                "claim_id": claim_id,
+                "status": "verified_current_authoritative",
+                "evidence_class": "observed_primary_market",
+                "facts": [fact],
+            }
+        )
+    quality["verified_facts"] = [
+        fact
+        for row in quality["evidence_ledger"]
+        for fact in row.get("facts") or []
+    ]
+    return quality
+
+
+def _pr53_production_candidate(
+    *,
+    calculation_key: str = "observed_pack_price_difference",
+    include_grouping_fields: bool = False,
+) -> dict:
+    royal_large = "claim-1b02a34aeab2ccad20a2"
+    royal_small = "claim-155cb06b43477b87ad88"
+    purenatural = "claim-5ceddcd5dd8506071d57"
+    applaws = "claim-f77a674d9cd76effcafd"
+
+    def sku(product: str, pack: str, display: str, claim_id: str) -> dict:
+        return {
+            "product_name": {
+                "statement": f"{product}, {pack}",
+                "claim_ids": [claim_id],
+            },
+            "observed_price": {
+                "statement": f"{product}, {pack} {display}",
+                "claim_ids": [claim_id],
+            },
+        }
+
+    def competitor(brand_name: str, observed_skus: list[dict]) -> dict:
+        row = {"observed_skus": observed_skus}
+        if include_grouping_fields:
+            row["brand_name"] = brand_name
+        return row
+
+    calculation = {
+        "calculation_kind": "observed_pack_price_difference",
+        "formula": (
+            "observed_pack_price_difference = higher_observed_pack_price - "
+            "lower_observed_pack_price"
+        ),
+        "input_claim_ids": [royal_large, royal_small],
+        "input_bindings": {
+            "higher_observed_pack_price": {
+                "claim_id": royal_large,
+                "fact_id": f"{royal_large}:fact:1",
+            },
+            "lower_observed_pack_price": {
+                "claim_id": royal_small,
+                "fact_id": f"{royal_small}:fact:1",
+            },
+        },
+    }
+    return {
+        "prd_type": COMMERCIAL_MARKET_LAUNCH,
+        "commercial_prd": {
+            "market_scope": {"countries": ["EE"]},
+            "market_and_demand_assessment": ["Grounded demand assessment"],
+            "customer_segments": ["Estonian cat-food category buyers"],
+            "buying_roles": ["Economic buyer and catalogue operator"],
+            "regulatory_checklist": ["Validate current statutory requirements"],
+            "competitors": [
+                competitor(
+                    "Royal Canin",
+                    [
+                        sku(
+                            "Royal Canin Appetite Control Care kassi kuivtoit",
+                            "3,5 kg",
+                            "56,09 €",
+                            royal_large,
+                        ),
+                        sku(
+                            "Royal Canin Light Weight kassitoit",
+                            "400 g",
+                            "10,09 €",
+                            royal_small,
+                        ),
+                    ],
+                ),
+                competitor(
+                    "Purenatural",
+                    [
+                        sku(
+                            "Purenatural Wilder kassi kuivtoit, linnuliha",
+                            "2 kg",
+                            "26,90 €",
+                            purenatural,
+                        )
+                    ],
+                ),
+                competitor(
+                    "Applaws",
+                    [
+                        sku(
+                            "Applaws kassi kuivtoit, kana/part",
+                            "2 kg",
+                            "15,99 €",
+                            applaws,
+                        )
+                    ],
+                ),
+            ],
+            "suppliers_and_channels": ["Specialist pet retail"],
+            "pricing_and_unit_economics": {
+                "higher_observed_benchmark_pack": {
+                    "statement": (
+                        "Royal Canin Appetite Control Care kassi kuivtoit, "
+                        "3,5 kg 56,09 €"
+                    ),
+                    "claim_ids": [royal_large],
+                },
+                "lower_observed_benchmark_pack": {
+                    "statement": (
+                        "Royal Canin Light Weight kassitoit 400 g 10,09 €"
+                    ),
+                    "claim_ids": [royal_small],
+                },
+                calculation_key: calculation,
             },
             "go_to_market_plan_90_days": ["Validate, pilot, and scale"],
             "risks_assumptions_and_validation": ["Interview category buyers"],
@@ -652,6 +853,7 @@ def _catalog_grounding(
     country_code: str,
     source_url: str,
     claims: list[tuple[str, str]],
+    separate_visible_pack: bool = False,
 ) -> dict:
     """Build production-shaped exact first-party catalogue observations."""
 
@@ -684,6 +886,17 @@ def _catalog_grounding(
         product_name = re.sub(
             r"\b(?:tavahind|price)\s*$", "", product_name, flags=re.IGNORECASE
         ).strip(" .:-")
+        visible_pack = ""
+        if separate_visible_pack:
+            pack_match = re.search(
+                r"\s+(\d+(?:[.,]\d+)?\s*"
+                r"(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?))\s*$",
+                product_name,
+                re.IGNORECASE,
+            )
+            if pack_match:
+                visible_pack = pack_match.group(1)
+                product_name = product_name[: pack_match.start()].rstrip(" ,;:-")
         sku_match = re.search(r"\bSKU\s+([A-Z0-9-]+)\b", claim_text, re.I)
         product_id = (
             sku_match.group(1)
@@ -699,7 +912,9 @@ def _catalog_grounding(
         )
         offer_cards.append(
             f'<article class="product-card"><h2>{product_name}</h2>'
-            f'<span>{product_id}</span><span class="price">Current retail '
+            f'<span>{product_id}</span>'
+            f'<span class="pack">{visible_pack}</span>'
+            f'<span class="price">Current retail '
             f'price is {visible_price.group(0)}</span></article>'
         )
     offer_html = "".join([*offer_cards, *offer_scripts])
@@ -801,6 +1016,85 @@ def _catalog_grounding(
         "market_claims": market_claims,
         **_cat_food_topic_contracts(country_code),
     }
+
+
+def _separate_visible_pack_producer_prd_case(
+    *, pack: str = "400 g"
+) -> tuple[dict, dict, dict, dict]:
+    """Carry a proof-bound name/pack split through quality into strict PRD."""
+
+    grounding = _catalog_grounding(
+        country_code="EE",
+        source_url="https://shop.example.ee/alpha-cat-food",
+        claims=[(
+            "alpha-separate-pack",
+            f"Alpha cat food {pack} current retail price is 15,99 € on 2026-08-12.",
+        )],
+        separate_visible_pack=True,
+    )
+    producer_quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    producer_row = producer_quality["evidence_ledger"][0]
+    producer_fact = producer_row["facts"][0]
+
+    quality = _pr53_production_quality()
+    replaced_claim_id = "claim-155cb06b43477b87ad88"
+    quality["evidence_ledger"] = [
+        row
+        for row in quality["evidence_ledger"]
+        if row.get("claim_id") != replaced_claim_id
+    ]
+    quality["evidence_ledger"].append(copy.deepcopy(producer_row))
+    quality["topic_seed_sha256"] = producer_quality["topic_seed_sha256"]
+    quality["requested_country_codes"] = ["EE"]
+    for row in quality["evidence_ledger"]:
+        if row.get("evidence_class") == "observed_primary_market":
+            for fact in row.get("facts") or []:
+                fact["topic_seed_sha256"] = quality["topic_seed_sha256"]
+    quality["verified_facts"] = [
+        fact
+        for row in quality["evidence_ledger"]
+        for fact in row.get("facts") or []
+    ]
+
+    alpha_row = next(
+        row
+        for row in quality["evidence_ledger"]
+        if row.get("claim_id") == producer_row["claim_id"]
+    )
+    alpha_fact = alpha_row["facts"][0]
+    alpha_claim = alpha_row["claim_id"]
+    content = _pr53_production_candidate()
+    alpha_sku = content["commercial_prd"]["competitors"][0][
+        "observed_skus"
+    ][1]
+    alpha_sku["product_name"] = {
+        "statement": f"Alpha cat food, {pack}",
+        "claim_ids": [alpha_claim],
+    }
+    alpha_sku["observed_price"] = {
+        "statement": f"Alpha cat food, {pack} 15,99 €",
+        "claim_ids": [alpha_claim],
+    }
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    pricing["lower_observed_benchmark_pack"] = {
+        "statement": f"Alpha cat food {pack}: 15,99 €",
+        "claim_ids": [alpha_claim],
+    }
+    calculation = pricing["observed_pack_price_difference"]
+    calculation["input_claim_ids"] = [
+        "claim-1b02a34aeab2ccad20a2",
+        alpha_claim,
+    ]
+    calculation["input_bindings"]["lower_observed_pack_price"] = {
+        "claim_id": alpha_claim,
+        "fact_id": alpha_fact["fact_id"],
+    }
+    return producer_quality, quality, content, alpha_fact
 
 
 def _official_grounding(
@@ -1190,7 +1484,212 @@ def test_signed_thb_offer_canonicalizes_every_fact_identity_field():
     assert fact["unit"] == "thb"
     assert fact["metric_key"] == "price:thb"
     assert fact["semantic_scope"].endswith(":thb")
+    assert fact["signed_offer_product_name"] == "Alpha cat food 400 g"
+    assert (
+        fact["topic_seed_sha256"]
+        == quality["topic_seed_sha256"]
+        == grounding["topic_seed_contract"]["seed_sha256"]
+    )
     assert ":number" not in json.dumps(fact)
+
+
+def test_separate_visible_pack_name_survives_proof_quality_and_strict_prd():
+    producer_quality, quality, content, alpha_fact = (
+        _separate_visible_pack_producer_prd_case()
+    )
+
+    assert producer_quality["status"] == "passed", producer_quality
+    assert alpha_fact["signed_offer_product_name"] == "Alpha cat food"
+    assert "400g" in alpha_fact["fact_terms"]
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize("pack", ["1 unit", "12 pcs"])
+def test_observed_pack_adapter_retains_explicit_unit_and_pcs_compatibility(pack):
+    producer_quality, quality, content, fact = (
+        _separate_visible_pack_producer_prd_case(pack=pack)
+    )
+
+    assert producer_quality["status"] == "passed", producer_quality
+    assert len(
+        [
+            term
+            for term in fact["fact_terms"]
+            if re.fullmatch(
+                r"\d+(?:[.,]\d+)?(?:pcs?|pack|units?)", term.casefold()
+            )
+        ]
+    ) == 1
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize("mutation", ["wrong", "omitted", "second"])
+def test_separate_visible_pack_candidate_still_requires_one_exact_pack(mutation):
+    _producer_quality, quality, content, _alpha_fact = (
+        _separate_visible_pack_producer_prd_case()
+    )
+    alpha_sku = content["commercial_prd"]["competitors"][0][
+        "observed_skus"
+    ][1]
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    nodes = [
+        alpha_sku["product_name"],
+        alpha_sku["observed_price"],
+        pricing["lower_observed_benchmark_pack"],
+    ]
+    for node in nodes:
+        statement = node["statement"]
+        if mutation == "wrong":
+            node["statement"] = statement.replace("400 g", "500 g")
+        elif mutation == "omitted":
+            node["statement"] = statement.replace(", 400 g", "").replace(
+                " 400 g", ""
+            )
+        else:
+            node["statement"] = statement.replace("400 g", "400 g 2 kg")
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert "observed_sku_pair_invalid" in {
+        issue["code"] for issue in validation["issues"]
+    }
+
+
+@pytest.mark.parametrize(
+    "signed_name",
+    [
+        "Alpha cat food 500 g",
+        "Alpha 400 g cat food",
+        "Alpha cat food 400 g 2 kg",
+    ],
+)
+def test_separate_visible_pack_signed_name_rejects_wrong_non_suffix_or_multiple(
+    signed_name,
+):
+    _producer_quality, quality, content, alpha_fact = (
+        _separate_visible_pack_producer_prd_case()
+    )
+    alpha_fact["signed_offer_product_name"] = signed_name
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert "observed_sku_pair_invalid" in {
+        issue["code"] for issue in validation["issues"]
+    }
+
+
+def test_id_only_signed_offer_is_rejected_at_quality_before_prd_generation():
+    raw_html = (
+        '<div>Estonia first-party product catalogue.</div>'
+        '<article class="product-card"><h2>SKU103681</h2>'
+        '<span class="sku">SKU103681</span>'
+        '<span class="price">15,99 €</span></article>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"SKU103681","offers":'
+        '{"@type":"Offer","price":"15.99","priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}</script>'
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    offers = _commercial_offer_evidence(raw_html)
+    assert len(offers) == 1 and not offers[0]["product_name"]
+    proof = build_direct_primary_market_proof(
+        direct_url="https://shop.example.ee/id-only",
+        direct_text=direct_text,
+        country_codes=["EE"],
+        commercial_offer_evidence=offers,
+        direct_raw_html=raw_html,
+        retrieved_at="2026-08-12T12:00:00+00:00",
+    )
+    claim_text = proof["commercial_offer_evidence"][0]["visible_binding"][
+        "claim_text"
+    ]
+    document = {
+        "artifact_type": "direct_authority_document",
+        "source_id": "id-only-source",
+        "text": direct_text,
+        "sha256": hashlib.sha256(direct_text.encode("utf-8")).hexdigest(),
+        "retrieved_at": "2026-08-12T12:00:00+00:00",
+        "authority_proof_signature": proof["proof_signature"],
+    }
+    artifact = build_authority_claim_artifact(
+        source_id="id-only-source",
+        source_url="https://shop.example.ee/id-only",
+        authority_proof=proof,
+        authority_document=document,
+        claim_text=claim_text,
+    )
+    binding = artifact["claim_binding"]
+    grounding = {
+        "market_sources": [
+            {
+                "source_id": "id-only-source",
+                "url": "https://shop.example.ee/id-only",
+                "publisher": "shop.example.ee",
+                "provider": "direct",
+                "country_codes": ["EE"],
+                "source_authority": "first_party_catalog",
+                "authority_verification_status": (
+                    "direct_primary_market_observation"
+                ),
+                "retrieved_at": "2026-08-12T12:00:00+00:00",
+                "authority_proof": proof,
+                "_authority_document_artifact": document,
+                "_structured_evidence_html": raw_html,
+            }
+        ],
+        "market_claims": [
+            {
+                "claim_id": "id-only-claim",
+                "subject": "EE",
+                "predicate": "current catalogue product price",
+                "object": claim_text,
+                "source_ids": ["id-only-source"],
+                "country_codes": ["EE"],
+                "critical": True,
+                "evidence_class": "observed_primary_market",
+                "observed_at": "2026-08-12T12:00:00+00:00",
+                "citation_metadata": {
+                    "segment_start": binding["claim_start"],
+                    "segment_end": binding["claim_end"],
+                    "span_target": "direct_authority_document",
+                    "offset_unit": "unicode_codepoints",
+                    "source_id": "id-only-source",
+                },
+                "provenance_artifact": artifact,
+            }
+        ],
+    }
+
+    quality = evaluate_critical_claims(
+        grounding,
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+    )
+
+    assert quality["status"] == "blocked"
+    assert quality["verified_facts"] == []
+    assert quality["evidence_ledger"] == []
 
 
 def test_live_catalog_variants_and_price_denominators_are_distinct_targets():
@@ -2473,10 +2972,16 @@ def test_observed_offer_requires_same_product_and_pack_identity():
             row["code"] for row in validation["issues"]
         }
 
-    valid_statement = "Applaws cat food SKU C123 2kg retail price is €10.09."
-    content = _commercial_prd(
-        {"statement": valid_statement, "claim_ids": [claim_id]}
-    )
+    valid_statement = "Applaws cat food SKU C123 2kg: €10.09."
+    content = _commercial_prd("Review current regulatory compliance.")
+    content["commercial_prd"]["competitors"] = [
+        {
+            "observed_product": {
+                "statement": valid_statement,
+                "claim_ids": [claim_id],
+            }
+        }
+    ]
     content["commercial_prd"]["pricing_and_unit_economics"] = (
         _traceable_observed_price_difference(quality)
     )
@@ -2656,6 +3161,419 @@ def test_pr50_exact_production_surfaces_pass_with_typed_formula_bindings():
     assert validation["status"] == "passed", validation["issues"]
 
 
+def test_pr53_exact_no_colon_observed_surfaces_pass_with_honest_formula_key():
+    validation = validate_research_prd(
+        _pr53_production_candidate(),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr53_production_quality(),
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+def test_pr53_strict_observed_adapter_rejects_legacy_lossy_fact_terms_only():
+    quality = _pr53_production_quality()
+    for row in quality["evidence_ledger"]:
+        if row.get("evidence_class") == "observed_primary_market":
+            for fact in row.get("facts") or []:
+                fact.pop("signed_offer_product_name", None)
+
+    validation = validate_research_prd(
+        _pr53_production_candidate(),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert "observed_sku_pair_invalid" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def _pr53_with_exact_signed_offer_identity(
+    candidate_identity: str,
+) -> tuple[dict, dict]:
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    signed_identity = (
+        "By On The May C++ C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal"
+    )
+    quality["evidence_ledger"][0]["facts"][0][
+        "signed_offer_product_name"
+    ] = f"{signed_identity} 3,5 kg"
+
+    royal_sku = content["commercial_prd"]["competitors"][0]["observed_skus"][0]
+    royal_sku["product_name"]["statement"] = f"{candidate_identity}, 3,5 kg"
+    royal_sku["observed_price"]["statement"] = (
+        f"{candidate_identity}, 3,5 kg 56,09 €"
+    )
+    content["commercial_prd"]["pricing_and_unit_economics"][
+        "higher_observed_benchmark_pack"
+    ]["statement"] = f"{candidate_identity}, 3,5 kg: 56,09 €"
+    return quality, content
+
+
+def test_pr53_signed_identity_preserves_stop_short_numeric_and_duplicate_tokens():
+    # Case, whitespace, and the boundary comma may vary. Internal punctuation,
+    # token order, short/numeric tokens, and multiplicity remain exact.
+    quality, content = _pr53_with_exact_signed_offer_identity(
+        "  BY   on the May C++ C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal  "
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    "candidate_identity",
+    [
+        "On The May C++ C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal",  # omit By
+        "By On The May C++ C# .NET S/4HANA X X1 SKU7 SKU7 Royal",  # omit 7
+        "By On The May C++ C# .NET S/4HANA X1 7 SKU7 SKU7 Royal",  # omit X
+        "By On The May C++ C# .NET S/4HANA X X1 7 SKU7 Royal",  # duplicate
+        "By On The June C++ C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal",
+        "By On The May C++ C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal Extra",
+        "By On The May C C# .NET S/4HANA X X1 7 SKU7 SKU7 Royal",
+        "By On The May C++ C NET S/4HANA X X1 7 SKU7 SKU7 Royal",
+        "Royal By On The May C++ C# .NET S/4HANA X X1 7 SKU7 SKU7",  # reorder
+    ],
+)
+def test_pr53_signed_identity_token_omission_substitution_or_addition_blocks(
+    candidate_identity,
+):
+    quality, content = _pr53_with_exact_signed_offer_identity(
+        candidate_identity
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert "observed_sku_pair_invalid" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def test_pr53_signed_identity_may_end_in_cplusplus_before_pack():
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    quality["evidence_ledger"][0]["facts"][0][
+        "signed_offer_product_name"
+    ] = "C++ 3,5 kg"
+    royal = content["commercial_prd"]["competitors"][0]["observed_skus"][0]
+    royal["product_name"]["statement"] = "C++ 3,5 kg"
+    royal["observed_price"]["statement"] = "C++ 3,5 kg 56,09 €"
+    content["commercial_prd"]["pricing_and_unit_economics"][
+        "higher_observed_benchmark_pack"
+    ]["statement"] = "C++ 3,5 kg: 56,09 €"
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize("sign", ["-", "+"])
+def test_pr53_standalone_signed_pack_sign_blocks(sign):
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    quality["evidence_ledger"][0]["facts"][0][
+        "signed_offer_product_name"
+    ] = "Product 3,5 kg"
+    royal = content["commercial_prd"]["competitors"][0]["observed_skus"][0]
+    royal["product_name"]["statement"] = f"Product {sign} 3,5 kg"
+    royal["observed_price"]["statement"] = (
+        f"Product {sign} 3,5 kg 56,09 €"
+    )
+    content["commercial_prd"]["pricing_and_unit_economics"][
+        "higher_observed_benchmark_pack"
+    ]["statement"] = f"Product {sign} 3,5 kg: 56,09 €"
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+
+
+def test_pr53_signed_offer_field_is_not_required_for_non_observed_facts():
+    quality = _pr50_production_quality()
+    statutory_fact = quality["evidence_ledger"][1]["facts"][0]
+    assert statutory_fact["evidence_class"] == "statutory_current"
+    assert "signed_offer_product_name" not in statutory_fact
+
+    validation = validate_research_prd(
+        _pr50_production_candidate(repaired_formula=True),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    "control",
+    [
+        "\u202e",  # RLO
+        "\u202d",  # LRO
+        "\u202c",  # PDF
+        "\u2066",  # LRI
+        "\u2067",  # RLI
+        "\u2068",  # FSI
+        "\u2069",  # PDI
+        "\u200b",  # zero-width space
+        "\u200c",  # ZWNJ
+        "\u200d",  # ZWJ
+        "\u2060",  # word joiner
+        "\ufe0f",  # variation selector
+    ],
+)
+def test_pr53_signed_identity_rejects_control_format_and_variation_codepoints(
+    control,
+):
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    content["commercial_prd"]["competitors"][0]["observed_skus"][0][
+        "product_name"
+    ]["statement"] = (
+        "Royal Canin Appetite Control Care"
+        f"{control} kassi kuivtoit, 3,5 kg"
+    )
+
+    candidate_validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+    assert candidate_validation["status"] == "blocked"
+
+    quality = _pr53_production_quality()
+    quality["evidence_ledger"][0]["facts"][0][
+        "signed_offer_product_name"
+    ] = (
+        "Royal Canin Appetite Control Care"
+        f"{control} kassi kuivtoit, 3,5 kg"
+    )
+    signed_validation = validate_research_prd(
+        _pr53_production_candidate(),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+    assert signed_validation["status"] == "blocked"
+
+
+def test_pr53_formula_topic_binding_is_digest_based_not_category_ontology():
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    arbitrary_topic_digest = hashlib.sha256(
+        b"industrial roofing membrane physical offers"
+    ).hexdigest()
+    quality["topic_seed_sha256"] = arbitrary_topic_digest
+    for row in quality["evidence_ledger"]:
+        if row.get("evidence_class") == "observed_primary_market":
+            for fact in row.get("facts") or []:
+                fact["topic_seed_sha256"] = arbitrary_topic_digest
+
+    replacements = (
+        (
+            0,
+            0,
+            "RoofGuard Pro S/4 Membrane",
+            "3,5 kg",
+            "56,09 €",
+            quality["evidence_ledger"][0]["facts"][0],
+            "higher_observed_benchmark_pack",
+        ),
+        (
+            0,
+            1,
+            "RoofGuard Basic C++ Sealant",
+            "400 g",
+            "10,09 €",
+            next(
+                row["facts"][0]
+                for row in quality["evidence_ledger"]
+                if row["claim_id"] == "claim-155cb06b43477b87ad88"
+            ),
+            "lower_observed_benchmark_pack",
+        ),
+    )
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    for competitor_index, sku_index, identity, pack, price, fact, sibling in replacements:
+        fact["fact_terms"] = [
+            pack.replace(" ", "").casefold(),
+            "generic",
+            "physical",
+            "offer",
+        ]
+        fact["signed_offer_product_name"] = f"{identity}, {pack}"
+        sku = content["commercial_prd"]["competitors"][competitor_index][
+            "observed_skus"
+        ][sku_index]
+        sku["product_name"]["statement"] = f"{identity}, {pack}"
+        sku["observed_price"]["statement"] = f"{identity}, {pack} {price}"
+        pricing[sibling]["statement"] = f"{identity}, {pack}: {price}"
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_code"),
+    [
+        ("wrong_price", "observed_sku_pair_invalid"),
+        ("wrong_pack", "observed_sku_pair_invalid"),
+        ("wrong_product", "observed_sku_pair_invalid"),
+        ("extra_scalar", "observed_sku_pair_invalid"),
+        ("extra_node_key", "observed_sku_pair_invalid"),
+        ("wrong_claim", "observed_sku_pair_invalid"),
+        ("cross_claim_pair", "observed_sku_pair_invalid"),
+        ("product_name_wrong_pack", "observed_sku_pair_invalid"),
+        ("product_name_wrong_product", "observed_sku_pair_invalid"),
+        ("product_name_extra_scalar", "observed_sku_pair_invalid"),
+        ("english_dog_food", "observed_sku_pair_invalid"),
+        ("english_dog_toy", "observed_sku_pair_invalid"),
+        ("localized_dog_food", "observed_sku_pair_invalid"),
+        ("topic_omission", "observed_sku_pair_invalid"),
+        ("brand_grouping", "observed_sku_competitor_shape_invalid"),
+        ("lv_fact_under_ee", "observed_sku_pair_invalid"),
+        ("multi_country_fact", "observed_sku_pair_invalid"),
+        ("per_kg_basis", "observed_sku_pair_invalid"),
+        ("scope_currency_mismatch", "observed_sku_pair_invalid"),
+        ("scope_suffix", "observed_sku_pair_invalid"),
+        ("missing_fact_topic_digest", "observed_sku_pair_invalid"),
+        ("wrong_fact_topic_digest", "observed_sku_pair_invalid"),
+        ("wrong_quality_topic_digest", "observed_sku_pair_invalid"),
+        ("swapped_benchmark_siblings", "traceable_unit_economics_missing"),
+        ("wrong_calculation_key", "traceable_unit_economics_missing"),
+    ],
+)
+def test_pr53_exact_offer_and_pair_contract_adversaries_fail_closed(
+    mutation, expected_code
+):
+    quality = _pr53_production_quality()
+    content = _pr53_production_candidate()
+    competitors = content["commercial_prd"]["competitors"]
+    royal = competitors[0]["observed_skus"][0]
+    pricing = content["commercial_prd"]["pricing_and_unit_economics"]
+    royal_fact = quality["evidence_ledger"][0]["facts"][0]
+
+    if mutation == "wrong_price":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care kassi kuivtoit, "
+            "3,5 kg 56,19 €"
+        )
+    elif mutation == "wrong_pack":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care kassi kuivtoit, 2 kg 56,09 €"
+        )
+    elif mutation == "wrong_product":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Sterilised kassi kuivtoit, 3,5 kg 56,09 €"
+        )
+    elif mutation == "extra_scalar":
+        royal["observed_price"]["statement"] += "; margin 30%"
+    elif mutation == "extra_node_key":
+        royal["observed_price"]["source"] = "model-supplied"
+    elif mutation == "wrong_claim":
+        royal["observed_price"]["claim_ids"] = [
+            "claim-5ceddcd5dd8506071d57"
+        ]
+    elif mutation == "cross_claim_pair":
+        royal["observed_price"] = copy.deepcopy(
+            competitors[1]["observed_skus"][0]["observed_price"]
+        )
+    elif mutation == "product_name_wrong_pack":
+        royal["product_name"]["statement"] = (
+            "Royal Canin Appetite Control Care kassi kuivtoit, 2 kg"
+        )
+    elif mutation == "product_name_wrong_product":
+        royal["product_name"]["statement"] = (
+            "Royal Canin Sterilised kassi kuivtoit, 3,5 kg"
+        )
+    elif mutation == "product_name_extra_scalar":
+        royal["product_name"]["statement"] += "; minimum order 30 units"
+    elif mutation == "english_dog_food":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care dog food, 3,5 kg 56,09 €"
+        )
+    elif mutation == "english_dog_toy":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care dog toy, 3,5 kg 56,09 €"
+        )
+    elif mutation == "localized_dog_food":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care koera kuivtoit, "
+            "3,5 kg 56,09 €"
+        )
+    elif mutation == "topic_omission":
+        royal["observed_price"]["statement"] = (
+            "Royal Canin Appetite Control Care, 3,5 kg 56,09 €"
+        )
+    elif mutation == "brand_grouping":
+        competitors[0]["brand_name"] = "Whiskas"
+    elif mutation == "lv_fact_under_ee":
+        royal_fact["country_codes"] = ["LV"]
+    elif mutation == "multi_country_fact":
+        royal_fact["country_codes"] = ["EE", "LV"]
+    elif mutation == "per_kg_basis":
+        royal_fact["semantic_scope"] = (
+            "catalog:signed_offer:ee8ba34937f20185:per_kg:eur"
+        )
+    elif mutation == "scope_currency_mismatch":
+        royal_fact["semantic_scope"] = (
+            "catalog:signed_offer:ee8ba34937f20185:per_item:usd"
+        )
+    elif mutation == "scope_suffix":
+        royal_fact["semantic_scope"] = (
+            "catalog:signed_offer:ee8ba34937f20185:per_item:eur:promotion"
+        )
+    elif mutation == "missing_fact_topic_digest":
+        royal_fact.pop("topic_seed_sha256")
+    elif mutation == "wrong_fact_topic_digest":
+        royal_fact["topic_seed_sha256"] = "b" * 64
+    elif mutation == "wrong_quality_topic_digest":
+        quality["topic_seed_sha256"] = "b" * 64
+    elif mutation == "swapped_benchmark_siblings":
+        pricing["higher_observed_benchmark_pack"], pricing[
+            "lower_observed_benchmark_pack"
+        ] = (
+            pricing["lower_observed_benchmark_pack"],
+            pricing["higher_observed_benchmark_pack"],
+        )
+    elif mutation == "wrong_calculation_key":
+        pricing["pack_price_difference_calculation"] = pricing.pop(
+            "observed_pack_price_difference"
+        )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert expected_code in {row["code"] for row in validation["issues"]}
+
+
 @pytest.mark.parametrize(
     ("mutation", "expected_code"),
     [
@@ -2716,11 +3634,11 @@ def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
     pricing = content["commercial_prd"]["pricing_and_unit_economics"]
     calculation = pricing["observed_pack_price_difference"]
     if mutation == "wrong_price":
-        pricing["observed_market_price_2kg"]["statement"] = (
+        pricing["lower_observed_benchmark_pack"]["statement"] = (
             "Purenatural Wilder kassi kuivtoit, linnuliha, 2 kg: 26,91 €"
         )
     elif mutation == "wrong_pack":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care kassi kuivtoit, 2 kg: 56,09 €"
         )
     elif mutation == "wrong_product":
@@ -2732,7 +3650,7 @@ def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
             "Standard VAT rate in Estonia is 24% effective from 2 July 2025."
         )
     elif mutation == "wrong_claim":
-        pricing["observed_market_price_2kg"]["claim_ids"] = [
+        pricing["lower_observed_benchmark_pack"]["claim_ids"] = [
             "claim-1b02a34aeab2ccad20a2"
         ]
     elif mutation == "unknown_symbol":
@@ -2787,24 +3705,24 @@ def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
                 "country_codes"
             ] = ["LV"]
     elif mutation == "wrong_topic":
-        quality["evidence_ledger"][0]["facts"][0]["fact_terms"] = [
-            "3,5kg", "canin", "koera", "kuivtoit", "royal",
-        ]
+        quality["evidence_ledger"][0]["facts"][0][
+            "topic_seed_sha256"
+        ] = "b" * 64
     elif mutation == "multiple_pack_tokens":
         quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("4kg")
     elif mutation == "missing_sibling":
-        pricing.pop("observed_market_price_2kg")
+        pricing.pop("lower_observed_benchmark_pack")
     elif mutation == "wrong_calculation_key":
         pricing["net_retail_price_calculation"] = pricing.pop(
             "observed_pack_price_difference"
         )
     elif mutation == "multi_id_sibling":
-        pricing["observed_market_price_2kg"]["claim_ids"].append(
+        pricing["lower_observed_benchmark_pack"]["claim_ids"].append(
             "claim-1b02a34aeab2ccad20a2"
         )
     elif mutation == "nested_sibling":
         pricing["nested_offer"] = {
-            "price": pricing.pop("observed_market_price_2kg")
+            "price": pricing.pop("lower_observed_benchmark_pack")
         }
     elif mutation == "alternate_same_claim_fact":
         lower_row = quality["evidence_ledger"][2]
@@ -2814,111 +3732,119 @@ def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
         alternate["display_value"] = "25,00 €"
         lower_row["facts"].append(alternate)
         quality["verified_facts"].append(alternate)
-        pricing["observed_market_price_2kg"]["statement"] = (
+        pricing["lower_observed_benchmark_pack"]["statement"] = (
             "Purenatural Wilder kassi kuivtoit, linnuliha, 2 kg: 25,00 €"
         )
     elif mutation == "variant_substitution":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Sterilised kassi kuivtoit, 3,5 kg: 56,09 €"
         )
     elif mutation == "variant_omission":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control kassi kuivtoit, 3,5 kg: 56,09 €"
         )
     elif mutation == "variant_addition":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care Sterilised kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "brand_omission":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Canin Appetite Control Care kassi kuivtoit, 3,5 kg: 56,09 €"
         )
     elif mutation == "copycat_prefix":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Copycat Royal Canin Appetite Control Care kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "second_brand_addition":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Purina Royal Canin Appetite Control Care kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "sku_addition":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care RC123 kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "promotion_basis_addition":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care promotional kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "short_variant_x":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care X kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "short_variant_xl":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care XL kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "short_variant_x1":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care X1 kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "dotted_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care.XL kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "hyphenated_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care-XL kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "slashed_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care/XL kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "short_copycat_brand":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "AC Royal Canin Appetite Control Care kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "short_copycat_brand_suffix":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care AC kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "split_short_brand":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "A-C Royal Canin Appetite Control Care kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "fullwidth_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care ＸＬ kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "zero_width_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care X\u200bL kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "numeric_short_variant":
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care 7 kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
     elif mutation == "trusted_short_variant_omission":
-        quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
+        quality["evidence_ledger"][0]["facts"][0][
+            "signed_offer_product_name"
+        ] = (
+            "Royal Canin Appetite Control Care XL kassi kuivtoit, 3,5 kg"
+        )
     elif mutation == "trusted_short_variant_substitution":
-        quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
-        pricing["observed_market_price_3_5kg"]["statement"] = (
+        quality["evidence_ledger"][0]["facts"][0][
+            "signed_offer_product_name"
+        ] = (
+            "Royal Canin Appetite Control Care XL kassi kuivtoit, 3,5 kg"
+        )
+        pricing["higher_observed_benchmark_pack"]["statement"] = (
             "Royal Canin Appetite Control Care X1 kassi kuivtoit, "
             "3,5 kg: 56,09 €"
         )
@@ -2951,12 +3877,12 @@ def test_pr50_semantic_and_typed_formula_adversaries_fail_closed(
     assert expected_code in {row["code"] for row in validation["issues"]}
 
 
-def test_pr50_bound_offer_identity_allows_case_punctuation_and_reordering():
+def test_pr50_bound_offer_identity_allows_case_whitespace_and_boundary_punctuation():
     quality = _pr50_production_quality()
     content = _pr50_production_candidate(repaired_formula=True)
     pricing = content["commercial_prd"]["pricing_and_unit_economics"]
-    pricing["observed_market_price_3_5kg"]["statement"] = (
-        "CARE, control appetite — ROYAL canin; kassi kuivtoit, "
+    pricing["higher_observed_benchmark_pack"]["statement"] = (
+        "  ROYAL   Canin Appetite Control Care kassi kuivtoit ; "
         "3,5 kg: 56,09 €"
     )
 
@@ -2971,11 +3897,19 @@ def test_pr50_bound_offer_identity_allows_case_punctuation_and_reordering():
 
 def test_pr50_bound_offer_identity_preserves_signed_short_variant():
     quality = _pr50_production_quality()
-    quality["evidence_ledger"][0]["facts"][0]["fact_terms"].append("xl")
+    quality["evidence_ledger"][0]["facts"][0][
+        "signed_offer_product_name"
+    ] = "Royal Canin Appetite Control Care XL kassi kuivtoit, 3,5 kg"
     content = _pr50_production_candidate(repaired_formula=True)
     content["commercial_prd"]["pricing_and_unit_economics"][
-        "observed_market_price_3_5kg"
+        "higher_observed_benchmark_pack"
     ]["statement"] = (
+        "Royal Canin Appetite Control Care XL kassi kuivtoit, "
+        "3,5 kg: 56,09 €"
+    )
+    content["commercial_prd"]["competitors"][1]["observed_product"][
+        "statement"
+    ] = (
         "Royal Canin Appetite Control Care XL kassi kuivtoit, "
         "3,5 kg: 56,09 €"
     )
@@ -2993,7 +3927,7 @@ def test_pr50_pack_identity_suppression_is_occurrence_local():
     quality = _pr50_production_quality()
     content = _pr50_production_candidate(repaired_formula=True)
     node = content["commercial_prd"]["pricing_and_unit_economics"][
-        "observed_market_price_3_5kg"
+        "higher_observed_benchmark_pack"
     ]
     node["statement"] += "; minimum order is 3,5 kg"
 
