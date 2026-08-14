@@ -17,7 +17,9 @@ from backend.services.processing.prd_generation_service import (
     _MAX_PUBLISHABLE_PRD_BYTES,
     _MAX_REPAIR_CANDIDATE_BYTES,
     _bounded_json_repair_candidate,
+    _canonicalize_legacy_market_scope_target_geography,
     _canonicalize_observed_price_difference_key,
+    _project_immutable_market_scope_countries,
     _project_reviewed_observed_sku_competitors,
     _strict_json_model_candidate,
     PRDGenerationService,
@@ -103,6 +105,9 @@ async def test_commercial_prd_keeps_untrusted_context_out_of_system_instruction(
     assert "lower_observed_benchmark_pack" in call["system_instruction"]
     assert "<pack>: <exact display price>" in call["system_instruction"]
     assert "must contain exactly that one key" in call["system_instruction"]
+    assert "market_scope.countries is" in call["system_instruction"]
+    assert "requested_country_codes" in call["system_instruction"]
+    assert "never an evidence object" in call["system_instruction"]
     assert call["custom_config"] == {"response_mime_type": "application/json"}
 
 
@@ -184,6 +189,7 @@ def test_commercial_prd_repair_envelope_is_bounded_json_and_citable_only():
     assert "_producer_private" not in envelope["evidence_ledger"][0]
     assert "22:percent" not in payload
     assert len(envelope["research_context"].encode("utf-8")) <= 64_000
+    assert envelope["requested_country_codes"] == []
 
 
 def test_repair_candidate_strips_metadata_and_rejects_non_json_or_oversize():
@@ -587,6 +593,91 @@ def test_pr53_exact_formula_key_and_competitor_projection_are_narrow():
     )
 
 
+def test_pr55_immutable_market_country_projection_is_absent_only_and_exact():
+    candidate = _pr53_service_candidate()
+    candidate["commercial_prd"]["market_scope"] = {
+        "target_geography": {
+            "statement": "Estonia",
+            "claim_ids": ["claim-2f69c04cb7a60853b850"],
+        },
+        "product_category": "cat food",
+        "market_size_reference": "official market evidence",
+    }
+
+    result = _project_immutable_market_scope_countries(
+        candidate,
+        _pr53_service_quality(),
+    )
+    result = _canonicalize_legacy_market_scope_target_geography(result)
+
+    assert result["commercial_prd"]["market_scope"] == {
+        "target_geography": "Estonia",
+        "product_category": "cat food",
+        "market_size_reference": "official market evidence",
+        "countries": ["EE"],
+    }
+
+    for present in (
+        ["LV"],
+        ["EE", "LV"],
+        ["ee"],
+        ["EE", "EE"],
+        "EE",
+        [],
+        None,
+    ):
+        invalid = _pr53_service_candidate()
+        invalid["commercial_prd"]["market_scope"]["countries"] = present
+        before = copy.deepcopy(invalid)
+        assert _project_immutable_market_scope_countries(
+            invalid,
+            _pr53_service_quality(),
+        ) == before
+
+    missing_scope = _pr53_service_candidate()
+    missing_scope["commercial_prd"].pop("market_scope")
+    before_missing = copy.deepcopy(missing_scope)
+    assert _project_immutable_market_scope_countries(
+        missing_scope,
+        _pr53_service_quality(),
+    ) == before_missing
+
+    multi_market = _pr53_service_candidate()
+    multi_market["commercial_prd"]["market_scope"] = {"statement": "Baltics"}
+    multi_quality = _pr53_service_quality()
+    multi_quality["requested_country_codes"] = ["LV", "EE"]
+    _project_immutable_market_scope_countries(multi_market, multi_quality)
+    assert multi_market["commercial_prd"]["market_scope"]["countries"] == [
+        "EE",
+        "LV",
+    ]
+
+
+def test_pr55_legacy_geography_wrapper_is_removed_without_claim_provenance():
+    candidate = _pr53_service_candidate()
+    candidate["commercial_prd"]["market_scope"]["target_geography"] = {
+        "statement": "EE",
+        "claim_ids": ["invented-but-discarded"],
+    }
+
+    projected = _canonicalize_legacy_market_scope_target_geography(candidate)
+
+    assert projected["commercial_prd"]["market_scope"]["target_geography"] == "EE"
+
+    for malformed in (
+        {"statement": "EE", "claim_ids": []},
+        {"statement": "EE", "claim_ids": ["claim-1", "claim-1"]},
+        {"statement": "EE", "claim_ids": [1]},
+        {"statement": "", "claim_ids": ["claim-1"]},
+        {"statement": "EE", "claim_ids": ["claim-1"], "extra": True},
+        ["EE"],
+    ):
+        invalid = _pr53_service_candidate()
+        invalid["commercial_prd"]["market_scope"]["target_geography"] = malformed
+        before = copy.deepcopy(invalid)
+        assert _canonicalize_legacy_market_scope_target_geography(invalid) == before
+
+
 def test_pr53_formula_key_canonicalization_rejects_ambiguity_and_shape_drift():
     cases = []
 
@@ -722,6 +813,154 @@ async def test_pr53_two_attempt_repair_canonicalizes_then_caches_exact_output():
         and "competitors[0].observed_skus[0]" in row["message"]
         for row in second_envelope["repair_feedback"]
     )
+
+
+@pytest.mark.asyncio
+async def test_pr55_missing_market_countries_are_projected_before_validation():
+    candidate = _pr53_service_candidate()
+    candidate["commercial_prd"]["market_scope"] = {
+        "target_geography": {
+            "statement": "Estonia",
+            "claim_ids": ["claim-2f69c04cb7a60853b850"],
+        },
+        "product_category": "cat food",
+        "market_size_reference": "official market evidence",
+    }
+    llm = _SequenceLLM([candidate])
+    cache_calls = []
+    service = PRDGenerationService(db=object(), llm_service=llm)
+    service._cache_prd = lambda *args: cache_calls.append(args)
+
+    result = await service.generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="commercial_market_launch",
+        critical_claim_quality=_pr53_service_quality(),
+        result_id=55,
+        force_regenerate=True,
+    )
+
+    assert result["metadata"]["validation"]["status"] == "passed"
+    assert result["metadata"]["generation_attempts"] == 1
+    assert result["commercial_prd"]["market_scope"]["countries"] == ["EE"]
+    assert result["commercial_prd"]["market_scope"]["target_geography"] == "Estonia"
+    assert len(cache_calls) == 1
+    envelope = json.loads(llm.requests[0]["text"])
+    assert envelope["requested_country_codes"] == ["EE"]
+
+
+@pytest.mark.asyncio
+async def test_pr55_missing_immutable_country_scope_blocks_without_projection():
+    candidate = _pr53_service_candidate()
+    quality = _pr53_service_quality()
+    quality.pop("requested_country_codes")
+    llm = _SequenceLLM([candidate, candidate])
+    cache_calls = []
+    service = PRDGenerationService(db=object(), llm_service=llm)
+    service._cache_prd = lambda *args: cache_calls.append(args)
+
+    result = await service.generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="commercial_market_launch",
+        critical_claim_quality=quality,
+        result_id=55,
+        force_regenerate=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert "commercial_market_scope_countries_invalid" in {
+        row["code"] for row in result["validation"]["issues"]
+    }
+    assert cache_calls == []
+    assert all(
+        json.loads(request["text"])["requested_country_codes"] == []
+        for request in llm.requests
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("statement", ["E\nE", "E\u200dE", "**EE**"])
+async def test_pr55_legacy_geography_wrapper_is_validated_raw_before_cleanup(
+    statement,
+):
+    candidate = _pr53_service_candidate()
+    candidate["commercial_prd"]["market_scope"]["target_geography"] = {
+        "statement": statement,
+        "claim_ids": ["untrusted-and-discarded"],
+    }
+    llm = _SequenceLLM([candidate, candidate])
+    cache_calls = []
+    service = PRDGenerationService(db=object(), llm_service=llm)
+    service._cache_prd = lambda *args: cache_calls.append(args)
+
+    result = await service.generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="commercial_market_launch",
+        critical_claim_quality=_pr53_service_quality(),
+        result_id=55,
+        force_regenerate=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert cache_calls == []
+    repair = json.loads(llm.requests[1]["text"])["repair_candidate"]
+    assert repair["commercial_prd"]["market_scope"]["target_geography"] == statement
+
+
+@pytest.mark.asyncio
+async def test_pr55_country_projection_never_hides_explicit_scope_conflict():
+    invalid = _pr53_service_candidate()
+    invalid["commercial_prd"]["market_scope"] = {
+        "target_geography": "Latvia",
+        "product_category": "cat food",
+    }
+    llm = _SequenceLLM([invalid, invalid])
+    cache_calls = []
+    service = PRDGenerationService(db=object(), llm_service=llm)
+    service._cache_prd = lambda *args: cache_calls.append(args)
+
+    result = await service.generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="commercial_market_launch",
+        critical_claim_quality=_pr53_service_quality(),
+        result_id=55,
+        force_regenerate=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["validation"]["issue_count"] >= 1
+    assert "commercial_market_scope_country_conflict" in {
+        row["code"] for row in result["validation"]["issues"]
+    }
+    assert cache_calls == []
+    assert all(
+        json.loads(request["text"])["requested_country_codes"] == ["EE"]
+        for request in llm.requests
+    )
+
+
+@pytest.mark.asyncio
+async def test_pr55_market_country_projection_does_not_touch_noncommercial_prds():
+    candidate = {
+        "prd_type": "operational",
+        "commercial_prd": {"market_scope": {"target_geography": "Estonia"}},
+    }
+    llm = _SequenceLLM([candidate])
+
+    result = await PRDGenerationService(llm_service=llm).generate_prd(
+        {},
+        prd_type="operational",
+        document_intent="operational",
+        critical_claim_quality=_pr53_service_quality(),
+    )
+
+    assert result["metadata"]["validation"]["status"] == "passed"
+    assert result["commercial_prd"]["market_scope"] == {
+        "target_geography": "Estonia"
+    }
 
 
 @pytest.mark.asyncio
@@ -934,6 +1173,10 @@ async def test_unknown_nested_section_is_repaired_without_persisting_it():
 @pytest.mark.asyncio
 async def test_terminal_validation_feedback_result_and_log_are_bounded(caplog):
     invalid = _strict_service_candidate()
+    invalid["commercial_prd"]["market_scope"]["countries"] = ["LV"]
+    invalid["commercial_prd"]["market_scope"].update(
+        {f"alias_{index:03d}": "Latvia" for index in range(100)}
+    )
     invalid["commercial_prd"]["risks_assumptions_and_validation"] = [
         f"Unlinked tax target is {index}% within 30 days."
         for index in range(2_000)
@@ -951,7 +1194,18 @@ async def test_terminal_validation_feedback_result_and_log_are_bounded(caplog):
     assert len(result["validation"]["issues"]) <= 16
     second_payload = llm.requests[1]["text"]
     assert len(second_payload.encode("utf-8")) <= 256_000
-    assert len(json.loads(second_payload)["repair_feedback"]) <= 64
+    bounded_feedback = json.loads(second_payload)["repair_feedback"]
+    assert len(bounded_feedback) <= 64
+    assert "commercial_market_scope_countries_invalid" in {
+        row["code"] for row in bounded_feedback
+    }
+    assert bounded_feedback[0]["code"] == "commercial_market_scope_countries_invalid"
+    assert "commercial_market_scope_countries_invalid" in {
+        row["code"] for row in result["validation"]["issues"]
+    }
+    assert result["validation"]["issues"][0]["code"] == (
+        "commercial_market_scope_countries_invalid"
+    )
     assert len(json.dumps(result, ensure_ascii=False).encode("utf-8")) < 20_000
     assert len(caplog.text.encode("utf-8")) < 20_000
 

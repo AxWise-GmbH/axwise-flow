@@ -14,6 +14,7 @@ from backend.services.llm import LLMServiceFactory
 from backend.models import CachedPRD, User
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
+    _strict_iso_country_code_values,
     clean_semantic_text,
     normalize_research_prd_type,
     validate_research_prd,
@@ -38,6 +39,12 @@ _TYPED_CALCULATION_KEYS = {
     "formula",
     "input_bindings",
     "input_claim_ids",
+}
+_MARKET_SCOPE_ISSUE_PRIORITY = {
+    "commercial_market_scope_countries_invalid": 0,
+    "commercial_market_scope_target_geography_invalid": 1,
+    "commercial_market_scope_country_conflict": 2,
+    "commercial_market_scope_key_invalid": 3,
 }
 
 
@@ -181,6 +188,73 @@ def _project_reviewed_observed_sku_competitors(
     return candidate
 
 
+def _project_immutable_market_scope_countries(
+    candidate: Dict[str, Any],
+    critical_claim_quality: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Fill only an absent country key from the server-owned request scope.
+
+    The model may describe the market while omitting the machine-readable ISO
+    list required by every jurisdiction-bound evidence adapter.  Supplying the
+    already-validated acquisition scope is a structural projection, not a
+    provenance claim: present model values are never overwritten, and the full
+    semantic validator still requires exact equality before publication.
+    """
+
+    immutable_countries = _strict_iso_country_code_values(
+        (critical_claim_quality or {}).get("requested_country_codes")
+    )
+    if not immutable_countries:
+        return candidate
+    commercial = candidate.get("commercial_prd")
+    market_scope = (
+        commercial.get("market_scope") if isinstance(commercial, Mapping) else None
+    )
+    if isinstance(market_scope, dict) and "countries" not in market_scope:
+        market_scope["countries"] = sorted(immutable_countries)
+    return candidate
+
+
+def _canonicalize_legacy_market_scope_target_geography(
+    candidate: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Remove unprovable claim metadata from one legacy geography wrapper.
+
+    Older commercial candidates wrapped ``target_geography`` in the generic
+    traceable-value shape.  Country authority now comes only from the immutable
+    request scope, so retaining those claim IDs would falsely imply that an
+    unrelated evidence claim proves the geography.  Accept only the exact
+    legacy shape, preserve its raw statement verbatim for strict validation,
+    and discard the redundant IDs before publication.
+    """
+
+    commercial = candidate.get("commercial_prd")
+    market_scope = (
+        commercial.get("market_scope") if isinstance(commercial, Mapping) else None
+    )
+    if not isinstance(market_scope, dict):
+        return candidate
+    target_geography = market_scope.get("target_geography")
+    if (
+        not isinstance(target_geography, Mapping)
+        or set(target_geography) != {"statement", "claim_ids"}
+    ):
+        return candidate
+    statement = target_geography.get("statement")
+    claim_ids = target_geography.get("claim_ids")
+    if (
+        not isinstance(statement, str)
+        or not statement.strip()
+        or not isinstance(claim_ids, list)
+        or not claim_ids
+        or any(not isinstance(claim_id, str) or not claim_id for claim_id in claim_ids)
+        or len(set(claim_ids)) != len(claim_ids)
+    ):
+        return candidate
+    market_scope["target_geography"] = statement
+    return candidate
+
+
 def _strict_json_publishable_prd(candidate: Any) -> Dict[str, Any]:
     """Bound the complete result, including service metadata and validation."""
 
@@ -208,7 +282,16 @@ def _bounded_validation_summary(validation: Optional[Mapping[str, Any]]) -> Dict
         }
         for item in raw_issues
     ]
-    bounded.sort(key=lambda item: (item["message"], item["code"]))
+    bounded.sort(
+        key=lambda item: (
+            _MARKET_SCOPE_ISSUE_PRIORITY.get(
+                item["code"],
+                4 if item["code"].startswith("commercial_market_scope_") else 5,
+            ),
+            item["message"],
+            item["code"],
+        )
+    )
     return {
         "issue_count": int(
             (validation or {}).get("issue_count") or len(raw_issues)
@@ -403,14 +486,23 @@ class PRDGenerationService:
                         self._parse_llm_response(llm_response)
                     )
                     if semantic_intent == COMMERCIAL_MARKET_LAUNCH:
-                        # Only the two reviewed, non-semantic structural
-                        # transforms may precede validation. Validate the raw
+                        # Only the reviewed, non-semantic structural projections
+                        # may precede validation. Validate the raw
                         # strict JSON before presentation cleanup so Markdown,
                         # LaTeX, controls, or altered machine identifiers can
                         # never be cleaned into a valid signed identity,
                         # formula, binding, or claim ID.
                         raw_candidate = _project_reviewed_observed_sku_competitors(
                             raw_candidate
+                        )
+                        raw_candidate = _project_immutable_market_scope_countries(
+                            raw_candidate,
+                            critical_claim_quality,
+                        )
+                        raw_candidate = (
+                            _canonicalize_legacy_market_scope_target_geography(
+                                raw_candidate
+                            )
                         )
                         raw_candidate = _canonicalize_observed_price_difference_key(
                             raw_candidate
