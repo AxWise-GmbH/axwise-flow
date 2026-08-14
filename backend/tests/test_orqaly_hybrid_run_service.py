@@ -954,7 +954,10 @@ def _commercial_prd_content() -> dict:
     return {
         "prd_type": "commercial_market_launch",
         "commercial_prd": {
-            "market_scope": {"countries": ["DE"], "city": "Bremen"},
+            "market_scope": {
+                "countries": ["DE"],
+                "target_geography": "DE",
+            },
             "market_and_demand_assessment": ["Grounded local demand assessment"],
             "customer_segments": ["Commercial category buyers"],
             "buying_roles": ["Economic buyer and operational user are separated"],

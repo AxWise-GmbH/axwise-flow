@@ -11,7 +11,9 @@ import pytest
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
     _has_exact_span_provenance,
+    _market_geography_qualifiers,
     _normalized_value,
+    _strict_iso_country_code_values,
     clean_semantic_text,
     determine_claim_class_applicability,
     evaluate_critical_claims,
@@ -3159,6 +3161,313 @@ def test_pr50_exact_production_surfaces_pass_with_typed_formula_bindings():
     )
 
     assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    "countries",
+    [
+        None,
+        [],
+        "EE",
+        ["ee"],
+        ["EE", "EE"],
+        ["LV"],
+        ["EE", "LV"],
+    ],
+)
+def test_pr55_market_scope_countries_are_explicit_unique_and_immutable(countries):
+    content = _pr50_production_candidate(repaired_formula=True)
+    if countries is None:
+        content["commercial_prd"]["market_scope"].pop("countries")
+    else:
+        content["commercial_prd"]["market_scope"]["countries"] = countries
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+
+    assert validation["status"] == "blocked"
+    assert "commercial_market_scope_countries_invalid" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def test_pr55_missing_immutable_requested_countries_fails_closed():
+    quality = _pr50_production_quality()
+    quality.pop("requested_country_codes")
+
+    validation = validate_research_prd(
+        _pr50_production_candidate(repaired_formula=True),
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=quality,
+    )
+
+    assert validation["status"] == "blocked"
+    assert "commercial_market_scope_countries_invalid" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def test_pr55_operational_country_code_uses_shared_market_registry():
+    assert _strict_iso_country_code_values(["XK"]) == {"XK"}
+    assert _strict_iso_country_code_values(["EE", "XK"]) == {"EE", "XK"}
+
+
+@pytest.mark.parametrize(
+    "target_geography",
+    [
+        "Latvia",
+        "LV",
+        "lv",
+        "ＬＶ",
+        "Riga, LV",
+        "Riga (LV)",
+        "LV market",
+        "Market: LV",
+        "Target geography LV",
+        "EE and LV",
+        "Riga, ＬＶ",
+        "ＬＶ market",
+        "Riga, lv",
+        "ｌｖ market",
+        "Ｌａｔｖｉａ",
+        "Lat\u200dvia",
+        "LV market, EE",
+        "Latvia market, Estonia",
+        "Riga LV, Estonia",
+        "Latvia office, Estonia",
+        "Baltics, Estonia",
+        "EU, Estonia",
+        "Nordics, EE",
+        "DACH office, Estonia",
+        "Estonia excluding Latvia",
+        "Estonia except Latvia",
+        "Estonia without Latvia",
+        "Estonia + Latvia excluding Latvia",
+        "Latvia excluding Latvia prioritize Estonia",
+        "Estonia excluding",
+        "Estonia except",
+        "Estonia without",
+        "Estonia prioritize",
+        "Estonia primarily",
+        "Estonia especially",
+        "Estonia focus on",
+        "Estonia focused on",
+        "Estonia +",
+        "+ Estonia",
+        "Estonia and",
+        "and Estonia",
+        "Estonia;",
+        ",Estonia",
+        "Estonia + +",
+        "Estonia excluding Latvia excluding",
+        "Estonia prioritize Latvia prioritize",
+        "EE + EE",
+    ],
+)
+def test_pr55_market_scope_text_cannot_contradict_immutable_country_list(
+    target_geography,
+):
+    content = _pr50_production_candidate(repaired_formula=True)
+    content["commercial_prd"]["market_scope"][
+        "target_geography"
+    ] = target_geography
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+
+    assert validation["status"] == "blocked"
+    assert "commercial_market_scope_country_conflict" in {
+        row["code"] for row in validation["issues"]
+    }
+
+    content["commercial_prd"]["market_scope"]["target_geography"] = "Estonia"
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+    assert validation["status"] == "passed", validation["issues"]
+
+    content["commercial_prd"]["market_scope"][
+        "target_geography"
+    ] = "ｅｅ"
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+    assert validation["status"] == "passed", validation["issues"]
+
+    content["commercial_prd"]["market_scope"][
+        "target_geography"
+    ] = "EE"
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    "product_category",
+    ["AI software", "IT services", "NO-code software", "Estonia AI software market"],
+)
+def test_pr55_product_category_acronyms_are_not_country_codes(product_category):
+    content = _pr50_production_candidate(repaired_formula=True)
+    content["commercial_prd"]["market_scope"].update(
+        {
+            "target_geography": "Estonia",
+            "product_category": product_category,
+        }
+    )
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+
+    assert validation["status"] == "passed", validation["issues"]
+
+
+@pytest.mark.parametrize(
+    ("target_geography", "country_code"),
+    [
+        ("United States Minor Outlying Islands", "UM"),
+        ("British Indian Ocean Territory", "IO"),
+        ("South Georgia and the South Sandwich Islands", "GS"),
+        ("Equatorial Guinea", "GQ"),
+        ("Guinea-Bissau", "GW"),
+        ("Congo, The Democratic Republic of the", "CD"),
+        ("Virgin Islands, British", "VG"),
+        ("Virgin Islands, U.S.", "VI"),
+        ("American Samoa", "AS"),
+    ],
+)
+def test_pr55_long_iso_country_names_do_not_resolve_contained_countries(
+    target_geography,
+    country_code,
+):
+    assert _market_geography_qualifiers(target_geography) == (
+        {country_code},
+        False,
+    )
+
+    assert _market_geography_qualifiers("EE + LV") == (
+        {"EE", "LV"},
+        False,
+    )
+
+    assert _market_geography_qualifiers("XK") == ({"XK"}, False)
+    assert _market_geography_qualifiers("Kosovo") == ({"XK"}, False)
+    assert _market_geography_qualifiers("EE + XK") == ({"EE", "XK"}, False)
+
+
+@pytest.mark.parametrize(
+    "target_geography",
+    [
+        "Riga",
+        "Helsinki",
+        "Berlin",
+        "Bremen",
+        "Tallinn, EE",
+        "Bremen, Germany",
+        "Baltics",
+        "Europe",
+        "Mars",
+        "",
+    ],
+)
+def test_pr55_unqualified_target_geography_fails_closed(target_geography):
+    content = _pr50_production_candidate(repaired_formula=True)
+    content["commercial_prd"]["market_scope"][
+        "target_geography"
+    ] = target_geography
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+
+    assert validation["status"] == "blocked"
+    assert "commercial_market_scope_country_conflict" in {
+        row["code"] for row in validation["issues"]
+    }
+
+
+def test_pr55_target_geography_atom_count_is_bounded_before_resolution():
+    codes, unresolved = _market_geography_qualifiers(" + ".join(["EE"] * 10_000))
+
+    assert codes == set()
+    assert unresolved is True
+
+
+def test_pr55_traceable_target_geography_is_not_publishable_provenance():
+    content = _pr50_production_candidate(repaired_formula=True)
+    for invalid in (
+        {
+            "statement": "EE",
+            "claim_ids": ["claim-2f69c04cb7a60853b850"],
+        },
+        {
+            "statement": "EE",
+            "claim_ids": ["claim-5ceddcd5dd8506071d57"],
+        },
+        {"statement": "EE", "claim_ids": ["invented-claim"]},
+        {"statement": "EE", "claim_ids": []},
+        {"statement": "EE", "claim_ids": ["claim-2f69c04cb7a60853b850"], "extra": True},
+        ["EE"],
+    ):
+        content["commercial_prd"]["market_scope"]["target_geography"] = invalid
+        validation = validate_research_prd(
+            content,
+            prd_type=COMMERCIAL_MARKET_LAUNCH,
+            critical_claim_quality=_pr50_production_quality(),
+        )
+        assert validation["status"] == "blocked"
+        assert "commercial_market_scope_target_geography_invalid" in {
+            row["code"] for row in validation["issues"]
+        }
+
+
+@pytest.mark.parametrize(
+    "alias",
+    [
+        "target_country",
+        "country_code",
+        "country_codes",
+        "market_country",
+        "target_jurisdiction",
+        "market_geography",
+        "region",
+        "territory",
+        "target_region",
+        "target_location",
+        "city",
+    ],
+)
+def test_pr55_unreviewed_market_scope_aliases_fail_closed(alias):
+    content = _pr50_production_candidate(repaired_formula=True)
+    content["commercial_prd"]["market_scope"][alias] = "Latvia"
+
+    validation = validate_research_prd(
+        content,
+        prd_type=COMMERCIAL_MARKET_LAUNCH,
+        critical_claim_quality=_pr50_production_quality(),
+    )
+
+    assert validation["status"] == "blocked"
+    assert "commercial_market_scope_key_invalid" in {
+        row["code"] for row in validation["issues"]
+    }
 
 
 def test_pr53_exact_no_colon_observed_surfaces_pass_with_honest_formula_key():
