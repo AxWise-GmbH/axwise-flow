@@ -1,8 +1,9 @@
 """Versioned, deterministic market-scope contracts shared by AxWise pipelines.
 
 Models may interpret user language into selectors, but they never define group
-membership.  This module expands confirmed selectors into an immutable ISO
-country snapshot that can be hashed, audited, and processed as research cells.
+membership.  This module expands confirmed selectors into an immutable reviewed
+country snapshot (ISO 3166-1 plus explicit operational codes) that can be hashed,
+audited, and processed as research cells.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from types import SimpleNamespace
 from typing import Any, Dict, List, Literal, Optional
 
 import pycountry
@@ -18,6 +20,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 MARKET_SCOPE_SCHEMA_VERSION = "market_scope_v2"
 MARKET_TAXONOMY_VERSION = "axwise-market-groups-2026-08"
+OPERATIONAL_COUNTRY_NAMES = {"XK": "Kosovo"}
+MARKET_COUNTRY_CODES = frozenset(
+    {str(country.alpha_2).upper() for country in pycountry.countries}
+    | set(OPERATIONAL_COUNTRY_NAMES)
+)
 
 
 class StrictMarketModel(BaseModel):
@@ -163,7 +170,8 @@ AMBIGUOUS_GROUP_ALIASES: Dict[str, List[str]] = {
 
 
 def _normal(value: Any) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", str(value or "").casefold()).strip()
+    text = str(value or "").casefold().replace("+", " plus ")
+    return re.sub(r"[^a-z0-9]+", " ", text).strip()
 
 
 def _country(value: str) -> Optional[Any]:
@@ -171,17 +179,30 @@ def _country(value: str) -> Optional[Any]:
     if not candidate:
         return None
     aliases = {
+        "brunei": "BN",
+        "uae": "AE",
+        "u a e": "AE",
         "uk": "GB",
         "u k": "GB",
         "usa": "US",
         "u s a": "US",
         "u s": "US",
+        "us virgin islands": "VI",
+        "u s virgin islands": "VI",
+        "virgin islands u s": "VI",
         "south korea": "KR",
         "north korea": "KP",
         "russia": "RU",
         "vietnam": "VN",
+        "kosovo": "XK",
+        "xk": "XK",
     }
     candidate = aliases.get(_normal(candidate), candidate)
+    if candidate in OPERATIONAL_COUNTRY_NAMES:
+        return SimpleNamespace(
+            alpha_2=candidate,
+            name=OPERATIONAL_COUNTRY_NAMES[candidate],
+        )
     try:
         return pycountry.countries.lookup(candidate)
     except LookupError:
@@ -306,6 +327,31 @@ def _split_expressions(value: str) -> List[str]:
     text = str(value or "").strip()
     if not text:
         return []
+    if (
+        _country(text)
+        or market_group_for_alias(text)
+        or _normal(text) in AMBIGUOUS_GROUP_ALIASES
+    ):
+        return [text]
+    # Explicit union separators bind before natural-language conjunctions so
+    # an atomic country name such as "Trinidad and Tobago" is never split when
+    # it appears beside another market (for example "EE + Trinidad and Tobago").
+    # Registered whole aliases such as "DACH+" are resolved above first.
+    if ";" in text:
+        return [
+            nested
+            for item in re.split(r"\s*;\s*", text)
+            if item.strip()
+            for nested in _split_expressions(item)
+        ]
+    union_plus = re.compile(r"(?:(?<=\s)\+(?=\s)|\+(?=[^\W_]))")
+    if union_plus.search(text):
+        return [
+            nested
+            for item in union_plus.split(text)
+            if item.strip()
+            for nested in _split_expressions(item)
+        ]
     locality_parts = [part.strip() for part in text.split(",") if part.strip()]
     if (
         len(locality_parts) == 2
@@ -313,15 +359,13 @@ def _split_expressions(value: str) -> List[str]:
         and _country(locality_parts[1])
     ):
         return [text]
-    if re.search(r"\+|;|\band\b", text, flags=re.IGNORECASE):
+    if re.search(r"\band\b", text, flags=re.IGNORECASE):
         return [
             nested
-            for item in re.split(r"\s*(?:\+|;|\band\b)\s*", text, flags=re.IGNORECASE)
+            for item in re.split(r"\s*\band\b\s*", text, flags=re.IGNORECASE)
             if item.strip()
             for nested in _split_expressions(item)
         ]
-    if _country(text) or market_group_for_alias(text) or _normal(text) in AMBIGUOUS_GROUP_ALIASES:
-        return [text]
     return [
         item.strip()
         for item in re.split(r"\s*,\s*", text, flags=re.IGNORECASE)
@@ -387,14 +431,16 @@ def resolve_market_expression(
             return
         group = market_group_for_alias(part)
         locality_parts = [value.strip() for value in part.split(",") if value.strip()]
+        exact_country = _country(part)
         locality_country = (
             _country(locality_parts[1])
             if len(locality_parts) == 2
+            and exact_country is None
             and not _country(locality_parts[0])
             else None
         )
         locality = locality_parts[0] if locality_country else None
-        country = locality_country or _country(part)
+        country = exact_country or locality_country
         if group:
             codes = group.members
             selectors.append(

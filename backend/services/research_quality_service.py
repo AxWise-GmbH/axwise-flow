@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 
 import pycountry
 
+from backend.domain.market_scope import MARKET_COUNTRY_CODES, resolve_market_expression
 from backend.services.research_source_authority_service import (
     _commercial_offer_evidence,
     _normalized_document_text,
@@ -201,8 +202,13 @@ _COUNTRY_NAME_TO_CODE.update(
 )
 
 _COUNTRY_CODE_TO_CODE = {
-    str(country.alpha_2).upper(): str(country.alpha_2).upper()
-    for country in pycountry.countries
+    code: code for code in MARKET_COUNTRY_CODES
+}
+_COMMERCIAL_MARKET_SCOPE_KEYS = {
+    "countries",
+    "target_geography",
+    "product_category",
+    "market_size_reference",
 }
 # ``pycountry`` intentionally models ISO names/codes, not demonyms.  Keep the
 # reviewed aliases that occur in commercial research prose separate from the
@@ -240,14 +246,8 @@ _DATE_CANDIDATE = re.compile(
 _DATE_IN_TEXT = re.compile(_DATE_CANDIDATE.pattern.removeprefix("^"), re.IGNORECASE)
 
 
-def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
-    """Return explicit ISO jurisdictions and whether one is unrecognized.
-
-    Alpha-2/alpha-3 codes are deliberately case-sensitive: ``US`` is a
-    jurisdiction while ordinary prose ``us`` is not. Unknown demonym-shaped
-    qualifiers beside a material concept fail closed instead of being silently
-    treated as product vocabulary.
-    """
+def _named_jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
+    """Return country-name/demonym jurisdictions without acronym guessing."""
 
     normalized = " ".join(str(text or "").casefold().split())
     codes: set[str] = set()
@@ -259,10 +259,6 @@ def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
             codes.add(code)
     for demonym, code in _COUNTRY_DEMONYM_TO_CODE.items():
         if re.search(rf"(?<!\w){re.escape(demonym)}(?!\w)", normalized):
-            codes.add(code)
-    for token in re.findall(r"(?<![A-Za-z])([A-Z]{2})(?![A-Za-z])", str(text or "")):
-        code = _COUNTRY_CODE_TO_CODE.get(token)
-        if code:
             codes.add(code)
     known_demonyms = set(_COUNTRY_DEMONYM_TO_CODE)
     unknown = any(
@@ -278,12 +274,78 @@ def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
     return codes, unknown
 
 
+def _jurisdiction_qualifiers(text: str) -> tuple[set[str], bool]:
+    """Return explicit ISO jurisdictions and whether one is unrecognized.
+
+    Alpha-2/alpha-3 codes are deliberately case-sensitive: ``US`` is a
+    jurisdiction while ordinary prose ``us`` is not. Unknown demonym-shaped
+    qualifiers beside a material concept fail closed instead of being silently
+    treated as product vocabulary.
+    """
+
+    codes, unknown = _named_jurisdiction_qualifiers(text)
+    for token in re.findall(r"(?<![A-Za-z])([A-Z]{2})(?![A-Za-z])", str(text or "")):
+        code = _COUNTRY_CODE_TO_CODE.get(token)
+        if code:
+            codes.add(code)
+    return codes, unknown
+
+
+def _market_geography_qualifiers(text: str) -> tuple[set[str], bool]:
+    """Resolve one strict union of atomic countries through the scope registry."""
+
+    raw = str(text or "")
+    if any(unicodedata.category(char) in {"Cc", "Cf", "Cs"} for char in raw):
+        return set(), True
+    normalized = " ".join(unicodedata.normalize("NFKC", raw).split())
+    if not normalized:
+        return set(), True
+    atoms = [atom.strip() for atom in normalized.split("+")]
+    if (
+        not atoms
+        or len(atoms) > len(MARKET_COUNTRY_CODES)
+        or any(not atom for atom in atoms)
+    ):
+        return set(), True
+    resolved_codes: list[str] = []
+    for atom in atoms:
+        try:
+            resolved = resolve_market_expression(atom)
+        except (TypeError, ValueError, OverflowError, RecursionError):
+            return set(), True
+        countries = resolved.resolved_scope.countries
+        selectors = resolved.selectors
+        if (
+            resolved.ambiguities
+            or resolved.confirmation.required
+            or len(countries) != 1
+            or len(selectors) != 1
+            or selectors[0].operation != "include"
+            or selectors[0].kind != "countries"
+            or " ".join(str(selectors[0].raw_expression or "").split()) != atom
+            or countries[0].localities
+            or not countries[0].country_code
+        ):
+            return set(), True
+        resolved_codes.append(str(countries[0].country_code))
+    codes = set(resolved_codes)
+    return codes, len(codes) != len(resolved_codes)
+
+
+def _market_geography_text(value: Any) -> tuple[str, bool]:
+    """Return the sole display surface from one reviewed geography value."""
+
+    if isinstance(value, str):
+        return value, bool(value.strip())
+    return "", False
+
+
 def _explicit_country_codes(text: str) -> set[str]:
     return _jurisdiction_qualifiers(text)[0]
 
 
 def _strict_market_country_codes(value: Any) -> set[str]:
-    """Read formula jurisdictions only from an explicit unique ISO-2 list."""
+    """Read jurisdictions only from an explicit unique market-code list."""
 
     if not isinstance(value, Mapping):
         return set()
@@ -291,6 +353,8 @@ def _strict_market_country_codes(value: Any) -> set[str]:
 
 
 def _strict_iso_country_code_values(raw_countries: Any) -> set[str]:
+    """Return unique reviewed market codes (ISO 3166-1 plus operational XK)."""
+
     if (
         not isinstance(raw_countries, Sequence)
         or isinstance(raw_countries, (str, bytes))
@@ -3616,22 +3680,99 @@ def validate_research_prd(
         content.get("commercial_prd"), Mapping
     ):
         commercial = content["commercial_prd"]
+        market_scope = commercial.get("market_scope")
         declared_market_countries = _strict_market_country_codes(
-            commercial.get("market_scope")
+            market_scope
         )
-        raw_immutable_countries = quality.get("requested_country_codes")
-        immutable_market_countries = (
-            None
-            if raw_immutable_countries is None
-            else _strict_iso_country_code_values(raw_immutable_countries)
+        immutable_market_countries = _strict_iso_country_code_values(
+            quality.get("requested_country_codes")
         )
+        if isinstance(market_scope, Mapping):
+            for key in sorted(
+                str(key) for key in set(market_scope) - _COMMERCIAL_MARKET_SCOPE_KEYS
+            ):
+                issues.append(
+                    {
+                        "code": "commercial_market_scope_key_invalid",
+                        "message": (
+                            "Unexpected commercial_prd.market_scope key: "
+                            f"{key}. Use only countries, target_geography, "
+                            "product_category, and market_size_reference."
+                        ),
+                    }
+                )
+        if (
+            not declared_market_countries
+            or not immutable_market_countries
+            or immutable_market_countries != declared_market_countries
+        ):
+            issues.append(
+                {
+                    "code": "commercial_market_scope_countries_invalid",
+                    "message": (
+                        "commercial_prd.market_scope.countries must be a non-empty "
+                        "unique list of reviewed uppercase two-letter market codes "
+                        "(ISO 3166-1 plus operational XK) and "
+                        "exactly equal critical_claim_quality.requested_country_codes."
+                    ),
+                }
+            )
+        scope_country_references: set[str] = set()
+        scope_has_unknown_jurisdiction = False
+        target_geography_present = bool(
+            isinstance(market_scope, Mapping)
+            and "target_geography" in market_scope
+        )
+        target_geography_valid = True
+        if target_geography_present:
+            # Country-code-like product acronyms (AI, IT, NO-code) are common.
+            # Inspect only the typed geography-bearing field. Embedded
+            # uppercase two-letter market codes are meaningful there. The published
+            # schema accepts only a plain display string; legacy traceable
+            # wrappers are stripped by the service before validation so their
+            # unrelated claim IDs cannot imply geography provenance.
+            target_text, target_geography_valid = _market_geography_text(
+                market_scope.get("target_geography")
+            )
+            if target_geography_valid:
+                codes, unknown = _market_geography_qualifiers(target_text)
+                scope_country_references.update(codes)
+                scope_has_unknown_jurisdiction = unknown
+            else:
+                issues.append(
+                    {
+                        "code": "commercial_market_scope_target_geography_invalid",
+                        "message": (
+                            "commercial_prd.market_scope.target_geography must be "
+                            "a non-empty plain string containing the requested "
+                            "uppercase two-letter market-code scope, or be omitted."
+                        ),
+                    }
+                )
+        if (
+            not target_geography_valid
+            or scope_has_unknown_jurisdiction
+            or (
+                target_geography_present
+                and scope_country_references != declared_market_countries
+            )
+        ):
+            issues.append(
+                {
+                    "code": "commercial_market_scope_country_conflict",
+                    "message": (
+                        "commercial_prd.market_scope.target_geography is optional; "
+                        "if present it must resolve to exactly the declared countries "
+                        "using country codes or exact country names only, without "
+                        "localities, groups, exclusions, or priorities. Prefer uppercase "
+                        "two-letter market codes joined with +, otherwise omit it."
+                    ),
+                }
+            )
         formula_market_countries = (
             declared_market_countries
             if declared_market_countries
-            and (
-                immutable_market_countries is None
-                or immutable_market_countries == declared_market_countries
-            )
+            and immutable_market_countries == declared_market_countries
             else set()
         )
         raw_topic_seed_sha256 = quality.get("topic_seed_sha256")

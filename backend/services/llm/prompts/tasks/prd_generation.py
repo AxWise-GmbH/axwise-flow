@@ -18,6 +18,12 @@ _MAX_REPAIR_FEEDBACK_ITEMS = 64
 _MAX_REPAIR_FEEDBACK_CODE_BYTES = 96
 _MAX_REPAIR_FEEDBACK_MESSAGE_BYTES = 1_024
 _MAX_RESEARCH_CONTEXT_BYTES = 64_000
+_MARKET_SCOPE_ISSUE_PRIORITY = {
+    "commercial_market_scope_countries_invalid": 0,
+    "commercial_market_scope_target_geography_invalid": 1,
+    "commercial_market_scope_country_conflict": 2,
+    "commercial_market_scope_key_invalid": 3,
+}
 _CITABLE_LEDGER_ROW_FIELDS = {
     "claim_id",
     "status",
@@ -77,8 +83,34 @@ def _bounded_repair_feedback(value: Any) -> list[Dict[str, str]]:
             rows.append({"code": code, "message": message})
     # Validator paths occur in messages. Canonical ordering preserves the
     # earliest deterministic paths when an adversarial response yields many.
-    rows.sort(key=lambda row: (row["message"], row["code"]))
+    rows.sort(
+        key=lambda row: (
+            _MARKET_SCOPE_ISSUE_PRIORITY.get(
+                row["code"],
+                4 if row["code"].startswith("commercial_market_scope_") else 5,
+            ),
+            row["message"],
+            row["code"],
+        )
+    )
     return rows[:_MAX_REPAIR_FEEDBACK_ITEMS]
+
+
+def _requested_country_codes(value: Any) -> list[str]:
+    """Project one exact, unique uppercase two-letter request list."""
+
+    if not isinstance(value, list) or not value:
+        return []
+    if any(
+        not isinstance(code, str)
+        or len(code) != 2
+        or not code.isascii()
+        or not code.isalpha()
+        or code != code.upper()
+        for code in value
+    ):
+        return []
+    return list(value) if len(set(value)) == len(value) else []
 
 
 def _citable_evidence_ledger(value: Any) -> list[Dict[str, Any]]:
@@ -148,7 +180,12 @@ The exact top-level shape is:
 {
   "prd_type": "commercial_market_launch",
   "commercial_prd": {
-    "market_scope": {},
+    "market_scope": {
+      "countries": ["<copy requested_country_codes exactly>"],
+      "target_geography": "<optional plain geography label>",
+      "product_category": "<optional category label>",
+      "market_size_reference": "<optional locally traceable evidence reference>"
+    },
     "market_and_demand_assessment": [],
     "customer_segments": [],
     "buying_roles": [],
@@ -160,6 +197,19 @@ The exact top-level shape is:
     "risks_assumptions_and_validation": []
   }
 }
+The data envelope contains requested_country_codes from the immutable,
+server-validated acquisition scope. commercial_prd.market_scope.countries is
+mandatory and must copy that complete list exactly, preserving the requested
+uppercase two-letter codes (ISO 3166-1 plus operational XK) without additions,
+omissions, case changes, or duplicates. Those four displayed market_scope keys
+are the complete allowed schema; omit optional keys
+instead of renaming them or emitting empty placeholders. target_geography is
+optional; if present, use exactly the requested uppercase two-letter codes joined
+with " + " (for example "EE + LV") and no city, locality, region/group,
+exclusion, priority, or other geography text. It must be only that plain
+string, never an evidence object. countries and
+target_geography are structural scope fields, not evidence claims; do not wrap
+them in statement, claim_ids, or other traceability metadata.
 Each consequential value must be an object with statement/value and either:
 (a) claim_ids from the supplied ledger; (b) formula + input_claim_ids from the
 ledger; or (c) evidence_class="synthetic_hypothesis" plus a concrete
@@ -231,6 +281,9 @@ section must be complete and non-empty; generic fallback content is invalid."""
 
         envelope = {
             "contract": "untrusted_research_data_only_v1",
+            "requested_country_codes": _requested_country_codes(
+                critical_claim_quality.get("requested_country_codes")
+            ),
             "research_context": _truncate_utf8(
                 context, _MAX_RESEARCH_CONTEXT_BYTES
             ),

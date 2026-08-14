@@ -17,8 +17,29 @@ def _codes(scope):
 def test_named_business_regions_expand_to_versioned_country_snapshots():
     assert _codes(resolve_market_expression("BENELUX")) == ["BE", "NL", "LU"]
     assert _codes(resolve_market_expression("DACH")) == ["DE", "AT", "CH"]
+    assert _codes(resolve_market_expression("DACH+")) == ["DE", "AT", "CH", "LI"]
     assert _codes(resolve_market_expression("Baltic countries")) == ["EE", "LV", "LT"]
     assert _codes(resolve_market_expression("Nordics")) == ["DK", "FI", "IS", "NO", "SE"]
+
+
+@pytest.mark.parametrize(
+    ("expression", "country_code"),
+    [
+        ("South Georgia and the South Sandwich Islands", "GS"),
+        ("Trinidad and Tobago", "TT"),
+        ("Bosnia and Herzegovina", "BA"),
+        ("Saint Vincent and the Grenadines", "VC"),
+        ("Brunei", "BN"),
+        ("U.S. Virgin Islands", "VI"),
+        ("Virgin Islands, U.S.", "VI"),
+        ("UAE", "AE"),
+    ],
+)
+def test_exact_country_names_with_conjunctions_and_common_aliases_are_atomic(
+    expression,
+    country_code,
+):
+    assert _codes(resolve_market_expression(expression)) == [country_code]
 
 
 @pytest.mark.parametrize(
@@ -80,6 +101,39 @@ def test_explicit_country_union_does_not_collapse_to_last_country():
 
     assert _codes(scope) == ["US", "CA"]
     assert scope.confirmation.required is False
+
+
+def test_explicit_union_preserves_atomic_conjunction_country_name():
+    scope = resolve_market_expression("Estonia + Trinidad and Tobago")
+
+    assert _codes(scope) == ["EE", "TT"]
+    assert scope.confirmation.required is False
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["DACH+ + EE", "DACH+;EE", "EE + DACH+", "DACH+ and Estonia", "EE+DACH+"],
+)
+def test_composed_union_preserves_registered_plus_suffixed_alias(expression):
+    assert set(_codes(resolve_market_expression(expression))) == {
+        "AT",
+        "CH",
+        "DE",
+        "EE",
+        "LI",
+    }
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_codes"),
+    [
+        ("XK", ["XK"]),
+        ("Kosovo", ["XK"]),
+        ("EE + XK", ["EE", "XK"]),
+    ],
+)
+def test_operational_kosovo_code_is_shared_with_market_scope(expression, expected_codes):
+    assert _codes(resolve_market_expression(expression)) == expected_codes
 
 
 def test_ambiguous_region_requires_exact_membership_confirmation():
