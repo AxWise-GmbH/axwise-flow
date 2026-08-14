@@ -189,7 +189,12 @@ _TRAILING_TITLE_WORKFLOW_SUFFIXES_V1 = (
         r"(?<!\w)using\s+advanced\s+grounded\s+deep\s+research[.!?]*\Z",
         re.IGNORECASE,
     ),
+    re.compile(
+        r"(?<!\w)signed\s+evidence[.!?]*\Z",
+        re.IGNORECASE,
+    ),
 )
+
 
 def normalize_topic_phrase(value: str) -> str:
     """Return the sole phrase normalization used by seed, alias, and matcher.
