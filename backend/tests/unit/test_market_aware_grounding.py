@@ -1,9 +1,11 @@
 import asyncio
 import hashlib
+import html
 import json
 import time
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,6 +18,7 @@ from api.research.simulation_bridge.services.pipeline import B2BDataPipeline
 from api.research.simulation_bridge.services import pipeline as pipeline_module
 from api.research.simulation_bridge.services.pipeline import (
     _admit_provider_candidate_urls,
+    _observed_offer_acquisition_hints,
     _schedule_authority_candidates,
 )
 from api.research.simulation_bridge.services.regional_service import RegionalService
@@ -30,7 +33,9 @@ from backend.services.research_topic_contract_service import (
 )
 from backend.services.research_source_authority_service import (
     RetrievalChallengeError,
+    _canonical_offer_availability,
     _commercial_offer_evidence,
+    _offer_payload_is_valid,
     _normalized_document_text,
     _structured_statistical_observations,
     authority_attestation_acquisition_hints,
@@ -103,6 +108,128 @@ _OLAF_EMTA_DIRECTORY_TEXT = (
     "Website: www.emta.ee Country: Estonia."
 )
 _AUTHORITY_RETRIEVED_AT = "2026-08-13T00:00:00+00:00"
+_OMIT = object()
+_PETCITY_APPLAWS_URL = (
+    "https://www.petcity.ee/"
+    "applaws-kassi-taissoot-kana-part-2kg-pmm0256600ee"
+)
+_PETCITY_ROYAL_CANIN_URL = (
+    "https://www.petcity.ee/"
+    "royal-canin-light-weight-kassitoit-400-g-001201"
+)
+
+
+def _petcity_offer_html(
+    *,
+    product_name: str,
+    sku: str,
+    visible_price: str,
+    structured_price: str,
+    availability: str = "InStock",
+) -> str:
+    availability_value = (
+        availability
+        if availability.startswith("http")
+        else f"https://schema.org/{availability}"
+    )
+    availability_json = (
+        f',"availability":"{availability_value}"'
+        if availability
+        else ""
+    )
+    return (
+        '<main class="layout-product" data-component="product">'
+        '<div class="layout-product__row wrap-narrow">'
+        '<div class="layout-product__content">'
+        f'<h1 class="page-title" data-component="title">{product_name}</h1>'
+        f'<form data-product-sku="{sku}"><div class="product-pricing">'
+        '<div class="product-pricing__price" data-testid="product-card-price">'
+        '<span class="product-pricing__price-value">'
+        f'<span class="product-pricing__price-number">{visible_price}</span>'
+        '</span></div></div></form></div></div></main>'
+        '<script type="application/ld+json">'
+        '{"@context":"https://schema.org","@type":"Product",'
+        f'"sku":"{sku}","name":"{product_name}","offers":'
+        f'{{"@type":"Offer","price":"{structured_price}",'
+        f'"priceCurrency":"EUR"{availability_json}}}'
+        '}'
+        '</script>'
+    )
+
+
+def _json_ld_offer_markup(
+    *,
+    sku: Any = _OMIT,
+    name: Any = _OMIT,
+    price: Any = _OMIT,
+    currency: Any = _OMIT,
+    availability: Any = _OMIT,
+) -> str:
+    product: dict[str, Any] = {"@type": "Product"}
+    offer: dict[str, Any] = {"@type": "Offer"}
+    if sku is not _OMIT:
+        product["sku"] = sku
+    if name is not _OMIT:
+        product["name"] = name
+    if price is not _OMIT:
+        offer["price"] = price
+    if currency is not _OMIT:
+        offer["priceCurrency"] = currency
+    if availability is not _OMIT:
+        offer["availability"] = availability
+    product["offers"] = offer
+    return (
+        '<script type="application/ld+json">'
+        + json.dumps(product, ensure_ascii=False, separators=(",", ":"))
+        + "</script>"
+    )
+
+
+def _merchant_config_markup(product: dict[str, Any]) -> str:
+    config = html.escape(
+        json.dumps(
+            {"products": [product]},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    return f'<div data-config="{config}"></div>'
+
+
+def _microdata_offer_markup(
+    *,
+    sku: Any = _OMIT,
+    name: Any = _OMIT,
+    price: Any = _OMIT,
+    currency: Any = _OMIT,
+    availability: Any = _OMIT,
+) -> str:
+    product_fields: list[str] = []
+    offer_fields: list[str] = []
+    for itemprop, value in (("sku", sku), ("name", name)):
+        if value is not _OMIT:
+            product_fields.append(
+                f'<meta itemprop="{itemprop}" content="{html.escape(str(value))}">'
+            )
+    for itemprop, value in (("price", price), ("priceCurrency", currency)):
+        if value is not _OMIT:
+            offer_fields.append(
+                f'<meta itemprop="{itemprop}" content="{html.escape(str(value))}">'
+            )
+    if availability is not _OMIT:
+        offer_fields.append(
+            '<link itemprop="availability" '
+            f'href="{html.escape(str(availability))}">'
+        )
+    return (
+        '<div itemscope itemtype="https://schema.org/Product">'
+        + "".join(product_fields)
+        + '<div itemprop="offers" itemscope '
+        'itemtype="https://schema.org/Offer">'
+        + "".join(offer_fields)
+        + "</div></div>"
+    )
 
 
 def _cached_unresolved_emta_row() -> dict:
@@ -177,6 +304,1802 @@ def test_code_owned_attestation_registry_is_exact_and_acquisition_only():
             publisher_url=publisher_url,
             country_codes=country_codes,
         ) == ()
+
+
+def test_observed_offer_hint_registry_requires_exact_market_and_source_anchor():
+    expected = (_PETCITY_APPLAWS_URL, _PETCITY_ROYAL_CANIN_URL)
+    assert _observed_offer_acquisition_hints(
+        country_codes=("EE",),
+        product_source_anchors=("cat food",),
+    ) == expected
+
+    for countries, anchors in (
+        (("LV",), ("cat food",)),
+        (("EE", "LV"), ("cat food",)),
+        ((), ("cat food",)),
+        (("EE",), ("copycat food",)),
+        (("EE",), ("cat food copycat",)),
+        (("EE",), ("cat food", "pet food")),
+        (("EE",), ("kassi kuivtoit",)),
+        (("EE",), ()),
+    ):
+        assert _observed_offer_acquisition_hints(
+            country_codes=countries,
+            product_source_anchors=anchors,
+        ) == ()
+
+
+@pytest.mark.parametrize(
+    "availability",
+    ["", "InStock", "https://schema.org/InStock", "LimitedAvailability", "OnlineOnly"],
+)
+def test_current_offer_availability_contract_accepts_only_reviewed_positive_states(
+    availability: str,
+):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        availability=availability,
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    "availability",
+    [
+        "OutOfStock",
+        "SoldOut",
+        "Discontinued",
+        "BackOrder",
+        "PreOrder",
+        "PreSale",
+        "Reserved",
+        "NotInStock",
+        "https://attacker.example/InStock",
+    ],
+)
+def test_noncurrent_or_unknown_availability_cannot_authorize_visible_price(
+    monkeypatch,
+    availability: str,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        availability=availability,
+    )
+    direct_text = _normalized_document_text(raw_html, is_html=True)
+    assert _commercial_offer_evidence(raw_html) == []
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url=_PETCITY_APPLAWS_URL,
+            direct_text=direct_text,
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at=_AUTHORITY_RETRIEVED_AT,
+        )
+
+
+@pytest.mark.parametrize(
+    "unavailable_label",
+    [
+        "Out of stock",
+        "Sold out",
+        "Discontinued",
+        "Unavailable",
+        "Not available",
+        "Not currently available",
+        "Laost otsas",
+        "Pole saadaval",
+        "Ei ole saadaval",
+        "Välja müüdud",
+    ],
+)
+def test_visible_unavailable_label_overrides_positive_or_absent_metadata(
+    unavailable_label: str,
+):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        availability="InStock",
+    ).replace("15,99 €</span>", f"15,99 € {unavailable_label}</span>")
+
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "outer_children",
+    [
+        (
+            '<div class="availability">Out of stock</div>'
+            '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+            '<span class="price">15,99 €</span></div>'
+        ),
+        (
+            '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+            '<span class="price">15,99 €</span></div>'
+            '<div class="availability">Out of stock</div>'
+        ),
+    ],
+)
+def test_unavailable_sibling_in_outer_product_owner_blocks_nested_binding(
+    monkeypatch,
+    outer_children: str,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    raw_html = (
+        f'<section class="product">{outer_children}</section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+
+    assert _commercial_offer_evidence(raw_html) == []
+    with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+        build_direct_primary_market_proof(
+            direct_url=_PETCITY_APPLAWS_URL,
+            direct_text=_normalized_document_text(raw_html, is_html=True),
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at=_AUTHORITY_RETRIEVED_AT,
+        )
+
+
+@pytest.mark.parametrize("wrapper_count", [0, 1, 2, 3, 4, 5, 8, 32, 65])
+def test_unavailable_outer_product_owner_cannot_be_hidden_by_wrappers(
+    wrapper_count: int,
+):
+    opening = '<div class="wrapper">' * wrapper_count
+    closing = "</div>" * wrapper_count
+    raw_html = (
+        '<section class="product">'
+        f'{opening}<div class="product">'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        f'<span class="price">15,99 €</span></div>{closing}'
+        '<div class="availability">Out of stock</div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "owner_attributes",
+    [
+        'class="layout-product"',
+        'class="product-page"',
+        'class="product-view"',
+        'class="product-wrapper"',
+        'class="product-detail"',
+        'class="product_detail"',
+        'class="product-tile"',
+        'class="product-row"',
+        'class="product-summary"',
+        'class="product-info"',
+        'class="product-content"',
+        'class="product-shell"',
+        'class="product-root"',
+        'class="listing-tile"',
+        'id="product-page"',
+        'data-component="product"',
+        'data-product-id="A1"',
+        'data-product-sku="A1"',
+        'data-product-sku="B2" data-product-id="A1"',
+        'data-product-sku="B2" data-product-id="C3"',
+        'data-testid="product"',
+        'data-testid="product-card"',
+        'role="group" aria-label="product"',
+        'role="article"',
+        'role="listitem"',
+        'itemscope itemtype="https://schema.org/Product"',
+    ],
+)
+def test_common_outer_product_owner_shapes_cannot_hide_unavailable_sibling(
+    owner_attributes: str,
+):
+    raw_html = (
+        f"<section {owner_attributes}>"
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<div class="availability">Out of stock</div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_form_with_exact_product_sku_is_a_bounded_offer_owner():
+    raw_html = (
+        '<form data-product-sku="A1"><div>'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<div class="availability">Out of stock</div></form>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("owner_tag", ["article", "li"])
+def test_semantic_offer_owner_cannot_hide_unavailable_sibling(owner_tag: str):
+    raw_html = (
+        f"<{owner_tag}>"
+        '<div><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<div class="availability">Out of stock</div>'
+        f"</{owner_tag}>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("unavailable_tag", ["article", "li"])
+def test_unrelated_semantic_neighbor_does_not_veto_current_offer(
+    unavailable_tag: str,
+):
+    raw_html = (
+        '<article><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></article>'
+        f'<{unavailable_tag} data-product-sku="B2">'
+        '<h2>Neighbor koeratoit 3 kg</h2>'
+        '<span class="price">20,99 €</span><div>Out of stock</div>'
+        f"</{unavailable_tag}>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize("outer_tag", ["section", "form", "fieldset", "aside"])
+def test_generic_outer_element_does_not_claim_product_ownership(
+    outer_tag: str,
+):
+    raw_html = (
+        f"<{outer_tag}>"
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<div class="availability">Out of stock</div>'
+        f"</{outer_tag}>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    "outer_attributes",
+    [
+        'data-product-id="B2"',
+        'data-product-sku="B2"',
+        'data-testid="copyproduct"',
+        'role="list"',
+        'class="copyproduct"',
+    ],
+)
+def test_copycat_or_mismatched_owner_marker_does_not_veto_current_offer(
+    outer_attributes: str,
+):
+    raw_html = (
+        f'<section {outer_attributes}>'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<div class="availability">Out of stock</div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    "utility_attributes",
+    [
+        'class="recommended-product-carousel"',
+        'class="product-count"',
+        'class="product-filter"',
+        'class="product-list"',
+        'class="product-grid"',
+        'class="products-grid"',
+        'class="product-carousel"',
+        'class="listing-grid"',
+        'class="recommendations"',
+        'class="copyproduct"',
+    ],
+)
+def test_product_utility_or_copycat_container_does_not_veto_current_offer(
+    utility_attributes: str,
+):
+    raw_html = (
+        '<section class="product"><div class="product">'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f'<aside {utility_attributes}>Out of stock products: 0</aside></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize("utility_class", ["product-grid", "copyproduct"])
+def test_utility_marker_cannot_hide_cue_for_offer_it_contains(
+    utility_class: str,
+):
+    raw_html = (
+        '<section class="product">'
+        f'<div class="{utility_class}">'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span>'
+        '<div class="availability">Out of stock</div></div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "subcomponent_class",
+    [
+        "product-info",
+        "product-summary",
+        "product-content",
+        "product-wrapper",
+    ],
+)
+def test_cue_only_product_subcomponent_cannot_shield_outer_offer(
+    subcomponent_class: str,
+):
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f'<div class="{subcomponent_class}">Out of stock</div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "cue_owner_markup",
+    [
+        "<article>Out of stock</article>",
+        "<li>Out of stock</li>",
+        '<div role="article">Out of stock</div>',
+        '<div role="listitem">Out of stock</div>',
+        '<div data-testid="product">Out of stock</div>',
+        '<div data-testid="product-card">Out of stock</div>',
+        '<div data-component="product">Out of stock</div>',
+        '<div role="group" aria-label="product">Out of stock</div>',
+        (
+            '<div itemscope itemtype="https://schema.org/Product">'
+            "Out of stock</div>"
+        ),
+        '<div class="product">Out of stock</div>',
+        '<div class="product-card">Out of stock</div>',
+        '<div class="product-tile">Out of stock</div>',
+        '<div class="product-item">Out of stock</div>',
+        '<div class="product-row">Out of stock</div>',
+        '<div class="listing-tile">Out of stock</div>',
+        '<div data-product-sku="A1">Out of stock</div>',
+        '<div data-product-sku="a1">Out of stock</div>',
+        '<div data-product-sku="Ａ１">Out of stock</div>',
+        '<div data-product-sku="A\u200b1">Out of stock</div>',
+        '<div data-product-sku="A1 B2">Out of stock</div>',
+        '<div data-product-sku="A1,B2">Out of stock</div>',
+        '<div data-product-sku="A1|B2">Out of stock</div>',
+        '<div data-product-sku="A1;B2">Out of stock</div>',
+        '<div data-product-sku="A1/B2">Out of stock</div>',
+        '<div data-product-sku="A1+B2">Out of stock</div>',
+        '<div data-product-sku="A1-B2">Out of stock</div>',
+        '<div data-product-sku="A1_B2">Out of stock</div>',
+        '<div data-product-sku="A1.B2">Out of stock</div>',
+        '<div data-product-sku="A1:B2">Out of stock</div>',
+        '<div data-product-sku="A1=B2">Out of stock</div>',
+        '<div data-product-sku="A1~B2">Out of stock</div>',
+        '<div data-product-sku="A1#B2">Out of stock</div>',
+        '<div data-product-sku="A1@B2">Out of stock</div>',
+        '<div data-product-sku="A1\\B2">Out of stock</div>',
+        '<div data-product-sku="A1–B2">Out of stock</div>',
+        '<div data-product-sku="A1—B2">Out of stock</div>',
+        '<div data-product-sku="Α1">Out of stock</div>',
+        '<div data-product-sku="А1">Out of stock</div>',
+        '<div data-product-sku="A\ufe0f1">Out of stock</div>',
+        (
+            '<div data-product-sku="B2" data-product-id="C3">'
+            "Out of stock</div>"
+        ),
+    ],
+)
+def test_cue_only_owner_marker_cannot_claim_an_independent_product(
+    cue_owner_markup: str,
+):
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f"{cue_owner_markup}</section>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "distinct_id_attributes",
+    [
+        'data-product-sku="B2"',
+        'data-product-sku="B2" data-product-id="b2"',
+    ],
+)
+def test_mismatched_explicit_product_id_keeps_cue_on_distinct_product(
+    distinct_id_attributes: str,
+):
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f'<div {distinct_id_attributes}>Out of stock</div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    ("heading", "price_markup"),
+    [
+        ("Details panel", '<span class="price">15,99 €</span>'),
+        ("Toote saadavus", '<span class="price">15,99 €</span>'),
+        ("15.99 EUR", '<span class="price">15,99 €</span>'),
+        ("Stock information panel", '<span class="price">15,99 €</span>'),
+        ("Applaws kassi kuivtoit", '<span class="price">15,99 €</span>'),
+        ("Applaws kassi kuivtoit uus", '<span class="price">15,99 €</span>'),
+        ("Delivery options", '<span class="shipping">Shipping 4,99 €</span>'),
+        ("Out of stock", '<span class="price">15,99 €</span>'),
+    ],
+)
+def test_unbound_heading_and_amount_cannot_invent_an_independent_product(
+    heading: str,
+    price_markup: str,
+):
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f'<div class="product-card"><h2>{heading}</h2>{price_markup}'
+        '<div>Out of stock</div></div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "subcomponent_class",
+    [
+        "product-info",
+        "product-summary",
+        "product-content",
+        "product-wrapper",
+    ],
+)
+def test_distinct_product_in_structural_subcomponent_owns_its_unavailable_cue(
+    subcomponent_class: str,
+):
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f'<div class="{subcomponent_class}" data-product-sku="B2">'
+        '<h2>Neighbor koeratoit 3 kg</h2>'
+        '<span class="price">20,99 €</span>'
+        '<div>Out of stock</div></div></section>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    "neighbor_markup",
+    [
+        '<div class="product-card" data-product-sku="B2">',
+        '<div class="product-tile" data-product-sku="B2">',
+        '<div class="product-item" data-product-sku="B2">',
+        '<div class="product-row" data-product-sku="B2">',
+        '<article data-product-sku="B2">',
+        '<div role="listitem" data-product-sku="B2">',
+    ],
+)
+def test_reviewed_nested_card_marker_keeps_neighbor_cue_local(
+    neighbor_markup: str,
+):
+    closing_tag = "</article>" if neighbor_markup.startswith("<article") else "</div>"
+    raw_html = (
+        '<section class="layout-product">'
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        f"{neighbor_markup}<h2>Neighbor koeratoit 3 kg</h2>"
+        '<span class="price">20,99 €</span><div>Out of stock</div>'
+        f"{closing_tag}</section>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+def test_copyproduct_global_cue_outside_product_owner_does_not_veto_offer():
+    raw_html = (
+        '<main><section class="product"><div class="product">'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div></section>'
+        '<aside class="copyproduct">Out of stock products: 0</aside></main>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize("unavailable_location", ["neighbor", "footer"])
+def test_unavailable_cue_outside_offer_owner_does_not_veto_current_product(
+    monkeypatch,
+    unavailable_location: str,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    current = (
+        '<section class="product"><div class="product">'
+        '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div></section>'
+    )
+    unavailable = (
+        '<section class="product" data-product-sku="B2">'
+        '<h2>Neighbor koeratoit 3 kg</h2>'
+        '<span class="price">20,99 €</span><div>Out of stock</div></section>'
+        if unavailable_location == "neighbor"
+        else '<footer>Out of stock products may reappear later.</footer>'
+    )
+    raw_html = (
+        f"<main>{current}{unavailable}</main>"
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+    )
+
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+    proof = build_direct_primary_market_proof(
+        direct_url=_PETCITY_APPLAWS_URL,
+        direct_text=_normalized_document_text(raw_html, is_html=True),
+        country_codes=["EE"],
+        direct_raw_html=raw_html,
+        retrieved_at=_AUTHORITY_RETRIEVED_AT,
+    )
+    assert proof["proof_type"] == "direct_primary_market_observation"
+
+
+@pytest.mark.parametrize(
+    "is_salable",
+    [True, False, None, 0, 1, "false", "true", [], {}],
+)
+def test_merchant_config_preserves_explicit_saleability(
+    monkeypatch,
+    is_salable: Any,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    config = html.escape(
+        json.dumps(
+            {
+                "products": [
+                    {
+                        "id": "158130",
+                        "sku": "158130",
+                        "name": "Purenatural kassi kuivtoit 2 kg",
+                        "priceSimple": 15.99,
+                        "price": "15,99 €",
+                        "actions": {"isSalable": is_salable},
+                    }
+                ]
+            },
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    raw_html = (
+        f'<div data-config="{config}"></div>'
+        '<div class="product"><h2>Purenatural kassi kuivtoit 2 kg</h2>'
+        '<span class="price">Tavahind 15,99 €</span></div>'
+    )
+    offers = _commercial_offer_evidence(raw_html)
+
+    assert bool(offers) is (is_salable is True)
+    if is_salable is True:
+        assert offers[0]["availability"] == "in_stock"
+        proof = build_direct_primary_market_proof(
+            direct_url="https://shop.example.ee/products",
+            direct_text=_normalized_document_text(raw_html, is_html=True),
+            country_codes=["EE"],
+            direct_raw_html=raw_html,
+            retrieved_at=_AUTHORITY_RETRIEVED_AT,
+        )
+        assert proof["proof_type"] == "direct_primary_market_observation"
+    else:
+        with pytest.raises(ValueError, match="no fetched structured Product/Offer"):
+            build_direct_primary_market_proof(
+                direct_url="https://shop.example.ee/products",
+                direct_text=_normalized_document_text(raw_html, is_html=True),
+                country_codes=["EE"],
+                direct_raw_html=raw_html,
+                retrieved_at=_AUTHORITY_RETRIEVED_AT,
+            )
+
+
+@pytest.mark.parametrize("negative_status", ["OutOfStock", "SoldOut", "Discontinued"])
+@pytest.mark.parametrize("negative_first", [False, True])
+def test_conflicting_duplicate_availability_poison_is_order_independent(
+    negative_status: str,
+    negative_first: bool,
+):
+    def offer(status: str) -> str:
+        return (
+            '<script type="application/ld+json">'
+            '{"@type":"Product","sku":"A1",'
+            '"name":"Applaws kassi kuivtoit 2 kg",'
+            '"offers":{"@type":"Offer","price":"15.99",'
+            '"priceCurrency":"EUR",'
+            f'"availability":"https://schema.org/{status}"}}'
+            "</script>"
+        )
+
+    signals = [offer("InStock"), offer(negative_status)]
+    if negative_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_duplicate_current_availability_remains_one_bound_offer():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + (
+            '<script type="application/ld+json">'
+            '{"@type":"Product","sku":"A1",'
+            '"name":"Applaws kassi kuivtoit 2 kg",'
+            '"offers":{"@type":"Offer","price":"15.99",'
+            '"priceCurrency":"EUR",'
+            '"availability":"https://schema.org/InStock"}}'
+            "</script>"
+        )
+        * 2
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize(
+    ("availability", "expected"),
+    [
+        ("", ""),
+        ("InStock", "instock"),
+        ("https://schema.org/InStock", "instock"),
+        ("LimitedAvailability", "limitedavailability"),
+        ("OnlineOnly", "onlineonly"),
+        ("OutOfStock", None),
+        ("unknown", None),
+    ],
+)
+def test_offer_availability_canonicalizer_is_closed(
+    availability: str,
+    expected: str | None,
+):
+    assert _canonical_offer_availability(
+        availability,
+        signal_type="schema_org_product_offer",
+    ) == expected
+
+
+@pytest.mark.parametrize("negative_first", [False, True])
+@pytest.mark.parametrize(
+    "negative_fields",
+    [
+        {
+            "sku": "a1",
+            "name": "Changed product name",
+            "price": "99.99",
+            "currency": "USD",
+            "availability": "OutOfStock",
+        },
+        {"sku": "Ａ１", "availability": "SoldOut"},
+        {
+            "sku": "A\u200b1",
+            "name": "Other text",
+            "price": "invalid",
+            "availability": "Discontinued",
+        },
+        {"sku": "A1", "name": None, "availability": "OutOfStock"},
+    ],
+    ids=["changed-fields", "omitted-fields", "invalid-price", "null-name"],
+)
+def test_same_strong_id_negative_availability_poisons_all_field_variants(
+    negative_fields: dict[str, Any],
+    negative_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _json_ld_offer_markup(**negative_fields)
+    signals = [positive, negative]
+    if negative_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("negative_first", [False, True])
+@pytest.mark.parametrize(
+    "malformed_availability",
+    [False, 0, 1, [], {}, None, ""],
+)
+def test_explicit_malformed_availability_is_not_collapsed_to_absent(
+    malformed_availability: Any,
+    negative_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    malformed = _json_ld_offer_markup(
+        sku="A1",
+        availability=malformed_availability,
+    )
+    signals = [positive, malformed]
+    if negative_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_missing_availability_key_remains_backward_compatible():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize("negative_first", [False, True])
+@pytest.mark.parametrize("visible_sku", [False, True])
+@pytest.mark.parametrize(
+    ("negative_price", "negative_currency"),
+    [(_OMIT, _OMIT), ("99.99", "USD"), ("15.99", "EUR")],
+)
+def test_anonymous_same_name_negative_poison_is_unconditional(
+    negative_price: Any,
+    negative_currency: Any,
+    visible_sku: bool,
+    negative_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _json_ld_offer_markup(
+        name="Applaws kassi kuivtoit 2 kg",
+        price=negative_price,
+        currency=negative_currency,
+        availability="OutOfStock",
+    )
+    signals = [positive, negative]
+    if negative_first:
+        signals.reverse()
+    sku_markup = '<span class="sku">A1</span>' if visible_sku else ""
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        f'{sku_markup}<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("anonymous_name", [_OMIT, "Different product name"])
+def test_anonymous_negative_cannot_poison_a_different_or_missing_name(
+    anonymous_name: Any,
+):
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            name=anonymous_name,
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+@pytest.mark.parametrize("negative_first", [False, True])
+@pytest.mark.parametrize("negative_sku", [_OMIT, "B2"])
+@pytest.mark.parametrize(
+    ("negative_price", "negative_currency"),
+    [("15.99", "EUR"), ("20.99", "EUR"), ("15.99", "USD"), (_OMIT, _OMIT)],
+)
+def test_anonymous_positive_cannot_separate_any_same_name_negative(
+    negative_price: Any,
+    negative_currency: Any,
+    negative_sku: Any,
+    negative_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _json_ld_offer_markup(
+        sku=negative_sku,
+        name="Applaws kassi kuivtoit 2 kg",
+        price=negative_price,
+        currency=negative_currency,
+        availability="OutOfStock",
+    )
+    signals = [positive, negative]
+    if negative_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_anonymous_positive_ignores_negative_with_different_name():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            sku="B2",
+            name="Different product name",
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_name"] == "Applaws kassi kuivtoit 2 kg"
+
+
+@pytest.mark.parametrize(
+    ("negative_price", "negative_currency"),
+    [("20.99", "EUR"), ("15.99", "USD")],
+)
+def test_distinct_strong_id_same_name_without_display_collision_does_not_poison(
+    negative_price: Any,
+    negative_currency: Any,
+):
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            sku="B2",
+            name="Applaws kassi kuivtoit 2 kg",
+            price=negative_price,
+            currency=negative_currency,
+            availability="OutOfStock",
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+@pytest.mark.parametrize("visible_sku", [False, True])
+@pytest.mark.parametrize(
+    ("negative_price", "negative_currency"),
+    [(_OMIT, _OMIT), ("15.99", _OMIT), ("invalid", "EUR")],
+)
+def test_incomplete_distinct_id_same_name_requires_visible_current_id(
+    negative_price: Any,
+    negative_currency: Any,
+    visible_sku: bool,
+):
+    sku_markup = '<span class="sku">A1</span>' if visible_sku else ""
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        f'{sku_markup}<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            sku="B2",
+            name="Applaws kassi kuivtoit 2 kg",
+            price=negative_price,
+            currency=negative_currency,
+            availability="OutOfStock",
+        )
+    )
+    offers = _commercial_offer_evidence(raw_html)
+    assert bool(offers) is visible_sku
+
+
+@pytest.mark.parametrize("is_salable", [False, None, 0, "false"])
+def test_invalid_merchant_saleability_poisons_matching_json_ld_offer(
+    is_salable: Any,
+):
+    config = html.escape(
+        json.dumps(
+            {
+                "products": [
+                    {
+                        "sku": "A1",
+                        "name": "Applaws kassi kuivtoit 2 kg",
+                        "priceSimple": 15.99,
+                        "price": "15,99 €",
+                        "actions": {"isSalable": is_salable},
+                    }
+                ]
+            },
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+        f'<div data-config="{config}"></div>'
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_invalid_merchant_saleability_does_not_poison_distinct_offer():
+    config = html.escape(
+        json.dumps(
+            {
+                "products": [
+                    {
+                        "sku": "B2",
+                        "name": "Neighbor koeratoit 3 kg",
+                        "priceSimple": 20.99,
+                        "price": "20,99 €",
+                        "actions": {"isSalable": False},
+                    }
+                ]
+            },
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+        f'<div data-config="{config}"></div>'
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+def test_unsalable_hidden_sku_poisons_same_visible_offer_without_sku_binding():
+    config = html.escape(
+        json.dumps(
+            {
+                "products": [
+                    {
+                        "sku": "B2",
+                        "name": "Applaws kassi kuivtoit 2 kg",
+                        "priceSimple": 15.99,
+                        "price": "15,99 €",
+                        "actions": {"isSalable": False},
+                    }
+                ]
+            },
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+        f'<div data-config="{config}"></div>'
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_visible_sku_disambiguates_unsalable_hidden_sku_collision():
+    config = html.escape(
+        json.dumps(
+            {
+                "products": [
+                    {
+                        "sku": "B2",
+                        "name": "Applaws kassi kuivtoit 2 kg",
+                        "priceSimple": 15.99,
+                        "price": "15,99 €",
+                        "actions": {"isSalable": False},
+                    }
+                ]
+            },
+            separators=(",", ":"),
+        ),
+        quote=True,
+    )
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        '<script type="application/ld+json">'
+        '{"@type":"Product","sku":"A1",'
+        '"name":"Applaws kassi kuivtoit 2 kg",'
+        '"offers":{"@type":"Offer","price":"15.99",'
+        '"priceCurrency":"EUR",'
+        '"availability":"https://schema.org/InStock"}}'
+        "</script>"
+        f'<div data-config="{config}"></div>'
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["visible_binding"]["product_id_text"] == "A1"
+
+
+@pytest.mark.parametrize("negative_first", [False, True])
+@pytest.mark.parametrize("negative_signal", ["json_ld", "merchant_config"])
+@pytest.mark.parametrize(
+    ("identifier_markup", "expected_offer"),
+    [
+        ("", False),
+        ('<span class="sku">B2</span>', False),
+        ('<span class="sku">A1 B2</span>', False),
+        ('<span class="sku">B2 A1</span>', False),
+        ('<span class="sku">A1/B2</span>', False),
+        ('<span class="sku">A1+B2</span>', False),
+        ('<span class="sku">A1-B2</span>', False),
+        ('<span class="sku">A1_B2</span>', False),
+        ('<span class="sku">A1.B2</span>', False),
+        ('<span class="sku">A1</span><span class="sku">B2</span>', False),
+        ('<span class="sku">A1</span><span>B2</span>', False),
+        ('<span class="sku" aria-label="A1 B2">A1</span>', False),
+        ('<span class="sku" title="B2">A1</span>', False),
+        ('<span class="sku">A1 Ｂ２</span>', False),
+        ('<span class="sku">A1 B\u200b2</span>', False),
+        ('<span class="sku">A1</span>', True),
+        ('<span class="sku">A1</span><span hidden>B2</span>', True),
+        ('<span class="sku">A1 B20</span>', True),
+    ],
+)
+def test_distinct_negative_id_requires_exclusive_atomic_visible_scope(
+    identifier_markup: str,
+    expected_offer: bool,
+    negative_signal: str,
+    negative_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = (
+        _json_ld_offer_markup(
+            sku="B2",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+        if negative_signal == "json_ld"
+        else _merchant_config_markup(
+            {
+                "sku": "B2",
+                "name": "Applaws kassi kuivtoit 2 kg",
+                "priceSimple": 15.99,
+                "price": "15,99 €",
+                "actions": {"isSalable": False},
+            }
+        )
+    )
+    signals = [positive, negative]
+    if negative_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        f'{identifier_markup}<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    offers = _commercial_offer_evidence(raw_html)
+    assert bool(offers) is expected_offer
+    if expected_offer:
+        assert offers[0]["product_id"] == "A1"
+
+
+def test_conflicting_id_in_separately_bounded_neighbor_does_not_contaminate_scope():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        '<article data-product-sku="B2"><span>B2</span></article>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _json_ld_offer_markup(
+            sku="B2",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+def _conflicting_offer_signals() -> str:
+    return _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    ) + _json_ld_offer_markup(
+        sku="B2",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="OutOfStock",
+    )
+
+
+@pytest.mark.parametrize("container_kind", ["product", "article"])
+def test_conflict_id_scan_accepts_exactly_2000_clean_descendants(
+    container_kind: str,
+):
+    opening = '<div class="product">' if container_kind == "product" else "<article>"
+    closing = "</div>" if container_kind == "product" else "</article>"
+    # h1 + SKU + price + 1,997 inert elements = exactly 2,000 descendants.
+    raw_html = (
+        opening
+        + '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span>'
+        + "<i></i>" * 1_997
+        + closing
+        + _conflicting_offer_signals()
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+@pytest.mark.parametrize("container_kind", ["product", "article"])
+@pytest.mark.parametrize(
+    "last_descendant",
+    [
+        "<i></i>",
+        "<i>B2</i>",
+        '<i aria-label="B2"></i>',
+        '<i title="B2"></i>',
+    ],
+)
+def test_conflict_id_scan_fails_closed_at_descendant_2001(
+    container_kind: str,
+    last_descendant: str,
+):
+    opening = '<div class="product">' if container_kind == "product" else "<article>"
+    closing = "</div>" if container_kind == "product" else "</article>"
+    raw_html = (
+        opening
+        + '<h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span>'
+        + "<i></i>" * 1_997
+        + last_descendant
+        + closing
+        + _conflicting_offer_signals()
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("total_descendants", [1_999, 2_000])
+@pytest.mark.parametrize(
+    "last_descendant",
+    ["<i>B2</i>", '<i aria-label="B2"></i>', '<i title="B2"></i>'],
+)
+def test_conflict_id_scan_checks_last_descendant_at_accepted_boundary(
+    total_descendants: int,
+    last_descendant: str,
+):
+    # h1 + SKU + price + the final conflicting node occupy four slots.
+    inert_count = total_descendants - 4
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span>'
+        + "<i></i>" * inert_count
+        + last_descendant
+        + "</div>"
+        + _conflicting_offer_signals()
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_oversized_unrelated_neighbor_does_not_contaminate_atomic_scope():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        '<aside class="recommendations">'
+        + "<i></i>" * 2_001
+        + '<i aria-label="B2"></i></aside>'
+        + _conflicting_offer_signals()
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "A1"
+
+
+@pytest.mark.parametrize("overflow", [False, True])
+def test_conflict_id_descendant_cap_applies_to_hinted_microdata_scope(
+    overflow: bool,
+):
+    last_descendant = '<i title="B2"></i>' if overflow else ""
+    raw_html = (
+        '<div class="product" itemscope '
+        'itemtype="https://schema.org/Product">'
+        '<meta itemprop="sku" content="A1">'
+        '<h1 itemprop="name">Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span>'
+        '<div itemprop="offers" itemscope '
+        'itemtype="https://schema.org/Offer">'
+        '<data class="price" itemprop="price" value="15.99">15,99 €</data>'
+        '<meta itemprop="priceCurrency" content="EUR">'
+        '<link itemprop="availability" href="https://schema.org/InStock">'
+        "</div>"
+        + "<i></i>" * 1_993
+        + last_descendant
+        + "</div>"
+        + _json_ld_offer_markup(
+            sku="B2",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+    )
+    offers = _commercial_offer_evidence(raw_html)
+    assert bool(offers) is not overflow
+
+
+@pytest.mark.parametrize("attribute", ["aria-label", "title"])
+@pytest.mark.parametrize(
+    ("retained_length", "tail", "expected_offer"),
+    [
+        (12_000, "", True),
+        (12_000, " B2", False),
+        (12_001, "", False),
+    ],
+)
+def test_conflict_id_accessible_label_byte_boundary_fails_closed(
+    retained_length: int,
+    tail: str,
+    expected_offer: bool,
+    attribute: str,
+):
+    visible_scope = "Applaws kassi kuivtoit 2 kg A1 15,99 €"
+    attribute_length = retained_length - len(visible_scope) - 1
+    attribute_value = "x" * (attribute_length - len(tail)) + tail
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span>'
+        f'<i {attribute}="{attribute_value}"></i></div>'
+        + _conflicting_offer_signals()
+    )
+    offers = _commercial_offer_evidence(raw_html)
+    assert bool(offers) is expected_offer
+
+
+@pytest.mark.parametrize("merchant_first", [False, True])
+@pytest.mark.parametrize(
+    "is_salable",
+    [False, None, 0, 1, "false", "true", [], {}],
+)
+def test_incomplete_same_id_merchant_negative_poisons_json_offer(
+    is_salable: Any,
+    merchant_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _merchant_config_markup(
+        {"sku": "a1", "actions": {"isSalable": is_salable}}
+    )
+    signals = [positive, negative]
+    if merchant_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_absent_merchant_saleability_remains_unknown_not_negative():
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + _merchant_config_markup(
+            {
+                "sku": "A1",
+                "name": "Applaws kassi kuivtoit 2 kg",
+                "priceSimple": 15.99,
+                "price": "15,99 €",
+                "actions": {},
+            }
+        )
+    )
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert _offer_payload_is_valid(offer)
+
+
+@pytest.mark.parametrize("microdata_first", [False, True])
+@pytest.mark.parametrize(
+    "availability",
+    ["https://schema.org/OutOfStock", "", "unknown"],
+)
+def test_microdata_negative_same_id_poisons_json_offer_before_completeness(
+    availability: str,
+    microdata_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _microdata_offer_markup(
+        sku="a1",
+        availability=availability,
+    )
+    signals = [positive, negative]
+    if microdata_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("json_first", [False, True])
+def test_json_negative_same_id_poisons_positive_microdata_offer(
+    json_first: bool,
+):
+    positive = (
+        '<div itemscope itemtype="https://schema.org/Product">'
+        '<h1 itemprop="name">Applaws kassi kuivtoit 2 kg</h1>'
+        '<meta itemprop="sku" content="A1">'
+        '<div itemprop="offers" itemscope '
+        'itemtype="https://schema.org/Offer">'
+        '<meta itemprop="price" content="15.99">'
+        '<meta itemprop="priceCurrency" content="EUR">'
+        '<link itemprop="availability" '
+        'href="https://schema.org/InStock">'
+        '<span class="price">15,99 €</span></div></div>'
+    )
+    negative = _json_ld_offer_markup(
+        sku="a1",
+        availability="OutOfStock",
+    )
+    signals = [positive, negative]
+    if json_first:
+        signals.reverse()
+    assert _commercial_offer_evidence("".join(signals)) == []
+
+
+@pytest.mark.parametrize("microdata_first", [False, True])
+def test_anonymous_microdata_negative_name_poisons_visible_json_id(
+    microdata_first: bool,
+):
+    positive = _json_ld_offer_markup(
+        sku="A1",
+        name="Applaws kassi kuivtoit 2 kg",
+        price="15.99",
+        currency="EUR",
+        availability="InStock",
+    )
+    negative = _microdata_offer_markup(
+        name="Applaws kassi kuivtoit 2 kg",
+        availability="https://schema.org/OutOfStock",
+    )
+    signals = [positive, negative]
+    if microdata_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="sku">A1</span><span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize("json_first", [False, True])
+def test_json_negative_same_id_poisons_positive_merchant_offer(
+    json_first: bool,
+):
+    positive = _merchant_config_markup(
+        {
+            "sku": "A1",
+            "name": "Applaws kassi kuivtoit 2 kg",
+            "priceSimple": 15.99,
+            "price": "15,99 €",
+            "actions": {"isSalable": True},
+        }
+    )
+    negative = _json_ld_offer_markup(
+        sku="Ａ１",
+        availability="OutOfStock",
+    )
+    signals = [positive, negative]
+    if json_first:
+        signals.reverse()
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + "".join(signals)
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_poison_identity_overflow_fails_closed():
+    negatives = "".join(
+        _json_ld_offer_markup(
+            sku=f"NEGATIVE{index}",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="OutOfStock",
+        )
+        for index in range(200)
+    )
+    raw_html = (
+        '<div class="product"><h1>Applaws kassi kuivtoit 2 kg</h1>'
+        '<span class="price">15,99 €</span></div>'
+        + _json_ld_offer_markup(
+            sku="A1",
+            name="Applaws kassi kuivtoit 2 kg",
+            price="15.99",
+            currency="EUR",
+            availability="InStock",
+        )
+        + negatives
+    )
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+def test_observed_offer_candidates_are_untrusted_url_only_rows():
+    lifecycle = _ee_cat_food_topic_lifecycle()
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **lifecycle,
+    )
+
+    candidates = pipeline._code_owned_observed_offer_candidates()
+
+    assert [row["url"] for row in candidates] == [
+        _PETCITY_APPLAWS_URL,
+        _PETCITY_ROYAL_CANIN_URL,
+    ]
+    assert all(
+        set(row) == {
+            "title",
+            "url",
+            "provider",
+            "provider_source_id",
+            "retrieved_at",
+            "provider_response_hash",
+            "provider_query_ids",
+            "provider_queries",
+            "citation_metadata",
+            "provider_redirect",
+            "country_codes",
+            "market_terms",
+            "acquisition_evidence_classes",
+        }
+        for row in candidates
+    )
+    assert all("authority_proof" not in row for row in candidates)
+    assert all("source_authority" not in row for row in candidates)
+    assert all("price" not in json.dumps(row).casefold() for row in candidates)
+
+    pipeline._store_direct_web_evidence(candidates, [])
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            **lifecycle,
+        },
+        ["EE"],
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert quality["status"] == "blocked"
+    assert quality["verified_claim_classes"] == []
+
+
+@pytest.mark.parametrize("location", ["Latvia", "Global"])
+def test_observed_offer_candidates_do_not_cross_market(location: str):
+    pipeline = B2BDataPipeline(
+        location=location,
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_ee_cat_food_topic_lifecycle(),
+    )
+    assert pipeline._code_owned_observed_offer_candidates() == []
+
+
+@pytest.mark.parametrize(
+    "anchors",
+    [("copycat food",), ("cat food", "pet food")],
+)
+def test_observed_offer_candidates_do_not_broaden_or_mix_topic(anchors):
+    scope = ConfirmedMarketScope(
+        scope_label="Estonia", country_codes=("EE",), confirmed=True
+    )
+    title = " and ".join(anchors) + " launch"
+    seed = build_topic_seed(
+        ImmutableGoalTopicFields(
+            goal_id="wrong-observed-topic",
+            title=title,
+            exact_topic_anchors=anchors,
+        ),
+        scope,
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem=title,
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_topic_lifecycle(seed, scope),
+    )
+    assert pipeline._code_owned_observed_offer_candidates() == []
+
+
+def test_observed_offer_candidate_materializer_rejects_unsafe_registry_urls(
+    monkeypatch,
+):
+    key = (("EE",), ("cat food",))
+    safe = _PETCITY_APPLAWS_URL
+    monkeypatch.setitem(
+        pipeline_module._OBSERVED_OFFER_ACQUISITION_HINTS_V1,
+        key,
+        (
+            "http://www.petcity.ee/cleartext",
+            "https://user@www.petcity.ee/userinfo",
+            "https://www.petcity.ee.attacker.example/copycat",
+            "https://www.petcity.ee:443/explicit-port",
+            "https://www.petcity.ee:444/wrong-port",
+            safe,
+            f"{safe}#duplicate",
+        ),
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_ee_cat_food_topic_lifecycle(),
+    )
+
+    candidates = pipeline._code_owned_observed_offer_candidates()
+
+    assert [row["url"] for row in candidates] == [safe]
 
 
 @pytest.mark.asyncio
@@ -1216,6 +3139,300 @@ def test_authority_scheduler_puts_two_provider_core_wave_before_overflow():
         ("searxng", "official_statistic", "0"),
     ]
     assert len(scheduled) == 16
+
+
+def test_observed_offer_hints_reserve_early_slots_without_starving_official_rows():
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_ee_cat_food_topic_lifecycle(),
+    )
+    hints = pipeline._code_owned_observed_offer_candidates()
+    noise = [
+        _authority_candidate("gemini", "observed_primary_market", ordinal)
+        for ordinal in range(24)
+    ]
+    official = [
+        _authority_candidate(provider, evidence_class, 0)
+        for provider in ("gemini", "searxng")
+        for evidence_class in ("statutory_current", "official_statistic")
+    ]
+
+    scheduled = _schedule_authority_candidates([*noise, *official, *hints])
+
+    assert [row["url"] for row in scheduled[:2]] == [
+        _PETCITY_APPLAWS_URL,
+        _PETCITY_ROYAL_CANIN_URL,
+    ]
+    assert all(row in scheduled for row in official)
+    assert len(scheduled) <= pipeline_module._MAX_AUTHORITY_NETWORK_CANDIDATES
+
+
+def test_scheduler_defensively_caps_code_owned_observed_rows_at_two():
+    hints = [
+        {
+            "url": f"https://shop.example.ee/reviewed-{index}",
+            "provider": pipeline_module._CODE_OWNED_OBSERVED_OFFER_PROVIDER,
+            "acquisition_evidence_classes": ["observed_primary_market"],
+        }
+        for index in range(30)
+    ]
+    official = [
+        _authority_candidate("gemini", evidence_class, 0)
+        for evidence_class in ("statutory_current", "official_statistic")
+    ]
+
+    scheduled = _schedule_authority_candidates([*hints, *official])
+
+    scheduled_hints = [
+        row
+        for row in scheduled
+        if row.get("provider")
+        == pipeline_module._CODE_OWNED_OBSERVED_OFFER_PROVIDER
+    ]
+    assert scheduled_hints == hints[:2]
+    assert all(row in scheduled for row in official)
+    assert len(scheduled) <= pipeline_module._MAX_AUTHORITY_NETWORK_CANDIDATES
+
+
+def test_observed_hint_duplicate_does_not_consume_provider_candidate_capacity():
+    other = [f"https://shop.example.ee/product-{index}" for index in range(6)]
+
+    admitted = _admit_provider_candidate_urls(
+        [_PETCITY_APPLAWS_URL, *other],
+        existing_urls={_PETCITY_APPLAWS_URL},
+        new_url_cap=6,
+    )
+
+    assert admitted == (_PETCITY_APPLAWS_URL, *other)
+
+
+@pytest.mark.asyncio
+async def test_reviewed_observed_offer_hints_pass_full_signed_topic_lifecycle(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    lifecycle = _ee_cat_food_topic_lifecycle()
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **lifecycle,
+    )
+    candidates = pipeline._code_owned_observed_offer_candidates()
+    html_by_url = {
+        _PETCITY_APPLAWS_URL: _petcity_offer_html(
+            product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+            sku="103681",
+            visible_price="15,99 €",
+            structured_price="15.99",
+        ),
+        _PETCITY_ROYAL_CANIN_URL: _petcity_offer_html(
+            product_name="Royal Canin Light Weight kassitoit 400 g",
+            sku="001201",
+            visible_price="10,09 €",
+            structured_price="10.09",
+        ),
+    }
+
+    async def fetcher(url: str) -> dict:
+        raw_html = html_by_url[url]
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    enriched = await real_enrich_authority_sources(candidates, fetcher=fetcher)
+    pipeline._store_direct_web_evidence(enriched, [])
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            **lifecycle,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    assert {row["normalized_value"] for row in quality["verified_facts"]} == {
+        "10.09:eur",
+        "15.99:eur",
+    }
+    durable = json.dumps(
+        [pipeline.market_sources, pipeline.market_claims], ensure_ascii=False
+    )
+    assert "_code_owned_observed_offer_acquisition_hint" not in durable
+    assert "code_owned_acquisition_hint" not in durable
+
+
+@pytest.mark.asyncio
+async def test_observed_hint_reaches_enrichment_without_a_search_provider(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setitem(
+        pipeline_module._OBSERVED_OFFER_ACQUISITION_HINTS_V1,
+        (("EE",), ("cat food",)),
+        (_PETCITY_APPLAWS_URL,),
+    )
+    lifecycle = _ee_cat_food_topic_lifecycle()
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+        required_evidence_classes=["observed_primary_market"],
+        **lifecycle,
+    )
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+    )
+
+    async def fetcher(url: str) -> dict:
+        assert url == _PETCITY_APPLAWS_URL
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    async def enrich(rows: list[dict]) -> list[dict]:
+        return await real_enrich_authority_sources(rows, fetcher=fetcher)
+
+    with patch(
+        "backend.services.generative.gemini_search_service."
+        "GeminiSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=enrich,
+    ):
+        companies = await pipeline._discover_via_web_search()
+
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            **lifecycle,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+    assert companies == []
+    assert quality["status"] == "passed", quality
+    assert quality["verified_facts"][0]["normalized_value"] == "15.99:eur"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("first_failure", ["stale", "out_of_stock", "challenge"])
+async def test_bad_reviewed_offer_fails_closed_while_second_hint_remains_fallback(
+    monkeypatch,
+    first_failure: str,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    lifecycle = _ee_cat_food_topic_lifecycle()
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **lifecycle,
+    )
+    candidates = pipeline._code_owned_observed_offer_candidates()
+    applaws = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+    )
+    royal = _petcity_offer_html(
+        product_name="Royal Canin Light Weight kassitoit 400 g",
+        sku="001201",
+        visible_price="10,09 €",
+        structured_price="10.09",
+    )
+
+    async def fetcher(url: str) -> dict:
+        if url == _PETCITY_APPLAWS_URL:
+            if first_failure == "challenge":
+                raise RetrievalChallengeError("challenge")
+            if first_failure == "out_of_stock":
+                raw_html = _petcity_offer_html(
+                    product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+                    sku="103681",
+                    visible_price="15,99 €",
+                    structured_price="15.99",
+                    availability="OutOfStock",
+                )
+            else:
+                raw_html = applaws
+            retrieved_at = (
+                "2020-01-01T00:00:00+00:00"
+                if first_failure == "stale"
+                else _AUTHORITY_RETRIEVED_AT
+            )
+        else:
+            raw_html = royal
+            retrieved_at = _AUTHORITY_RETRIEVED_AT
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": retrieved_at,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    enriched = await real_enrich_authority_sources(candidates, fetcher=fetcher)
+    pipeline._store_direct_web_evidence(enriched, [])
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+            **lifecycle,
+        },
+        ["EE"],
+        now=datetime(2026, 8, 13, tzinfo=timezone.utc),
+        mandatory_claim_classes=["observed_primary_market"],
+    )
+
+    assert quality["status"] == "passed", quality
+    verified = {
+        row["normalized_value"] for row in quality["verified_facts"]
+    }
+    assert "10.09:eur" in verified
+    assert "15.99:eur" not in verified
 
 
 def test_observed_candidate_cap_keeps_sixth_recovery_and_excludes_seventh():
