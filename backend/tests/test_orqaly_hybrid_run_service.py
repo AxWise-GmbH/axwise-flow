@@ -985,17 +985,17 @@ def _commercial_prd_content() -> dict:
                         },
                     },
                 },
-                "lower_observed_offer": {
+                "lower_observed_benchmark_pack": {
                     "statement": (
-                        "Research technology adult subscription basic plan 1 unit "
-                        "current retail price is €2.99."
+                        "Research technology adult subscription basic plan "
+                        "1 unit: €2.99."
                     ),
                     "claim_ids": [lower_claim],
                 },
-                "higher_observed_offer": {
+                "higher_observed_benchmark_pack": {
                     "statement": (
-                        "Research technology adult subscription advanced plan 1 unit "
-                        "current retail price is €5.99."
+                        "Research technology adult subscription advanced plan "
+                        "1 unit: €5.99."
                     ),
                     "claim_ids": [higher_claim],
                 },
