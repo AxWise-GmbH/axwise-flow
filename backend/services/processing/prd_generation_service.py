@@ -28,6 +28,17 @@ _MAX_TERMINAL_VALIDATION_ISSUES = 16
 _MAX_TERMINAL_ISSUE_CODE_BYTES = 96
 _MAX_TERMINAL_ISSUE_MESSAGE_BYTES = 512
 _MAX_ERROR_BYTES = 12_000
+_OBSERVED_PRICE_DIFFERENCE_KEY = "observed_pack_price_difference"
+_OBSERVED_PRICE_DIFFERENCE_FORMULA = (
+    "observed_pack_price_difference = higher_observed_pack_price - "
+    "lower_observed_pack_price"
+)
+_TYPED_CALCULATION_KEYS = {
+    "calculation_kind",
+    "formula",
+    "input_bindings",
+    "input_claim_ids",
+}
 
 
 def _truncate_utf8(value: Any, max_bytes: int) -> str:
@@ -105,6 +116,69 @@ def _strict_json_model_candidate(candidate: Any) -> Dict[str, Any]:
     # JSON above, then discard it before the service constructs its own record.
     canonical.pop("metadata", None)
     return canonical
+
+
+def _canonicalize_observed_price_difference_key(
+    candidate: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Rename one unambiguous exact typed calculation to its schema key.
+
+    Gemini may reproduce the immutable four-field calculation exactly while
+    naming its containing property descriptively.  The property name carries
+    no evidence authority, so the service may canonicalize that one label only
+    when there is no collision or competing formula-like child.  IDs, fact
+    bindings, values, and formula content remain untouched and must still pass
+    the full semantic validator.
+    """
+
+    commercial = candidate.get("commercial_prd")
+    if not isinstance(commercial, dict):
+        return candidate
+    pricing = commercial.get("pricing_and_unit_economics")
+    if not isinstance(pricing, dict) or _OBSERVED_PRICE_DIFFERENCE_KEY in pricing:
+        return candidate
+
+    formula_like_children = []
+    for key, value in pricing.items():
+        is_formula_like = key in _TYPED_CALCULATION_KEYS or (
+            isinstance(value, Mapping)
+            and bool(set(value).intersection(_TYPED_CALCULATION_KEYS))
+        )
+        if is_formula_like:
+            formula_like_children.append((key, value))
+    if len(formula_like_children) != 1:
+        return candidate
+
+    source_key, calculation = formula_like_children[0]
+    if (
+        not isinstance(calculation, dict)
+        or set(calculation) != _TYPED_CALCULATION_KEYS
+        or calculation.get("calculation_kind")
+        != _OBSERVED_PRICE_DIFFERENCE_KEY
+        or calculation.get("formula") != _OBSERVED_PRICE_DIFFERENCE_FORMULA
+    ):
+        return candidate
+    pricing[_OBSERVED_PRICE_DIFFERENCE_KEY] = pricing.pop(source_key)
+    return candidate
+
+
+def _project_reviewed_observed_sku_competitors(
+    candidate: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Keep only exact signed SKU pairs in reviewed competitor containers."""
+
+    commercial = candidate.get("commercial_prd")
+    competitors = (
+        commercial.get("competitors") if isinstance(commercial, Mapping) else None
+    )
+    if not isinstance(competitors, list):
+        return candidate
+    for competitor in competitors:
+        if isinstance(competitor, dict) and "observed_skus" in competitor:
+            observed_skus = competitor["observed_skus"]
+            competitor.clear()
+            competitor["observed_skus"] = observed_skus
+    return candidate
 
 
 def _strict_json_publishable_prd(candidate: Any) -> Dict[str, Any]:
@@ -328,6 +402,30 @@ class PRDGenerationService:
                     raw_candidate = _strict_json_model_candidate(
                         self._parse_llm_response(llm_response)
                     )
+                    if semantic_intent == COMMERCIAL_MARKET_LAUNCH:
+                        # Only the two reviewed, non-semantic structural
+                        # transforms may precede validation. Validate the raw
+                        # strict JSON before presentation cleanup so Markdown,
+                        # LaTeX, controls, or altered machine identifiers can
+                        # never be cleaned into a valid signed identity,
+                        # formula, binding, or claim ID.
+                        raw_candidate = _project_reviewed_observed_sku_competitors(
+                            raw_candidate
+                        )
+                        raw_candidate = _canonicalize_observed_price_difference_key(
+                            raw_candidate
+                        )
+                        raw_validation = validate_research_prd(
+                            raw_candidate,
+                            prd_type=semantic_intent,
+                            critical_claim_quality=critical_claim_quality,
+                        )
+                        if raw_validation["status"] != "passed":
+                            validation = raw_validation
+                            repair_candidate = _bounded_json_repair_candidate(
+                                raw_candidate
+                            )
+                            continue
                     candidate = _strict_json_model_candidate(
                         clean_semantic_text(raw_candidate)
                     )
