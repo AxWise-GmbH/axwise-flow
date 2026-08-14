@@ -186,37 +186,6 @@ _PRODUCT_KIND_TERMS = {
     "supplement",
     "toy",
 }
-_BOUND_OFFER_STRUCTURAL_TERMS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "at",
-    "by",
-    "catalog",
-    "catalogue",
-    "current",
-    "each",
-    "eur",
-    "for",
-    "from",
-    "in",
-    "is",
-    "observed",
-    "of",
-    "on",
-    "offer",
-    "per",
-    "price",
-    "retail",
-    "shelf",
-    "the",
-    "to",
-    "unit",
-    "units",
-    "was",
-    "with",
-}
 _COUNTRY_NAME_TO_CODE = {
     str(country.name).casefold(): str(country.alpha_2).upper()
     for country in pycountry.countries
@@ -568,6 +537,7 @@ def _has_traceable_calculation(
     verified_claim_ids: set[str],
     verified_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
     required_country_codes: set[str],
+    required_topic_seed_sha256: str,
 ) -> bool:
     if not isinstance(value, Mapping):
         return False
@@ -578,6 +548,7 @@ def _has_traceable_calculation(
         verified_claim_ids=verified_claim_ids,
         verified_facts_by_claim=verified_facts_by_claim,
         required_country_codes=required_country_codes,
+        required_topic_seed_sha256=required_topic_seed_sha256,
     ):
         return False
 
@@ -585,8 +556,11 @@ def _has_traceable_calculation(
     # evidence. Each exact bound offer must appear in its own immediate pricing
     # sibling, locally citing only that claim and matching only that fact.
     bindings = calculation["input_bindings"]
-    represented_paths: set[str] = set()
-    for binding in bindings.values():
+    sibling_keys = {
+        "higher_observed_pack_price": "higher_observed_benchmark_pack",
+        "lower_observed_pack_price": "lower_observed_benchmark_pack",
+    }
+    for symbol, binding in bindings.items():
         claim_id = str(binding["claim_id"])
         fact_id = str(binding["fact_id"])
         matches = [
@@ -598,32 +572,19 @@ def _has_traceable_calculation(
         ]
         if len(matches) != 1:
             return False
-        exact_fact_map = {claim_id: matches}
-        eligible_paths: list[str] = []
-        for sibling_key, sibling in value.items():
-            if sibling_key == calculation_key or not isinstance(sibling, Mapping):
-                continue
-            sibling_claims = sibling.get("claim_ids")
-            if (
-                not isinstance(sibling_claims, Sequence)
-                or isinstance(sibling_claims, (str, bytes))
-                or list(sibling_claims) != [claim_id]
-                or set(sibling) != {"statement", "claim_ids"}
-            ):
-                continue
-            if _material_facts_match_cited_evidence(
-                sibling,
-                path=f"pricing_and_unit_economics.{sibling_key}",
-                cited_claim_ids={claim_id},
-                verified_facts_by_claim=exact_fact_map,
-            ) and _bound_observed_offer_sibling_matches(sibling, matches[0]):
-                eligible_paths.append(str(sibling_key))
-        available_paths = [
-            path for path in eligible_paths if path not in represented_paths
-        ]
-        if not available_paths:
+        sibling = value.get(sibling_keys[symbol])
+        sibling_claims = (
+            sibling.get("claim_ids") if isinstance(sibling, Mapping) else None
+        )
+        if (
+            not isinstance(sibling, Mapping)
+            or not isinstance(sibling_claims, Sequence)
+            or isinstance(sibling_claims, (str, bytes))
+            or list(sibling_claims) != [claim_id]
+            or set(sibling) != {"statement", "claim_ids"}
+            or not _bound_observed_offer_sibling_matches(sibling, matches[0])
+        ):
             return False
-        represented_paths.add(available_paths[0])
     return True
 
 
@@ -656,39 +617,94 @@ def _canonical_observed_pack_tokens(fact: Mapping[str, Any]) -> list[str]:
     return tokens
 
 
-def _bound_offer_identity_tokens(
-    terms: Iterable[Any], *, country_codes: Iterable[Any]
-) -> set[str]:
-    """Canonical product identity for formula-bound observed offer siblings.
+def _has_disallowed_identity_codepoint(value: Any) -> bool:
+    """Reject controls, format controls, and surrogates in durable identity."""
 
-    The reviewed exclusions are structural catalogue words, exact package
-    tokens, canonical category/kind terms, and exact surfaces from the pinned
-    topic-alias registry. Brand, product-line, variant, flavor, and SKU tokens
-    are intentionally never fuzzy-matched or silently dropped.
+    return any(
+        unicodedata.category(character) in {"Cc", "Cf", "Cs"}
+        or 0xFE00 <= ord(character) <= 0xFE0F
+        or 0xE0100 <= ord(character) <= 0xE01EF
+        for character in str(value or "")
+    )
+
+
+def _canonical_offer_identity_surface(value: Any) -> Optional[str]:
+    """Normalize case/whitespace while preserving identity punctuation/order."""
+
+    normalized = unicodedata.normalize("NFKC", str(value or ""))
+    if _has_disallowed_identity_codepoint(normalized):
+        return None
+    surface = " ".join(normalized.split()).casefold()
+    return surface or None
+
+
+def _identity_prefix_surface(value: str, pack_start: int) -> Optional[str]:
+    # Only punctuation immediately separating identity from its package may
+    # vary. Internal punctuation (C++, C#, .NET, S/4HANA, flavors) and token
+    # order remain exact signed product identity.
+    prefix = value[:pack_start].rstrip()
+    prefix = prefix.rstrip(" ,;:|/().-\u2013\u2014")
+    return _canonical_offer_identity_surface(prefix)
+
+
+def _has_standalone_pack_sign(value: str, pack_start: int) -> bool:
+    prefix = unicodedata.normalize("NFKC", value[:pack_start]).rstrip()
+    return re.search(r"(?:^|\s)[+\-]\s*$", prefix) is not None
+
+
+def _signed_offer_identity_surface(
+    verified: Mapping[str, Any], *, canonical_pack: str
+) -> Optional[str]:
+    """Return identity surface from the exact HMAC-bound visible product name.
+
+    ``signed_offer_product_name`` is copied onto the fact only after
+    ``fact_matching_offer_evidence`` has revalidated the raw-derived signed
+    offer.  Old/lossy ledgers that expose only ``fact_terms`` deliberately fail
+    this strict observed-offer adapter.
     """
 
-    tokens: set[str] = set()
-    for term in terms:
-        normalized_term = unicodedata.normalize("NFKC", str(term or "")).casefold()
-        # A trusted ``3,5kg`` term must be removed as one package identity
-        # before punctuation-aware tokenization; otherwise its decimal prefix
-        # becomes a spurious product token while the candidate pack span is
-        # correctly blanked in full.
-        if re.fullmatch(
-            r"\d+(?:[.,]\d+)?(?:kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)",
-            normalized_term,
-        ):
-            continue
-        tokens.update(re.findall(r"[^\W_]+", normalized_term, re.UNICODE))
-    excluded = set(_BOUND_OFFER_STRUCTURAL_TERMS)
-    excluded.update(_PRODUCT_CATEGORY_TERMS)
-    excluded.update(_PRODUCT_KIND_TERMS)
-    countries = {str(code).upper() for code in country_codes if code}
-    for alias in trusted_topic_alias_registry().entries:
-        alias_tokens = set(alias.phrase.split())
-        if alias.country_code in countries and alias_tokens.issubset(tokens):
-            excluded.update(alias_tokens)
-    return tokens - excluded
+    product_name = verified.get("signed_offer_product_name")
+    if (
+        not isinstance(product_name, str)
+        or not product_name.strip()
+        or len(product_name) > 300
+        or _has_disallowed_identity_codepoint(product_name)
+    ):
+        return None
+    normalized = unicodedata.normalize("NFKC", product_name)
+    if _has_disallowed_identity_codepoint(normalized):
+        return None
+    pack_matches = list(
+        re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    if not pack_matches:
+        # Some catalogues expose the immutable product name and package size
+        # in separate visible fields.  The fact's singleton canonical pack is
+        # still required below by every candidate matcher; only the signed
+        # name's identity surface is pack-free in this producer shape.
+        return _canonical_offer_identity_surface(normalized)
+    if len(pack_matches) != 1:
+        return None
+    pack_match = pack_matches[0]
+    signed_pack = (
+        f"{pack_match.group(1).replace(',', '.')}"
+        f"{pack_match.group(2).casefold()}"
+    )
+    if (
+        signed_pack != canonical_pack
+        or _has_standalone_pack_sign(normalized, pack_match.start())
+        or re.fullmatch(
+            r"[\s,;:|/().\-\u2013\u2014]*", normalized[pack_match.end() :]
+        )
+        is None
+    ):
+        return None
+    return _identity_prefix_surface(normalized, pack_match.start())
 
 
 def _bound_observed_offer_sibling_matches(
@@ -702,7 +718,11 @@ def _bound_observed_offer_sibling_matches(
     """
 
     statement = sibling.get("statement")
-    if not isinstance(statement, str) or not statement.strip():
+    if (
+        not isinstance(statement, str)
+        or not statement.strip()
+        or _has_disallowed_identity_codepoint(statement)
+    ):
         return False
     verified_packs = _canonical_observed_pack_tokens(verified)
     pack_matches = list(
@@ -716,8 +736,7 @@ def _bound_observed_offer_sibling_matches(
     if len(verified_packs) != 1 or len(pack_matches) != 1:
         return False
     pack_match = pack_matches[0]
-    signed_prefix = statement[: pack_match.start()].rstrip()
-    if signed_prefix.endswith(("+", "-")):
+    if _has_standalone_pack_sign(statement, pack_match.start()):
         return False
     candidate_pack = (
         f"{pack_match.group(1).replace(',', '.')}"
@@ -737,9 +756,14 @@ def _bound_observed_offer_sibling_matches(
         fact
         for fact in material_facts
         if not (
-            fact.get("unit") == "number"
-            and int(fact.get("_text_start", -1)) < pack_end
-            and int(fact.get("_text_end", -1)) > pack_start
+            # A digit-bearing model/SKU inside the exact signed product-name
+            # prefix is identity, not a displayed calculation/value.
+            int(fact.get("_text_end", -1)) <= pack_match.start()
+            or (
+                fact.get("unit") == "number"
+                and int(fact.get("_text_start", -1)) < pack_end
+                and int(fact.get("_text_end", -1)) > pack_start
+            )
         )
     ]
     if len(displayed_facts) != 1:
@@ -753,7 +777,6 @@ def _bound_observed_offer_sibling_matches(
     ):
         return False
 
-    countries = verified.get("country_codes") or []
     normalized_statement = unicodedata.normalize("NFKC", statement).casefold()
     normalized_pack_matches = list(
         re.finditer(
@@ -774,34 +797,329 @@ def _bound_observed_offer_sibling_matches(
     ]
     if len(normalized_pack_matches) != 1 or len(normalized_price_matches) != 1:
         return False
-    scrubbed = list(normalized_statement)
-    for match in (normalized_pack_matches[0], normalized_price_matches[0]):
-        scrubbed[match.start():match.end()] = " " * (match.end() - match.start())
-    candidate_identity = _bound_offer_identity_tokens(
-        ["".join(scrubbed)], country_codes=countries
+    normalized_pack = normalized_pack_matches[0]
+    normalized_price = normalized_price_matches[0]
+    if normalized_price.start() < normalized_pack.end():
+        return False
+    formatting_only = r"[\s,;:|/().\-\u2013\u2014]*"
+    if (
+        re.fullmatch(
+            formatting_only,
+            normalized_statement[normalized_pack.end() : normalized_price.start()],
+        )
+        is None
+        or re.fullmatch(
+            formatting_only, normalized_statement[normalized_price.end() :]
+        )
+        is None
+    ):
+        return False
+    verified_identity = _signed_offer_identity_surface(
+        verified, canonical_pack=verified_packs[0]
     )
-    verified_identity = _bound_offer_identity_tokens(
-        verified.get("fact_terms") or (), country_codes=countries
+    candidate_identity = _identity_prefix_surface(
+        normalized_statement, normalized_pack.start()
     )
-    return bool(candidate_identity and candidate_identity == verified_identity)
+    return bool(
+        verified_identity
+        and candidate_identity
+        and candidate_identity == verified_identity
+    )
 
 
-def _observed_fact_topic_signature(
-    fact: Mapping[str, Any]
-) -> tuple[set[str], set[str]]:
-    terms = {str(term).casefold() for term in fact.get("fact_terms") or [] if term}
-    categories = terms & _PRODUCT_CATEGORY_TERMS
-    kinds = terms & _PRODUCT_KIND_TERMS
-    countries = {str(code).upper() for code in fact.get("country_codes") or [] if code}
-    for alias in trusted_topic_alias_registry().entries:
-        if alias.country_code not in countries:
+def _bound_observed_offer_identity_only_matches(
+    node: Mapping[str, Any], verified: Mapping[str, Any]
+) -> bool:
+    """Match one signed catalogue identity without treating its pack as a price.
+
+    Competitor schemas sometimes split ``product_name`` from ``observed_price``.
+    A decimal package such as ``3,5 kg`` is material to the exact product
+    identity, but it is not an independently observed numeric fact.  This
+    matcher therefore suppresses only the one exact signed pack occurrence and
+    requires every remaining product token to equal the immutable fact terms.
+    """
+
+    statement = node.get("statement")
+    if (
+        not isinstance(statement, str)
+        or not statement.strip()
+        or _has_disallowed_identity_codepoint(statement)
+    ):
+        return False
+    verified_packs = _canonical_observed_pack_tokens(verified)
+    pack_matches = list(
+        re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            statement,
+            re.IGNORECASE,
+        )
+    )
+    if len(verified_packs) != 1 or len(pack_matches) != 1:
+        return False
+    pack_match = pack_matches[0]
+    candidate_pack = (
+        f"{pack_match.group(1).replace(',', '.')}"
+        f"{pack_match.group(2).casefold()}"
+    )
+    if (
+        _has_standalone_pack_sign(statement, pack_match.start())
+        or candidate_pack != verified_packs[0]
+    ):
+        return False
+
+    material_facts = extract_material_facts(
+        statement,
+        claim_id="bound_observed_offer_identity",
+        force_material=True,
+        include_text_spans=True,
+    )
+    pack_start, pack_end = pack_match.span(1)
+    if any(
+        not (
+            int(fact.get("_text_end", -1)) <= pack_match.start()
+            or (
+                fact.get("unit") == "number"
+                and int(fact.get("_text_start", -1)) < pack_end
+                and int(fact.get("_text_end", -1)) > pack_start
+            )
+        )
+        for fact in material_facts
+    ):
+        return False
+
+    normalized_statement = unicodedata.normalize("NFKC", statement).casefold()
+    normalized_pack_matches = list(
+        re.finditer(
+            r"(?<![\w+\-])(\d+(?:[.,]\d+)?)\s*"
+            r"(kg|mg|g|ml|cl|l|oz|lb|pcs?|pack|units?)\b",
+            normalized_statement,
+            re.IGNORECASE,
+        )
+    )
+    if len(normalized_pack_matches) != 1:
+        return False
+    normalized_pack = normalized_pack_matches[0]
+    if re.fullmatch(
+        r"[\s,;:|/().\-\u2013\u2014]*",
+        normalized_statement[normalized_pack.end() :],
+    ) is None:
+        return False
+    verified_identity = _signed_offer_identity_surface(
+        verified, canonical_pack=verified_packs[0]
+    )
+    candidate_identity = _identity_prefix_surface(
+        normalized_statement, normalized_pack.start()
+    )
+    return bool(
+        verified_identity
+        and candidate_identity
+        and candidate_identity == verified_identity
+    )
+
+
+_COMPETITOR_OBSERVED_PRICE_PATH = re.compile(
+    r"competitors\[\d+\]\.observed_skus\[\d+\]\.observed_price"
+)
+_COMPETITOR_PRODUCT_NAME_PATH = re.compile(
+    r"competitors\[\d+\]\.observed_skus\[\d+\]\.product_name"
+)
+_COMPETITOR_OBSERVED_PRODUCT_PATH = re.compile(
+    r"competitors\[\d+\]\.observed_product"
+)
+_REVIEWED_PRICING_OFFER_PATH = re.compile(
+    r"pricing_and_unit_economics\."
+    r"(?:higher_observed_benchmark_pack|lower_observed_benchmark_pack)"
+)
+
+
+def _path_requires_strict_signed_offer(
+    path: str,
+    cited_claim_ids: set[str],
+    ledger_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> bool:
+    if _COMPETITOR_OBSERVED_PRICE_PATH.fullmatch(
+        path
+    ) or _COMPETITOR_PRODUCT_NAME_PATH.fullmatch(path):
+        return True
+    return any(
+        str(fact.get("evidence_class") or "") == "observed_primary_market"
+        for claim_id in cited_claim_ids
+        for fact in ledger_facts_by_claim.get(claim_id, ())
+    )
+
+
+def _path_scoped_signed_offer_matches(
+    node: Mapping[str, Any],
+    *,
+    path: str,
+    cited_claim_ids: set[str],
+    ledger_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+    required_country_codes: set[str],
+    required_topic_seed_sha256: str,
+) -> bool:
+    """Accept exact signed-offer surfaces only at reviewed commercial paths.
+
+    This compatibility route does not infer or attach provenance.  It requires
+    one model-supplied citable claim ID, one complete ledger-owned signed offer,
+    and an exact two-key display node.  The general material-fact matcher stays
+    unchanged for every other PRD surface.
+    """
+
+    if set(node) != {"statement", "claim_ids"} or len(cited_claim_ids) != 1:
+        return False
+    raw_claim_ids = node.get("claim_ids")
+    if (
+        not isinstance(raw_claim_ids, Sequence)
+        or isinstance(raw_claim_ids, (str, bytes))
+    ):
+        return False
+    claim_id = next(iter(cited_claim_ids))
+    if list(raw_claim_ids) != [claim_id]:
+        return False
+    facts = [
+        fact
+        for fact in ledger_facts_by_claim.get(claim_id, ())
+        if str(fact.get("claim_id") or "") == claim_id
+        and fact.get("identity_complete") is True
+        and str(fact.get("evidence_class") or "") == "observed_primary_market"
+        and str(fact.get("unit") or "").casefold()
+        not in {"", "number", "percent"}
+        and re.fullmatch(
+            rf"catalog:signed_offer:[^:]+:per_item:"
+            rf"{re.escape(str(fact.get('unit') or '').casefold())}",
+            str(fact.get("semantic_scope") or "").casefold(),
+        )
+        and str(fact.get("metric_key") or "").casefold()
+        == f"price:{str(fact.get('unit') or '').casefold()}"
+        and str(fact.get("topic_seed_sha256") or "")
+        == required_topic_seed_sha256
+    ]
+    if len(facts) != 1:
+        return False
+    verified = facts[0]
+    verified_countries = {
+        str(code).upper() for code in verified.get("country_codes") or [] if code
+    }
+    if (
+        len(verified_countries) != 1
+        or not required_country_codes
+        or not verified_countries.issubset(required_country_codes)
+        or re.fullmatch(r"[a-f0-9]{64}", required_topic_seed_sha256) is None
+    ):
+        return False
+    if _COMPETITOR_PRODUCT_NAME_PATH.fullmatch(path):
+        return _bound_observed_offer_identity_only_matches(node, verified)
+    if _COMPETITOR_OBSERVED_PRICE_PATH.fullmatch(
+        path
+    ) or _COMPETITOR_OBSERVED_PRODUCT_PATH.fullmatch(
+        path
+    ) or _REVIEWED_PRICING_OFFER_PATH.fullmatch(path):
+        return _bound_observed_offer_sibling_matches(node, verified)
+    return False
+
+
+def _reviewed_observed_sku_contract_issues(
+    commercial: Mapping[str, Any],
+    ledger_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
+    required_country_codes: set[str],
+    required_topic_seed_sha256: str,
+) -> list[dict[str, str]]:
+    """Validate locally paired competitor SKU identity and price evidence."""
+
+    issues: list[dict[str, str]] = []
+    competitors = commercial.get("competitors")
+    if not isinstance(competitors, Sequence) or isinstance(
+        competitors, (str, bytes)
+    ):
+        return issues
+    for competitor_index, competitor in enumerate(competitors):
+        if not isinstance(competitor, Mapping) or "observed_skus" not in competitor:
             continue
-        if not set(alias.phrase.split()).issubset(terms):
+        competitor_path = f"competitors[{competitor_index}]"
+        if set(competitor) != {"observed_skus"}:
+            issues.append(
+                {
+                    "code": "observed_sku_competitor_shape_invalid",
+                    "message": (
+                        f"{competitor_path} may contain only observed_skus; omit "
+                        "unverified brand, manufacturer, identity, or grouping "
+                        "fields and retain the signed identity in each child."
+                    ),
+                }
+            )
+        observed_skus = competitor.get("observed_skus")
+        if not isinstance(observed_skus, Sequence) or isinstance(
+            observed_skus, (str, bytes)
+        ):
+            issues.append(
+                {
+                    "code": "observed_sku_pair_invalid",
+                    "message": f"{competitor_path}.observed_skus must be a list.",
+                }
+            )
             continue
-        anchor_terms = set(alias.source_anchor.casefold().split())
-        categories.update(anchor_terms & _PRODUCT_CATEGORY_TERMS)
-        kinds.update(anchor_terms & _PRODUCT_KIND_TERMS)
-    return categories, kinds
+        for sku_index, sku in enumerate(observed_skus):
+            sku_path = f"{competitor_path}.observed_skus[{sku_index}]"
+            if not isinstance(sku, Mapping):
+                issues.append(
+                    {
+                        "code": "observed_sku_pair_invalid",
+                        "message": (
+                            f"{sku_path} must locally pair one signed product_name "
+                            "with its observed_price."
+                        ),
+                    }
+                )
+                continue
+            product_name = sku.get("product_name")
+            observed_price = sku.get("observed_price")
+
+            def claim_ids(value: Any) -> set[str]:
+                raw = value.get("claim_ids") if isinstance(value, Mapping) else None
+                if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
+                    return set()
+                return {str(item) for item in raw if item}
+
+            product_claims = claim_ids(product_name)
+            price_claims = claim_ids(observed_price)
+            product_path = f"{sku_path}.product_name"
+            price_path = f"{sku_path}.observed_price"
+            valid_pair = bool(
+                isinstance(product_name, Mapping)
+                and isinstance(observed_price, Mapping)
+                and set(sku) == {"product_name", "observed_price"}
+                and len(product_claims) == 1
+                and product_claims == price_claims
+                and _path_scoped_signed_offer_matches(
+                    product_name,
+                    path=product_path,
+                    cited_claim_ids=product_claims,
+                    ledger_facts_by_claim=ledger_facts_by_claim,
+                    required_country_codes=required_country_codes,
+                    required_topic_seed_sha256=required_topic_seed_sha256,
+                )
+                and _path_scoped_signed_offer_matches(
+                    observed_price,
+                    path=price_path,
+                    cited_claim_ids=price_claims,
+                    ledger_facts_by_claim=ledger_facts_by_claim,
+                    required_country_codes=required_country_codes,
+                    required_topic_seed_sha256=required_topic_seed_sha256,
+                )
+            )
+            if not valid_pair:
+                issues.append(
+                    {
+                        "code": "observed_sku_pair_invalid",
+                        "message": (
+                            f"{sku_path} must contain exact product_name and "
+                            "observed_price objects with the same singleton signed "
+                            "offer claim_id."
+                        ),
+                    }
+                )
+    return issues
 
 
 def _strict_positive_fact_decimal(fact: Mapping[str, Any]) -> Optional[Decimal]:
@@ -879,6 +1197,7 @@ def _formula_has_typed_bindings(
     verified_claim_ids: set[str],
     verified_facts_by_claim: Mapping[str, Sequence[Mapping[str, Any]]],
     required_country_codes: set[str],
+    required_topic_seed_sha256: str,
 ) -> bool:
     """Validate exact symbol -> citable fact ownership and unit-safe arithmetic."""
 
@@ -1006,8 +1325,8 @@ def _formula_has_typed_bindings(
     lower_basis = re.fullmatch(
         r"catalog:signed_offer:[^:]+:(per_[a-z]+):([a-z]{3})", lower_scope
     )
-    higher_topics = _observed_fact_topic_signature(higher_fact)
-    lower_topics = _observed_fact_topic_signature(lower_fact)
+    higher_topic_seed = str(higher_fact.get("topic_seed_sha256") or "")
+    lower_topic_seed = str(lower_fact.get("topic_seed_sha256") or "")
     higher_packs = _canonical_observed_pack_tokens(higher_fact)
     lower_packs = _canonical_observed_pack_tokens(lower_fact)
     higher_value = _strict_positive_fact_decimal(higher_fact)
@@ -1026,8 +1345,9 @@ def _formula_has_typed_bindings(
         or lower_basis.group(2) != str(lower_fact.get("unit") or "").casefold()
         or len(higher_packs) != 1
         or len(lower_packs) != 1
-        or not all(higher_topics)
-        or higher_topics != lower_topics
+        or re.fullmatch(r"[a-f0-9]{64}", required_topic_seed_sha256) is None
+        or higher_topic_seed != required_topic_seed_sha256
+        or lower_topic_seed != required_topic_seed_sha256
         or higher_value is None
         or lower_value is None
         or higher_value <= lower_value
@@ -2768,6 +3088,21 @@ def evaluate_critical_claims(
                         ):
                             offer = None
                     if offer:
+                        signed_product_name = " ".join(
+                            str(offer.get("product_name") or "").split()
+                        )[:300]
+                        if (
+                            not signed_product_name
+                            or _has_disallowed_identity_codepoint(
+                                signed_product_name
+                            )
+                        ):
+                            # A hidden/ID-only or control-bearing offer cannot
+                            # support the strict physical-product identity
+                            # adapter. Reject it at quality time rather than
+                            # guaranteeing a later PRD terminal failure.
+                            offer = None
+                    if offer:
                         # Currency symbols and separator conventions are not
                         # globally unique. Once the exact fact span is bound to
                         # one signed raw-derived offer, the ledger canonical
@@ -2787,6 +3122,16 @@ def evaluate_critical_claims(
                         # (for a symbol the generic fact parser does not map)
                         # or ``usd`` (for an ambiguous dollar sign).
                         fact["metric_key"] = f"price:{fact['unit']}"
+                        # The offer name is already raw-derived, visibly bound,
+                        # included in the offer SHA, and HMAC-bound by the
+                        # direct primary-market authority proof. Preserve it
+                        # before the lossy ``fact_terms`` path so downstream
+                        # strict identity never relies on a category ontology.
+                        fact["signed_offer_product_name"] = signed_product_name
+                        if offer_topic_seed is not None:
+                            fact["topic_seed_sha256"] = (
+                                offer_topic_seed.seed_sha256
+                            )
                         offer_identity_hash = hashlib.sha256(
                             json.dumps(
                                 {
@@ -3289,6 +3634,21 @@ def validate_research_prd(
             )
             else set()
         )
+        raw_topic_seed_sha256 = quality.get("topic_seed_sha256")
+        formula_topic_seed_sha256 = (
+            str(raw_topic_seed_sha256)
+            if isinstance(raw_topic_seed_sha256, str)
+            and re.fullmatch(r"[a-f0-9]{64}", raw_topic_seed_sha256)
+            else ""
+        )
+        issues.extend(
+            _reviewed_observed_sku_contract_issues(
+                commercial,
+                ledger_facts_by_claim,
+                formula_market_countries,
+                formula_topic_seed_sha256,
+            )
+        )
         for path, node in _iter_material_nodes(commercial):
             cited = {
                 str(value) for value in node.get("claim_ids") or [] if value
@@ -3314,6 +3674,7 @@ def validate_research_prd(
                         verified_claim_ids=verified_claim_ids,
                         verified_facts_by_claim=ledger_facts_by_claim,
                         required_country_codes=formula_market_countries,
+                        required_topic_seed_sha256=formula_topic_seed_sha256,
                     )
                 )
                 structurally_cited = bool(
@@ -3321,9 +3682,26 @@ def validate_research_prd(
                     and cited.issubset(verified_claim_ids)
                     or typed_formula_valid
                 )
+                strict_signed_offer_path = _path_requires_strict_signed_offer(
+                    path, cited, ledger_facts_by_claim
+                )
+                exact_signed_offer = bool(
+                    structurally_cited
+                    and strict_signed_offer_path
+                    and _path_scoped_signed_offer_matches(
+                        node,
+                        path=path,
+                        cited_claim_ids=cited,
+                        ledger_facts_by_claim=ledger_facts_by_claim,
+                        required_country_codes=formula_market_countries,
+                        required_topic_seed_sha256=formula_topic_seed_sha256,
+                    )
+                )
                 traceable = bool(
                     typed_formula_valid
+                    or exact_signed_offer
                     or structurally_cited
+                    and not strict_signed_offer_path
                     and _material_facts_match_cited_evidence(
                         node,
                         path=path,
@@ -3348,6 +3726,7 @@ def validate_research_prd(
             verified_claim_ids,
             ledger_facts_by_claim,
             formula_market_countries,
+            formula_topic_seed_sha256,
         ):
             issues.append(
                 {
@@ -3356,12 +3735,16 @@ def validate_research_prd(
                         "Pricing and unit economics must contain at least one formula "
                         "with exact input_claim_ids and input_bindings to verified "
                         "ledger fact IDs. With two compatible signed offers, use "
-                        "calculation_kind observed_pack_price_difference and exactly: "
+                        "the exact pricing_and_unit_economics child key "
+                        "observed_pack_price_difference, calculation_kind "
+                        "observed_pack_price_difference, and exactly: "
                         "observed_pack_price_difference = higher_observed_pack_price "
                         "- lower_observed_pack_price. The formula object must contain "
                         "only calculation_kind, formula, input_claim_ids, and "
-                        "input_bindings; keep displayed offer facts in separately "
-                        "cited sibling nodes and do not display the derived result."
+                        "input_bindings; keep the higher bound fact in the exact "
+                        "higher_observed_benchmark_pack sibling and the lower bound "
+                        "fact in lower_observed_benchmark_pack, and do not display "
+                        "the derived result."
                     ),
                 }
             )

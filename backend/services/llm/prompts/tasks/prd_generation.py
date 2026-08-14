@@ -41,6 +41,8 @@ _CITABLE_FACT_FIELDS = {
     "source_scope",
     "semantic_scope",
     "identity_complete",
+    "signed_offer_product_name",
+    "topic_seed_sha256",
     "structured_observation_sha256",
     "topic_match",
 }
@@ -174,7 +176,10 @@ traceable formula. A formula does not prove its displayed output: omit a derived
 number unless it exactly matches a cited ledger fact, or label the number as a
 synthetic_hypothesis with its own validation_plan. If verified context and an
 unsupported threshold occur together, split them into separately traceable
-objects. Prefer the exact calculation supported by two signed observed offers:
+objects. Prefer the exact calculation supported by two signed observed offers.
+Place its object under the exact property
+pricing_and_unit_economics.observed_pack_price_difference; never rename that
+property to pack_price_difference_calculation or another descriptive key:
 "calculation_kind": "observed_pack_price_difference",
 "formula": "observed_pack_price_difference = higher_observed_pack_price - lower_observed_pack_price",
 "input_claim_ids": ["<higher-price-claim>", "<lower-price-claim>"],
@@ -188,13 +193,29 @@ object must contain exactly those four keys: calculation_kind, formula,
 input_claim_ids, and input_bindings. Do not add a statement, displayed result,
 unit, status, claim, or other metadata. Keep both exact products, packs, and
 observed prices in separate sibling objects containing exactly statement and
-claim_ids. In each sibling statement preserve every signed brand, product-line,
-variant, flavor, and SKU token from that fact; do not omit, substitute, or add
-product-identity tokens. Case, punctuation, and token order may vary. Use only
-claim and fact IDs copied from the supplied ledger. Do not infer unit-price
-comparability, savings, premium, value, margin, or willingness to pay from
-different package totals. Omit a net/VAT calculation unless a signed price fact
-itself explicitly attests a gross, tax-inclusive, or VAT-inclusive basis.
+claim_ids. Name those exact sibling properties higher_observed_benchmark_pack
+for higher_observed_pack_price and lower_observed_benchmark_pack for
+lower_observed_pack_price; never swap them. Write each offer as "<full signed
+product identity>, <pack>: <exact display price>". In each sibling statement
+preserve every signed brand, product-line, variant, flavor, and SKU token from
+that fact by copying its signed_offer_product_name; do not omit, substitute, add, or reorder
+product-identity content.
+Copy all internal punctuation exactly (including slashes, plus signs, hashes,
+and dots). Only case, whitespace, and boundary punctuation immediately before
+the package may vary; keep the colon between pack and price.
+If a competitor observed_skus entry splits product_name from observed_price,
+make product_name an object containing exactly statement and claim_ids; preserve
+the full signed identity and exact pack but include no price or other number.
+The observed_price object must repeat the full signed identity and use the
+pack-colon-price surface above. A competitor object containing observed_skus
+must contain exactly that one key, and each SKU object must contain exactly
+product_name and observed_price. Omit brand, brand_name, manufacturer, identity,
+and other grouping fields; the signed identity remains in each paired child.
+Use only claim and fact IDs copied
+from the supplied ledger. Do not infer unit-price comparability, savings, premium, value,
+margin, or willingness to pay from different package totals. Omit a net/VAT
+calculation unless a signed price fact itself explicitly attests a gross,
+tax-inclusive, or VAT-inclusive basis.
 Never add APIs, databases, endpoints, React/Next.js, latency, or software
 architecture unless the immutable task contract requests software work. Every
 section must be complete and non-empty; generic fallback content is invalid."""
