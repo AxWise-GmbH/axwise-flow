@@ -38,7 +38,14 @@ PROJECTION_ALLOWLIST_ENV = "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS"
 PHYSICAL_PRODUCT_MODEL = "physical_product"
 _SUPPORTED_PROJECTION_MODELS = frozenset({PHYSICAL_PRODUCT_MODEL})
 _VERIFIED_STATUS = "verified_current_authoritative"
+_STATUTORY_CURRENT = "statutory_current"
+_OFFICIAL_STATISTIC = "official_statistic"
 _OBSERVED_PRIMARY_MARKET = "observed_primary_market"
+_CRITICAL_CLAIM_CLASS_ORDER = (
+    _STATUTORY_CURRENT,
+    _OFFICIAL_STATISTIC,
+    _OBSERVED_PRIMARY_MARKET,
+)
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _COUNTRY = re.compile(r"^[A-Z]{2}$")
 _SIGNED_OFFER_SCOPE = re.compile(
@@ -176,6 +183,26 @@ def validate_business_evidence_projection_profile(
         )
 
 
+def required_business_evidence_claim_classes(
+    profile: BusinessEvidenceProfileV1,
+) -> tuple[str, ...]:
+    """Return the minimum critical-claim set implied by a reviewed profile.
+
+    Typed commercial offer requirements supplement the established commercial
+    research boundary; they never replace statutory or official-statistic
+    verification.  Noncommercial physical-product work retains the narrower
+    observed-offer requirement.
+    """
+
+    if profile.economic_model == "none":
+        return ()
+    if profile.economic_model != PHYSICAL_PRODUCT_MODEL:
+        return ()
+    if profile.intent == "commercial_market_launch":
+        return _CRITICAL_CLAIM_CLASS_ORDER
+    return (_OBSERVED_PRIMARY_MARKET,)
+
+
 def effective_business_evidence_claim_policy(
     profile: BusinessEvidenceProfileV1,
     current_policy: Optional[Mapping[str, Any]] = None,
@@ -186,9 +213,13 @@ def effective_business_evidence_claim_policy(
     if profile.economic_model == "none":
         return dict(current_policy or {})
     parsed = CriticalClaimPolicyV1.model_validate(current_policy or {})
-    mandatory = list(parsed.mandatory_claim_classes)
-    if _OBSERVED_PRIMARY_MARKET not in mandatory:
-        mandatory.append(_OBSERVED_PRIMARY_MARKET)
+    mandatory_set = set(parsed.mandatory_claim_classes)
+    mandatory_set.update(required_business_evidence_claim_classes(profile))
+    mandatory = [
+        evidence_class
+        for evidence_class in _CRITICAL_CLAIM_CLASS_ORDER
+        if evidence_class in mandatory_set
+    ]
     freshness_by_class = dict(parsed.freshness_by_class)
     freshness_by_class[_OBSERVED_PRIMARY_MARKET] = min(
         int(freshness_by_class.get(_OBSERVED_PRIMARY_MARKET, 120)),

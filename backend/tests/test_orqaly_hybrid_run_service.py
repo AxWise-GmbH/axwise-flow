@@ -713,6 +713,215 @@ async def test_noncommercial_physical_profile_derives_live_acquisition_and_quali
     assert "_physical_product_projection_authorization" not in serialized
 
 
+def test_commercial_physical_enqueue_restores_full_critical_policy(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        commercial_enrichment,
+        commercial_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    task_context = _physical_business_task_context(
+        intent="commercial_market_launch"
+    ).model_copy(
+        update={
+            "critical_claim_policy": {
+                "required": True,
+                "fail_closed": True,
+                "mandatory_claim_classes": ["observed_primary_market"],
+            }
+        }
+    )
+
+    run, reused = service.enqueue(
+        _request(),
+        _bundle_outputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-commercial-physical-policy",
+        "trace-commercial-physical-policy",
+        task_context=task_context,
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+        ),
+    )
+
+    assert reused is False
+    assert run.request_payload["task_context"]["critical_claim_policy"][
+        "mandatory_claim_classes"
+    ] == [
+        "statutory_current",
+        "official_statistic",
+        "observed_primary_market",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_worker_rehydrates_downgraded_commercial_physical_policy(
+    session_factory, monkeypatch
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+    acquisition_contracts = []
+
+    async def capturing_grounding(request, policy):
+        acquisition_contracts.append(
+            deepcopy(
+                request.business_context.grounding_context[
+                    "critical_claim_acquisition"
+                ]
+            )
+        )
+        return await commercial_grounding(request, policy)
+
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        commercial_enrichment,
+        capturing_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        _bundle_outputs(persona_resolution=True),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-commercial-physical-hydrate",
+        "trace-commercial-physical-hydrate",
+        task_context=_physical_business_task_context(
+            intent="commercial_market_launch"
+        ),
+        agent_candidates=_bremen_agents(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+    session = session_factory()
+    stored = session.query(PipelineRun).filter(PipelineRun.job_id == run.job_id).one()
+    payload = deepcopy(stored.request_payload)
+    payload["task_context"]["critical_claim_policy"][
+        "mandatory_claim_classes"
+    ] = ["observed_primary_market"]
+    stored.request_payload = payload
+    session.commit()
+    session.close()
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "completed", persisted.error
+    assert acquisition_contracts[0]["requested_claim_classes"] == [
+        "statutory_current",
+        "official_statistic",
+        "observed_primary_market",
+    ]
+    assert acquisition_contracts[0]["applicable_claim_classes"] == [
+        "observed_primary_market",
+        "official_statistic",
+        "statutory_current",
+    ]
+    assert persisted.dataset["data"]["research_bundle"]["quality"][
+        "critical_claims"
+    ]["verified_claim_classes"] == [
+        "observed_primary_market",
+        "official_statistic",
+        "statutory_current",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("missing_class", ["statutory_current", "official_statistic"])
+async def test_commercial_physical_missing_critical_class_blocks_before_prd_cache(
+    session_factory, monkeypatch, missing_class
+):
+    monkeypatch.setenv(
+        "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS", "physical_product"
+    )
+
+    async def incomplete_grounding(request, policy):
+        grounding = await commercial_grounding(request, policy)
+        grounding["market_claims"] = [
+            claim
+            for claim in grounding["market_claims"]
+            if claim.get("evidence_class") != missing_class
+        ]
+        grounding["claim_count"] = len(grounding["market_claims"])
+        return grounding
+
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        commercial_enrichment,
+        incomplete_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = service.enqueue(
+        _request(),
+        _bundle_outputs(
+            persona_resolution=True,
+            prd=HybridPRDOutput(
+                enabled=True,
+                type="commercial_market_launch",
+                required=True,
+            ),
+        ),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        f"idem-commercial-physical-missing-{missing_class}",
+        f"trace-commercial-physical-missing-{missing_class}",
+        task_context=_physical_business_task_context(
+            intent="commercial_market_launch"
+        ),
+        agent_candidates=_bremen_agents(),
+        research_mode=HybridResearchMode.GROUNDED_HYBRID,
+        grounding_policy=HybridGroundingPolicy(
+            required=True,
+            requested_mode="grounded_fast",
+            allowed_source_types=["google_search_result"],
+        ),
+    )
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert missing_class in persisted.error
+    assert orchestrator.finalize_flags == []
+    session = session_factory()
+    assert session.query(AnalysisResult).count() == 0
+    assert session.query(CachedPRD).count() == 0
+    session.close()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("insufficient_case", ["one_offer", "equal_offers"])
 async def test_physical_contract_coverage_blocks_before_pipeline_b_or_prd(

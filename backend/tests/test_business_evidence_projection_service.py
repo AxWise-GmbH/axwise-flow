@@ -147,7 +147,7 @@ def test_projection_allowlist_rejects_unknown_duplicate_or_malformed_values(
         configured_business_evidence_projection_models(configured)
 
 
-def test_physical_rollout_derives_required_observed_market_policy(monkeypatch):
+def test_commercial_physical_rollout_preserves_full_critical_policy(monkeypatch):
     monkeypatch.setenv(PROJECTION_ALLOWLIST_ENV, "physical_product")
 
     policy = effective_business_evidence_claim_policy(
@@ -157,7 +157,7 @@ def test_physical_rollout_derives_required_observed_market_policy(monkeypatch):
             "fail_closed": False,
             "mandatory_claim_classes": ["statutory_current"],
             "freshness_by_class": {
-                "official_statistic": 730,
+                "official_statistic": 365,
                 "observed_primary_market": 365,
             },
         },
@@ -167,9 +167,24 @@ def test_physical_rollout_derives_required_observed_market_policy(monkeypatch):
     assert policy["fail_closed"] is True
     assert policy["mandatory_claim_classes"] == [
         "statutory_current",
+        "official_statistic",
         "observed_primary_market",
     ]
+    assert policy["freshness_by_class"]["official_statistic"] == 365
     assert policy["freshness_by_class"]["observed_primary_market"] == 120
+
+
+def test_noncommercial_physical_rollout_derives_observed_market_only(monkeypatch):
+    monkeypatch.setenv(PROJECTION_ALLOWLIST_ENV, "physical_product")
+    profile_value = _rollout_profile().model_dump(mode="json")
+    profile_value["intent"] = "product_strategy"
+
+    policy = effective_business_evidence_claim_policy(
+        BusinessEvidenceProfileV1.model_validate(profile_value),
+        {},
+    )
+
+    assert policy["mandatory_claim_classes"] == ["observed_primary_market"]
 
 
 @pytest.mark.parametrize(
