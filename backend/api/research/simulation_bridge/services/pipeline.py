@@ -64,6 +64,20 @@ _COMPANY_STRUCTURING_DEADLINE_SECONDS = 120.0
 _TARGETED_ATTESTATION_SEARCH_DEADLINE_SECONDS = 90.0
 _MAX_TARGETED_ATTESTATION_HOSTS = 4
 _MAX_CODE_OWNED_ATTESTATION_CANDIDATES = 4
+_CODE_OWNED_OBSERVED_OFFER_PROVIDER = "code_owned_observed_offer_registry"
+_OBSERVED_OFFER_ACQUISITION_HINTS_V1: Dict[
+    tuple[tuple[str, ...], tuple[str, ...]], tuple[str, ...]
+] = {
+    (("EE",), ("cat food",)): (
+        "https://www.petcity.ee/applaws-kassi-taissoot-kana-part-2kg-pmm0256600ee",
+        "https://www.petcity.ee/royal-canin-light-weight-kassitoit-400-g-001201",
+    ),
+}
+_OBSERVED_OFFER_ACQUISITION_HOSTS_V1: Dict[
+    tuple[tuple[str, ...], tuple[str, ...]], frozenset[str]
+] = {
+    (("EE",), ("cat food",)): frozenset({"www.petcity.ee"}),
+}
 _STATUTORY_RECOVERY_DEADLINE_SECONDS = 90.0
 _STATUTORY_RECOVERY_SEARCH_SECONDS = 40.0
 _EUROSTAT_COMEXT_STAGE_DEADLINE_SECONDS = 40.0
@@ -92,6 +106,24 @@ def _authority_retrieval_identity(url: str) -> str:
     ):
         host = f"{host}:{port}"
     return urlunparse((scheme, host, parsed.path, parsed.params, parsed.query, ""))
+
+
+def _observed_offer_acquisition_hints(
+    *,
+    country_codes: tuple[str, ...],
+    product_source_anchors: tuple[str, ...],
+) -> tuple[str, ...]:
+    """Return reviewed URL hints for one exact immutable market/topic key.
+
+    The inputs are already canonical fields from the signed topic lifecycle.
+    Do not normalize, translate, broaden, or infer them here: a global market,
+    a copycat phrase, or a multi-topic/multi-country request must not select a
+    product URL merely because some token happens to overlap the registry key.
+    """
+
+    return _OBSERVED_OFFER_ACQUISITION_HINTS_V1.get(
+        (country_codes, product_source_anchors), ()
+    )
 
 
 def _admit_provider_candidate_urls(
@@ -139,6 +171,18 @@ def _schedule_authority_candidates(
         if str(row.get("provider") or "") == "eurostat_comext_official"
     ][:1]
     network_rows = [row for row in rows if row not in eurostat_rows]
+    all_observed_hint_rows = [
+        row
+        for row in network_rows
+        if str(row.get("provider") or "")
+        == _CODE_OWNED_OBSERVED_OFFER_PROVIDER
+        and "observed_primary_market"
+        in set(row.get("acquisition_evidence_classes") or [])
+    ]
+    observed_hint_rows = all_observed_hint_rows[:2]
+    network_rows = [
+        row for row in network_rows if row not in all_observed_hint_rows
+    ]
     providers = list(
         dict.fromkeys(str(row.get("provider") or "unknown") for row in network_rows)
     )
@@ -155,6 +199,13 @@ def _schedule_authority_candidates(
         if row is not None and id(row) not in scheduled_ids:
             scheduled_ids.add(id(row))
             scheduled.append(row)
+
+    # Reviewed observed-offer URLs reserve the first two direct-fetch slots,
+    # but remain ordinary untrusted candidates. Fetching, visible Product/Offer
+    # binding, jurisdiction, proof signing, topic matching, and quality still
+    # happen in the shared authority pipeline below.
+    for row in observed_hint_rows:
+        add(row)
 
     # These eight slots for two providers fit inside the fetch semaphore and
     # prevent a run of slow observed pages from starving statutory/statistical
@@ -797,6 +848,93 @@ class B2BDataPipeline:
                 ):
                     return candidates
         return candidates
+
+    def _code_owned_observed_offer_candidates(self) -> List[Dict[str, Any]]:
+        """Materialize exact topic-bound offer URL hints without authority.
+
+        Selection is derived only from the immutable topic seed and confirmed
+        singleton country contract. The returned rows deliberately contain no
+        document, offer, proof, authority label, price, or topic assertion.
+        They must survive the ordinary independent fetch and quality lifecycle.
+        """
+
+        if (
+            "observed_primary_market" not in self.required_evidence_classes
+            or self.topic_seed_contract is None
+            or self.topic_market_scope_contract is None
+        ):
+            return []
+        seed_countries = tuple(self.topic_seed_contract.confirmed_country_codes)
+        scope_countries = tuple(self.topic_market_scope_contract.country_codes)
+        market_code = str(self.market_scope.country_code or "")
+        if (
+            seed_countries != scope_countries
+            or scope_countries != (market_code,)
+        ):
+            return []
+        source_anchors = product_topic_phrases(self.topic_seed_contract)
+        registry_key = (seed_countries, source_anchors)
+        hint_urls = _observed_offer_acquisition_hints(
+            country_codes=seed_countries,
+            product_source_anchors=source_anchors,
+        )
+        allowed_hosts = _OBSERVED_OFFER_ACQUISITION_HOSTS_V1.get(
+            registry_key, frozenset()
+        )
+        candidates: List[Dict[str, Any]] = []
+        seen_identities: set[str] = set()
+        for hint_url in hint_urls:
+            identity = _authority_retrieval_identity(hint_url)
+            try:
+                parsed = urlparse(hint_url)
+                parsed_port = parsed.port
+            except ValueError:
+                continue
+            if (
+                identity in seen_identities
+                or parsed.scheme.casefold() != "https"
+                or not parsed.hostname
+                or parsed.hostname.casefold().rstrip(".") not in allowed_hosts
+                or parsed.username
+                or parsed.password
+                or parsed_port is not None
+                or not self.market_scope.source_url_matches(hint_url)
+            ):
+                continue
+            seen_identities.add(identity)
+            candidates.append(
+                {
+                    "title": "Reviewed product-offer fetch candidate",
+                    "url": hint_url,
+                    "provider": _CODE_OWNED_OBSERVED_OFFER_PROVIDER,
+                    "provider_source_id": self._evidence_id(
+                        "observed-offer-hint",
+                        f"{market_code}:{source_anchors[0]}:{hint_url}",
+                    ),
+                    "retrieved_at": None,
+                    "provider_response_hash": None,
+                    "provider_query_ids": [],
+                    "provider_queries": [],
+                    "citation_metadata": {},
+                    "provider_redirect": False,
+                    "country_codes": list(scope_countries),
+                    "market_terms": list(
+                        dict.fromkeys(
+                            value
+                            for value in (
+                                self.location,
+                                self.market_scope.locality,
+                                self.market_scope.country_name,
+                            )
+                            if value
+                        )
+                    ),
+                    "acquisition_evidence_classes": [
+                        "observed_primary_market"
+                    ],
+                }
+            )
+        return candidates[:2]
 
     async def _recover_missing_statutory_evidence(
         self,
@@ -2842,6 +2980,8 @@ Return exactly one coordinate pair per address, in the same order as the input l
                 )
             )
 
+        observed_offer_candidates = self._code_owned_observed_offer_candidates()
+
         search_services = []
         try:
             from backend.services.generative.gemini_search_service import GeminiSearchService
@@ -2864,7 +3004,7 @@ Return exactly one coordinate pair per address, in the same order as the input l
 
         if not search_services:
             logger.warning("No grounded web search provider is available.")
-            if eurostat_task is None:
+            if eurostat_task is None and not observed_offer_candidates:
                 return []
 
         generic_query = (
@@ -2893,9 +3033,13 @@ Return exactly one coordinate pair per address, in the same order as the input l
 
         provider_claim_lineage_rows: List[tuple[str, frozenset[str]]] = []
         provider_lineage_sequence = 0
-        source_rows = []
+        source_rows = list(observed_offer_candidates)
         claim_rows = []
-        seen_urls = set()
+        seen_urls = {
+            str(row.get("url") or "")
+            for row in source_rows
+            if row.get("url")
+        }
         async def run_provider(
             provider: str,
             search_service: Any,
