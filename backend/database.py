@@ -31,9 +31,29 @@ platform_name = os.name  # 'posix' for Mac/Linux, 'nt' for Windows
 
 # Get database URL from settings
 DATABASE_URL = settings.database_url
+EXPLICIT_DATABASE_URL = os.getenv("DATABASE_URL")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+IS_PRODUCTION = ENVIRONMENT == "production"
+
+
+def _database_backend(url: str) -> str:
+    """Return the SQLAlchemy backend name without logging credential material."""
+
+    scheme = str(url or "").partition(":")[0].strip().lower()
+    return scheme.split("+", 1)[0]
+
+
+if IS_PRODUCTION and (
+    not EXPLICIT_DATABASE_URL
+    or _database_backend(EXPLICIT_DATABASE_URL) != "postgresql"
+):
+    raise RuntimeError(
+        "Production requires an explicit PostgreSQL DATABASE_URL; "
+        "SQLite and implicit database fallbacks are disabled"
+    )
 
 # If DATABASE_URL is explicitly set to PostgreSQL, use it
-if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+if DATABASE_URL and _database_backend(DATABASE_URL) == "postgresql":
     try:
         # Mask password if present
         masked = DATABASE_URL
@@ -118,6 +138,11 @@ try:
         conn.execute(text("SELECT 1"))
         logger.info("Successfully connected to the database")
 except Exception as e:
+    if IS_PRODUCTION:
+        logger.error("Production PostgreSQL connection failed")
+        raise RuntimeError(
+            "Production PostgreSQL connection failed; refusing SQLite fallback"
+        ) from None
     logger.error(f"Error connecting to the database: {str(e)}")
     # Fall back to SQLite if PostgreSQL connection fails
     try:

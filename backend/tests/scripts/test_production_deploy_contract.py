@@ -1,5 +1,6 @@
 """Deployment contract for grounded Orqaly research in Cloud Run."""
 
+import os
 from pathlib import Path
 import subprocess
 
@@ -41,6 +42,79 @@ def test_grounded_worker_uses_secret_manager_and_pinned_gemini_configuration() -
     assert "AXWISE_MARKET_CELL_CONCURRENCY=${AXWISE_MARKET_CELL_CONCURRENCY}" in script
     assert "AXWISE_PERSONA_CONCURRENCY=${AXWISE_PERSONA_CONCURRENCY}" in script
     assert "Research concurrency values must be integers from 1 to 8" in script
+
+
+def test_physical_projection_rollout_flag_is_closed_and_revision_consistent() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    example = (ROOT / ".env.example").read_text(encoding="utf-8")
+    variable = "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS"
+
+    assert f'{variable}="${{{variable}:-}}"' in script
+    assert (
+        f'[[ -n "${{{variable}}}" && "${{{variable}}}" '
+        '!= "physical_product" ]]' in script
+    )
+    assert f"{variable}=\n" in example
+    assert script.count(f"{variable}=${{{variable}}}") == 3
+
+    quiescence = script.split(
+        'echo "Stopping durable Orqaly queue consumption', 1
+    )[1].split("QUIESCENCE_REVISION=", 1)[0]
+    api = script.split('gcloud run deploy "${API_SERVICE}"', 1)[1].split(
+        "# Cloud Run preserves", 1
+    )[0]
+    poll = script.split(
+        'echo "Deploying durable Orqaly A+B worker', 1
+    )[1].split("# As with the API", 1)[0]
+    for deploy_block in (quiescence, api):
+        assert variable in deploy_block
+    assert "WORKER_ENV_VARS" in poll
+    assert f"@{variable}=${{{variable}}}" in script.split(
+        'WORKER_ENV_VARS="', 1
+    )[1].split('"', 1)[0]
+
+
+def test_production_deploy_requires_and_verifies_clerk_and_postgres(
+    tmp_path: Path,
+) -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    variable = "ENABLE_CLERK_VALIDATION"
+
+    assert f'{variable}="${{{variable}:-true}}"' in script
+    assert f'[[ "${{{variable}}}" != "true" ]]' in script
+    assert "Production deployment requires ENABLE_CLERK_VALIDATION=true" in script
+    assert script.index(f'[[ "${{{variable}}}" != "true" ]]') < script.index(
+        "required_secrets=("
+    )
+
+    api_deploy = script.split('gcloud run deploy "${API_SERVICE}"', 1)[1].split(
+        "# Cloud Run preserves", 1
+    )[0]
+    assert f"@{variable}=${{{variable}}}@" in api_deploy
+    assert 'f"{base_url}/api/health"' in script
+    assert 'environment.get("DATABASE_URL_TYPE") != "postgresql"' in script
+    assert 'environment.get("ENABLE_CLERK_VALIDATION")' in script
+    assert "backend detailed health did not confirm PostgreSQL" in script
+    assert "backend detailed health did not confirm Clerk validation" in script
+
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "ENABLE_CLERK_VALIDATION": "false",
+            "REVISION": TEST_BUILD_REVISION,
+        }
+    )
+    result = subprocess.run(
+        ["bash", str(DEPLOY_SCRIPT)],
+        cwd=tmp_path,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "Production deployment requires ENABLE_CLERK_VALIDATION=true" in result.stderr
 
 
 def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
@@ -102,7 +176,9 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
         assert "--min-instances 1" not in worker_deploy_block
     assert '--revision-suffix "${QUIESCENCE_SUFFIX}"' in quiescence_deploy_block
     assert (
-        '--set-env-vars "WORKER_MODE=health_only,'
+        '--set-env-vars "^@^WORKER_MODE=health_only@'
+        'AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS='
+        '${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@'
         'AXWISE_BUILD_REVISION=${REVISION}"' in quiescence_deploy_block
     )
     assert "WORKER_ENV_VARS" not in quiescence_deploy_block
@@ -587,7 +663,9 @@ def test_searxng_route_is_discovered_and_authenticated_before_build() -> None:
         '@SEARXNG_AUTH_MODE=google_identity"' in script
     )
     assert (
-        '--set-env-vars "WORKER_MODE=health_only,'
+        '--set-env-vars "^@^WORKER_MODE=health_only@'
+        'AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS='
+        '${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@'
         'AXWISE_BUILD_REVISION=${REVISION}"' in script
     )
     assert '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll"' in script

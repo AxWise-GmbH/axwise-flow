@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from backend.domain.orchestration.models import BusinessEvidenceProfileV1
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
     normalize_research_prd_type,
@@ -43,6 +44,7 @@ class OrqalyTaskContext(BaseModel):
     research_prd_type: Optional[str] = None
     customer_role_contract: Dict[str, Any] = Field(default_factory=dict)
     critical_claim_policy: Dict[str, Any] = Field(default_factory=dict)
+    business_evidence_profile: Optional[BusinessEvidenceProfileV1] = None
 
     @field_validator("required_execution_roles")
     @classmethod

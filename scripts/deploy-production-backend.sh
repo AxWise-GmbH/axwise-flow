@@ -22,6 +22,8 @@ SEARXNG_URL="${SEARXNG_URL:-}"
 SEARXNG_PREFLIGHT_TIMEOUT_SECONDS="${SEARXNG_PREFLIGHT_TIMEOUT_SECONDS:-30}"
 AXWISE_MARKET_CELL_CONCURRENCY="${AXWISE_MARKET_CELL_CONCURRENCY:-6}"
 AXWISE_PERSONA_CONCURRENCY="${AXWISE_PERSONA_CONCURRENCY:-5}"
+AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS="${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS:-}"
+ENABLE_CLERK_VALIDATION="${ENABLE_CLERK_VALIDATION:-true}"
 
 if [[ "${REQUIRE_OPENREGISTER}" != "true" && "${REQUIRE_OPENREGISTER}" != "false" ]]; then
   echo "REQUIRE_OPENREGISTER must be true or false" >&2
@@ -37,6 +39,16 @@ done
 
 if [[ ! "${SEARXNG_PREFLIGHT_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]?$ ]]; then
   echo "SEARXNG_PREFLIGHT_TIMEOUT_SECONDS must be an integer from 1 to 99" >&2
+  exit 1
+fi
+
+if [[ -n "${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}" && "${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}" != "physical_product" ]]; then
+  echo "AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS must be empty or physical_product" >&2
+  exit 1
+fi
+
+if [[ "${ENABLE_CLERK_VALIDATION}" != "true" ]]; then
+  echo "Production deployment requires ENABLE_CLERK_VALIDATION=true" >&2
   exit 1
 fi
 
@@ -78,7 +90,7 @@ fi
 # REQUIRE_OPENREGISTER=true for a release that must not proceed without
 # registry-backed grounding.
 WORKER_SECRET_BINDINGS="DATABASE_URL=DATABASE_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest,AXWISE_AUTHORITY_PROOF_SECRET=AXWISE_AUTHORITY_PROOF_SECRET:latest"
-WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@AXWISE_MARKET_CELL_CONCURRENCY=${AXWISE_MARKET_CELL_CONCURRENCY}@AXWISE_PERSONA_CONCURRENCY=${AXWISE_PERSONA_CONCURRENCY}@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}"
+WORKER_ENV_VARS="^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@MAX_PERSONAS=5@AXWISE_MARKET_CELL_CONCURRENCY=${AXWISE_MARKET_CELL_CONCURRENCY}@AXWISE_PERSONA_CONCURRENCY=${AXWISE_PERSONA_CONCURRENCY}@WORKER_POLL_SECONDS=1@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS=${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@AXWISE_BUILD_REVISION=${REVISION}"
 if gcloud secrets describe "${OPENREGISTER_SECRET}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   WORKER_SECRET_BINDINGS="${WORKER_SECRET_BINDINGS},OPENREGISTER_API_KEY=${OPENREGISTER_SECRET}:latest"
   echo "OpenRegister grounding enabled from Secret Manager secret ${OPENREGISTER_SECRET}"
@@ -300,7 +312,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --min-instances default \
   --max-instances 1 \
   --clear-secrets \
-  --set-env-vars "WORKER_MODE=health_only,AXWISE_BUILD_REVISION=${REVISION}"
+  --set-env-vars "^@^WORKER_MODE=health_only@AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS=${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@AXWISE_BUILD_REVISION=${REVISION}"
 
 QUIESCENCE_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
   --region "${REGION}" \
@@ -358,7 +370,7 @@ gcloud run deploy "${API_SERVICE}" \
   --concurrency 5 \
   --min-instances 1 \
   --max-instances 5 \
-  --update-env-vars "^@^ENVIRONMENT=production@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUILD_REVISION=${REVISION}" \
+  --update-env-vars "^@^ENVIRONMENT=production@ENABLE_CLERK_VALIDATION=${ENABLE_CLERK_VALIDATION}@LLM_PROVIDER=gemini@GEMINI_MODEL=${GEMINI_MODEL}@GEMINI_SEARCH_MODEL=${GEMINI_MODEL}@GEMINI_TEXT_MODEL=${GEMINI_MODEL}@STAKEHOLDER_GEMINI_MODEL=${GEMINI_MODEL}@AXWISE_WEBHOOK_ALLOWED_HOSTS=orqaly.com,api.orqaly.com@AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS=${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@AXWISE_BUILD_REVISION=${REVISION}" \
   --update-secrets "DATABASE_URL=DATABASE_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,ORQALY_API_KEY=ORQALY_API_KEY:latest,AXWISE_API_KEY=axwise-orqaly-m2m-key:latest,AXWISE_WEBHOOK_SIGNING_SECRET=axwise-orqaly-webhook-signing-secret:latest,AXWISE_AUTHORITY_PROOF_SECRET=AXWISE_AUTHORITY_PROOF_SECRET:latest"
 
 # Cloud Run preserves an explicit revision pin when a service was previously
@@ -434,19 +446,31 @@ gcloud run services update-traffic "${WORKER_SERVICE}" \
   --to-revisions "${WORKER_REVISION}=100"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
-EXPECTED_REVISION="${REVISION}" python3 - "${API_URL}/health" <<'PY'
+EXPECTED_REVISION="${REVISION}" python3 - "${API_URL}" <<'PY'
 import json
 import os
 import sys
 import urllib.request
 
-with urllib.request.urlopen(sys.argv[1], timeout=30) as response:
-    payload = json.load(response)
-if payload.get("revision") != os.environ["EXPECTED_REVISION"]:
+base_url = sys.argv[1].rstrip("/")
+with urllib.request.urlopen(f"{base_url}/health", timeout=30) as response:
+    health = json.load(response)
+if health.get("revision") != os.environ["EXPECTED_REVISION"]:
     raise SystemExit(
         f"backend revision mismatch: expected {os.environ['EXPECTED_REVISION']}, "
-        f"received {payload.get('revision')}"
+        f"received {health.get('revision')}"
     )
+
+with urllib.request.urlopen(f"{base_url}/api/health", timeout=30) as response:
+    details = json.load(response)
+database = details.get("database") or {}
+environment = details.get("environment") or {}
+if database.get("status") != "connected":
+    raise SystemExit("backend detailed health did not confirm a database connection")
+if environment.get("DATABASE_URL_TYPE") != "postgresql":
+    raise SystemExit("backend detailed health did not confirm PostgreSQL")
+if str(environment.get("ENABLE_CLERK_VALIDATION") or "").lower() != "true":
+    raise SystemExit("backend detailed health did not confirm Clerk validation")
 PY
 
 READY_REVISION="$(gcloud run services describe "${API_SERVICE}" \

@@ -26,6 +26,7 @@ from backend.services.research_source_authority_service import (
     _commercial_offer_evidence,
     _normalized_document_text,
     _structured_statistical_observations,
+    build_physical_product_fact_authorization,
     claim_matching_offer_evidence,
     fact_matching_offer_evidence,
     validate_authority_claim_artifact,
@@ -681,6 +682,14 @@ def _canonical_observed_pack_tokens(fact: Mapping[str, Any]) -> list[str]:
     return tokens
 
 
+def _physical_projection_pack_is_supported(value: Any) -> bool:
+    match = re.fullmatch(
+        r"(\d+(?:\.\d+)?)(kg|g|l|ml|pcs?|pack|units?)",
+        str(value or "").casefold(),
+    )
+    return bool(match and Decimal(match.group(1)) > 0)
+
+
 def _has_disallowed_identity_codepoint(value: Any) -> bool:
     """Reject controls, format controls, and surrogates in durable identity."""
 
@@ -769,6 +778,20 @@ def _signed_offer_identity_surface(
     ):
         return None
     return _identity_prefix_surface(normalized, pack_match.start())
+
+
+def canonical_observed_pack_tokens(fact: Mapping[str, Any]) -> list[str]:
+    """Expose the quality ledger's exact singleton-pack projection surface."""
+
+    return _canonical_observed_pack_tokens(fact)
+
+
+def signed_offer_identity_surface(
+    fact: Mapping[str, Any], *, canonical_pack: str
+) -> Optional[str]:
+    """Expose the proof-bound product identity accepted by the quality gate."""
+
+    return _signed_offer_identity_surface(fact, canonical_pack=canonical_pack)
 
 
 def _bound_observed_offer_sibling_matches(
@@ -2832,6 +2855,7 @@ def evaluate_critical_claims(
     topic_seed_contract: Optional[Mapping[str, Any]] = None,
     topic_market_scope_contract: Optional[Mapping[str, Any]] = None,
     topic_alias_expansion: Optional[Mapping[str, Any]] = None,
+    physical_product_projection_required: bool = False,
 ) -> Dict[str, Any]:
     """Validate material claims against dated, jurisdiction-matched evidence.
 
@@ -3224,8 +3248,80 @@ def evaluate_critical_claims(
                             f"catalog:signed_offer:{offer_identity_hash}:"
                             f"per_{denominator}:{fact['unit']}"
                         )
-                        authorized_fact_ids.add(str(fact.get("fact_id") or ""))
-                        matched_commercial_offer = matched_commercial_offer or offer
+                        signed_offer_sha256 = str(offer.get("sha256") or "")
+                        fact["signed_offer_sha256"] = signed_offer_sha256
+                        canonical_packs = _canonical_observed_pack_tokens(fact)
+                        claim_binding = (
+                            artifact.get("claim_binding")
+                            if isinstance(artifact, Mapping)
+                            else None
+                        )
+                        authority_claim_signature = (
+                            str(claim_binding.get("claim_proof_signature") or "")
+                            if isinstance(claim_binding, Mapping)
+                            else ""
+                        )
+                        authority_proof_signature = str(
+                            proof.get("proof_signature") or ""
+                        )
+                        authorization = None
+                        if (
+                            len(canonical_packs) == 1
+                            and _physical_projection_pack_is_supported(
+                                canonical_packs[0]
+                            )
+                            and evidence_time is not None
+                            and fact.get("topic_seed_sha256")
+                            and signed_offer_sha256
+                            and authority_claim_signature
+                            and authority_proof_signature
+                        ):
+                            try:
+                                authorization = (
+                                    build_physical_product_fact_authorization(
+                                        claim_id=claim_id,
+                                        fact_id=str(fact.get("fact_id") or ""),
+                                        source_id=source_id,
+                                        country_codes=sorted(claim_countries),
+                                        observed_at=evidence_time.isoformat(),
+                                        topic_seed_sha256=str(
+                                            fact.get("topic_seed_sha256") or ""
+                                        ),
+                                        signed_offer_sha256=signed_offer_sha256,
+                                        authority_proof_signature=(
+                                            authority_proof_signature
+                                        ),
+                                        authority_claim_proof_signature=(
+                                            authority_claim_signature
+                                        ),
+                                        normalized_value=str(
+                                            fact.get("normalized_value") or ""
+                                        ),
+                                        semantic_scope=str(
+                                            fact.get("semantic_scope") or ""
+                                        ),
+                                        canonical_pack=canonical_packs[0],
+                                    )
+                                )
+                            except (RuntimeError, ValueError):
+                                authorization = None
+                            if authorization is not None:
+                                # Internal trust token: it is consumed only by
+                                # the bundle projector and stripped from every
+                                # citable/LLM projection.
+                                fact[
+                                    "_physical_product_projection_authorization"
+                                ] = authorization
+                        if (
+                            authorization is not None
+                            or not physical_product_projection_required
+                        ):
+                            authorized_fact_ids.add(
+                                str(fact.get("fact_id") or "")
+                            )
+                            matched_commercial_offer = (
+                                matched_commercial_offer or offer
+                            )
             for fact in facts:
                 if (
                     fact.get("identity_complete")

@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
 Draft Production Migration Notification Script.
-Connects directly to the axwise.de production database instance 
-and queries the real, live registered user directory to prepare 
-the deprecation notification.
+Connects to the configured production database and queries the registered user
+directory to prepare the deprecation notification.
+
+Supply the database URL only through the process environment. A Secret Manager
+value can be scoped to this single invocation without writing or printing it:
+
+    AXWISE_MIGRATION_NOTIFICATION_DATABASE_URL="$(
+      gcloud secrets versions access latest --secret DATABASE_URL --project axwise-73425
+    )" backend/venv/bin/python -m scripts.draft_migration_notification
 
 Includes production metrics in the email copy:
 - Exactly 1,040 active research sessions
@@ -25,8 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# Hardcoded production DB credentials extracted securely from GCP run config
-PROD_DATABASE_URL = "postgresql://axwise_user:AxWise2024SecurePass!@34.13.154.146:5432/axwise_db"
+DATABASE_URL_ENV = "AXWISE_MIGRATION_NOTIFICATION_DATABASE_URL"
 
 EMAIL_TEMPLATE_SUBJECT = "Important Update: AxWise Flow Transition to Headless API-First Engine"
 
@@ -78,28 +83,56 @@ Built with ❤️ by the AxWise Team
 """
 
 
+def _required_database_url() -> str:
+    """Read the database URL without logging or persisting its value."""
+
+    database_url = os.getenv(DATABASE_URL_ENV, "").strip()
+    if not database_url:
+        print(
+            f"Error: {DATABASE_URL_ENV} must be supplied from an approved "
+            "secret source.",
+            file=sys.stderr,
+        )
+        print(
+            "Load DATABASE_URL from Secret Manager for this process only; "
+            "never place it in source code or command output.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    return database_url
+
+
 def main():
-    print(f"Connecting to live production database at 34.13.154.146...")
+    database_url = _required_database_url()
+    print("Connecting to the configured production database...")
+    engine = None
     try:
-        engine = create_engine(PROD_DATABASE_URL, connect_args={"connect_timeout": 10})
+        engine = create_engine(database_url, connect_args={"connect_timeout": 10})
         Session = sessionmaker(bind=engine)
-        session = Session()
 
         raw_emails: List[str] = []
-        # Query the real production users table
-        sql = text("SELECT DISTINCT email FROM users WHERE email IS NOT NULL AND email != '';")
-        result = session.execute(sql)
-        for row in result:
-            email_val = row[0].strip()
-            if email_val and "@" in email_val:
-                raw_emails.append(email_val)
-        session.close()
-        
-    except Exception as e:
-        print(f"❌ Error: Failed to connect to live production database: {e}")
+        with Session() as session:
+            # Query the real production users table
+            sql = text(
+                "SELECT DISTINCT email FROM users "
+                "WHERE email IS NOT NULL AND email != '';"
+            )
+            result = session.execute(sql)
+            for row in result:
+                email_val = row[0].strip()
+                if email_val and "@" in email_val:
+                    raw_emails.append(email_val)
+
+    except Exception:
+        # Database exceptions may include connection parameters. Keep release
+        # output generic so credentials cannot be copied into logs.
+        print("❌ Error: Failed to query the configured production database.")
         print("This could be due to active firewall rules/GCP VPC restrictions.")
         print("Please ensure your local IP is whitelisted on GCP, or run this within the GCP console environment.")
         sys.exit(1)
+    finally:
+        if engine is not None:
+            engine.dispose()
 
     # Filter out automated placeholder accounts (user@...) and dev test accounts
     filtered_emails = []

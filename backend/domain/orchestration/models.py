@@ -285,6 +285,141 @@ class CriticalClaimPolicyV1(ContractModel):
     ] = Field(default_factory=list, max_length=3)
 
 
+class BusinessEvidenceFactRequirementV1(ContractModel):
+    """One typed, profile-owned fact requirement for broad research."""
+
+    kind: Literal[
+        "physical_product_offer",
+        "subscription_plan",
+        "usage_tariff",
+        "project_service_quote",
+    ]
+    minimum_verified: int = Field(..., ge=0, le=100)
+    applicability: Literal["required", "required_when_applicable", "optional"]
+
+    @model_validator(mode="after")
+    def validate_required_minimum(self) -> "BusinessEvidenceFactRequirementV1":
+        if self.applicability == "required" and self.minimum_verified < 1:
+            raise ValueError("required fact requirements need minimum_verified >= 1")
+        return self
+
+
+class BusinessEvidenceCalculationRequirementV1(ContractModel):
+    """One reviewed calculation requirement over verified typed facts."""
+
+    kind: Literal[
+        "physical_offer_price_difference",
+        "subscription_rate_difference",
+        "usage_tariff_rate_difference",
+        "project_quote_rate_difference",
+    ]
+    minimum_verified: int = Field(..., ge=0, le=100)
+    applicability: Literal["required", "required_when_applicable", "optional"]
+
+    @model_validator(mode="after")
+    def validate_required_minimum(
+        self,
+    ) -> "BusinessEvidenceCalculationRequirementV1":
+        if self.applicability == "required" and self.minimum_verified < 1:
+            raise ValueError(
+                "required calculation requirements need minimum_verified >= 1"
+            )
+        return self
+
+
+class BusinessEvidenceProfileV1(ContractModel):
+    """Immutable adapter-selection contract supplied by Orqaly.
+
+    Economic models select reviewed fact and calculation adapters.  Industry or
+    category strings never select an evidence parser or formula.
+    """
+
+    version: Literal["business_evidence_profile_v1"] = (
+        "business_evidence_profile_v1"
+    )
+    intent: Literal[
+        "commercial_market_launch",
+        "operational_process",
+        "product_strategy",
+        "software_product",
+    ]
+    economic_model: Literal[
+        "physical_product",
+        "subscription",
+        "usage_based",
+        "project_service",
+        "none",
+    ]
+    market_scope_hash: Optional[str] = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
+    fact_requirements: List[BusinessEvidenceFactRequirementV1] = Field(
+        default_factory=list,
+        max_length=4,
+    )
+    calculation_requirements: List[
+        BusinessEvidenceCalculationRequirementV1
+    ] = Field(default_factory=list, max_length=4)
+    required_role_slots: List[
+        Literal[
+            "customer_market",
+            "pricing_finance",
+            "legal_compliance",
+            "sales_distribution",
+            "risk_operations",
+            "domain_delivery",
+        ]
+    ] = Field(default_factory=list, max_length=6)
+
+    @model_validator(mode="after")
+    def validate_adapter_contract(self) -> "BusinessEvidenceProfileV1":
+        fact_kinds = [item.kind for item in self.fact_requirements]
+        calculation_kinds = [item.kind for item in self.calculation_requirements]
+        if len(fact_kinds) != len(set(fact_kinds)):
+            raise ValueError("fact_requirements must have unique kind values")
+        if len(calculation_kinds) != len(set(calculation_kinds)):
+            raise ValueError(
+                "calculation_requirements must have unique kind values"
+            )
+        if len(self.required_role_slots) != len(set(self.required_role_slots)):
+            raise ValueError("required_role_slots must be unique")
+
+        expected_fact_kind = {
+            "physical_product": "physical_product_offer",
+            "subscription": "subscription_plan",
+            "usage_based": "usage_tariff",
+            "project_service": "project_service_quote",
+            "none": None,
+        }[self.economic_model]
+        expected_calculation_kind = {
+            "physical_product": "physical_offer_price_difference",
+            "subscription": "subscription_rate_difference",
+            "usage_based": "usage_tariff_rate_difference",
+            "project_service": "project_quote_rate_difference",
+            "none": None,
+        }[self.economic_model]
+        if any(kind != expected_fact_kind for kind in fact_kinds):
+            raise ValueError(
+                "fact_requirements are incompatible with economic_model"
+            )
+        if any(kind != expected_calculation_kind for kind in calculation_kinds):
+            raise ValueError(
+                "calculation_requirements are incompatible with economic_model"
+            )
+        if self.economic_model == "none" and (
+            fact_kinds or calculation_kinds
+        ):
+            raise ValueError(
+                "economic_model none cannot request economic facts or calculations"
+            )
+        if self.economic_model != "none" and self.market_scope_hash is None:
+            raise ValueError(
+                "market_scope_hash is required when economic_model is not none"
+            )
+        return self
+
+
 class ResearchBriefV1(ContractModel):
     business_idea: str = Field(..., min_length=3, max_length=4000)
     target_stakeholders: str = Field(..., min_length=2, max_length=2000)
@@ -303,6 +438,7 @@ class ResearchBriefV1(ContractModel):
     critical_claim_policy: CriticalClaimPolicyV1 = Field(
         default_factory=CriticalClaimPolicyV1
     )
+    business_evidence_profile: Optional[BusinessEvidenceProfileV1] = None
     industry: str = Field(default="general", min_length=1, max_length=120)
     location: Optional[str] = Field(default=None, max_length=255)
     market_scope: Optional[MarketScopeV2] = None
@@ -322,6 +458,17 @@ class ResearchBriefV1(ContractModel):
                 seen.add(item.casefold())
                 cleaned.append(item)
         return cleaned
+
+    @model_validator(mode="after")
+    def validate_business_evidence_intent(self) -> "ResearchBriefV1":
+        if (
+            self.business_evidence_profile is not None
+            and self.business_evidence_profile.intent != self.research_prd_type
+        ):
+            raise ValueError(
+                "business_evidence_profile.intent must equal research_prd_type"
+            )
+        return self
 
 
 class PlanStepV1(ContractModel):

@@ -39,6 +39,9 @@ AUTHORITY_CLAIM_PROOF_VERSION = "direct_authority_claim_span_v1"
 AUTHORITY_STRUCTURED_CLAIM_PROOF_VERSION = (
     "derived_structured_statistical_claim_v1"
 )
+PHYSICAL_PRODUCT_FACT_AUTHORIZATION_VERSION = (
+    "physical_product_fact_authorization_v1"
+)
 _AUTHORITY_LANGUAGE = re.compile(
     r"\b(?:government|ministry|tax(?:ation)?(?: and customs)? (?:board|authority)|"
     r"customs (?:board|authority)|public authority|national statistics|statistics "
@@ -3580,7 +3583,17 @@ def validate_authority_proof(
     *,
     requested_country_codes: Iterable[str] = (),
     signing_secret: Optional[str] = None,
+    allow_scrubbed_primary_market: bool = False,
 ) -> bool:
+    """Validate a direct authority proof and its source ownership.
+
+    ``allow_scrubbed_primary_market`` is limited to the durable-bundle boundary.
+    A primary-market proof is normally re-derived from its private fetched HTML.
+    After that HTML has deliberately been scrubbed, callers may instead verify
+    the complete HMAC-bound proof, raw-document digest, and per-offer visible
+    bindings.  Supplying only one of the private artifacts always fails closed.
+    """
+
     proof = source.get("authority_proof")
     if not isinstance(proof, Mapping):
         return False
@@ -3714,21 +3727,30 @@ def validate_authority_proof(
             else None
         )
         private_raw_html = source.get("_structured_evidence_html")
-        if (
-            not isinstance(private_text, str)
-            or not isinstance(private_raw_html, str)
-            or not private_raw_html
-            or len(private_raw_html.encode("utf-8")) > 2_000_000
-            or hashlib.sha256(private_raw_html.encode("utf-8")).hexdigest()
-            != proof.get("structured_evidence_source_sha256")
-            or _normalized_document_text(private_raw_html, is_html=True)
-            != private_text
-            or not _document_binds_jurisdiction(
-                final_url=direct_url,
-                text=private_text,
-                country_codes=proof_countries,
-            )
-        ):
+        has_private_document = isinstance(private_document, Mapping)
+        has_private_raw_html = isinstance(private_raw_html, str)
+        if has_private_document or has_private_raw_html:
+            if (
+                not isinstance(private_text, str)
+                or not isinstance(private_raw_html, str)
+                or not private_raw_html
+                or len(private_raw_html.encode("utf-8")) > 2_000_000
+                or hashlib.sha256(private_raw_html.encode("utf-8")).hexdigest()
+                != proof.get("structured_evidence_source_sha256")
+                or _normalized_document_text(private_raw_html, is_html=True)
+                != private_text
+                or hashlib.sha256(private_text.encode("utf-8")).hexdigest()
+                != direct.get("content_sha256")
+                or list(proof.get("commercial_offer_evidence") or [])
+                != _commercial_offer_evidence(private_raw_html)
+                or not _document_binds_jurisdiction(
+                    final_url=direct_url,
+                    text=private_text,
+                    country_codes=proof_countries,
+                )
+            ):
+                return False
+        elif not allow_scrubbed_primary_market:
             return False
     else:
         return False
@@ -3790,6 +3812,154 @@ def validate_authority_proof(
         and source.get("source_authority") == expected_authority
         and source.get("retrieved_at") == proof.get("retrieved_at")
         and (not requested or bool(requested & proof_countries & source_countries))
+    )
+
+
+def validated_direct_primary_market_offers(
+    source: Mapping[str, Any],
+    *,
+    requested_country_codes: Iterable[str] = (),
+    signing_secret: Optional[str] = None,
+    allow_scrubbed_primary_market: bool = False,
+) -> list[Dict[str, Any]]:
+    """Return only offers owned by a valid direct primary-market proof.
+
+    The returned rows are still exact proof members; this helper performs no
+    claim-text matching and no category inference.
+    """
+
+    if not validate_authority_proof(
+        source,
+        requested_country_codes=requested_country_codes,
+        signing_secret=signing_secret,
+        allow_scrubbed_primary_market=allow_scrubbed_primary_market,
+    ):
+        return []
+    proof = source.get("authority_proof")
+    if not isinstance(proof, Mapping) or proof.get("proof_type") != (
+        "direct_primary_market_observation"
+    ):
+        return []
+    offers = proof.get("commercial_offer_evidence")
+    if not _valid_commercial_offer_evidence(offers):
+        return []
+    return [dict(row) for row in offers if isinstance(row, Mapping)]
+
+
+def build_physical_product_fact_authorization(
+    *,
+    claim_id: str,
+    fact_id: str,
+    source_id: str,
+    country_codes: Iterable[str],
+    observed_at: str,
+    topic_seed_sha256: str,
+    signed_offer_sha256: str,
+    authority_proof_signature: str,
+    authority_claim_proof_signature: str,
+    normalized_value: str,
+    semantic_scope: str,
+    canonical_pack: str,
+    signing_secret: Optional[str] = None,
+) -> Dict[str, Any]:
+    """HMAC-bind one quality-owned fact to its exact signed offer and span."""
+
+    payload = {
+        "version": PHYSICAL_PRODUCT_FACT_AUTHORIZATION_VERSION,
+        "claim_id": claim_id,
+        "fact_id": fact_id,
+        "source_id": source_id,
+        "country_codes": list(country_codes),
+        "observed_at": observed_at,
+        "topic_seed_sha256": topic_seed_sha256,
+        "signed_offer_sha256": signed_offer_sha256,
+        "authority_proof_signature": authority_proof_signature,
+        "authority_claim_proof_signature": authority_claim_proof_signature,
+        "normalized_value": normalized_value,
+        "semantic_scope": semantic_scope,
+        "canonical_pack": canonical_pack,
+    }
+    if (
+        any(
+            not isinstance(payload[field], str) or not payload[field]
+            for field in (
+                "claim_id",
+                "fact_id",
+                "source_id",
+                "observed_at",
+                "normalized_value",
+                "semantic_scope",
+                "canonical_pack",
+            )
+        )
+        or not payload["country_codes"]
+        or len(payload["country_codes"]) != len(set(payload["country_codes"]))
+        or any(
+            re.fullmatch(r"[A-Z]{2}", value) is None
+            for value in payload["country_codes"]
+        )
+        or any(
+            re.fullmatch(r"[a-f0-9]{64}", payload[field]) is None
+            for field in (
+                "topic_seed_sha256",
+                "signed_offer_sha256",
+                "authority_proof_signature",
+                "authority_claim_proof_signature",
+            )
+        )
+    ):
+        raise ValueError("physical product fact authorization fields are invalid")
+    return {
+        **payload,
+        "signature_alg": "hmac-sha256",
+        "authorization_signature": _proof_signature(
+            payload, signing_secret=signing_secret
+        ),
+    }
+
+
+def validate_physical_product_fact_authorization(
+    authorization: Mapping[str, Any],
+    *,
+    signing_secret: Optional[str] = None,
+) -> bool:
+    """Verify a closed physical-product fact authorization envelope."""
+
+    expected_keys = {
+        "version",
+        "claim_id",
+        "fact_id",
+        "source_id",
+        "country_codes",
+        "observed_at",
+        "topic_seed_sha256",
+        "signed_offer_sha256",
+        "authority_proof_signature",
+        "authority_claim_proof_signature",
+        "normalized_value",
+        "semantic_scope",
+        "canonical_pack",
+        "signature_alg",
+        "authorization_signature",
+    }
+    if set(authorization) != expected_keys:
+        return False
+    signature = str(authorization.get("authorization_signature") or "").casefold()
+    payload = {
+        key: value
+        for key, value in authorization.items()
+        if key not in {"authorization_signature", "signature_alg"}
+    }
+    try:
+        expected = _proof_signature(payload, signing_secret=signing_secret)
+    except RuntimeError:
+        return False
+    return bool(
+        authorization.get("version")
+        == PHYSICAL_PRODUCT_FACT_AUTHORIZATION_VERSION
+        and authorization.get("signature_alg") == "hmac-sha256"
+        and re.fullmatch(r"[a-f0-9]{64}", signature)
+        and hmac.compare_digest(signature, expected)
     )
 
 
