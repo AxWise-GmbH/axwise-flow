@@ -57,6 +57,7 @@ from backend.services.orqaly_persona_resolution_service import (
 )
 from backend.services.business_evidence_projection_service import (
     effective_business_evidence_claim_policy,
+    required_business_evidence_claim_classes,
 )
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
@@ -254,12 +255,19 @@ class HybridRunService:
         if profile and profile.economic_model == "physical_product":
             requested = set(applicability.get("requested_claim_classes") or [])
             applicable = set(applicability.get("applicable_claim_classes") or [])
-            requested.add("observed_primary_market")
-            applicable.add("observed_primary_market")
-            reasons = dict(applicability.get("applicability_reasons") or {})
-            reasons["observed_primary_market"] = (
-                "physical_product_profile_required"
+            profile_required = set(
+                required_business_evidence_claim_classes(profile)
             )
+            requested.update(profile_required)
+            applicable.update(profile_required)
+            reasons = dict(applicability.get("applicability_reasons") or {})
+            profile_reason = (
+                "commercial_physical_product_profile_required"
+                if profile.intent == "commercial_market_launch"
+                else "physical_product_profile_required"
+            )
+            for evidence_class in profile_required:
+                reasons[evidence_class] = profile_reason
             applicability = {
                 **applicability,
                 "requested_claim_classes": sorted(requested),
@@ -271,7 +279,7 @@ class HybridRunService:
                         "not_applicable_claim_classes"
                     )
                     or []
-                    if row.get("evidence_class") != "observed_primary_market"
+                    if row.get("evidence_class") not in profile_required
                 ],
             }
         return applicability
