@@ -232,6 +232,12 @@ _AUTHORITY_ATTESTATION_ACQUISITION_HINTS: Mapping[
         "https://anti-fraud.ec.europa.eu/organisations/"
         "tax-and-customs-board_en",
     ),
+    (
+        "EE",
+        "emta.ee",
+    ): (
+        "https://vat-one-stop-shop.ec.europa.eu/estonia_en",
+    ),
 }
 
 

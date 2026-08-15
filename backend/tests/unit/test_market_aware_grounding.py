@@ -45,6 +45,7 @@ from backend.services.research_source_authority_service import (
     build_direct_primary_market_proof,
     build_recognized_root_proof,
     enrich_authority_sources as real_enrich_authority_sources,
+    validate_authority_proof,
 )
 
 
@@ -97,8 +98,12 @@ def _company(
 
 
 _EMTA_VAT_URL = "https://www.emta.ee/en/admin/content/handbook_article/39"
+_EMTA_BARE_VAT_URL = "https://emta.ee/en/admin/content/handbook_article/39"
 _OLAF_EMTA_DIRECTORY_URL = (
     "https://anti-fraud.ec.europa.eu/organisations/tax-and-customs-board_en"
+)
+_EC_EMTA_BARE_DIRECTORY_URL = (
+    "https://vat-one-stop-shop.ec.europa.eu/estonia_en"
 )
 _EMTA_VAT_TEXT = (
     "Estonian Tax and Customs Board. Standard VAT rate. From 1 July 2025, "
@@ -108,6 +113,11 @@ _EMTA_VAT_TEXT = (
 _OLAF_EMTA_DIRECTORY_TEXT = (
     "European Anti-Fraud Office. Tax and Customs Board. public sector. "
     "Website: www.emta.ee Country: Estonia."
+)
+_EC_EMTA_BARE_DIRECTORY_TEXT = (
+    "European Commission VAT One Stop Shop. Estonia national contact. "
+    "Website: https://emta.ee/en/business-client/taxes-and-payment/"
+    "value-added-tax/special-schemes-e-commerce-and-services"
 )
 _AUTHORITY_RETRIEVED_AT = "2026-08-13T00:00:00+00:00"
 _OMIT = object()
@@ -354,12 +364,12 @@ def _microdata_offer_markup(
     )
 
 
-def _cached_unresolved_emta_row() -> dict:
+def _cached_unresolved_emta_row(*, url: str = _EMTA_VAT_URL) -> dict:
     return {
         "title": "Standard VAT rate",
-        "url": _EMTA_VAT_URL,
-        "resolved_url": _EMTA_VAT_URL,
-        "retrieval_url": _EMTA_VAT_URL,
+        "url": url,
+        "resolved_url": url,
+        "retrieval_url": url,
         "provider": "searxng",
         "provider_source_id": "emta-vat",
         "country_codes": ["EE"],
@@ -368,7 +378,7 @@ def _cached_unresolved_emta_row() -> dict:
         "direct_fetch_status": "retrieved",
         "jurisdiction_binding_status": "verified",
         "_direct_document_candidate": {
-            "final_url": _EMTA_VAT_URL,
+            "final_url": url,
             "text": _EMTA_VAT_TEXT,
             "retrieved_at": _AUTHORITY_RETRIEVED_AT,
         },
@@ -377,12 +387,14 @@ def _cached_unresolved_emta_row() -> dict:
 
 def _fixture_authority_enricher(
     *,
+    directory_url: str = _OLAF_EMTA_DIRECTORY_URL,
     directory_text: str = _OLAF_EMTA_DIRECTORY_TEXT,
     directory_final_url: str = _OLAF_EMTA_DIRECTORY_URL,
     directory_error: BaseException | None = None,
+    direct_url: str = _EMTA_VAT_URL,
 ):
     async def fetcher(url):
-        if url == _OLAF_EMTA_DIRECTORY_URL:
+        if url == directory_url:
             if directory_error is not None:
                 raise directory_error
             return {
@@ -390,9 +402,9 @@ def _fixture_authority_enricher(
                 "text": directory_text,
                 "retrieved_at": _AUTHORITY_RETRIEVED_AT,
             }
-        if url == _EMTA_VAT_URL:
+        if url == direct_url:
             return {
-                "final_url": _EMTA_VAT_URL,
+                "final_url": direct_url,
                 "text": _EMTA_VAT_TEXT,
                 "retrieved_at": _AUTHORITY_RETRIEVED_AT,
             }
@@ -405,21 +417,34 @@ def _fixture_authority_enricher(
 
 
 def test_code_owned_attestation_registry_is_exact_and_acquisition_only():
-    expected = (_OLAF_EMTA_DIRECTORY_URL,)
+    expected_www = (_OLAF_EMTA_DIRECTORY_URL,)
     assert authority_attestation_acquisition_hints(
         publisher_url=_EMTA_VAT_URL,
         country_codes=["EE"],
-    ) == expected
+    ) == expected_www
+    expected_bare = (_EC_EMTA_BARE_DIRECTORY_URL,)
+    assert authority_attestation_acquisition_hints(
+        publisher_url=_EMTA_BARE_VAT_URL,
+        country_codes=["EE"],
+    ) == expected_bare
 
     rejected = [
         ("http://www.emta.ee/en/current-vat", ["EE"]),
-        ("https://emta.ee/en/current-vat", ["EE"]),
+        ("http://emta.ee/en/current-vat", ["EE"]),
+        ("https://api.emta.ee/en/current-vat", ["EE"]),
+        ("https://notemta.ee/en/current-vat", ["EE"]),
+        ("https://emta.ee.attacker.example/current-vat", ["EE"]),
+        ("https://attacker.emta.ee/current-vat", ["EE"]),
         ("https://www.emta.ee.attacker.example/current-vat", ["EE"]),
         ("https://attacker.www.emta.ee/current-vat", ["EE"]),
         ("https://user@www.emta.ee/current-vat", ["EE"]),
+        ("https://user@emta.ee/current-vat", ["EE"]),
         ("https://www.emta.ee:444/current-vat", ["EE"]),
+        ("https://emta.ee:444/current-vat", ["EE"]),
         (_EMTA_VAT_URL, ["LV"]),
         (_EMTA_VAT_URL, ["EE", "LV"]),
+        (_EMTA_BARE_VAT_URL, ["LV"]),
+        (_EMTA_BARE_VAT_URL, ["EE", "LV"]),
     ]
     for publisher_url, country_codes in rejected:
         assert authority_attestation_acquisition_hints(
@@ -2304,6 +2329,167 @@ async def test_primary_targeted_emta_attestation_bypasses_search_and_verifies(
     )
     assert "_code_owned_attestation_acquisition_hint" not in persisted
     assert "code_owned_acquisition_hint" not in persisted
+
+
+@pytest.mark.asyncio
+async def test_pr62_bare_emta_statutory_recovery_uses_exact_ec_attestation(
+    monkeypatch,
+):
+    """Recover the PR62 bare-host result without aliasing it to ``www``."""
+
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem=(
+            "PR62 Production V2 — Estonia Cat Food Evidence Canary"
+        ),
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    unresolved = _cached_unresolved_emta_row(url=_EMTA_BARE_VAT_URL)
+    [candidate] = pipeline._code_owned_attestation_candidates([unresolved])
+    assert candidate["url"] == _EC_EMTA_BARE_DIRECTORY_URL
+    assert candidate["target_authority_host"] == "emta.ee"
+    assert "authority_proof" not in candidate
+
+    source_rows = [unresolved]
+    with patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=_fixture_authority_enricher(
+            directory_url=_EC_EMTA_BARE_DIRECTORY_URL,
+            directory_text=_EC_EMTA_BARE_DIRECTORY_TEXT,
+            directory_final_url=_EC_EMTA_BARE_DIRECTORY_URL,
+            direct_url=_EMTA_BARE_VAT_URL,
+        ),
+    ):
+        recovered = await pipeline._recover_missing_statutory_evidence(
+            [], source_rows
+        )
+
+    assert recovered >= 1
+    assert len(source_rows) == 1
+    emta = source_rows[0]
+    assert emta["url"] == _EMTA_BARE_VAT_URL
+    assert emta["publisher"] == "emta.ee"
+    assert emta["authority_verification_status"] == (
+        "independently_attested_direct_domain"
+    )
+    assert emta["authority_proof"]["direct"]["final_host"] == "emta.ee"
+    assert emta["authority_proof"]["attestation"]["final_url"] == (
+        _EC_EMTA_BARE_DIRECTORY_URL
+    )
+    assert validate_authority_proof(
+        emta,
+        requested_country_codes=["EE"],
+    )
+    quality = evaluate_critical_claims(
+        {
+            "market_sources": pipeline.market_sources,
+            "market_claims": pipeline.market_claims,
+        },
+        ["EE"],
+        mandatory_claim_classes=["statutory_current"],
+        claim_class_applicability={
+            "applicable_claim_classes": ["statutory_current"]
+        },
+    )
+    assert quality["status"] == "passed", quality["blocked_claims"]
+    assert pipeline.routing_diagnostics["statutory_recovery"][
+        "route_count"
+    ] == 0
+    assert pipeline.routing_diagnostics["statutory_recovery"][
+        "deterministic_attestation_candidate_count"
+    ] == 1
+    persisted = json.dumps(
+        [pipeline.market_sources, pipeline.market_claims, pipeline.routing_diagnostics]
+    )
+    assert "_code_owned_attestation_acquisition_hint" not in persisted
+    assert "code_owned_acquisition_hint" not in persisted
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("directory_text", "directory_final_url"),
+    [
+        (
+            "European Commission VAT page for Estonia without a publisher link.",
+            _EC_EMTA_BARE_DIRECTORY_URL,
+        ),
+        (
+            "European Commission VAT page for Estonia. Website: "
+            "https://emta.ee.attacker.example/current-vat",
+            _EC_EMTA_BARE_DIRECTORY_URL,
+        ),
+        (
+            "European Commission VAT page for Estonia. Website: "
+            "https://notemta.ee/current-vat",
+            _EC_EMTA_BARE_DIRECTORY_URL,
+        ),
+        (
+            _normalized_document_text(
+                "<html><body>European Commission VAT page for Estonia. "
+                "<script>https://emta.ee/current-vat</script>"
+                "<span style='display:none'>emta.ee</span></body></html>",
+                is_html=True,
+            ),
+            _EC_EMTA_BARE_DIRECTORY_URL,
+        ),
+        (
+            "European Commission VAT page for Latvia. Website: "
+            "https://emta.ee/current-vat",
+            _EC_EMTA_BARE_DIRECTORY_URL,
+        ),
+        (
+            _EC_EMTA_BARE_DIRECTORY_TEXT,
+            "https://attacker.example/redirected-directory",
+        ),
+    ],
+    ids=[
+        "missing-host",
+        "suffix-lookalike",
+        "near-lookalike",
+        "hidden-host-only",
+        "wrong-country",
+        "redirected-final-host",
+    ],
+)
+async def test_bare_emta_hint_rejects_unbound_or_lookalike_attestations(
+    monkeypatch,
+    directory_text,
+    directory_final_url,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Commercial compliance launch",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        required_evidence_classes=["statutory_current"],
+    )
+    unresolved = _cached_unresolved_emta_row(url=_EMTA_BARE_VAT_URL)
+    [hint] = pipeline._code_owned_attestation_candidates([unresolved])
+    enriched = await _fixture_authority_enricher(
+        directory_url=_EC_EMTA_BARE_DIRECTORY_URL,
+        directory_text=directory_text,
+        directory_final_url=directory_final_url,
+        direct_url=_EMTA_BARE_VAT_URL,
+    )([hint, unresolved])
+
+    emta = next(
+        row
+        for row in enriched
+        if "statutory_current"
+        in set(row.get("acquisition_evidence_classes") or [])
+    )
+    assert "authority_proof" not in emta
+    assert emta.get("source_authority") != "official_public"
 
 
 @pytest.mark.asyncio
