@@ -234,6 +234,117 @@ def test_commercial_customer_fails_closed_when_only_operator_exists():
         )
 
 
+def test_trusted_operator_cannot_be_promoted_by_generated_authority_fields():
+    operator = _customer_persona()
+    operator.update(
+        {
+            "name": "Kadri Saar, Owner",
+            "role": "Owner",
+            "job_title": "Commercial Director",
+            "persona_metadata": {"decision_role": "decision authority"},
+            "stakeholder_intelligence": {
+                "stakeholder_type": "Operational user",
+                "decision_role": "economic buyer",
+                "role": "Owner",
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="economic buyer or decision authority"):
+        resolve_orqaly_personas(
+            [operator],
+            OrqalyTaskContext(
+                title="Launch cat food in Estonia",
+                description="Build the commercial market plan",
+                research_prd_type="commercial_market_launch",
+            ),
+            [],
+        )
+
+
+@pytest.mark.parametrize(
+    "stakeholder_type",
+    ["Unknown authority", "assistant to economic buyer"],
+)
+def test_unknown_trusted_type_cannot_be_promoted_by_owner_title(stakeholder_type):
+    persona = _customer_persona()
+    persona.update(
+        {
+            "name": "Kadri Saar, Owner",
+            "role": "Owner",
+            "job_title": "Owner",
+            "stakeholder_intelligence": {
+                "stakeholder_type": stakeholder_type,
+                "decision_role": "economic buyer",
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="economic buyer or decision authority"):
+        resolve_orqaly_personas(
+            [persona],
+            OrqalyTaskContext(
+                title="Launch cat food in Estonia",
+                description="Build the commercial market plan",
+                research_prd_type="commercial_market_launch",
+            ),
+            [],
+        )
+
+
+@pytest.mark.parametrize(
+    ("stakeholder_type", "expected_role"),
+    [
+        ("Decision authority", "decision_authority"),
+        ("Economic buyer", "economic_buyer"),
+    ],
+)
+def test_exact_trusted_primary_role_is_commercially_eligible(
+    stakeholder_type, expected_role
+):
+    persona = _customer_persona()
+    persona["stakeholder_intelligence"] = {
+        "stakeholder_type": stakeholder_type
+    }
+
+    result = resolve_orqaly_personas(
+        [persona],
+        OrqalyTaskContext(
+            title="Launch cat food in Estonia",
+            description="Build the commercial market plan",
+            research_prd_type="commercial_market_launch",
+        ),
+        [],
+    )
+
+    assert result["customer_persona"]["decision_role"] == expected_role
+    assert result["customer_persona"]["selection_eligibility"] == "eligible_primary"
+
+
+def test_legacy_persona_without_source_type_keeps_title_inference():
+    persona = _customer_persona()
+    persona.update(
+        {
+            "name": "Marta Saar, Commercial Director",
+            "job_title": "Commercial Director",
+            "stakeholder_intelligence": {"decision_role": ""},
+        }
+    )
+
+    result = resolve_orqaly_personas(
+        [persona],
+        OrqalyTaskContext(
+            title="Launch cat food in Estonia",
+            description="Build the commercial market plan",
+            research_prd_type="commercial_market_launch",
+        ),
+        [],
+    )
+
+    assert result["customer_persona"]["decision_role"] == "economic_buyer"
+    assert result["customer_persona"]["selection_eligibility"] == "eligible_primary"
+
+
 def test_supporting_a_cfo_does_not_promote_a_junior_analyst_to_buyer():
     junior = _customer_persona()
     junior.update(

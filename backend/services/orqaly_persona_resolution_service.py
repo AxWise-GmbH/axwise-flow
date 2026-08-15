@@ -212,17 +212,46 @@ _DECISION_ROLE_RANK = {
 }
 
 
+def _normalized_role_label(value: Any) -> str:
+    return " ".join(re.findall(r"[^\W_]+", str(value or "").casefold()))
+
+
+def _classify_trusted_stakeholder_type(value: Any) -> str:
+    """Classify one source-bound type by exact label, never by substring."""
+
+    normalized = _normalized_role_label(value)
+    exact_roles = (
+        (_DECISION_AUTHORITY_TERMS, "decision_authority"),
+        (_ECONOMIC_BUYER_TERMS, "economic_buyer"),
+        (_INFLUENCER_TERMS, "influencer"),
+        (_OPERATIONAL_USER_TERMS, "operational_user"),
+    )
+    for labels, role in exact_roles:
+        if normalized in {_normalized_role_label(label) for label in labels}:
+            return role
+    return "beneficiary"
+
+
 def classify_customer_decision_role(persona: Dict[str, Any]) -> str:
     """Classify research participants by buying authority, not confidence alone."""
 
     stakeholder = persona.get("stakeholder_intelligence")
     metadata = persona.get("persona_metadata")
     demographics = persona.get("demographics")
+    trusted_type = (
+        stakeholder.get("stakeholder_type")
+        if isinstance(stakeholder, dict)
+        else None
+    )
+    if str(trusted_type or "").strip():
+        return _classify_trusted_stakeholder_type(trusted_type)
+
+    # Legacy personas without a source-bound type retain their historical
+    # inferred-field and own-title fallback.
     explicit = " ".join(
         str(value or "")
         for value in (
             stakeholder.get("decision_role") if isinstance(stakeholder, dict) else None,
-            stakeholder.get("stakeholder_type") if isinstance(stakeholder, dict) else None,
             metadata.get("decision_role") if isinstance(metadata, dict) else None,
         )
     ).casefold()
