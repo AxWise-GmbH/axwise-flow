@@ -25,6 +25,8 @@ from backend.services.research_source_authority_service import (
     authority_attestation_acquisition_hints,
     build_authority_claim_artifact,
     build_structured_statistical_claim_artifact,
+    canonical_authority_failure_category,
+    canonical_authority_processing_status,
     claim_matching_offer_evidence,
     enrich_authority_sources,
     is_trusted_public_root,
@@ -932,6 +934,11 @@ class B2BDataPipeline:
                     "acquisition_evidence_classes": [
                         "observed_primary_market"
                     ],
+                    # Scheduling only: this grants no trust or evidence. The
+                    # authority service still applies the ordinary fetched
+                    # Product/Offer, jurisdiction, signature, topic, and
+                    # critical-quality predicates before promotion.
+                    "_code_owned_observed_offer_acquisition_hint": True,
                 }
             )
         return candidates[:2]
@@ -3587,6 +3594,16 @@ Return exactly one coordinate pair per address, in the same order as the input l
                     "authority_verification_status": str(
                         row.get("authority_verification_status") or "unverified"
                     )[:120],
+                    "authority_processing_status": str(
+                        canonical_authority_processing_status(
+                            row.get("authority_processing_status")
+                        )
+                    ),
+                    "authority_failure_category": (
+                        canonical_authority_failure_category(
+                            row.get("authority_failure_category")
+                        )
+                    ),
                 }
             )
         self.routing_diagnostics["attempted_sources"] = attempted_source_ledger

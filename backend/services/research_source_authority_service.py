@@ -116,6 +116,22 @@ _VISIBLE_CURRENT_PRICE_LABEL_TOKENS_V1 = frozenset(
 _CURRENT_OFFER_AVAILABILITY_V1 = frozenset(
     {"", "instock", "limitedavailability", "onlineonly"}
 )
+AUTHORITY_PROCESSING_STATUSES_V1 = frozenset(
+    {"not_started", "completed", "stage_deadline_exceeded", "failed"}
+)
+AUTHORITY_FAILURE_CATEGORIES_V1 = frozenset(
+    {
+        "retrieval_challenge",
+        "jurisdiction_not_bound",
+        "authority_jurisdiction_mismatch",
+        "structured_reporter_jurisdiction_mismatch",
+        "primary_market_proof_rejected",
+        "direct_fetch_stage_deadline_exceeded",
+        "direct_fetch_failed",
+        "proof_stage_deadline_exceeded",
+        "proof_processing_failed",
+    }
+)
 _VISIBLE_UNAVAILABLE_OFFER_V1 = re.compile(
     r"(?:\b(?:out[ -]?of[ -]?stock|sold[ -]?out|discontinued|unavailable|"
     r"not\s+(?:currently\s+)?available)\b|"
@@ -144,6 +160,30 @@ def _canonical_offer_availability(
     return status if status in _CURRENT_OFFER_AVAILABILITY_V1 else None
 
 
+def canonical_authority_processing_status(value: Any) -> str:
+    """Project untrusted row status onto the closed diagnostics contract."""
+
+    candidate = str(value or "not_started")
+    return (
+        candidate
+        if candidate in AUTHORITY_PROCESSING_STATUSES_V1
+        else "invalid"
+    )
+
+
+def canonical_authority_failure_category(value: Any) -> str:
+    """Retain only code-owned failure categories; never raw error material."""
+
+    candidate = str(value or "")
+    if not candidate:
+        return ""
+    return (
+        candidate
+        if candidate in AUTHORITY_FAILURE_CATEGORIES_V1
+        else "invalid"
+    )
+
+
 _MAX_RETAINED_AUTHORITY_TEXT = 100_000
 _MAX_DIRECT_FETCH_CONCURRENCY = 8
 _MAX_DIRECT_FETCH_REDIRECTS = 3
@@ -152,6 +192,8 @@ _DIRECT_FETCH_ATTEMPT_SECONDS = 10.0
 _DIRECT_FETCH_DNS_SECONDS = 5.0
 _AUTHORITY_ENRICHMENT_SECONDS = 45.0
 _AUTHORITY_PROOF_RESERVE_SECONDS = 15.0
+_AUTHORITY_PRIORITY_PROOF_SECONDS = 10.0
+_AUTHORITY_ORDINARY_PROOF_RESERVE_SECONDS = 3.0
 _AUTHORITY_PARSE_EXECUTOR = ThreadPoolExecutor(
     max_workers=_MAX_DIRECT_FETCH_CONCURRENCY,
     thread_name_prefix="authority-parse",
@@ -159,6 +201,13 @@ _AUTHORITY_PARSE_EXECUTOR = ThreadPoolExecutor(
 _AUTHORITY_PROOF_EXECUTOR = ThreadPoolExecutor(
     max_workers=_MAX_DIRECT_FETCH_CONCURRENCY,
     thread_name_prefix="authority-proof",
+)
+# Code-owned observed-offer hints are capped at two before this service is
+# called. Keep ordinary public candidates out of these worker slots; this is
+# executor isolation, not a claim that Python can preempt a running proof.
+_AUTHORITY_OBSERVED_OFFER_PROOF_EXECUTOR = ThreadPoolExecutor(
+    max_workers=2,
+    thread_name_prefix="authority-observed-offer-proof",
 )
 _EU_COUNTRY_CODES = {
     "AT", "BE", "BG", "HR", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
@@ -740,6 +789,24 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
             for child in node:
                 yield from walk(child)
 
+    def has_exact_json_ld_schema_type(value: Any, expected: str) -> bool:
+        """Match one exact bare or schema.org JSON-LD type member."""
+
+        members = value if isinstance(value, list) else [value]
+        return any(
+            isinstance(member, str)
+            and (
+                member.strip().casefold() == expected.casefold()
+                or re.fullmatch(
+                    rf"https?://schema\.org/{re.escape(expected)}/?",
+                    member.strip(),
+                    re.IGNORECASE,
+                )
+                is not None
+            )
+            for member in members
+        )
+
     scripts = re.finditer(
         r"<script[^>]+type=[\"']application/ld\+json[\"'][^>]*>"
         r"(?P<body>.*?)</script>",
@@ -752,19 +819,19 @@ def _commercial_offer_evidence(value: str) -> list[Dict[str, Any]]:
         except (json.JSONDecodeError, TypeError):
             continue
         for product in walk(payload):
-            kinds = product.get("@type")
-            if isinstance(kinds, str):
-                kinds = [kinds]
-            if not any(
-                str(kind).rstrip("/").rsplit("/", 1)[-1].casefold()
-                == "product"
-                for kind in kinds or []
+            if not has_exact_json_ld_schema_type(
+                product.get("@type"), "Product"
             ):
                 continue
             offers = product.get("offers")
             offer_rows = offers if isinstance(offers, list) else [offers]
             for offer in offer_rows:
-                if not isinstance(offer, Mapping):
+                if (
+                    not isinstance(offer, Mapping)
+                    or not has_exact_json_ld_schema_type(
+                        offer.get("@type"), "Offer"
+                    )
+                ):
                     continue
                 append_offer(
                     signal_type="schema_org_product_offer",
@@ -4265,6 +4332,20 @@ async def _run_authority_cpu(
     )
 
 
+def _priority_authority_proof_budget(*, stage_deadline: float) -> float:
+    """Reserve a fixed ordinary-proof tail inside the absolute stage budget."""
+
+    return min(
+        _AUTHORITY_PRIORITY_PROOF_SECONDS,
+        max(
+            0.0,
+            stage_deadline
+            - _AUTHORITY_ORDINARY_PROOF_RESERVE_SECONDS
+            - time.monotonic(),
+        ),
+    )
+
+
 def _consume_authority_task(task: asyncio.Task[Any]) -> None:
     """Consume a detached child result without publishing late row changes."""
 
@@ -4441,12 +4522,15 @@ def _enrich_authority_row_outcome(
     """Build one immutable enrichment outcome on a worker thread."""
 
     row = dict(source)
+    row["authority_processing_status"] = "completed"
+    row.pop("authority_failure_category", None)
     raw_document = str(
         direct.get("_structured_evidence_html") or direct.get("text") or ""
     )
     if _looks_like_retrieval_challenge({}, raw_document):
         row["direct_fetch_status"] = "rejected_challenge"
         row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+        row["authority_failure_category"] = "retrieval_challenge"
         row["resolved_url"] = direct.get("final_url")
         return row
 
@@ -4466,6 +4550,7 @@ def _enrich_authority_row_outcome(
         "verified" if jurisdiction_bound else "rejected"
     )
     if not jurisdiction_bound:
+        row["authority_failure_category"] = "jurisdiction_not_bound"
         return row
 
     retrieved_at = str(
@@ -4478,6 +4563,7 @@ def _enrich_authority_row_outcome(
             row.get("country_codes") or [],
         ):
             row["jurisdiction_binding_status"] = "rejected_authority_jurisdiction"
+            row["authority_failure_category"] = "authority_jurisdiction_mismatch"
             return row
         try:
             proof = build_recognized_root_proof(
@@ -4493,6 +4579,9 @@ def _enrich_authority_row_outcome(
         except ValueError:
             row["jurisdiction_binding_status"] = (
                 "rejected_structured_reporter_jurisdiction"
+            )
+            row["authority_failure_category"] = (
+                "structured_reporter_jurisdiction_mismatch"
             )
             return row
         row.update(
@@ -4581,6 +4670,7 @@ def _enrich_authority_row_outcome(
             retrieved_at=retrieved_at,
         )
     except ValueError:
+        row["authority_failure_category"] = "primary_market_proof_rejected"
         return row
     row.update(
         {
@@ -4653,15 +4743,23 @@ async def enrich_authority_sources(
         for row, task in zip(candidates, fetch_tasks):
             if task not in done_fetch:
                 row["direct_fetch_status"] = "stage_deadline_exceeded"
+                row["authority_processing_status"] = "not_started"
+                row["authority_failure_category"] = (
+                    "direct_fetch_stage_deadline_exceeded"
+                )
                 continue
             try:
                 document = task.result()
             except RetrievalChallengeError:
                 row["direct_fetch_status"] = "rejected_challenge"
                 row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+                row["authority_processing_status"] = "not_started"
+                row["authority_failure_category"] = "retrieval_challenge"
                 continue
             except BaseException as exc:
                 row["direct_fetch_status"] = f"failed:{type(exc).__name__}"
+                row["authority_processing_status"] = "not_started"
+                row["authority_failure_category"] = "direct_fetch_failed"
                 continue
             raw_document = str(
                 document.get("_structured_evidence_html")
@@ -4671,6 +4769,8 @@ async def enrich_authority_sources(
             if _looks_like_retrieval_challenge({}, raw_document):
                 row["direct_fetch_status"] = "rejected_challenge"
                 row["jurisdiction_binding_status"] = "rejected_retrieval_challenge"
+                row["authority_processing_status"] = "not_started"
+                row["authority_failure_category"] = "retrieval_challenge"
                 row["resolved_url"] = document.get("final_url")
                 continue
             row["direct_fetch_status"] = "retrieved"
@@ -4719,43 +4819,112 @@ async def enrich_authority_sources(
                 )
             )
         )
-        proof_tasks = [
-            asyncio.create_task(
-                _run_authority_cpu(
-                    _AUTHORITY_PROOF_EXECUTOR,
-                    _enrich_authority_row_outcome,
-                    dict(row),
-                    dict(document),
-                    attestation_documents,
-                )
+        priority_documents: list[tuple[Dict[str, Any], Dict[str, Any]]] = []
+        ordinary_documents: list[tuple[Dict[str, Any], Dict[str, Any]]] = []
+        for pair in documents:
+            row, _document = pair
+            is_priority = bool(
+                len(priority_documents) < 2
+                and row.get("_code_owned_observed_offer_acquisition_hint") is True
+                and str(row.get("provider") or "")
+                == "code_owned_observed_offer_registry"
+                and "observed_primary_market"
+                in set(row.get("acquisition_evidence_classes") or [])
             )
-            for row, document in documents
-        ]
-        owned_tasks.extend(proof_tasks)
-        if proof_tasks:
-            proof_budget = max(0.0, stage_deadline - time.monotonic())
+            (priority_documents if is_priority else ordinary_documents).append(pair)
+
+        async def run_proof_batch(
+            batch: list[tuple[Dict[str, Any], Dict[str, Any]]],
+            *,
+            executor: ThreadPoolExecutor,
+            maximum_wait_seconds: Optional[float] = None,
+        ) -> None:
+            if not batch:
+                return
+
+            def mark_deadline(rows: Iterable[tuple[Dict[str, Any], Dict[str, Any]]]) -> None:
+                for row, _document in rows:
+                    row.setdefault("jurisdiction_binding_status", "not_resolved")
+                    row["authority_processing_status"] = "stage_deadline_exceeded"
+                    row["authority_failure_category"] = (
+                        "proof_stage_deadline_exceeded"
+                    )
+
+            remaining = stage_deadline - time.monotonic()
+            proof_budget = max(0.0, remaining)
+            if maximum_wait_seconds is not None:
+                proof_budget = min(
+                    max(0.0, maximum_wait_seconds),
+                    _priority_authority_proof_budget(
+                        stage_deadline=stage_deadline
+                    ),
+                )
+            # Never create executor wrappers with no observation budget. Their
+            # thread work could outlive cancellation and contaminate later jobs.
+            if proof_budget <= 0.0:
+                mark_deadline(batch)
+                return
+
+            proof_tasks = [
+                asyncio.create_task(
+                    _run_authority_cpu(
+                        executor,
+                        _enrich_authority_row_outcome,
+                        dict(row),
+                        dict(document),
+                        attestation_documents,
+                    )
+                )
+                for row, document in batch
+            ]
+            owned_tasks.extend(proof_tasks)
+            proof_budget = min(
+                proof_budget,
+                max(0.0, stage_deadline - time.monotonic()),
+            )
             done_proofs, pending_proofs = await asyncio.wait(
                 proof_tasks,
                 timeout=proof_budget,
             )
-        else:
-            done_proofs, pending_proofs = set(), set()
-        for task in pending_proofs:
-            task.cancel()
-        await asyncio.gather(*proof_tasks, return_exceptions=True)
+            for task in pending_proofs:
+                task.cancel()
+            # Deliver cancellation without awaiting a cancellation-resistant
+            # wrapper. Each proof operates on copies, so a late result cannot
+            # mutate retained rows; its callback consumes any late exception.
+            if pending_proofs:
+                await asyncio.sleep(0)
+            for task in pending_proofs:
+                if task.done():
+                    _consume_authority_task(task)
+                else:
+                    task.add_done_callback(_consume_authority_task)
 
-        for (row, _document), task in zip(documents, proof_tasks):
-            if task not in done_proofs:
-                row.setdefault("jurisdiction_binding_status", "not_resolved")
-                row["authority_processing_status"] = "stage_deadline_exceeded"
-                continue
-            try:
-                outcome = task.result()
-            except BaseException as exc:
-                row["authority_processing_status"] = f"failed:{type(exc).__name__}"
-                continue
-            row.clear()
-            row.update(outcome)
+            for (row, _document), task in zip(batch, proof_tasks):
+                if task not in done_proofs:
+                    mark_deadline(((row, _document),))
+                    continue
+                try:
+                    outcome = task.result()
+                except BaseException:
+                    row["authority_processing_status"] = "failed"
+                    row["authority_failure_category"] = "proof_processing_failed"
+                    continue
+                row.clear()
+                row.update(outcome)
+
+        # Finalize coordinator outcomes (completed, failed, or deadline) for
+        # the two bounded code-owned offers before creating any ordinary proof
+        # task. A timed-out executor thread may still run on its private copy;
+        # the separate pool prevents it from occupying ordinary worker slots.
+        await run_proof_batch(
+            priority_documents,
+            executor=_AUTHORITY_OBSERVED_OFFER_PROOF_EXECUTOR,
+            maximum_wait_seconds=_AUTHORITY_PRIORITY_PROOF_SECONDS,
+        )
+        await run_proof_batch(
+            ordinary_documents,
+            executor=_AUTHORITY_PROOF_EXECUTOR,
+        )
         return sources
     finally:
         await _cancel_authority_tasks(owned_tasks, deadline=stage_deadline)

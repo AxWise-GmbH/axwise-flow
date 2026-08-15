@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import html
 import json
+import threading
 import time
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -24,6 +25,7 @@ from api.research.simulation_bridge.services.pipeline import (
 from api.research.simulation_bridge.services.regional_service import RegionalService
 from backend.services.generative.gemini_search_service import GeminiSearchService
 from backend.services.generative.searxng_search_service import SearxngSearchService
+from backend.services import research_source_authority_service as authority_module
 from backend.services.research_quality_service import evaluate_critical_claims
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
@@ -126,6 +128,8 @@ def _petcity_offer_html(
     visible_price: str,
     structured_price: str,
     availability: str = "InStock",
+    product_type: Any = "Product",
+    offer_type: Any = "Offer",
 ) -> str:
     availability_value = (
         availability
@@ -137,7 +141,19 @@ def _petcity_offer_html(
         if availability
         else ""
     )
+    offer_type_json = (
+        ""
+        if offer_type is _OMIT
+        else f'"@type":{json.dumps(offer_type, separators=(",", ":"))},'
+    )
+    product_type_json = (
+        ""
+        if product_type is _OMIT
+        else f'"@type":{json.dumps(product_type, separators=(",", ":"))},'
+    )
     return (
+        '<nav class="navbar"><span class="cart-total">0,00 €</span></nav>'
+        '<section class="category-navigation">Kassitoit kategooria alates 3,49 €</section>'
         '<main class="layout-product" data-component="product">'
         '<div class="layout-product__row wrap-narrow">'
         '<div class="layout-product__content">'
@@ -147,14 +163,120 @@ def _petcity_offer_html(
         '<span class="product-pricing__price-value">'
         f'<span class="product-pricing__price-number">{visible_price}</span>'
         '</span></div></div></form></div></div></main>'
+        '<aside class="delivery">Tasuta tarne alates 49,00 €</aside>'
+        '<footer>PetCity Estonia</footer>'
         '<script type="application/ld+json">'
-        '{"@context":"https://schema.org","@type":"Product",'
+        '[{"@context":"https://schema.org",'
+        f'{product_type_json}'
         f'"sku":"{sku}","name":"{product_name}","offers":'
-        f'{{"@type":"Offer","price":"{structured_price}",'
+        f'{{{offer_type_json}"price":{structured_price},'
         f'"priceCurrency":"EUR"{availability_json}}}'
-        '}'
+        '},{"@context":"https://schema.org","@type":"BreadcrumbList",'
+        '"itemListElement":[]}]'
         '</script>'
     )
+
+
+@pytest.mark.parametrize(
+    "offer_type",
+    [
+        "Offer",
+        "http://schema.org/Offer",
+        "https://schema.org/Offer/",
+        ["Thing", "https://schema.org/Offer"],
+    ],
+)
+def test_json_ld_offer_type_accepts_only_exact_offer_members(offer_type: Any):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        offer_type=offer_type,
+    )
+
+    [offer] = _commercial_offer_evidence(raw_html)
+
+    assert offer["signal_type"] == "schema_org_product_offer"
+    assert offer["product_id"] == "103681"
+    assert offer["price"] == "15.99"
+    assert offer["price_currency"] == "EUR"
+
+
+@pytest.mark.parametrize(
+    "offer_type",
+    [
+        _OMIT,
+        None,
+        "Thing",
+        "AggregateOffer",
+        "OfferCatalog",
+        "https://schema.org/AggregateOffer",
+        "https://schema.org/OfferThing",
+        "https://attacker.example/Offer",
+        ["Thing", "AggregateOffer"],
+    ],
+)
+def test_json_ld_offer_type_rejects_missing_or_lookalike_types(offer_type: Any):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        offer_type=offer_type,
+    )
+
+    assert _commercial_offer_evidence(raw_html) == []
+
+
+@pytest.mark.parametrize(
+    "product_type",
+    [
+        "Product",
+        "http://schema.org/Product",
+        "https://schema.org/Product/",
+        ["Thing", "https://schema.org/Product"],
+    ],
+)
+def test_json_ld_product_type_accepts_only_exact_product_members(
+    product_type: Any,
+):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        product_type=product_type,
+    )
+
+    [offer] = _commercial_offer_evidence(raw_html)
+    assert offer["product_id"] == "103681"
+
+
+@pytest.mark.parametrize(
+    "product_type",
+    [
+        _OMIT,
+        None,
+        "Thing",
+        "ProductModel",
+        "https://schema.org/ProductThing",
+        "https://attacker.example/Product",
+        ["Thing", "ProductModel"],
+    ],
+)
+def test_json_ld_product_type_rejects_missing_or_foreign_types(
+    product_type: Any,
+):
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+        product_type=product_type,
+    )
+
+    assert _commercial_offer_evidence(raw_html) == []
 
 
 def _json_ld_offer_markup(
@@ -2011,7 +2133,12 @@ def test_observed_offer_candidates_are_untrusted_url_only_rows():
             "country_codes",
             "market_terms",
             "acquisition_evidence_classes",
+            "_code_owned_observed_offer_acquisition_hint",
         }
+        for row in candidates
+    )
+    assert all(
+        row["_code_owned_observed_offer_acquisition_hint"] is True
         for row in candidates
     )
     assert all("authority_proof" not in row for row in candidates)
@@ -3352,6 +3479,59 @@ async def test_observed_hint_reaches_enrichment_without_a_search_provider(
 
 
 @pytest.mark.asyncio
+async def test_attempted_source_ledger_rejects_arbitrary_authority_diagnostics(
+    monkeypatch,
+):
+    lifecycle = _ee_cat_food_topic_lifecycle()
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        model=MagicMock(),
+        data_source="web",
+        required_evidence_classes=["observed_primary_market"],
+        **lifecycle,
+    )
+
+    async def inject_untrusted_diagnostics(rows: list[dict]) -> list[dict]:
+        for row in rows:
+            row.update(
+                {
+                    "direct_fetch_status": "retrieved",
+                    "jurisdiction_binding_status": "verified",
+                    "authority_processing_status": "internal_secret_status",
+                    "authority_failure_category": "raw_secret_error_message",
+                }
+            )
+        return rows
+
+    with patch(
+        "backend.services.generative.gemini_search_service."
+        "GeminiSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "backend.services.generative.searxng_search_service."
+        "SearxngSearchService.is_available",
+        return_value=False,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline."
+        "enrich_authority_sources",
+        side_effect=inject_untrusted_diagnostics,
+    ):
+        await pipeline._discover_via_web_search()
+
+    attempted = pipeline.routing_diagnostics["attempted_sources"]
+    assert len(attempted) == 2
+    assert all(
+        row["authority_processing_status"] == "invalid" for row in attempted
+    )
+    assert all(
+        row["authority_failure_category"] == "invalid" for row in attempted
+    )
+    assert "secret" not in json.dumps(attempted).casefold()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("first_failure", ["stale", "out_of_stock", "challenge"])
 async def test_bad_reviewed_offer_fails_closed_while_second_hint_remains_fallback(
     monkeypatch,
@@ -3508,6 +3688,392 @@ def test_authority_scheduler_caps_network_and_preserves_one_eurostat_row():
 
     assert len(scheduled) == 25
     assert scheduled[0]["provider"] == "eurostat_comext_official"
+
+
+@pytest.mark.asyncio
+async def test_priority_offer_proofs_finish_before_saturated_scheduled_core(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setattr(authority_module, "_AUTHORITY_ENRICHMENT_SECONDS", 1.0)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PROOF_RESERVE_SECONDS", 0.5)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PRIORITY_PROOF_SECONDS", 0.3)
+    monkeypatch.setattr(
+        authority_module,
+        "_AUTHORITY_ORDINARY_PROOF_RESERVE_SECONDS",
+        0.2,
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_ee_cat_food_topic_lifecycle(),
+    )
+    hints = pipeline._code_owned_observed_offer_candidates()
+    eurostat = {
+        "url": "https://ec.europa.eu/eurostat/api/comext/estonia",
+        "provider": "eurostat_comext_official",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+        "acquisition_evidence_classes": ["official_statistic"],
+    }
+    ordinary = [
+        {
+            "url": f"https://ordinary-{index}.example.ee/source",
+            "provider": f"ordinary-{index}",
+            "provider_source_id": f"ordinary-{index}",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "acquisition_evidence_classes": ["statutory_current"],
+        }
+        for index in range(18)
+    ]
+    scheduled = _schedule_authority_candidates([*ordinary, *hints, eurostat])
+    original_urls = [row["url"] for row in scheduled]
+    assert len(scheduled) == 21
+    assert scheduled[0] is eurostat
+    assert scheduled[1:3] == hints
+
+    html_by_url = {
+        _PETCITY_APPLAWS_URL: _petcity_offer_html(
+            product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+            sku="103681",
+            visible_price="15,99 €",
+            structured_price="15.99",
+        ),
+        _PETCITY_ROYAL_CANIN_URL: _petcity_offer_html(
+            product_name="Royal Canin Light Weight kassitoit 400 g",
+            sku="001201",
+            visible_price="10,09 €",
+            structured_price="10.09",
+        ),
+    }
+
+    async def fetcher(url: str) -> dict:
+        raw_html = html_by_url.get(url, "<main>Estonia authority page</main>")
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    proof_semaphore = asyncio.Semaphore(1)
+    release_ordinary = asyncio.Event()
+    priority_done = asyncio.Event()
+    ordinary_started = asyncio.Event()
+    priority_count = 0
+    proof_order: list[str] = []
+
+    async def saturated_cpu(_executor, function, *args, **kwargs):
+        nonlocal priority_count
+        async with proof_semaphore:
+            row = args[0]
+            if row.get("_code_owned_observed_offer_acquisition_hint") is True:
+                proof_order.append(str(row["url"]))
+                outcome = function(*args, **kwargs)
+                priority_count += 1
+                if priority_count == 2:
+                    priority_done.set()
+                return outcome
+            ordinary_started.set()
+            await release_ordinary.wait()
+            proof_order.append(str(row["url"]))
+            return function(*args, **kwargs)
+
+    monkeypatch.setattr(authority_module, "_run_authority_cpu", saturated_cpu)
+    enrichment = asyncio.create_task(
+        real_enrich_authority_sources(scheduled, fetcher=fetcher)
+    )
+    try:
+        await asyncio.wait_for(priority_done.wait(), timeout=0.5)
+        release_ordinary.set()
+        enriched = await asyncio.wait_for(enrichment, timeout=1.5)
+    finally:
+        release_ordinary.set()
+        if not enrichment.done():
+            enrichment.cancel()
+            await asyncio.gather(enrichment, return_exceptions=True)
+
+    assert ordinary_started.is_set()
+    assert proof_order[:2] == [_PETCITY_APPLAWS_URL, _PETCITY_ROYAL_CANIN_URL]
+    assert [row["url"] for row in enriched] == original_urls
+    assert all(row["authority_proof"] for row in enriched[1:3])
+    assert all(
+        row.get("authority_processing_status")
+        in {"completed", "stage_deadline_exceeded"}
+        for row in enriched
+    )
+
+
+@pytest.mark.asyncio
+async def test_hung_priority_reserves_time_for_official_core_proof(monkeypatch):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setattr(authority_module, "_AUTHORITY_ENRICHMENT_SECONDS", 0.3)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PROOF_RESERVE_SECONDS", 0.2)
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PRIORITY_PROOF_SECONDS", 0.03)
+    monkeypatch.setattr(
+        authority_module,
+        "_AUTHORITY_ORDINARY_PROOF_RESERVE_SECONDS",
+        0.05,
+    )
+    eurostat_url = "https://ec.europa.eu/eurostat/api/comext/estonia"
+    eurostat_text = (
+        "Eurostat official statistics for Estonia. Data published 13 August 2026."
+    )
+    hint_url = _PETCITY_APPLAWS_URL
+    hint_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+    )
+    rows = [
+        {
+            "url": eurostat_url,
+            "provider": "eurostat_comext_official",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "acquisition_evidence_classes": ["official_statistic"],
+            "_direct_document_candidate": {
+                "final_url": eurostat_url,
+                "text": eurostat_text,
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+                "commercial_offer_evidence": [],
+                "structured_statistical_observations": [],
+                "_structured_evidence_html": "",
+            },
+        },
+        {
+            "url": hint_url,
+            "provider": "code_owned_observed_offer_registry",
+            "country_codes": ["EE"],
+            "market_terms": ["Estonia"],
+            "acquisition_evidence_classes": ["observed_primary_market"],
+            "_code_owned_observed_offer_acquisition_hint": True,
+            "_direct_document_candidate": {
+                "final_url": hint_url,
+                "text": _normalized_document_text(hint_html, is_html=True),
+                "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+                "commercial_offer_evidence": _commercial_offer_evidence(hint_html),
+                "structured_statistical_observations": [],
+                "_structured_evidence_html": hint_html,
+            },
+        },
+    ]
+    release_priority = threading.Event()
+    priority_started = threading.Event()
+    priority_finished = threading.Event()
+    ordinary_finished = threading.Event()
+    calls: list[str] = []
+    original_outcome = authority_module._enrich_authority_row_outcome
+
+    def cancellation_resistant_outcome(source, direct, attestations):
+        url = str(source["url"])
+        calls.append(url)
+        if source.get("_code_owned_observed_offer_acquisition_hint") is True:
+            priority_started.set()
+            release_priority.wait(timeout=1.0)
+            try:
+                return original_outcome(source, direct, attestations)
+            finally:
+                priority_finished.set()
+        outcome = original_outcome(source, direct, attestations)
+        ordinary_finished.set()
+        return outcome
+
+    monkeypatch.setattr(
+        authority_module,
+        "_enrich_authority_row_outcome",
+        cancellation_resistant_outcome,
+    )
+    try:
+        enriched = await asyncio.wait_for(
+            real_enrich_authority_sources(rows),
+            timeout=0.4,
+        )
+        assert priority_started.is_set()
+        assert ordinary_finished.is_set()
+        assert not priority_finished.is_set()
+    finally:
+        release_priority.set()
+        await asyncio.to_thread(priority_finished.wait, 0.3)
+
+    assert calls.count(eurostat_url) == 1
+    assert calls.count(hint_url) == 1
+    assert enriched[0]["authority_processing_status"] == "completed"
+    assert enriched[0]["authority_verification_status"] == (
+        "recognized_public_root_direct"
+    )
+    assert enriched[1]["authority_processing_status"] == (
+        "stage_deadline_exceeded"
+    )
+    assert enriched[1]["authority_failure_category"] == (
+        "proof_stage_deadline_exceeded"
+    )
+
+
+def test_priority_budget_uses_fixed_ordinary_reserve_before_submission(
+    monkeypatch,
+):
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PRIORITY_PROOF_SECONDS", 10.0)
+    monkeypatch.setattr(
+        authority_module,
+        "_AUTHORITY_ORDINARY_PROOF_RESERVE_SECONDS",
+        3.0,
+    )
+    monkeypatch.setattr(authority_module.time, "monotonic", lambda: 85.0)
+    assert authority_module._priority_authority_proof_budget(
+        stage_deadline=100.0
+    ) == 10.0
+
+    monkeypatch.setattr(authority_module.time, "monotonic", lambda: 88.0)
+    assert authority_module._priority_authority_proof_budget(
+        stage_deadline=100.0
+    ) == 9.0
+
+    monkeypatch.setattr(authority_module.time, "monotonic", lambda: 97.0)
+    assert authority_module._priority_authority_proof_budget(
+        stage_deadline=100.0
+    ) == 0.0
+
+
+@pytest.mark.asyncio
+async def test_zero_priority_budget_submits_no_priority_executor_work(monkeypatch):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    monkeypatch.setattr(authority_module, "_AUTHORITY_PRIORITY_PROOF_SECONDS", 0.0)
+    raw_html = _petcity_offer_html(
+        product_name="Applaws kassi kuivtoit, kana/part, 2 kg",
+        sku="103681",
+        visible_price="15,99 €",
+        structured_price="15.99",
+    )
+    row = {
+        "url": _PETCITY_APPLAWS_URL,
+        "provider": "code_owned_observed_offer_registry",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+        "acquisition_evidence_classes": ["observed_primary_market"],
+        "_code_owned_observed_offer_acquisition_hint": True,
+    }
+    calls = 0
+
+    async def fetcher(url: str) -> dict:
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    async def forbidden_cpu(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        raise AssertionError("zero-budget priority proof was submitted")
+
+    monkeypatch.setattr(authority_module, "_run_authority_cpu", forbidden_cpu)
+    [enriched] = await real_enrich_authority_sources([row], fetcher=fetcher)
+
+    assert calls == 0
+    assert enriched["authority_processing_status"] == "stage_deadline_exceeded"
+    assert enriched["authority_failure_category"] == (
+        "proof_stage_deadline_exceeded"
+    )
+
+
+@pytest.mark.asyncio
+async def test_rejected_priority_proof_is_one_shot_and_ordinary_still_runs(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "AXWISE_AUTHORITY_PROOF_SECRET",
+        "test-authority-secret-32-bytes-minimum",
+    )
+    pipeline = B2BDataPipeline(
+        location="Estonia",
+        business_problem="Launch cat food",
+        target_user="Retail buyer",
+        required_evidence_classes=["observed_primary_market"],
+        **_ee_cat_food_topic_lifecycle(),
+    )
+    hints = pipeline._code_owned_observed_offer_candidates()
+    official_url = "https://ec.europa.eu/eurostat/api/comext/estonia"
+    official = {
+        "url": official_url,
+        "provider": "eurostat_comext_official",
+        "country_codes": ["EE"],
+        "market_terms": ["Estonia"],
+        "acquisition_evidence_classes": ["official_statistic"],
+    }
+    rows = _schedule_authority_candidates([official, *hints])
+    valid_html = _petcity_offer_html(
+        product_name="Royal Canin Light Weight kassitoit 400 g",
+        sku="001201",
+        visible_price="10,09 €",
+        structured_price="10.09",
+    )
+    invalid_html = (
+        '<nav class="category-navigation">Kassitoit alates 3,49 €</nav>'
+        '<script type="application/ld+json">'
+        '[{"@context":"https://schema.org","@type":"BreadcrumbList",'
+        '"itemListElement":[]}]</script>'
+    )
+    call_counts = {str(row["url"]): 0 for row in rows}
+    original_outcome = authority_module._enrich_authority_row_outcome
+
+    def counted_outcome(source, direct, attestations):
+        call_counts[str(source["url"])] += 1
+        return original_outcome(source, direct, attestations)
+
+    async def fetcher(url: str) -> dict:
+        if url == _PETCITY_APPLAWS_URL:
+            raw_html = invalid_html
+        elif url == _PETCITY_ROYAL_CANIN_URL:
+            raw_html = valid_html
+        else:
+            raw_html = "<main>Eurostat official statistics for Estonia.</main>"
+        return {
+            "final_url": url,
+            "text": _normalized_document_text(raw_html, is_html=True),
+            "retrieved_at": _AUTHORITY_RETRIEVED_AT,
+            "commercial_offer_evidence": _commercial_offer_evidence(raw_html),
+            "structured_statistical_observations": [],
+            "_structured_evidence_html": raw_html,
+        }
+
+    monkeypatch.setattr(
+        authority_module,
+        "_enrich_authority_row_outcome",
+        counted_outcome,
+    )
+    enriched = await real_enrich_authority_sources(rows, fetcher=fetcher)
+
+    assert all(count == 1 for count in call_counts.values())
+    by_url = {str(row["url"]): row for row in enriched}
+    assert by_url[_PETCITY_APPLAWS_URL]["authority_processing_status"] == (
+        "completed"
+    )
+    assert by_url[_PETCITY_APPLAWS_URL]["authority_failure_category"] == (
+        "primary_market_proof_rejected"
+    )
+    assert by_url[_PETCITY_ROYAL_CANIN_URL]["authority_verification_status"] == (
+        "direct_primary_market_observation"
+    )
+    assert by_url[official_url]["authority_processing_status"] == "completed"
 
 
 @pytest.mark.asyncio
