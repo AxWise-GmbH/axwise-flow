@@ -72,6 +72,10 @@ from backend.services.research_topic_contract_service import (
     build_expected_trusted_topic_alias_expansion,
     build_topic_seed,
 )
+from backend.services.research_source_authority_service import (
+    canonical_authority_failure_category,
+    canonical_authority_processing_status,
+)
 from backend.domain.market_scope import resolve_market_expression
 
 
@@ -2249,6 +2253,16 @@ class HybridRunService:
                     "authority_status": str(
                         row.get("authority_verification_status") or ""
                     )[:120],
+                    "authority_processing_status": (
+                        canonical_authority_processing_status(
+                            row.get("authority_processing_status")
+                        )
+                    ),
+                    "authority_failure_category": (
+                        canonical_authority_failure_category(
+                            row.get("authority_failure_category")
+                        )
+                    ),
                 }
             )
         return {

@@ -1208,6 +1208,10 @@ async def test_failed_critical_gate_never_runs_deferred_company_enrichment(
                     "direct_fetch_status": "retrieved",
                     "jurisdiction_binding_status": "verified",
                     "authority_verification_status": "unverified",
+                    "authority_processing_status": "completed",
+                    "authority_failure_category": (
+                        "primary_market_proof_rejected"
+                    ),
                 }
             ],
             "evidence_class_acquisition": {
@@ -1262,6 +1266,12 @@ async def test_failed_critical_gate_never_runs_deferred_company_enrichment(
         "claim_extracted": 0,
     }
     assert failure["attempted_sources"][0]["final_host"] == "stat.ee"
+    assert failure["attempted_sources"][0]["authority_processing_status"] == (
+        "completed"
+    )
+    assert failure["attempted_sources"][0]["authority_failure_category"] == (
+        "primary_market_proof_rejected"
+    )
     assert "secret" not in str(failure).casefold()
 
 
@@ -2736,6 +2746,20 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
                         "direct_fetch_status": "retrieved",
                         "jurisdiction_binding_status": "verified",
                         "authority_verification_status": "unverified",
+                        "authority_processing_status": "completed",
+                        "authority_failure_category": (
+                            "primary_market_proof_rejected"
+                        ),
+                    },
+                    {
+                        "retrieval_host": "evil.example",
+                        "final_host": "evil.example",
+                        "acquisition_evidence_classes": ["official_statistic"],
+                        "direct_fetch_status": "retrieved",
+                        "jurisdiction_binding_status": "verified",
+                        "authority_verification_status": "unverified",
+                        "authority_processing_status": "internal_secret_status",
+                        "authority_failure_category": "raw_secret_error_message",
                     }
                 ],
                 "evidence_class_acquisition": {
@@ -2796,6 +2820,18 @@ def test_failure_grounding_diagnostics_are_bounded_and_secret_free():
         {"engine": "bravescript", "reason_code": "suspended"}
     ]
     assert diagnostics["attempted_sources"][0]["final_host"] == "stat.ee"
+    assert diagnostics["attempted_sources"][0]["authority_processing_status"] == (
+        "completed"
+    )
+    assert diagnostics["attempted_sources"][0]["authority_failure_category"] == (
+        "primary_market_proof_rejected"
+    )
+    assert diagnostics["attempted_sources"][1]["authority_processing_status"] == (
+        "invalid"
+    )
+    assert diagnostics["attempted_sources"][1]["authority_failure_category"] == (
+        "invalid"
+    )
     assert diagnostics["evidence_class_acquisition"]["official_statistic"] == {
         "attempted": 2,
         "retrieved": 1,
