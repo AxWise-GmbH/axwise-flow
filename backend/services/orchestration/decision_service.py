@@ -39,6 +39,7 @@ from backend.domain.orchestration.models import (
     ResearchResultV1,
     RoutingAssessmentV1,
 )
+from backend.domain.orchestration.scope_models import ScopeStateV1
 from backend.domain.orchestration.ports import (
     DecisionStore,
     EvidenceRetrievalPort,
@@ -55,6 +56,11 @@ from backend.services.orchestration.adapters.plan_feasibility_adapter import (
 from backend.services.orchestration.team_planner import TeamPlanner
 from backend.services.orchestration.replanning_service import ReplanningService
 from backend.services.orchestration.uncertainty_router import UncertaintyRouter
+from backend.services.orchestration.scope_contract_service import (
+    build_scope_confirmation,
+    ensure_scope_packet,
+    validate_scope_packet,
+)
 
 
 PARTNER_ID = "orqaly"
@@ -145,6 +151,8 @@ class OrchestrationDecisionService:
         payload.pop("research_brief", None)
         payload.pop("planning", None)
         payload.pop("upstream_decision_id", None)
+        payload.pop("scope_state", None)
+        payload.pop("scope_packet", None)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -161,6 +169,8 @@ class OrchestrationDecisionService:
         )
         payload.pop("planning", None)
         payload.pop("upstream_decision_id", None)
+        payload.pop("scope_state", None)
+        payload.pop("scope_packet", None)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -177,6 +187,24 @@ class OrchestrationDecisionService:
             exclude_none=False,
         )
         payload.pop("upstream_decision_id", None)
+        payload.pop("scope_state", None)
+        payload.pop("scope_packet", None)
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _legacy_pre_scope_contract_hash(
+        request: DecisionCreateRequestV1,
+    ) -> str:
+        """Hash used before canonical scope state and packet fields existed."""
+
+        payload = request.model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_none=False,
+        )
+        payload.pop("scope_state", None)
+        payload.pop("scope_packet", None)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -192,6 +220,7 @@ class OrchestrationDecisionService:
             cls._legacy_phase1_request_hash(request),
             cls._legacy_phase2_request_hash(request),
             cls._legacy_pre_link_request_hash(request),
+            cls._legacy_pre_scope_contract_hash(request),
         }
 
     def _evidence(
@@ -256,6 +285,78 @@ class OrchestrationDecisionService:
                     update={"preferred_capabilities": preferred}
                 )
             }
+        )
+
+    @staticmethod
+    def _request_with_research_scope_facts(
+        request: DecisionCreateRequestV1,
+        result: ResearchResultV1,
+    ) -> DecisionCreateRequestV1:
+        """Rebuild the child scope around exact, independently verified facts.
+
+        The research adapter is the only producer of ``scope_facts``. Even at
+        this boundary we accept only usable research, verified seeds with full
+        authority metadata, and claims that do not overlap an assumption. A
+        refreshed decision always rebuilds its packet so the immutable child
+        snapshot is linked to the evidence state it actually evaluated.
+        """
+
+        state = request.scope_state or ScopeStateV1()
+        assumption_claims = {
+            " ".join(item.text.split()).casefold() for item in state.assumptions
+        }
+        verified_research_evidence = {
+            item.reference_id: item
+            for item in request.evidence_catalogue
+            if (
+                item.verified
+                and item.verification_source == "axwise_audit"
+                and item.provenance == "empirical"
+                and not item.contradictory
+            )
+        }
+        merged = {
+            (
+                " ".join(item.claim.split()).casefold(),
+                tuple(sorted(item.source_refs)),
+                tuple(sorted(item.source_authority_ids)),
+            ): item
+            for item in state.facts
+        }
+        if result.job.status in USABLE_RESEARCH_STATUSES:
+            for item in result.scope_facts:
+                normalized_claim = " ".join(item.claim.split()).casefold()
+                if item.verification != "verified" or normalized_claim in assumption_claims:
+                    continue
+                if not (
+                    item.source_refs
+                    and item.source_authority_ids
+                    and item.verbatim_excerpt
+                    and item.content_hash
+                ):
+                    continue
+                bound_evidence = [
+                    verified_research_evidence.get(reference)
+                    for reference in item.source_refs
+                ]
+                if any(evidence is None for evidence in bound_evidence) or not any(
+                    evidence.content_hash == item.content_hash
+                    for evidence in bound_evidence
+                    if evidence is not None
+                ):
+                    continue
+                merged[
+                    (
+                        normalized_claim,
+                        tuple(sorted(item.source_refs)),
+                        tuple(sorted(item.source_authority_ids)),
+                    )
+                ] = item
+        scope_state = state.model_copy(
+            update={"facts": [merged[key] for key in sorted(merged)]}
+        )
+        return request.model_copy(
+            update={"scope_state": scope_state, "scope_packet": None}
         )
 
     @staticmethod
@@ -367,6 +468,10 @@ class OrchestrationDecisionService:
         learned_features: list[LearnedFeatureV1] | None = None,
     ) -> OrchestrationDecisionV1:
         task = request.task
+        scope_packet = request.scope_packet
+        if scope_packet is None:
+            raise ValueError("canonical scope_packet must be attached before decision creation")
+        scope_validation = validate_scope_packet(scope_packet)
         policy = request.policy_context
         routing_mode = assessment.selected_mode
         scoring_request = self._scoring_request(request, evidence, routing_mode)
@@ -712,6 +817,9 @@ class OrchestrationDecisionService:
                 if learned_features is not None
                 else list(parent.learned_features) if parent else []
             ),
+            scope_packet=scope_packet,
+            scope_validation=scope_validation,
+            scope_confirmation=build_scope_confirmation(scope_packet),
         )
 
     def _persist(
@@ -779,6 +887,7 @@ class OrchestrationDecisionService:
         idempotency_key: str,
         request_id: str | None = None,
     ) -> OrchestrationDecisionRecordV1:
+        request = ensure_scope_packet(request)
         request_hash = canonical_request_hash(request)
         existing = self.store.find_by_idempotency(
             PARTNER_ID,
@@ -910,6 +1019,11 @@ class OrchestrationDecisionService:
                 "research_policy": policy,
             }
         )
+        enriched_request = self._request_with_research_scope_facts(
+            enriched_request,
+            result,
+        )
+        enriched_request = ensure_scope_packet(enriched_request)
         refresh_payload = {
             "parent_decision_id": parent.decision_id,
             "research_result": result.model_dump(mode="json"),
@@ -1015,7 +1129,8 @@ class OrchestrationDecisionService:
             application = self.replanning_service.apply(parent.input_snapshot, change)
         except ValueError as exc:
             raise ReplanError(str(exc)) from exc
-        request = application.request
+        request = application.request.model_copy(update={"scope_packet": None})
+        request = ensure_scope_packet(request)
         evidence = list(request.evidence_catalogue)
         assessment = self.router.route(request, evidence)
         decision = self._build_decision(

@@ -2574,6 +2574,45 @@ async def test_required_research_rejects_a_partial_synthetic_cohort(session_fact
 
 
 @pytest.mark.asyncio
+async def test_synthetic_only_run_rejects_a_partial_synthetic_cohort(session_factory):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator, session_factory, fake_enrichment, fake_grounding
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    request = _request().model_copy(
+        update={
+            "config": _request().config.model_copy(
+                update={"people_per_stakeholder": 2}
+            )
+        }
+    )
+    run, _ = service.enqueue(
+        request,
+        _bundle_outputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-partial-synthetic-only",
+        "trace-partial-synthetic-only",
+    )
+
+    claimed_id = await service.process_next()
+    await service.process_job(claimed_id, already_claimed=True)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    )
+    assert persisted.status == "failed"
+    assert "Required synthetic cohort incomplete" in persisted.error
+    assert "planned=2; personas=1; interviews=1" in persisted.error
+    assert orchestrator.finalized == []
+
+
+@pytest.mark.asyncio
 async def test_required_grounding_does_not_trust_a_declared_count_without_real_sources(
     session_factory,
 ):

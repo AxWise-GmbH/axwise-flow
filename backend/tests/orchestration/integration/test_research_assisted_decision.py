@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from copy import deepcopy
 
 import pytest
@@ -313,6 +314,111 @@ def test_completed_research_creates_linked_immutable_rescore(decision_store):
     assert record.ranking_changes
     assert decision_store.query(OrchestrationDecisionSnapshot).count() == 2
     assert decision_store.query(OrchestrationEvent).count() == 2
+
+
+def test_completed_research_rebuilds_child_scope_with_only_authoritative_facts(
+    decision_store,
+):
+    payload = _ambiguous_research_payload()
+    payload["scope_state"] = {
+        "assumptions": [
+            {
+                "text": "Mobile usage is the dominant workflow.",
+                "materiality": "material",
+                "owner_confirmed": True,
+                "truth_status": "assumption",
+                "source_refs": ["owner-confirmation"],
+            }
+        ]
+    }
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    parent = service.create(
+        _request(payload),
+        "axwise-user",
+        "research-scope-parent",
+    )
+    excerpt = "The official 2026 scheduling-gap count is 42."
+    verified_fact = {
+        "claim": "Official clinic statistics reports 42 scheduling gaps in 2026.",
+        "verification": "verified",
+        "source_refs": ["axwise-research-fact-authoritative"],
+        "source_authority_ids": ["axwise-authority-official-clinic"],
+        "verbatim_excerpt": excerpt,
+        "content_hash": hashlib.sha256(excerpt.encode("utf-8")).hexdigest(),
+    }
+    research.result = ResearchResultV1.model_validate(
+        {
+            "job": parent.research_job.model_copy(
+                update={"status": "completed", "evidence_count": 2}
+            ),
+            "evidence": [
+                {
+                    "reference_id": "axwise-research-fact-authoritative",
+                    "provenance": "empirical",
+                    "content_hash": verified_fact["content_hash"],
+                    "relevance": 1,
+                    "quality": 1,
+                    "verified": True,
+                    "verification_source": "axwise_audit",
+                    "classification": "public",
+                },
+                {
+                    "reference_id": "owner-confirmation",
+                    "provenance": "operational",
+                    "relevance": 1,
+                    "quality": 1,
+                    "verified": False,
+                    "verification_source": "none",
+                },
+            ],
+            "scope_facts": [
+                verified_fact,
+                {
+                    "claim": "Mobile usage is the dominant workflow.",
+                    "verification": "verified",
+                    "source_refs": ["owner-confirmation"],
+                    "source_authority_ids": ["forged-owner-authority"],
+                    "verbatim_excerpt": "Mobile usage is the dominant workflow.",
+                    "content_hash": hashlib.sha256(
+                        b"Mobile usage is the dominant workflow."
+                    ).hexdigest(),
+                },
+                {
+                    "claim": "A detached research claim must not enter the scope.",
+                    "verification": "verified",
+                    "source_refs": ["missing-evidence-reference"],
+                    "source_authority_ids": ["forged-detached-authority"],
+                    "verbatim_excerpt": "Detached claim",
+                    "content_hash": hashlib.sha256(b"Detached claim").hexdigest(),
+                },
+            ],
+        }
+    )
+
+    record = service.refresh_research(
+        parent.decision_id,
+        "orqaly-org-example",
+        "orqaly-user",
+        "axwise-user",
+        "research-scope-child",
+    ).record
+
+    assert record.parent_decision_id == parent.decision_id
+    assert parent.scope_packet.ledger.facts == []
+    assert record.scope_packet.scope_hash != parent.scope_packet.scope_hash
+    assert len(record.input_snapshot.scope_state.facts) == 1
+    assert len(record.scope_packet.ledger.facts) == 1
+    assert record.scope_packet.ledger.facts[0].claim == verified_fact["claim"]
+    assert record.scope_packet.ledger.facts[0].source_refs == (
+        verified_fact["source_refs"]
+    )
+    assert [item.text for item in record.scope_packet.ledger.assumptions] == [
+        "Mobile usage is the dominant workflow."
+    ]
 
 
 def test_post_research_capabilities_improve_ranking_without_authorizing_execution(

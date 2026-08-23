@@ -6,9 +6,10 @@ using PydanticAI with Pydantic models for structured outputs.
 """
 
 import logging
-import asyncio
 import os
-from typing import Dict, Any, List, Optional, Union
+import re
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional
 
 from backend.models.pattern import Pattern, PatternResponse
 from backend.services.llm.prompts.tasks.pattern_recognition import (
@@ -16,15 +17,28 @@ from backend.services.llm.prompts.tasks.pattern_recognition import (
 )
 from backend.infrastructure.api.processor import IProcessor
 
-# PydanticAI imports
-from pydantic_ai import Agent
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
+
+from backend.services.llm.structured_utility_runtime import (
+    get_shared_structured_utility_model,
+    run_structured_utility,
+)
 
 # Import constants for API key
 from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class PatternRunContract:
+    """Source text used to reject unsupported structured pattern evidence."""
+
+    source_text: str
+
+
+def _normalized_evidence_text(value: str) -> str:
+    return re.sub(r"[^\w]+", " ", value.casefold(), flags=re.UNICODE).strip()
 
 
 class PatternProcessor(IProcessor):
@@ -54,26 +68,67 @@ class PatternProcessor(IProcessor):
                 self.pattern_agent = None
                 return
 
-            # Set API key in environment for PydanticAI
-            if api_key:
-                os.environ["GEMINI_API_KEY"] = api_key
-            provider = GoogleProvider(api_key=api_key)
-            self.model = GoogleModel(
-                os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash"),
-                provider=provider,
-            )
+            # The shared utility runtime owns and closes the provider transport.
+            # It also rejects any configured model other than exact Gemini 3.7
+            # Flash, so request-scoped processors cannot silently drift models.
+            self.model = get_shared_structured_utility_model(api_key)
             self.pattern_agent = Agent(
                 model=self.model,
-                output_type=PatternResponse,
+                deps_type=PatternRunContract,
+                output_type=NativeOutput(PatternResponse),
                 system_prompt=(
                     "You are an expert behavioral analyst specializing in identifying patterns "
                     "in user research data. Focus on extracting clear, specific patterns of behavior "
                     "that appear multiple times in the text. "
-                    "Generate 3-7 distinct patterns with detailed evidence and actionable insights."
+                    "Generate 3-7 distinct patterns with detailed evidence and actionable insights. "
+                    "Every evidence item must be a verbatim quote from the supplied source text."
                 ),
+                retries={"output": 2},
             )
+
+            @self.pattern_agent.output_validator
+            async def validate_patterns(
+                ctx: RunContext[PatternRunContract], output: PatternResponse
+            ) -> PatternResponse:
+                if not 1 <= len(output.patterns) <= 7:
+                    raise ModelRetry("Return between 1 and 7 distinct patterns.")
+
+                names = [pattern.name.strip().casefold() for pattern in output.patterns]
+                if len(set(names)) != len(names):
+                    raise ModelRetry("Pattern names must be distinct.")
+
+                normalized_source = _normalized_evidence_text(ctx.deps.source_text)
+                for pattern in output.patterns:
+                    if (
+                        len(pattern.name.strip()) < 3
+                        or len(pattern.description.strip()) < 12
+                        or len(pattern.impact.strip()) < 8
+                        or not pattern.suggested_actions
+                    ):
+                        raise ModelRetry(
+                            "Every pattern needs a specific name, substantive description, "
+                            "impact, and at least one actionable recommendation."
+                        )
+                    supported_quotes = [
+                        quote
+                        for quote in pattern.evidence
+                        if len(_normalized_evidence_text(quote)) >= 8
+                        and _normalized_evidence_text(quote) in normalized_source
+                    ]
+                    if not supported_quotes:
+                        raise ModelRetry(
+                            f"Pattern {pattern.name!r} needs at least one verbatim evidence "
+                            "quote found in the source text."
+                        )
+                return output
+
             self.pydantic_ai_available = True
             logger.info("Initialized PatternProcessor with PydanticAI")
+        except RuntimeError:
+            # Exact-model drift is a deployment/configuration error. Do not
+            # silently turn it into a lower-quality fallback path.
+            logger.exception("PatternProcessor rejected its Gemini runtime configuration")
+            raise
         except Exception as e:
             logger.error(f"Failed to initialize PydanticAI for PatternProcessor: {e}")
             self.pydantic_ai_available = False
@@ -334,7 +389,12 @@ class PatternProcessor(IProcessor):
         # Generate patterns with PydanticAI
         try:
             logger.info("Generating patterns with PydanticAI agent")
-            response = await self.pattern_agent.run(prompt)
+            response = await run_structured_utility(
+                self.pattern_agent.run(
+                    prompt,
+                    deps=PatternRunContract(source_text=text),
+                )
+            )
 
             # PydanticAI returns the result directly
             if isinstance(response.output, PatternResponse):
@@ -349,30 +409,12 @@ class PatternProcessor(IProcessor):
                 else:
                     return PatternResponse(patterns=[])
 
-        except Exception as e:
-            logger.error(f"Error in PydanticAI pattern generation: {str(e)}")
-
-            # Try with a simpler prompt as fallback
-            try:
-                logger.info("Retrying pattern generation with simplified prompt")
-                simple_prompt = f"""
-                Analyze the following text and identify 3-5 behavioral patterns:
-
-                {text[:2000]}...
-
-                Focus on recurring behaviors, workflows, or approaches that appear multiple times.
-                """
-
-                response = await self.pattern_agent.run(simple_prompt)
-
-                if isinstance(response.output, PatternResponse):
-                    return response.output
-                else:
-                    return PatternResponse(patterns=[])
-
-            except Exception as e2:
-                logger.error(f"Error in retry pattern generation: {str(e2)}")
-                raise
+        except Exception as exc:
+            # Do not retry the entire prompt here. The shared transport owns
+            # transient retries and PydanticAI owns bounded structured-output
+            # repair, avoiding multiplicative catch-all retries.
+            logger.error("PydanticAI pattern generation failed: %s", exc)
+            raise
 
     async def _generate_patterns_from_themes(
         self, themes: List[Dict[str, Any]], text: Optional[str] = None

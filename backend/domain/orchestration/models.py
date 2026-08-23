@@ -26,6 +26,13 @@ from backend.domain.orchestration.enums import (
     Urgency,
 )
 from backend.domain.market_scope import MarketScopeV2, resolve_market_expression
+from backend.domain.orchestration.scope_models import (
+    ScopeConfirmationV1,
+    ScopeFactSeedV1,
+    ScopePacketV1,
+    ScopeStateV1,
+    ScopeValidationReportV1,
+)
 
 
 CONTRACT_VERSION = "1.0"
@@ -563,6 +570,8 @@ class DecisionCreateRequestV1(ContractModel):
     research_policy: ResearchPolicyV1 = Field(default_factory=ResearchPolicyV1)
     research_brief: Optional[ResearchBriefV1] = None
     planning: Optional[PlanningRequirementsV1] = None
+    scope_state: Optional[ScopeStateV1] = None
+    scope_packet: Optional[ScopePacketV1] = None
 
     @model_validator(mode="after")
     def validate_catalogue_identifiers(self) -> "DecisionCreateRequestV1":
@@ -682,6 +691,10 @@ class ResearchJobV1(ContractModel):
 class ResearchResultV1(ContractModel):
     job: ResearchJobV1
     evidence: List[EvidenceItemV1] = Field(default_factory=list, max_length=100)
+    # Only the research adapter may populate this typed bridge. Each entry is
+    # independently evidence-bound; generic evidence counts, synthetic quote
+    # offsets, and owner confirmations are intentionally insufficient.
+    scope_facts: List[ScopeFactSeedV1] = Field(default_factory=list, max_length=200)
 
 
 class RankingChange(ContractModel):
@@ -866,6 +879,9 @@ class OrchestrationDecisionV1(ContractModel):
     plan_feasibility_request: Optional[PlanFeasibilityRequestV1] = None
     replan_context: Optional[ReplanContextV1] = None
     learned_features: List[LearnedFeatureV1] = Field(default_factory=list)
+    scope_packet: Optional[ScopePacketV1] = None
+    scope_validation: Optional[ScopeValidationReportV1] = None
+    scope_confirmation: Optional[ScopeConfirmationV1] = None
 
 
 class OrchestrationDecisionRecordV1(OrchestrationDecisionV1):

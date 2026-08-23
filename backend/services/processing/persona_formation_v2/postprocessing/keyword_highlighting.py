@@ -13,6 +13,43 @@ from backend.services.processing.keyword_highlighter import (
 )
 
 
+_EVIDENCE_TEXT_KEYS = ("quote", "text", "dialogue", "excerpt", "content")
+
+
+def _evidence_text(item: Any) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        for key in _EVIDENCE_TEXT_KEYS:
+            value = item.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return ""
+
+
+def _replace_evidence_text(item: Any, highlighted: str) -> Any:
+    if isinstance(item, str):
+        return highlighted
+    if isinstance(item, dict):
+        updated = dict(item)
+        for key in _EVIDENCE_TEXT_KEYS:
+            if isinstance(updated.get(key), str) and updated[key].strip():
+                updated[key] = highlighted
+                return updated
+    return item
+
+
+def _trait_value_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        for key in ("value", "description", "name"):
+            nested = value.get(key)
+            if isinstance(nested, str):
+                return nested
+    return ""
+
+
 class PersonaKeywordHighlighter:
     """Post-processor to enhance evidence highlighting across personas."""
 
@@ -30,6 +67,7 @@ class PersonaKeywordHighlighter:
         if not personas:
             return personas
 
+        context = context or {}
         highlighter = ContextAwareKeywordHighlighter()
 
         # Build a small sample content for domain detection from existing evidence
@@ -40,14 +78,31 @@ class PersonaKeywordHighlighter:
                 if isinstance(td, dict):
                     ev = td.get("evidence") or []
                     if isinstance(ev, list):
-                        sample_parts.extend([str(q) for q in ev if isinstance(q, str)])
+                        sample_parts.extend(
+                            text for item in ev if (text := _evidence_text(item))
+                        )
         sample_content = "\n".join(sample_parts)[:3000]
 
-        # Detect domain keywords (fails open)
-        try:
-            _ = await highlighter.detect_research_domain_and_keywords(sample_content)
-        except Exception:
-            pass
+        # Nothing can be highlighted without usable source evidence. Avoid a
+        # pure-latency Gemini classification call in this common empty case.
+        if not sample_content.strip():
+            return personas
+
+        performance_profile = getattr(
+            context.get("performance_profile"),
+            "value",
+            context.get("performance_profile"),
+        )
+        # quality_fast preserves deterministic trait/source highlighting but
+        # skips this optional model classification. It is presentation-only and
+        # must not erase the profile's latency/token advantage.
+        if str(performance_profile or "").strip().casefold() != "quality_fast":
+            try:
+                _ = await highlighter.detect_research_domain_and_keywords(
+                    sample_content
+                )
+            except Exception:
+                pass
 
         # Enhance evidence for selected traits
         for p in personas:
@@ -58,16 +113,25 @@ class PersonaKeywordHighlighter:
                 evidence = td.get("evidence")
                 if not isinstance(evidence, list) or not evidence:
                     continue
-                trait_value = td.get("value")
-                trait_value_str = str(trait_value) if trait_value is not None else ""
+                evidence_texts = [
+                    text for item in evidence if (text := _evidence_text(item))
+                ]
+                if not evidence_texts:
+                    continue
+                trait_value_str = _trait_value_text(td.get("value"))
                 try:
-                    enhanced = highlighter.enhance_evidence_highlighting(
-                        evidence, trait, trait_value_str
+                    highlighted_texts = highlighter.enhance_evidence_highlighting(
+                        evidence_texts, trait, trait_value_str
                     )
-                    td["evidence"] = enhanced
+                    highlighted_iter = iter(highlighted_texts)
+                    td["evidence"] = [
+                        _replace_evidence_text(item, next(highlighted_iter))
+                        if _evidence_text(item)
+                        else item
+                        for item in evidence
+                    ]
                 except Exception:
                     # Fail open for any issues
                     pass
 
         return personas
-

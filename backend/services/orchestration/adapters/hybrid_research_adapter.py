@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -20,6 +21,7 @@ from backend.domain.orchestration.models import (
     ResearchJobV1,
     ResearchResultV1,
 )
+from backend.domain.orchestration.scope_models import ScopeFactSeedV1
 from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
     HybridPRDOutput,
@@ -307,6 +309,151 @@ class HybridResearchAdapter:
         ideal = resolution.get("ideal_agent_persona") or {}
         return [str(value) for value in (ideal.get("required_capabilities") or [])[:20]]
 
+    @staticmethod
+    def _authoritative_scope_contracts(
+        run,
+        maximum_items: int,
+    ) -> tuple[list[ScopeFactSeedV1], list[EvidenceItemV1]]:
+        """Project only proof-bound research facts into the scope ledger.
+
+        Research bundles also contain synthetic interviews, persona hypotheses,
+        source-associated observations, and owner declarations. None of those
+        are facts here. A row must have passed the existing critical-claim
+        authority gate, have no ledger conflict, bind an exact excerpt, and
+        carry at least one signed source authority.
+        """
+
+        dataset = run.dataset if isinstance(run.dataset, dict) else {}
+        data = dataset.get("data") if isinstance(dataset.get("data"), dict) else {}
+        bundle = (
+            data.get("research_bundle")
+            if isinstance(data.get("research_bundle"), dict)
+            else {}
+        )
+        quality = bundle.get("quality") if isinstance(bundle.get("quality"), dict) else {}
+        critical = (
+            quality.get("critical_claims")
+            if isinstance(quality.get("critical_claims"), dict)
+            else {}
+        )
+        if int(critical.get("conflict_count") or 0) > 0:
+            return [], []
+        ledger = critical.get("evidence_ledger")
+        if not isinstance(ledger, list):
+            return [], []
+        claims = {
+            str(item.get("claim_id")): item
+            for item in (bundle.get("market_claims") or [])
+            if isinstance(item, dict) and item.get("claim_id")
+        }
+        scope_facts: list[ScopeFactSeedV1] = []
+        evidence: list[EvidenceItemV1] = []
+        seen_references: set[str] = set()
+        sha256_pattern = re.compile(r"^[a-f0-9]{64}$")
+        for row in ledger:
+            if (
+                not isinstance(row, dict)
+                or row.get("status") != "verified_current_authoritative"
+                or row.get("evidence_class")
+                not in {
+                    "statutory_current",
+                    "official_statistic",
+                    "observed_primary_market",
+                    "source_linked_observation",
+                }
+            ):
+                continue
+            claim_id = str(row.get("claim_id") or "")
+            claim = claims.get(claim_id) or {}
+            subject = " ".join(str(claim.get("subject") or "").split())
+            predicate = " ".join(
+                str(claim.get("predicate") or "").replace("_", " ").split()
+            )
+            claim_object = " ".join(str(claim.get("object") or "").split())
+            if not claim_object:
+                continue
+            source_ids = {
+                str(value) for value in (row.get("source_ids") or []) if value
+            }
+            authority_ids: list[str] = []
+            for source in row.get("sources") or []:
+                if not isinstance(source, dict):
+                    continue
+                source_id = str(source.get("source_id") or "")
+                authority = str(source.get("source_authority") or "")
+                signature = str(source.get("authority_proof_signature") or "")
+                if (
+                    not source_id
+                    or source_id not in source_ids
+                    or not authority
+                    or not sha256_pattern.fullmatch(signature)
+                ):
+                    continue
+                authority_digest = hashlib.sha256(
+                    f"{source_id}:{authority}:{signature}".encode("utf-8")
+                ).hexdigest()
+                authority_ids.append(f"axwise-authority-{authority_digest}")
+            authority_ids = sorted(set(authority_ids))
+            if not authority_ids:
+                continue
+            for fact in row.get("facts") or []:
+                if not isinstance(fact, dict) or fact.get("identity_complete") is not True:
+                    continue
+                fact_id = str(fact.get("fact_id") or "")
+                fact_sources = {
+                    str(value) for value in (fact.get("source_scope") or []) if value
+                }
+                display_value = " ".join(
+                    str(fact.get("display_value") or "").split()
+                )
+                if not fact_id or not display_value or not fact_sources:
+                    continue
+                if not fact_sources.issubset(source_ids):
+                    continue
+                excerpt = (
+                    claim_object
+                    if display_value.casefold() in claim_object.casefold()
+                    else display_value
+                )
+                if not excerpt:
+                    continue
+                reference_digest = hashlib.sha256(fact_id.encode("utf-8")).hexdigest()
+                reference_id = f"axwise-research-fact-{reference_digest[:32]}"
+                if reference_id in seen_references:
+                    continue
+                claim_text = " ".join(
+                    value for value in (subject, predicate, claim_object) if value
+                )[:4000]
+                if len(claim_text) < 3:
+                    continue
+                content_hash = hashlib.sha256(excerpt.encode("utf-8")).hexdigest()
+                scope_facts.append(
+                    ScopeFactSeedV1(
+                        claim=claim_text,
+                        verification="verified",
+                        source_refs=[reference_id],
+                        source_authority_ids=authority_ids,
+                        verbatim_excerpt=excerpt[:8000],
+                        content_hash=content_hash,
+                    )
+                )
+                evidence.append(
+                    EvidenceItemV1(
+                        reference_id=reference_id,
+                        provenance="empirical",
+                        content_hash=content_hash,
+                        relevance=1.0,
+                        quality=1.0,
+                        verified=True,
+                        verification_source="axwise_audit",
+                        classification="public",
+                    )
+                )
+                seen_references.add(reference_id)
+                if len(scope_facts) >= maximum_items:
+                    return scope_facts, evidence
+        return scope_facts, evidence
+
     def _evidence_items(
         self,
         request: DecisionCreateRequestV1,
@@ -359,6 +506,7 @@ class HybridResearchAdapter:
         status: str,
         evidence: list[EvidenceItemV1] | None = None,
         reason: str | None = None,
+        scope_facts: list[ScopeFactSeedV1] | None = None,
     ) -> ResearchResultV1:
         items = evidence or []
         return ResearchResultV1(
@@ -370,6 +518,7 @@ class HybridResearchAdapter:
                 }
             ),
             evidence=items,
+            scope_facts=scope_facts or [],
         )
 
     def collect(
@@ -410,12 +559,45 @@ class HybridResearchAdapter:
         if run.status == "failed":
             return self._result(job, "failed", reason=run.error or "research failed")
 
-        evidence = self._evidence_items(request, run)
+        scope_facts, authoritative_evidence = self._authoritative_scope_contracts(
+            run,
+            request.research_policy.maximum_evidence_items,
+        )
+        generic_evidence = self._evidence_items(request, run)
+        evidence_by_reference = {
+            item.reference_id: item
+            for item in [*authoritative_evidence, *generic_evidence]
+        }
+        evidence = list(evidence_by_reference.values())[
+            : request.research_policy.maximum_evidence_items
+        ]
+        retained_references = {item.reference_id for item in evidence}
+        scope_facts = [
+            fact
+            for fact in scope_facts
+            if set(fact.source_refs).issubset(retained_references)
+        ]
         if not evidence:
             return self._result(job, "no_result", reason="research produced no usable evidence")
         mean_quality = sum(item.quality for item in evidence) / len(evidence)
         if mean_quality < request.research_policy.minimum_evidence_quality:
-            return self._result(job, "low_quality", evidence, "evidence quality is below threshold")
+            return self._result(
+                job,
+                "low_quality",
+                evidence,
+                "evidence quality is below threshold",
+            )
         if run.status == "completed_with_warnings" or run.warning:
-            return self._result(job, "partial", evidence, run.warning)
-        return self._result(job, "completed", evidence)
+            return self._result(
+                job,
+                "partial",
+                evidence,
+                run.warning,
+                scope_facts=scope_facts,
+            )
+        return self._result(
+            job,
+            "completed",
+            evidence,
+            scope_facts=scope_facts,
+        )

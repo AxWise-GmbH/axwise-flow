@@ -4,11 +4,14 @@ Regional geolocated service for B2B company discovery and interactive persona ch
 
 import logging
 import os
+import re
 import uuid
+from collections import Counter
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 from pydantic_ai.models import Model
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..models import (
     CompanyDiscoveryItem,
@@ -28,10 +31,82 @@ from ..models import (
 from .persona_generator import PersonaGenerator
 from .pin_image_service import PinImageService
 from .interview_simulator import InterviewSimulator
-from backend.services.llm.gemini_runtime import build_research_model
+from .cognition_contracts import (
+    IncompleteSimulationCohortError,
+    run_cognition_stage,
+)
+from backend.services.llm.gemini_runtime import get_shared_research_model
 from backend.infrastructure.persistence.simulation_repository import SimulationRepository
 
 logger = logging.getLogger(__name__)
+
+
+_INSIGHT_GROUNDING_STOPWORDS = {
+    "about",
+    "after",
+    "before",
+    "could",
+    "from",
+    "have",
+    "into",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "using",
+    "with",
+    "would",
+}
+
+
+def _grounding_terms(value: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"\b[\w-]+\b", value.casefold(), flags=re.UNICODE)
+        if len(token) >= 4 and token not in _INSIGHT_GROUNDING_STOPWORDS
+    }
+
+
+@dataclass(frozen=True)
+class RegionalInsightsRunContract:
+    evidence_text: str
+
+
+class RegionalInsightsOutput(BaseModel):
+    """Bounded synthesis that must remain grounded in interview evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    potential_risks: List[str] = Field(min_length=3, max_length=4)
+    opportunities: List[str] = Field(min_length=3, max_length=4)
+    recommendations: List[str] = Field(min_length=3, max_length=5)
+
+    @field_validator(
+        "potential_risks",
+        "opportunities",
+        "recommendations",
+        mode="before",
+    )
+    @classmethod
+    def require_substantive_unique_items(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            raise ValueError("regional insight groups must be lists")
+        normalized: List[str] = []
+        seen: set[str] = set()
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError("regional insight items must be strings")
+            text = " ".join(item.strip().split())
+            key = text.casefold()
+            if len(text) < 18:
+                raise ValueError("regional insight items must be substantive")
+            if key in seen:
+                raise ValueError("regional insight items must be distinct")
+            seen.add(key)
+            normalized.append(text)
+        return normalized
 
 
 class RegionalService:
@@ -43,10 +118,67 @@ class RegionalService:
         else:
             api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
             if api_key:
-                self.model = build_research_model(api_key)
+                self.model = get_shared_research_model(api_key)
             else:
                 self.model = None
                 logger.warning("No API key set for RegionalService LLM. Ensure GEMINI_API_KEY is configured.")
+
+    @staticmethod
+    def _validate_regional_persona_cohort(
+        selected_decision_makers: List[Dict[str, Any]],
+        people: List[SimulatedPerson],
+    ) -> None:
+        """Require one correctly bound persona per selected decision maker."""
+
+        expected_bindings = Counter(
+            (
+                str(item.get("company_id") or ""),
+                str(item.get("role") or "Decision Maker"),
+            )
+            for item in selected_decision_makers
+        )
+        actual_bindings = Counter(
+            (
+                str(person.grounding_company_id or ""),
+                str(person.stakeholder_type or ""),
+            )
+            for person in people
+        )
+        person_ids = [str(person.id or "").strip() for person in people]
+        complete = (
+            bool(selected_decision_makers)
+            and actual_bindings == expected_bindings
+            and all(person_ids)
+            and len(set(person_ids)) == len(person_ids)
+        )
+        if not complete:
+            raise IncompleteSimulationCohortError(
+                "Regional persona cohort incomplete: "
+                f"planned={len(selected_decision_makers)}, actual={len(people)}, "
+                f"planned_bindings={dict(expected_bindings)}, "
+                f"actual_bindings={dict(actual_bindings)}"
+            )
+
+    @staticmethod
+    def _validate_regional_interview_cohort(
+        people: List[SimulatedPerson],
+        interviews: List[SimulatedInterview],
+    ) -> None:
+        """Require exactly one interview for every selected regional persona."""
+
+        expected_ids = Counter(str(person.id or "").strip() for person in people)
+        actual_ids = Counter(
+            str(interview.person_id or "").strip() for interview in interviews
+        )
+        if actual_ids != expected_ids:
+            missing = sorted((expected_ids - actual_ids).elements())
+            unexpected = sorted((actual_ids - expected_ids).elements())
+            raise IncompleteSimulationCohortError(
+                "Regional interview cohort incomplete: exactly one interview is required "
+                f"per persona; planned={len(people)}, actual={len(interviews)}, "
+                f"missing_person_ids={missing}, "
+                f"unexpected_or_duplicate_person_ids={unexpected}"
+            )
 
     def _get_base_coordinates(self, location: str) -> Optional[tuple[float, float]]:
         """Return a verified built-in anchor or no anchor—never a default market."""
@@ -287,28 +419,17 @@ For each company, generate:
         business_context: BusinessContext,
         themes: List[str],
     ) -> tuple:
-        """Use LLM synchronously to synthesize interview responses into risks, opportunities, and recommendations."""
+        """Synthesize evidence-grounded risks, opportunities, and recommendations."""
         if not self.model or not response_summaries:
-            return (
-                [f"Adoption barriers for {business_context.target_customer}",
-                 "Concerns around operational integration complexity"],
-                ["Strong demand for simplified automated workflows",
-                 "High business ROI if onboarding friction is resolved"],
-                ["Create a proof-of-concept focusing on core integration features",
-                 "Offer structured training during the onboarding phase",
-                 "Align pricing structures to value realized in the first 30 days"]
+            raise ValueError(
+                "Regional insight synthesis requires a model and interview evidence"
             )
 
-        try:
-            class InsightsOutput(BaseModel):
-                potential_risks: List[str]
-                opportunities: List[str]
-                recommendations: List[str]
-
-            agent = Agent(
-                model=self.model,
-                output_type=InsightsOutput,
-                system_prompt=f"""You are a B2B market strategist synthesizing stakeholder interview data.
+        agent = Agent(
+            model=self.model,
+            deps_type=RegionalInsightsRunContract,
+            output_type=NativeOutput(RegionalInsightsOutput),
+            system_prompt=f"""You are a B2B market strategist synthesizing stakeholder interview data.
 
 Business Problem: {business_context.problem}
 Target Customer: {business_context.target_customer}
@@ -320,31 +441,63 @@ Based on the interview responses below, generate:
 3. recommendations: 3-5 strategic recommendations with clear action items. Each should be a concrete next step.
 
 Make all items SPECIFIC to the business context — not generic advice. Reference actual stakeholder feedback patterns.
-"""
-            )
+""",
+            retries={"output": 2},
+        )
 
-            # Take the first 20 summaries to avoid context overflow
-            summaries_text = "\n".join(response_summaries[:20])
-            prompt = f"Synthesize these interview responses into strategic insights:\n\n{summaries_text}"
-
-            result = await agent.run(prompt)
-
-            return (
-                result.output.potential_risks,
-                result.output.opportunities,
-                result.output.recommendations,
+        @agent.output_validator
+        async def validate_grounded_insights(
+            ctx: RunContext[RegionalInsightsRunContract],
+            output: RegionalInsightsOutput,
+        ) -> RegionalInsightsOutput:
+            evidence_terms = _grounding_terms(ctx.deps.evidence_text)
+            unsupported_findings = [
+                item
+                for item in output.potential_risks + output.opportunities
+                if len(_grounding_terms(item) & evidence_terms) < 2
+            ]
+            recommendation_terms = evidence_terms | _grounding_terms(
+                "\n".join(output.potential_risks + output.opportunities)
             )
-        except Exception as e:
-            logger.error(f"LLM insights aggregation failed: {e}", exc_info=True)
-            return (
-                [f"Adoption barriers for {business_context.target_customer}",
-                 "Concerns around operational integration complexity"],
-                ["Strong demand for simplified automated workflows",
-                 "High business ROI if onboarding friction is resolved"],
-                ["Create a proof-of-concept focusing on core integration features",
-                 "Offer structured training during onboarding",
-                 "Align pricing to value realized in the first 30 days"]
-            )
+            unsupported_recommendations = [
+                item
+                for item in output.recommendations
+                if len(_grounding_terms(item) & recommendation_terms) < 2
+            ]
+            if unsupported_findings or unsupported_recommendations:
+                raise ModelRetry(
+                    "Ground every risk, opportunity, and recommendation in multiple concrete "
+                    "terms from the interview evidence or validated findings. Unsupported "
+                    f"items: {(unsupported_findings + unsupported_recommendations)[:4]}"
+                )
+            return output
+
+        # Take the first 20 summaries to keep the synthesis compact while
+        # preserving every selected interview's structured insights upstream.
+        summaries_text = "\n".join(response_summaries[:20])
+        evidence_text = "\n".join(
+            [
+                business_context.problem,
+                business_context.target_customer,
+                *themes,
+                summaries_text,
+            ]
+        )
+        prompt = (
+            "Synthesize these interview responses into strategic insights:\n\n"
+            f"{summaries_text}"
+        )
+
+        result = await agent.run(
+            prompt,
+            deps=RegionalInsightsRunContract(evidence_text=evidence_text),
+        )
+
+        return (
+            result.output.potential_risks,
+            result.output.opportunities,
+            result.output.recommendations,
+        )
 
     async def run_regional_workflow(
         self, request: RegionalWorkflowRequest, user_id: str = "default_user"
@@ -368,8 +521,14 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
             companies = request.companies
             logger.info(f"Using {len(companies)} pre-discovered companies from request.")
         else:
-            companies = await self.discover_companies(
-                request.location, request.business_problem, request.target_user, request.data_source
+            companies = await run_cognition_stage(
+                "company_discovery",
+                lambda: self.discover_companies(
+                    request.location,
+                    request.business_problem,
+                    request.target_user,
+                    request.data_source,
+                ),
             )
 
         # 2. Build BusinessContext
@@ -383,7 +542,10 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
 
         # 3. Create Stakeholders & Questions (wrapped for reliability)
         try:
-            stakeholders_dict = await self._generate_stakeholders(business_context)
+            stakeholders_dict = await run_cognition_stage(
+                "stakeholders",
+                lambda: self._generate_stakeholders(business_context),
+            )
             logger.info(f"Generated {len(stakeholders_dict.get('primary', []))} primary + {len(stakeholders_dict.get('secondary', []))} secondary stakeholders")
         except Exception as e:
             logger.error(f"Stakeholder generation failed, using fallback: {e}", exc_info=True)
@@ -404,6 +566,7 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
             }
 
         # 4. Generate Personas (wrapped for reliability)
+        selected_dms: List[Dict[str, Any]] = []
         try:
             persona_gen = PersonaGenerator(self.model)
             
@@ -436,7 +599,6 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
                     by_comp_dms[cid] = []
                 by_comp_dms[cid].append(dm)
             
-            selected_dms = []
             max_personas = 10
             round_idx = 0
             while len(selected_dms) < max_personas:
@@ -453,14 +615,18 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
                 round_idx += 1
 
             logger.info(f"Generating personas for {len(selected_dms)} selected decision makers (from {len(decision_makers_to_simulate)} total)...")
-            people = await persona_gen.generate_personas_for_decision_makers(
-                decision_makers=selected_dms,
-                business_context=business_context
+            people = await run_cognition_stage(
+                "personas",
+                lambda: persona_gen.generate_personas_for_decision_makers(
+                    decision_makers=selected_dms,
+                    business_context=business_context,
+                ),
             )
             logger.info(f"Generated {len(people)} personas")
         except Exception as e:
             logger.error(f"Persona generation failed: {e}", exc_info=True)
-            people = []
+            raise
+        self._validate_regional_persona_cohort(selected_dms, people)
 
         # Enrich personas with grounding sources
         if companies and people:
@@ -510,35 +676,34 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
                 logger.warning(f"Avatar pin generation failed (non-critical): {e}")
 
         # 5. Conduct Simulated Interviews (wrapped for reliability)
-        if people:
-            try:
-                interview_sim = InterviewSimulator(self.model)
-                interviews = await interview_sim.simulate_all_interviews(
+        try:
+            interview_sim = InterviewSimulator(self.model)
+            interviews = await run_cognition_stage(
+                "interviews",
+                lambda: interview_sim.simulate_all_interviews(
                     personas=people,
                     stakeholders=stakeholders_dict,
                     business_context=business_context,
-                    config=config
-                )
-                logger.info(f"Completed {len(interviews)} interviews")
-            except Exception as e:
-                logger.error(f"Interview simulation failed: {e}", exc_info=True)
+                    config=config,
+                ),
+            )
+            logger.info(f"Completed {len(interviews)} interviews")
+        except Exception as e:
+            logger.error(f"Interview simulation failed: {e}", exc_info=True)
+            raise
+        self._validate_regional_interview_cohort(people, interviews)
 
         # 6. Generate Simulation Insights
-        if interviews:
-            try:
-                insights = await self._aggregate_insights(interviews, business_context)
-            except Exception as e:
-                logger.error(f"Insights aggregation failed: {e}", exc_info=True)
-
-        if not insights:
-            insights = SimulationInsights(
-                overall_sentiment="neutral",
-                key_themes=["Awaiting interview data"],
-                stakeholder_priorities={},
-                potential_risks=[f"Insufficient data to assess risks for {request.business_problem}"],
-                opportunities=["Run a full simulation to discover opportunities"],
-                recommendations=["Complete the persona interview step to generate actionable insights"],
+        try:
+            insights = await run_cognition_stage(
+                "insights",
+                lambda: self._aggregate_insights(interviews, business_context),
             )
+        except Exception as exc:
+            logger.error("Regional insight synthesis failed: %s", exc, exc_info=True)
+            raise
+        if not insights:
+            raise RuntimeError("Regional insight synthesis returned no validated result")
 
         # 7. Persist to DB so that persona chat works
         try:
@@ -584,6 +749,9 @@ Make all items SPECIFIC to the business context — not generic advice. Referenc
                 logger.info(f"Saved regional workflow simulation {simulation_id} to DB")
         except Exception as db_err:
             logger.error(f"Failed to persist regional simulation to DB: {db_err}")
+            raise RuntimeError(
+                "Regional workflow completed cognition but could not persist its cohort"
+            ) from db_err
 
         stakeholders = stakeholders_dict.get("primary", []) + stakeholders_dict.get("secondary", [])
 

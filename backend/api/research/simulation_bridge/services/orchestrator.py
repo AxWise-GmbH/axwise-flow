@@ -6,6 +6,7 @@ Coordinates persona generation, interview simulation, and data formatting.
 import logging
 import uuid
 import asyncio
+from collections import Counter
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -30,7 +31,12 @@ from .parallel_interview_simulator import ParallelInterviewSimulator
 from .data_formatter import DataFormatter
 from .ocean_sampler import OCEANSampler
 from .occupation_classifier import OccupationClassifier
-from backend.services.llm.gemini_runtime import build_research_model
+from .cognition_contracts import (
+    IncompleteSimulationCohortError,
+    cognition_stage_timeout_seconds,
+    run_cognition_stage,
+)
+from backend.services.llm.gemini_runtime import get_shared_research_model
 from backend.infrastructure.persistence.simulation_repository import (
     SimulationRepository,
 )
@@ -53,7 +59,7 @@ class SimulationOrchestrator:
         # even when production declared GEMINI_MODEL=models/gemini-3.7-flash.
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if api_key:
-            self.model = build_research_model(api_key)
+            self.model = get_shared_research_model(api_key)
         else:
             # Fallback for tests/offline - will fail at runtime if actually used
             self.model = None
@@ -78,6 +84,78 @@ class SimulationOrchestrator:
             {}
         )  # Keep for backward compatibility
         self.use_parallel = use_parallel
+
+    @staticmethod
+    def _cognition_stage_timeout_seconds(stage: str) -> float:
+        """Resolve a finite, positive whole-stage deadline from the environment."""
+
+        return cognition_stage_timeout_seconds(stage)
+
+    async def _run_cognition_stage(
+        self,
+        stage: str,
+        operation,
+    ):
+        """Bound an entire Agent stage, including all semantic output repairs."""
+
+        return await run_cognition_stage(stage, operation)
+
+    def _validate_persona_cohort(
+        self,
+        request: SimulationRequest,
+        personas: List[AIPersona],
+    ) -> None:
+        """Require the exact planned population before interviews can begin."""
+
+        expected_by_stakeholder: Counter[str] = Counter()
+        for stakeholder_group in request.questions_data.stakeholders.values():
+            for stakeholder in stakeholder_group:
+                expected_by_stakeholder[stakeholder.name] += (
+                    request.config.people_per_stakeholder
+                )
+        actual_by_stakeholder = Counter(
+            str(persona.stakeholder_type) for persona in personas
+        )
+        persona_ids = [str(persona.id).strip() for persona in personas]
+        duplicate_ids = sorted(
+            persona_id
+            for persona_id, count in Counter(persona_ids).items()
+            if persona_id and count != 1
+        )
+        if (
+            actual_by_stakeholder != expected_by_stakeholder
+            or any(not persona_id for persona_id in persona_ids)
+            or duplicate_ids
+        ):
+            raise IncompleteSimulationCohortError(
+                "Persona cohort incomplete: "
+                f"planned={dict(expected_by_stakeholder)}, "
+                f"actual={dict(actual_by_stakeholder)}, "
+                f"blank_ids={sum(not persona_id for persona_id in persona_ids)}, "
+                f"duplicate_ids={duplicate_ids}"
+            )
+
+    @staticmethod
+    def _validate_interview_cohort(
+        personas: List[AIPersona],
+        interviews: List[SimulatedInterview],
+    ) -> None:
+        """Require exactly one interview for every planned simulated person."""
+
+        expected_person_ids = Counter(str(persona.id).strip() for persona in personas)
+        actual_person_ids = Counter(
+            str(interview.person_id).strip() for interview in interviews
+        )
+        if actual_person_ids != expected_person_ids:
+            missing = list((expected_person_ids - actual_person_ids).elements())
+            unexpected = list((actual_person_ids - expected_person_ids).elements())
+            raise IncompleteSimulationCohortError(
+                "Interview cohort incomplete: exactly one interview is required per persona; "
+                f"planned={sum(expected_person_ids.values())}, "
+                f"actual={sum(actual_person_ids.values())}, "
+                f"missing_person_ids={sorted(missing)}, "
+                f"unexpected_or_duplicate_person_ids={sorted(unexpected)}"
+            )
 
     async def parse_raw_questionnaire(self, content: str, config) -> SimulationRequest:
         """Parse raw questionnaire content using PydanticAI."""
@@ -168,7 +246,10 @@ class SimulationOrchestrator:
         """
 
         logger.info("🤖 Using PydanticAI to parse questionnaire")
-        result = await parser_agent.run(prompt)
+        result = await self._run_cognition_stage(
+            "questionnaire",
+            lambda: parser_agent.run(prompt),
+        )
         parsed = result.output
 
         logger.info(f"📋 Parsed questionnaire - Business idea: {parsed.business_idea}")
@@ -270,11 +351,15 @@ class SimulationOrchestrator:
             await self._update_progress(
                 simulation_id, "generating_personas", 10, "Generating AI personas"
             )
-            personas = await self.persona_generator.generate_all_personas(
-                request.questions_data.stakeholders,
-                request.business_context,
-                request.config,
+            personas = await self._run_cognition_stage(
+                "personas",
+                lambda: self.persona_generator.generate_all_personas(
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                ),
             )
+            self._validate_persona_cohort(request, personas)
             logger.info(
                 f"Generated {len(personas)} personas for simulation {simulation_id}"
             )
@@ -304,21 +389,28 @@ class SimulationOrchestrator:
                         )
                     )
 
-                interviews = await self.parallel_interview_simulator.simulate_all_interviews_parallel(
-                    personas,
-                    request.questions_data.stakeholders,
-                    request.business_context,
-                    request.config,
-                    progress_callback,
+                interviews = await self._run_cognition_stage(
+                    "interviews",
+                    lambda: self.parallel_interview_simulator.simulate_all_interviews_parallel(
+                        personas,
+                        request.questions_data.stakeholders,
+                        request.business_context,
+                        request.config,
+                        progress_callback,
+                    ),
                 )
             else:
                 # Fallback to sequential processing when parallel mode is disabled
-                interviews = await self.interview_simulator.simulate_all_interviews(
-                    personas,
-                    request.questions_data.stakeholders,
-                    request.business_context,
-                    request.config,
+                interviews = await self._run_cognition_stage(
+                    "interviews",
+                    lambda: self.interview_simulator.simulate_all_interviews(
+                        personas,
+                        request.questions_data.stakeholders,
+                        request.business_context,
+                        request.config,
+                    ),
                 )
+            self._validate_interview_cohort(personas, interviews)
 
             logger.info(
                 f"Generated {len(interviews)} interviews for simulation {simulation_id}"
@@ -354,6 +446,8 @@ class SimulationOrchestrator:
                 metadata={
                     "total_personas": len(personas),
                     "total_interviews": len(interviews),
+                    "planned_personas": total_personas,
+                    "cohort_complete": True,
                     "simulation_config": request.config.model_dump(),
                     "created_at": datetime.utcnow().isoformat(),
                 },
@@ -449,11 +543,15 @@ class SimulationOrchestrator:
             await self._update_progress(
                 simulation_id, "generating_personas", 10, "Generating AI personas"
             )
-            personas = await self.persona_generator.generate_all_personas(
-                request.questions_data.stakeholders,
-                request.business_context,
-                request.config,
+            personas = await self._run_cognition_stage(
+                "personas",
+                lambda: self.persona_generator.generate_all_personas(
+                    request.questions_data.stakeholders,
+                    request.business_context,
+                    request.config,
+                ),
             )
+            self._validate_persona_cohort(request, personas)
 
             # Update progress with completed personas
             await self._update_progress_with_counts(
@@ -493,21 +591,28 @@ class SimulationOrchestrator:
                         )
                     )
 
-                interviews = await self.parallel_interview_simulator.simulate_all_interviews_parallel(
-                    personas,
-                    request.questions_data.stakeholders,
-                    request.business_context,
-                    request.config,
-                    progress_callback,
+                interviews = await self._run_cognition_stage(
+                    "interviews",
+                    lambda: self.parallel_interview_simulator.simulate_all_interviews_parallel(
+                        personas,
+                        request.questions_data.stakeholders,
+                        request.business_context,
+                        request.config,
+                        progress_callback,
+                    ),
                 )
             else:
                 # Use sequential processing (fallback)
-                interviews = await self.interview_simulator.simulate_all_interviews(
-                    personas,
-                    request.questions_data.stakeholders,
-                    request.business_context,
-                    request.config,
+                interviews = await self._run_cognition_stage(
+                    "interviews",
+                    lambda: self.interview_simulator.simulate_all_interviews(
+                        personas,
+                        request.questions_data.stakeholders,
+                        request.business_context,
+                        request.config,
+                    ),
                 )
+            self._validate_interview_cohort(personas, interviews)
 
             logger.info(
                 f"Generated {len(interviews)} interviews for simulation {simulation_id}"
@@ -577,6 +682,8 @@ class SimulationOrchestrator:
                 metadata={
                     "total_personas": len(personas),
                     "total_interviews": len(interviews),
+                    "planned_personas": total_personas,
+                    "cohort_complete": True,
                     "simulation_config": request.config.model_dump(),
                     "created_at": datetime.utcnow().isoformat(),
                     "processing_mode": (
@@ -649,6 +756,30 @@ class SimulationOrchestrator:
         simulation_id = result.simulation_id
         if not simulation_id:
             raise ValueError("Cannot finalize a hybrid simulation without simulation_id")
+        if not result.success:
+            raise IncompleteSimulationCohortError(
+                "Cannot publish an unsuccessful hybrid simulation"
+            )
+
+        personas = list(result.people or [])
+        interviews = list(result.interviews or [])
+        metadata = result.metadata or {}
+        planned_personas = metadata.get(
+            "planned_personas",
+            metadata.get("total_personas"),
+        )
+        try:
+            planned_personas = int(planned_personas)
+        except (TypeError, ValueError) as exc:
+            raise IncompleteSimulationCohortError(
+                "Cannot publish a hybrid simulation without a planned persona count"
+            ) from exc
+        if planned_personas <= 0 or len(personas) != planned_personas:
+            raise IncompleteSimulationCohortError(
+                "Hybrid persona cohort incomplete before publication: "
+                f"planned={planned_personas}, actual={len(personas)}"
+            )
+        self._validate_interview_cohort(personas, interviews)
 
         await self._update_progress(
             simulation_id, "completed", 100, "Hybrid A+B simulation completed"

@@ -186,6 +186,21 @@ app = FastAPI(
     terms_of_service="https://axwise.de/terms-of-service",
 )
 
+
+@app.on_event("shutdown")
+async def close_shared_gemini_transports() -> None:
+    """Release caller-owned shared Gemini connection pools cleanly."""
+
+    from backend.services.llm.gemini_runtime import close_shared_research_models
+    from backend.services.llm.structured_utility_runtime import (
+        close_shared_structured_utility_models,
+    )
+
+    try:
+        await close_shared_research_models()
+    finally:
+        await close_shared_structured_utility_models()
+
 # Get CORS settings from centralized configuration
 CORS_ORIGINS = settings.cors_origins
 CORS_METHODS = settings.cors_methods
