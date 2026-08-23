@@ -3,11 +3,14 @@ FastAPI router for the Orqaly × AxWise Integration Gateway.
 Allows Orqaly's Agentic OS to register, query, audit, and evaluate Sovereign Digital Twins.
 """
 
-import os
-import time
+import hashlib
+import json
 import logging
-import uuid
+import os
 import re
+import threading
+import time
+import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from enum import Enum
@@ -56,23 +59,33 @@ router = APIRouter(
 )
 
 # ----------------- Thread-Safe Bounded Idempotency Cache -----------------
+ConditionsCacheKey = tuple[str, str, str, str, str]
+
+
 class RequestIDCache:
     def __init__(self, maxsize: int = 1000):
-        self.cache = OrderedDict()
+        self.cache: OrderedDict[ConditionsCacheKey, tuple] = OrderedDict()
         self.maxsize = maxsize
-        
-    def get(self, key: str) -> Optional[tuple]:
-        if key in self.cache:
-            self.cache.move_to_end(key)
-            return self.cache[key]
-        return None
-        
-    def set(self, key: str, value: tuple):
-        if key in self.cache:
-            self.cache.move_to_end(key)
-        self.cache[key] = value
-        if len(self.cache) > self.maxsize:
-            self.cache.popitem(last=False)
+        self._lock = threading.RLock()
+
+    def get(self, key: ConditionsCacheKey) -> Optional[tuple]:
+        with self._lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+                return self.cache[key]
+            return None
+
+    def set(self, key: ConditionsCacheKey, value: tuple) -> None:
+        with self._lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+            self.cache[key] = value
+            if len(self.cache) > self.maxsize:
+                self.cache.popitem(last=False)
+
+    def clear(self) -> None:
+        with self._lock:
+            self.cache.clear()
 
 IDEMPOTENCY_CACHE = RequestIDCache()
 
@@ -114,6 +127,23 @@ class ConditionsEvaluationRequest(BaseModel):
     tenant: TenantContext = Field(..., description="Tenant workspace details")
     payload: Dict[str, Any] = Field(..., description="Dynamic payload containing local facts")
     hints: Optional[Dict[str, Any]] = Field(default=None, description="Optional developer tips")
+
+
+def _conditions_cache_key(request: ConditionsEvaluationRequest) -> ConditionsCacheKey:
+    canonical_payload = json.dumps(
+        request.payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    payload_hash = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+    return (
+        request.tenant.orgId,
+        request.tenant.userId,
+        request.integrationPoint.value,
+        payload_hash,
+        request.requestId,
+    )
 
 # --- Response Submodels ---
 class AuditMarker(BaseModel):
@@ -431,9 +461,10 @@ async def evaluate_conditions_gateway(
 ) -> ConditionsEvaluationResponse:
     start_time = time.perf_counter()
     trace_id = f"tx-{uuid.uuid4()}"
-    
+    cache_key = _conditions_cache_key(request)
+
     # Check Idempotency Cache
-    cached_response = IDEMPOTENCY_CACHE.get(request.requestId)
+    cached_response = IDEMPOTENCY_CACHE.get(cache_key)
     if cached_response:
         applicable_conditions, processed_outputs, total_cost_usd = cached_response
         latency_ms = int((time.perf_counter() - start_time) * 1000)
@@ -444,7 +475,7 @@ async def evaluate_conditions_gateway(
             meta=EvaluationMeta(
                 cost=total_cost_usd,
                 latencyMs=latency_ms,
-                model="cache_hit",
+                model="local_deterministic_cache",
                 traceId=trace_id,
                 degraded=False
             )
@@ -483,7 +514,10 @@ async def evaluate_conditions_gateway(
             )
 
         # Set success cached value
-        IDEMPOTENCY_CACHE.set(request.requestId, (applicable_conditions, processed_outputs, total_cost_usd))
+        IDEMPOTENCY_CACHE.set(
+            cache_key,
+            (applicable_conditions, processed_outputs, total_cost_usd),
+        )
 
     except HTTPException:
         # Re-raise explicit HTTP exceptions immediately to preserve error codes
@@ -493,7 +527,11 @@ async def evaluate_conditions_gateway(
         degraded = True
         total_cost_usd = 0.0
         applicable_conditions = [
-            AuditMarker(category="system_degradation", decision="fail_open_active", reason=f"Engine runtime error fallback: {str(exc)}")
+            AuditMarker(
+                category="system_degradation",
+                decision="fail_open_active",
+                reason="Conditions engine unavailable; safe fallback applied.",
+            )
         ]
         
         # Enforce fail-closed rules on sensitive endpoints during service degradation
@@ -522,7 +560,7 @@ async def evaluate_conditions_gateway(
         meta=EvaluationMeta(
             cost=total_cost_usd,
             latencyMs=latency_ms,
-            model="enhanced_gemini" if not degraded else "local_fallback",
+            model="local_deterministic" if not degraded else "local_fallback",
             traceId=trace_id,
             degraded=degraded
         )

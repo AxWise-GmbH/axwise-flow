@@ -32,8 +32,8 @@ cd axwise-flow-oss
 # 2. Create your environment file
 cp .env.example .env
 
-# 3. Edit .env and add your Gemini API key
-#    Replace 'your_gemini_api_key_here' with your actual key
+# 3. Edit .env, add your Gemini API key, and replace
+#    AXWISE_AUTHORITY_PROOF_SECRET with at least 32 random bytes
 
 # 4. Start everything
 docker compose up
@@ -88,11 +88,13 @@ psql -U postgres -l | grep axwise
 
 ## Step 3: Configure Environment
 
-Edit `backend/.env.oss` and add your Gemini API key:
+Edit `backend/.env.oss`, add your Gemini API key, and generate a separate
+authority-proof secret containing at least 32 random bytes:
 
 ```bash
 # Replace 'your_gemini_api_key_here' with your actual API key
 GEMINI_API_KEY=your_gemini_api_key_here
+AXWISE_AUTHORITY_PROOF_SECRET=replace_with_at_least_32_random_bytes
 ```
 
 The default database configuration is:
@@ -161,7 +163,7 @@ Ensuring axwise environment (venv + .env) is loaded...
 ✓ Environment variables present
 ✓ OSS_MODE: true
 ✓ DATABASE_URL: postgresql://postgres:postgres@localhost:5432/axwise
-✓ GEMINI_API_KEY: AIzaSyAWUU...
+✓ GEMINI_API_KEY: [configured; hidden]
 
 ========================================
   Starting Backend Server
@@ -322,4 +324,3 @@ python -m uvicorn backend.api.app:app --host 0.0.0.0 --port 8000 --reload
 ---
 
 **Success!** 🎉 You now have AxWise Flow running locally!
-

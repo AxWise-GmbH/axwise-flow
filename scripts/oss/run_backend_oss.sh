@@ -69,7 +69,7 @@ fi
 echo -e "${GREEN}✓ Environment variables present${NC}"
 echo -e "${GREEN}✓ OSS_MODE:${NC} ${OSS_MODE:-false}"
 echo -e "${GREEN}✓ DATABASE_URL:${NC} ${DATABASE_URL}"
-echo -e "${GREEN}✓ GEMINI_API_KEY:${NC} ${GEMINI_API_KEY:0:10}..."
+echo -e "${GREEN}✓ GEMINI_API_KEY:${NC} [configured; hidden]"
 echo ""
 
 # Reminder: minimal OSS setup (no per-file edits needed)

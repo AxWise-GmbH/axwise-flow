@@ -18,7 +18,7 @@ HEADERS = {"x-axwise-key": SERVICE_KEY}
 @pytest_asyncio.fixture
 async def use_case_client(monkeypatch):
     monkeypatch.setenv("AXWISE_API_KEY", SERVICE_KEY)
-    IDEMPOTENCY_CACHE.cache.clear()
+    IDEMPOTENCY_CACHE.clear()
     app = FastAPI()
     app.include_router(router)
     transport = httpx.ASGITransport(app=app)
@@ -26,7 +26,7 @@ async def use_case_client(monkeypatch):
         transport=transport, base_url="http://testserver"
     ) as client:
         yield client
-    IDEMPOTENCY_CACHE.cache.clear()
+    IDEMPOTENCY_CACHE.clear()
 
 
 async def evaluate_use_case(client, integration_point: str, payload: dict) -> dict:

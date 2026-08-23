@@ -52,7 +52,7 @@ export $(grep -v '^#' "$FRONTEND_DIR/.env.local" | xargs)
 
 echo -e "${GREEN}✓ Environment variables loaded${NC}"
 echo -e "${GREEN}✓ NEXT_PUBLIC_API_URL:${NC} ${NEXT_PUBLIC_API_URL:-not set}"
-echo -e "${GREEN}✓ NEXT_PUBLIC_DEV_AUTH_TOKEN:${NC} ${NEXT_PUBLIC_DEV_AUTH_TOKEN:0:20}..."
+echo -e "${GREEN}✓ NEXT_PUBLIC_DEV_AUTH_TOKEN:${NC} [configured; hidden]"
 echo -e "${GREEN}✓ NEXT_PUBLIC_ENABLE_CLERK_AUTH:${NC} ${NEXT_PUBLIC_ENABLE_CLERK_AUTH:-false}"
 echo ""
 
@@ -106,4 +106,3 @@ echo ""
 
 # Start Next.js dev server
 npm run dev
-

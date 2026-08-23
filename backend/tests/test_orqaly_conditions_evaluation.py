@@ -7,6 +7,7 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 
+import backend.api.routes.orqaly_integration as integration_module
 from backend.api.routes.orqaly_integration import IDEMPOTENCY_CACHE, router
 
 
@@ -17,7 +18,7 @@ HEADERS = {"x-axwise-key": SERVICE_KEY}
 @pytest_asyncio.fixture
 async def conditions_client(monkeypatch):
     monkeypatch.setenv("AXWISE_API_KEY", SERVICE_KEY)
-    IDEMPOTENCY_CACHE.cache.clear()
+    IDEMPOTENCY_CACHE.clear()
     app = FastAPI()
     app.include_router(router)
     transport = httpx.ASGITransport(app=app)
@@ -25,7 +26,7 @@ async def conditions_client(monkeypatch):
         transport=transport, base_url="http://testserver"
     ) as client:
         yield client
-    IDEMPOTENCY_CACHE.cache.clear()
+    IDEMPOTENCY_CACHE.clear()
 
 
 def _request(integration_point: str, payload: dict, request_id: str | None = None) -> dict:
@@ -195,8 +196,137 @@ async def test_idempotency_cache(conditions_client):
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert second.json()["meta"]["model"] == "cache_hit"
+    assert first.json()["meta"]["model"] == "local_deterministic"
+    assert second.json()["meta"]["model"] == "local_deterministic_cache"
     assert (
         first.json()["processedOutputs"]["governance"]["consensus_type"]
         == second.json()["processedOutputs"]["governance"]["consensus_type"]
+    )
+
+
+@pytest.mark.contract
+@pytest.mark.asyncio
+async def test_idempotency_cache_is_scoped_to_tenant_payload_and_integration_point(
+    conditions_client,
+):
+    request_id = str(uuid.uuid4())
+    base_payload = {
+        "name": "Safety Council",
+        "purpose": "Monitor regional port logistics safety guidelines.",
+        "security_level": "low",
+        "message": "Review the operating plan",
+    }
+
+    first_request = _request("consilium.create", base_payload, request_id=request_id)
+    first = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=first_request,
+    )
+
+    changed_payload_request = _request(
+        "consilium.create",
+        {**base_payload, "security_level": "high"},
+        request_id=request_id,
+    )
+    changed_payload = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=changed_payload_request,
+    )
+
+    changed_tenant_request = _request(
+        "consilium.create", base_payload, request_id=request_id
+    )
+    changed_tenant_request["tenant"] = {
+        "userId": "usr_other",
+        "orgId": "org_other",
+    }
+    changed_tenant = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=changed_tenant_request,
+    )
+
+    changed_integration_request = _request(
+        "copilot.chat", base_payload, request_id=request_id
+    )
+    changed_integration = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=changed_integration_request,
+    )
+
+    assert first.status_code == 200
+    assert changed_payload.status_code == 200
+    assert changed_tenant.status_code == 200
+    assert changed_integration.status_code == 200
+    assert first.json()["meta"]["model"] == "local_deterministic"
+    assert changed_payload.json()["meta"]["model"] == "local_deterministic"
+    assert changed_tenant.json()["meta"]["model"] == "local_deterministic"
+    assert changed_integration.json()["meta"]["model"] == "local_deterministic"
+    assert (
+        changed_payload.json()["processedOutputs"]["governance"]["consensus_type"]
+        == "unanimous"
+    )
+    assert changed_integration.json()["processedOutputs"]["classification"] is not None
+
+
+@pytest.mark.contract
+@pytest.mark.asyncio
+async def test_idempotency_cache_uses_canonical_payload_order(conditions_client):
+    request_id = str(uuid.uuid4())
+    payload = {
+        "name": "Safety Council",
+        "purpose": "Monitor regional port logistics safety guidelines.",
+        "security_level": "low",
+    }
+
+    first = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=_request("consilium.create", payload, request_id=request_id),
+    )
+    second = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=_request(
+            "consilium.create",
+            dict(reversed(list(payload.items()))),
+            request_id=request_id,
+        ),
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["meta"]["model"] == "local_deterministic_cache"
+
+
+@pytest.mark.contract
+@pytest.mark.asyncio
+async def test_degraded_response_does_not_expose_raw_exception(
+    conditions_client, monkeypatch
+):
+    async def fail_processing(payload, request_id):
+        raise RuntimeError("database-password=do-not-leak")
+
+    monkeypatch.setattr(
+        integration_module,
+        "_process_copilot_chat",
+        fail_processing,
+    )
+
+    response = await conditions_client.post(
+        "/api/orqaly-axwise/v1/conditions/evaluate",
+        headers=HEADERS,
+        json=_request("copilot.chat", {"message": "Hello"}),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["degraded"] is True
+    assert body["meta"]["model"] == "local_fallback"
+    assert "do-not-leak" not in str(body)
+    assert body["applicableConditions"][0]["reason"] == (
+        "Conditions engine unavailable; safe fallback applied."
     )

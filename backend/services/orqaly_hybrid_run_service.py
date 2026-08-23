@@ -839,7 +839,7 @@ class HybridRunService:
             )
             if external_user_id is not None:
                 query = query.filter(PipelineRun.external_user_id == external_user_id)
-            run = query.first()
+            run = query.with_for_update().first()
             if not run:
                 return None
             if run.status in TERMINAL_STATUSES:
@@ -864,6 +864,7 @@ class HybridRunService:
             query = (
                 session.query(PipelineRun)
                 .filter(
+                    PipelineRun.partner_id == PARTNER_ID,
                     PipelineRun.pipeline_mode == "hybrid_a_plus_b",
                     PipelineRun.status == "queued",
                 )
@@ -888,17 +889,19 @@ class HybridRunService:
             session.close()
 
     def recover_stale_runs(self, stale_after_minutes: int = 30) -> int:
-        """Make interrupted A+B jobs claimable by a new worker process."""
+        """Requeue Orqaly A+B jobs whose worker heartbeat lease went stale."""
         session = self.session_factory()
         try:
             cutoff = datetime.now(timezone.utc) - timedelta(minutes=stale_after_minutes)
             stale_runs = (
                 session.query(PipelineRun)
                 .filter(
+                    PipelineRun.partner_id == PARTNER_ID,
                     PipelineRun.pipeline_mode == "hybrid_a_plus_b",
                     PipelineRun.status == "running",
                     PipelineRun.updated_at < cutoff,
                 )
+                .with_for_update(skip_locked=True)
                 .all()
             )
             for run in stale_runs:
@@ -1517,13 +1520,19 @@ class HybridRunService:
             return
         except Exception as exc:
             logger.exception("Hybrid A+B run failed: %s", job_id)
-            self._persist_failure(
+            failure_persisted = self._persist_failure(
                 job_id,
                 str(exc),
                 time.monotonic() - started,
                 diagnostics=failure_diagnostics,
             )
-            await self._deliver_terminal_webhook(job_id, "failed")
+            if failure_persisted:
+                await self._deliver_terminal_webhook(job_id, "failed")
+            else:
+                logger.info(
+                    "Hybrid A+B failure was not persisted because the run is no longer active: %s",
+                    job_id,
+                )
 
     async def _claim_specific_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         session = self.session_factory()
@@ -1978,7 +1987,12 @@ class HybridRunService:
     ) -> None:
         session = self.session_factory()
         try:
-            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
+            run = (
+                session.query(PipelineRun)
+                .filter(PipelineRun.job_id == job_id)
+                .with_for_update()
+                .first()
+            )
             simulation = (
                 session.query(SimulationData)
                 .filter(SimulationData.simulation_id == result.simulation_id)
@@ -1986,6 +2000,12 @@ class HybridRunService:
             )
             if not run or not simulation:
                 raise RuntimeError("Hybrid run persistence record was not found")
+            if run.status == "cancelled":
+                raise HybridRunCancelled(job_id)
+            if run.status != "running":
+                raise RuntimeError(
+                    f"Hybrid run is no longer active during success persistence: {run.status}"
+                )
             research_bundle = (
                 ((result.data or {}).get("research_bundle") or {})
                 if isinstance(result.data, dict)
@@ -2352,12 +2372,17 @@ class HybridRunService:
         duration: float,
         *,
         diagnostics: Optional[Dict[str, Any]] = None,
-    ) -> None:
+    ) -> bool:
         session = self.session_factory()
         try:
-            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
-            if not run:
-                return
+            run = (
+                session.query(PipelineRun)
+                .filter(PipelineRun.job_id == job_id)
+                .with_for_update()
+                .first()
+            )
+            if not run or run.status != "running":
+                return False
             completed_at = datetime.now(timezone.utc)
             self._finalize_stage_trace(run, completed_at)
             run.status = "failed"
@@ -2372,6 +2397,7 @@ class HybridRunService:
             run.updated_at = completed_at
             run.total_duration_seconds = duration
             session.commit()
+            return True
         finally:
             session.close()
 

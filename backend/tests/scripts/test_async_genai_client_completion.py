@@ -80,6 +80,27 @@ def test_stop_is_accepted_and_stream_sentinel_is_not_a_failure(
     assert client._finish_reason_name(FinishReason.FINISH_REASON_UNSPECIFIED) is None
 
 
+def test_response_content_is_not_written_to_logs(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    module = _load_client_module(monkeypatch)
+    client = object.__new__(module.AsyncGenAIClient)
+    sensitive_response = "private-customer-research-sentinel"
+    response = SimpleNamespace(
+        text=sensitive_response,
+        candidates=[SimpleNamespace(finish_reason=FinishReason.STOP)],
+    )
+
+    with caplog.at_level("INFO", logger=module.__name__):
+        parsed = asyncio.run(
+            client._parse_response(response, module.TaskType.TEXT_GENERATION)
+        )
+
+    assert parsed == {"text": sensitive_response}
+    assert sensitive_response not in caplog.text
+
+
 def test_mid_stream_stall_honors_total_deadline_and_closes_iterator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -20,16 +20,11 @@ from pydantic import ValidationError
 if TYPE_CHECKING:
     from backend.domain.models.persona_schema import StructuredDemographics
 
-# Import Pydantic schema for validation
-try:
-    from schemas import Persona as PersonaSchema
-except ImportError:
-    try:
-        from schemas import Persona as PersonaSchema
-    except ImportError:
-        logger = logging.getLogger(__name__)
-        logger.warning("Could not import PersonaSchema, validation will be limited")
-        # We'll define a minimal schema later if needed
+# Import the canonical package schema used by the backend.  The previous
+# top-level ``schemas`` import depended on the process working directory and
+# was accidentally retried with the same invalid path, leaving Cloud Run's
+# persona validation silently disabled.
+from backend.schemas import Persona as PersonaSchema
 
 # Configure logging
 logger = logging.getLogger(__name__)

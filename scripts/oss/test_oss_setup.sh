@@ -38,15 +38,15 @@ echo ""
 echo -e "${BLUE}Test 2: Checking environment variables...${NC}"
 source "$BACKEND_DIR/.env.oss"
 
-if [ -n "$GEMINI_API_KEY" ]; then
+if [ -n "${GEMINI_API_KEY:-}" ]; then
     echo -e "${GREEN}✓ GEMINI_API_KEY is set${NC}"
-    echo -e "  Value: ${GEMINI_API_KEY=***REMOVED***"
+    echo -e "  Value: [configured; hidden]"
 else
     echo -e "${RED}✗ GEMINI_API_KEY is not set${NC}"
     exit 1
 fi
 
-if [ -n "$DATABASE_URL" ]; then
+if [ -n "${DATABASE_URL:-}" ]; then
     echo -e "${GREEN}✓ DATABASE_URL is set${NC}"
     echo -e "  Value: $DATABASE_URL"
 else
@@ -54,7 +54,7 @@ else
     exit 1
 fi
 
-if [ "$OSS_MODE" = "true" ]; then
+if [ "${OSS_MODE:-}" = "true" ]; then
     echo -e "${GREEN}✓ OSS_MODE is enabled${NC}"
 else
     echo -e "${YELLOW}⚠ OSS_MODE is not set to true${NC}"
@@ -128,4 +128,3 @@ echo -e "  1. Start the backend: ${BLUE}scripts/oss/run_backend_oss.sh${NC}"
 echo -e "  2. Test the health endpoint: ${BLUE}curl http://localhost:8000/health${NC}"
 echo -e "  3. View API docs: ${BLUE}http://localhost:8000/docs${NC}"
 echo ""
-

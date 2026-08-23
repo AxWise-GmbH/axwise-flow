@@ -359,34 +359,22 @@ try:
         "✅ Database tables initialized successfully and model registry verified"
     )
 
-    # Recover stale pipeline runs that were interrupted by server restart
-    # Use synchronous DB access since we're at module load time
+    # Recover only legacy request-process runs. Durable Orqaly hybrid jobs are
+    # leased and recovered by the standalone worker from their heartbeat.
     try:
         from backend.database import SessionLocal
-        from backend.models import PipelineRun
-        from datetime import datetime, timedelta
+        from backend.services.pipeline_run_recovery_service import (
+            recover_stale_api_pipeline_runs,
+        )
 
-        session = SessionLocal()
-        try:
-            cutoff_time = datetime.utcnow() - timedelta(minutes=30)
-
-            # Find and update stale runs synchronously
-            stale_runs = session.query(PipelineRun).filter(
-                PipelineRun.status.in_(["running", "pending"]),
-                PipelineRun.created_at < cutoff_time
-            ).all()
-
-            for run in stale_runs:
-                run.status = "failed"
-                run.completed_at = datetime.utcnow()
-                run.error = f"Job interrupted - server restarted while job was {run.status}"
-                logger.info(f"Marked stale pipeline run as failed: {run.job_id}")
-
-            if stale_runs:
-                session.commit()
-                logger.info(f"🔧 Recovered {len(stale_runs)} stale pipeline runs on startup")
-        finally:
-            session.close()
+        recovered_job_ids = recover_stale_api_pipeline_runs(SessionLocal)
+        for job_id in recovered_job_ids:
+            logger.info("Marked stale API-owned pipeline run as failed: %s", job_id)
+        if recovered_job_ids:
+            logger.info(
+                "🔧 Recovered %s stale API-owned pipeline runs on startup",
+                len(recovered_job_ids),
+            )
     except Exception as recovery_error:
         logger.warning(f"⚠️ Pipeline recovery failed (non-critical): {recovery_error}")
 
