@@ -6,10 +6,13 @@ import asyncio
 
 import httpx
 import pytest
+from google.genai.types import ThinkingLevel
 
 from backend.services.llm.gemini_runtime import (
     BoundedRetryAsyncClient,
     build_research_model,
+    close_shared_research_model,
+    get_shared_research_model,
 )
 
 
@@ -163,3 +166,36 @@ def test_research_model_has_one_retry_owner_and_exact_model(
     api_client = model._provider.client._api_client
     assert isinstance(api_client._async_httpx_client, BoundedRetryAsyncClient)
     assert api_client._http_options.retry_options.attempts == 1
+    assert model.settings["google_thinking_config"]["thinking_level"] == (
+        ThinkingLevel.HIGH
+    )
+    assert model.settings["max_tokens"] == 65_536
+
+
+def test_shared_research_model_reuses_the_caller_owned_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+
+    first = get_shared_research_model("shared-test-key")
+    second = get_shared_research_model("shared-test-key")
+
+    assert first is second
+    assert first.model_name == "models/gemini-3.7-flash"
+    assert first.settings["max_tokens"] == 65_536
+
+
+def test_shared_research_model_closes_the_injected_http_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    api_key = "shared-close-test-key"
+    model = get_shared_research_model(api_key)
+    transport = model.client._api_client._async_httpx_client
+
+    assert isinstance(transport, BoundedRetryAsyncClient)
+    assert transport.is_closed is False
+
+    asyncio.run(close_shared_research_model(api_key))
+
+    assert transport.is_closed is True

@@ -8,6 +8,13 @@ from backend.domain.orchestration.models import (
     OrchestrationDecisionV1,
     TaskEnvelopeV1,
 )
+from backend.domain.orchestration.scope_models import (
+    QualityContractV1,
+    ScopeAdmissionV1,
+    ScopePacketV1,
+    ScopeRequestedActionV1,
+    ScopeStateV1,
+)
 
 __all__ = [
     "DecisionCreateRequestV1",
@@ -16,4 +23,9 @@ __all__ = [
     "OrchestrationDecisionRecordV1",
     "OrchestrationDecisionV1",
     "TaskEnvelopeV1",
+    "QualityContractV1",
+    "ScopeAdmissionV1",
+    "ScopePacketV1",
+    "ScopeRequestedActionV1",
+    "ScopeStateV1",
 ]

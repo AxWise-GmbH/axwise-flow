@@ -32,13 +32,9 @@ from .services.file_processor import (
 )
 from .services.closed_loop_hybrid import enrich_with_empirical_personas
 from backend.utils.structured_logger import request_start, request_end, request_error
-from pydantic_ai.models.google import GoogleModel
 from backend.models import User
 from backend.services.external.auth_middleware import get_current_user
-
-# Import authentication dependencies
-from backend.services.external.auth_middleware import get_current_user
-from backend.models import User
+from backend.services.llm.gemini_runtime import get_shared_research_model
 
 logger = logging.getLogger(__name__)
 
@@ -839,11 +835,12 @@ async def analyze_simulation_results(
         raise HTTPException(status_code=500, detail=f"Analysis bridge failed: {str(e)}")
 
 
-@router.post("/test-personas")
+@router.post("/test-personas", include_in_schema=False)
 async def test_persona_generation(
     business_context: Dict[str, Any],
     stakeholder_info: Dict[str, Any],
     config: Optional[Dict[str, Any]] = None,
+    _user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Test endpoint for persona generation only.
@@ -861,9 +858,7 @@ async def test_persona_generation(
         if not api_key:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
-        from pydantic_ai.providers.google import GoogleProvider
-        provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        model = get_shared_research_model(api_key)
         generator = PersonaGenerator(model)
         personas = await generator.generate_personas(
             stakeholder, business_ctx, sim_config
@@ -882,12 +877,13 @@ async def test_persona_generation(
         )
 
 
-@router.post("/test-interview")
+@router.post("/test-interview", include_in_schema=False)
 async def test_interview_simulation(
     persona_data: Dict[str, Any],
     stakeholder_info: Dict[str, Any],
     business_context: Dict[str, Any],
     config: Optional[Dict[str, Any]] = None,
+    _user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
     Test endpoint for interview simulation only.
@@ -906,9 +902,7 @@ async def test_interview_simulation(
         if not api_key:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
-        from pydantic_ai.providers.google import GoogleProvider
-        provider = GoogleProvider(api_key=api_key)
-        model = GoogleModel("models/gemini-3.7-flash", provider=provider)
+        model = get_shared_research_model(api_key)
         simulator = InterviewSimulator(model)
         interview = await simulator.simulate_interview(
             persona, stakeholder, business_ctx, sim_config
@@ -949,12 +943,10 @@ async def get_default_config() -> Dict[str, Any]:
 # Initialize conversational analysis components
 def get_gemini_model():
     """Get configured Gemini model for conversational analysis"""
-    from pydantic_ai.providers.google import GoogleProvider
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("Neither GEMINI_API_KEY nor GOOGLE_API_KEY environment variable is set")
-    provider = GoogleProvider(api_key=api_key)
-    return GoogleModel("models/gemini-3.7-flash", provider=provider)
+    return get_shared_research_model(api_key)
 
 
 def get_file_processor():

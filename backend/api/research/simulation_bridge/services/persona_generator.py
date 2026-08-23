@@ -597,15 +597,16 @@ CRITICAL REQUIREMENT:
             people_items = result.output
 
             people = []
-            for idx, item in enumerate(people_items):
-                # Ensure we index safely
+            for item in sorted(people_items, key=lambda value: value.profile_index):
+                # The native-output validator guarantees an exact 1..N index set.
+                # Bind every generated record by that explicit identity rather
+                # than by response order, which Gemini is free to vary.
                 p_idx = item.profile_index - 1
-                if 0 <= p_idx < len(sampled_profiles):
-                    age, ocean, occ = sampled_profiles[p_idx]
-                else:
-                    age = random.randint(30, 65)
-                    ocean = self.ocean_sampler.sample("generic", age)
-                    occ = "generic"
+                if not 0 <= p_idx < len(sampled_profiles):
+                    raise ValueError(
+                        f"Unexpected decision-maker profile_index {item.profile_index}"
+                    )
+                age, ocean, _occupation_code = sampled_profiles[p_idx]
 
                 person = SimulatedPerson(
                     id=str(uuid.uuid4()),
@@ -621,14 +622,17 @@ CRITICAL REQUIREMENT:
                     ocean_profile=ocean,
                 )
 
-                if idx < len(decision_makers):
-                    dm = decision_makers[idx]
-                    # If name was placeholder, let LLM name stand, otherwise use the real name
-                    if not (dm['name'].startswith("Manager at") or "at " in dm['name']):
-                        person.name = dm['name']
-                    person.stakeholder_type = dm['role']
-                    person.grounding_company = dm['company_name']
-                    person.grounding_company_id = dm['company_id']
+                dm = decision_makers[p_idx]
+                decision_maker_name = str(dm.get("name") or "").strip()
+                # If name was placeholder, let LLM name stand, otherwise use the real name.
+                if decision_maker_name and not (
+                    decision_maker_name.startswith("Manager at")
+                    or "at " in decision_maker_name
+                ):
+                    person.name = decision_maker_name
+                person.stakeholder_type = str(dm.get("role") or "Decision Maker")
+                person.grounding_company = str(dm.get("company_name") or "")
+                person.grounding_company_id = str(dm.get("company_id") or "")
 
                 people.append(person)
 

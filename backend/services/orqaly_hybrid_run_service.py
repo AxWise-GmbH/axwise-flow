@@ -1381,8 +1381,9 @@ class HybridRunService:
             )
             if not result.success:
                 raise RuntimeError(result.message)
-            if grounding_policy.research_required:
-                self._validate_required_synthetic_cohort(request, result)
+            # Every durable run, including synthetic-only jobs, must satisfy the
+            # declared cohort before empirical enrichment or terminal publication.
+            self._validate_required_synthetic_cohort(request, result)
             self._ensure_active(job_id)
 
             await self._set_stage(

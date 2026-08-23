@@ -10,7 +10,96 @@ import logging
 from typing import List, Dict, Set, Tuple, Optional, Any
 from dataclasses import dataclass
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
+
+from backend.infrastructure.constants.llm_constants import ENV_GEMINI_API_KEY
+from backend.services.llm.structured_utility_runtime import (
+    get_shared_structured_utility_model,
+    run_structured_utility,
+)
+
 logger = logging.getLogger(__name__)
+
+
+_UNHELPFUL_DOMAIN_TERMS = {
+    "audience",
+    "experience",
+    "general",
+    "interview",
+    "people",
+    "person",
+    "research",
+    "thing",
+    "things",
+    "time",
+    "user",
+    "users",
+}
+
+
+def _normalized_search_text(value: str) -> str:
+    return re.sub(r"[^\w]+", " ", value.casefold(), flags=re.UNICODE).strip()
+
+
+@dataclass(frozen=True)
+class DomainRunContract:
+    sample_content: str
+
+
+class DomainAnalysis(BaseModel):
+    """Bounded, useful domain vocabulary returned by Gemini."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    research_domain: str = Field(min_length=3, max_length=120)
+    industry_context: str = Field(min_length=2, max_length=120)
+    core_domain_terms: List[str] = Field(min_length=1, max_length=12)
+    technical_terms: List[str] = Field(default_factory=list, max_length=8)
+    emotional_terms: List[str] = Field(default_factory=list, max_length=8)
+    quantitative_indicators: List[str] = Field(default_factory=list, max_length=8)
+    confidence_score: float = Field(ge=0.0, le=1.0)
+
+    @field_validator(
+        "core_domain_terms",
+        "technical_terms",
+        "emotional_terms",
+        "quantitative_indicators",
+        mode="before",
+    )
+    @classmethod
+    def normalize_useful_terms(cls, value: Any) -> List[str]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("keyword groups must be lists")
+
+        normalized: List[str] = []
+        seen: Set[str] = set()
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError("keywords must be strings")
+            term = " ".join(item.casefold().strip().split())
+            if not 3 <= len(term) <= 80:
+                raise ValueError("keywords must contain 3 to 80 characters")
+            if term in _UNHELPFUL_DOMAIN_TERMS:
+                raise ValueError(f"generic keyword {term!r} is not useful")
+            if term not in seen:
+                seen.add(term)
+                normalized.append(term)
+        return normalized
+
+    @model_validator(mode="after")
+    def require_distinct_vocabulary(self) -> "DomainAnalysis":
+        all_terms = (
+            self.core_domain_terms
+            + self.technical_terms
+            + self.emotional_terms
+            + self.quantitative_indicators
+        )
+        if len(set(all_terms)) < 2:
+            raise ValueError("at least two distinct useful keywords are required")
+        return self
 
 
 @dataclass
@@ -255,38 +344,38 @@ class ContextAwareKeywordHighlighter:
         Returns:
             Dict containing domain info and keywords
         """
-        from pydantic import BaseModel
-        from typing import List
+        if not isinstance(sample_content, str):
+            logger.warning(
+                "Skipping Gemini domain detection for non-text content: %s",
+                type(sample_content).__name__,
+            )
+            return self._fallback_domain_detection("")
 
-        try:
-            from pydantic_ai import Agent
-            from pydantic_ai.models.google import GoogleModel
-            from pydantic_ai.providers.google import GoogleProvider
-            import os
-        except ImportError:
-            # Fallback if PydanticAI not available
+        sample_content = sample_content.strip()
+        meaningful_words = {
+            word
+            for word in re.findall(r"\b\w+\b", sample_content.casefold())
+            if len(word) > 2 and word not in self.GENERIC_WORDS
+        }
+        if len(sample_content) < 24 or len(meaningful_words) < 3:
+            # A provider request cannot improve highlighting when there is no
+            # usable evidence/context to classify.
             return self._fallback_domain_detection(sample_content)
 
-        class DomainAnalysis(BaseModel):
-            research_domain: str
-            industry_context: str
-            core_domain_terms: List[str]
-            technical_terms: List[str]
-            emotional_terms: List[str]
-            quantitative_indicators: List[str]
-            confidence_score: float
+        import os
 
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        provider = GoogleProvider(api_key=api_key) if api_key else None
-        model_name = os.getenv("GEMINI_MODEL", "models/gemini-3.7-flash")
-        gemini_model = GoogleModel(model_name, provider=provider) if provider else "google:gemini-3.7-flash"
+        api_key = os.getenv(ENV_GEMINI_API_KEY) or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            logger.info("Using local keyword fallback because no Gemini key is configured")
+            return self._fallback_domain_detection(sample_content)
 
-        # Use the new Google GenAI client with PydanticAI
-        # PydanticAI automatically handles the google-genai integration
-        domain_agent = Agent(
-            model=gemini_model,
-            output_type=DomainAnalysis,
-            system_prompt="""You are an expert research analyst who identifies research domains and extracts relevant keywords for highlighting in user interviews.
+        try:
+            gemini_model = get_shared_structured_utility_model(api_key)
+            domain_agent = Agent(
+                model=gemini_model,
+                deps_type=DomainRunContract,
+                output_type=NativeOutput(DomainAnalysis),
+                system_prompt="""You are an expert research analyst who identifies research domains and extracts relevant keywords for highlighting in user interviews.
 
 Analyze the provided content and identify:
 
@@ -305,13 +394,39 @@ Analyze the provided content and identify:
 IMPORTANT: Extract only terms that actually appear in the provided content. Focus on domain-specific terminology that would be meaningful to highlight for researchers and product teams in this field.
 
 Return terms in lowercase for consistency.""",
-        )
+                retries={"output": 2},
+            )
 
-        try:
-            # Properly await the async agent call - no need for thread pools
-            # since this method is now async
-            result = await domain_agent.run(
-                f"Analyze this research content and identify the domain and relevant keywords:\n\n{sample_content[:2000]}"
+            @domain_agent.output_validator
+            async def validate_domain_terms(
+                ctx: RunContext[DomainRunContract], output: DomainAnalysis
+            ) -> DomainAnalysis:
+                source = f" {_normalized_search_text(ctx.deps.sample_content)} "
+                term_groups = (
+                    output.core_domain_terms,
+                    output.technical_terms,
+                    output.emotional_terms,
+                    output.quantitative_indicators,
+                )
+                unsupported = [
+                    term
+                    for group in term_groups
+                    for term in group
+                    if f" {_normalized_search_text(term)} " not in source
+                ]
+                if unsupported:
+                    raise ModelRetry(
+                        "Return only useful keywords that appear verbatim in the supplied "
+                        f"content. Unsupported terms: {unsupported[:8]}"
+                    )
+                return output
+
+            result = await run_structured_utility(
+                domain_agent.run(
+                    "Analyze this research content and identify the domain and relevant "
+                    f"keywords:\n\n{sample_content[:3000]}",
+                    deps=DomainRunContract(sample_content=sample_content[:3000]),
+                )
             )
 
             domain_data = result.output
@@ -330,7 +445,7 @@ Return terms in lowercase for consistency.""",
             ]:
                 for term in term_list:
                     if term and len(term.strip()) > 2:  # Filter out empty/short terms
-                        self.dynamic_domain_keywords.add(term.lower().strip())
+                        self.dynamic_domain_keywords.add(term.casefold().strip())
 
             # Also update the DOMAIN_KEYWORDS for immediate use in highlighting
             self.DOMAIN_KEYWORDS.update(self.dynamic_domain_keywords)
@@ -349,8 +464,8 @@ Return terms in lowercase for consistency.""",
                 ),  # Return for external use
             }
 
-        except Exception as e:
-            print(f"Error in domain detection: {str(e)}")
+        except Exception as exc:
+            logger.warning("Gemini domain detection failed; using local fallback: %s", exc)
             return self._fallback_domain_detection(sample_content)
 
     def _fallback_domain_detection(self, sample_content: str) -> Dict[str, Any]:
@@ -368,6 +483,8 @@ Return terms in lowercase for consistency.""",
         domain_keywords = [term for term, freq in top_terms if freq >= 2]
 
         self.dynamic_domain_keywords = set(domain_keywords)
+        self.domain_core_terms = set(domain_keywords[:8])
+        self.DOMAIN_KEYWORDS.update(self.dynamic_domain_keywords)
         self.research_domain = "general_research"
 
         return {
@@ -382,8 +499,8 @@ Return terms in lowercase for consistency.""",
         }
 
     def enhance_evidence_highlighting(
-        self, evidence_quotes: List[str], trait_name: str, trait_description: str
-    ) -> List[str]:
+        self, evidence_quotes: List[Any], trait_name: str, trait_description: str
+    ) -> List[Any]:
         """
         Enhance keyword highlighting in evidence quotes based on context.
 
@@ -403,8 +520,13 @@ Return terms in lowercase for consistency.""",
 
         enhanced_quotes = []
         for quote in evidence_quotes:
-            enhanced_quote = self._enhance_quote_highlighting(quote, context)
-            enhanced_quotes.append(enhanced_quote)
+            # Structured evidence must be normalized by the persona adapter so
+            # metadata can be preserved. Defensively leave any non-text value
+            # untouched here instead of passing it to regex/string APIs.
+            if not isinstance(quote, str):
+                enhanced_quotes.append(quote)
+                continue
+            enhanced_quotes.append(self._enhance_quote_highlighting(quote, context))
 
         return enhanced_quotes
 
@@ -416,7 +538,10 @@ Return terms in lowercase for consistency.""",
         trait_keywords = self.TRAIT_KEYWORDS.get(trait_name, set())
 
         # Extract keywords from trait description
-        description_words = set(re.findall(r"\b\w+\b", trait_description.lower()))
+        safe_description = (
+            trait_description if isinstance(trait_description, str) else ""
+        )
+        description_words = set(re.findall(r"\b\w+\b", safe_description.lower()))
         description_keywords = description_words - self.GENERIC_WORDS
 
         # Combine all relevant keywords

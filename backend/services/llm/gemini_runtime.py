@@ -3,25 +3,40 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import random
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any, Optional
 
 import httpx
-from google.genai.types import HttpRetryOptions
-from pydantic_ai.models.google import GoogleModel
+from google.genai import Client as GoogleGenAIClient
+from google.genai.types import HttpOptions, HttpRetryOptions, ThinkingLevel
+from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
 from pydantic_ai.providers.google import GoogleProvider
 
 
 RESEARCH_MODEL = "gemini-3.7-flash"
 RESEARCH_MODEL_RESOURCE = f"models/{RESEARCH_MODEL}"
+RESEARCH_THINKING_LEVEL = ThinkingLevel.HIGH
+RESEARCH_MAX_OUTPUT_TOKENS = 65_536
 TRANSIENT_HTTP_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 RESEARCH_HTTP_ATTEMPTS = 3
 RESEARCH_HTTP_OPERATION_SECONDS = 420.0
 RESEARCH_HTTP_TIMEOUT_SECONDS = 360.0
 MAX_RETRY_AFTER_SECONDS = 20.0
+
+
+@dataclass(frozen=True)
+class _SharedResearchRuntime:
+    model: GoogleModel
+    sdk_client: GoogleGenAIClient
+    http_client: "BoundedRetryAsyncClient"
+
+
+_SHARED_RESEARCH_MODELS: dict[str, _SharedResearchRuntime] = {}
 
 
 class BoundedRetryAsyncClient(httpx.AsyncClient):
@@ -182,7 +197,7 @@ def normalized_research_model(value: str) -> str:
     return str(value or "").strip().removeprefix("models/")
 
 
-def build_research_model(api_key: str) -> GoogleModel:
+def _build_research_runtime(api_key: str) -> _SharedResearchRuntime:
     configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
     if normalized_research_model(configured) != RESEARCH_MODEL:
         raise RuntimeError(
@@ -199,14 +214,92 @@ def build_research_model(api_key: str) -> GoogleModel:
         attempts=1,
         http_status_codes=TRANSIENT_HTTP_STATUS_CODES,
     )
-    return GoogleModel(
-        RESEARCH_MODEL_RESOURCE,
-        provider=GoogleProvider(
-            api_key=api_key,
-            http_client=http_client,
+    sdk_client = GoogleGenAIClient(
+        api_key=api_key,
+        http_options=HttpOptions(
+            timeout=int(RESEARCH_HTTP_TIMEOUT_SECONDS * 1000),
+            httpx_async_client=http_client,
             retry_options=retry_options,
         ),
     )
+    model = GoogleModel(
+        RESEARCH_MODEL_RESOURCE,
+        provider=GoogleProvider(client=sdk_client),
+        settings=GoogleModelSettings(
+            max_tokens=RESEARCH_MAX_OUTPUT_TOKENS,
+            google_thinking_config={
+                "thinking_level": RESEARCH_THINKING_LEVEL,
+            },
+        ),
+    )
+    return _SharedResearchRuntime(
+        model=model,
+        sdk_client=sdk_client,
+        http_client=http_client,
+    )
+
+
+def build_research_model(api_key: str) -> GoogleModel:
+    """Build an exact caller-owned research model.
+
+    Long-lived application code should prefer :func:`get_shared_research_model`
+    so its injected HTTP transport is registered for shutdown cleanup.
+    """
+
+    return _build_research_runtime(api_key).model
+
+
+def get_shared_research_model(api_key: str) -> GoogleModel:
+    """Return the process-wide exact research model for an API credential.
+
+    ``GoogleProvider(client=...)`` treats the injected google-genai client as
+    caller-owned. Reusing the model prevents request-scoped services from
+    leaking one HTTPX connection pool per invocation while preserving a single
+    bounded transport/retry owner.
+    """
+
+    configured = os.getenv("GEMINI_MODEL", RESEARCH_MODEL_RESOURCE)
+    if normalized_research_model(configured) != RESEARCH_MODEL:
+        raise RuntimeError(
+            "Durable research requires GEMINI_MODEL=models/gemini-3.7-flash; "
+            f"received {configured!r}. Provider/model fallback is disabled."
+        )
+    credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    runtime = _SHARED_RESEARCH_MODELS.get(credential_fingerprint)
+    if runtime is None:
+        runtime = _build_research_runtime(api_key)
+        _SHARED_RESEARCH_MODELS[credential_fingerprint] = runtime
+    return runtime.model
+
+
+async def _close_shared_research_runtime(runtime: _SharedResearchRuntime) -> None:
+    # google-genai deliberately does not own or close a caller-supplied
+    # HttpOptions.httpx_async_client. Close that exact transport explicitly,
+    # then release the SDK's separately-owned synchronous resources.
+    await runtime.http_client.aclose()
+    runtime.sdk_client.close()
+
+
+async def close_shared_research_model(api_key: str) -> None:
+    """Release one cached credential runtime (primarily for key rotation/tests)."""
+
+    credential_fingerprint = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    runtime = _SHARED_RESEARCH_MODELS.pop(credential_fingerprint, None)
+    if runtime is not None:
+        await _close_shared_research_runtime(runtime)
+
+
+async def close_shared_research_models() -> None:
+    """Close caller-owned google-genai transports during application shutdown."""
+
+    runtimes = list(_SHARED_RESEARCH_MODELS.values())
+    _SHARED_RESEARCH_MODELS.clear()
+    closed_transports: set[int] = set()
+    for runtime in runtimes:
+        if id(runtime.http_client) in closed_transports:
+            continue
+        closed_transports.add(id(runtime.http_client))
+        await _close_shared_research_runtime(runtime)
 
 
 def require_search_model() -> str:

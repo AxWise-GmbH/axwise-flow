@@ -235,7 +235,13 @@ async def test_pipeline_no_mock_data():
 async def test_regional_service_persona_grounding():
     """Test that personas get enriched with real grounding data from discovered companies."""
     from api.research.simulation_bridge.services.regional_service import RegionalService
-    from api.research.simulation_bridge.models import RegionalWorkflowRequest, SimulatedPerson, DemographicDetails
+    from api.research.simulation_bridge.models import (
+        DemographicDetails,
+        InterviewResponse,
+        RegionalWorkflowRequest,
+        SimulatedInterview,
+        SimulatedPerson,
+    )
     
     service = RegionalService(model=None)
     
@@ -294,7 +300,25 @@ async def test_regional_service_persona_grounding():
         mock_persona_gen_cls.return_value = mock_persona_gen
         
         mock_interview_sim = MagicMock()
-        mock_interview_sim.simulate_all_interviews = AsyncMock(return_value=[])
+        mock_interview_sim.simulate_all_interviews = AsyncMock(
+            return_value=[
+                SimulatedInterview(
+                    person_id=mock_person.id,
+                    stakeholder_type=mock_person.stakeholder_type,
+                    responses=[
+                        InterviewResponse(
+                            question="What evidence do you require?",
+                            response="I require registry evidence before making a decision.",
+                            sentiment="neutral",
+                            key_insights=["Registry evidence matters"],
+                        )
+                    ],
+                    interview_duration_minutes=10,
+                    overall_sentiment="neutral",
+                    key_themes=["registry evidence"],
+                )
+            ]
+        )
         mock_interview_sim_cls.return_value = mock_interview_sim
         
         from api.research.simulation_bridge.models import SimulationInsights
@@ -309,7 +333,19 @@ async def test_regional_service_persona_grounding():
         
         with patch.object(service, "_generate_stakeholders", return_value={}), \
              patch.object(service, "_aggregate_insights", return_value=mock_insights), \
-             patch("backend.infrastructure.persistence.unit_of_work.UnitOfWork") as mock_uow:
+             patch("backend.infrastructure.persistence.unit_of_work.UnitOfWork") as mock_uow, \
+             patch("api.research.simulation_bridge.services.regional_service.SimulationRepository") as mock_repo_cls:
+
+            uow = MagicMock()
+            uow.session = MagicMock()
+            uow.session.query.return_value.filter.return_value.first.return_value = MagicMock()
+            uow.commit = AsyncMock()
+            mock_uow.return_value.__aenter__ = AsyncMock(return_value=uow)
+            mock_uow.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_repo = MagicMock()
+            mock_repo.create_simulation = AsyncMock()
+            mock_repo.update_simulation_results = AsyncMock()
+            mock_repo_cls.return_value = mock_repo
              
             result = await service.run_regional_workflow(request, user_id="test_user")
             

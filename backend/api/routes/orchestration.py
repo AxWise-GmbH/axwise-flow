@@ -23,6 +23,11 @@ from backend.domain.orchestration.models import (
     OrchestrationDecisionRecordV1,
     ReplanRequestV1,
 )
+from backend.domain.orchestration.scope_models import (
+    QualityContractV1,
+    ScopePacketV1,
+    ScopeStateV1,
+)
 from backend.infrastructure.persistence.orchestration_repositories import (
     SqlAlchemyDecisionStore,
     SqlAlchemyOutcomeStore,
@@ -42,6 +47,7 @@ from backend.services.orchestration.outcome_service import (
     OutcomeConflict,
     OutcomeValidationError,
 )
+from backend.services.orchestration.scope_contract_service import ScopeContractError
 from backend.services.orchestration.scorer_registry import ScorerRegistryService
 
 
@@ -164,6 +170,13 @@ async def create_orchestration_decision(
             else "AXWISE_UPSTREAM_DECISION_INVALID"
         )
         raise _contract_error(code, error_code, detail, correlation_id)
+    except ScopeContractError as exc:
+        raise _contract_error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "AXWISE_SCOPE_CONTRACT_INVALID",
+            str(exc),
+            correlation_id,
+        )
     response.headers["X-Request-ID"] = correlation_id
     response.status_code = status.HTTP_200_OK if record.reused else status.HTTP_201_CREATED
     return record
@@ -346,6 +359,39 @@ async def get_decision_request_schema(
     _service_key: str = Depends(verify_orqaly_service_key),
 ) -> Dict[str, Any]:
     return DecisionCreateRequestV1.model_json_schema(by_alias=True)
+
+
+@router.get(
+    "/schemas/scope-packet-v1",
+    response_model=Dict[str, Any],
+    summary="Retrieve the canonical compact scope-packet JSON Schema",
+)
+async def get_scope_packet_schema(
+    _service_key: str = Depends(verify_orqaly_service_key),
+) -> Dict[str, Any]:
+    return ScopePacketV1.model_json_schema()
+
+
+@router.get(
+    "/schemas/scope-state-v1",
+    response_model=Dict[str, Any],
+    summary="Retrieve the optional explicit scope-state JSON Schema",
+)
+async def get_scope_state_schema(
+    _service_key: str = Depends(verify_orqaly_service_key),
+) -> Dict[str, Any]:
+    return ScopeStateV1.model_json_schema()
+
+
+@router.get(
+    "/schemas/quality-contract-v1",
+    response_model=Dict[str, Any],
+    summary="Retrieve the deterministic scope-quality contract JSON Schema",
+)
+async def get_quality_contract_schema(
+    _service_key: str = Depends(verify_orqaly_service_key),
+) -> Dict[str, Any]:
+    return QualityContractV1.model_json_schema()
 
 
 @router.get(
