@@ -90,7 +90,7 @@ echo "Venv:     ${VENV_DIR:-none}"
 echo "OSS_MODE: ${OSS_MODE:-}"
 echo "DB URL:   ${DATABASE_URL:-not set}"
 if [ -n "$GEMINI_API_KEY" ]; then
-  echo "GEMINI:   ${GEMINI_API_KEY:0:10}..."
+  echo "GEMINI:   [configured; hidden]"
 else
   echo "GEMINI:   (not set)"
 fi
@@ -99,4 +99,3 @@ echo "======================================="
 echo "Tips:"
 echo "- Start backend: python -m uvicorn backend.api.app:app --host 0.0.0.0 --port \"${UVICORN_PORT:-8000}\" --reload"
 echo "- Start via script (also loads env): scripts/oss/run_backend_oss.sh"
-

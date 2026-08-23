@@ -783,7 +783,9 @@ class AsyncGenAIClient:
             try:
                 text_response = response.text
                 logger.info(
-                    f"Successfully extracted text using response.text: '{text_response}' (length: {len(text_response) if text_response else 0})"
+                    "Successfully extracted response text for task %s (length=%d)",
+                    task,
+                    len(text_response) if text_response else 0,
                 )
             except Exception as e:
                 logger.warning(f"Could not get response.text: {e}")
@@ -874,7 +876,10 @@ class AsyncGenAIClient:
                         logger.warning(f"Trying to convert response to string...")
                         text_response = str(response)
                         logger.info(
-                            f"Response as string: '{text_response}' (length: {len(text_response)})"
+                            "Extracted response using string fallback for task %s "
+                            "(length=%d)",
+                            task,
+                            len(text_response),
                         )
 
                 except Exception as nested_e:
@@ -885,7 +890,10 @@ class AsyncGenAIClient:
             # Final check
             if not text_response:
                 logger.error(
-                    f"All text extraction methods failed. Response: {response}"
+                    "All text extraction methods failed for task %s "
+                    "(response_type=%s)",
+                    task,
+                    type(response).__name__,
                 )
                 raise LLMResponseParseError(f"Failed to extract any text from response")
 
@@ -903,7 +911,10 @@ class AsyncGenAIClient:
                 not text_response or len(text_response.strip()) < 2
             ):  # More lenient for text generation
                 logger.error(
-                    f"Empty or very short response received for task '{task}'. Response: '{text_response}'"
+                    "Empty or very short response received for task '%s' "
+                    "(length=%d)",
+                    task,
+                    len(text_response or ""),
                 )
                 raise LLMResponseParseError(
                     f"Empty or very short response received for task '{task}'"
@@ -924,7 +935,11 @@ class AsyncGenAIClient:
                         logger.info(f"Successfully repaired JSON response.")
                     except Exception as repair_e:
                         logger.error(
-                            f"Failed to repair JSON: {repair_e}. Original text: {text_response[:500]}"
+                            "Failed to repair JSON for task %s: %s "
+                            "(response_length=%d)",
+                            task,
+                            repair_e,
+                            len(text_response),
                         )
 
                 # Check if the response is wrapped in markdown code blocks
@@ -950,7 +965,11 @@ class AsyncGenAIClient:
                     return parsed_response
                 except json.JSONDecodeError as e:
                     logger.error(
-                        f"Failed to decode JSON response: {e}. Response: {text_response[:500]}"
+                        "Failed to decode JSON response for task %s: %s "
+                        "(response_length=%d)",
+                        task,
+                        e,
+                        len(text_response),
                     )
 
                     # Try repair again

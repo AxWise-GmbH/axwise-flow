@@ -3110,6 +3110,9 @@ async def test_web_router_continues_after_a_provider_error():
         )
     )
 
+    async def preserve_candidate_sources(rows):
+        return rows
+
     with patch(
         "backend.services.generative.gemini_search_service.GeminiSearchService",
         return_value=gemini,
@@ -3119,6 +3122,9 @@ async def test_web_router_continues_after_a_provider_error():
     ), patch(
         "api.research.simulation_bridge.services.pipeline.Agent",
         return_value=parser,
+    ), patch(
+        "api.research.simulation_bridge.services.pipeline.enrich_authority_sources",
+        side_effect=preserve_candidate_sources,
     ):
         companies = await pipeline._discover_via_web_search()
 

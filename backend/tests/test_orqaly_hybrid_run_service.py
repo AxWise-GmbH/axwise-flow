@@ -31,6 +31,7 @@ from backend.models import AnalysisResult, PipelineRun, SimulationData, User
 from backend.models import CachedPRD
 from backend.domain.market_scope import resolve_market_expression
 from backend.services.orqaly_hybrid_run_service import (
+    HybridRunCancelled,
     HybridOutputs,
     HybridPRDOutput,
     HybridRunService,
@@ -1947,6 +1948,119 @@ def session_factory(tmp_path):
     session.commit()
     session.close()
     return factory
+
+
+def _seed_running_hybrid_run(session_factory, *, job_id: str, simulation_id: str) -> None:
+    session = session_factory()
+    session.add_all(
+        [
+            PipelineRun(
+                job_id=job_id,
+                user_id="axwise-user-1",
+                status="running",
+                business_context={},
+                partner_id="orqaly",
+                external_org_id="orqaly-org-1",
+                external_user_id="orqaly-user-1",
+                pipeline_mode="hybrid_a_plus_b",
+                current_stage="auditing_evidence",
+                progress_percentage=90,
+                execution_trace=[],
+                simulation_id=simulation_id,
+                started_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            ),
+            SimulationData(
+                simulation_id=simulation_id,
+                user_id="axwise-user-1",
+                status="running",
+                business_context={},
+                questions_data={},
+                simulation_config={},
+            ),
+        ]
+    )
+    session.commit()
+    session.close()
+
+
+def test_cancelled_run_cannot_be_overwritten_by_late_success(session_factory):
+    service = HybridRunService(object(), session_factory=session_factory)
+    _seed_running_hybrid_run(
+        session_factory,
+        job_id="cancel-before-success",
+        simulation_id="sim-cancel-before-success",
+    )
+
+    cancelled = service.cancel_for_tenant(
+        "cancel-before-success",
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+    )
+    assert cancelled.status == "cancelled"
+
+    result = SimulationResponse(
+        success=True,
+        message="late worker success",
+        simulation_id="sim-cancel-before-success",
+        interviews=[],
+    )
+    with pytest.raises(HybridRunCancelled):
+        service._persist_success(
+            "cancel-before-success",
+            result,
+            analysis_result_id=99,
+            status="completed",
+            prd_status="not_requested",
+            warning=None,
+            duration=12.0,
+        )
+
+    session = session_factory()
+    run = session.query(PipelineRun).filter_by(job_id="cancel-before-success").one()
+    simulation = (
+        session.query(SimulationData)
+        .filter_by(simulation_id="sim-cancel-before-success")
+        .one()
+    )
+    assert run.status == "cancelled"
+    assert run.current_stage == "cancelled"
+    assert run.dataset is None
+    assert run.analysis_id is None
+    assert simulation.status == "running"
+    session.close()
+
+
+def test_cancelled_run_cannot_be_overwritten_by_late_failure(session_factory):
+    service = HybridRunService(object(), session_factory=session_factory)
+    _seed_running_hybrid_run(
+        session_factory,
+        job_id="cancel-before-failure",
+        simulation_id="sim-cancel-before-failure",
+    )
+    service.cancel_for_tenant(
+        "cancel-before-failure",
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+        reason="operator cancelled",
+    )
+
+    failure_persisted = service._persist_failure(
+        "cancel-before-failure",
+        "late worker exception",
+        duration=13.0,
+    )
+
+    assert failure_persisted is False
+    session = session_factory()
+    run = session.query(PipelineRun).filter_by(job_id="cancel-before-failure").one()
+    assert run.status == "cancelled"
+    assert run.current_stage == "cancelled"
+    assert run.error == "operator cancelled"
+    assert run.total_duration_seconds is None
+    session.close()
 
 
 def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):

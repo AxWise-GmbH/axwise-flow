@@ -407,7 +407,8 @@ The local stack includes PostgreSQL, FastAPI, the durable A+B worker, and Next.j
 
 ```bash
 cp .env.example .env
-# Set GEMINI_API_KEY and replace AXWISE_API_KEY before exposing the service.
+# Set GEMINI_API_KEY, generate AXWISE_AUTHORITY_PROOF_SECRET with at least
+# 32 random bytes, and replace AXWISE_API_KEY before exposing the service.
 docker compose up --build
 ```
 
@@ -496,7 +497,7 @@ The supported deterministic gates are:
 backend/venv/bin/python -m pytest -q
 cd frontend && npm run type-check && npm run test:ci && npm run build
 cd ../packages/axwise-mcp-connector && npm test
-cd ../.. && GEMINI_API_KEY=ci-placeholder AXWISE_API_KEY=ci-placeholder docker compose config --quiet
+cd ../.. && GEMINI_API_KEY=ci-placeholder AXWISE_API_KEY=ci-placeholder AXWISE_AUTHORITY_PROOF_SECRET=ci-authority-proof-secret-at-least-32-bytes docker compose config --quiet
 ```
 
 The backend default selects supported `contract` tests. Historical backend and frontend suites are preserved and documented in `backend/tests/LEGACY_TESTS.md` and `frontend/tests/LEGACY_TESTS.md`; they are not counted as passing release coverage.

@@ -30,15 +30,17 @@ AXWISE_API_URL=https://api.axwise.de/api/orqaly-axwise/v1
 AXWISE_API_KEY=<read-from-Orqaly-secret-manager>
 
 # Orqaly-owned rollout controls
-AXWISE_ORCHESTRATION_MODE=disabled # disabled | shadow | selective
-AXWISE_CONDITIONS_MODE=disabled    # disabled | shadow | authoritative
-AXWISE_RESEARCH_ENABLED=false
-AXWISE_PLANNING_ENABLED=false
-AXWISE_REQUEST_TIMEOUT_MS=8000
-AXWISE_RESEARCH_TIMEOUT_MS=30000
+AXWISE_ENABLE=false                # true calls AxWise; anything else is off
+AXWISE_ENFORCE=shadow              # shadow | authoritative
+
+# Optional bounded customer-intelligence budgets
+AXWISE_RESEARCH_MAX_COST_USD=5
+AXWISE_RESEARCH_ESTIMATED_COST_USD=1
+AXWISE_RESEARCH_MAX_LATENCY_MS=1200000
+AXWISE_RESEARCH_ESTIMATED_LATENCY_MS=300000
 ```
 
-`selective` means an approved AxWise recommendation may influence only explicitly enabled workflows after Orqaly's live-state checks. It does not delegate execution authority to AxWise.
+`shadow` records recommendations but keeps local assignment authoritative. `authoritative` may apply a recommendation only after Orqaly revalidates every returned agent, tool, permission, budget, and approval against live state. Neither mode delegates execution authority to AxWise.
 
 Use production keys and the webhook secret only from the private handoff. Never copy live values into this file or Git history.
 
@@ -110,7 +112,7 @@ export async function axwiseRequest<T>(
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     signal: AbortSignal.timeout(
-      options.timeoutMs ?? Number(process.env.AXWISE_REQUEST_TIMEOUT_MS ?? 8000),
+      options.timeoutMs ?? 15000,
     ),
   });
 
@@ -255,7 +257,7 @@ When AxWise selects `research_assisted`, build the A+B request with typed `quest
 
 ## 7. Phase 3: team planning and recovery
 
-Planning is backward compatible and opt-in. Set `AXWISE_PLANNING_ENABLED=true` only for workflows whose request builder, UI, execution state, and approvals support the typed `planning` contract.
+Planning uses the same `AXWISE_ENABLE` and `AXWISE_ENFORCE` controls as the rest of the bridge. Orqaly sends the typed `planning` contract only after its own planning stage has produced phases and tasks; pre-planning customer intelligence intentionally sends `planning: null`.
 
 The planning object declares:
 

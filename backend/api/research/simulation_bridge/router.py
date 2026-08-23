@@ -59,24 +59,27 @@ async def health_check():
     return {"status": "healthy", "service": "simulation-bridge"}
 
 
-@router.post("/debug-request")
-async def debug_request(request: Request):
-    """Debug endpoint to see raw request data"""
+@router.post("/debug-request", include_in_schema=False)
+async def debug_request(
+    request: Request,
+    _user: User = Depends(get_current_user),
+):
+    """Return request-shape metadata without exposing customer content or headers."""
     try:
         body = await request.body()
         json_data = await request.json()
+        json_keys = list(json_data.keys()) if isinstance(json_data, dict) else []
 
-        logger.info(f"🔍 Debug - Raw body: {body}")
-        logger.info(f"🔍 Debug - JSON data: {json_data}")
-        logger.info(f"🔍 Debug - Headers: {dict(request.headers)}")
+        logger.debug(
+            "Debug request received (body_length=%d, json_key_count=%d)",
+            len(body),
+            len(json_keys),
+        )
 
         return {
             "success": True,
             "body_length": len(body),
-            "json_keys": (
-                list(json_data.keys()) if isinstance(json_data, dict) else "not_dict"
-            ),
-            "data": json_data,
+            "json_keys": json_keys,
         }
     except Exception as e:
         logger.error(f"Debug request failed: {str(e)}")

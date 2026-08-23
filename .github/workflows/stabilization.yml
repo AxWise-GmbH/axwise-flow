@@ -71,8 +71,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate OSS setup scripts
+        run: bash -n scripts/oss/*.sh
       - name: Validate local stack definition
         run: docker compose config --quiet
         env:
           GEMINI_API_KEY: ci-placeholder
           AXWISE_API_KEY: ci-placeholder
+          AXWISE_AUTHORITY_PROOF_SECRET: ci-authority-proof-secret-at-least-32-bytes

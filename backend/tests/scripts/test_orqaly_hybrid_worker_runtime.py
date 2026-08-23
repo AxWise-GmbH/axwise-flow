@@ -155,6 +155,7 @@ async def test_recovery_requeues_only_stale_run_and_claims_it_once(tmp_path):
                 job_id="stale-job",
                 status="running",
                 business_context={},
+                partner_id="orqaly",
                 pipeline_mode="hybrid_a_plus_b",
                 current_stage="grounding_market",
                 progress_percentage=3,
@@ -166,6 +167,7 @@ async def test_recovery_requeues_only_stale_run_and_claims_it_once(tmp_path):
                 job_id="fresh-job",
                 status="running",
                 business_context={},
+                partner_id="orqaly",
                 pipeline_mode="hybrid_a_plus_b",
                 current_stage="grounding_market",
                 progress_percentage=3,
@@ -195,4 +197,44 @@ async def test_recovery_requeues_only_stale_run_and_claims_it_once(tmp_path):
     assert fresh.status == "running"
     assert fresh.current_stage == "grounding_market"
     assert fresh.attempt_count == 0
+    session.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_recovery_uses_heartbeat_not_job_creation_time(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path}/worker-heartbeat.db")
+    Base.metadata.create_all(
+        engine,
+        tables=[User.__table__, PipelineRun.__table__],
+    )
+    factory = sessionmaker(bind=engine)
+    now = datetime.now(timezone.utc)
+    session = factory()
+    session.add(
+        PipelineRun(
+            job_id="old-job-live-worker",
+            status="running",
+            business_context={},
+            partner_id="orqaly",
+            pipeline_mode="hybrid_a_plus_b",
+            current_stage="grounding_market",
+            progress_percentage=40,
+            execution_trace=[],
+            created_at=now - timedelta(hours=2),
+            started_at=now - timedelta(hours=2),
+            updated_at=now - timedelta(minutes=1),
+        )
+    )
+    session.commit()
+    session.close()
+
+    service = HybridRunService(object(), session_factory=factory)
+
+    assert service.recover_stale_runs(stale_after_minutes=30) == 0
+    assert await service.process_next() is None
+
+    session = factory()
+    run = session.query(PipelineRun).filter_by(job_id="old-job-live-worker").one()
+    assert run.status == "running"
+    assert run.current_stage == "grounding_market"
     session.close()

@@ -245,9 +245,11 @@ class SimulationOrchestrator:
 
         try:
             logger.info(f"Starting simulation: {simulation_id}")
-            logger.info(f"Business context: {request.business_context}")
-            logger.info(f"Questions data: {request.questions_data}")
-            logger.info(f"Config: {request.config}")
+            logger.debug(
+                "Simulation request accepted (request_type=%s, config_type=%s)",
+                type(request.questions_data).__name__,
+                type(request.config).__name__,
+            )
 
             # Initialize progress tracking
             total_personas = self._calculate_total_personas(request)
