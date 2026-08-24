@@ -8,6 +8,11 @@ from typing import Any, Dict, Iterable, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from backend.domain.orchestration.models import BusinessEvidenceProfileV1
+from backend.domain.orchestration.scope_models import (
+    ScopeContractBindingV1,
+    ScopeResearchAcceptanceBindingV1,
+    TrustedRuntimeMetadataV1,
+)
 from backend.services.research_quality_service import (
     COMMERCIAL_MARKET_LAUNCH,
     normalize_research_prd_type,
@@ -45,6 +50,13 @@ class OrqalyTaskContext(BaseModel):
     customer_role_contract: Dict[str, Any] = Field(default_factory=dict)
     critical_claim_policy: Dict[str, Any] = Field(default_factory=dict)
     business_evidence_profile: Optional[BusinessEvidenceProfileV1] = None
+    scope_contract_binding: Optional[ScopeContractBindingV1] = None
+    research_execution_inputs_hash: Optional[str] = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
+    scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
+    scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
 
     @field_validator("required_execution_roles")
     @classmethod

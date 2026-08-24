@@ -1,0 +1,29 @@
+{
+  "version": "axwise_scope_research_contract_v1_vectors",
+  "role_slot_vectors": [
+    {
+      "ordinal": 0,
+      "role": "Straße Lead",
+      "slot_id": "role-0000293c9a22fa3a",
+      "casefolded_slot_id": "role-00007b98f6b5d446"
+    },
+    {
+      "ordinal": 1,
+      "role": "İcra Lideri",
+      "slot_id": "role-0001224c9b7008ff",
+      "casefolded_slot_id": "role-0001dd855ca12ede"
+    },
+    {
+      "ordinal": 2,
+      "role": "市場戦略リード",
+      "slot_id": "role-0002b50d4a42afc4",
+      "casefolded_slot_id": "role-0002b50d4a42afc4"
+    },
+    {
+      "ordinal": 3,
+      "role": "Café Lead",
+      "slot_id": "role-0003e003874f32cd",
+      "casefolded_slot_id": "role-0003fc2dfaee66c1"
+    }
+  ]
+}

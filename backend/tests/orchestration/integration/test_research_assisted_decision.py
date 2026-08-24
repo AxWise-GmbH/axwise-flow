@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.database import Base
+from backend.domain.orchestration.enums import RoutingMode
 from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
     EvidenceItemV1,
@@ -20,11 +21,26 @@ from backend.domain.orchestration.models import (
 from backend.infrastructure.persistence.orchestration_repositories import (
     SqlAlchemyDecisionStore,
 )
-from backend.models import OrchestrationDecisionSnapshot, OrchestrationEvent, User
+from backend.models import (
+    OrchestrationDecisionSnapshot,
+    OrchestrationEvent,
+    PipelineRun,
+    User,
+)
+from backend.services.orchestration.adapters.hybrid_research_adapter import (
+    HybridResearchAdapter,
+)
 from backend.services.orchestration.decision_service import (
+    DecisionLinkError,
     IdempotencyConflict,
     OrchestrationDecisionService,
 )
+from backend.services.orchestration.scope_contract_service import (
+    ScopeContractError,
+    scope_contract_binding,
+)
+from backend.services.orqaly_hybrid_run_service import HybridRunService
+from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
     _payload,
@@ -42,15 +58,33 @@ class FakeResearchPort:
 
     def start(self, request, decision_id, idempotency_key):
         self.start_calls += 1
+        assert request.scope_packet is not None
         return ResearchJobV1(
             job_id=f"research-{idempotency_key}",
             status="queued",
             decision_id=decision_id,
+            scope_contract_binding=scope_contract_binding(request.scope_packet),
+            scope_research_acceptance=request.scope_research_acceptance,
+            scope_runtime_binding=request.scope_packet.runtime,
         )
 
     def collect(self, request, job):
         self.collect_calls += 1
-        return self.result or ResearchResultV1(job=job)
+        result = self.result or ResearchResultV1(job=job)
+        return result.model_copy(
+            update={
+                "job": result.job.model_copy(
+                    update={
+                        "scope_contract_binding": job.scope_contract_binding,
+                        "scope_research_acceptance": job.scope_research_acceptance,
+                        "scope_runtime_binding": job.scope_runtime_binding,
+                    }
+                ),
+                "scope_contract_binding": job.scope_contract_binding,
+                "scope_research_acceptance": job.scope_research_acceptance,
+                "scope_runtime_binding": job.scope_runtime_binding,
+            }
+        )
 
 
 class FakeEvidencePort:
@@ -70,6 +104,7 @@ def decision_store(tmp_path):
             User.__table__,
             OrchestrationDecisionSnapshot.__table__,
             OrchestrationEvent.__table__,
+            PipelineRun.__table__,
         ],
     )
     factory = sessionmaker(bind=engine)
@@ -85,6 +120,25 @@ def _request(payload: dict | None = None) -> DecisionCreateRequestV1:
     value = deepcopy(payload or _payload())
     value["tenant"] = {"userId": "orqaly-user", "orgId": "orqaly-org-example"}
     return DecisionCreateRequestV1.model_validate(value)
+
+
+def _approved_request(
+    service: OrchestrationDecisionService,
+    payload: dict | None,
+    key: str,
+) -> DecisionCreateRequestV1:
+    proposal = service.create(
+        _request(payload),
+        "axwise-user",
+        f"{key}-scope-proposal",
+    )
+    assert proposal.research_job is None
+    assert proposal.research_execution_inputs_hash is not None
+    return accept_scope(
+        proposal.input_snapshot,
+        proposal.decision_id,
+        execution_inputs_hash=proposal.research_execution_inputs_hash,
+    )
 
 
 def test_clear_direct_task_never_invokes_research_adapter(decision_store):
@@ -236,7 +290,7 @@ def test_pre_link_idempotency_hash_remains_compatible_without_an_upstream_parent
 
     assert retry.reused is True
     assert retry.decision_id == created.decision_id
-    with pytest.raises(IdempotencyConflict):
+    with pytest.raises(DecisionLinkError):
         service.create(
             request.model_copy(update={"upstream_decision_id": "decision-new-parent"}),
             "axwise-user",
@@ -244,7 +298,7 @@ def test_pre_link_idempotency_hash_remains_compatible_without_an_upstream_parent
         )
 
 
-def test_research_is_durable_pending_and_does_not_publish_an_assignment(decision_store):
+def test_unapproved_scope_is_admission_only_and_does_not_start_research(decision_store):
     research = FakeResearchPort()
     service = OrchestrationDecisionService(
         SqlAlchemyDecisionStore(decision_store),
@@ -259,13 +313,298 @@ def test_research_is_durable_pending_and_does_not_publish_an_assignment(decision
 
     assert record.routing_mode.value == "research_assisted"
     assert record.status.value == "pending_research"
-    assert record.research_job.status == "queued"
+    assert record.research_job is None
+    assert any(
+        gate.gate_id == "gate-scope-confirmation"
+        for gate in record.approval_points
+    )
     assert record.recommended_agents == []
     assert record.execution_plan.nodes == []
     assert record.execution_plan.executable is False
     assert record.confidence == 0
-    assert research.start_calls == 1
+    assert research.start_calls == 0
     assert decision_store.query(OrchestrationDecisionSnapshot).count() == 1
+
+
+def test_approved_scope_starts_durable_research_without_assignment(decision_store):
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+
+    record = service.create(
+        _approved_request(
+            service,
+            _ambiguous_research_payload(),
+            "approved-research-start",
+        ),
+        "axwise-user",
+        "approved-research-start",
+    )
+
+    assert record.routing_mode.value == "research_assisted"
+    assert record.status.value == "pending_research"
+    assert record.research_job.status == "queued"
+    assert record.recommended_agents == []
+    assert research.start_calls == 1
+
+
+def test_typed_research_contract_overrides_router_drift_before_and_after_acceptance(
+    decision_store,
+    monkeypatch,
+):
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    route = service.router.route
+
+    def misclassified_direct(request, evidence):
+        return route(request, evidence).model_copy(
+            update={"selected_mode": RoutingMode.DIRECT}
+        )
+
+    monkeypatch.setattr(service.router, "route", misclassified_direct)
+    proposal = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "router-drift-proposal",
+    )
+
+    assert proposal.scope_packet.research_contract.evidence.mode == "synthetic"
+    assert proposal.routing_mode == RoutingMode.RESEARCH_ASSISTED
+    assert proposal.research_job is None
+    assert research.start_calls == 0
+
+    accepted = accept_scope(
+        proposal.input_snapshot,
+        proposal.decision_id,
+        execution_inputs_hash=proposal.research_execution_inputs_hash,
+    )
+    started = service.create(accepted, "axwise-user", "router-drift-start")
+
+    assert started.routing_mode == RoutingMode.RESEARCH_ASSISTED
+    assert started.research_job is not None
+    assert research.start_calls == 1
+
+
+def test_none_evidence_contract_cannot_be_upgraded_to_paid_research_by_router_drift(
+    decision_store,
+    monkeypatch,
+):
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    route = service.router.route
+
+    def misclassified_research(request, evidence):
+        return route(request, evidence).model_copy(
+            update={"selected_mode": RoutingMode.RESEARCH_ASSISTED}
+        )
+
+    monkeypatch.setattr(service.router, "route", misclassified_research)
+    record = service.create(_request(), "axwise-user", "none-router-drift")
+
+    assert record.scope_packet.research_contract.evidence.mode == "none"
+    assert record.routing_mode == RoutingMode.DIRECT
+    assert record.research_job is None
+    assert research.start_calls == 0
+
+
+def test_one_acceptance_returns_one_decision_and_one_research_dispatch(
+    decision_store,
+):
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    proposal = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "one-acceptance-proposal",
+    )
+    accepted = accept_scope(
+        proposal.input_snapshot,
+        proposal.decision_id,
+        execution_inputs_hash=proposal.research_execution_inputs_hash,
+    )
+
+    first = service.create(accepted, "axwise-user", "network-attempt-a")
+    second = service.create(accepted, "axwise-user", "network-attempt-b")
+
+    assert second.reused is True
+    assert second.decision_id == first.decision_id
+    assert second.research_job == first.research_job
+    assert research.start_calls == 1
+    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 2
+
+
+def test_paid_run_and_accepted_decision_commit_atomically_and_retry_once(
+    decision_store,
+    monkeypatch,
+):
+    user = decision_store.query(User).filter_by(user_id="axwise-user").one()
+    hybrid = HybridRunService(
+        object(),
+        session_factory=lambda: decision_store,
+        atomic_session=decision_store,
+    )
+    adapter = HybridResearchAdapter(
+        hybrid,
+        user,
+        "orqaly-org-example",
+        "orqaly-user",
+    )
+    store = SqlAlchemyDecisionStore(decision_store)
+    service = OrchestrationDecisionService(store, research_port=adapter)
+    proposal = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "atomic-proposal",
+    )
+    accepted = accept_scope(
+        proposal.input_snapshot,
+        proposal.decision_id,
+        execution_inputs_hash=proposal.research_execution_inputs_hash,
+    )
+    real_add = store.add
+
+    def fail_decision_commit(_record):
+        raise RuntimeError("forced decision persistence failure")
+
+    monkeypatch.setattr(store, "add", fail_decision_commit)
+    with pytest.raises(RuntimeError, match="forced decision persistence failure"):
+        service.create(accepted, "axwise-user", "atomic-attempt-a")
+    decision_store.rollback()
+
+    assert decision_store.query(PipelineRun).count() == 0
+    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 1
+
+    monkeypatch.setattr(store, "add", real_add)
+    started = service.create(accepted, "axwise-user", "atomic-attempt-b")
+
+    runs = decision_store.query(PipelineRun).all()
+    assert len(runs) == 1
+    assert runs[0].request_id == started.decision_id
+    assert started.research_job.job_id == runs[0].job_id
+    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 2
+
+
+def test_accepted_execution_ignores_reconstructed_mutable_provider_inputs(
+    decision_store,
+):
+    research = FakeResearchPort()
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=research,
+    )
+    proposal = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "immutable-proposal-inputs",
+    )
+    accepted = accept_scope(
+        proposal.input_snapshot,
+        proposal.decision_id,
+        execution_inputs_hash=proposal.research_execution_inputs_hash,
+    )
+    altered_task = accepted.task.model_copy(
+        update={
+            "domain": "rebuilt_orqaly_domain",
+            "objective": "A reconstructed objective must not replace the proposal",
+            "required_capabilities": ["new mutable capability"],
+            "requested_actions": ["new mutable action"],
+        }
+    )
+    altered_brief = accepted.research_brief.model_copy(
+        update={
+            "industry": "mutable accepted-body industry",
+            "research_questions": ["A newly injected question?"],
+        }
+    )
+    altered_evidence = [
+        EvidenceItemV1(
+            reference_id="mutable:accepted-body",
+            provenance="inferred",
+            relevance=1.0,
+            quality=1.0,
+        )
+    ]
+    reconstructed = accepted.model_copy(
+        update={
+            "task": altered_task,
+            "research_brief": altered_brief,
+            "evidence_catalogue": altered_evidence,
+            "available_agents": [],
+        }
+    )
+
+    started = service.create(
+        reconstructed,
+        "axwise-user",
+        "immutable-accepted-inputs",
+    )
+
+    assert started.input_snapshot.task == proposal.input_snapshot.task
+    assert started.input_snapshot.research_brief == proposal.input_snapshot.research_brief
+    assert (
+        started.input_snapshot.evidence_catalogue
+        == proposal.input_snapshot.evidence_catalogue
+    )
+    assert started.input_snapshot.available_agents == proposal.input_snapshot.available_agents
+    assert (
+        started.research_execution_inputs_hash
+        == proposal.research_execution_inputs_hash
+        == accepted.scope_research_acceptance.execution_inputs_hash
+    )
+
+
+def test_acceptance_cannot_be_rebound_to_another_proposal_or_scope(
+    decision_store,
+):
+    service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(decision_store),
+        research_port=FakeResearchPort(),
+    )
+    first = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "bound-proposal-one",
+    )
+    second = service.create(
+        _request(_ambiguous_research_payload()),
+        "axwise-user",
+        "bound-proposal-two",
+    )
+    accepted = accept_scope(
+        first.input_snapshot,
+        first.decision_id,
+        execution_inputs_hash=first.research_execution_inputs_hash,
+    )
+
+    with pytest.raises(ScopeContractError, match="owner envelope"):
+        service.create(
+            accepted.model_copy(update={"upstream_decision_id": second.decision_id}),
+            "axwise-user",
+            "wrong-proposal",
+        )
+
+    tampered_acceptance = accepted.scope_research_acceptance.model_copy(
+        update={"scope_hash": "0" * 64}
+    )
+    with pytest.raises(DecisionLinkError, match="exact admission-only proposal"):
+        service.create(
+            accepted.model_copy(
+                update={"scope_research_acceptance": tampered_acceptance}
+            ),
+            "axwise-user",
+            "tampered-scope",
+        )
 
 
 def test_completed_research_creates_linked_immutable_rescore(decision_store):
@@ -275,7 +614,11 @@ def test_completed_research_creates_linked_immutable_rescore(decision_store):
         research_port=research,
     )
     parent = service.create(
-        _request(_ambiguous_research_payload()),
+        _approved_request(
+            service,
+            _ambiguous_research_payload(),
+            "research-rescore-parent",
+        ),
         "axwise-user",
         "research-rescore-parent",
     )
@@ -312,11 +655,11 @@ def test_completed_research_creates_linked_immutable_rescore(decision_store):
     assert record.recommended_agents[0].agent_id == "agent-a"
     assert record.evidence[0].provenance == "synthetic"
     assert record.ranking_changes
-    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 2
-    assert decision_store.query(OrchestrationEvent).count() == 2
+    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 3
+    assert decision_store.query(OrchestrationEvent).count() == 3
 
 
-def test_completed_research_rebuilds_child_scope_with_only_authoritative_facts(
+def test_completed_research_preserves_accepted_scope_and_keeps_facts_in_result(
     decision_store,
 ):
     payload = _ambiguous_research_payload()
@@ -337,7 +680,7 @@ def test_completed_research_rebuilds_child_scope_with_only_authoritative_facts(
         research_port=research,
     )
     parent = service.create(
-        _request(payload),
+        _approved_request(service, payload, "research-scope-parent"),
         "axwise-user",
         "research-scope-parent",
     )
@@ -409,12 +752,14 @@ def test_completed_research_rebuilds_child_scope_with_only_authoritative_facts(
 
     assert record.parent_decision_id == parent.decision_id
     assert parent.scope_packet.ledger.facts == []
-    assert record.scope_packet.scope_hash != parent.scope_packet.scope_hash
-    assert len(record.input_snapshot.scope_state.facts) == 1
-    assert len(record.scope_packet.ledger.facts) == 1
-    assert record.scope_packet.ledger.facts[0].claim == verified_fact["claim"]
-    assert record.scope_packet.ledger.facts[0].source_refs == (
-        verified_fact["source_refs"]
+    assert record.scope_packet == parent.scope_packet
+    assert record.input_snapshot.scope_state.facts == []
+    assert record.scope_packet.ledger.facts == []
+    assert record.scope_contract_binding == parent.scope_contract_binding
+    assert record.scope_research_acceptance == parent.scope_research_acceptance
+    assert (
+        record.research_execution_inputs_hash
+        == parent.research_execution_inputs_hash
     )
     assert [item.text for item in record.scope_packet.ledger.assumptions] == [
         "Mobile usage is the dominant workflow."
@@ -446,7 +791,7 @@ def test_post_research_capabilities_improve_ranking_without_authorizing_executio
         research_port=research,
     )
     parent = service.create(
-        _request(payload),
+        _approved_request(service, payload, "research-soft-capability-parent"),
         "axwise-user",
         "research-soft-capability-parent",
     )
@@ -500,7 +845,7 @@ def test_refresh_caps_the_combined_existing_and_research_evidence(decision_store
         research_port=research,
     )
     parent = service.create(
-        _request(payload),
+        _approved_request(service, payload, "bounded-merge-parent"),
         "axwise-user",
         "bounded-merge-parent",
     )
@@ -543,7 +888,7 @@ def test_partial_research_can_only_route_with_explicit_usable_evidence(decision_
         research_port=research,
     )
     parent = service.create(
-        _request(_ambiguous_research_payload()),
+        _approved_request(service, _ambiguous_research_payload(), "partial-parent"),
         "axwise-user",
         "partial-parent",
     )
@@ -595,7 +940,11 @@ def test_failed_or_insufficient_research_cannot_become_confident_assignment(
         research_port=research,
     )
     parent = service.create(
-        _request(_ambiguous_research_payload()),
+        _approved_request(
+            service,
+            _ambiguous_research_payload(),
+            f"failure-parent-{terminal_status}",
+        ),
         "axwise-user",
         f"failure-parent-{terminal_status}",
     )

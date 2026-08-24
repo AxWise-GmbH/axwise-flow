@@ -160,7 +160,7 @@ def test_scope_packet_is_order_independent_traceable_and_runtime_truthful():
                 "success_criteria": ["Assets map to an audience and KPI"],
             },
             "outreach_campaign",
-            "Germany",
+            "DE",
         ),
         (
             {
@@ -200,7 +200,7 @@ def test_scope_packet_is_order_independent_traceable_and_runtime_truthful():
                 "success_criteria": ["Economics and launch risks are explicit"],
             },
             "procurement_logistics",
-            "Estonia",
+            "EE",
         ),
     ],
 )

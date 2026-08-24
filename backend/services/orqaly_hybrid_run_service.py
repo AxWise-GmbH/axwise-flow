@@ -32,6 +32,7 @@ from backend.models import (
     AnalysisResult,
     CachedPRD,
     InterviewData,
+    OrchestrationDecisionSnapshot,
     PipelineRun,
     SimulationData,
     User,
@@ -77,6 +78,9 @@ from backend.services.research_source_authority_service import (
     canonical_authority_processing_status,
 )
 from backend.domain.market_scope import resolve_market_expression
+from backend.services.orchestration.scope_contract_service import (
+    trusted_runtime_metadata,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -186,11 +190,78 @@ class HybridRunService:
         session_factory: Callable = SessionLocal,
         enrichment=enrich_with_empirical_personas,
         grounding: GroundingCollector = collect_regional_grounding,
+        atomic_session=None,
     ):
         self.orchestrator = orchestrator
         self.session_factory = session_factory
         self.enrichment = enrichment
         self.grounding = grounding
+        self.atomic_session = atomic_session
+
+    @staticmethod
+    def _validated_orqaly_scope_context(
+        task_context: Optional[OrqalyTaskContext],
+        external_org_id: str,
+        external_user_id: str,
+        *,
+        raw_task_context: Optional[Dict[str, Any]] = None,
+        validate_live_runtime: bool = False,
+    ) -> tuple[Any, Any, Any]:
+        """Validate the durable owner binding before any paid research work."""
+
+        strict_scope = bool(
+            task_context
+            and (
+                task_context.scope_contract_binding is not None
+                or task_context.scope_research_acceptance is not None
+            )
+        )
+        if not strict_scope:
+            raise ValueError(
+                "Orqaly research requires explicit scope and acceptance bindings"
+            )
+        binding = task_context.scope_contract_binding
+        acceptance = task_context.scope_research_acceptance
+        runtime = task_context.scope_runtime_binding
+        if binding is None or acceptance is None or runtime is None:
+            raise ValueError(
+                "Orqaly research requires scope, acceptance, and runtime bindings"
+            )
+        if raw_task_context is not None and (
+            raw_task_context.get("scope_contract_binding")
+            != binding.model_dump(mode="json")
+            or raw_task_context.get("scope_research_acceptance")
+            != acceptance.model_dump(mode="json")
+            or raw_task_context.get("scope_runtime_binding")
+            != runtime.model_dump(mode="json")
+        ):
+            raise ValueError(
+                "durable Orqaly scope bindings are not exact canonical echoes"
+            )
+        if (
+            acceptance.scope_hash != binding.scope_hash
+            or acceptance.contract_hash != binding.contract_hash
+            or task_context.research_execution_inputs_hash
+            != acceptance.execution_inputs_hash
+        ):
+            raise ValueError(
+                "Orqaly research acceptance does not match execution bindings"
+            )
+        if (
+            acceptance.org_id != external_org_id
+            or acceptance.user_id != external_user_id
+            or acceptance.accepted_by_user_id != external_user_id
+            or not task_context.task_id
+            or acceptance.goal_id != task_context.task_id
+        ):
+            raise ValueError(
+                "Orqaly research acceptance does not match job tenant, owner, or task"
+            )
+        if validate_live_runtime and runtime != trusted_runtime_metadata():
+            raise ValueError(
+                "accepted Gemini runtime no longer matches the live pinned runtime"
+            )
+        return binding, acceptance, runtime
 
     @staticmethod
     def _requested_country_codes(
@@ -218,6 +289,105 @@ class HybridRunService:
                     if value
                 )
         return list(dict.fromkeys(values))
+
+    def _validate_durable_accepted_decision(
+        self,
+        job_id: str,
+        claimed: Dict[str, Any],
+        task_context: OrqalyTaskContext,
+    ) -> None:
+        """Bind a claimed paid row to its committed owner-approved decision."""
+
+        binding = task_context.scope_contract_binding
+        acceptance = task_context.scope_research_acceptance
+        runtime = task_context.scope_runtime_binding
+        decision_id = str(claimed.get("request_id") or "")
+        session = self.session_factory()
+        try:
+            row = (
+                session.query(OrchestrationDecisionSnapshot)
+                .filter(
+                    OrchestrationDecisionSnapshot.decision_id == decision_id,
+                    OrchestrationDecisionSnapshot.partner_id == PARTNER_ID,
+                    OrchestrationDecisionSnapshot.external_org_id
+                    == claimed.get("external_org_id"),
+                    OrchestrationDecisionSnapshot.external_user_id
+                    == claimed.get("external_user_id"),
+                    OrchestrationDecisionSnapshot.user_id == claimed.get("user_id"),
+                    OrchestrationDecisionSnapshot.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if row is None:
+                raise ValueError(
+                    "paid research run has no durable accepted decision owner"
+                )
+            decision = row.decision_payload or {}
+            request = row.input_snapshot or {}
+            job = decision.get("research_job") or {}
+            packet = request.get("scope_packet") or decision.get("scope_packet") or {}
+            contract = packet.get("research_contract") or {}
+            tenant = request.get("tenant") or {}
+            task = request.get("task") or {}
+            binding_payload = binding.model_dump(mode="json")
+            acceptance_payload = acceptance.model_dump(mode="json")
+            runtime_payload = runtime.model_dump(mode="json")
+            if (
+                decision.get("decision_id") != decision_id
+                or decision.get("parent_decision_id")
+                != acceptance.proposal_decision_id
+                or decision.get("scope_contract_binding") != binding_payload
+                or decision.get("scope_research_acceptance") != acceptance_payload
+                or decision.get("scope_runtime_binding") != runtime_payload
+                or decision.get("research_execution_inputs_hash")
+                != acceptance.execution_inputs_hash
+                or job.get("job_id") != job_id
+                or job.get("decision_id") != decision_id
+                or job.get("scope_contract_binding") != binding_payload
+                or job.get("scope_research_acceptance") != acceptance_payload
+                or job.get("scope_runtime_binding") != runtime_payload
+                or tenant.get("orgId", tenant.get("org_id")) != acceptance.org_id
+                or tenant.get("userId", tenant.get("user_id"))
+                != acceptance.user_id
+                or task.get("taskId", task.get("task_id")) != acceptance.goal_id
+                or request.get("scope_research_acceptance") != acceptance_payload
+                or packet.get("scope_hash") != acceptance.scope_hash
+                or contract.get("contract_hash") != acceptance.contract_hash
+                or packet.get("runtime") != runtime_payload
+            ):
+                raise ValueError(
+                    "paid research row does not match its durable accepted decision"
+                )
+            parent = (
+                session.query(OrchestrationDecisionSnapshot)
+                .filter(
+                    OrchestrationDecisionSnapshot.decision_id
+                    == acceptance.proposal_decision_id,
+                    OrchestrationDecisionSnapshot.partner_id == PARTNER_ID,
+                    OrchestrationDecisionSnapshot.external_org_id
+                    == acceptance.org_id,
+                    OrchestrationDecisionSnapshot.external_user_id
+                    == acceptance.user_id,
+                    OrchestrationDecisionSnapshot.user_id == claimed.get("user_id"),
+                    OrchestrationDecisionSnapshot.deleted_at.is_(None),
+                )
+                .first()
+            )
+            parent_payload = parent.decision_payload if parent is not None else {}
+            if (
+                parent is None
+                or parent_payload.get("research_job") is not None
+                or parent_payload.get("scope_research_acceptance") is not None
+                or parent_payload.get("scope_contract_binding") != binding_payload
+                or parent_payload.get("scope_runtime_binding") != runtime_payload
+                or parent_payload.get("research_execution_inputs_hash")
+                != acceptance.execution_inputs_hash
+            ):
+                raise ValueError(
+                    "paid research row does not match its durable scope proposal"
+                )
+        finally:
+            session.close()
 
     @staticmethod
     def _claim_class_applicability(
@@ -644,26 +814,66 @@ class HybridRunService:
                 raise ValueError(
                     "business evidence projection requires grounded_hybrid research"
                 )
-        required_output_flags = {"empirical_personas": outputs.empirical_personas}
-        if outputs.research_bundle:
-            required_output_flags.update(
-                {
-                    "market_sources": outputs.market_sources,
-                    "market_claims": outputs.market_claims,
-                    "synthetic_participants": outputs.synthetic_participants,
-                    "interviews": outputs.interviews,
-                }
+        policy = grounding_policy or HybridGroundingPolicy(required=False)
+        binding, acceptance, _runtime = self._validated_orqaly_scope_context(
+            task_context,
+            external_org_id,
+            external_user_id,
+            validate_live_runtime=True,
+        )
+        strict_scope = binding is not None
+        if strict_scope:
+            expected_roles = [
+                slot.role for slot in binding.executor_role_slots
+            ]
+            if task_context.required_execution_roles != expected_roles:
+                raise ValueError(
+                    "Orqaly executor roles do not match scope contract slots"
+                )
+            expected_outputs = set(binding.evidence.required_outputs)
+            output_flags = {
+                "customer_personas": outputs.empirical_personas,
+                "persona_resolution": outputs.persona_resolution,
+                "market_sources": outputs.market_sources,
+                "market_claims": outputs.market_claims,
+                "synthetic_participants": outputs.synthetic_participants,
+                "interviews": outputs.interviews,
+                "research_bundle": outputs.research_bundle,
+                "research_prd": outputs.prd.enabled,
+            }
+            mismatched_outputs = sorted(
+                name
+                for name, enabled in output_flags.items()
+                if enabled != (name in expected_outputs)
             )
-        missing_outputs = [
-            name for name, enabled in required_output_flags.items() if not enabled
-        ]
-        if missing_outputs:
-            raise ValueError(
-                "Enhanced async runs require outputs: " + ", ".join(missing_outputs)
+            if mismatched_outputs:
+                raise ValueError(
+                    "Hybrid outputs contradict scope contract: "
+                    + ", ".join(mismatched_outputs)
+                )
+            if outputs.prd.required != ("research_prd" in expected_outputs):
+                raise ValueError("Hybrid PRD requirement contradicts scope contract")
+            expected_prd_type = (
+                None
+                if binding.document_intent == "custom"
+                else binding.document_intent
             )
+            if task_context.research_prd_type != expected_prd_type:
+                raise ValueError("Task-context PRD intent contradicts scope contract")
+            if outputs.prd.enabled and outputs.prd.type != binding.document_intent:
+                raise ValueError("Hybrid PRD type contradicts scope contract")
+            grounded = binding.evidence.mode == "grounded"
+            if grounded != (research_mode == HybridResearchMode.GROUNDED_HYBRID):
+                raise ValueError("Research mode contradicts scope evidence mode")
+            if grounded != policy.required:
+                raise ValueError("Grounding policy contradicts scope evidence mode")
+            if not outputs.research_bundle:
+                raise ValueError("Accepted research must materialize its bound bundle")
+        # Standalone legacy AxWise callers remain on their versioned path when
+        # they carry neither Orqaly binding. The strict adapter always carries
+        # both, so an unbound partner request cannot enter this branch.
         if outputs.persona_resolution and not task_context:
             raise ValueError("Persona resolution requires task_context")
-        policy = grounding_policy or HybridGroundingPolicy(required=False)
         if (
             task_context
             and task_context.business_evidence_profile
@@ -720,7 +930,8 @@ class HybridRunService:
             research_mode,
             policy,
         )
-        session = self.session_factory()
+        owns_session = self.atomic_session is None
+        session = self.atomic_session or self.session_factory()
         try:
             existing = (
                 session.query(PipelineRun)
@@ -735,7 +946,8 @@ class HybridRunService:
             if existing:
                 if existing.request_hash != request_hash:
                     raise ValueError("Idempotency key was reused with a different request")
-                session.expunge(existing)
+                if owns_session:
+                    session.expunge(existing)
                 return existing, True
 
             run = PipelineRun(
@@ -762,6 +974,7 @@ class HybridRunService:
                     ],
                     "research_mode": research_mode.value,
                     "grounding_policy": policy.model_dump(mode="json"),
+                    "require_scope_acceptance": True,
                 },
                 requested_outputs=outputs.model_dump(mode="json"),
                 callback_config=(
@@ -773,11 +986,19 @@ class HybridRunService:
                 updated_at=datetime.now(timezone.utc),
             )
             session.add(run)
-            session.commit()
-            session.refresh(run)
-            session.expunge(run)
+            if owns_session:
+                session.commit()
+                session.refresh(run)
+                session.expunge(run)
+            else:
+                # The decision snapshot/event and this paid run become visible
+                # together when SqlAlchemyDecisionStore commits the caller's
+                # route-owned transaction.
+                session.flush()
             return run, False
         except IntegrityError:
+            if not owns_session:
+                raise
             session.rollback()
             existing = (
                 session.query(PipelineRun)
@@ -794,7 +1015,8 @@ class HybridRunService:
                 return existing, True
             raise ValueError("Idempotency key was reused with a different request")
         finally:
-            session.close()
+            if owns_session:
+                session.close()
 
     def get_run_for_tenant(
         self,
@@ -938,16 +1160,30 @@ class HybridRunService:
         started = time.monotonic()
         failure_diagnostics: Dict[str, Any] = {}
         try:
-            request = SimulationRequest.model_validate(
-                claimed["request_payload"]["simulation"]
-            )
-            outputs = HybridOutputs.model_validate(claimed["requested_outputs"] or {})
             raw_task_context = claimed["request_payload"].get("task_context")
             task_context = (
                 OrqalyTaskContext.model_validate(raw_task_context)
                 if raw_task_context
                 else None
             )
+            if claimed.get("partner_id") != PARTNER_ID:
+                raise ValueError("hybrid job does not belong to the Orqaly pipeline")
+            self._validated_orqaly_scope_context(
+                task_context,
+                str(claimed.get("external_org_id") or ""),
+                str(claimed.get("external_user_id") or ""),
+                raw_task_context=raw_task_context,
+                validate_live_runtime=True,
+            )
+            self._validate_durable_accepted_decision(
+                job_id,
+                claimed,
+                task_context,
+            )
+            request = SimulationRequest.model_validate(
+                claimed["request_payload"]["simulation"]
+            )
+            outputs = HybridOutputs.model_validate(claimed["requested_outputs"] or {})
             if task_context and task_context.business_evidence_profile:
                 task_context = task_context.model_copy(
                     update={
@@ -1151,6 +1387,21 @@ class HybridRunService:
                     grounding = await self.grounding(request, grounding_policy)
                 except Exception as exc:
                     raise RuntimeError("Regional market grounding failed") from exc
+                # The market scope is an accepted execution input, not a
+                # provider-authored conclusion.  Providers may echo it for
+                # provenance, but an omitted echo must not erase the durable
+                # scope metadata that the bundle validator binds below.
+                if (
+                    "market_scope" not in grounding
+                    and request.business_context is not None
+                    and request.business_context.market_scope is not None
+                ):
+                    grounding = {
+                        **grounding,
+                        "market_scope": request.business_context.market_scope.model_dump(
+                            mode="json"
+                        ),
+                    }
                 if topic_contract_required:
                     returned_topic_seed = grounding.get("topic_seed_contract")
                     returned_topic_scope = grounding.get(
@@ -1552,6 +1803,10 @@ class HybridRunService:
             snapshot = {
                 "user_id": run.user_id,
                 "simulation_id": run.simulation_id,
+                "partner_id": run.partner_id,
+                "external_org_id": run.external_org_id,
+                "external_user_id": run.external_user_id,
+                "request_id": run.request_id,
                 "request_payload": run.request_payload,
                 "requested_outputs": run.requested_outputs,
             }
@@ -1587,6 +1842,10 @@ class HybridRunService:
             return {
                 "user_id": run.user_id,
                 "simulation_id": run.simulation_id,
+                "partner_id": run.partner_id,
+                "external_org_id": run.external_org_id,
+                "external_user_id": run.external_user_id,
+                "request_id": run.request_id,
                 "request_payload": run.request_payload,
                 "requested_outputs": run.requested_outputs,
             }
@@ -2466,6 +2725,19 @@ class HybridRunService:
 
     @staticmethod
     def serialize_run(run: PipelineRun, include_result: bool = False) -> Dict[str, Any]:
+        request_payload = run.request_payload or {}
+        raw_task_context = request_payload.get("task_context")
+        task_context = (
+            OrqalyTaskContext.model_validate(raw_task_context)
+            if raw_task_context
+            else None
+        )
+        binding, acceptance, runtime = HybridRunService._validated_orqaly_scope_context(
+            task_context,
+            str(run.external_org_id or ""),
+            str(run.external_user_id or ""),
+            raw_task_context=raw_task_context,
+        )
         terminal_time = (
             _utc(run.completed_at)
             if run.status in TERMINAL_STATUSES and run.completed_at
@@ -2492,6 +2764,27 @@ class HybridRunService:
             "stage_durations_ms": performance["stage_durations_ms"],
             "stage_trace": performance["stage_trace"],
         }
+        if binding is not None:
+            binding_payload = binding.model_dump(mode="json")
+            acceptance_payload = acceptance.model_dump(mode="json")
+            runtime_payload = runtime.model_dump(mode="json")
+            data.update(
+                {
+                    "scope_contract_binding": binding_payload,
+                    "scope_research_acceptance": acceptance_payload,
+                    "scope_runtime_binding": runtime_payload,
+                    "research_execution_inputs_hash": (
+                        task_context.research_execution_inputs_hash
+                    ),
+                    "job": {
+                        "job_id": run.job_id,
+                        "status": run.status,
+                        "scope_contract_binding": binding_payload,
+                        "scope_research_acceptance": acceptance_payload,
+                        "scope_runtime_binding": runtime_payload,
+                    },
+                }
+            )
         if include_result and run.status in {"completed", "completed_with_warnings"}:
             data["result"] = run.dataset
             research_bundle = (

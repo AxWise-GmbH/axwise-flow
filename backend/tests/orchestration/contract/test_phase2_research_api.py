@@ -14,6 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.api.routes import orchestration as orchestration_route
 from backend.database import Base, get_db
 from backend.domain.orchestration.models import (
+    DecisionCreateRequestV1,
     EvidenceItemV1,
     ResearchJobV1,
     ResearchResultV1,
@@ -28,6 +29,10 @@ from backend.models import (
     User,
 )
 from backend.services.orchestration.decision_service import OrchestrationDecisionService
+from backend.services.orchestration.scope_contract_service import (
+    scope_contract_binding,
+)
+from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
 )
@@ -42,14 +47,34 @@ class ApiResearchPort:
         self.result = None
 
     def start(self, request, decision_id, idempotency_key):
+        assert request.scope_packet is not None
         return ResearchJobV1(
             job_id=f"api-research-{idempotency_key}",
             status="queued",
             decision_id=decision_id,
+            scope_contract_binding=scope_contract_binding(request.scope_packet),
+            scope_research_acceptance=request.scope_research_acceptance,
+            scope_runtime_binding=request.scope_packet.runtime,
         )
 
     def collect(self, request, job):
-        return self.result or ResearchResultV1(job=job)
+        result = self.result or ResearchResultV1(job=job)
+        return result.model_copy(
+            update={
+                "job": result.job.model_copy(
+                    update={
+                        "scope_contract_binding": job.scope_contract_binding,
+                        "scope_research_acceptance": (
+                            job.scope_research_acceptance
+                        ),
+                        "scope_runtime_binding": job.scope_runtime_binding,
+                    }
+                ),
+                "scope_contract_binding": job.scope_contract_binding,
+                "scope_research_acceptance": job.scope_research_acceptance,
+                "scope_runtime_binding": job.scope_runtime_binding,
+            }
+        )
 
 
 @pytest_asyncio.fixture
@@ -171,7 +196,25 @@ async def test_research_refresh_returns_202_then_linked_201_and_idempotent_200(
     parent = created.json()
     assert parent["routing_mode"] == "research_assisted"
     assert parent["status"] == "pending_research"
-    decision_id = parent["decision_id"]
+    assert parent["research_job"] is None
+    accepted_request = accept_scope(
+        DecisionCreateRequestV1.model_validate(parent["input_snapshot"]),
+        parent["decision_id"],
+        execution_inputs_hash=parent["research_execution_inputs_hash"],
+    )
+    accepted_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_create_headers("phase2-api-accepted"),
+        json=accepted_request.model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_none=False,
+        ),
+    )
+    assert accepted_response.status_code == 201
+    accepted = accepted_response.json()
+    assert accepted["research_job"] is not None
+    decision_id = accepted["decision_id"]
 
     pending = await client.post(
         f"/api/orqaly-axwise/v1/orchestration/decisions/{decision_id}/research/refresh",
@@ -181,7 +224,7 @@ async def test_research_refresh_returns_202_then_linked_201_and_idempotent_200(
     assert pending.json()["decision_id"] == decision_id
 
     research.result = ResearchResultV1(
-        job=ResearchJobV1.model_validate(parent["research_job"]).model_copy(
+        job=ResearchJobV1.model_validate(accepted["research_job"]).model_copy(
             update={"status": "completed", "evidence_count": 1}
         ),
         evidence=[

@@ -5,9 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import List, Literal, Optional
+from datetime import datetime
+from typing import List, Literal, Optional, Tuple
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from backend.domain.market_scope import MARKET_COUNTRY_CODES
 
 
 SCOPE_PACKET_VERSION = "axwise_scope_packet_v1"
@@ -22,6 +26,12 @@ class ScopeContractModel(BaseModel):
         populate_by_name=True,
         str_strip_whitespace=True,
     )
+
+
+class ImmutableScopeContractModel(ScopeContractModel):
+    """Frozen typed boundary; collection fields use tuples below."""
+
+    model_config = ConfigDict(frozen=True)
 
 
 def _unique_strings(values: List[str]) -> List[str]:
@@ -83,6 +93,319 @@ ScopeWorkTypeV1 = Literal[
     "physical_operations",
     "mixed_custom",
 ]
+
+
+ScopeDocumentIntentV1 = Literal[
+    "commercial_market_launch",
+    "operational_process",
+    "product_strategy",
+    "software_product",
+    "custom",
+]
+
+
+ScopeResearchOutputV1 = Literal[
+    "market_sources",
+    "market_claims",
+    "synthetic_participants",
+    "interviews",
+    "customer_personas",
+    "persona_resolution",
+    "research_prd",
+    "research_bundle",
+]
+
+
+class ScopeEvidenceContractV1(ImmutableScopeContractModel):
+    """Evidence acquisition intent kept separate from document and work shape."""
+
+    mode: Literal["none", "existing", "synthetic", "grounded"] = "none"
+    grounding_required: bool = False
+    external_sources_required: bool = False
+    required_outputs: Tuple[ScopeResearchOutputV1, ...] = Field(
+        default_factory=tuple,
+        max_length=8,
+    )
+
+    @field_validator("required_outputs")
+    @classmethod
+    def canonical_outputs(
+        cls,
+        values: Tuple[ScopeResearchOutputV1, ...],
+    ) -> Tuple[ScopeResearchOutputV1, ...]:
+        canonical = tuple(sorted(set(values)))
+        if values != canonical:
+            raise ValueError("required_outputs must be sorted and unique")
+        return values
+
+    @model_validator(mode="after")
+    def validate_mode(self) -> "ScopeEvidenceContractV1":
+        if self.mode == "none" and self.required_outputs:
+            raise ValueError("none evidence mode cannot request research outputs")
+        if self.mode != "none" and "research_bundle" not in self.required_outputs:
+            raise ValueError("research evidence modes must request research_bundle")
+        if self.mode == "grounded" and not (
+            self.grounding_required and self.external_sources_required
+        ):
+            raise ValueError(
+                "grounded evidence requires grounding_required and "
+                "external_sources_required"
+            )
+        if self.mode != "grounded" and (
+            self.grounding_required or self.external_sources_required
+        ):
+            raise ValueError(
+                "grounding or external-source requirements require grounded mode"
+            )
+        if self.external_sources_required and "market_sources" not in self.required_outputs:
+            raise ValueError(
+                "external-source requirements must include market_sources"
+            )
+        if self.mode == "synthetic" and {
+            "market_sources",
+            "market_claims",
+        }.intersection(self.required_outputs):
+            raise ValueError(
+                "synthetic evidence cannot promise market sources or claims"
+            )
+        return self
+
+
+class ScopeExecutorRoleSlotV1(ImmutableScopeContractModel):
+    slot_id: str = Field(..., pattern=r"^role-[a-f0-9]{16}$")
+    role: str = Field(..., min_length=2, max_length=255)
+    required: Literal[True] = True
+
+
+class ScopeResearchContractV1(ImmutableScopeContractModel):
+    """Immutable semantic bridge from scope admission into research execution."""
+
+    version: Literal["axwise_scope_research_contract_v1"] = (
+        "axwise_scope_research_contract_v1"
+    )
+    document_intent: ScopeDocumentIntentV1
+    work_types: Tuple[ScopeWorkTypeV1, ...] = Field(..., min_length=1, max_length=9)
+    geographies: Tuple[str, ...] = Field(default_factory=tuple, max_length=64)
+    evidence: ScopeEvidenceContractV1 = Field(default_factory=ScopeEvidenceContractV1)
+    executor_role_slots: Tuple[ScopeExecutorRoleSlotV1, ...] = Field(
+        default_factory=tuple,
+        max_length=20,
+    )
+    contract_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("work_types")
+    @classmethod
+    def canonical_work_types(
+        cls,
+        values: Tuple[ScopeWorkTypeV1, ...],
+    ) -> Tuple[ScopeWorkTypeV1, ...]:
+        canonical = tuple(sorted(set(values)))
+        if values != canonical:
+            raise ValueError("work_types must be sorted and unique")
+        return values
+
+    @field_validator("geographies")
+    @classmethod
+    def canonical_geographies(cls, values: Tuple[str, ...]) -> Tuple[str, ...]:
+        original = tuple(str(value).strip() for value in values if str(value).strip())
+        normalized = tuple(
+            str(value).strip().upper()
+            for value in values
+            if str(value).strip()
+        )
+        if any(not re.fullmatch(r"[A-Z]{2}", value) for value in normalized):
+            raise ValueError("geographies must contain canonical ISO-2 country codes")
+        if any(value not in MARKET_COUNTRY_CODES for value in normalized):
+            raise ValueError("geographies must contain assigned ISO-2 country codes")
+        canonical = tuple(sorted(set(normalized)))
+        if original != normalized or normalized != canonical:
+            raise ValueError("geographies must be uppercase, sorted, and unique")
+        return normalized
+
+    @field_validator("executor_role_slots")
+    @classmethod
+    def canonical_role_slots(
+        cls,
+        values: Tuple[ScopeExecutorRoleSlotV1, ...],
+    ) -> Tuple[ScopeExecutorRoleSlotV1, ...]:
+        by_id: dict[str, ScopeExecutorRoleSlotV1] = {}
+        role_keys: set[str] = set()
+        for value in values:
+            if value.slot_id in by_id:
+                raise ValueError("executor role slot IDs must be unique")
+            role_key = _semantic_text(value.role)
+            if role_key in role_keys:
+                raise ValueError("executor roles must be unique")
+            role_keys.add(role_key)
+            by_id[value.slot_id] = value.model_copy(
+                update={"role": _semantic_text(value.role)}
+            )
+        canonical = tuple(by_id[key] for key in sorted(by_id))
+        if tuple(value.slot_id for value in values) != tuple(
+            value.slot_id for value in canonical
+        ):
+            raise ValueError("executor role slots must be sorted by slot_id")
+        for ordinal, value in enumerate(canonical):
+            expected = (
+                f"role-{ordinal:04x}"
+                f"{hashlib.sha256(value.role.encode('utf-8')).hexdigest()[:12]}"
+            )
+            if value.slot_id != expected:
+                raise ValueError(
+                    "executor role slot IDs must bind canonical order and role"
+                )
+        return canonical
+
+    @staticmethod
+    def canonical_hash_for(payload: dict) -> str:
+        value = dict(payload)
+        value.pop("contract_hash", None)
+        value["work_types"] = sorted(set(value.get("work_types") or []))
+        value["geographies"] = sorted(
+            set(str(item).strip().upper() for item in value.get("geographies") or [])
+        )
+        evidence = dict(value.get("evidence") or {})
+        evidence["required_outputs"] = sorted(
+            set(evidence.get("required_outputs") or [])
+        )
+        value["evidence"] = evidence
+        value["executor_role_slots"] = sorted(
+            value.get("executor_role_slots") or [],
+            key=lambda item: str(item.get("slot_id") or ""),
+        )
+        canonical = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @model_validator(mode="after")
+    def validate_integrity(self) -> "ScopeResearchContractV1":
+        expected = self.canonical_hash_for(
+            self.model_dump(mode="json", exclude={"contract_hash"})
+        )
+        if self.contract_hash != expected:
+            raise ValueError("research contract_hash does not match its canonical content")
+        if (
+            self.document_intent == "commercial_market_launch"
+            and "strategy_planning" not in self.work_types
+        ):
+            raise ValueError(
+                "commercial market launch requires strategy_planning work"
+            )
+        if (
+            self.evidence.external_sources_required
+            and "research_analysis" not in self.work_types
+        ):
+            raise ValueError(
+                "external-source evidence requires research_analysis work"
+            )
+        if (
+            self.document_intent == "custom"
+            and "research_prd" in self.evidence.required_outputs
+        ):
+            raise ValueError(
+                "custom research PRDs require an explicit supported document schema"
+            )
+        if self.evidence.mode == "grounded" and not self.geographies:
+            raise ValueError("grounded research requires at least one geography")
+        if (
+            self.executor_role_slots
+            and self.evidence.mode != "none"
+            and "persona_resolution" not in self.evidence.required_outputs
+        ):
+            raise ValueError(
+                "research-backed executor roles require persona_resolution"
+            )
+        return self
+
+
+class ScopeContractBindingV1(ImmutableScopeContractModel):
+    """Exact packet-bound echo persisted through every research result."""
+
+    scope_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+    version: Literal["axwise_scope_research_contract_v1"]
+    document_intent: ScopeDocumentIntentV1
+    work_types: Tuple[ScopeWorkTypeV1, ...] = Field(..., min_length=1, max_length=9)
+    geographies: Tuple[str, ...] = Field(default_factory=tuple, max_length=64)
+    evidence: ScopeEvidenceContractV1
+    executor_role_slots: Tuple[ScopeExecutorRoleSlotV1, ...] = Field(
+        default_factory=tuple,
+        max_length=20,
+    )
+    contract_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+
+    @classmethod
+    def from_packet(cls, packet: "ScopePacketV1") -> "ScopeContractBindingV1":
+        if packet.research_contract is None:
+            raise ValueError("scope packet does not carry a research contract")
+        return cls(
+            scope_hash=packet.scope_hash,
+            **packet.research_contract.model_dump(mode="json"),
+        )
+
+    @model_validator(mode="after")
+    def validate_contract_hash(self) -> "ScopeContractBindingV1":
+        payload = self.model_dump(mode="json", exclude={"scope_hash"})
+        canonical = ScopeResearchContractV1.model_validate(payload)
+        if canonical.model_dump(mode="json") != payload:
+            raise ValueError("scope binding contract fields are not canonical")
+        return self
+
+
+class ScopeResearchAcceptanceBindingV1(ImmutableScopeContractModel):
+    """Owner acceptance bound to one proposal and execution-input snapshot."""
+
+    version: Literal["orqaly_scope_research_acceptance_v1"] = (
+        "orqaly_scope_research_acceptance_v1"
+    )
+    org_id: str = Field(..., min_length=1, max_length=255)
+    user_id: str = Field(..., min_length=1, max_length=255)
+    goal_id: str = Field(..., min_length=1, max_length=255)
+    proposal_decision_id: str = Field(..., min_length=1, max_length=255)
+    scope_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+    contract_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+    execution_inputs_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+    acceptance_id: str = Field(..., min_length=36, max_length=36)
+    accepted_at: str = Field(
+        ...,
+        pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$",
+    )
+    accepted_by_user_id: str = Field(..., min_length=1, max_length=255)
+    binding_hash: str = Field(..., pattern=r"^[a-f0-9]{64}$")
+
+    @staticmethod
+    def canonical_hash_for(payload: dict) -> str:
+        value = dict(payload)
+        value.pop("binding_hash", None)
+        canonical = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @model_validator(mode="after")
+    def validate_acceptance(self) -> "ScopeResearchAcceptanceBindingV1":
+        try:
+            UUID(self.acceptance_id)
+        except ValueError as exc:
+            raise ValueError("acceptance_id must be a UUID") from exc
+        try:
+            datetime.strptime(self.accepted_at, "%Y-%m-%dT%H:%M:%S.%fZ")
+        except ValueError as exc:
+            raise ValueError("accepted_at must be a valid canonical UTC timestamp") from exc
+        if self.user_id != self.accepted_by_user_id:
+            raise ValueError("research scope acceptance must be by the goal owner")
+        expected = self.canonical_hash_for(
+            self.model_dump(mode="json", exclude={"binding_hash"})
+        )
+        if self.binding_hash != expected:
+            raise ValueError("scope research acceptance binding_hash is invalid")
+        return self
 
 
 class ScopeRequestedActionV1(ScopeContractModel):
@@ -291,6 +614,7 @@ class ScopeStateV1(ScopeContractModel):
     non_goals: List[str] = Field(default_factory=list, max_length=100)
     deliverable: Optional[ScopeDeliverableSeedV1] = None
     admission: Optional[ScopeAdmissionV1] = None
+    research_contract: Optional[ScopeResearchContractV1] = None
 
     @field_validator("audiences", "non_goals")
     @classmethod
@@ -418,6 +742,13 @@ class ScopePacketV1(ScopeContractModel):
         default=None,
         exclude_if=lambda value: value is None,
     )
+    # Optional only so immutable pre-contract packets can still be inspected.
+    # Every newly-built packet contains this field and validation fails closed
+    # before research when it is absent.
+    research_contract: Optional[ScopeResearchContractV1] = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
     ledger: ScopeLedgerV1
     runtime: TrustedRuntimeMetadataV1
     truth_policy: TruthPolicyV1 = Field(default_factory=TruthPolicyV1)
@@ -432,6 +763,8 @@ class ScopePacketV1(ScopeContractModel):
         # explicit null are equivalent for legacy packet verification.
         if value.get("admission") is None:
             value.pop("admission", None)
+        if value.get("research_contract") is None:
+            value.pop("research_contract", None)
         canonical = json.dumps(
             value,
             ensure_ascii=False,
@@ -449,6 +782,15 @@ class ScopePacketV1(ScopeContractModel):
             raise ValueError(
                 "populated scope admission requires work_types and success_criteria"
             )
+        if self.research_contract is not None and self.admission is not None:
+            if list(self.research_contract.work_types) != self.admission.work_types:
+                raise ValueError(
+                    "research contract work_types must equal scope admission work_types"
+                )
+            if list(self.research_contract.geographies) != self.admission.geographies:
+                raise ValueError(
+                    "research contract geographies must equal scope admission geographies"
+                )
         for values, label in (
             ([item.requirement_id for item in ledger.requirements], "requirement"),
             ([item.fact_id for item in ledger.facts], "fact"),
@@ -612,6 +954,13 @@ __all__ = [
     "ScopeAcceptanceSeedV1",
     "ScopeAcceptanceV1",
     "ScopeAdmissionV1",
+    "ScopeContractBindingV1",
+    "ScopeDocumentIntentV1",
+    "ScopeEvidenceContractV1",
+    "ScopeExecutorRoleSlotV1",
+    "ScopeResearchContractV1",
+    "ScopeResearchAcceptanceBindingV1",
+    "ScopeResearchOutputV1",
     "ScopeAssumptionSeedV1",
     "ScopeAssumptionV1",
     "ScopeConfirmationV1",

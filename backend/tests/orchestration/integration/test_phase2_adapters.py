@@ -23,6 +23,7 @@ from backend.services.orchestration.adapters.evidence_adapter import (
 from backend.services.orchestration.adapters.hybrid_research_adapter import (
     HybridResearchAdapter,
 )
+from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
 )
@@ -40,14 +41,28 @@ class FakeHybridService:
     def __init__(self, run=None):
         self.run = run
         self.enqueue_kwargs = None
+        self.enqueue_history = []
         self.cancel_calls = []
 
     def enqueue(self, **kwargs):
         self.enqueue_kwargs = kwargs
-        run = SimpleNamespace(job_id="hybrid-adapter", status="queued")
+        self.enqueue_history.append(kwargs)
+        run = SimpleNamespace(
+            job_id="hybrid-adapter",
+            status="queued",
+            request_id=kwargs["request_id"],
+        )
         return run, False
 
     def get_run_for_tenant(self, *args):
+        if self.run is not None and self.enqueue_kwargs is not None:
+            task_context = self.enqueue_kwargs["task_context"]
+            self.run.request_payload = {
+                "task_context": task_context.model_dump(mode="json"),
+                "require_scope_acceptance": True,
+            }
+            self.run.external_org_id = self.enqueue_kwargs["external_org_id"]
+            self.run.external_user_id = self.enqueue_kwargs["external_user_id"]
         return self.run
 
     def cancel_for_tenant(self, *args):
@@ -55,8 +70,14 @@ class FakeHybridService:
         return self.run
 
 
+def _approve(request: DecisionCreateRequestV1) -> DecisionCreateRequestV1:
+    return accept_scope(request, "decision-proposal")
+
+
 def _request() -> DecisionCreateRequestV1:
-    return DecisionCreateRequestV1.model_validate(_ambiguous_research_payload())
+    return _approve(
+        DecisionCreateRequestV1.model_validate(_ambiguous_research_payload())
+    )
 
 
 def _adapter(service: FakeHybridService) -> HybridResearchAdapter:
@@ -98,8 +119,10 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
     assert service.enqueue_kwargs["request_id"] == "decision-1"
     assert service.enqueue_kwargs["external_org_id"] == "orqaly-org-example"
     assert service.enqueue_kwargs["external_user_id"] == "orqaly-user-example"
+    acceptance = job.scope_research_acceptance
     assert service.enqueue_kwargs["idempotency_key"] == (
-        "orchestration-research:decision-key"
+        "orchestration-research-acceptance:"
+        f"{acceptance.acceptance_id}:{acceptance.binding_hash}"
     )
     outputs = service.enqueue_kwargs["outputs"]
     assert outputs.prd.enabled is False
@@ -122,6 +145,50 @@ def test_hybrid_start_passes_decision_and_tenant_correlation():
         "executor",
         "outcome_definer",
     }
+
+
+def test_hybrid_start_derives_retry_identity_from_owner_acceptance():
+    service = FakeHybridService()
+    adapter = _adapter(service)
+    request = _request()
+
+    first = adapter.start(request, "decision-retry", "http-key-a")
+    second = adapter.start(request, "decision-retry", "http-key-b")
+
+    assert first == second
+    assert len(service.enqueue_history) == 2
+    assert (
+        service.enqueue_history[0]["idempotency_key"]
+        == service.enqueue_history[1]["idempotency_key"]
+    )
+    assert "http-key-a" not in service.enqueue_history[0]["idempotency_key"]
+    assert "http-key-b" not in service.enqueue_history[1]["idempotency_key"]
+
+
+def test_hybrid_start_rejects_a_reused_run_owned_by_another_decision():
+    class SwappedRunService(FakeHybridService):
+        def enqueue(self, **kwargs):
+            self.enqueue_kwargs = kwargs
+            return SimpleNamespace(
+                job_id="already-dispatched",
+                status="queued",
+                request_id="decision-other",
+            ), True
+
+    adapter = _adapter(SwappedRunService())
+
+    with pytest.raises(ValueError, match="already bound to a different decision"):
+        adapter.start(_request(), "decision-current", "retry-key")
+
+
+def test_hybrid_start_rejects_unapproved_scope():
+    adapter = _adapter(FakeHybridService())
+    request = DecisionCreateRequestV1.model_validate(
+        _ambiguous_research_payload()
+    )
+
+    with pytest.raises(ValueError, match="explicit owner scope acceptance"):
+        adapter.start(request, "decision-unapproved", "unapproved-key")
 
 
 def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
@@ -178,7 +245,7 @@ def test_hybrid_start_maps_explicit_grounded_bundle_contract_and_required_prd():
             "allowed_source_types": ["company_registry"],
         }
     )
-    request = DecisionCreateRequestV1.model_validate(payload)
+    request = _approve(DecisionCreateRequestV1.model_validate(payload))
     service = FakeHybridService()
     adapter = _adapter(service)
 
@@ -329,7 +396,7 @@ def test_hybrid_warning_is_partial_and_preserves_synthetic_provenance():
 def test_hybrid_quality_threshold_rejects_weak_result():
     payload = _ambiguous_research_payload()
     payload["research_policy"]["minimum_evidence_quality"] = 0.9
-    request = DecisionCreateRequestV1.model_validate(payload)
+    request = _approve(DecisionCreateRequestV1.model_validate(payload))
     run = _run("completed", dataset=_dataset_with_audited_quote())
     adapter = _adapter(FakeHybridService(run))
     job = adapter.start(request, "decision-quality", "quality-key")
@@ -343,7 +410,7 @@ def test_hybrid_quality_threshold_rejects_weak_result():
 def test_hybrid_evidence_expansion_respects_item_limit():
     payload = _ambiguous_research_payload()
     payload["research_policy"]["maximum_evidence_items"] = 1
-    request = DecisionCreateRequestV1.model_validate(payload)
+    request = _approve(DecisionCreateRequestV1.model_validate(payload))
     dataset = _dataset_with_audited_quote()
     dataset["empirical_personas"].append(
         {

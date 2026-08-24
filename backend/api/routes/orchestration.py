@@ -95,7 +95,7 @@ def _service(
         from backend.services.orqaly_hybrid_run_service import HybridRunService
 
         research_port = HybridResearchAdapter(
-            HybridRunService(orchestrator),
+            HybridRunService(orchestrator, atomic_session=db),
             user,
             tenant.orgId,
             tenant.userId,

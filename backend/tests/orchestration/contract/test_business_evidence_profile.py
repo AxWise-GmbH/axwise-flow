@@ -11,9 +11,11 @@ from backend.domain.orchestration.models import (
     BusinessEvidenceProfileV1,
     ResearchBriefV1,
 )
+from backend.domain.market_scope import resolve_market_expression
 from backend.services.orchestration.adapters.hybrid_research_adapter import (
     HybridResearchAdapter,
 )
+from backend.tests.orchestration.scope_acceptance_helpers import accept_scope
 from backend.tests.orchestration.unit.test_uncertainty_router import (
     _ambiguous_research_payload,
 )
@@ -42,6 +44,11 @@ ECONOMIC_MODELS = {
         "project_quote_rate_difference",
     ),
 }
+
+
+def _approved_request(payload: dict) -> DecisionCreateRequestV1:
+    request = DecisionCreateRequestV1.model_validate(payload)
+    return accept_scope(request, "decision-proposal")
 
 
 def _profile(economic_model: str) -> dict:
@@ -205,7 +212,7 @@ def test_absent_profile_preserves_v1_request_and_task_context_compatibility():
     )
 
     payload = _ambiguous_research_payload()
-    request = DecisionCreateRequestV1.model_validate(payload)
+    request = _approved_request(payload)
     task_context = HybridResearchAdapter._task_context(request)
 
     assert request.research_brief is not None
@@ -216,14 +223,16 @@ def test_absent_profile_preserves_v1_request_and_task_context_compatibility():
 def test_profile_is_preserved_in_typed_task_context():
     payload = _ambiguous_research_payload()
     payload["research_brief"]["research_prd_type"] = "commercial_market_launch"
-    payload["research_brief"]["business_evidence_profile"] = _profile(
-        "subscription"
-    )
-    request = DecisionCreateRequestV1.model_validate(payload)
+    payload["research_brief"]["location"] = "Estonia"
+    profile = _profile("subscription")
+    profile["market_scope_hash"] = resolve_market_expression(
+        "Estonia"
+    ).resolution_hash
+    payload["research_brief"]["business_evidence_profile"] = profile
+    payload["research_policy"]["minimum_mode"] = "auto"
+    request = _approved_request(payload)
 
     task_context = HybridResearchAdapter._task_context(request)
 
     assert task_context.business_evidence_profile is not None
-    assert task_context.business_evidence_profile.model_dump(mode="json") == _profile(
-        "subscription"
-    )
+    assert task_context.business_evidence_profile.model_dump(mode="json") == profile

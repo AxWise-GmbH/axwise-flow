@@ -22,6 +22,11 @@ from backend.api.research.simulation_bridge.models import (
 )
 from backend.domain.market_scope import research_cells
 from backend.domain.orchestration.models import BusinessEvidenceProfileV1
+from backend.domain.orchestration.scope_models import (
+    ScopeContractBindingV1,
+    ScopeResearchAcceptanceBindingV1,
+    TrustedRuntimeMetadataV1,
+)
 from backend.services.business_evidence_contract_service import (
     BUNDLE_VERSION as BUSINESS_EVIDENCE_BUNDLE_VERSION,
     build_business_evidence_contract_v1,
@@ -2286,6 +2291,159 @@ def build_research_bundle(
 ) -> Dict[str, Any]:
     """Build the durable, portable Orqaly handoff with stable IDs and hashes."""
 
+    if task_context is None:
+        task_context = {}
+    if not isinstance(task_context, dict):
+        raise ValueError("Research bundle task context must be an object")
+    raw_scope_binding = task_context.get("scope_contract_binding")
+    raw_acceptance = task_context.get("scope_research_acceptance")
+    raw_runtime = task_context.get("scope_runtime_binding")
+    strict_scope = True
+    scope_binding = None
+    scope_acceptance = None
+    canonical_scope_binding = None
+    canonical_scope_acceptance = None
+    canonical_scope_runtime = None
+    if not isinstance(raw_scope_binding, dict) or not isinstance(
+        raw_acceptance,
+        dict,
+    ) or not isinstance(raw_runtime, dict):
+        raise ValueError(
+            "Orqaly research bundle requires scope, acceptance, and runtime bindings"
+        )
+    if strict_scope:
+        scope_binding = ScopeContractBindingV1.model_validate(raw_scope_binding)
+        scope_acceptance = ScopeResearchAcceptanceBindingV1.model_validate(
+            raw_acceptance
+        )
+        scope_runtime = TrustedRuntimeMetadataV1.model_validate(raw_runtime)
+        canonical_scope_binding = scope_binding.model_dump(mode="json")
+        canonical_scope_acceptance = scope_acceptance.model_dump(mode="json")
+        canonical_scope_runtime = scope_runtime.model_dump(mode="json")
+        if raw_scope_binding != canonical_scope_binding:
+            raise ValueError("scope_contract_binding is not an exact canonical echo")
+        if raw_acceptance != canonical_scope_acceptance:
+            raise ValueError(
+                "scope_research_acceptance is not an exact canonical echo"
+            )
+        if raw_runtime != canonical_scope_runtime:
+            raise ValueError("scope_runtime_binding is not an exact canonical echo")
+        if (
+            scope_acceptance.scope_hash != scope_binding.scope_hash
+            or scope_acceptance.contract_hash != scope_binding.contract_hash
+            or task_context.get("research_execution_inputs_hash")
+            != scope_acceptance.execution_inputs_hash
+        ):
+            raise ValueError(
+                "research acceptance does not match scope or execution inputs"
+            )
+
+    def country_codes_from_scope(value: Any) -> list[str]:
+        if not isinstance(value, dict):
+            return []
+        resolved = value.get("resolved_scope")
+        countries = resolved.get("countries") if isinstance(resolved, dict) else None
+        if not isinstance(countries, list):
+            countries = value.get("countries")
+        codes: list[str] = []
+        for country in countries or []:
+            code = (
+                country.get("country_code")
+                if isinstance(country, dict)
+                else country
+            )
+            if isinstance(code, str) and re.fullmatch(r"[A-Za-z]{2}", code.strip()):
+                codes.append(code.strip().upper())
+        return sorted(set(codes))
+
+    expected_geographies = (
+        list(scope_binding.geographies) if scope_binding is not None else []
+    )
+    raw_grounding_market_scope = grounding.get("market_scope")
+    grounded_geographies = country_codes_from_scope(raw_grounding_market_scope)
+    if scope_binding is not None and scope_binding.evidence.mode == "grounded":
+        if grounded_geographies != expected_geographies:
+            raise ValueError(
+                "grounded market scope does not match scope_contract_binding geographies"
+            )
+    elif scope_binding is not None and raw_grounding_market_scope is not None and (
+        grounded_geographies != expected_geographies
+    ):
+        raise ValueError(
+            "research market scope does not match scope_contract_binding geographies"
+        )
+
+    if scope_binding is not None and (
+        "research_prd" in scope_binding.evidence.required_outputs
+    ):
+        if research_prd.get("prd_type") != scope_binding.document_intent:
+            raise ValueError("research PRD type does not match scope contract binding")
+        content = research_prd.get("content")
+        content = content if isinstance(content, dict) else {}
+        typed_content = content.get(f"{scope_binding.document_intent}_prd")
+        if not isinstance(typed_content, dict):
+            typed_content = content.get("commercial_prd")
+        typed_content = typed_content if isinstance(typed_content, dict) else content
+        raw_prd_market_scope = typed_content.get("market_scope")
+        prd_geographies = country_codes_from_scope(raw_prd_market_scope)
+        if raw_prd_market_scope is not None and (
+            prd_geographies != expected_geographies
+        ):
+            raise ValueError(
+                "research PRD market scope does not match scope contract binding"
+            )
+    if scope_binding is not None:
+        context_scope = (
+            request.business_context.market_scope
+            if request.business_context is not None
+            else None
+        )
+        context_geographies = country_codes_from_scope(
+            context_scope.model_dump(mode="json")
+            if context_scope is not None
+            else None
+        )
+        if context_geographies != expected_geographies:
+            raise ValueError(
+                "business context market scope does not match scope binding"
+            )
+        if task_context.get("required_execution_roles") != [
+            slot.role for slot in scope_binding.executor_role_slots
+        ]:
+            raise ValueError("executor roles do not match scope binding")
+        expected_outputs = set(scope_binding.evidence.required_outputs)
+        output_flags = {
+            "customer_personas": bool(requested_outputs.get("empirical_personas")),
+            "persona_resolution": bool(requested_outputs.get("persona_resolution")),
+            "market_sources": bool(requested_outputs.get("market_sources")),
+            "market_claims": bool(requested_outputs.get("market_claims")),
+            "synthetic_participants": bool(
+                requested_outputs.get("synthetic_participants")
+            ),
+            "interviews": bool(requested_outputs.get("interviews")),
+            "research_bundle": bool(requested_outputs.get("research_bundle")),
+            "research_prd": bool(
+                (requested_outputs.get("prd") or {}).get("enabled")
+                if isinstance(requested_outputs.get("prd"), dict)
+                else False
+            ),
+        }
+        mismatches = sorted(
+            name
+            for name, enabled in output_flags.items()
+            if enabled != (name in expected_outputs)
+        )
+        if mismatches:
+            raise ValueError(
+                "materialized outputs contradict scope binding: "
+                + ", ".join(mismatches)
+            )
+        expected_grounded = scope_binding.evidence.mode == "grounded"
+        if expected_grounded != (
+            research_mode == HybridResearchMode.GROUNDED_HYBRID
+        ) or expected_grounded != grounding_policy.required:
+            raise ValueError("bundle research mode contradicts scope evidence mode")
+
     raw_evidence_profile = (
         task_context.get("business_evidence_profile")
         if isinstance(task_context, dict)
@@ -2681,6 +2839,10 @@ def build_research_bundle(
         },
         "performance": _bounded_research_value(performance or {}),
     }
+    if strict_scope:
+        bundle["scope_contract_binding"] = canonical_scope_binding
+        bundle["scope_research_acceptance"] = canonical_scope_acceptance
+        bundle["scope_runtime_binding"] = canonical_scope_runtime
     if evidence_profile is not None:
         recomputed_evidence_contract = (
             build_business_evidence_contract_for_grounding(
@@ -2726,6 +2888,20 @@ def build_research_bundle(
         raise ValueError(
             "preflight business evidence contract requires an evidence profile"
         )
+    if strict_scope:
+        echoed_context = bundle.get("configuration", {}).get("task_context", {})
+        echoed_binding = echoed_context.get("scope_contract_binding")
+        echoed_acceptance = echoed_context.get("scope_research_acceptance")
+        echoed_runtime = echoed_context.get("scope_runtime_binding")
+        if (
+            echoed_binding != bundle.get("scope_contract_binding")
+            or echoed_acceptance != bundle.get("scope_research_acceptance")
+            or echoed_runtime != bundle.get("scope_runtime_binding")
+        ):
+            raise ValueError("research bundle scope acceptance echoes do not match")
+        ScopeContractBindingV1.model_validate(echoed_binding)
+        ScopeResearchAcceptanceBindingV1.model_validate(echoed_acceptance)
+        TrustedRuntimeMetadataV1.model_validate(echoed_runtime)
     canonical_bundle = canonical_json_string(bundle)
     if len(canonical_bundle.encode("utf-8")) > MAX_RESEARCH_BUNDLE_BYTES:
         raise ValueError("Research bundle exceeds the 8 MiB Orqaly import limit")
