@@ -794,56 +794,14 @@ async def orqaly_simulate_enhanced_async(
     request_id: Optional[str] = Header(None, alias="X-Request-ID"),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
-    """Create or reuse a tenant-owned durable A+B research job."""
-    if not idempotency_key.strip():
-        raise HTTPException(status_code=400, detail="Idempotency-Key must not be empty")
-    resolved_user = resolve_orqaly_tenant_user(db, request.tenant)
-    service = HybridRunService(orchestrator)
-    simulation_request = SimulationRequest(
-        questions_data=request.questions_data,
-        business_context=request.business_context,
-        raw_questionnaire_content=request.raw_questionnaire_content,
-        config=request.config,
-        callback_url=request.callback_url,
-    )
-    try:
-        run, reused = service.enqueue(
-            request=simulation_request,
-            outputs=request.outputs,
-            user=resolved_user,
-            external_org_id=request.tenant.orgId,
-            external_user_id=request.tenant.userId,
-            idempotency_key=idempotency_key.strip(),
-            request_id=request_id or str(uuid.uuid4()),
-            task_context=request.task_context,
-            agent_candidates=request.agent_candidates,
-            research_mode=request.research_mode,
-            grounding_policy=request.grounding_policy,
-        )
-    except ValueError as exc:
-        detail = str(exc)
-        raise HTTPException(
-            status_code=(status.HTTP_409_CONFLICT if "Idempotency" in detail else 422),
-            detail=detail,
-        )
-
-    base = "/api/orqaly-axwise/v1"
-    return JSONResponse(
-        status_code=status.HTTP_202_ACCEPTED,
-        content={
-            "success": True,
-            "job_id": run.job_id,
-            "simulation_id": run.simulation_id,
-            "request_id": run.request_id,
-            "status": run.status,
-            "pipeline": "hybrid_a_plus_b",
-            "reused": reused,
-            "links": {
-                "status": f"{base}/runs/{run.job_id}/status",
-                "result": f"{base}/runs/{run.job_id}",
-                "cancel": f"{base}/runs/{run.job_id}/cancel",
-            },
-        },
+    """Reject legacy direct dispatch; accepted scope decisions own paid work."""
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Direct paid research dispatch is disabled. Create and accept an "
+            "AxWise orchestration scope proposal so its durable parent decision "
+            "can authorize the research job."
+        ),
     )
 
 
@@ -925,40 +883,13 @@ async def orqaly_simulate_async(
     """
     Start multi-tenant simulation asynchronously under a validated user context.
     """
-    logger.info(f"Orqaly Async Simulation trigger by user: {user.user_id}")
-    
-    # Handle raw questionnaire content with PydanticAI parsing if provided
-    if request.raw_questionnaire_content:
-        parsed_request = await orchestrator.parse_raw_questionnaire(
-            request.raw_questionnaire_content, request.config
-        )
-        request.questions_data = parsed_request.questions_data
-        request.business_context = parsed_request.business_context
-
-    if not request.questions_data or not request.business_context:
-        raise HTTPException(
-            status_code=400,
-            detail="Both questions_data and business_context are required",
-        )
-
-    # Generate isolated simulation id
-    simulation_id = str(uuid.uuid4())
-
-    # Schedule background task to run the full simulation with persistence
-    background_tasks.add_task(
-        orchestrator.simulate_with_persistence, request, user.user_id, simulation_id
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Direct paid simulation is disabled. Use the accepted AxWise "
+            "DecisionService scope workflow."
+        ),
     )
-
-    base = "/api/orqaly-axwise/v1"
-    return {
-        "success": True,
-        "message": "Simulation accepted and started in background",
-        "simulation_id": simulation_id,
-        "next_steps": {
-            "progress_url": f"{base}/simulate/{simulation_id}/progress",
-            "result_url": f"{base}/completed/{simulation_id}",
-        },
-    }
 
 
 @router.post(
@@ -974,28 +905,13 @@ async def orqaly_simulate_enhanced(
     """
     Flagship Closed-Loop Hybrid cognitive endpoint that fuses Pipeline B and Pipeline A together.
     """
-    logger.info(f"Orqaly Enhanced/Closed-Loop Simulation trigger by user: {user.user_id}")
-
-    # Handle raw questionnaire content with PydanticAI parsing if provided
-    if request.raw_questionnaire_content:
-        parsed_request = await orchestrator.parse_raw_questionnaire(
-            request.raw_questionnaire_content, request.config
-        )
-        request.questions_data = parsed_request.questions_data
-        request.business_context = parsed_request.business_context
-
-    if not request.questions_data or not request.business_context:
-        raise HTTPException(
-            status_code=400,
-            detail="Both questions_data and business_context are required",
-        )
-
-    # Execute enhanced simulation synchronously with database persistence and parallel processing
-    result = await orchestrator.simulate_with_persistence(request, user.user_id)
-
-    # Use the same strict Pipeline A enrichment as the public enhanced endpoint.
-    # An advertised A+B request must not silently degrade to Pipeline B only.
-    return await enrich_with_empirical_personas(result, request)
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Direct paid simulation is disabled. Use the accepted AxWise "
+            "DecisionService scope workflow."
+        ),
+    )
 
 
 @router.get(
@@ -1007,56 +923,13 @@ async def orqaly_get_simulation_progress(
     simulation_id: str,
     user: User = Depends(get_current_user)
 ) -> Dict[str, Any]:
-    """
-    Get the progress of a running simulation under validated user ownership context.
-    """
-    # Verify the user owns this simulation (only in production/auth-enabled mode)
-    try:
-        from backend.services.external.auth_middleware import ENABLE_CLERK_VALIDATION
-    except Exception:
-        ENABLE_CLERK_VALIDATION = False
-
-    if ENABLE_CLERK_VALIDATION:
-        try:
-            from backend.infrastructure.persistence.unit_of_work import UnitOfWork
-            from backend.infrastructure.persistence.simulation_repository import SimulationRepository
-            from backend.database import SessionLocal
-
-            async with UnitOfWork(SessionLocal) as uow:
-                simulation_repo = SimulationRepository(uow.session)
-                db_simulation = await simulation_repo.get_by_simulation_id(simulation_id)
-
-                if not db_simulation:
-                    raise HTTPException(status_code=404, detail="Simulation not found")
-
-                if db_simulation.user_id != user.user_id:
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Access denied: You can only access your own simulations",
-                    )
-        except HTTPException:
-            raise
-        except Exception as db_ex:
-            logger.warning(f"Progress DB verification skipped due to error: {db_ex}")
-
-    progress = orchestrator.get_simulation_progress(simulation_id)
-
-    if not progress:
-        raise HTTPException(
-            status_code=404, detail="Simulation not found or completed"
-        )
-
-    return {
-        "simulation_id": progress.simulation_id,
-        "stage": progress.stage,
-        "progress_percentage": progress.progress_percentage,
-        "current_task": progress.current_task,
-        "estimated_time_remaining": progress.estimated_time_remaining,
-        "completed_personas": progress.completed_personas,
-        "total_personas": progress.total_personas,
-        "completed_interviews": progress.completed_interviews,
-        "total_interviews": progress.total_interviews,
-    }
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Legacy simulation aliases are disabled. Use the tenant-bound "
+            "accepted research run status endpoint."
+        ),
+    )
 
 
 @router.get(
@@ -1069,7 +942,10 @@ async def orqaly_get_completed_simulation(
     simulation_id: str,
     user: User = Depends(get_current_user)
 ) -> SimulationResponse:
-    """
-    Get a completed simulation result by ID from memory or database under validated user context.
-    """
-    return await get_completed_simulation(simulation_id, user)
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail=(
+            "Legacy simulation aliases are disabled. Use the tenant-bound "
+            "accepted research run result endpoint."
+        ),
+    )

@@ -21,6 +21,14 @@ from backend.domain.orchestration.models import (
     ResearchJobV1,
     ResearchResultV1,
 )
+from backend.domain.market_scope import resolve_market_expression
+from backend.services.orchestration.scope_contract_service import (
+    ensure_scope_packet,
+    research_execution_inputs_hash,
+    research_execution_inputs_payload,
+    scope_contract_binding,
+    validate_scope_research_acceptance,
+)
 from backend.domain.orchestration.scope_models import ScopeFactSeedV1
 from backend.services.orqaly_hybrid_run_service import (
     HybridOutputs,
@@ -48,18 +56,35 @@ class HybridResearchAdapter:
     def _task_context(request: DecisionCreateRequestV1) -> OrqalyTaskContext:
         task = request.task
         brief = request.research_brief
+        packet = request.scope_packet
+        if packet is None or packet.research_contract is None:
+            raise ValueError("research requires a typed scope contract")
+        contract = packet.research_contract
+        if contract.evidence.mode not in {"synthetic", "grounded"}:
+            raise ValueError(
+                "hybrid research dispatch requires synthetic or grounded acquisition"
+            )
+        projection = research_execution_inputs_payload(request, packet)
+        projected_task = projection["task"]
         return OrqalyTaskContext(
             task_id=task.task_id,
             title=task.objective,
             description=task.objective,
             desired_outcome=task.desired_outcome,
-            category=task.domain,
-            constraints=task.constraints,
-            required_capabilities=task.required_capabilities,
-            required_execution_roles=(
-                brief.required_execution_roles if brief else []
+            category=projected_task["domain"],
+            constraints=projected_task["constraints"],
+            required_capabilities=projected_task["required_capabilities"],
+            required_execution_roles=[
+                slot.role for slot in contract.executor_role_slots
+            ],
+            # `custom` is a real scope intent, but it deliberately has no
+            # legacy four-valued research PRD schema. The immutable binding
+            # carries it; downstream PRD selection remains unset.
+            research_prd_type=(
+                None
+                if contract.document_intent == "custom"
+                else contract.document_intent
             ),
-            research_prd_type=(brief.research_prd_type if brief else None),
             customer_role_contract=(
                 brief.customer_role_contract.model_dump(mode="json") if brief else {}
             ),
@@ -71,6 +96,13 @@ class HybridResearchAdapter:
                 if brief and brief.business_evidence_profile
                 else None
             ),
+            scope_contract_binding=scope_contract_binding(packet),
+            scope_runtime_binding=packet.runtime,
+            research_execution_inputs_hash=research_execution_inputs_hash(
+                request,
+                packet,
+            ),
+            scope_research_acceptance=request.scope_research_acceptance,
         )
 
     @staticmethod
@@ -181,17 +213,28 @@ class HybridResearchAdapter:
         decision_id: str,
         idempotency_key: str,
     ) -> ResearchJobV1:
+        if request.scope_research_acceptance is None:
+            raise ValueError(
+                "research dispatch requires explicit owner scope acceptance"
+            )
+        request = ensure_scope_packet(request)
         brief = request.research_brief
         if not brief:
             raise ValueError("research brief is required")
+        packet = request.scope_packet
+        if packet is None or packet.research_contract is None:
+            raise ValueError("research requires a typed scope contract")
+        validate_scope_research_acceptance(request, packet)
+        contract = packet.research_contract
         raw_questions = "\n".join(
             f"- {question}" for question in brief.research_questions
         ) or f"- What evidence would resolve: {request.task.objective}?"
         policy = request.research_policy
-        grounded = (
-            policy.minimum_mode in {"grounded_fast", "grounded_deep"}
-            or policy.grounding_required
-            or (policy.minimum_mode == "auto" and bool(brief.location))
+        grounded = contract.evidence.mode == "grounded"
+        market_scope = (
+            resolve_market_expression(" + ".join(contract.geographies))
+            if contract.geographies
+            else None
         )
         allowed_sources = set(policy.allowed_source_types or [])
         if allowed_sources and allowed_sources <= {"company_registry"}:
@@ -205,16 +248,16 @@ class HybridResearchAdapter:
             source_strategy = "hybrid"
         simulation = SimulationRequest(
             business_context=BusinessContext(
-                business_idea=brief.business_idea,
-                target_customer=brief.target_stakeholders,
-                problem=brief.problem,
+                business_idea=packet.intent.objective,
+                target_customer="; ".join(packet.intent.audiences),
+                problem=packet.intent.problem,
                 industry=brief.industry,
                 location=(
-                    brief.market_scope.raw_input
-                    if brief.market_scope
+                    market_scope.raw_input
+                    if market_scope
                     else brief.location
                 ),
-                market_scope=brief.market_scope,
+                market_scope=market_scope,
             ),
             raw_questionnaire_content=raw_questions,
             questions_data=self._questions_data(request),
@@ -230,25 +273,40 @@ class HybridResearchAdapter:
         run, _ = self.service.enqueue(
             request=simulation,
             outputs=HybridOutputs(
-                empirical_personas=True,
+                empirical_personas="customer_personas" in contract.evidence.required_outputs,
                 insights=True,
                 analysis_result=True,
-                persona_resolution=True,
-                market_sources=True,
-                market_claims=True,
-                synthetic_participants=True,
-                interviews=True,
-                research_bundle=True,
+                persona_resolution=(
+                    "persona_resolution" in contract.evidence.required_outputs
+                ),
+                market_sources="market_sources" in contract.evidence.required_outputs,
+                market_claims="market_claims" in contract.evidence.required_outputs,
+                synthetic_participants=(
+                    "synthetic_participants" in contract.evidence.required_outputs
+                ),
+                interviews="interviews" in contract.evidence.required_outputs,
+                research_bundle="research_bundle" in contract.evidence.required_outputs,
                 prd=HybridPRDOutput(
-                    enabled="research_prd" in policy.required_outputs,
-                    required="research_prd" in policy.required_outputs,
-                    type=brief.research_prd_type,
+                    enabled="research_prd" in contract.evidence.required_outputs,
+                    required="research_prd" in contract.evidence.required_outputs,
+                    type=(
+                        contract.document_intent
+                        if contract.document_intent != "custom"
+                        else "both"
+                    ),
                 ),
             ),
             user=self.user,
             external_org_id=self.external_org_id,
             external_user_id=self.external_user_id,
-            idempotency_key=f"orchestration-research:{idempotency_key}",
+            # One owner acceptance authorizes exactly one durable paid run.
+            # Caller retry keys may vary across network retries, so the
+            # tenant-scoped run identity derives from the immutable acceptance.
+            idempotency_key=(
+                "orchestration-research-acceptance:"
+                f"{request.scope_research_acceptance.acceptance_id}:"
+                f"{request.scope_research_acceptance.binding_hash}"
+            ),
             request_id=decision_id,
             task_context=self._task_context(request),
             agent_candidates=self._agent_candidates(request),
@@ -259,7 +317,9 @@ class HybridResearchAdapter:
             ),
             grounding_policy=HybridGroundingPolicy(
                 required=grounded,
-                research_required=policy.required,
+                research_required=(
+                    policy.required or contract.evidence.external_sources_required
+                ),
                 requested_mode=policy.minimum_mode,
                 fail_closed=policy.fail_closed,
                 source_strategy=source_strategy,
@@ -283,11 +343,18 @@ class HybridResearchAdapter:
                 ),
             ),
         )
+        if run.request_id != decision_id:
+            raise ValueError(
+                "scope acceptance is already bound to a different decision"
+            )
         status = "partial" if run.status == "completed_with_warnings" else run.status
         return ResearchJobV1(
             job_id=run.job_id,
             status=status,
             decision_id=decision_id,
+            scope_contract_binding=scope_contract_binding(packet),
+            scope_research_acceptance=request.scope_research_acceptance,
+            scope_runtime_binding=packet.runtime,
         )
 
     @staticmethod
@@ -519,6 +586,9 @@ class HybridResearchAdapter:
             ),
             evidence=items,
             scope_facts=scope_facts or [],
+            scope_contract_binding=source.scope_contract_binding,
+            scope_research_acceptance=source.scope_research_acceptance,
+            scope_runtime_binding=source.scope_runtime_binding,
         )
 
     def collect(
@@ -526,6 +596,18 @@ class HybridResearchAdapter:
         request: DecisionCreateRequestV1,
         job: ResearchJobV1,
     ) -> ResearchResultV1:
+        request = ensure_scope_packet(request)
+        if request.scope_packet is None:
+            raise ValueError("research collection requires a typed scope packet")
+        validate_scope_research_acceptance(request, request.scope_packet)
+        if (
+            job.scope_contract_binding
+            != scope_contract_binding(request.scope_packet)
+            or job.scope_research_acceptance
+            != request.scope_research_acceptance
+            or job.scope_runtime_binding != request.scope_packet.runtime
+        ):
+            raise ValueError("research job scope binding is stale or mismatched")
         run = self.service.get_run_for_tenant(
             job.job_id,
             self.user.user_id,
@@ -534,6 +616,29 @@ class HybridResearchAdapter:
         )
         if not run:
             return self._result(job, "failed", reason="research job was not found")
+        request_payload = run.request_payload or {}
+        raw_task_context = request_payload.get("task_context")
+        durable_task_context = (
+            OrqalyTaskContext.model_validate(raw_task_context)
+            if raw_task_context
+            else None
+        )
+        durable_binding, durable_acceptance, durable_runtime = (
+            HybridRunService._validated_orqaly_scope_context(
+                durable_task_context,
+                self.external_org_id,
+                self.external_user_id,
+                raw_task_context=raw_task_context,
+            )
+        )
+        if (
+            durable_binding != job.scope_contract_binding
+            or durable_acceptance != job.scope_research_acceptance
+            or durable_runtime != job.scope_runtime_binding
+        ):
+            raise ValueError(
+                "durable research run does not match the accepted research job"
+            )
         if run.status in {"queued", "running"}:
             maximum = request.research_policy.maximum_research_latency_ms
             created_at = run.created_at

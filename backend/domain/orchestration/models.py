@@ -28,10 +28,13 @@ from backend.domain.orchestration.enums import (
 from backend.domain.market_scope import MarketScopeV2, resolve_market_expression
 from backend.domain.orchestration.scope_models import (
     ScopeConfirmationV1,
+    ScopeContractBindingV1,
     ScopeFactSeedV1,
     ScopePacketV1,
+    ScopeResearchAcceptanceBindingV1,
     ScopeStateV1,
     ScopeValidationReportV1,
+    TrustedRuntimeMetadataV1,
 )
 
 
@@ -213,7 +216,7 @@ class ResearchPolicyV1(ContractModel):
             "customer_personas",
             "persona_resolution",
         ],
-        min_length=1,
+        min_length=0,
         max_length=20,
     )
     allowed_source_types: Optional[
@@ -249,6 +252,14 @@ class ResearchPolicyV1(ContractModel):
             raise ValueError("grounded research must fail closed")
         if self.minimum_mode == "instant" and self.grounding_required:
             raise ValueError("instant research cannot require market grounding")
+        if not self.required_outputs and (
+            self.required
+            or self.grounding_required
+            or self.minimum_mode in {"grounded_fast", "grounded_deep"}
+        ):
+            raise ValueError(
+                "required or grounded research must declare at least one output"
+            )
         return self
 
 
@@ -433,12 +444,16 @@ class ResearchBriefV1(ContractModel):
     problem: str = Field(..., min_length=3, max_length=4000)
     research_questions: List[str] = Field(default_factory=list, max_length=30)
     required_execution_roles: List[str] = Field(default_factory=list, max_length=20)
-    research_prd_type: Literal[
-        "commercial_market_launch",
-        "operational_process",
-        "product_strategy",
-        "software_product",
-    ] = "operational_process"
+    # Omission means unresolved, never "operational process". Scope admission
+    # must pin a document intent before a PRD-producing run is allowed.
+    research_prd_type: Optional[
+        Literal[
+            "commercial_market_launch",
+            "operational_process",
+            "product_strategy",
+            "software_product",
+        ]
+    ] = None
     customer_role_contract: CustomerRoleContractV1 = Field(
         default_factory=CustomerRoleContractV1
     )
@@ -470,6 +485,7 @@ class ResearchBriefV1(ContractModel):
     def validate_business_evidence_intent(self) -> "ResearchBriefV1":
         if (
             self.business_evidence_profile is not None
+            and self.research_prd_type is not None
             and self.business_evidence_profile.intent != self.research_prd_type
         ):
             raise ValueError(
@@ -572,6 +588,7 @@ class DecisionCreateRequestV1(ContractModel):
     planning: Optional[PlanningRequirementsV1] = None
     scope_state: Optional[ScopeStateV1] = None
     scope_packet: Optional[ScopePacketV1] = None
+    scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
 
     @model_validator(mode="after")
     def validate_catalogue_identifiers(self) -> "DecisionCreateRequestV1":
@@ -686,6 +703,9 @@ class ResearchJobV1(ContractModel):
     decision_id: str
     evidence_count: int = Field(default=0, ge=0)
     failure_reason: Optional[str] = None
+    scope_contract_binding: Optional[ScopeContractBindingV1] = None
+    scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
+    scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
 
 
 class ResearchResultV1(ContractModel):
@@ -695,6 +715,9 @@ class ResearchResultV1(ContractModel):
     # independently evidence-bound; generic evidence counts, synthetic quote
     # offsets, and owner confirmations are intentionally insufficient.
     scope_facts: List[ScopeFactSeedV1] = Field(default_factory=list, max_length=200)
+    scope_contract_binding: Optional[ScopeContractBindingV1] = None
+    scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
+    scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
 
 
 class RankingChange(ContractModel):
@@ -880,6 +903,13 @@ class OrchestrationDecisionV1(ContractModel):
     replan_context: Optional[ReplanContextV1] = None
     learned_features: List[LearnedFeatureV1] = Field(default_factory=list)
     scope_packet: Optional[ScopePacketV1] = None
+    scope_contract_binding: Optional[ScopeContractBindingV1] = None
+    research_execution_inputs_hash: Optional[str] = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
+    scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
+    scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
     scope_validation: Optional[ScopeValidationReportV1] = None
     scope_confirmation: Optional[ScopeConfirmationV1] = None
 

@@ -57,8 +57,12 @@ from backend.services.orchestration.team_planner import TeamPlanner
 from backend.services.orchestration.replanning_service import ReplanningService
 from backend.services.orchestration.uncertainty_router import UncertaintyRouter
 from backend.services.orchestration.scope_contract_service import (
+    ScopeContractError,
     build_scope_confirmation,
     ensure_scope_packet,
+    research_execution_inputs_hash,
+    scope_contract_binding,
+    validate_scope_research_acceptance,
     validate_scope_packet,
 )
 
@@ -474,12 +478,54 @@ class OrchestrationDecisionService:
         scope_validation = validate_scope_packet(scope_packet)
         policy = request.policy_context
         routing_mode = assessment.selected_mode
+        evidence_mode = scope_packet.research_contract.evidence.mode
+        contract_requires_research = evidence_mode != "none"
+        if (
+            research_job is None
+            and contract_requires_research
+            and routing_mode != RoutingMode.RESEARCH_ASSISTED
+        ):
+            routing_mode = RoutingMode.RESEARCH_ASSISTED
+            assessment = self._override_assessment(
+                assessment,
+                routing_mode,
+                "the accepted typed scope contract requires research",
+            )
+        elif (
+            research_job is None
+            and not contract_requires_research
+            and routing_mode == RoutingMode.RESEARCH_ASSISTED
+        ):
+            routing_mode = RoutingMode.DIRECT
+            assessment = self._override_assessment(
+                assessment,
+                routing_mode,
+                "the typed scope contract explicitly authorizes no research",
+            )
         scoring_request = self._scoring_request(request, evidence, routing_mode)
         scoring = self.scorer.score(scoring_request)
         selected = scoring.selected
         approval_required, approval_reasons = self._approval_state(request)
+        scope_execution_approved = request.scope_research_acceptance is not None
+        if scope_execution_approved:
+            validate_scope_research_acceptance(request, scope_packet)
+        awaiting_scope_confirmation = (
+            research_job is None
+            and contract_requires_research
+            and not scope_execution_approved
+        )
+        if awaiting_scope_confirmation:
+            assessment = self._override_assessment(
+                assessment,
+                RoutingMode.RESEARCH_ASSISTED,
+                "owner scope confirmation is required before research dispatch",
+            )
 
-        if routing_mode == RoutingMode.RESEARCH_ASSISTED and research_job is None:
+        if (
+            routing_mode == RoutingMode.RESEARCH_ASSISTED
+            and research_job is None
+            and not awaiting_scope_confirmation
+        ):
             if self.research_port and research_idempotency_key:
                 try:
                     research_job = self.research_port.start(
@@ -487,6 +533,18 @@ class OrchestrationDecisionService:
                         decision_id,
                         research_idempotency_key,
                     )
+                    expected_binding = scope_contract_binding(scope_packet)
+                    if (
+                        research_job.scope_contract_binding != expected_binding
+                        or research_job.scope_research_acceptance
+                        != request.scope_research_acceptance
+                        or research_job.scope_runtime_binding != scope_packet.runtime
+                    ):
+                        raise ScopeContractError(
+                            "research job did not echo accepted scope bindings"
+                        )
+                except ScopeContractError:
+                    raise
                 except Exception as exc:
                     routing_mode = RoutingMode.HUMAN_CLARIFICATION
                     assessment = self._override_assessment(
@@ -503,6 +561,17 @@ class OrchestrationDecisionService:
                 )
 
         approval_points: list[ApprovalGate] = []
+        if awaiting_scope_confirmation:
+            approval_points.append(
+                ApprovalGate(
+                    gate_id="gate-scope-confirmation",
+                    reason=(
+                        "Orqaly must confirm and redispatch the exact pinned "
+                        "scope contract before research"
+                    ),
+                    required_before="research",
+                )
+            )
         if approval_required:
             approval_points.append(
                 ApprovalGate(
@@ -818,6 +887,13 @@ class OrchestrationDecisionService:
                 else list(parent.learned_features) if parent else []
             ),
             scope_packet=scope_packet,
+            scope_contract_binding=scope_contract_binding(scope_packet),
+            research_execution_inputs_hash=research_execution_inputs_hash(
+                request,
+                scope_packet,
+            ),
+            scope_research_acceptance=request.scope_research_acceptance,
+            scope_runtime_binding=scope_packet.runtime,
             scope_validation=scope_validation,
             scope_confirmation=build_scope_confirmation(scope_packet),
         )
@@ -887,13 +963,125 @@ class OrchestrationDecisionService:
         idempotency_key: str,
         request_id: str | None = None,
     ) -> OrchestrationDecisionRecordV1:
-        request = ensure_scope_packet(request)
+        submitted_request = request
+        acceptance = submitted_request.scope_research_acceptance
+        if acceptance is not None and (
+            acceptance.org_id != submitted_request.tenant.org_id
+            or acceptance.user_id != submitted_request.tenant.user_id
+            or acceptance.goal_id != submitted_request.task.task_id
+            or acceptance.proposal_decision_id
+            != submitted_request.upstream_decision_id
+        ):
+            raise ScopeContractError(
+                "scope research acceptance contradicts the submitted owner envelope"
+            )
+        parent = None
+        if submitted_request.upstream_decision_id:
+            parent_row = self.store.get_for_tenant(
+                submitted_request.upstream_decision_id,
+                submitted_request.tenant.org_id,
+                submitted_request.tenant.user_id,
+                user_id,
+            )
+            if not parent_row:
+                raise DecisionLinkError("upstream orchestration decision was not found")
+            parent = self._record_from_row(parent_row)
+            if parent.task_id != submitted_request.task.task_id:
+                raise DecisionLinkError(
+                    "upstream decision belongs to a different task"
+                )
+        if acceptance is not None:
+            if parent is None:
+                raise DecisionLinkError(
+                    "accepted research requires its exact scope proposal decision"
+                )
+            parent_binding = parent.scope_contract_binding
+            if (
+                parent.decision_id != acceptance.proposal_decision_id
+                or parent.routing_mode != RoutingMode.RESEARCH_ASSISTED
+                or parent.research_job is not None
+                or parent.scope_research_acceptance is not None
+                or parent.scope_packet is None
+                or parent.input_snapshot.scope_research_acceptance is not None
+                or parent.input_snapshot.scope_packet != parent.scope_packet
+                or parent.scope_packet.scope_hash != acceptance.scope_hash
+                or parent_binding is None
+                or parent_binding.scope_hash != acceptance.scope_hash
+                or parent_binding.contract_hash != acceptance.contract_hash
+                or parent.research_execution_inputs_hash
+                != acceptance.execution_inputs_hash
+            ):
+                raise DecisionLinkError(
+                    "scope acceptance does not match the exact admission-only proposal"
+                )
+
+            packet = parent.scope_packet
+            submitted_state = submitted_request.scope_state
+            if (
+                submitted_state is None
+                or submitted_state.admission != packet.admission
+                or submitted_state.deliverable != packet.deliverable
+                or submitted_state.research_contract != packet.research_contract
+                or (
+                    submitted_request.scope_packet is not None
+                    and submitted_request.scope_packet != packet
+                )
+            ):
+                raise ScopeContractError(
+                    "accepted request does not echo the exact proposed typed scope"
+                )
+
+            # The accepted HTTP body is an owner acknowledgement, not a fresh
+            # source of paid execution inputs. Execute from the immutable
+            # proposal snapshot so Orqaly envelope reconstruction, evidence
+            # churn, or agent-hub changes cannot alter what was accepted.
+            execution_state = parent.input_snapshot.scope_state or ScopeStateV1()
+            execution_state = execution_state.model_copy(
+                update={
+                    "admission": packet.admission,
+                    "deliverable": packet.deliverable,
+                    "research_contract": packet.research_contract,
+                }
+            )
+            execution_policy = parent.input_snapshot.research_policy.model_copy(
+                update={
+                    "required_outputs": list(
+                        packet.research_contract.evidence.required_outputs
+                    )
+                }
+            )
+            request = parent.input_snapshot.model_copy(
+                update={
+                    "upstream_decision_id": parent.decision_id,
+                    "research_policy": execution_policy,
+                    "scope_state": execution_state,
+                    "scope_packet": None,
+                    "scope_research_acceptance": acceptance,
+                }
+            )
+            request = ensure_scope_packet(request)
+            if request.scope_packet != packet:
+                raise ScopeContractError(
+                    "accepted execution did not reproduce the immutable proposal packet"
+                )
+            validate_scope_research_acceptance(request, packet)
+        else:
+            request = ensure_scope_packet(submitted_request)
+
+        # The owner acceptance is a one-dispatch capability.  Network retries
+        # may arrive with different HTTP idempotency keys, but they must resolve
+        # to the same accepted decision instead of minting another decision/job.
+        effective_idempotency_key = (
+            f"scope-acceptance-{acceptance.binding_hash}"
+            if acceptance is not None
+            else idempotency_key
+        )
         request_hash = canonical_request_hash(request)
         existing = self.store.find_by_idempotency(
             PARTNER_ID,
             request.tenant.org_id,
             request.tenant.user_id,
-            idempotency_key,
+            effective_idempotency_key,
         )
         if existing:
             if not self._request_hash_matches(
@@ -906,32 +1094,23 @@ class OrchestrationDecisionService:
                 )
             return self._record_from_row(existing, reused=True)
 
-        evidence = self._evidence(request, user_id)
-        evaluated_request = request.model_copy(
-            update={"evidence_catalogue": evidence}
-        )
-        learned_features: list[LearnedFeatureV1] = []
-        if self.outcome_learning_port:
-            evaluated_request, learned_features = self.outcome_learning_port.enrich(
-                evaluated_request,
-                self.scorer.version,
+        if acceptance is not None:
+            evidence = list(request.evidence_catalogue)
+            evaluated_request = request
+            learned_features = list(parent.learned_features)
+        else:
+            evidence = self._evidence(request, user_id)
+            evaluated_request = request.model_copy(
+                update={"evidence_catalogue": evidence}
             )
-        assessment = self.router.route(evaluated_request, evidence)
-        parent = None
-        if request.upstream_decision_id:
-            parent_row = self.store.get_for_tenant(
-                request.upstream_decision_id,
-                request.tenant.org_id,
-                request.tenant.user_id,
-                user_id,
-            )
-            if not parent_row:
-                raise DecisionLinkError("upstream orchestration decision was not found")
-            parent = self._record_from_row(parent_row)
-            if parent.task_id != request.task.task_id:
-                raise DecisionLinkError(
-                    "upstream decision belongs to a different task"
+            learned_features: list[LearnedFeatureV1] = []
+            if self.outcome_learning_port:
+                evaluated_request, learned_features = self.outcome_learning_port.enrich(
+                    evaluated_request,
+                    self.scorer.version,
                 )
+            evaluated_request = ensure_scope_packet(evaluated_request)
+        assessment = self.router.route(evaluated_request, evidence)
         decision_id = f"decision-{uuid.uuid4()}"
         decision = self._build_decision(
             request=evaluated_request,
@@ -939,7 +1118,7 @@ class OrchestrationDecisionService:
             evidence=evidence,
             assessment=assessment,
             decision_id=decision_id,
-            research_idempotency_key=idempotency_key,
+            research_idempotency_key=effective_idempotency_key,
             parent=parent,
             learned_features=learned_features,
         )
@@ -947,7 +1126,7 @@ class OrchestrationDecisionService:
             evaluated_request,
             decision,
             user_id,
-            idempotency_key,
+            effective_idempotency_key,
             request_hash,
         )
 
@@ -990,6 +1169,23 @@ class OrchestrationDecisionService:
             )
 
         result = self.research_port.collect(parent.input_snapshot, parent.research_job)
+        expected_binding = parent.scope_contract_binding
+        expected_acceptance = parent.scope_research_acceptance
+        if (
+            expected_binding is None
+            or expected_acceptance is None
+            or parent.research_job.scope_contract_binding != expected_binding
+            or parent.research_job.scope_research_acceptance != expected_acceptance
+            or result.scope_contract_binding != expected_binding
+            or result.scope_research_acceptance != expected_acceptance
+            or result.scope_runtime_binding != parent.scope_runtime_binding
+            or result.job.scope_contract_binding != expected_binding
+            or result.job.scope_research_acceptance != expected_acceptance
+            or result.job.scope_runtime_binding != parent.scope_runtime_binding
+        ):
+            raise ResearchRefreshError(
+                "research result did not echo the accepted scope bindings"
+            )
         if result.job.status in PENDING_RESEARCH_STATUSES:
             return ResearchRefresh(record=parent, pending=True)
 
@@ -1017,12 +1213,15 @@ class OrchestrationDecisionService:
             update={
                 "evidence_catalogue": bounded_evidence,
                 "research_policy": policy,
+                # The acceptance authorized the completed research dispatch;
+                # it is retained on the immutable job/result, not reused as a
+                # blanket authorization for a new execution-input snapshot.
+                "scope_research_acceptance": None,
             }
         )
-        enriched_request = self._request_with_research_scope_facts(
-            enriched_request,
-            result,
-        )
+        # Research can add evidence, but it cannot rewrite the owner-accepted
+        # scope packet. Verified facts remain independently proof-bound on the
+        # result/evidence surfaces (and in the research bundle).
         enriched_request = ensure_scope_packet(enriched_request)
         refresh_payload = {
             "parent_decision_id": parent.decision_id,
@@ -1069,6 +1268,19 @@ class OrchestrationDecisionService:
             decision_id=f"decision-{uuid.uuid4()}",
             research_job=result.job,
             parent=parent,
+        )
+        decision = decision.model_copy(
+            update={
+                # This is an immutable provenance echo, not authorization for
+                # another dispatch: enriched_request deliberately carries no
+                # acceptance, so _build_decision cannot start research again.
+                "scope_packet": parent.scope_packet,
+                "scope_contract_binding": expected_binding,
+                "research_execution_inputs_hash": (
+                    expected_acceptance.execution_inputs_hash
+                ),
+                "scope_research_acceptance": expected_acceptance,
+            }
         )
         record = self._persist(
             enriched_request,

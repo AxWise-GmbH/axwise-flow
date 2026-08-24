@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 from copy import deepcopy
 from datetime import datetime, timezone
+from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 
@@ -17,6 +19,13 @@ from backend.api.research.simulation_bridge.models import (
     SimulationConfig,
     SimulationRequest,
     SimulationResponse,
+)
+from backend.domain.market_scope import resolve_market_expression
+from backend.domain.orchestration.scope_models import (
+    ScopeContractBindingV1,
+    ScopeResearchAcceptanceBindingV1,
+    ScopeResearchContractV1,
+    TrustedRuntimeMetadataV1,
 )
 from backend.services.orqaly_research_bundle_service import (
     BUNDLE_VERSION,
@@ -103,6 +112,7 @@ def _request() -> SimulationRequest:
             problem="Current offer evidence is incomplete",
             industry="cross-category",
             location="Estonia",
+            market_scope=resolve_market_expression("Estonia"),
         ),
         questions_data=QuestionsData(stakeholders={}),
         config=SimulationConfig(people_per_stakeholder=1),
@@ -308,14 +318,102 @@ def _build(
     task_context: dict,
     grounding: dict,
 ) -> dict:
+    request = _request()
+    grounding = deepcopy(grounding)
+    grounding.setdefault(
+        "market_scope",
+        request.business_context.market_scope.model_dump(mode="json"),
+    )
+    requested_outputs = {
+        "market_sources": True,
+        "persona_resolution": True,
+        "research_bundle": True,
+    }
+    roles = list(task_context.get("required_execution_roles") or [])
+    role_slots = [
+        {
+            "slot_id": (
+                f"role-{ordinal:04x}"
+                f"{hashlib.sha256(role.encode('utf-8')).hexdigest()[:12]}"
+            ),
+            "role": role,
+            "required": True,
+        }
+        for ordinal, role in enumerate(roles)
+    ]
+    contract_payload = {
+        "version": "axwise_scope_research_contract_v1",
+        "document_intent": "commercial_market_launch",
+        "work_types": ["research_analysis", "strategy_planning"],
+        "geographies": ["EE"],
+        "evidence": {
+            "mode": "grounded",
+            "grounding_required": True,
+            "external_sources_required": True,
+            "required_outputs": sorted(requested_outputs),
+        },
+        "executor_role_slots": role_slots,
+    }
+    contract_payload["contract_hash"] = (
+        ScopeResearchContractV1.canonical_hash_for(contract_payload)
+    )
+    contract = ScopeResearchContractV1.model_validate(contract_payload)
+    scope_hash = canonical_hash(
+        {
+            "fixture": "business-evidence-research-bundle",
+            "contract": contract.model_dump(mode="json"),
+        }
+    )
+    binding = ScopeContractBindingV1.model_validate(
+        {"scope_hash": scope_hash, **contract.model_dump(mode="json")}
+    )
+    execution_hash = canonical_hash(
+        {
+            "fixture": "business-evidence-execution",
+            "scope_contract_binding": binding.model_dump(mode="json"),
+            "task_id": task_context["task_id"],
+        }
+    )
+    acceptance_payload = {
+        "version": "orqaly_scope_research_acceptance_v1",
+        "org_id": "orqaly-org-business-evidence",
+        "user_id": "orqaly-user-business-evidence",
+        "goal_id": task_context["task_id"],
+        "proposal_decision_id": "business-evidence-proposal",
+        "scope_hash": scope_hash,
+        "contract_hash": contract.contract_hash,
+        "execution_inputs_hash": execution_hash,
+        "acceptance_id": str(
+            uuid5(NAMESPACE_URL, "business-evidence-research-bundle")
+        ),
+        "accepted_at": "2026-08-24T12:00:00.000Z",
+        "accepted_by_user_id": "orqaly-user-business-evidence",
+    }
+    acceptance_payload["binding_hash"] = (
+        ScopeResearchAcceptanceBindingV1.canonical_hash_for(
+            acceptance_payload
+        )
+    )
+    acceptance = ScopeResearchAcceptanceBindingV1.model_validate(
+        acceptance_payload
+    )
+    task_context = {
+        **task_context,
+        "scope_contract_binding": binding.model_dump(mode="json"),
+        "research_execution_inputs_hash": execution_hash,
+        "scope_research_acceptance": acceptance.model_dump(mode="json"),
+        "scope_runtime_binding": TrustedRuntimeMetadataV1().model_dump(
+            mode="json"
+        ),
+    }
     return build_research_bundle(
         job_id="job-business-evidence",
-        request=_request(),
-        requested_outputs={"research_bundle": True},
+        request=request,
+        requested_outputs=requested_outputs,
         result=_result(),
         grounding=grounding,
         research_mode=HybridResearchMode.GROUNDED_HYBRID,
-        grounding_policy=HybridGroundingPolicy(required=False),
+        grounding_policy=HybridGroundingPolicy(required=True),
         analysis_result_id=42,
         research_prd={
             "analysis_result_id": 42,
@@ -632,7 +730,7 @@ def test_profile_absent_preserves_v1_shape_and_bundle_hash_contract():
     hash_input = {key: value for key, value in bundle.items() if key != "bundle_hash"}
     assert bundle["bundle_hash"] == canonical_hash(hash_input)
     assert bundle["bundle_hash"] == (
-        "cccae8bc65e95e9a6c82a9b1f9b24c862f13f1d923b8207fb3fe36394b98165e"
+        "81acdc57269bfea4f7cfed377ecf532ecddc8e45fbb3cd763dd265fa6f87ddc6"
     )
 
 

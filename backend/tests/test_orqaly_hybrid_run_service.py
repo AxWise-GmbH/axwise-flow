@@ -4,6 +4,7 @@ import json
 import os
 from copy import deepcopy
 from datetime import datetime, timezone
+from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 from sqlalchemy import create_engine
@@ -27,9 +28,21 @@ from backend.api.research.simulation_bridge.models import (
     Stakeholder,
 )
 from backend.database import Base
-from backend.models import AnalysisResult, PipelineRun, SimulationData, User
+from backend.models import (
+    AnalysisResult,
+    OrchestrationDecisionSnapshot,
+    PipelineRun,
+    SimulationData,
+    User,
+)
 from backend.models import CachedPRD
 from backend.domain.market_scope import resolve_market_expression
+from backend.domain.orchestration.scope_models import (
+    ScopeContractBindingV1,
+    ScopeResearchAcceptanceBindingV1,
+    ScopeResearchContractV1,
+    TrustedRuntimeMetadataV1,
+)
 from backend.services.orqaly_hybrid_run_service import (
     HybridRunCancelled,
     HybridOutputs,
@@ -221,6 +234,311 @@ def _bundle_outputs(**updates) -> HybridOutputs:
     }
     values.update(updates)
     return HybridOutputs(**values)
+
+
+def _accepted_enqueue(
+    service: HybridRunService,
+    request: SimulationRequest,
+    outputs: HybridOutputs,
+    user: User,
+    external_org_id: str,
+    external_user_id: str,
+    idempotency_key: str,
+    request_id: str,
+    *,
+    task_context: OrqalyTaskContext | None = None,
+    agent_candidates: list[OrqalyAgentCandidate] | None = None,
+    research_mode: HybridResearchMode = HybridResearchMode.SYNTHETIC_ONLY,
+    grounding_policy: HybridGroundingPolicy | None = None,
+):
+    """Exercise legacy behavioral cases through the mandatory accepted wire."""
+
+    task_context = task_context or OrqalyTaskContext(
+        task_id=f"goal-{hashlib.sha256(idempotency_key.encode()).hexdigest()[:16]}",
+        title="Accepted hybrid research fixture",
+        description="Run the exact accepted hybrid research fixture",
+    )
+    if not outputs.research_bundle:
+        outputs = outputs.model_copy(
+            update={
+                "empirical_personas": True,
+                "research_bundle": True,
+                "synthetic_participants": True,
+                "interviews": True,
+            }
+        )
+    if task_context.required_execution_roles and not outputs.persona_resolution:
+        outputs = outputs.model_copy(update={"persona_resolution": True})
+    if outputs.prd.enabled and outputs.prd.type in {"both", "operational"}:
+        outputs = outputs.model_copy(
+            update={
+                "prd": outputs.prd.model_copy(update={"type": "operational_process"})
+            }
+        )
+    elif outputs.prd.enabled and outputs.prd.type == "technical":
+        outputs = outputs.model_copy(
+            update={
+                "prd": outputs.prd.model_copy(update={"type": "software_product"})
+            }
+        )
+
+    if outputs.market_sources or outputs.market_claims:
+        research_mode = HybridResearchMode.GROUNDED_HYBRID
+    grounded = research_mode == HybridResearchMode.GROUNDED_HYBRID
+    if grounded and not outputs.market_sources:
+        outputs = outputs.model_copy(update={"market_sources": True})
+    policy = grounding_policy or HybridGroundingPolicy(required=grounded)
+    if grounded and not policy.required:
+        policy = policy.model_copy(update={"required": True})
+    output_flags = {
+        "customer_personas": outputs.empirical_personas,
+        "persona_resolution": outputs.persona_resolution,
+        "market_sources": outputs.market_sources,
+        "market_claims": outputs.market_claims,
+        "synthetic_participants": outputs.synthetic_participants,
+        "interviews": outputs.interviews,
+        "research_bundle": outputs.research_bundle,
+        "research_prd": outputs.prd.enabled,
+    }
+    required_outputs = sorted(
+        name for name, enabled in output_flags.items() if enabled
+    )
+    intent = (
+        task_context.research_prd_type
+        or (outputs.prd.type if outputs.prd.enabled else "custom")
+    )
+    roles = list(task_context.required_execution_roles)
+    role_slots = [
+        {
+            "slot_id": (
+                f"role-{ordinal:04x}"
+                f"{hashlib.sha256(role.encode('utf-8')).hexdigest()[:12]}"
+            ),
+            "role": role,
+            "required": True,
+        }
+        for ordinal, role in enumerate(roles)
+    ]
+    work_types = ["research_analysis"] if grounded else ["mixed_custom"]
+    if intent == "commercial_market_launch":
+        work_types.append("strategy_planning")
+    market_scope = (
+        request.business_context.market_scope
+        if request.business_context is not None
+        else None
+    )
+    geographies = sorted(
+        {
+            country.country_code
+            for country in (
+                market_scope.resolved_scope.countries if market_scope else []
+            )
+        }
+    )
+    if grounded and not geographies:
+        # Some negative-path fixtures intentionally omit the market scope.
+        # Keep the accepted contract valid so the service boundary—not this
+        # test adapter—reports the missing execution input.
+        geographies = ["DE"]
+    contract_payload = {
+        "version": "axwise_scope_research_contract_v1",
+        "document_intent": intent,
+        "work_types": sorted(set(work_types)),
+        "geographies": geographies,
+        "evidence": {
+            "mode": "grounded" if grounded else "synthetic",
+            "grounding_required": grounded,
+            "external_sources_required": grounded,
+            "required_outputs": required_outputs,
+        },
+        "executor_role_slots": role_slots,
+    }
+    contract_payload["contract_hash"] = ScopeResearchContractV1.canonical_hash_for(
+        contract_payload
+    )
+    contract = ScopeResearchContractV1.model_validate(contract_payload)
+    scope_hash = canonical_hash(
+        {"fixture": "accepted-hybrid", "contract": contract_payload}
+    )
+    binding = ScopeContractBindingV1.model_validate(
+        {"scope_hash": scope_hash, **contract.model_dump(mode="json")}
+    )
+    execution_hash = canonical_hash(
+        {
+            "fixture": "accepted-hybrid-execution",
+            "scope_contract_binding": binding.model_dump(mode="json"),
+            "task_id": task_context.task_id,
+        }
+    )
+    acceptance_payload = {
+        "version": "orqaly_scope_research_acceptance_v1",
+        "org_id": external_org_id,
+        "user_id": external_user_id,
+        "goal_id": task_context.task_id,
+        "proposal_decision_id": (
+            "decision-fixture-proposal-"
+            f"{hashlib.sha256(idempotency_key.encode()).hexdigest()[:16]}"
+        ),
+        "scope_hash": scope_hash,
+        "contract_hash": contract.contract_hash,
+        "execution_inputs_hash": execution_hash,
+        "acceptance_id": str(uuid5(NAMESPACE_URL, f"hybrid:{idempotency_key}")),
+        "accepted_at": "2026-08-24T12:00:00.000Z",
+        "accepted_by_user_id": external_user_id,
+    }
+    acceptance_payload["binding_hash"] = (
+        ScopeResearchAcceptanceBindingV1.canonical_hash_for(acceptance_payload)
+    )
+    acceptance = ScopeResearchAcceptanceBindingV1.model_validate(
+        acceptance_payload
+    )
+    task_context = task_context.model_copy(
+        update={
+            "required_execution_roles": roles,
+            "research_prd_type": None if intent == "custom" else intent,
+            "scope_contract_binding": binding,
+            "research_execution_inputs_hash": execution_hash,
+            "scope_research_acceptance": acceptance,
+            "scope_runtime_binding": TrustedRuntimeMetadataV1(),
+        }
+    )
+    run, reused = service.enqueue(
+        request,
+        outputs,
+        user,
+        external_org_id,
+        external_user_id,
+        idempotency_key,
+        request_id,
+        task_context=task_context,
+        agent_candidates=agent_candidates,
+        research_mode=research_mode,
+        grounding_policy=policy,
+    )
+    _seed_accepted_decision_rows(
+        service,
+        run,
+        user,
+        external_org_id,
+        external_user_id,
+        task_context,
+    )
+    return run, reused
+
+
+def _seed_accepted_decision_rows(
+    service: HybridRunService,
+    run: PipelineRun,
+    user: User,
+    external_org_id: str,
+    external_user_id: str,
+    task_context: OrqalyTaskContext,
+) -> None:
+    """Mirror the committed proposal/decision boundary for worker tests."""
+
+    binding = task_context.scope_contract_binding.model_dump(mode="json")
+    acceptance = task_context.scope_research_acceptance.model_dump(mode="json")
+    runtime = task_context.scope_runtime_binding.model_dump(mode="json")
+    packet = {
+        "scope_hash": acceptance["scope_hash"],
+        "research_contract": {"contract_hash": acceptance["contract_hash"]},
+        "runtime": runtime,
+    }
+    session = service.session_factory()
+    try:
+        proposal_id = acceptance["proposal_decision_id"]
+        if not session.query(OrchestrationDecisionSnapshot).filter_by(
+            decision_id=proposal_id
+        ).first():
+            session.add(
+                OrchestrationDecisionSnapshot(
+                    decision_id=proposal_id,
+                    partner_id="orqaly",
+                    external_org_id=external_org_id,
+                    external_user_id=external_user_id,
+                    user_id=user.user_id,
+                    idempotency_key=f"proposal:{proposal_id}",
+                    request_id=f"request:{proposal_id}",
+                    request_hash="a" * 64,
+                    contract_version="1.0",
+                    scorer_version="test",
+                    input_snapshot={
+                        "tenant": {
+                            "orgId": external_org_id,
+                            "userId": external_user_id,
+                        },
+                        "task": {"taskId": task_context.task_id},
+                        "scope_packet": packet,
+                        "scope_research_acceptance": None,
+                    },
+                    decision_payload={
+                        "decision_id": proposal_id,
+                        "research_job": None,
+                        "scope_contract_binding": binding,
+                        "scope_research_acceptance": None,
+                        "scope_runtime_binding": runtime,
+                        "research_execution_inputs_hash": acceptance[
+                            "execution_inputs_hash"
+                        ],
+                    },
+                    routing_mode="research_assisted",
+                    confidence=0,
+                    status="pending_research",
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
+        accepted_id = run.request_id
+        if not session.query(OrchestrationDecisionSnapshot).filter_by(
+            decision_id=accepted_id
+        ).first():
+            session.add(
+                OrchestrationDecisionSnapshot(
+                    decision_id=accepted_id,
+                    partner_id="orqaly",
+                    external_org_id=external_org_id,
+                    external_user_id=external_user_id,
+                    user_id=user.user_id,
+                    idempotency_key=f"accepted:{accepted_id}",
+                    request_id=f"request:{accepted_id}",
+                    request_hash="b" * 64,
+                    contract_version="1.0",
+                    scorer_version="test",
+                    input_snapshot={
+                        "tenant": {
+                            "orgId": external_org_id,
+                            "userId": external_user_id,
+                        },
+                        "task": {"taskId": task_context.task_id},
+                        "scope_packet": packet,
+                        "scope_research_acceptance": acceptance,
+                    },
+                    decision_payload={
+                        "decision_id": accepted_id,
+                        "parent_decision_id": proposal_id,
+                        "scope_contract_binding": binding,
+                        "scope_research_acceptance": acceptance,
+                        "scope_runtime_binding": runtime,
+                        "research_execution_inputs_hash": acceptance[
+                            "execution_inputs_hash"
+                        ],
+                        "research_job": {
+                            "job_id": run.job_id,
+                            "decision_id": accepted_id,
+                            "scope_contract_binding": binding,
+                            "scope_research_acceptance": acceptance,
+                            "scope_runtime_binding": runtime,
+                        },
+                    },
+                    routing_mode="research_assisted",
+                    confidence=0,
+                    status="pending_research",
+                    parent_decision_id=proposal_id,
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
+        session.commit()
+    finally:
+        session.close()
 
 
 BREMEN_PLAYBOOK_ROLES = [
@@ -507,7 +825,7 @@ async def test_commercial_hybrid_run_repairs_then_caches_and_bundles_valid_prd(
             required=True,
         ),
     )
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         outputs,
         user,
@@ -654,7 +972,7 @@ async def test_noncommercial_physical_profile_derives_live_acquisition_and_quali
     session.close()
     task_context = _physical_business_task_context(intent="product_strategy")
 
-    run, reused = service.enqueue(
+    run, reused = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(persona_resolution=True),
         user,
@@ -742,7 +1060,7 @@ def test_commercial_physical_enqueue_restores_full_critical_policy(
         }
     )
 
-    run, reused = service.enqueue(
+    run, reused = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(),
         user,
@@ -798,7 +1116,7 @@ async def test_worker_rehydrates_downgraded_commercial_physical_policy(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(persona_resolution=True),
         user,
@@ -882,7 +1200,7 @@ async def test_commercial_physical_missing_critical_class_blocks_before_prd_cach
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(
             persona_resolution=True,
@@ -962,7 +1280,7 @@ async def test_physical_contract_coverage_blocks_before_pipeline_b_or_prd(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(
             prd=HybridPRDOutput(
@@ -1018,7 +1336,7 @@ async def test_commercial_hybrid_run_blocks_generic_prd_and_does_not_cache(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(
             persona_resolution=True,
@@ -1073,7 +1391,7 @@ async def test_commercial_hybrid_run_blocks_nonfinite_nested_extension_without_c
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(
             persona_resolution=True,
@@ -1136,7 +1454,7 @@ async def test_critical_gate_resumes_deferred_company_enrichment_once(session_fa
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         HybridOutputs(),
         user,
@@ -1239,7 +1557,7 @@ async def test_failed_critical_gate_never_runs_deferred_company_enrichment(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         HybridOutputs(),
         user,
@@ -1313,7 +1631,7 @@ async def test_process_blocks_omitted_or_replaced_topic_contract(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         HybridOutputs(),
         user,
@@ -2073,7 +2391,7 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
     session.expunge(user)
     session.close()
 
-    first, reused = service.enqueue(
+    first, reused = _accepted_enqueue(service,
         _request(),
         HybridOutputs(),
         user,
@@ -2082,7 +2400,7 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
         "idem-1",
         "trace-1",
     )
-    second, reused_second = service.enqueue(
+    second, reused_second = _accepted_enqueue(service,
         _request(),
         HybridOutputs(),
         user,
@@ -2096,7 +2414,7 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
     assert reused_second is True
     assert first.job_id == second.job_id
     with pytest.raises(ValueError, match="different request"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request("A materially different request"),
             HybridOutputs(),
             user,
@@ -2106,7 +2424,7 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
             "trace-3",
         )
     with pytest.raises(ValueError, match="different request"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request(),
             HybridOutputs(),
             user,
@@ -2116,7 +2434,7 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
             "trace-peer",
         )
     with pytest.raises(ValueError, match="different request"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request(),
             HybridOutputs(),
             user,
@@ -2127,6 +2445,246 @@ def test_enqueue_is_tenant_scoped_and_idempotent(session_factory):
             research_mode=HybridResearchMode.GROUNDED_HYBRID,
             grounding_policy=HybridGroundingPolicy(required=True),
         )
+
+
+def test_enqueue_rejects_acceptance_bound_to_another_owner(session_factory):
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-owner-bound-source",
+        "trace-owner-bound-source",
+    )
+    task_context = OrqalyTaskContext.model_validate(
+        run.request_payload["task_context"]
+    )
+    acceptance_payload = task_context.scope_research_acceptance.model_dump(mode="json")
+    acceptance_payload["org_id"] = "orqaly-org-other"
+    acceptance_payload["binding_hash"] = (
+        ScopeResearchAcceptanceBindingV1.canonical_hash_for(acceptance_payload)
+    )
+    mismatched = task_context.model_copy(
+        update={
+            "scope_research_acceptance": (
+                ScopeResearchAcceptanceBindingV1.model_validate(acceptance_payload)
+            )
+        }
+    )
+
+    with pytest.raises(ValueError, match="organization|owner"):
+        service.enqueue(
+            request=_request(),
+            outputs=HybridOutputs.model_validate(run.requested_outputs),
+            user=user,
+            external_org_id="orqaly-org-1",
+            external_user_id="orqaly-user-1",
+            idempotency_key="idem-owner-bound-attack",
+            request_id="trace-owner-bound-attack",
+            task_context=mismatched,
+            research_mode=HybridResearchMode(run.request_payload["research_mode"]),
+            grounding_policy=HybridGroundingPolicy.model_validate(
+                run.request_payload["grounding_policy"]
+            ),
+        )
+
+
+@pytest.mark.asyncio
+async def test_worker_rejects_pre_acceptance_legacy_row_before_parser_or_model(
+    session_factory,
+):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    _seed_running_hybrid_run(
+        session_factory,
+        job_id="legacy-unbound-worker",
+        simulation_id="legacy-unbound-simulation",
+    )
+    session = session_factory()
+    row = session.query(PipelineRun).filter_by(job_id="legacy-unbound-worker").one()
+    row.request_payload = {
+        "simulation": _request().model_dump(mode="json"),
+        "research_mode": "synthetic_only",
+        "grounding_policy": HybridGroundingPolicy(required=False).model_dump(
+            mode="json"
+        ),
+        "agent_candidates": [],
+    }
+    row.requested_outputs = HybridOutputs().model_dump(mode="json")
+    session.commit()
+    session.close()
+
+    await service.process_job("legacy-unbound-worker", already_claimed=True)
+
+    persisted = service.get_run_for_tenant(
+        "legacy-unbound-worker",
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+    )
+    assert persisted.status == "failed"
+    assert "explicit scope and acceptance bindings" in persisted.error
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.finalize_flags == []
+
+
+@pytest.mark.asyncio
+async def test_worker_rejects_runtime_drift_before_parser_or_model(
+    session_factory,
+    monkeypatch,
+):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-runtime-drift",
+        "decision-runtime-drift",
+    )
+    monkeypatch.setattr(
+        "backend.services.orqaly_hybrid_run_service.trusted_runtime_metadata",
+        lambda: TrustedRuntimeMetadataV1(
+            configuration_sources=["drift-a", "drift-b", "drift-c"]
+        ),
+    )
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id,
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+    )
+    assert persisted.status == "failed"
+    assert "live pinned runtime" in persisted.error
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.finalize_flags == []
+
+
+@pytest.mark.asyncio
+async def test_worker_rejects_job_swapped_from_durable_decision_before_model(
+    session_factory,
+):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-swapped-job",
+        "decision-swapped-job",
+    )
+    session = session_factory()
+    row = session.query(OrchestrationDecisionSnapshot).filter_by(
+        decision_id=run.request_id
+    ).one()
+    payload = deepcopy(row.decision_payload)
+    payload["research_job"]["job_id"] = "hybrid-other-owner"
+    row.decision_payload = payload
+    session.commit()
+    session.close()
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id,
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+    )
+    assert persisted.status == "failed"
+    assert "durable accepted decision" in persisted.error
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.finalize_flags == []
+
+
+@pytest.mark.asyncio
+async def test_worker_rejects_accepted_orphan_without_durable_decision_before_model(
+    session_factory,
+):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-accepted-orphan",
+        "decision-accepted-orphan",
+    )
+    session = session_factory()
+    session.query(OrchestrationDecisionSnapshot).filter_by(
+        decision_id=run.request_id
+    ).delete()
+    session.commit()
+    session.close()
+
+    await service.process_job(run.job_id)
+
+    persisted = service.get_run_for_tenant(
+        run.job_id,
+        "axwise-user-1",
+        "orqaly-org-1",
+        "orqaly-user-1",
+    )
+    assert persisted.status == "failed"
+    assert "no durable accepted decision owner" in persisted.error
+    assert orchestrator.parsed_questionnaires == []
+    assert orchestrator.finalize_flags == []
 
 
 def test_enqueue_rejects_disabled_business_evidence_adapter_before_persistence(
@@ -2159,7 +2717,7 @@ def test_enqueue_rejects_disabled_business_evidence_adapter_before_persistence(
     )
 
     with pytest.raises(ValueError, match="physical_product is not enabled"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request(),
             HybridOutputs(),
             user,
@@ -2198,7 +2756,7 @@ def test_enqueue_rejects_optional_physical_profile_before_persistence(
     session.close()
 
     with pytest.raises(ValueError, match="required verified offer"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request(),
             _bundle_outputs(),
             user,
@@ -2237,7 +2795,7 @@ def test_enqueue_rejects_instant_physical_profile_before_persistence(
     session.close()
 
     with pytest.raises(ValueError, match="non-instant required grounding"):
-        service.enqueue(
+        _accepted_enqueue(service,
             _request(),
             _bundle_outputs(),
             user,
@@ -2279,7 +2837,7 @@ async def test_worker_revalidates_persisted_physical_grounding_contract(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(),
         user,
@@ -2322,7 +2880,7 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(persona_resolution=True),
         user,
@@ -2482,6 +3040,31 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
 
     serialized = service.serialize_run(persisted, include_result=True)
     assert serialized["research_bundle"]["bundle_hash"] == bundle["bundle_hash"]
+    durable_context = persisted.request_payload["task_context"]
+    assert serialized["scope_contract_binding"] == durable_context[
+        "scope_contract_binding"
+    ]
+    assert serialized["scope_research_acceptance"] == durable_context[
+        "scope_research_acceptance"
+    ]
+    assert serialized["scope_runtime_binding"] == durable_context[
+        "scope_runtime_binding"
+    ]
+    assert serialized["job"]["scope_contract_binding"] == durable_context[
+        "scope_contract_binding"
+    ]
+    assert serialized["job"]["scope_research_acceptance"] == durable_context[
+        "scope_research_acceptance"
+    ]
+    assert serialized["job"]["scope_runtime_binding"] == durable_context[
+        "scope_runtime_binding"
+    ]
+    assert bundle["scope_runtime_binding"] == durable_context[
+        "scope_runtime_binding"
+    ]
+    assert bundle["configuration"]["task_context"]["scope_runtime_binding"] == (
+        durable_context["scope_runtime_binding"]
+    )
     assert serialized["elapsed_ms"] >= 0
     assert serialized["stage_durations_ms"]
     assert serialized["stage_trace"][-1]["stage"]
@@ -2506,7 +3089,7 @@ async def test_required_grounding_fails_closed_before_synthetic_people(session_f
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(),
         user,
@@ -2547,7 +3130,7 @@ async def test_required_research_rejects_a_partial_synthetic_cohort(session_fact
             )
         }
     )
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         request,
         _bundle_outputs(),
         user,
@@ -2590,7 +3173,7 @@ async def test_synthetic_only_run_rejects_a_partial_synthetic_cohort(session_fac
             )
         }
     )
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         request,
         _bundle_outputs(),
         user,
@@ -2638,7 +3221,7 @@ async def test_required_grounding_does_not_trust_a_declared_count_without_real_s
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(),
         user,
@@ -2668,14 +3251,17 @@ async def test_requested_prd_ids_and_hash_are_in_the_versioned_bundle(
     service = HybridRunService(
         orchestrator, session_factory, fake_enrichment, fake_grounding
     )
-    prd_content = {"prd_type": "both", "operational_prd": {"objectives": []}}
+    prd_content = {
+        "prd_type": "operational_process",
+        "operational_process_prd": {"objectives": []},
+    }
 
     async def generate_prd(analysis_result_id, _request, _outputs, _user_id):
         return (
             service._prd_metadata(
                 "completed",
                 analysis_result_id,
-                "both",
+                "operational_process",
                 content=prd_content,
                 cached_prd_id=77,
             ),
@@ -2687,7 +3273,7 @@ async def test_requested_prd_ids_and_hash_are_in_the_versioned_bundle(
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         _bundle_outputs(
             persona_resolution=True,
@@ -2716,7 +3302,7 @@ async def test_requested_prd_ids_and_hash_are_in_the_versioned_bundle(
         "status": "completed",
         "analysis_result_id": int(persisted.analysis_id),
         "cached_prd_id": 77,
-        "prd_type": "both",
+        "prd_type": "operational_process",
         "content_hash": canonical_hash(prd_content),
         "content": prd_content,
     }
@@ -2726,7 +3312,7 @@ async def test_requested_prd_ids_and_hash_are_in_the_versioned_bundle(
             "analysis_result_id": int(persisted.analysis_id),
             "cached_prd_id": 77,
             "content_hash": canonical_hash(prd_content),
-            "prd_type": "both",
+            "prd_type": "operational_process",
             "status": "completed",
         }
         for item in bundle["executor_personas"]
@@ -2738,7 +3324,9 @@ async def test_requested_prd_ids_and_hash_are_in_the_versioned_bundle(
     )
 
 
-def test_enqueue_rejects_missing_bundle_outputs_and_grounding_location(session_factory):
+def test_enqueue_accepts_typed_partial_bundle_and_rejects_missing_grounding_location(
+    session_factory,
+):
     orchestrator = FakeOrchestrator(session_factory)
     service = HybridRunService(
         orchestrator, session_factory, fake_enrichment, fake_grounding
@@ -2748,16 +3336,22 @@ def test_enqueue_rejects_missing_bundle_outputs_and_grounding_location(session_f
     session.expunge(user)
     session.close()
 
-    with pytest.raises(ValueError, match="market_sources"):
-        service.enqueue(
-            _request(),
-            _bundle_outputs(market_sources=False),
-            user,
-            "orqaly-org-1",
-            "orqaly-user-1",
-            "idem-missing-output",
-            "trace-missing-output",
-        )
+    run, reused = _accepted_enqueue(service,
+        _request(),
+        _bundle_outputs(
+            market_sources=False,
+            market_claims=False,
+            synthetic_participants=False,
+            interviews=False,
+        ),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-partial-output",
+        "trace-partial-output",
+    )
+    assert reused is False
+    assert run.status == "queued"
 
     request_without_location = _request().model_copy(
         update={
@@ -2767,7 +3361,7 @@ def test_enqueue_rejects_missing_bundle_outputs_and_grounding_location(session_f
         }
     )
     with pytest.raises(ValueError, match="country-qualified location"):
-        service.enqueue(
+        _accepted_enqueue(service,
             request_without_location,
             _bundle_outputs(),
             user,
@@ -2799,9 +3393,9 @@ async def test_worker_parses_raw_questionnaire_before_durable_execution(session_
         raw_questionnaire_content="- Who experiences the operational delay?",
         config=SimulationConfig(people_per_stakeholder=1),
     )
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         request,
-        HybridOutputs(),
+        HybridOutputs(persona_resolution=True),
         user,
         "orqaly-org-1",
         "orqaly-user-1",
@@ -2814,7 +3408,7 @@ async def test_worker_parses_raw_questionnaire_before_durable_execution(session_
 
     persisted = service.get_run_for_tenant(run.job_id, "axwise-user-1", "orqaly-org-1")
     assert persisted.status == "completed"
-    assert "research_bundle" not in (persisted.dataset.get("data") or {})
+    assert "research_bundle" in (persisted.dataset.get("data") or {})
     assert orchestrator.parsed_questionnaires == [
         "- Who experiences the operational delay?"
     ]
@@ -2830,7 +3424,7 @@ async def test_worker_persists_customer_and_execution_persona_resolution(session
     user = session.query(User).filter(User.user_id == "axwise-user-1").first()
     session.expunge(user)
     session.close()
-    run, _ = service.enqueue(
+    run, _ = _accepted_enqueue(service,
         _request(),
         HybridOutputs(persona_resolution=True),
         user,
@@ -3188,29 +3782,43 @@ def test_country_cell_gate_recovers_verified_country_join_when_cell_tag_missing(
     assert observed["countries"] == ["EE"]
 
 
-def test_terminal_run_performance_is_frozen_at_completed_at():
-    run = PipelineRun(
-        job_id="job-frozen",
-        simulation_id="sim-frozen",
-        status="failed",
-        current_stage="failed",
-        progress_percentage=4,
-        pipeline_mode="hybrid_a_plus_b",
-        request_id="req-frozen",
-        attempt_count=1,
-        created_at=datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc),
-        started_at=datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc),
-        completed_at=datetime(2026, 8, 13, 10, 1, tzinfo=timezone.utc),
-        execution_trace=[
-            {
-                "stage": "grounding_market",
-                "progress_percentage": 3,
-                "message": "grounding",
-                "at": "2026-08-13T10:00:00+00:00",
-                "duration_ms": None,
-            }
-        ],
+def test_terminal_run_performance_is_frozen_at_completed_at(session_factory):
+    service = HybridRunService(
+        FakeOrchestrator(session_factory),
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
     )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "idem-frozen-performance",
+        "req-frozen",
+    )
+    run.status = "failed"
+    run.current_stage = "failed"
+    run.progress_percentage = 4
+    run.attempt_count = 1
+    run.created_at = datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc)
+    run.started_at = datetime(2026, 8, 13, 10, 0, tzinfo=timezone.utc)
+    run.completed_at = datetime(2026, 8, 13, 10, 1, tzinfo=timezone.utc)
+    run.execution_trace = [
+        {
+            "stage": "grounding_market",
+            "progress_percentage": 3,
+            "message": "grounding",
+            "at": "2026-08-13T10:00:00+00:00",
+            "duration_ms": None,
+        }
+    ]
     first = HybridRunService.serialize_run(run)
     second = HybridRunService.serialize_run(run)
     assert first["elapsed_ms"] == second["elapsed_ms"]
