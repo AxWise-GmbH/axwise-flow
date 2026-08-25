@@ -28,9 +28,13 @@ from backend.domain.orchestration.enums import (
 from backend.domain.market_scope import MarketScopeV2, resolve_market_expression
 from backend.domain.orchestration.scope_models import (
     ScopeConfirmationV1,
+    ScopeConsumerInputsV1,
+    ScopeContinuationBindingV1,
     ScopeContractBindingV1,
     ScopeFactSeedV1,
     ScopePacketV1,
+    ScopeProposalBindingV1,
+    ScopeProposalAcceptanceV1,
     ScopeResearchAcceptanceBindingV1,
     ScopeStateV1,
     ScopeValidationReportV1,
@@ -589,9 +593,22 @@ class DecisionCreateRequestV1(ContractModel):
     scope_state: Optional[ScopeStateV1] = None
     scope_packet: Optional[ScopePacketV1] = None
     scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
+    scope_proposal_acceptance: Optional[ScopeProposalAcceptanceV1] = None
+    scope_continuation: Optional[ScopeContinuationBindingV1] = None
+    scope_consumer_inputs: Optional[ScopeConsumerInputsV1] = None
 
     @model_validator(mode="after")
     def validate_catalogue_identifiers(self) -> "DecisionCreateRequestV1":
+        if (self.scope_continuation is None) != (self.scope_consumer_inputs is None):
+            raise ValueError(
+                "scope continuation and consumer inputs must be supplied together"
+            )
+        if self.scope_continuation is not None and (
+            self.scope_continuation.purpose != self.scope_consumer_inputs.purpose
+            or self.scope_continuation.consumer_inputs_hash
+            != self.scope_consumer_inputs.consumer_inputs_hash
+        ):
+            raise ValueError("scope continuation does not bind its consumer inputs")
         agent_ids = [item.agent_id for item in self.available_agents]
         tool_ids = [item.tool_id for item in self.available_tools]
         evidence_ids = [item.reference_id for item in self.evidence_catalogue]
@@ -912,6 +929,7 @@ class OrchestrationDecisionV1(ContractModel):
     scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
     scope_validation: Optional[ScopeValidationReportV1] = None
     scope_confirmation: Optional[ScopeConfirmationV1] = None
+    scope_proposal: Optional[ScopeProposalBindingV1] = None
 
 
 class OrchestrationDecisionRecordV1(OrchestrationDecisionV1):

@@ -96,7 +96,9 @@ def test_operator_examples_and_local_services_use_exact_research_model() -> None
         ROOT / "backend" / ".env.example"
     ).read_text(encoding="utf-8")
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert compose.count("GEMINI_MODEL:-models/gemini-3.7-flash") == 2
+    # Backend, paid research worker, and the isolated scope worker must all
+    # share the exact accepted Gemini runtime.
+    assert compose.count("GEMINI_MODEL:-models/gemini-3.7-flash") == 3
     assert "gemini-3-flash-preview" not in compose
     assert "gemini-3.6-flash" not in compose
 

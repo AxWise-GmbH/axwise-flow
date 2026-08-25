@@ -35,11 +35,20 @@ from backend.domain.orchestration.models import (
     ReplanContextV1,
     ReplanRequestV1,
     ResearchJobV1,
-    ResearchPolicyV1,
     ResearchResultV1,
     RoutingAssessmentV1,
 )
-from backend.domain.orchestration.scope_models import ScopeStateV1
+from backend.domain.orchestration.scope_models import (
+    ScopeConsumerInputsV1,
+    ScopeContinuationRequestV1,
+    ScopeCorrectionAcceptanceV1,
+    ScopeCorrectionCompilationV1,
+    ScopeCorrectionProposalV1,
+    ScopeCorrectionRequestV1,
+    ScopeProposalBindingV1,
+    ScopeProposalAcceptanceV1,
+    ScopeStateV1,
+)
 from backend.domain.orchestration.ports import (
     DecisionStore,
     EvidenceRetrievalPort,
@@ -59,12 +68,24 @@ from backend.services.orchestration.uncertainty_router import UncertaintyRouter
 from backend.services.orchestration.scope_contract_service import (
     ScopeContractError,
     build_scope_confirmation,
+    build_scope_proposal_binding,
     ensure_scope_packet,
     research_execution_inputs_hash,
     scope_contract_binding,
     validate_scope_research_acceptance,
     validate_scope_packet,
 )
+from backend.services.orchestration.scope_correction_service import (
+    build_corrected_proposal_request,
+    validate_continuation_request_authority,
+    validate_scope_continuation,
+)
+from backend.services.orchestration.scope_proposal_service import (
+    ScopeAcceptanceConflict,
+    ScopeProposalError,
+    ScopeProposalService,
+)
+from backend.services.orqaly_research_bundle_service import canonical_hash
 
 
 PARTNER_ID = "orqaly"
@@ -106,6 +127,8 @@ class OrchestrationDecisionService:
         plan_feasibility_port: PlanFeasibilityPort | None = None,
         replanning_service: ReplanningService | None = None,
         outcome_learning_port: OutcomeLearningPort | None = None,
+        scope_correction_store: object | None = None,
+        scope_proposal_service: ScopeProposalService | None = None,
     ):
         self.store = store
         self.scorer = scorer or AssignmentScorer()
@@ -118,6 +141,22 @@ class OrchestrationDecisionService:
         )
         self.replanning_service = replanning_service or ReplanningService()
         self.outcome_learning_port = outcome_learning_port
+        self.scope_correction_store = scope_correction_store
+        self.scope_proposal_service = scope_proposal_service
+
+    @staticmethod
+    def consumer_payload_hash(request: DecisionCreateRequestV1) -> str:
+        """Shared compact digest of one exact downstream consumer request."""
+
+        payload = request.model_dump(mode="json", by_alias=True, exclude_none=False)
+        for field in (
+            "scope_research_acceptance",
+            "scope_proposal_acceptance",
+            "scope_continuation",
+            "scope_consumer_inputs",
+        ):
+            payload.pop(field, None)
+        return canonical_hash(payload)
 
     @staticmethod
     def _record_from_row(
@@ -132,100 +171,6 @@ class OrchestrationDecisionService:
             request_hash=row.request_hash,
             reused=reused,
         )
-
-    @staticmethod
-    def _legacy_phase1_request_hash(
-        request: DecisionCreateRequestV1,
-    ) -> str | None:
-        if (
-            request.upstream_decision_id is not None
-            or request.evidence_catalogue
-            or request.research_brief is not None
-            or request.research_policy != ResearchPolicyV1()
-            or request.planning is not None
-        ):
-            return None
-        payload = request.model_dump(
-            mode="json",
-            by_alias=True,
-            exclude_none=False,
-        )
-        payload.pop("evidence_catalogue", None)
-        payload.pop("research_policy", None)
-        payload.pop("research_brief", None)
-        payload.pop("planning", None)
-        payload.pop("upstream_decision_id", None)
-        payload.pop("scope_state", None)
-        payload.pop("scope_packet", None)
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _legacy_phase2_request_hash(
-        request: DecisionCreateRequestV1,
-    ) -> str | None:
-        if request.upstream_decision_id is not None or request.planning is not None:
-            return None
-        payload = request.model_dump(
-            mode="json",
-            by_alias=True,
-            exclude_none=False,
-        )
-        payload.pop("planning", None)
-        payload.pop("upstream_decision_id", None)
-        payload.pop("scope_state", None)
-        payload.pop("scope_packet", None)
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _legacy_pre_link_request_hash(
-        request: DecisionCreateRequestV1,
-    ) -> str | None:
-        """Hash produced by Phase 1–3 before upstream decision links existed."""
-        if request.upstream_decision_id is not None:
-            return None
-        payload = request.model_dump(
-            mode="json",
-            by_alias=True,
-            exclude_none=False,
-        )
-        payload.pop("upstream_decision_id", None)
-        payload.pop("scope_state", None)
-        payload.pop("scope_packet", None)
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _legacy_pre_scope_contract_hash(
-        request: DecisionCreateRequestV1,
-    ) -> str:
-        """Hash used before canonical scope state and packet fields existed."""
-
-        payload = request.model_dump(
-            mode="json",
-            by_alias=True,
-            exclude_none=False,
-        )
-        payload.pop("scope_state", None)
-        payload.pop("scope_packet", None)
-        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    @classmethod
-    def _request_hash_matches(
-        cls,
-        stored_hash: str,
-        current_hash: str,
-        request: DecisionCreateRequestV1,
-    ) -> bool:
-        return stored_hash in {
-            current_hash,
-            cls._legacy_phase1_request_hash(request),
-            cls._legacy_phase2_request_hash(request),
-            cls._legacy_pre_link_request_hash(request),
-            cls._legacy_pre_scope_contract_hash(request),
-        }
 
     def _evidence(
         self,
@@ -470,6 +415,7 @@ class OrchestrationDecisionService:
         force_recovery: bool = False,
         replan_context: ReplanContextV1 | None = None,
         learned_features: list[LearnedFeatureV1] | None = None,
+        scope_proposal: ScopeProposalBindingV1 | None = None,
     ) -> OrchestrationDecisionV1:
         task = request.task
         scope_packet = request.scope_packet
@@ -479,7 +425,15 @@ class OrchestrationDecisionService:
         policy = request.policy_context
         routing_mode = assessment.selected_mode
         evidence_mode = scope_packet.research_contract.evidence.mode
-        contract_requires_research = evidence_mode != "none"
+        completed_staged_research = bool(
+            request.scope_continuation is not None
+            and request.scope_continuation.purpose in {"planning", "assignment"}
+            and request.scope_consumer_inputs is not None
+            and evidence
+        )
+        contract_requires_research = (
+            evidence_mode != "none" and not completed_staged_research
+        )
         if (
             research_job is None
             and contract_requires_research
@@ -506,19 +460,30 @@ class OrchestrationDecisionService:
         scoring = self.scorer.score(scoring_request)
         selected = scoring.selected
         approval_required, approval_reasons = self._approval_state(request)
-        scope_execution_approved = request.scope_research_acceptance is not None
-        if scope_execution_approved:
+        unified_lifecycle = self.scope_proposal_service is not None
+        scope_execution_approved = (
+            request.scope_proposal_acceptance is not None
+            if unified_lifecycle
+            else (
+                request.scope_research_acceptance is not None
+                or not contract_requires_research
+            )
+        )
+        if request.scope_research_acceptance is not None:
             validate_scope_research_acceptance(request, scope_packet)
         awaiting_scope_confirmation = (
             research_job is None
-            and contract_requires_research
-            and not scope_execution_approved
+            and (
+                not scope_execution_approved
+                if unified_lifecycle
+                else contract_requires_research and not scope_execution_approved
+            )
         )
         if awaiting_scope_confirmation:
             assessment = self._override_assessment(
                 assessment,
                 RoutingMode.RESEARCH_ASSISTED,
-                "owner scope confirmation is required before research dispatch",
+                "owner scope acceptance is required before any downstream consumer",
             )
 
         if (
@@ -566,10 +531,10 @@ class OrchestrationDecisionService:
                 ApprovalGate(
                     gate_id="gate-scope-confirmation",
                     reason=(
-                        "Orqaly must confirm and redispatch the exact pinned "
-                        "scope contract before research"
+                        "The owner must accept the exact immutable scope proposal "
+                        "before planning, assignment, research, synthesis, or execution"
                     ),
-                    required_before="research",
+                    required_before="scope_consumers",
                 )
             )
         if approval_required:
@@ -587,7 +552,10 @@ class OrchestrationDecisionService:
         required_capabilities = scoring.required_capabilities
         required_tools = list(task.required_tools)
 
-        can_plan = routing_mode in {
+        consumer_execution_allowed = scope_execution_approved or (
+            not unified_lifecycle and research_job is not None
+        )
+        can_plan = consumer_execution_allowed and routing_mode in {
             RoutingMode.DIRECT,
             RoutingMode.EVIDENCE_ASSISTED,
             RoutingMode.HUMAN_CONTROLLED,
@@ -700,7 +668,7 @@ class OrchestrationDecisionService:
                 RoutingMode.HUMAN_CONTROLLED,
             }
             nodes: list[PlanNode] = []
-            if selected and executable_mode:
+            if selected and executable_mode and consumer_execution_allowed:
                 agent = next(
                     item
                     for item in request.available_agents
@@ -756,7 +724,9 @@ class OrchestrationDecisionService:
                         + plan_feasibility.rejections[0].reason,
                     )
 
-        if routing_mode == RoutingMode.RESEARCH_ASSISTED:
+        if awaiting_scope_confirmation and unified_lifecycle:
+            status = DecisionStatus.ESCALATED
+        elif routing_mode == RoutingMode.RESEARCH_ASSISTED:
             status = DecisionStatus.PENDING_RESEARCH
         elif routing_mode in {
             RoutingMode.HUMAN_CLARIFICATION,
@@ -841,6 +811,18 @@ class OrchestrationDecisionService:
             if parent
             else []
         )
+        if (
+            scope_proposal is None
+            and request.scope_research_acceptance is None
+            and request.scope_continuation is None
+            and research_job is None
+        ):
+            scope_proposal = build_scope_proposal_binding(
+                request,
+                scope_packet,
+                proposal_decision_id=decision_id,
+                parent_decision_id=parent.decision_id if parent else None,
+            )
         return OrchestrationDecisionV1(
             scorer_version=self.scorer.version,
             decision_id=decision_id,
@@ -896,6 +878,7 @@ class OrchestrationDecisionService:
             scope_runtime_binding=scope_packet.runtime,
             scope_validation=scope_validation,
             scope_confirmation=build_scope_confirmation(scope_packet),
+            scope_proposal=scope_proposal,
         )
 
     def _persist(
@@ -962,9 +945,99 @@ class OrchestrationDecisionService:
         user_id: str,
         idempotency_key: str,
         request_id: str | None = None,
+        *,
+        _sealed_consumer: bool = False,
     ) -> OrchestrationDecisionRecordV1:
         submitted_request = request
+        proposal_acceptance = submitted_request.scope_proposal_acceptance
+        consumer_inputs = submitted_request.scope_consumer_inputs
+        continuation = submitted_request.scope_continuation
+        unified_downstream = proposal_acceptance is not None
         acceptance = submitted_request.scope_research_acceptance
+        corrected_proposal: ScopeCorrectionProposalV1 | None = None
+        corrected_proposal_request: DecisionCreateRequestV1 | None = None
+        if self.scope_proposal_service is not None:
+            supplied = (
+                proposal_acceptance is not None,
+                continuation is not None,
+                consumer_inputs is not None,
+            )
+            if any(supplied) and not all(supplied):
+                raise ScopeContractError(
+                    "proposal acceptance, continuation, and consumer inputs are one capability"
+                )
+            if acceptance is not None:
+                raise ScopeContractError(
+                    "callers cannot submit the legacy research acceptance binding"
+                )
+            if submitted_request.upstream_decision_id is not None and not all(supplied):
+                raise ScopeContractError(
+                    "every downstream scope consumer requires a durable proposal acceptance"
+                )
+            if submitted_request.upstream_decision_id is None and (
+                submitted_request.planning is not None or any(supplied)
+            ):
+                raise ScopeContractError(
+                    "initial Gate-1 creation is admission-only"
+                )
+            if all(supplied):
+                if not _sealed_consumer:
+                    raise ScopeContractError(
+                        "accepted scope consumers must use the compact proposal endpoint"
+                    )
+                if (
+                    proposal_acceptance.org_id
+                    != submitted_request.tenant.org_id
+                    or proposal_acceptance.user_id
+                    != submitted_request.tenant.user_id
+                    or proposal_acceptance.task_id != submitted_request.task.task_id
+                    or continuation.proposal_decision_id
+                    != proposal_acceptance.proposal_decision_id
+                    or submitted_request.upstream_decision_id
+                    != proposal_acceptance.proposal_decision_id
+                ):
+                    raise ScopeContractError(
+                        "accepted scope consumer contradicts its owner/proposal envelope"
+                    )
+                proposal_decision, proposal = (
+                    self.scope_proposal_service.validate_continuation(
+                        continuation,
+                        consumer_inputs,
+                        proposal_acceptance,
+                        internal_user_id=user_id,
+                    )
+                )
+                if (
+                    submitted_request.scope_packet is None
+                    or proposal_decision.scope_packet
+                    != submitted_request.scope_packet
+                    or proposal.scope_hash
+                    != submitted_request.scope_packet.scope_hash
+                    or consumer_inputs.task_id != submitted_request.task.task_id
+                    or consumer_inputs.scope_hash != proposal.scope_hash
+                    or consumer_inputs.scope_generation
+                    != proposal.scope_generation
+                ):
+                    raise ScopeContractError(
+                        "scope consumer request does not reproduce its exact compact commitment"
+                    )
+                validate_continuation_request_authority(
+                    submitted_request,
+                    submitted_request.scope_packet,
+                )
+                if consumer_inputs.purpose == "research":
+                    acceptance = self.scope_proposal_service.research_acceptance(
+                        proposal_acceptance
+                    )
+                    submitted_request = submitted_request.model_copy(
+                        update={"scope_research_acceptance": acceptance}
+                    )
+                request = submitted_request
+                continuation = submitted_request.scope_continuation
+        if acceptance is not None and continuation is not None and not unified_downstream:
+            raise ScopeContractError(
+                "scope research acceptance and generic continuation are separate capabilities"
+            )
         if acceptance is not None and (
             acceptance.org_id != submitted_request.tenant.org_id
             or acceptance.user_id != submitted_request.tenant.user_id
@@ -990,6 +1063,114 @@ class OrchestrationDecisionService:
                 raise DecisionLinkError(
                     "upstream decision belongs to a different task"
                 )
+        if continuation is not None and not unified_downstream:
+            packet = submitted_request.scope_packet
+            if parent is None or packet is None:
+                raise DecisionLinkError(
+                    "scope continuation requires its exact upstream decision and packet"
+                )
+            validate_scope_continuation(
+                continuation,
+                packet,
+                org_id=submitted_request.tenant.org_id,
+                user_id=submitted_request.tenant.user_id,
+                task_id=submitted_request.task.task_id,
+                upstream_decision_id=parent.decision_id,
+                downstream_packet=packet,
+            )
+            if continuation.correction_id is None:
+                if parent.scope_packet != packet:
+                    raise ScopeContractError(
+                        "uncorrected continuation must reuse the exact parent scope packet"
+                    )
+            else:
+                store = self.scope_correction_store
+                getter = getattr(store, "get_for_tenant", None)
+                if getter is None:
+                    raise ScopeContractError(
+                        "corrected scope continuation store is unavailable"
+                    )
+                correction_row = getter(
+                    continuation.correction_id,
+                    submitted_request.tenant.org_id,
+                    submitted_request.tenant.user_id,
+                    user_id,
+                )
+                if (
+                    correction_row is None
+                    or correction_row.status != "accepted"
+                    or correction_row.compilation_payload is None
+                    or correction_row.acceptance_payload is None
+                ):
+                    raise ScopeContractError(
+                        "scope continuation correction is not durably accepted"
+                    )
+                compilation = ScopeCorrectionCompilationV1.model_validate(
+                    correction_row.compilation_payload
+                )
+                correction_acceptance = ScopeCorrectionAcceptanceV1.model_validate(
+                    correction_row.acceptance_payload
+                )
+                corrected_proposal = compilation.proposal
+                if (
+                    correction_row.upstream_decision_id != parent.decision_id
+                    or correction_row.task_id != submitted_request.task.task_id
+                    or compilation.scope_packet != packet
+                    or correction_acceptance.org_id
+                    != submitted_request.tenant.org_id
+                    or correction_acceptance.user_id
+                    != submitted_request.tenant.user_id
+                    or correction_acceptance.task_id
+                    != submitted_request.task.task_id
+                    or correction_acceptance.upstream_decision_id
+                    != parent.decision_id
+                    or correction_acceptance.result_scope_hash != packet.scope_hash
+                    or correction_acceptance.delta_hash != continuation.delta_hash
+                    or correction_acceptance.correction_id
+                    != continuation.correction_id
+                    or corrected_proposal is None
+                    or correction_acceptance.proposal_id
+                    != corrected_proposal.proposal_id
+                    or correction_acceptance.proposal_hash
+                    != corrected_proposal.proposal_hash
+                    or correction_acceptance.research_execution_inputs_hash
+                    != corrected_proposal.research_execution_inputs_hash
+                    or corrected_proposal.scope_hash != packet.scope_hash
+                    or corrected_proposal.contract_hash
+                    != packet.research_contract.contract_hash
+                ):
+                    raise ScopeContractError(
+                        "scope continuation does not match the accepted correction"
+                    )
+                correction_request = ScopeCorrectionRequestV1.model_validate(
+                    correction_row.raw_request_payload
+                )
+                corrected_proposal_request = build_corrected_proposal_request(
+                    correction_id=correction_row.correction_id,
+                    request=correction_request,
+                    proposal_source=parent.input_snapshot,
+                    packet=packet,
+                )
+                expected_purpose = (
+                    "research"
+                    if packet.research_contract.evidence.mode != "none"
+                    else "assignment"
+                )
+                if (
+                    continuation.purpose != expected_purpose
+                    or research_execution_inputs_hash(
+                        corrected_proposal_request,
+                        packet,
+                    )
+                    != corrected_proposal.research_execution_inputs_hash
+                ):
+                    raise ScopeContractError(
+                        "accepted correction proposal inputs did not reproduce exactly"
+                    )
+                corrected_proposal_request = corrected_proposal_request.model_copy(
+                    update={"scope_continuation": continuation}
+                )
+            validate_continuation_request_authority(submitted_request, packet)
         if acceptance is not None:
             if parent is None:
                 raise DecisionLinkError(
@@ -1031,40 +1212,56 @@ class OrchestrationDecisionService:
                     "accepted request does not echo the exact proposed typed scope"
                 )
 
-            # The accepted HTTP body is an owner acknowledgement, not a fresh
-            # source of paid execution inputs. Execute from the immutable
-            # proposal snapshot so Orqaly envelope reconstruction, evidence
-            # churn, or agent-hub changes cannot alter what was accepted.
-            execution_state = parent.input_snapshot.scope_state or ScopeStateV1()
-            execution_state = execution_state.model_copy(
-                update={
-                    "admission": packet.admission,
-                    "deliverable": packet.deliverable,
-                    "research_contract": packet.research_contract,
-                }
-            )
-            execution_policy = parent.input_snapshot.research_policy.model_copy(
-                update={
-                    "required_outputs": list(
-                        packet.research_contract.evidence.required_outputs
+            if unified_downstream:
+                # The generic capability already binds the complete consumer
+                # body.  Research-specific fields must additionally reproduce
+                # the immutable proposal's sealed execution-input hash.
+                request = submitted_request
+                validate_continuation_request_authority(request, packet)
+                validate_scope_research_acceptance(request, packet)
+            else:
+                # Transitional internal compatibility only. Production API
+                # construction always injects ScopeProposalService and rejects
+                # caller-supplied legacy acceptance bindings above.
+                execution_state = parent.input_snapshot.scope_state or ScopeStateV1()
+                execution_state = execution_state.model_copy(
+                    update={
+                        "admission": packet.admission,
+                        "deliverable": packet.deliverable,
+                        "research_contract": packet.research_contract,
+                    }
+                )
+                execution_policy = parent.input_snapshot.research_policy.model_copy(
+                    update={
+                        "required_outputs": list(
+                            packet.research_contract.evidence.required_outputs
+                        )
+                    }
+                )
+                request = parent.input_snapshot.model_copy(
+                    update={
+                        "upstream_decision_id": parent.decision_id,
+                        "research_policy": execution_policy,
+                        "scope_state": execution_state,
+                        "scope_packet": packet,
+                        "scope_research_acceptance": acceptance,
+                    }
+                )
+                if packet.generation == 0:
+                    request = ensure_scope_packet(request)
+                else:
+                    raise ScopeContractError(
+                        "legacy corrected research acceptance is disabled"
                     )
-                }
-            )
-            request = parent.input_snapshot.model_copy(
-                update={
-                    "upstream_decision_id": parent.decision_id,
-                    "research_policy": execution_policy,
-                    "scope_state": execution_state,
-                    "scope_packet": None,
-                    "scope_research_acceptance": acceptance,
-                }
-            )
-            request = ensure_scope_packet(request)
+                validate_scope_research_acceptance(request, packet)
             if request.scope_packet != packet:
                 raise ScopeContractError(
                     "accepted execution did not reproduce the immutable proposal packet"
                 )
-            validate_scope_research_acceptance(request, packet)
+        elif continuation is not None:
+            # This path deliberately skips build_scope_packet: all downstream
+            # planning and assignment consumes the exact accepted packet hash.
+            request = corrected_proposal_request or submitted_request
         else:
             request = ensure_scope_packet(submitted_request)
 
@@ -1072,9 +1269,19 @@ class OrchestrationDecisionService:
         # may arrive with different HTTP idempotency keys, but they must resolve
         # to the same accepted decision instead of minting another decision/job.
         effective_idempotency_key = (
-            f"scope-acceptance-{acceptance.binding_hash}"
+            (
+                f"scope-research-{proposal_acceptance.acceptance_hash}"
+                if unified_downstream and consumer_inputs.purpose == "research"
+                else f"scope-consumer-{continuation.binding_hash}"
+            )
+            if unified_downstream
+            else f"scope-acceptance-{acceptance.binding_hash}"
             if acceptance is not None
-            else idempotency_key
+            else (
+                f"scope-proposal-{corrected_proposal.proposal_hash}"
+                if corrected_proposal is not None
+                else idempotency_key
+            )
         )
         request_hash = canonical_request_hash(request)
         existing = self.store.find_by_idempotency(
@@ -1084,11 +1291,7 @@ class OrchestrationDecisionService:
             effective_idempotency_key,
         )
         if existing:
-            if not self._request_hash_matches(
-                existing.request_hash,
-                request_hash,
-                request,
-            ):
+            if existing.request_hash != request_hash:
                 raise IdempotencyConflict(
                     "Idempotency key was reused with a different request"
                 )
@@ -1109,9 +1312,23 @@ class OrchestrationDecisionService:
                     evaluated_request,
                     self.scorer.version,
                 )
-            evaluated_request = ensure_scope_packet(evaluated_request)
+            if continuation is not None:
+                if evaluated_request.scope_packet != request.scope_packet:
+                    raise ScopeContractError(
+                        "outcome learning cannot replace continued scope"
+                    )
+                validate_continuation_request_authority(
+                    evaluated_request,
+                    request.scope_packet,
+                )
+            else:
+                evaluated_request = ensure_scope_packet(evaluated_request)
         assessment = self.router.route(evaluated_request, evidence)
-        decision_id = f"decision-{uuid.uuid4()}"
+        decision_id = (
+            corrected_proposal.proposal_id
+            if corrected_proposal is not None
+            else f"decision-{uuid.uuid4()}"
+        )
         decision = self._build_decision(
             request=evaluated_request,
             request_id=request_id or str(uuid.uuid4()),
@@ -1122,11 +1339,181 @@ class OrchestrationDecisionService:
             parent=parent,
             learned_features=learned_features,
         )
+        if corrected_proposal is not None and (
+            decision.scope_packet != request.scope_packet
+            or decision.research_execution_inputs_hash
+            != corrected_proposal.research_execution_inputs_hash
+        ):
+            raise ScopeContractError(
+                "corrected proposal decision did not reproduce its sealed inputs"
+            )
         return self._persist(
             evaluated_request,
             decision,
             user_id,
             effective_idempotency_key,
+            request_hash,
+        )
+
+    def consume_scope_proposal(
+        self,
+        continuation_request: ScopeContinuationRequestV1,
+        *,
+        org_id: str,
+        external_user_id: str,
+        user_id: str,
+        idempotency_key: str,
+        request_id: str | None = None,
+    ) -> OrchestrationDecisionRecordV1:
+        """Consume one accepted proposal without client-side reconstruction.
+
+        Research has no caller delta. Planning and assignment admit only their
+        typed plan/catalogue overlays. Synthesis/execution remain fail-closed.
+        """
+
+        service = self.scope_proposal_service
+        if service is None:
+            raise ScopeContractError("scope proposal service is unavailable")
+        consumer = continuation_request.consumer_inputs
+        acceptance = service.accepted_for_proposal(
+            continuation_request.proposal_decision_id,
+            org_id=org_id,
+            external_user_id=external_user_id,
+            internal_user_id=user_id,
+        )
+        binding = service.continuation(
+            continuation_request,
+            org_id=org_id,
+            external_user_id=external_user_id,
+            internal_user_id=user_id,
+        )
+        sealed_request = service.consumer_request(
+            binding,
+            acceptance,
+            consumer,
+            internal_user_id=user_id,
+        )
+        return self.create(
+            sealed_request,
+            user_id=user_id,
+            idempotency_key=idempotency_key,
+            request_id=request_id,
+            _sealed_consumer=True,
+        )
+
+    def create_precompiled_scope_proposal(
+        self,
+        request: DecisionCreateRequestV1,
+        *,
+        user_id: str,
+        proposal_id: str,
+        proposal_hash: str,
+        expected_execution_inputs_hash: str,
+        scope_proposal: ScopeProposalBindingV1,
+    ) -> OrchestrationDecisionRecordV1:
+        """Persist a corrected admission-only proposal produced by AxWise.
+
+        This internal worker path never interprets prose or dispatches paid
+        research. It accepts only a complete generation-N packet and a
+        deterministic proposal identity already sealed by the correction
+        compiler.
+        """
+
+        packet = request.scope_packet
+        if (
+            packet is None
+            or packet.generation < 1
+            or request.scope_continuation is not None
+            or request.scope_consumer_inputs is not None
+            or request.scope_proposal_acceptance is not None
+            or request.scope_research_acceptance is not None
+            or request.planning is not None
+            or scope_proposal.proposal_decision_id != proposal_id
+            or scope_proposal.proposal_hash != proposal_hash
+            or scope_proposal.scope_hash != packet.scope_hash
+            or scope_proposal.research_execution_inputs_hash
+            != (
+                expected_execution_inputs_hash
+                if scope_proposal.disclosure.research_required
+                else None
+            )
+        ):
+            raise ScopeContractError(
+                "corrected proposal must be an admission-only corrected packet"
+            )
+        if research_execution_inputs_hash(request, packet) != (
+            expected_execution_inputs_hash
+        ):
+            raise ScopeContractError(
+                "corrected proposal execution inputs did not reproduce"
+            )
+        if not request.upstream_decision_id:
+            raise DecisionLinkError("corrected proposal requires its source decision")
+        parent_row = self.store.get_for_tenant(
+            request.upstream_decision_id,
+            request.tenant.org_id,
+            request.tenant.user_id,
+            user_id,
+        )
+        if parent_row is None:
+            raise DecisionLinkError("corrected proposal parent was not found")
+        parent = self._record_from_row(parent_row)
+        if parent.task_id != request.task.task_id:
+            raise DecisionLinkError("corrected proposal parent belongs to another task")
+
+        idempotency_key = f"scope-proposal-{proposal_hash}"
+        request_hash = canonical_request_hash(request)
+        existing = self.store.find_by_idempotency(
+            PARTNER_ID,
+            request.tenant.org_id,
+            request.tenant.user_id,
+            idempotency_key,
+        )
+        if existing is not None:
+            if existing.request_hash != request_hash:
+                raise IdempotencyConflict(
+                    "corrected proposal identity was reused with changed inputs"
+                )
+            record = self._record_from_row(existing, reused=True)
+            if (
+                record.decision_id != proposal_id
+                or record.scope_packet != packet
+                or record.research_execution_inputs_hash
+                != expected_execution_inputs_hash
+                or record.scope_proposal != scope_proposal
+            ):
+                raise ScopeContractError(
+                    "stored corrected proposal contradicts its compiler seal"
+                )
+            return record
+
+        evidence: list[EvidenceItemV1] = []
+        assessment = self.router.route(request, evidence)
+        decision = self._build_decision(
+            request=request,
+            request_id=proposal_id,
+            evidence=evidence,
+            assessment=assessment,
+            decision_id=proposal_id,
+            research_idempotency_key=idempotency_key,
+            parent=parent,
+            learned_features=list(parent.learned_features),
+            scope_proposal=scope_proposal,
+        )
+        if (
+            decision.research_job is not None
+            or decision.scope_packet != packet
+            or decision.research_execution_inputs_hash
+            != expected_execution_inputs_hash
+        ):
+            raise ScopeContractError(
+                "corrected Gate-1 proposal attempted execution or changed scope"
+            )
+        return self._persist(
+            request,
+            decision,
+            user_id,
+            idempotency_key,
             request_hash,
         )
 
@@ -1222,7 +1609,44 @@ class OrchestrationDecisionService:
         # Research can add evidence, but it cannot rewrite the owner-accepted
         # scope packet. Verified facts remain independently proof-bound on the
         # result/evidence surfaces (and in the research bundle).
-        enriched_request = ensure_scope_packet(enriched_request)
+        continuation_binding = enriched_request.scope_continuation
+        if continuation_binding is not None:
+            corrected_packet = enriched_request.scope_packet
+            proposal_acceptance = enriched_request.scope_proposal_acceptance
+            consumer_inputs = enriched_request.scope_consumer_inputs
+            if corrected_packet is None:
+                raise ResearchRefreshError(
+                    "corrected research result lost its accepted scope packet"
+                )
+            if (
+                proposal_acceptance is None
+                or consumer_inputs is None
+                or continuation_binding.scope_hash != corrected_packet.scope_hash
+                or continuation_binding.scope_generation
+                != corrected_packet.generation
+                or continuation_binding.acceptance_hash
+                != proposal_acceptance.acceptance_hash
+                or continuation_binding.consumer_inputs_hash
+                != consumer_inputs.consumer_inputs_hash
+            ):
+                raise ResearchRefreshError(
+                    "research result lost its accepted proposal capability"
+                )
+        else:
+            accepted_packet = enriched_request.scope_packet
+            if accepted_packet is None:
+                raise ResearchRefreshError(
+                    "research result lost its owner-accepted scope packet"
+                )
+            # Research lifecycle flags may narrow after one dispatch (for
+            # example, hybrid research is disabled), but evidence completion
+            # must never mint a new semantic scope hash. Validate the narrowed
+            # request against the exact accepted packet and retain it verbatim.
+            validate_continuation_request_authority(
+                enriched_request,
+                accepted_packet,
+                require_binding=False,
+            )
         refresh_payload = {
             "parent_decision_id": parent.decision_id,
             "research_result": result.model_dump(mode="json"),

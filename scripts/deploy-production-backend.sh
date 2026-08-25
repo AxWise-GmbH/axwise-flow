@@ -10,6 +10,7 @@ PROJECT_ID="${PROJECT_ID:-axwise-73425}"
 REGION="${REGION:-europe-west4}"
 API_SERVICE="${API_SERVICE:-axwise-backend}"
 WORKER_SERVICE="${WORKER_SERVICE:-axwise-orqaly-worker}"
+SCOPE_WORKER_SERVICE="${SCOPE_WORKER_SERVICE:-axwise-orqaly-scope-worker}"
 MIGRATION_JOB="${MIGRATION_JOB:-axwise-db-migrate}"
 REPOSITORY="${REPOSITORY:-axwise-backend-repo}"
 REVISION="${REVISION:-$(git rev-parse --short=12 HEAD)-$(date -u +%Y%m%d%H%M%S)}"
@@ -156,6 +157,17 @@ if [[ -z "${WORKER_STABLE_URL}" ]]; then
   echo "Could not determine the stable AxWise worker service URL" >&2
   exit 1
 fi
+SCOPE_WORKER_EXISTS=false
+SCOPE_WORKER_STABLE_URL=""
+if gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" >/dev/null 2>&1; then
+  SCOPE_WORKER_EXISTS=true
+  SCOPE_WORKER_STABLE_URL="$(gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --format='value(status.url)')"
+fi
 
 if ! gcloud run services get-iam-policy "${SEARXNG_SERVICE}" \
   --region "${REGION}" \
@@ -269,6 +281,17 @@ python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
   --region "${REGION}" \
   --project "${PROJECT_ID}" \
   --tags-only
+if [[ "${SCOPE_WORKER_EXISTS}" == "true" ]]; then
+  gcloud run services update-traffic "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --clear-tags
+  python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+    --service "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --tags-only
+fi
 
 echo "Building ${IMAGE}"
 gcloud builds submit \
@@ -312,7 +335,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --min-instances default \
   --max-instances 1 \
   --clear-secrets \
-  --set-env-vars "^@^WORKER_MODE=health_only@AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS=${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@AXWISE_BUILD_REVISION=${REVISION}"
+  --set-env-vars "^@^WORKER_MODE=health_only@WORKER_LANE=research@AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS=${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@AXWISE_BUILD_REVISION=${REVISION}"
 
 QUIESCENCE_REVISION="$(gcloud run services describe "${WORKER_SERVICE}" \
   --region "${REGION}" \
@@ -336,8 +359,61 @@ python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
   --project "${PROJECT_ID}" \
   --expected-revision "${QUIESCENCE_REVISION}" \
   --expected-mode health_only \
+  --expected-lane research \
   --expected-build-revision "${REVISION}"
 echo "Durable Orqaly queue consumption stopped; all previous revisions retired"
+
+if [[ "${SCOPE_WORKER_EXISTS}" == "true" ]]; then
+  SCOPE_QUIESCENCE_SUFFIX="${REVISION}-quiesce"
+  EXPECTED_SCOPE_QUIESCENCE_REVISION="${SCOPE_WORKER_SERVICE}-${SCOPE_QUIESCENCE_SUFFIX}"
+  if (( ${#EXPECTED_SCOPE_QUIESCENCE_REVISION} > 63 )); then
+    echo "Scope-worker quiescence revision name exceeds 63 characters" >&2
+    exit 1
+  fi
+  echo "Stopping low-latency scope queue consumption for release"
+  gcloud run deploy "${SCOPE_WORKER_SERVICE}" \
+    --image "${IMAGE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --platform managed \
+    --revision-suffix "${SCOPE_QUIESCENCE_SUFFIX}" \
+    --no-allow-unauthenticated \
+    --service-account "${WORKER_SERVICE_ACCOUNT}" \
+    --command python \
+    --args=-m,backend.scripts.run_orqaly_hybrid_worker_service \
+    --memory 4Gi \
+    --cpu 2 \
+    --no-cpu-throttling \
+    --timeout 3600 \
+    --concurrency 1 \
+    --scaling auto \
+    --min 1 \
+    --min-instances default \
+    --max-instances 1 \
+    --clear-secrets \
+    --set-env-vars "^@^WORKER_MODE=health_only@WORKER_LANE=scope@AXWISE_BUILD_REVISION=${REVISION}"
+  SCOPE_QUIESCENCE_REVISION="$(gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --format='value(status.latestCreatedRevisionName)')"
+  if [[ "${SCOPE_QUIESCENCE_REVISION}" != "${EXPECTED_SCOPE_QUIESCENCE_REVISION}" ]]; then
+    echo "Expected ${EXPECTED_SCOPE_QUIESCENCE_REVISION}; received ${SCOPE_QUIESCENCE_REVISION:-unset}" >&2
+    exit 1
+  fi
+  gcloud run services update-traffic "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --clear-tags \
+    --to-revisions "${SCOPE_QUIESCENCE_REVISION}=100"
+  python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+    --service "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --expected-revision "${SCOPE_QUIESCENCE_REVISION}" \
+    --expected-mode health_only \
+    --expected-lane scope \
+    --expected-build-revision "${REVISION}"
+fi
 
 echo "Deploying migration job"
 gcloud run jobs deploy "${MIGRATION_JOB}" \
@@ -419,7 +495,7 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --min 1 \
   --min-instances default \
   --max-instances 1 \
-  --set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll" \
+  --set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll@WORKER_LANE=research" \
   --set-secrets "${WORKER_SECRET_BINDINGS}"
 
 # As with the API, Cloud Run can preserve a previously pinned worker revision.
@@ -444,6 +520,49 @@ gcloud run services update-traffic "${WORKER_SERVICE}" \
   --project "${PROJECT_ID}" \
   --clear-tags \
   --to-revisions "${WORKER_REVISION}=100"
+
+# Scope interpretation has an independent single-concurrency, warm worker so
+# a long paid research provider call can never block chat correction latency.
+echo "Deploying low-latency scope-correction worker"
+EXPECTED_SCOPE_WORKER_REVISION="${SCOPE_WORKER_SERVICE}-${REVISION}"
+if (( ${#EXPECTED_SCOPE_WORKER_REVISION} > 63 )); then
+  echo "Scope-worker revision name exceeds Cloud Run's 63-character limit" >&2
+  exit 1
+fi
+gcloud run deploy "${SCOPE_WORKER_SERVICE}" \
+  --image "${IMAGE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --platform managed \
+  --revision-suffix "${REVISION}" \
+  --no-allow-unauthenticated \
+  --service-account "${WORKER_SERVICE_ACCOUNT}" \
+  --command python \
+  --args=-m,backend.scripts.run_orqaly_hybrid_worker_service \
+  --memory 4Gi \
+  --cpu 2 \
+  --no-cpu-throttling \
+  --timeout 3600 \
+  --concurrency 1 \
+  --scaling auto \
+  --min 1 \
+  --min-instances default \
+  --max-instances 1 \
+  --set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll@WORKER_LANE=scope" \
+  --set-secrets "${WORKER_SECRET_BINDINGS}"
+SCOPE_WORKER_REVISION="$(gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(status.latestCreatedRevisionName)')"
+if [[ "${SCOPE_WORKER_REVISION}" != "${EXPECTED_SCOPE_WORKER_REVISION}" ]]; then
+  echo "Expected ${EXPECTED_SCOPE_WORKER_REVISION}; received ${SCOPE_WORKER_REVISION:-unset}" >&2
+  exit 1
+fi
+gcloud run services update-traffic "${SCOPE_WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --clear-tags \
+  --to-revisions "${SCOPE_WORKER_REVISION}=100"
 
 API_URL="$(gcloud run services describe "${API_SERVICE}" --region "${REGION}" --project "${PROJECT_ID}" --format='value(status.url)')"
 EXPECTED_REVISION="${REVISION}" python3 - "${API_URL}" <<'PY'
@@ -548,6 +667,34 @@ python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
   --project "${PROJECT_ID}" \
   --expected-revision "${WORKER_REVISION}" \
   --expected-mode poll \
+  --expected-lane research \
+  --expected-build-revision "${REVISION}"
+
+SCOPE_WORKER_CPU_THROTTLING="$(gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --format='value(spec.template.metadata.annotations."run.googleapis.com/cpu-throttling")')"
+if [[ "${SCOPE_WORKER_CPU_THROTTLING}" != "false" ]]; then
+  echo "Expected scope-worker CPU throttling disabled; received ${SCOPE_WORKER_CPU_THROTTLING:-unset}" >&2
+  exit 1
+fi
+if [[ "${SCOPE_WORKER_EXISTS}" == "true" ]]; then
+  SCOPE_WORKER_STABLE_URL_AFTER="$(gcloud run services describe "${SCOPE_WORKER_SERVICE}" \
+    --region "${REGION}" \
+    --project "${PROJECT_ID}" \
+    --format='value(status.url)')"
+  if [[ "${SCOPE_WORKER_STABLE_URL_AFTER}" != "${SCOPE_WORKER_STABLE_URL}" ]]; then
+    echo "Scope-worker stable URL changed during deployment" >&2
+    exit 1
+  fi
+fi
+python3 "${SCRIPT_DIR}/verify_cloud_run_worker_release.py" \
+  --service "${SCOPE_WORKER_SERVICE}" \
+  --region "${REGION}" \
+  --project "${PROJECT_ID}" \
+  --expected-revision "${SCOPE_WORKER_REVISION}" \
+  --expected-mode poll \
+  --expected-lane scope \
   --expected-build-revision "${REVISION}"
 
 echo "Deployment complete: ${IMAGE} (${API_REVISION})"

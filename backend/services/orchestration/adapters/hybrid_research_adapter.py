@@ -23,11 +23,13 @@ from backend.domain.orchestration.models import (
 )
 from backend.domain.market_scope import resolve_market_expression
 from backend.services.orchestration.scope_contract_service import (
-    ensure_scope_packet,
     research_execution_inputs_hash,
     research_execution_inputs_payload,
     scope_contract_binding,
     validate_scope_research_acceptance,
+)
+from backend.services.orchestration.scope_correction_service import (
+    validate_continuation_request_authority,
 )
 from backend.domain.orchestration.scope_models import ScopeFactSeedV1
 from backend.services.orqaly_hybrid_run_service import (
@@ -51,6 +53,45 @@ class HybridResearchAdapter:
         self.user = user
         self.external_org_id = external_org_id
         self.external_user_id = external_user_id
+
+    @staticmethod
+    def _ensure_dispatch_scope(
+        request: DecisionCreateRequestV1,
+    ) -> DecisionCreateRequestV1:
+        """Preserve the exact proposal packet and its generic acceptance."""
+
+        packet = request.scope_packet
+        if packet is None:
+            raise ValueError("research dispatch requires its exact proposal packet")
+        binding = request.scope_continuation
+        acceptance = request.scope_proposal_acceptance
+        consumer = request.scope_consumer_inputs
+        if binding is None and acceptance is None and consumer is None:
+            # Internal generation-zero compatibility for existing focused
+            # tests/callers. The authenticated production API never reaches
+            # this branch, and the paid worker independently rejects legacy
+            # rows before a provider call.
+            if packet.generation != 0 or request.scope_research_acceptance is None:
+                raise ValueError("research dispatch lacks unified scope acceptance")
+            validate_scope_research_acceptance(request, packet)
+            return request
+        if (
+            binding is None
+            or acceptance is None
+            or consumer is None
+            or consumer.purpose != "research"
+            or binding.purpose != "research"
+            or binding.proposal_decision_id != acceptance.proposal_decision_id
+            or binding.proposal_hash != acceptance.proposal_hash
+            or binding.acceptance_id != acceptance.acceptance_id
+            or binding.acceptance_hash != acceptance.acceptance_hash
+            or binding.scope_hash != packet.scope_hash
+            or binding.scope_generation != packet.generation
+            or binding.consumer_inputs_hash != consumer.consumer_inputs_hash
+        ):
+            raise ValueError("research dispatch lost its accepted proposal capability")
+        validate_continuation_request_authority(request, packet)
+        return request
 
     @staticmethod
     def _task_context(request: DecisionCreateRequestV1) -> OrqalyTaskContext:
@@ -103,6 +144,9 @@ class HybridResearchAdapter:
                 packet,
             ),
             scope_research_acceptance=request.scope_research_acceptance,
+            scope_proposal_acceptance=request.scope_proposal_acceptance,
+            scope_continuation=request.scope_continuation,
+            scope_consumer_inputs=request.scope_consumer_inputs,
         )
 
     @staticmethod
@@ -217,7 +261,7 @@ class HybridResearchAdapter:
             raise ValueError(
                 "research dispatch requires explicit owner scope acceptance"
             )
-        request = ensure_scope_packet(request)
+        request = self._ensure_dispatch_scope(request)
         brief = request.research_brief
         if not brief:
             raise ValueError("research brief is required")
@@ -596,7 +640,7 @@ class HybridResearchAdapter:
         request: DecisionCreateRequestV1,
         job: ResearchJobV1,
     ) -> ResearchResultV1:
-        request = ensure_scope_packet(request)
+        request = self._ensure_dispatch_scope(request)
         if request.scope_packet is None:
             raise ValueError("research collection requires a typed scope packet")
         validate_scope_research_acceptance(request, request.scope_packet)

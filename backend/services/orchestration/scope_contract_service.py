@@ -23,6 +23,7 @@ from backend.domain.orchestration.scope_models import (
     ScopeAdmissionV1,
     ScopeAssumptionSeedV1,
     ScopeAssumptionV1,
+    ScopeAuthoritySnapshotV1,
     ScopeConfirmationV1,
     ScopeContractBindingV1,
     ScopeConstraintSeedV1,
@@ -35,6 +36,8 @@ from backend.domain.orchestration.scope_models import (
     ScopeIntentV1,
     ScopeLedgerV1,
     ScopePacketV1,
+    ScopeProposalBindingV1,
+    ScopeProposalDisclosureV1,
     ScopeQualityCheckV1,
     ScopeRequestedActionV1,
     ScopeResearchContractV1,
@@ -251,6 +254,89 @@ def trusted_runtime_metadata() -> TrustedRuntimeMetadataV1:
     """Return the live pinned runtime contract used at paid-work boundaries."""
 
     return _trusted_runtime()
+
+
+def _authority_snapshot(request: DecisionCreateRequestV1) -> ScopeAuthoritySnapshotV1:
+    """Seal policy and tool authority independently from semantic scope inference."""
+
+    def enum_text(value: Any) -> str:
+        return str(value.value if hasattr(value, "value") else value)
+
+    from backend.services.orqaly_research_bundle_service import canonical_hash
+
+    return ScopeAuthoritySnapshotV1(
+        required_tools=tuple(_sorted_unique(request.task.required_tools)),
+        denied_tools=tuple(_sorted_unique(request.policy_context.denied_tool_ids)),
+        denied_agent_ids=tuple(
+            _sorted_unique(request.policy_context.denied_agent_ids)
+        ),
+        approval_actions=tuple(
+            _sorted_unique(request.policy_context.human_approval_required_for)
+        ),
+        guardrails=tuple(_sorted_unique(request.policy_context.guardrails)),
+        allowed_data_classifications=tuple(
+            sorted(
+                {
+                    enum_text(item)
+                    for item in request.policy_context.allowed_data_classifications
+                }
+            )
+        ),
+        task_data_classification=enum_text(request.task.data_classification),
+        task_risk_level=enum_text(request.task.risk_level),
+        task_reversibility=enum_text(request.task.reversibility),
+        task_domain=request.task.domain,
+        task_class=request.task.task_class,
+        task_capability_profile=request.task.capability_profile,
+        task_preferred_capabilities=tuple(
+            _sorted_unique(request.task.preferred_capabilities)
+        ),
+        task_constraints=tuple(_sorted_unique(request.task.constraints)),
+        task_context_reference_hashes=tuple(
+            sorted(
+                canonical_hash(reference.model_dump(mode="json"))
+                for reference in request.task.context_references
+            )
+        ),
+        task_urgency=enum_text(request.task.urgency),
+        task_deadline=(
+            request.task.deadline.isoformat()
+            if request.task.deadline is not None
+            else None
+        ),
+        maximum_risk_without_human=enum_text(
+            request.policy_context.maximum_risk_without_human
+        ),
+        budget_currency=request.budget.currency,
+        budget_maximum_cost=request.budget.maximum_cost,
+        budget_maximum_latency_ms=request.budget.maximum_latency_ms,
+        research_allow_hybrid=request.research_policy.allow_hybrid_research,
+        research_fail_closed=request.research_policy.fail_closed,
+        research_allowed_source_types=(
+            tuple(sorted(set(request.research_policy.allowed_source_types)))
+            if request.research_policy.allowed_source_types is not None
+            else None
+        ),
+        research_maximum_cost=request.research_policy.maximum_research_cost,
+        research_maximum_latency_ms=(
+            request.research_policy.maximum_research_latency_ms
+        ),
+        research_maximum_iterations=(
+            request.research_policy.maximum_research_iterations
+        ),
+        research_maximum_evidence_items=(
+            request.research_policy.maximum_evidence_items
+        ),
+        research_minimum_evidence_sufficiency=(
+            request.research_policy.minimum_evidence_sufficiency
+        ),
+        research_minimum_value_of_information=(
+            request.research_policy.minimum_value_of_information
+        ),
+        research_minimum_evidence_quality=(
+            request.research_policy.minimum_evidence_quality
+        ),
+    )
 
 
 def _deliverable_title_prefix(request: DecisionCreateRequestV1) -> str:
@@ -1124,6 +1210,88 @@ def research_execution_inputs_hash(
     return canonical_hash(research_execution_inputs_payload(request, packet))
 
 
+def build_scope_proposal_binding(
+    request: DecisionCreateRequestV1,
+    packet: ScopePacketV1,
+    *,
+    proposal_decision_id: str,
+    parent_decision_id: str | None,
+    correction_id: str | None = None,
+    correction_hash: str | None = None,
+    compiler_hash: str | None = None,
+) -> ScopeProposalBindingV1:
+    """Seal the compact Gate-1 proposal shown to the owner."""
+
+    contract = packet.research_contract
+    authority = packet.authority_snapshot
+    if contract is None or authority is None:
+        raise ScopeContractError("scope proposal requires complete scope contracts")
+    evidence = contract.evidence
+    if evidence.mode == "none":
+        disclosure = ScopeProposalDisclosureV1(
+            acquisition_mode="none",
+            research_required=False,
+            grounding_required=False,
+            external_sources_required=False,
+            currency=authority.budget_currency,
+            maximum_evidence_items=0,
+        )
+    else:
+        disclosure = ScopeProposalDisclosureV1(
+            acquisition_mode=evidence.mode,
+            research_required=True,
+            grounding_required=evidence.grounding_required,
+            external_sources_required=evidence.external_sources_required,
+            required_outputs=evidence.required_outputs,
+            geographies=contract.geographies,
+            executor_roles=tuple(slot.role for slot in contract.executor_role_slots),
+            currency=authority.budget_currency,
+            maximum_research_cost=authority.research_maximum_cost,
+            estimated_research_cost=request.research_policy.estimated_research_cost,
+            maximum_research_latency_ms=authority.research_maximum_latency_ms,
+            estimated_research_latency_ms=(
+                request.research_policy.estimated_research_latency_ms
+            ),
+            maximum_research_iterations=authority.research_maximum_iterations,
+            maximum_evidence_items=authority.research_maximum_evidence_items,
+            provider="google",
+            model_resource="models/gemini-3.7-flash",
+            thinking_level="HIGH",
+        )
+    from backend.services.orqaly_research_bundle_service import canonical_hash
+
+    proposal_inputs_hash = canonical_hash(
+        {
+            "version": "axwise_scope_proposal_inputs_v1",
+            "task_id": request.task.task_id,
+            "scope_packet": packet.model_dump(mode="json"),
+        }
+    )
+    payload = {
+        "version": "axwise_scope_proposal_v1",
+        "proposal_decision_id": proposal_decision_id,
+        "parent_decision_id": parent_decision_id,
+        "org_id": request.tenant.org_id,
+        "user_id": request.tenant.user_id,
+        "task_id": request.task.task_id,
+        "scope_generation": packet.generation,
+        "scope_hash": packet.scope_hash,
+        "contract_hash": contract.contract_hash,
+        "proposal_inputs_hash": proposal_inputs_hash,
+        "research_execution_inputs_hash": (
+            research_execution_inputs_hash(request, packet)
+            if evidence.mode != "none"
+            else None
+        ),
+        "correction_id": correction_id,
+        "correction_hash": correction_hash,
+        "compiler_hash": compiler_hash,
+        "disclosure": disclosure.model_dump(mode="json"),
+    }
+    payload["proposal_hash"] = ScopeProposalBindingV1.canonical_hash_for(payload)
+    return ScopeProposalBindingV1.model_validate(payload)
+
+
 def validate_scope_research_acceptance(
     request: DecisionCreateRequestV1,
     packet: ScopePacketV1,
@@ -1762,6 +1930,7 @@ def build_scope_packet(request: DecisionCreateRequestV1) -> ScopePacketV1:
             replacement=bool(corrections),
         ).model_dump(mode="json"),
         "research_contract": research_contract.model_dump(mode="json"),
+        "authority_snapshot": _authority_snapshot(request).model_dump(mode="json"),
         "ledger": ScopeLedgerV1(
             requirements=requirements,
             facts=_facts(state),

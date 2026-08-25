@@ -144,18 +144,21 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     assert '"${WORKER_TRAFFIC_PERCENT}" != "100"' in script
     assert "run.googleapis.com/cpu-throttling" in script
     assert '"${WORKER_CPU_THROTTLING}" != "false"' in script
-    assert script.count("--clear-tags") == 3
-    assert script.count("verify_cloud_run_worker_release.py") == 3
+    assert script.count("--clear-tags") == 6
+    assert script.count("verify_cloud_run_worker_release.py") == 6
     assert '--expected-revision "${WORKER_REVISION}"' in script
     assert '--expected-revision "${QUIESCENCE_REVISION}"' in script
     assert "--expected-mode health_only" in script
     assert "--expected-mode poll" in script
-    assert script.count('--expected-build-revision "${REVISION}"') == 2
+    assert script.count('--expected-build-revision "${REVISION}"') == 4
+    assert '--expected-lane research' in script
+    assert '--expected-lane scope' in script
     assert '--tags-only' in script
     assert '"${WORKER_STABLE_URL_AFTER}" != "${WORKER_STABLE_URL}"' in script
 
     deploy = 'gcloud run deploy "${WORKER_SERVICE}"'
     assert script.count(deploy) == 2
+    assert script.count('gcloud run deploy "${SCOPE_WORKER_SERVICE}"') == 2
     quiescence_deploy = script.index(
         deploy, script.index('echo "Stopping durable Orqaly queue consumption')
     )
@@ -177,6 +180,7 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     assert '--revision-suffix "${QUIESCENCE_SUFFIX}"' in quiescence_deploy_block
     assert (
         '--set-env-vars "^@^WORKER_MODE=health_only@'
+        'WORKER_LANE=research@'
         'AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS='
         '${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@'
         'AXWISE_BUILD_REVISION=${REVISION}"' in quiescence_deploy_block
@@ -188,7 +192,8 @@ def test_worker_deploy_routes_and_verifies_the_new_revision() -> None:
     assert "--clear-secrets" in quiescence_deploy_block
     assert '--revision-suffix "${REVISION}"' in poll_deploy_block
     assert (
-        '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll"'
+        '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll@'
+        'WORKER_LANE=research"'
         in poll_deploy_block
     )
     assert '--set-secrets "${WORKER_SECRET_BINDINGS}"' in poll_deploy_block
@@ -275,6 +280,7 @@ def _worker_revision_state(
     retired: bool = False,
     desired_replicas: int | None = None,
     mode: str = "poll",
+    lane: str = "research",
     build_revision: str = TEST_BUILD_REVISION,
 ) -> dict:
     annotations = {}
@@ -288,6 +294,7 @@ def _worker_revision_state(
                 {
                     "env": [
                         {"name": "WORKER_MODE", "value": mode},
+                        {"name": "WORKER_LANE", "value": lane},
                         {
                             "name": "AXWISE_BUILD_REVISION",
                             "value": build_revision,
@@ -326,6 +333,7 @@ def test_worker_release_state_accepts_only_latest_untagged_100_percent_route() -
         expected_revision=latest,
         expected_mode="poll",
         expected_build_revision=TEST_BUILD_REVISION,
+        expected_lane="research",
     )
 
     assert summary["latest_revision"] == latest
@@ -333,6 +341,7 @@ def test_worker_release_state_accepts_only_latest_untagged_100_percent_route() -
     assert summary["traffic_tag_count"] == 0
     assert summary["service_minimum_instances"] == 1
     assert summary["latest_revision_minimum_instances"] == 0
+    assert summary["worker_lane"] == "research"
     assert summary["dormant_nonlatest_revision_minima"] == [
         "axwise-orqaly-worker-00029-old"
     ]
@@ -664,11 +673,19 @@ def test_searxng_route_is_discovered_and_authenticated_before_build() -> None:
     )
     assert (
         '--set-env-vars "^@^WORKER_MODE=health_only@'
+        'WORKER_LANE=research@'
         'AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS='
         '${AXWISE_BUSINESS_EVIDENCE_PROJECTION_MODELS}@'
         'AXWISE_BUILD_REVISION=${REVISION}"' in script
     )
-    assert '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll"' in script
+    assert (
+        '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll@'
+        'WORKER_LANE=research"' in script
+    )
+    assert (
+        '--set-env-vars "${WORKER_ENV_VARS}@WORKER_MODE=poll@'
+        'WORKER_LANE=scope"' in script
+    )
     assert '--service-account "${WORKER_SERVICE_ACCOUNT}"' in script
 
     # Identity tokens and response bodies must not be written to the deploy log.

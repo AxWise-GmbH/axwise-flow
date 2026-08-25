@@ -9,7 +9,10 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.domain.orchestration.models import BusinessEvidenceProfileV1
 from backend.domain.orchestration.scope_models import (
+    ScopeConsumerInputsV1,
+    ScopeContinuationBindingV1,
     ScopeContractBindingV1,
+    ScopeProposalAcceptanceV1,
     ScopeResearchAcceptanceBindingV1,
     TrustedRuntimeMetadataV1,
 )
@@ -57,6 +60,9 @@ class OrqalyTaskContext(BaseModel):
     )
     scope_research_acceptance: Optional[ScopeResearchAcceptanceBindingV1] = None
     scope_runtime_binding: Optional[TrustedRuntimeMetadataV1] = None
+    scope_proposal_acceptance: Optional[ScopeProposalAcceptanceV1] = None
+    scope_continuation: Optional[ScopeContinuationBindingV1] = None
+    scope_consumer_inputs: Optional[ScopeConsumerInputsV1] = None
 
     @field_validator("required_execution_roles")
     @classmethod

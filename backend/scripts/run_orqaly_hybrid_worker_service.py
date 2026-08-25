@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 WORKER_MODE_POLL = "poll"
 WORKER_MODE_HEALTH_ONLY = "health_only"
 _VALID_WORKER_MODES = {WORKER_MODE_POLL, WORKER_MODE_HEALTH_ONLY}
+_VALID_WORKER_LANES = {"scope", "research"}
 
 
 def resolve_worker_mode(value: str | None = None) -> str:
@@ -24,13 +25,27 @@ def resolve_worker_mode(value: str | None = None) -> str:
     return mode
 
 
+def resolve_worker_lane(value: str | None = None) -> str:
+    """Resolve the independently deployed scope or paid-research workload."""
+
+    lane = str(value if value is not None else os.getenv("WORKER_LANE", "research"))
+    lane = lane.strip().casefold()
+    if lane not in _VALID_WORKER_LANES:
+        raise ValueError(
+            "WORKER_LANE must be one of: " + ", ".join(sorted(_VALID_WORKER_LANES))
+        )
+    return lane
+
+
 def health_payload() -> dict[str, str | None]:
     """Return runtime identity without conflating build and Cloud revision."""
 
+    lane = resolve_worker_lane()
     return {
         "status": "healthy",
-        "service": "orqaly-hybrid-worker",
+        "service": f"axwise-orqaly-{lane}-worker",
         "mode": resolve_worker_mode(),
+        "lane": lane,
         "build_revision": os.getenv("AXWISE_BUILD_REVISION"),
         "cloud_revision": os.getenv("K_REVISION"),
     }
@@ -71,10 +86,11 @@ def _load_poller():
     return run
 
 
-async def run_service(*, mode: str, poll_seconds: float) -> None:
+async def run_service(*, mode: str, poll_seconds: float, lane: str | None = None) -> None:
     """Run the poller, or remain healthy without touching the durable queue."""
 
     resolved_mode = resolve_worker_mode(mode)
+    resolved_lane = resolve_worker_lane(lane)
     if resolved_mode == WORKER_MODE_HEALTH_ONLY:
         logging.getLogger(__name__).info(
             "Worker is healthy in release quiescence; queue polling is disabled"
@@ -82,7 +98,7 @@ async def run_service(*, mode: str, poll_seconds: float) -> None:
         await asyncio.Event().wait()
         return
     poller = _load_poller()
-    await poller(once=False, poll_seconds=poll_seconds)
+    await poller(once=False, poll_seconds=poll_seconds, lane=resolved_lane)
 
 
 def main() -> None:
@@ -94,6 +110,7 @@ def main() -> None:
             run_service(
                 mode=mode,
                 poll_seconds=float(os.getenv("WORKER_POLL_SECONDS", "1")),
+                lane=resolve_worker_lane(),
             )
         )
     finally:

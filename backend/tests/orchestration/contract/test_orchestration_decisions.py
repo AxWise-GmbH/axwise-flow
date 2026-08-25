@@ -20,6 +20,7 @@ from backend.api.routes.orchestration import router
 from backend.database import Base, get_db
 from backend.domain.orchestration.examples import ORCHESTRATION_DECISION_EXAMPLES
 from backend.domain.orchestration.models import EvaluationSliceV1
+from backend.domain.orchestration.scope_models import canonical_scope_action_id
 from backend.models import (
     OrchestrationDecisionSnapshot,
     OrchestrationEvent,
@@ -32,6 +33,7 @@ from backend.models import (
 from backend.services.orchestration.assignment_scorer import WEIGHTS
 from backend.services.orchestration.evaluation_service import ScorerEvaluationService
 from backend.services.orchestration.scorer_registry import ScorerRegistryService
+from backend.services.orqaly_research_bundle_service import canonical_hash
 from backend.tests.orchestration.unit.test_team_planner import planning_payload
 
 
@@ -149,6 +151,292 @@ async def orchestration_client(tmp_path, monkeypatch):
     engine.dispose()
 
 
+async def _admit_and_accept(client, payload: dict, *, key: str):
+    admission_payload = deepcopy(payload)
+    admission_payload.pop("planning", None)
+    proposal_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers(f"{key}-proposal"),
+        json=admission_payload,
+    )
+    assert proposal_response.status_code == 201, proposal_response.text
+    proposal_record = proposal_response.json()
+    proposal = proposal_record["scope_proposal"]
+    acceptance_request = {
+        "version": "orqaly_scope_proposal_acceptance_request_v1",
+        "org_id": proposal["org_id"],
+        "user_id": proposal["user_id"],
+        "task_id": proposal["task_id"],
+        "proposal_decision_id": proposal["proposal_decision_id"],
+        "scope_generation": proposal["scope_generation"],
+        "scope_hash": proposal["scope_hash"],
+        "contract_hash": proposal["contract_hash"],
+        "proposal_hash": proposal["proposal_hash"],
+        "proposal_inputs_hash": proposal["proposal_inputs_hash"],
+        "research_execution_inputs_hash": proposal.get(
+            "research_execution_inputs_hash"
+        ),
+    }
+    acceptance_response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+        f"{proposal['proposal_decision_id']}/accept",
+        headers=_get_headers(proposal["org_id"], proposal["user_id"]),
+        json=acceptance_request,
+    )
+    assert acceptance_response.status_code == 201, acceptance_response.text
+    return proposal_record, acceptance_response.json()
+
+
+async def _consume_accepted(
+    client,
+    proposal_record: dict,
+    acceptance: dict,
+    payload: dict,
+    *,
+    key: str,
+    purpose: str | None = None,
+    expected_dispatch_status: int = 201,
+):
+    proposal = proposal_record["scope_proposal"]
+    selected_purpose = purpose or ("planning" if payload.get("planning") else "assignment")
+    catalogue = {
+        "available_agents": deepcopy(payload.get("available_agents", [])),
+        "available_tools": deepcopy(payload.get("available_tools", [])),
+    }
+    endpoint = (
+        "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+        f"{proposal['proposal_decision_id']}/consumers"
+    )
+    tenant_headers = _get_headers(proposal["org_id"], proposal["user_id"])
+
+    def consumer_request(consumer_purpose: str, consumer_payload: dict, suffix: str):
+        consumer_inputs = {
+            "version": "orqaly_scope_consumer_inputs_v1",
+            "purpose": consumer_purpose,
+            "consumer_id": f"goal:{proposal['task_id']}:{consumer_purpose}:{suffix}",
+            "task_id": proposal["task_id"],
+            "scope_hash": proposal["scope_hash"],
+            "scope_generation": proposal["scope_generation"],
+            "payload": consumer_payload,
+            "payload_hash": canonical_hash(consumer_payload),
+        }
+        return {
+            "version": "orqaly_scope_continuation_request_v1",
+            "proposal_decision_id": proposal["proposal_decision_id"],
+            "acceptance_id": acceptance["acceptance_id"],
+            "acceptance_hash": acceptance["acceptance_hash"],
+            "consumer_inputs": consumer_inputs,
+        }
+
+    if selected_purpose == "assignment":
+        planning_payload = {
+            "planning": _scope_sealed_planning(
+                proposal_record["scope_packet"],
+                _single_step_planning(),
+            ),
+            "catalogue": catalogue,
+        }
+        planning_response = await client.post(
+            endpoint,
+            headers={
+                **tenant_headers,
+                "Idempotency-Key": f"{key}-planning-authority",
+            },
+            json=consumer_request("planning", planning_payload, f"{key}:authority"),
+        )
+        assert planning_response.status_code == 201, planning_response.text
+        planning_receipt = planning_response.json()
+        consumer_payload = {
+            "authority_kind": "planning_projection",
+            "catalogue": catalogue,
+            "planning_projection_ref": {
+                "version": "axwise_scope_planning_projection_ref_v1",
+                "planning_decision_id": planning_receipt["decision_id"],
+                "planning_continuation_binding_hash": planning_receipt[
+                    "continuation"
+                ]["binding_hash"],
+                "planning_consumer_inputs_hash": planning_receipt[
+                    "consumer_inputs_hash"
+                ],
+                "planning_projection_hash": planning_receipt[
+                    "decision_projection"
+                ]["projection_hash"],
+            },
+        }
+    else:
+        consumer_payload = {
+            "planning": _scope_sealed_planning(
+                proposal_record["scope_packet"],
+                payload["planning"],
+            ),
+            "catalogue": catalogue,
+        }
+    request = consumer_request(selected_purpose, consumer_payload, key)
+    dispatch_response = await client.post(
+        endpoint,
+        headers={
+            **tenant_headers,
+            "Idempotency-Key": f"{key}-consumer",
+        },
+        json=request,
+    )
+    assert (
+        dispatch_response.status_code == expected_dispatch_status
+    ), dispatch_response.text
+    if expected_dispatch_status != 201:
+        return dispatch_response, None
+    receipt = dispatch_response.json()
+    decision_id = receipt["decision_id"]
+    decision_response = await client.get(
+        f"/api/orqaly-axwise/v1/orchestration/decisions/{decision_id}",
+        headers=_get_headers(proposal["org_id"], proposal["user_id"]),
+    )
+    assert decision_response.status_code == 200, decision_response.text
+    projection = receipt["decision_projection"]
+    decision = decision_response.json()
+    assert projection["purpose"] == selected_purpose
+    assert projection["decision_id"] == decision_id
+    assert projection["decision_status"] == decision["status"]
+    assert projection["routing_mode"] == decision["routing_mode"]
+    assert projection["executable"] == decision["execution_plan"]["executable"]
+    assert projection["projection_hash"]
+    assert projection["advisory_only"] is True
+    assert "input_snapshot" not in dispatch_response.text
+    assert "candidate_rankings" not in dispatch_response.text
+    assert "score" not in dispatch_response.text
+    if selected_purpose == "assignment":
+        assert [item["agent_id"] for item in projection["selected_agents"]] == [
+            item["agent_id"] for item in decision["recommended_agents"]
+        ]
+    else:
+        assert [item["node_id"] for item in projection["nodes"]] == [
+            item["node_id"] for item in decision["execution_plan"]["nodes"]
+        ]
+        assert [item["dependencies"] for item in projection["nodes"]] == [
+            item["dependencies"] for item in decision["execution_plan"]["nodes"]
+        ]
+    return dispatch_response, decision_response
+
+
+def _single_step_planning() -> dict:
+    return {
+        "pattern": "single",
+        "steps": [
+            {
+                "step_id": "accepted-scope-work",
+                "title": "Complete the accepted scope",
+                "objective": "Complete the accepted scope",
+                "input_contract": {"placeholder": True},
+                "output_contract": {"placeholder": True},
+                "completion_criteria": ["The accepted outcome is complete"],
+            }
+        ],
+    }
+
+
+def _scope_sealed_planning(scope_packet: dict, requested: dict) -> dict:
+    """Project a caller-authored plan onto the exact accepted scope ledger.
+
+    These broad contract tests exercise the team planner, not an Orqaly plan
+    author.  The production continuation boundary intentionally rejects the
+    old free-form objectives/contracts.  Preserve the plan topology while
+    binding every step to one accepted requirement and its acceptance rule.
+    """
+
+    requirements = scope_packet["ledger"]["requirements"]
+    acceptance = scope_packet["ledger"]["acceptance"]
+    usable: list[tuple[dict, list[str]]] = []
+    for requirement in requirements:
+        criteria = [
+            criterion
+            for rule in acceptance
+            if requirement["requirement_id"] in rule.get("supports", [])
+            for criterion in rule["then"]
+        ]
+        if criteria:
+            usable.append((requirement, criteria))
+    assert usable, "admitted scope must expose an acceptance-bound requirement"
+
+    admitted_capabilities = {
+        *scope_packet["admission"]["required_capabilities"],
+        *(
+            slot["role"]
+            for slot in scope_packet["research_contract"]["executor_role_slots"]
+        ),
+    }
+    admitted_tools = set(scope_packet["authority_snapshot"]["required_tools"])
+    admitted_actions = {
+        item["action"] for item in scope_packet["admission"]["requested_actions"]
+    }
+    deliverable = scope_packet["deliverable"]
+    sealed_steps = []
+    for index, source_step in enumerate(requested["steps"]):
+        requirement, criteria = usable[index % len(usable)]
+        requirement_ids = [requirement["requirement_id"]]
+        step = deepcopy(source_step)
+        step.update(
+            {
+                "objective": requirement["text"],
+                "required_capabilities": [
+                    capability
+                    for capability in source_step.get("required_capabilities", [])
+                    if capability in admitted_capabilities
+                ],
+                "preferred_capabilities": [
+                    capability
+                    for capability in source_step.get("preferred_capabilities", [])
+                    if capability in admitted_capabilities
+                ],
+                "required_tools": [
+                    tool
+                    for tool in source_step.get("required_tools", [])
+                    if tool in admitted_tools
+                ],
+                "requested_actions": [
+                    action
+                    for action in source_step.get("requested_actions", [])
+                    if action in admitted_actions
+                ],
+                "reviewer_capabilities": [
+                    capability
+                    for capability in source_step.get("reviewer_capabilities", [])
+                    if capability in admitted_capabilities
+                ],
+                "input_contract": {
+                    "scope_hash": scope_packet["scope_hash"],
+                    "requirement_ids": requirement_ids,
+                },
+                "output_contract": {
+                    "scope_hash": scope_packet["scope_hash"],
+                    "requirement_ids": requirement_ids,
+                    "deliverable_type": deliverable["type"],
+                    "deliverable_count": deliverable["count"],
+                    "presentation": deliverable["presentation"],
+                    "required_sections": deliverable["required_sections"],
+                },
+                "completion_criteria": [criteria[0]],
+                "review_rules": [],
+            }
+        )
+        sealed_steps.append(step)
+
+    result = deepcopy(requested)
+    result["steps"] = sealed_steps
+    return result
+
+
+async def _accepted_decision(client, payload: dict, *, key: str):
+    proposal, acceptance = await _admit_and_accept(client, payload, key=key)
+    _, decision = await _consume_accepted(
+        client,
+        proposal,
+        acceptance,
+        payload,
+        key=key,
+    )
+    return decision
+
+
 @pytest.mark.parametrize(
     "example_name",
     [
@@ -164,13 +452,13 @@ async def test_one_contract_supports_five_operational_domains(
     orchestration_client, example_name
 ):
     client, _ = orchestration_client
-    response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers(example_name),
-        json=_payload(example_name),
+    response = await _accepted_decision(
+        client,
+        _payload(example_name),
+        key=example_name,
     )
 
-    assert response.status_code == 201, response.text
+    assert response.status_code == 200, response.text
     data = response.json()
     assert data["contract_version"] == "1.0"
     assert data["scorer_version"] == "weighted-direct-v1.0.0"
@@ -179,8 +467,11 @@ async def test_one_contract_supports_five_operational_domains(
     assert data["input_snapshot"]["task"]["domain"] == _payload(example_name)["task"]["domain"]
     assert data["request_hash"]
     if _payload(example_name)["task"]["risk_level"] == "high":
-        assert data["routing_mode"] == "human_controlled"
-        assert data["approval_points"][0]["required_before"] == "execution"
+        assert data["routing_mode"] == "direct"
+        assert any(
+            item["required_before"] == "execution"
+            for item in data["approval_points"]
+        )
     else:
         assert data["routing_mode"] == "direct"
         assert data["execution_plan"]["nodes"][0]["assigned_agent_id"]
@@ -204,23 +495,19 @@ async def test_ineligible_agent_cannot_win_with_a_higher_success_score(
         }
     )
 
-    response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("hard-eligibility"),
-        json=payload,
+    response = await _accepted_decision(
+        client,
+        payload,
+        key="hard-eligibility",
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 200
     data = response.json()
     assert data["recommended_agents"][0]["agent_id"] != "agent-cross-tenant-superstar"
-    excluded = next(
-        item
+    assert all(
+        item["agent_id"] != "agent-cross-tenant-superstar"
         for item in data["candidate_rankings"]
-        if item["agent_id"] == "agent-cross-tenant-superstar"
     )
-    assert excluded["eligible"] is False
-    assert excluded["score"] == 0
-    assert "agent belongs to a different tenant" in excluded["exclusion_reasons"]
 
 
 @pytest.mark.asyncio
@@ -343,19 +630,28 @@ async def test_no_eligible_agent_creates_explicit_human_escalation(
     payload = _payload()
     payload["available_agents"][0]["availability"] = "offline"
 
-    response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("human-escalation"),
-        json=payload,
+    proposal, acceptance = await _admit_and_accept(
+        client, payload, key="human-escalation"
+    )
+    response, _ = await _consume_accepted(
+        client,
+        proposal,
+        acceptance,
+        payload,
+        key="human-escalation",
+        expected_dispatch_status=409,
     )
 
-    assert response.status_code == 201
-    data = response.json()
-    assert data["routing_mode"] == "human_controlled"
-    assert data["status"] == "escalated"
-    assert data["recommended_agents"] == []
-    assert data["confidence"] == 0
-    assert data["approval_points"][0]["required_before"] == "assignment"
+    assert response.status_code == 409
+    assert "not executable, feasible, and assignable" in response.json()["detail"]
+    assert proposal["routing_mode"] == "human_controlled"
+    assert proposal["status"] == "escalated"
+    assert proposal["recommended_agents"] == []
+    assert proposal["confidence"] == 0
+    assert any(
+        item["required_before"] == "assignment"
+        for item in proposal["approval_points"]
+    )
 
 
 @pytest.mark.asyncio
@@ -369,20 +665,21 @@ async def test_approval_action_matching_uses_normalized_vocabulary(
         "ANALYZE-REPOSITORY"
     ]
 
-    response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("normalized-approval"),
-        json=payload,
+    proposal_record, _ = await _admit_and_accept(
+        client,
+        payload,
+        key="normalized-approval",
     )
 
-    assert response.status_code == 201
-    data = response.json()
-    assert data["recommended_agents"][0]["eligible"] is True
-    assert data["routing_mode"] == "human_controlled"
-    assert (
-        "configured actions require approval"
-        in data["approval_points"][0]["reason"]
-    )
+    packet = proposal_record["scope_packet"]
+    admitted = packet["admission"]["requested_actions"]
+    approval_actions = packet["authority_snapshot"]["approval_actions"]
+    assert [canonical_scope_action_id(item["action"]) for item in admitted] == [
+        "analyze_repository"
+    ]
+    assert [canonical_scope_action_id(item) for item in approval_actions] == [
+        "analyze_repository"
+    ]
 
 
 @pytest.mark.asyncio
@@ -436,10 +733,10 @@ async def test_phase3_replan_api_is_linked_idempotent_and_exact_user_isolated(
 ):
     client, _ = orchestration_client
     payload = _phase3_payload()
-    parent_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("phase3-api-parent"),
-        json=payload,
+    parent_response = await _accepted_decision(
+        client,
+        payload,
+        key="phase3-api-parent",
     )
     parent = parent_response.json()
     original = next(
@@ -483,7 +780,7 @@ async def test_phase3_replan_api_is_linked_idempotent_and_exact_user_isolated(
         json=change,
     )
 
-    assert parent_response.status_code == 201
+    assert parent_response.status_code == 200
     assert replanned.status_code == 201
     assert replanned.json()["parent_decision_id"] == parent["decision_id"]
     assert replanned.json()["routing_mode"] == "recovery"
@@ -554,12 +851,12 @@ async def test_phase4_outcome_is_idempotent_tenant_scoped_and_audited(
     orchestration_client,
 ):
     client, factory = orchestration_client
-    decision_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("phase4-decision"),
-        json=_phase3_payload(),
+    decision_response = await _accepted_decision(
+        client,
+        _phase3_payload(),
+        key="phase4-decision",
     )
-    assert decision_response.status_code == 201, decision_response.text
+    assert decision_response.status_code == 200, decision_response.text
     decision = decision_response.json()
     node = decision["execution_plan"]["nodes"][0]
     outcome = {
@@ -642,10 +939,10 @@ async def test_phase4_currency_mismatch_is_preserved_but_never_promotable(
     orchestration_client,
 ):
     client, _ = orchestration_client
-    decision_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("phase4-currency-decision"),
-        json=_phase3_payload(),
+    decision_response = await _accepted_decision(
+        client,
+        _phase3_payload(),
+        key="phase4-currency-decision",
     )
     decision = decision_response.json()
     response = await client.post(
@@ -682,10 +979,10 @@ async def test_failed_node_receipt_cannot_be_overridden_by_claimed_task_success(
     orchestration_client,
 ):
     client, _ = orchestration_client
-    decision_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("phase4-node-failure-decision"),
-        json=_phase3_payload(),
+    decision_response = await _accepted_decision(
+        client,
+        _phase3_payload(),
+        key="phase4-node-failure-decision",
     )
     decision = decision_response.json()
     node = decision["execution_plan"]["nodes"][0]
@@ -738,12 +1035,12 @@ async def test_human_reviewed_outcomes_change_ranking_and_rollback_restores_it(
         request = deepcopy(seed)
         request["task"]["task_id"] = f"history-task-{index}"
         request["available_agents"] = [deepcopy(history_agent)]
-        decision_response = await client.post(
-            "/api/orqaly-axwise/v1/orchestration/decisions",
-            headers=_post_headers(f"history-decision-{index}"),
-            json=request,
+        decision_response = await _accepted_decision(
+            client,
+            request,
+            key=f"history-decision-{index}",
         )
-        assert decision_response.status_code == 201, decision_response.text
+        assert decision_response.status_code == 200, decision_response.text
         decision = decision_response.json()
         node = decision["execution_plan"]["nodes"][0]
         submitted = await client.post(
@@ -819,12 +1116,12 @@ async def test_human_reviewed_outcomes_change_ranking_and_rollback_restores_it(
     alphabetical_agent = deepcopy(history_agent)
     alphabetical_agent.update(agent_id="agent-a", name="Alphabetical Agent")
     later["available_agents"] = [alphabetical_agent, deepcopy(history_agent)]
-    learned = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("later-learned"),
-        json=later,
+    learned = await _accepted_decision(
+        client,
+        later,
+        key="later-learned",
     )
-    assert learned.status_code == 201, learned.text
+    assert learned.status_code == 200, learned.text
     learned_decision = learned.json()
     assert learned_decision["scorer_version"] == "weighted-outcome-v1.1.0"
     assert learned_decision["recommended_agents"][0]["agent_id"] == "agent-history"
@@ -847,12 +1144,12 @@ async def test_human_reviewed_outcomes_change_ranking_and_rollback_restores_it(
 
     restored = deepcopy(later)
     restored["task"]["task_id"] = "restored-task"
-    baseline = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("later-restored"),
-        json=restored,
+    baseline = await _accepted_decision(
+        client,
+        restored,
+        key="later-restored",
     )
-    assert baseline.status_code == 201, baseline.text
+    assert baseline.status_code == 200, baseline.text
     baseline_decision = baseline.json()
     assert baseline_decision["scorer_version"] == "weighted-direct-v1.0.0"
     assert baseline_decision["recommended_agents"][0]["agent_id"] == "agent-a"
@@ -864,48 +1161,112 @@ async def test_final_plan_links_to_the_preplanning_context_decision(
     orchestration_client,
 ):
     client, _ = orchestration_client
-    context_payload = _payload("customer_escalation")
-    context_payload["task"]["task_id"] = "linked-goal"
-    context_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("linked-context"),
-        json=context_payload,
-    )
-    assert context_response.status_code == 201, context_response.text
-    context = context_response.json()
-
     plan_payload = _phase3_payload()
     plan_payload["task"]["task_id"] = "linked-goal"
-    plan_payload["upstream_decision_id"] = context["decision_id"]
-    plan_response = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("linked-plan"),
-        json=plan_payload,
+    context, acceptance = await _admit_and_accept(
+        client,
+        plan_payload,
+        key="linked-context",
     )
-    assert plan_response.status_code == 201, plan_response.text
-    assert plan_response.json()["parent_decision_id"] == context["decision_id"]
+    _, plan_response = await _consume_accepted(
+        client,
+        context,
+        acceptance,
+        plan_payload,
+        key="linked-plan",
+        purpose="planning",
+    )
+    proposal_id = context["scope_proposal"]["proposal_decision_id"]
+    assert plan_response.json()["parent_decision_id"] == proposal_id
 
-    foreign_payload = deepcopy(plan_payload)
-    foreign_payload["tenant"] = {
-        "userId": "orqaly-user-2",
-        "orgId": "orqaly-org-2",
-    }
-    for agent in foreign_payload["available_agents"]:
-        agent["org_id"] = "orqaly-org-2"
-    for tool in foreign_payload["available_tools"]:
-        tool["org_id"] = "orqaly-org-2"
-    foreign = await client.post(
-        "/api/orqaly-axwise/v1/orchestration/decisions",
-        headers=_post_headers("linked-foreign"),
-        json=foreign_payload,
+    foreign = await client.get(
+        "/api/orqaly-axwise/v1/orchestration/decisions/"
+        f"{plan_response.json()['decision_id']}",
+        headers=_get_headers("orqaly-org-2", "orqaly-user-2"),
     )
     assert foreign.status_code == 404
-    assert foreign.headers["X-Request-ID"] == "trace-linked-foreign"
-    assert foreign.json()["detail"] == {
-        "code": "AXWISE_UPSTREAM_DECISION_NOT_FOUND",
-        "message": "upstream orchestration decision was not found",
-        "request_id": "trace-linked-foreign",
+
+
+@pytest.mark.asyncio
+async def test_compact_planning_projection_retains_only_operational_contract(
+    orchestration_client,
+):
+    client, _ = orchestration_client
+    payload = _phase3_payload()
+    proposal, acceptance = await _admit_and_accept(
+        client,
+        payload,
+        key="projection-operational",
+    )
+    receipt, decision_response = await _consume_accepted(
+        client,
+        proposal,
+        acceptance,
+        payload,
+        key="projection-operational",
+        purpose="planning",
+    )
+    projection = receipt.json()["decision_projection"]
+    node = projection["nodes"][0]
+
+    assert projection["validation_status"] == "feasible"
+    assert projection["validation_rejections"] == []
+    required_node_fields = {
+        "node_id",
+        "title",
+        "assigned_agent_id",
+        "required_capabilities",
+        "tool_ids",
+        "dependencies",
+        "input_contract",
+        "output_contract",
+        "completion_criteria",
+        "approval_gate_ids",
+        "review_rules",
+        "budget",
+        "estimated_cost",
+        "estimated_latency_ms",
+        "failure_policy",
     }
+    assert required_node_fields.issubset(node)
+    assert set(node).issubset({*required_node_fields, "reviewer_agent_id"})
+    assert projection["projection_hash"]
+    assert "input_snapshot" not in receipt.text
+    assert "candidate_rankings" not in receipt.text
+    assert "reason" not in receipt.text.casefold()
+    assert decision_response.json()["input_snapshot"]
+
+
+@pytest.mark.asyncio
+async def test_compact_planning_rejections_keep_repair_ids_without_reasons(
+    orchestration_client,
+):
+    client, _ = orchestration_client
+    payload = _phase3_payload()
+    for agent in payload["available_agents"]:
+        agent["availability"] = "offline"
+    proposal, acceptance = await _admit_and_accept(
+        client,
+        payload,
+        key="projection-rejected",
+    )
+    receipt, _ = await _consume_accepted(
+        client,
+        proposal,
+        acceptance,
+        payload,
+        key="projection-rejected",
+        purpose="planning",
+    )
+    projection = receipt.json()["decision_projection"]
+
+    assert projection["validation_status"] == "rejected"
+    assert projection["validation_rejections"]
+    assert all(
+        set(item).issubset({"code", "node_id", "agent_id", "tool_id"})
+        for item in projection["validation_rejections"]
+    )
+    assert "reason" not in receipt.text.casefold()
 
 
 @pytest.mark.asyncio

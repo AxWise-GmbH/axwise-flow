@@ -229,6 +229,7 @@ def validate_worker_release_state(
     expected_revision: str,
     expected_mode: str,
     expected_build_revision: str,
+    expected_lane: str | None = None,
 ) -> dict[str, Any]:
     """Validate that only the expected worker revision can remain polling."""
 
@@ -243,6 +244,11 @@ def validate_worker_release_state(
     build_revision = str(expected_build_revision or "").strip()
     if not build_revision:
         raise WorkerReleaseStateError("expected build revision is required")
+    lane = str(expected_lane or "").strip()
+    if lane and lane not in {"scope", "research"}:
+        raise WorkerReleaseStateError(
+            "expected worker lane must be scope or research"
+        )
     status = _mapping(service.get("status"), field="service.status")
     latest_created = str(status.get("latestCreatedRevisionName") or "").strip()
     latest_ready = str(status.get("latestReadyRevisionName") or "").strip()
@@ -310,6 +316,11 @@ def validate_worker_release_state(
             "latest worker revision mode mismatch: "
             f"expected={mode} actual={latest_env.get('WORKER_MODE') or 'unset'}"
         )
+    if lane and latest_env.get("WORKER_LANE") != lane:
+        raise WorkerReleaseStateError(
+            "latest worker lane mismatch: "
+            f"expected={lane} actual={latest_env.get('WORKER_LANE') or 'unset'}"
+        )
     if latest_env.get("AXWISE_BUILD_REVISION") != build_revision:
         raise WorkerReleaseStateError(
             "latest worker build mismatch: "
@@ -360,6 +371,7 @@ def validate_worker_release_state(
         "service_minimum_instances": 1,
         "latest_revision_minimum_instances": 0,
         "worker_mode": mode,
+        "worker_lane": lane or None,
         "build_revision": build_revision,
         "active_revision_count": 1,
         "retired_nonlatest_revision_count": len(nonlatest),
@@ -395,6 +407,7 @@ def main() -> int:
     parser.add_argument("--region", required=True)
     parser.add_argument("--expected-revision")
     parser.add_argument("--expected-mode", choices=("health_only", "poll"))
+    parser.add_argument("--expected-lane", choices=("scope", "research"))
     parser.add_argument("--expected-build-revision")
     parser.add_argument("--tags-only", action="store_true")
     parser.add_argument("--wait-seconds", type=int, default=120)
@@ -405,11 +418,12 @@ def main() -> int:
         (
             args.expected_revision,
             args.expected_mode,
+            args.expected_lane,
             args.expected_build_revision,
         )
     ):
         parser.error(
-            "--expected-revision, --expected-mode, and "
+            "--expected-revision, --expected-mode, --expected-lane, and "
             "--expected-build-revision are required unless --tags-only is used"
         )
     deadline = time.monotonic() + args.wait_seconds
@@ -455,6 +469,7 @@ def main() -> int:
                 expected_revision=args.expected_revision,
                 expected_mode=args.expected_mode,
                 expected_build_revision=args.expected_build_revision,
+                expected_lane=args.expected_lane,
             )
             break
         except WorkerReleaseStateError as exc:

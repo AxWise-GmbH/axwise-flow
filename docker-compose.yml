@@ -101,6 +101,41 @@ services:
       ENABLE_CLERK_VALIDATION: "false"
       AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
       WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}
+      WORKER_LANE: research
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Low-latency scope-correction worker ─────────────────────
+  worker-scope:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "backend.scripts.run_orqaly_hybrid_worker_service"]
+    restart: unless-stopped
+    environment:
+      OSS_MODE: "true"
+      PORT: "8080"
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/axwise
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: axwise
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Please set GEMINI_API_KEY in your .env file}
+      AXWISE_AUTHORITY_PROOF_SECRET: ${AXWISE_AUTHORITY_PROOF_SECRET:?Please set AXWISE_AUTHORITY_PROOF_SECRET to at least 32 random bytes}
+      GEMINI_MODEL: ${GEMINI_MODEL:-models/gemini-3.7-flash}
+      ENABLE_CLERK_VALIDATION: "false"
+      AXWISE_API_KEY: ${AXWISE_API_KEY:-local-dev-change-me}
+      WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}
+      WORKER_LANE: scope
     depends_on:
       backend:
         condition: service_healthy
