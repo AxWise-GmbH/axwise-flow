@@ -97,6 +97,10 @@ class IdempotencyConflict(ValueError):
     """Raised when a tenant reuses an idempotency key with changed input."""
 
 
+class ResearchDispatchUnavailable(RuntimeError):
+    """Raised when accepted research could not be durably queued."""
+
+
 class ResearchRefreshError(ValueError):
     """Raised when a decision cannot be resumed through the research path."""
 
@@ -107,6 +111,18 @@ class ReplanError(ValueError):
 
 class DecisionLinkError(ValueError):
     """Raised when an upstream decision is missing or crosses a tenant boundary."""
+
+
+def _is_accepted_research_dispatch(request: DecisionCreateRequestV1) -> bool:
+    """Identify the fail-atomic compact research capability."""
+
+    return bool(
+        request.scope_proposal_acceptance is not None
+        and request.scope_continuation is not None
+        and request.scope_continuation.purpose == "research"
+        and request.scope_consumer_inputs is not None
+        and request.scope_consumer_inputs.purpose == "research"
+    )
 
 
 @dataclass(frozen=True)
@@ -431,6 +447,7 @@ class OrchestrationDecisionService:
             and request.scope_consumer_inputs is not None
             and evidence
         )
+        accepted_research_dispatch = _is_accepted_research_dispatch(request)
         contract_requires_research = (
             evidence_mode != "none" and not completed_staged_research
         )
@@ -510,7 +527,17 @@ class OrchestrationDecisionService:
                         )
                 except ScopeContractError:
                     raise
+                except ValueError:
+                    # Adapter admission/contract failures are permanent input
+                    # rejections, not transient queue outages.  Preserve the
+                    # typed boundary error while create() still rolls back any
+                    # run flushed before the rejection.
+                    raise
                 except Exception as exc:
+                    if accepted_research_dispatch:
+                        raise ResearchDispatchUnavailable(
+                            "accepted research dispatch is temporarily unavailable"
+                        ) from exc
                     routing_mode = RoutingMode.HUMAN_CLARIFICATION
                     assessment = self._override_assessment(
                         assessment,
@@ -518,6 +545,10 @@ class OrchestrationDecisionService:
                         f"research could not be started: {type(exc).__name__}",
                     )
             else:
+                if accepted_research_dispatch:
+                    raise ResearchDispatchUnavailable(
+                        "accepted research dispatch is temporarily unavailable"
+                    )
                 routing_mode = RoutingMode.HUMAN_CLARIFICATION
                 assessment = self._override_assessment(
                     assessment,
@@ -1329,31 +1360,44 @@ class OrchestrationDecisionService:
             if corrected_proposal is not None
             else f"decision-{uuid.uuid4()}"
         )
-        decision = self._build_decision(
-            request=evaluated_request,
-            request_id=request_id or str(uuid.uuid4()),
-            evidence=evidence,
-            assessment=assessment,
-            decision_id=decision_id,
-            research_idempotency_key=effective_idempotency_key,
-            parent=parent,
-            learned_features=learned_features,
-        )
-        if corrected_proposal is not None and (
-            decision.scope_packet != request.scope_packet
-            or decision.research_execution_inputs_hash
-            != corrected_proposal.research_execution_inputs_hash
-        ):
-            raise ScopeContractError(
-                "corrected proposal decision did not reproduce its sealed inputs"
+        accepted_research_dispatch = _is_accepted_research_dispatch(evaluated_request)
+        try:
+            decision = self._build_decision(
+                request=evaluated_request,
+                request_id=request_id or str(uuid.uuid4()),
+                evidence=evidence,
+                assessment=assessment,
+                decision_id=decision_id,
+                research_idempotency_key=effective_idempotency_key,
+                parent=parent,
+                learned_features=learned_features,
             )
-        return self._persist(
-            evaluated_request,
-            decision,
-            user_id,
-            effective_idempotency_key,
-            request_hash,
-        )
+            if accepted_research_dispatch and decision.research_job is None:
+                raise ResearchDispatchUnavailable(
+                    "accepted research dispatch is temporarily unavailable"
+                )
+            if corrected_proposal is not None and (
+                decision.scope_packet != request.scope_packet
+                or decision.research_execution_inputs_hash
+                != corrected_proposal.research_execution_inputs_hash
+            ):
+                raise ScopeContractError(
+                    "corrected proposal decision did not reproduce its sealed inputs"
+                )
+            return self._persist(
+                evaluated_request,
+                decision,
+                user_id,
+                effective_idempotency_key,
+                request_hash,
+            )
+        except Exception:
+            if accepted_research_dispatch:
+                # HybridRunService uses this same route-owned session.  A
+                # rollback removes any run it flushed before the adapter
+                # failed, so no paid job can outlive an unpersisted decision.
+                self.store.rollback()
+            raise
 
     def consume_scope_proposal(
         self,

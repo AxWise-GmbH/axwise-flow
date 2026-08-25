@@ -61,6 +61,7 @@ from backend.models import (
 from backend.services.orchestration.decision_service import (
     IdempotencyConflict,
     OrchestrationDecisionService,
+    ResearchDispatchUnavailable,
 )
 from backend.services.orchestration import scope_correction_service as correction_module
 from backend.services.orchestration.adapters.hybrid_research_adapter import (
@@ -2167,6 +2168,25 @@ class _CountingResearchPort:
         )
 
 
+class _FailOnceResearchPort(_CountingResearchPort):
+    def start(self, request, decision_id, idempotency_key):
+        if self.start_calls == 0:
+            self.start_calls += 1
+            raise RuntimeError("transient adapter failure with private detail")
+        return super().start(request, decision_id, idempotency_key)
+
+
+class _FailAfterFlushResearchPort:
+    def __init__(self, delegate):
+        self.delegate = delegate
+        self.start_calls = 0
+
+    def start(self, request, decision_id, idempotency_key):
+        self.start_calls += 1
+        self.delegate.start(request, decision_id, idempotency_key)
+        raise RuntimeError("transient failure after durable-run flush")
+
+
 class _CompletingResearchPort(_CountingResearchPort):
     def collect(self, request, job):
         evidence = EvidenceItemV1(
@@ -2306,6 +2326,295 @@ def test_compact_corrected_research_consumes_sealed_proposal_once(lifecycle):
             user_id="axwise-user",
             idempotency_key="browser-key-three",
         )
+
+
+def test_uncorrected_research_consumer_projects_only_accepted_packet_outputs(
+    lifecycle,
+):
+    session, _, _, _, _ = lifecycle
+    payload = deepcopy(_payload())
+    payload["tenant"] = {
+        "userId": "orqaly-user",
+        "orgId": "orqaly-org-example",
+    }
+    payload["task"].update(
+        {
+            "task_id": "goal-uncorrected-synthetic-research",
+            "objective": "Analyze this appointment reminder concept",
+            "desired_outcome": "A concise Markdown artifact",
+            "required_capabilities": [],
+            "preferred_capabilities": [],
+            "required_tools": [],
+            "requested_actions": [],
+            "stakeholders": [],
+        }
+    )
+    payload["research_policy"] = {
+        "allow_hybrid_research": True,
+        "required": False,
+        "minimum_mode": "instant",
+        "required_outputs": [
+            "customer_personas",
+            "persona_resolution",
+            "research_prd",
+        ],
+        "maximum_research_iterations": 1,
+    }
+    payload["research_brief"] = {
+        "business_idea": "An SMS appointment-reminder service",
+        "target_stakeholders": "Service operators and appointment holders",
+        "problem": "The useful product scope requires synthetic discovery",
+        "research_questions": ["Which reminder workflow is most useful?"],
+    }
+    source = DecisionCreateRequestV1.model_validate(payload)
+    store = SqlAlchemyDecisionStore(session)
+    proposal_decision = OrchestrationDecisionService(store).create(
+        source,
+        user_id="axwise-user",
+        idempotency_key="uncorrected-synthetic-proposal",
+    )
+    packet = proposal_decision.scope_packet
+    proposal = proposal_decision.scope_proposal
+    assert packet.research_contract.evidence.mode == "synthetic"
+    assert source.research_policy.required is False
+    assert "research_prd" in source.research_policy.required_outputs
+    assert "research_prd" not in packet.research_contract.evidence.required_outputs
+
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    research = _CountingResearchPort()
+    dispatched = OrchestrationDecisionService(
+        store,
+        research_port=research,
+        scope_proposal_service=proposal_service,
+    ).consume_scope_proposal(
+        _research_continuation_request(proposal, acceptance),
+        org_id=proposal.org_id,
+        external_user_id=proposal.user_id,
+        user_id="axwise-user",
+        idempotency_key="uncorrected-synthetic-dispatch",
+    )
+
+    assert research.start_calls == 1
+    assert dispatched.research_job is not None
+    assert dispatched.input_snapshot.scope_packet == packet
+    assert dispatched.input_snapshot.research_policy.required is False
+    assert dispatched.input_snapshot.research_policy.required_outputs == list(
+        packet.research_contract.evidence.required_outputs
+    )
+    assert (
+        research_execution_inputs_hash(dispatched.input_snapshot, packet)
+        == proposal.research_execution_inputs_hash
+    )
+
+
+def test_compact_research_dispatch_rolls_back_flushed_run_then_retries(lifecycle):
+    session, proposal_decision, _, _, _ = lifecycle
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    continuation = _research_continuation_request(
+        proposal,
+        acceptance,
+        consumer_id="after-flush-research",
+    )
+    user = session.query(User).filter_by(user_id="axwise-user").one()
+    hybrid = HybridRunService(
+        NoSpendOrchestrator(),
+        session_factory=sessionmaker(
+            bind=session.get_bind(),
+            expire_on_commit=False,
+        ),
+        atomic_session=session,
+    )
+    adapter = HybridResearchAdapter(
+        hybrid,
+        user,
+        proposal.org_id,
+        proposal.user_id,
+    )
+    failing = _FailAfterFlushResearchPort(adapter)
+    store = SqlAlchemyDecisionStore(session)
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+
+    with pytest.raises(ResearchDispatchUnavailable):
+        OrchestrationDecisionService(
+            store,
+            research_port=failing,
+            scope_proposal_service=proposal_service,
+        ).consume_scope_proposal(
+            continuation,
+            org_id=proposal.org_id,
+            external_user_id=proposal.user_id,
+            user_id="axwise-user",
+            idempotency_key="after-flush-first",
+        )
+
+    assert failing.start_calls == 1
+    assert session.query(PipelineRun).count() == 0
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before
+
+    decision_service = OrchestrationDecisionService(
+        store,
+        research_port=adapter,
+        scope_proposal_service=proposal_service,
+    )
+    dispatched = decision_service.consume_scope_proposal(
+        continuation,
+        org_id=proposal.org_id,
+        external_user_id=proposal.user_id,
+        user_id="axwise-user",
+        idempotency_key="after-flush-retry",
+    )
+    replay = decision_service.consume_scope_proposal(
+        continuation,
+        org_id=proposal.org_id,
+        external_user_id=proposal.user_id,
+        user_id="axwise-user",
+        idempotency_key="after-flush-replay",
+    )
+
+    assert dispatched.research_job is not None
+    assert replay.decision_id == dispatched.decision_id
+    assert replay.reused is True
+    assert session.query(PipelineRun).count() == 1
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before + 1
+
+
+def test_http_compact_research_failure_retries_and_maps_conflict(
+    lifecycle,
+    monkeypatch,
+):
+    session, proposal_decision, _, _, _ = lifecycle
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    continuation = _research_continuation_request(
+        proposal,
+        acceptance,
+        consumer_id="http-retry-research",
+    )
+    research = _FailOnceResearchPort()
+    decision_service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(session),
+        research_port=research,
+        scope_proposal_service=proposal_service,
+    )
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+    monkeypatch.setattr(
+        orchestration_route,
+        "_service",
+        lambda _db, _user, _tenant: decision_service,
+    )
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            path = (
+                "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+                f"{proposal.proposal_decision_id}/consumers"
+            )
+            headers = {
+                "Idempotency-Key": "http-transient-first",
+                "X-Request-ID": "http-transient-trace",
+                "X-Orqaly-Org-ID": proposal.org_id,
+                "X-Orqaly-User-ID": proposal.user_id,
+            }
+            first = await client.post(
+                path,
+                headers=headers,
+                json=continuation.model_dump(mode="json"),
+            )
+            headers.update(
+                {
+                    "Idempotency-Key": "http-transient-retry",
+                    "X-Request-ID": "http-retry-trace",
+                }
+            )
+            retry = await client.post(
+                path,
+                headers=headers,
+                json=continuation.model_dump(mode="json"),
+            )
+            headers.update(
+                {
+                    "Idempotency-Key": "http-transient-replay",
+                    "X-Request-ID": "http-replay-trace",
+                }
+            )
+            replay = await client.post(
+                path,
+                headers=headers,
+                json=continuation.model_dump(mode="json"),
+            )
+            conflicting = _research_continuation_request(
+                proposal,
+                acceptance,
+                consumer_id="http-conflicting-research",
+            )
+            headers.update(
+                {
+                    "Idempotency-Key": "http-conflicting-research",
+                    "X-Request-ID": "http-conflict-trace",
+                }
+            )
+            conflict = await client.post(
+                path,
+                headers=headers,
+                json=conflicting.model_dump(mode="json"),
+            )
+            return first, retry, replay, conflict
+
+    first, retry, replay, conflict = asyncio.run(exercise())
+
+    assert first.status_code == 503, first.text
+    assert first.json()["detail"] == {
+        "code": "AXWISE_RESEARCH_DISPATCH_UNAVAILABLE",
+        "message": (
+            "accepted research could not be durably dispatched; "
+            "retry the same request"
+        ),
+        "request_id": "http-transient-trace",
+    }
+    assert "private detail" not in first.text
+    assert first.headers["x-request-id"] == "http-transient-trace"
+    assert retry.status_code == 201, retry.text
+    assert retry.json()["status"] == "research_dispatched"
+    assert retry.json()["reused"] is False
+    assert replay.status_code == 201, replay.text
+    assert replay.json()["decision_id"] == retry.json()["decision_id"]
+    assert replay.json()["reused"] is True
+    assert research.start_calls == 2
+    assert conflict.status_code == 409, conflict.text
+    assert conflict.json()["detail"]["code"] == "AXWISE_IDEMPOTENCY_CONFLICT"
+    assert conflict.json()["detail"]["request_id"] == "http-conflict-trace"
+    assert conflict.headers["x-request-id"] == "http-conflict-trace"
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before + 1
 
 
 def test_grounded_research_completion_stages_planning_then_assignment(lifecycle):

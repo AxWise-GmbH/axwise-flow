@@ -51,6 +51,7 @@ from backend.services.orchestration.decision_service import (
     IdempotencyConflict,
     OrchestrationDecisionService,
     ReplanError,
+    ResearchDispatchUnavailable,
     ResearchRefreshError,
 )
 from backend.services.orchestration.adapters.evidence_adapter import (
@@ -529,6 +530,7 @@ async def consume_scope_proposal(
     _service_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> ScopeConsumerDispatchV1:
+    correlation_id = _correlation_id(request_id)
     if proposal_decision_id != continuation.proposal_decision_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -581,7 +583,21 @@ async def consume_scope_proposal(
             external_user_id=tenant.userId,
             user_id=user.user_id,
             idempotency_key=idempotency_key.strip(),
-            request_id=_correlation_id(request_id),
+            request_id=correlation_id,
+        )
+    except IdempotencyConflict as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            "AXWISE_IDEMPOTENCY_CONFLICT",
+            str(exc),
+            correlation_id,
+        )
+    except ResearchDispatchUnavailable:
+        raise _contract_error(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AXWISE_RESEARCH_DISPATCH_UNAVAILABLE",
+            "accepted research could not be durably dispatched; retry the same request",
+            correlation_id,
         )
     except (ScopeProposalError, ScopeAcceptanceConflict, ScopeContractError) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
@@ -602,9 +618,11 @@ async def consume_scope_proposal(
         )
     job = result.research_job
     if binding.purpose == "research" and job is None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="research preflight did not produce a durable research job",
+        raise _contract_error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "AXWISE_RESEARCH_DISPATCH_INVARIANT",
+            "accepted research dispatch lost its durable research job",
+            correlation_id,
         )
     return ScopeConsumerDispatchV1(
         receipt_id=ScopeConsumerDispatchV1.canonical_receipt_id(receipt_identity),

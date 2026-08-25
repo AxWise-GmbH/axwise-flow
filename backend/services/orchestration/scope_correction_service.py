@@ -2449,7 +2449,7 @@ def validate_continuation_request_authority(
         mismatches.append("research_policy.minimum_evidence_quality")
 
     binding = request.scope_continuation
-    research_requested = (
+    policy_requests_research = (
         request.research_policy.required
         or request.research_policy.grounding_required
         or request.research_policy.minimum_mode
@@ -2461,12 +2461,12 @@ def validate_continuation_request_authority(
     elif binding is None:
         pass
     elif binding.purpose == "planning" and (
-        request.planning is None or research_requested or has_actions
+        request.planning is None or policy_requests_research or has_actions
     ):
         mismatches.append("scope_continuation.purpose")
     elif binding.purpose == "assignment" and (
         request.planning is None
-        or research_requested
+        or policy_requests_research
         or has_actions
         or not request.available_agents
         or request.scope_consumer_inputs is None
@@ -2477,7 +2477,9 @@ def validate_continuation_request_authority(
     ):
         mismatches.append("scope_continuation.purpose")
     elif binding.purpose == "research" and (
-        not research_requested or request.planning is not None or has_actions
+        contract.evidence.mode == "none"
+        or request.planning is not None
+        or has_actions
     ):
         mismatches.append("scope_continuation.purpose")
     elif binding.purpose in {"synthesis", "execution"}:
