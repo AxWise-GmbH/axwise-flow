@@ -948,7 +948,19 @@ class ScopeProposalService:
             if staged_source is not None
             else source.research_policy
         )
-        if purpose != "research":
+        if purpose == "research":
+            # The proposal packet, rather than the source request's advertised
+            # output catalogue, is the accepted research authority.  This
+            # projection is hash-preserving because research execution inputs
+            # are already sealed from the packet's required outputs.
+            policy = policy.model_copy(
+                update={
+                    "required_outputs": list(
+                        packet.research_contract.evidence.required_outputs
+                    )
+                }
+            )
+        else:
             policy = policy.model_copy(
                 update={
                     "required": False,
