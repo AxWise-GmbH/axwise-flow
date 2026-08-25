@@ -72,6 +72,8 @@ def _get_sqlalchemy_models():
                 "PipelineRun": getattr(backend_models, "PipelineRun", None),
                 "OrqalyTenantMapping": getattr(backend_models, "OrqalyTenantMapping", None),
                 "OrchestrationDecisionSnapshot": getattr(backend_models, "OrchestrationDecisionSnapshot", None),
+                "OrchestrationScopeCorrection": getattr(backend_models, "OrchestrationScopeCorrection", None),
+                "OrchestrationScopeAcceptance": getattr(backend_models, "OrchestrationScopeAcceptance", None),
                 "OrchestrationEvent": getattr(backend_models, "OrchestrationEvent", None),
                 "OrchestrationOutcome": getattr(backend_models, "OrchestrationOutcome", None),
                 "OrchestrationExecutionReceipt": getattr(backend_models, "OrchestrationExecutionReceipt", None),
@@ -90,6 +92,8 @@ def _get_sqlalchemy_models():
                 "PipelineRun": None,
                 "OrqalyTenantMapping": None,
                 "OrchestrationDecisionSnapshot": None,
+                "OrchestrationScopeCorrection": None,
+                "OrchestrationScopeAcceptance": None,
                 "OrchestrationEvent": None,
                 "OrchestrationOutcome": None,
                 "OrchestrationExecutionReceipt": None,
@@ -114,6 +118,8 @@ def _get_sqlalchemy_models():
             "PipelineRun": None,
             "OrqalyTenantMapping": None,
             "OrchestrationDecisionSnapshot": None,
+            "OrchestrationScopeCorrection": None,
+            "OrchestrationScopeAcceptance": None,
             "OrchestrationEvent": None,
             "OrchestrationOutcome": None,
             "OrchestrationExecutionReceipt": None,
@@ -136,6 +142,8 @@ SimulationData = _models["SimulationData"]
 PipelineRun = _models["PipelineRun"]
 OrqalyTenantMapping = _models["OrqalyTenantMapping"]
 OrchestrationDecisionSnapshot = _models["OrchestrationDecisionSnapshot"]
+OrchestrationScopeCorrection = _models["OrchestrationScopeCorrection"]
+OrchestrationScopeAcceptance = _models["OrchestrationScopeAcceptance"]
 OrchestrationEvent = _models["OrchestrationEvent"]
 OrchestrationOutcome = _models["OrchestrationOutcome"]
 OrchestrationExecutionReceipt = _models["OrchestrationExecutionReceipt"]
@@ -174,6 +182,8 @@ __all__ = [
     "PipelineRun",
     "OrqalyTenantMapping",
     "OrchestrationDecisionSnapshot",
+    "OrchestrationScopeCorrection",
+    "OrchestrationScopeAcceptance",
     "OrchestrationEvent",
     "OrchestrationOutcome",
     "OrchestrationExecutionReceipt",

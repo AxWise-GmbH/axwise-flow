@@ -1,0 +1,827 @@
+{
+  "canonicalization": "ecmascript_sorted_json_sha256_v1",
+  "fixture_fingerprint": "68014c8148a95c5abe2c0e3acfe0f3d5328ff7b67655a4f1ddcb1f134d26892e",
+  "fixtures": {
+    "clarification": {
+      "clarification_hash": "b317c77737fc8dca1e063e088bcf9dc6d807e2b9439cc68fec453133aa1ed1ae",
+      "clarification_id": "scope-clarification-b317c77737fc8dca1e063e088bcf9dc6",
+      "correction_hash": "7777777777777777777777777777777777777777777777777777777777777777",
+      "fields": [
+        "geographies"
+      ],
+      "question": "Which exact country should the requested local market mean?",
+      "reason_code": "ambiguous",
+      "source_scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "version": "axwise_scope_material_clarification_v1"
+    },
+    "continuations": {
+      "assignment": {
+        "binding": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "binding_hash": "eb5af78e155891211efb7b29adc2a361eae83037cbbfaeffc748068e6390b061",
+          "consumer_inputs_hash": "282ecc722ae135f2358e5748f60947b6702a6be3f038265cf7649171d6e41f1c",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+          "purpose": "assignment",
+          "scope_generation": 0,
+          "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "eb5af78e155891211efb7b29adc2a361eae83037cbbfaeffc748068e6390b061",
+        "consumer_inputs_hash": "282ecc722ae135f2358e5748f60947b6702a6be3f038265cf7649171d6e41f1c",
+        "request": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:assignment:golden-v1",
+            "payload": {
+              "authority_kind": "planning_projection",
+              "catalogue": {
+                "available_agents": [],
+                "available_tools": []
+              },
+              "planning_projection_ref": {
+                "planning_consumer_inputs_hash": "12ace52d6e133e35cd5ab2cb9a41885a7c928afb072faed15e7a4df274591941",
+                "planning_continuation_binding_hash": "5f4198e0317098f38528ea7f7631b0d451efdded6fdc682dc7f99a1a78fd5664",
+                "planning_decision_id": "decision-planning-golden-v1",
+                "planning_projection_hash": "940a08f89b1dca3291b27d863332c77efe1f505b6143db7c4880f90b6a129155",
+                "version": "axwise_scope_planning_projection_ref_v1"
+              }
+            },
+            "payload_hash": "4ec950805c8e4a38fbfb237da82642cc4948b2287bf0b182b68f6f8897395d2c",
+            "purpose": "assignment",
+            "scope_generation": 0,
+            "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      },
+      "execution": {
+        "binding": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "binding_hash": "64da819482569e02a3739ef2ea8e14ab673f522c131afd780c13832691f0c14c",
+          "consumer_inputs_hash": "89b2b0881bc4377e50015886e71701d9d934097792b254ff19563e0019e815dd",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+          "purpose": "execution",
+          "scope_generation": 0,
+          "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "64da819482569e02a3739ef2ea8e14ab673f522c131afd780c13832691f0c14c",
+        "consumer_inputs_hash": "89b2b0881bc4377e50015886e71701d9d934097792b254ff19563e0019e815dd",
+        "request": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:execution:golden-v1",
+            "payload": {
+              "action_inputs": [
+                {
+                  "action_id": "send_sms",
+                  "agent_id": "00000000-0000-0000-0000-000000000010",
+                  "concilium_id": "concilium-campaign-approval",
+                  "input_refs": [
+                    {
+                      "content_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+                      "reference_id": "artifact-approved-message-v1",
+                      "reference_type": "artifact"
+                    }
+                  ],
+                  "job_id": "job-send-sms",
+                  "task_id": "team-task-send-sms",
+                  "team_id": "00000000-0000-0000-0000-000000000011",
+                  "tool_grant_ids": [
+                    "tool-grant-sms-provider-v1"
+                  ],
+                  "workflow_execution_id": "00000000-0000-0000-0000-000000000012",
+                  "workflow_id": "workflow-sms-campaign"
+                }
+              ]
+            },
+            "payload_hash": "b7f4d6f069342bcf1847e43e3fbb3f17033ac73b5d6716dec035cfa25117cca2",
+            "purpose": "execution",
+            "scope_generation": 0,
+            "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      },
+      "planning": {
+        "binding": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "binding_hash": "5f4198e0317098f38528ea7f7631b0d451efdded6fdc682dc7f99a1a78fd5664",
+          "consumer_inputs_hash": "12ace52d6e133e35cd5ab2cb9a41885a7c928afb072faed15e7a4df274591941",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+          "purpose": "planning",
+          "scope_generation": 0,
+          "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "5f4198e0317098f38528ea7f7631b0d451efdded6fdc682dc7f99a1a78fd5664",
+        "consumer_inputs_hash": "12ace52d6e133e35cd5ab2cb9a41885a7c928afb072faed15e7a4df274591941",
+        "request": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:planning:golden-v1",
+            "payload": {
+              "catalogue": {
+                "available_agents": [],
+                "available_tools": []
+              },
+              "planning": {
+                "pattern": "single",
+                "steps": [
+                  {
+                    "step_id": "step-golden",
+                    "title": "Produce the accepted deliverable"
+                  }
+                ]
+              },
+              "research_completion_ref": null
+            },
+            "payload_hash": "6ef86a63945cf872328b3b2170d4d926e6b9d9f034f4b99fd8ed52d2f7de1c8d",
+            "purpose": "planning",
+            "scope_generation": 0,
+            "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      },
+      "research": {
+        "binding": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+          "consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "purpose": "research",
+          "scope_generation": 0,
+          "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+        "consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
+        "request": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:research:golden-v1",
+            "payload": {},
+            "payload_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "purpose": "research",
+            "scope_generation": 0,
+            "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      },
+      "synthesis": {
+        "binding": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "binding_hash": "d57bf64f96ceec3168d5219c151491b50dc294d91606f242942e927280fbb04d",
+          "consumer_inputs_hash": "8081840886f423fe0f409ac536504e1c74a4df85da5b172897b04f0683ef1920",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+          "purpose": "synthesis",
+          "scope_generation": 0,
+          "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "d57bf64f96ceec3168d5219c151491b50dc294d91606f242942e927280fbb04d",
+        "consumer_inputs_hash": "8081840886f423fe0f409ac536504e1c74a4df85da5b172897b04f0683ef1920",
+        "request": {
+          "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+          "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:synthesis:golden-v1",
+            "payload": {
+              "artifact_refs": [
+                {
+                  "content_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+                  "reference_id": "artifact-prd-v1"
+                }
+              ],
+              "output_contract": {
+                "count": 1,
+                "presentation": "markdown_artifact",
+                "required_sections": [
+                  "Summary",
+                  "Recommendations"
+                ],
+                "title_prefix": "Estonia Cat Food",
+                "type": "research_prd"
+              }
+            },
+            "payload_hash": "a6bf26ce660ec0b42b21abc200fadeb107f2e4a4987249eee44c8952dae2b68f",
+            "purpose": "synthesis",
+            "scope_generation": 0,
+            "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      }
+    },
+    "corrected_acceptance": {
+      "acceptance_hash": "38ed79eede80ae0155b130af7c8bdf4d64e5600c8898a14d6f7cee4a705fdc4d",
+      "acceptance_id": "scope-acceptance-694bb24acf844cd90d491a75d0b7c3ea",
+      "accepted_at": "2026-08-25T00:00:00.000Z",
+      "contract_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "proposal_decision_id": "scope-proposal-22222222222222222222222222222222",
+      "proposal_hash": "226cd77b97d4c4c3f00216ce25e15894f4025d63a83e9bcc39869641aa56d7d5",
+      "proposal_inputs_hash": "9999999999999999999999999999999999999999999999999999999999999999",
+      "research_execution_inputs_hash": null,
+      "scope_generation": 1,
+      "scope_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_acceptance_v1"
+    },
+    "corrected_proposal": {
+      "compiler_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "contract_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "correction_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "correction_id": "scope-correction-33333333333333333333333333333333",
+      "disclosure": {
+        "acquisition_mode": "none",
+        "currency": "EUR",
+        "estimated_research_cost": null,
+        "estimated_research_latency_ms": null,
+        "executor_roles": [],
+        "external_sources_required": false,
+        "geographies": [],
+        "grounding_required": false,
+        "maximum_evidence_items": 0,
+        "maximum_research_cost": null,
+        "maximum_research_iterations": 0,
+        "maximum_research_latency_ms": null,
+        "model_resource": null,
+        "provider": null,
+        "required_outputs": [],
+        "research_required": false,
+        "thinking_level": null,
+        "version": "axwise_scope_proposal_disclosure_v1"
+      },
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "parent_decision_id": "scope-proposal-11111111111111111111111111111111",
+      "proposal_decision_id": "scope-proposal-22222222222222222222222222222222",
+      "proposal_hash": "226cd77b97d4c4c3f00216ce25e15894f4025d63a83e9bcc39869641aa56d7d5",
+      "proposal_inputs_hash": "9999999999999999999999999999999999999999999999999999999999999999",
+      "research_execution_inputs_hash": null,
+      "scope_generation": 1,
+      "scope_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_v1"
+    },
+    "decision_projections": {
+      "assignment": {
+        "advisory_only": true,
+        "decision_id": "decision-assignment-golden-v1",
+        "decision_status": "recommended",
+        "executable": true,
+        "projection_hash": "59346abb4fec5a5bf1695531d2a56906358960f146f74cfccb4557ee9c500747",
+        "purpose": "assignment",
+        "routing_mode": "direct",
+        "selected_agents": [
+          {
+            "agent_id": "agent-golden-writer",
+            "approval_gate_ids": [],
+            "node_ids": [
+              "node-direct-assignment"
+            ],
+            "required_capabilities": [
+              "document_writer"
+            ],
+            "tool_ids": []
+          }
+        ],
+        "validation_rejections": [],
+        "validation_status": "feasible",
+        "version": "axwise_scope_decision_projection_v1"
+      },
+      "planning": {
+        "advisory_only": true,
+        "critical_path_latency_ms": 10000,
+        "currency": "EUR",
+        "decision_id": "decision-planning-golden-v1",
+        "decision_status": "recommended",
+        "executable": true,
+        "nodes": [
+          {
+            "approval_gate_ids": [],
+            "assigned_agent_id": "agent-golden-writer",
+            "budget": {
+              "currency": "EUR",
+              "maximum_cost": 10.0,
+              "maximum_latency_ms": 60000
+            },
+            "completion_criteria": [
+              "The accepted PRD is complete"
+            ],
+            "dependencies": [],
+            "estimated_cost": 5.0,
+            "estimated_latency_ms": 10000,
+            "failure_policy": [
+              {
+                "action": "request_replan",
+                "maximum_attempts": 0,
+                "trigger": "agent_unavailable"
+              }
+            ],
+            "input_contract": {
+              "requirement_ids": [
+                "req-golden"
+              ],
+              "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "node_id": "step-golden",
+            "output_contract": {
+              "deliverable_count": 1,
+              "deliverable_type": "research_prd",
+              "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "required_capabilities": [
+              "document_writer"
+            ],
+            "review_rules": [],
+            "reviewer_agent_id": null,
+            "title": "Produce the accepted deliverable",
+            "tool_ids": []
+          }
+        ],
+        "projection_hash": "940a08f89b1dca3291b27d863332c77efe1f505b6143db7c4880f90b6a129155",
+        "purpose": "planning",
+        "routing_mode": "sequential",
+        "team_member_ids": [
+          "agent-golden-writer"
+        ],
+        "template_mode": null,
+        "total_estimated_cost": 5.0,
+        "validation_rejections": [],
+        "validation_status": "feasible",
+        "version": "axwise_scope_decision_projection_v1"
+      },
+      "research_planning": {
+        "advisory_only": true,
+        "critical_path_latency_ms": 10000,
+        "currency": "EUR",
+        "decision_id": "decision-research-planning-golden-v1",
+        "decision_status": "recommended",
+        "executable": true,
+        "nodes": [
+          {
+            "approval_gate_ids": [],
+            "assigned_agent_id": "agent-golden-writer",
+            "budget": {
+              "currency": "EUR",
+              "maximum_cost": 10.0,
+              "maximum_latency_ms": 60000
+            },
+            "completion_criteria": [
+              "The accepted PRD is complete"
+            ],
+            "dependencies": [],
+            "estimated_cost": 5.0,
+            "estimated_latency_ms": 10000,
+            "failure_policy": [
+              {
+                "action": "request_replan",
+                "maximum_attempts": 0,
+                "trigger": "agent_unavailable"
+              }
+            ],
+            "input_contract": {
+              "requirement_ids": [
+                "req-golden"
+              ],
+              "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "node_id": "step-golden",
+            "output_contract": {
+              "deliverable_count": 1,
+              "deliverable_type": "research_prd",
+              "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "required_capabilities": [
+              "document_writer"
+            ],
+            "review_rules": [],
+            "reviewer_agent_id": null,
+            "title": "Produce the accepted deliverable",
+            "tool_ids": []
+          }
+        ],
+        "projection_hash": "1868a068f7f866f86bbb755627932e0eccdbaa7f97be11adc3d8b637c78cdaeb",
+        "purpose": "planning",
+        "routing_mode": "sequential",
+        "team_member_ids": [
+          "agent-golden-writer"
+        ],
+        "template_mode": null,
+        "total_estimated_cost": 5.0,
+        "validation_rejections": [],
+        "validation_status": "feasible",
+        "version": "axwise_scope_decision_projection_v1"
+      }
+    },
+    "initial_acceptance": {
+      "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
+      "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
+      "accepted_at": "2026-08-25T00:00:00.000Z",
+      "contract_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+      "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+      "proposal_inputs_hash": "8888888888888888888888888888888888888888888888888888888888888888",
+      "research_execution_inputs_hash": null,
+      "scope_generation": 0,
+      "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_acceptance_v1"
+    },
+    "initial_proposal": {
+      "compiler_hash": null,
+      "contract_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "correction_hash": null,
+      "correction_id": null,
+      "disclosure": {
+        "acquisition_mode": "none",
+        "currency": "EUR",
+        "estimated_research_cost": null,
+        "estimated_research_latency_ms": null,
+        "executor_roles": [],
+        "external_sources_required": false,
+        "geographies": [],
+        "grounding_required": false,
+        "maximum_evidence_items": 0,
+        "maximum_research_cost": null,
+        "maximum_research_iterations": 0,
+        "maximum_research_latency_ms": null,
+        "model_resource": null,
+        "provider": null,
+        "required_outputs": [],
+        "research_required": false,
+        "thinking_level": null,
+        "version": "axwise_scope_proposal_disclosure_v1"
+      },
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "parent_decision_id": null,
+      "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+      "proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+      "proposal_inputs_hash": "8888888888888888888888888888888888888888888888888888888888888888",
+      "research_execution_inputs_hash": null,
+      "scope_generation": 0,
+      "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_v1"
+    },
+    "poll_states": {
+      "needs_material_clarification": {
+        "clarification": {
+          "clarification_hash": "b317c77737fc8dca1e063e088bcf9dc6d807e2b9439cc68fec453133aa1ed1ae",
+          "clarification_id": "scope-clarification-b317c77737fc8dca1e063e088bcf9dc6",
+          "correction_hash": "7777777777777777777777777777777777777777777777777777777777777777",
+          "fields": [
+            "geographies"
+          ],
+          "question": "Which exact country should the requested local market mean?",
+          "reason_code": "ambiguous",
+          "source_scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "version": "axwise_scope_material_clarification_v1"
+        },
+        "correction_hash": "7777777777777777777777777777777777777777777777777777777777777777",
+        "correction_id": "scope-correction-55555555555555555555555555555555",
+        "error_code": null,
+        "interpretation_attempt_count": 0,
+        "next_retry_at": null,
+        "proposal_attempt_count": 0,
+        "result_proposal": null,
+        "result_scope_packet": null,
+        "reused": false,
+        "source_proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+        "source_proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+        "source_scope_generation": 0,
+        "source_scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "needs_material_clarification",
+        "task_id": "00000000-0000-0000-0000-000000000003",
+        "usage": null,
+        "version": "axwise_scope_correction_poll_v1"
+      },
+      "queued": {
+        "clarification": null,
+        "correction_hash": "7777777777777777777777777777777777777777777777777777777777777777",
+        "correction_id": "scope-correction-55555555555555555555555555555555",
+        "error_code": null,
+        "interpretation_attempt_count": 0,
+        "next_retry_at": null,
+        "proposal_attempt_count": 0,
+        "result_proposal": null,
+        "result_scope_packet": null,
+        "reused": false,
+        "source_proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
+        "source_proposal_hash": "e8da00b3cacae8500914b19b49eaefa507c5b6b7a65b0aec8729f952dade78b3",
+        "source_scope_generation": 0,
+        "source_scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "status": "queued",
+        "task_id": "00000000-0000-0000-0000-000000000003",
+        "usage": null,
+        "version": "axwise_scope_correction_poll_v1"
+      }
+    },
+    "research_acceptance": {
+      "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+      "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+      "accepted_at": "2026-08-25T00:00:00.000Z",
+      "contract_hash": "5555555555555555555555555555555555555555555555555555555555555555",
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "proposal_inputs_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "research_execution_inputs_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "scope_generation": 0,
+      "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_acceptance_v1"
+    },
+    "research_completion": {
+      "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+      "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+      "completion_hash": "bbf736219b4ee921747e21dbf05aa895db3581c02fe9ec24b7acc309b3db67df",
+      "completion_id": "scope-research-46fadf375934c99ec966a79c6b79315f",
+      "evidence_catalogue_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "evidence_count": 3,
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "research_consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
+      "research_continuation_binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+      "research_decision_id": "decision-research-golden-v1",
+      "research_job_id": "research-job-golden-v1",
+      "research_status": "completed",
+      "result_decision_id": "decision-research-result-golden-v1",
+      "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_research_completion_ref_v1"
+    },
+    "research_proposal": {
+      "compiler_hash": null,
+      "contract_hash": "5555555555555555555555555555555555555555555555555555555555555555",
+      "correction_hash": null,
+      "correction_id": null,
+      "disclosure": {
+        "acquisition_mode": "grounded",
+        "currency": "EUR",
+        "estimated_research_cost": 10.0,
+        "estimated_research_latency_ms": 300000,
+        "executor_roles": [],
+        "external_sources_required": true,
+        "geographies": [
+          "EE"
+        ],
+        "grounding_required": true,
+        "maximum_evidence_items": 25,
+        "maximum_research_cost": 25.0,
+        "maximum_research_iterations": 1,
+        "maximum_research_latency_ms": 600000,
+        "model_resource": "models/gemini-3.7-flash",
+        "provider": "google",
+        "required_outputs": [
+          "research_prd"
+        ],
+        "research_required": true,
+        "thinking_level": "HIGH",
+        "version": "axwise_scope_proposal_disclosure_v1"
+      },
+      "org_id": "00000000-0000-0000-0000-000000000001",
+      "parent_decision_id": null,
+      "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+      "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+      "proposal_inputs_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "research_execution_inputs_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "scope_generation": 0,
+      "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "user_id": "00000000-0000-0000-0000-000000000002",
+      "version": "axwise_scope_proposal_v1"
+    },
+    "staged_continuations": {
+      "research_planning_to_assignment": {
+        "binding": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "binding_hash": "b576cc96c37275e977aea38c6420ee997452554cf353665b6ed1d79a05fefcd4",
+          "consumer_inputs_hash": "d478c45b43c76148aabbcef79fd15edd31140a38a41d6ecd71a74ba2a2985e28",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "purpose": "assignment",
+          "scope_generation": 0,
+          "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "b576cc96c37275e977aea38c6420ee997452554cf353665b6ed1d79a05fefcd4",
+        "consumer_inputs_hash": "d478c45b43c76148aabbcef79fd15edd31140a38a41d6ecd71a74ba2a2985e28",
+        "request": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:assignment:golden-v1",
+            "payload": {
+              "authority_kind": "planning_projection",
+              "catalogue": {
+                "available_agents": [],
+                "available_tools": []
+              },
+              "planning_projection_ref": {
+                "planning_consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
+                "planning_continuation_binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
+                "planning_decision_id": "decision-research-planning-golden-v1",
+                "planning_projection_hash": "1868a068f7f866f86bbb755627932e0eccdbaa7f97be11adc3d8b637c78cdaeb",
+                "version": "axwise_scope_planning_projection_ref_v1"
+              }
+            },
+            "payload_hash": "5aa314fec3ad433897903a6c1318e3b8e36d9679e12322534c6a25ec5b2ff319",
+            "purpose": "assignment",
+            "scope_generation": 0,
+            "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      },
+      "research_to_planning": {
+        "binding": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
+          "consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
+          "correction_id": null,
+          "org_id": "00000000-0000-0000-0000-000000000001",
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+          "purpose": "planning",
+          "scope_generation": 0,
+          "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+          "task_id": "00000000-0000-0000-0000-000000000003",
+          "user_id": "00000000-0000-0000-0000-000000000002",
+          "version": "axwise_scope_continuation_v1"
+        },
+        "binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
+        "consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
+        "request": {
+          "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+          "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+          "consumer_inputs": {
+            "consumer_id": "goal:00000000-0000-0000-0000-000000000003:planning:golden-v1",
+            "payload": {
+              "catalogue": {
+                "available_agents": [],
+                "available_tools": []
+              },
+              "planning": {
+                "pattern": "single",
+                "steps": [
+                  {
+                    "step_id": "step-golden",
+                    "title": "Produce the accepted deliverable"
+                  }
+                ]
+              },
+              "research_completion_ref": {
+                "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
+                "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
+                "completion_hash": "bbf736219b4ee921747e21dbf05aa895db3581c02fe9ec24b7acc309b3db67df",
+                "completion_id": "scope-research-46fadf375934c99ec966a79c6b79315f",
+                "evidence_catalogue_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+                "evidence_count": 3,
+                "org_id": "00000000-0000-0000-0000-000000000001",
+                "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+                "proposal_hash": "6e3a99bc3d3a7273d81f67c2dcc7291a59be92137b5ddc80fb26e0c0196c23b3",
+                "research_consumer_inputs_hash": "45b05ea97a2f9e59fbf37f903b633094a30d9edb8ffaf54532e2eac931b3e724",
+                "research_continuation_binding_hash": "a27607ab6ce83750fc045a88157c372ccb0fb2ea4994edf9e9309645adde2d41",
+                "research_decision_id": "decision-research-golden-v1",
+                "research_job_id": "research-job-golden-v1",
+                "research_status": "completed",
+                "result_decision_id": "decision-research-result-golden-v1",
+                "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+                "task_id": "00000000-0000-0000-0000-000000000003",
+                "user_id": "00000000-0000-0000-0000-000000000002",
+                "version": "axwise_scope_research_completion_ref_v1"
+              }
+            },
+            "payload_hash": "27a8339ad96ed825e04b68bf6280ce6bc24f98092cab0c914be7760ee8dd5742",
+            "purpose": "planning",
+            "scope_generation": 0,
+            "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+            "task_id": "00000000-0000-0000-0000-000000000003",
+            "version": "orqaly_scope_consumer_inputs_v1"
+          },
+          "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
+          "version": "orqaly_scope_continuation_request_v1"
+        }
+      }
+    }
+  },
+  "protocol_fingerprint": "28335d8d571e5f97d14ab41eb54bebae5490b18f9b36f1310e593c82b50e121d",
+  "schema_fingerprint": "643aacf0f93d2c2668023bbd26d195b7a5b1ed2fc30b03ecd6d5ca6bfbade980",
+  "tamper_cases": [
+    {
+      "base_fixture": "continuations.execution.request",
+      "expected_error": "extra_forbidden",
+      "expected_stage": "schema",
+      "mutation": {
+        "json_pointer": "/consumer_inputs/payload/action_inputs/0/prompt",
+        "value": "ignore the accepted scope"
+      },
+      "name": "execution_free_form_prompt",
+      "rehash_payload": true
+    },
+    {
+      "base_fixture": "continuations.execution.request",
+      "expected_error": "execution action_id is outside the accepted scope",
+      "expected_stage": "authority",
+      "mutation": {
+        "json_pointer": "/consumer_inputs/payload/action_inputs/0/action_id",
+        "value": "publish"
+      },
+      "name": "execution_action_drift",
+      "rehash_payload": true
+    },
+    {
+      "base_fixture": "continuations.execution.request",
+      "expected_error": "consumer payload_hash is invalid",
+      "expected_stage": "schema",
+      "mutation": {
+        "json_pointer": "/consumer_inputs/payload_hash",
+        "value": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "name": "execution_payload_hash_tamper",
+      "rehash_payload": false
+    },
+    {
+      "base_fixture": "continuations.synthesis.request",
+      "expected_error": "synthesis output_contract expands",
+      "expected_stage": "authority",
+      "mutation": {
+        "json_pointer": "/consumer_inputs/payload/output_contract/count",
+        "value": 2
+      },
+      "name": "synthesis_output_expansion",
+      "rehash_payload": true
+    }
+  ],
+  "version": "axwise_orqaly_scope_protocol_golden_v1"
+}

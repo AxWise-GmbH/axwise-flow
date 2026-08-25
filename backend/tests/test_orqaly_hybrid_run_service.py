@@ -4,7 +4,6 @@ import json
 import os
 from copy import deepcopy
 from datetime import datetime, timezone
-from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 from sqlalchemy import create_engine
@@ -31,6 +30,8 @@ from backend.database import Base
 from backend.models import (
     AnalysisResult,
     OrchestrationDecisionSnapshot,
+    OrchestrationScopeAcceptance,
+    OrchestrationScopeCorrection,
     PipelineRun,
     SimulationData,
     User,
@@ -38,11 +39,23 @@ from backend.models import (
 from backend.models import CachedPRD
 from backend.domain.market_scope import resolve_market_expression
 from backend.domain.orchestration.scope_models import (
-    ScopeContractBindingV1,
+    ScopeConsumerInputsV1,
+    ScopeContinuationRequestV1,
+    ScopeProposalAcceptanceRequestV1,
     ScopeResearchAcceptanceBindingV1,
-    ScopeResearchContractV1,
     TrustedRuntimeMetadataV1,
 )
+from backend.domain.orchestration.models import DecisionCreateRequestV1, ResearchJobV1
+from backend.infrastructure.persistence.orchestration_repositories import (
+    SqlAlchemyDecisionStore,
+    SqlAlchemyScopeAcceptanceStore,
+    SqlAlchemyScopeCorrectionStore,
+)
+from backend.services.orchestration.adapters.hybrid_research_adapter import (
+    HybridResearchAdapter,
+)
+from backend.services.orchestration.decision_service import OrchestrationDecisionService
+from backend.services.orchestration.scope_proposal_service import ScopeProposalService
 from backend.services.orqaly_hybrid_run_service import (
     HybridRunCancelled,
     HybridOutputs,
@@ -76,6 +89,7 @@ from backend.services.research_topic_contract_service import (
     TopicSeedContract,
     build_topic_seed,
 )
+from backend.tests.orchestration.unit.test_uncertainty_router import _payload
 
 pytestmark = pytest.mark.contract
 os.environ.setdefault(
@@ -251,7 +265,7 @@ def _accepted_enqueue(
     research_mode: HybridResearchMode = HybridResearchMode.SYNTHETIC_ONLY,
     grounding_policy: HybridGroundingPolicy | None = None,
 ):
-    """Exercise legacy behavioral cases through the mandatory accepted wire."""
+    """Exercise worker behavior through the unified Gate-1 lifecycle."""
 
     task_context = task_context or OrqalyTaskContext(
         task_id=f"goal-{hashlib.sha256(idempotency_key.encode()).hexdigest()[:16]}",
@@ -267,6 +281,8 @@ def _accepted_enqueue(
                 "interviews": True,
             }
         )
+    if not outputs.persona_resolution:
+        outputs = outputs.model_copy(update={"persona_resolution": True})
     if task_context.required_execution_roles and not outputs.persona_resolution:
         outputs = outputs.model_copy(update={"persona_resolution": True})
     if outputs.prd.enabled and outputs.prd.type in {"both", "operational"}:
@@ -290,6 +306,11 @@ def _accepted_enqueue(
     policy = grounding_policy or HybridGroundingPolicy(required=grounded)
     if grounded and not policy.required:
         policy = policy.model_copy(update={"required": True})
+    proposal_minimum_mode = policy.requested_mode
+    if grounded and proposal_minimum_mode == "instant":
+        proposal_minimum_mode = "grounded_fast"
+        if not task_context.business_evidence_profile:
+            policy = policy.model_copy(update={"requested_mode": proposal_minimum_mode})
     output_flags = {
         "customer_personas": outputs.empirical_personas,
         "persona_resolution": outputs.persona_resolution,
@@ -307,236 +328,250 @@ def _accepted_enqueue(
         task_context.research_prd_type
         or (outputs.prd.type if outputs.prd.enabled else "custom")
     )
-    roles = list(task_context.required_execution_roles)
-    role_slots = [
-        {
-            "slot_id": (
-                f"role-{ordinal:04x}"
-                f"{hashlib.sha256(role.encode('utf-8')).hexdigest()[:12]}"
-            ),
-            "role": role,
-            "required": True,
-        }
-        for ordinal, role in enumerate(roles)
-    ]
-    work_types = ["research_analysis"] if grounded else ["mixed_custom"]
-    if intent == "commercial_market_launch":
-        work_types.append("strategy_planning")
-    market_scope = (
-        request.business_context.market_scope
-        if request.business_context is not None
-        else None
+    business = request.business_context
+    questions = []
+    if request.questions_data:
+        for stakeholders in request.questions_data.stakeholders.values():
+            for stakeholder in stakeholders:
+                questions.extend(stakeholder.questions)
+    if not questions and request.raw_questionnaire_content:
+        questions = [request.raw_questionnaire_content]
+    intent_prefix = {
+        "commercial_market_launch": "Plan a commercial market launch. ",
+        "operational_process": "Design an operational process. ",
+        "product_strategy": "Create a product strategy. ",
+        "software_product": "Specify a software product. ",
+        "custom": "",
+    }[intent]
+    semantic_title = (
+        task_context.title
+        if intent in {"commercial_market_launch", "custom"}
+        else business.business_idea
     )
-    geographies = sorted(
-        {
-            country.country_code
-            for country in (
-                market_scope.resolved_scope.countries if market_scope else []
-            )
-        }
+    semantic_outcome = (
+        task_context.desired_outcome or task_context.description
+        if intent in {"commercial_market_launch", "custom"}
+        else business.problem
     )
-    if grounded and not geographies:
-        # Some negative-path fixtures intentionally omit the market scope.
-        # Keep the accepted contract valid so the service boundary—not this
-        # test adapter—reports the missing execution input.
-        geographies = ["DE"]
-    contract_payload = {
-        "version": "axwise_scope_research_contract_v1",
-        "document_intent": intent,
-        "work_types": sorted(set(work_types)),
-        "geographies": geographies,
-        "evidence": {
-            "mode": "grounded" if grounded else "synthetic",
-            "grounding_required": grounded,
-            "external_sources_required": grounded,
-            "required_outputs": required_outputs,
-        },
-        "executor_role_slots": role_slots,
+    payload = deepcopy(_payload())
+    payload["tenant"] = {
+        "orgId": external_org_id,
+        "userId": external_user_id,
     }
-    contract_payload["contract_hash"] = ScopeResearchContractV1.canonical_hash_for(
-        contract_payload
-    )
-    contract = ScopeResearchContractV1.model_validate(contract_payload)
-    scope_hash = canonical_hash(
-        {"fixture": "accepted-hybrid", "contract": contract_payload}
-    )
-    binding = ScopeContractBindingV1.model_validate(
-        {"scope_hash": scope_hash, **contract.model_dump(mode="json")}
-    )
-    execution_hash = canonical_hash(
+    payload["task"].update(
         {
-            "fixture": "accepted-hybrid-execution",
-            "scope_contract_binding": binding.model_dump(mode="json"),
             "task_id": task_context.task_id,
+            "domain": task_context.category or "general",
+            "task_class": None,
+            "capability_profile": None,
+            "objective": intent_prefix + semantic_title,
+            "desired_outcome": semantic_outcome,
+            # The immutable research contract carries the requested executor
+            # roles. Legacy free-text capability labels (for example an "EU"
+            # compliance skill) must not be reinterpreted as market geography.
+            "required_capabilities": [],
+            "preferred_capabilities": [],
+            "required_tools": [],
+            "requested_actions": [],
+            "stakeholders": [business.target_customer],
+            "constraints": list(task_context.constraints),
         }
     )
-    acceptance_payload = {
-        "version": "orqaly_scope_research_acceptance_v1",
-        "org_id": external_org_id,
-        "user_id": external_user_id,
-        "goal_id": task_context.task_id,
-        "proposal_decision_id": (
-            "decision-fixture-proposal-"
-            f"{hashlib.sha256(idempotency_key.encode()).hexdigest()[:16]}"
+    candidate_payloads = []
+    tool_ids = set()
+    for candidate in agent_candidates or []:
+        candidate_payloads.append(
+            {
+                "agent_id": candidate.agent_id,
+                "org_id": external_org_id,
+                "name": candidate.name,
+                "capabilities": list(candidate.capabilities),
+                "tool_ids": list(candidate.tools),
+                "availability": candidate.availability_status,
+                "success_rate": candidate.success_rate,
+                "estimated_cost": 1,
+                "estimated_latency_ms": 1000,
+                "max_data_classification": "confidential",
+                "max_risk_level": "high",
+                "stakeholder_tags": [],
+            }
+        )
+        tool_ids.update(candidate.tools)
+    payload["available_agents"] = candidate_payloads
+    payload["available_tools"] = [
+        {
+            "tool_id": tool_id,
+            "org_id": external_org_id,
+            "name": tool_id,
+            "available": True,
+            "allowed_actions": ["analyze_records"],
+            "allowed_data_classifications": ["internal", "confidential"],
+        }
+        for tool_id in sorted(tool_ids)
+    ]
+    payload["research_policy"] = {
+        "allow_existing_evidence": True,
+        "allow_hybrid_research": True,
+        "required": True,
+        "minimum_mode": proposal_minimum_mode if grounded else "instant",
+        "grounding_required": grounded,
+        "fail_closed": True,
+        "performance_profile": request.config.performance_profile.value,
+        "required_outputs": required_outputs,
+        "allowed_source_types": (
+            list(policy.allowed_source_types) if grounded else None
         ),
-        "scope_hash": scope_hash,
-        "contract_hash": contract.contract_hash,
-        "execution_inputs_hash": execution_hash,
-        "acceptance_id": str(uuid5(NAMESPACE_URL, f"hybrid:{idempotency_key}")),
-        "accepted_at": "2026-08-24T12:00:00.000Z",
-        "accepted_by_user_id": external_user_id,
+        "maximum_research_cost": 100,
+        "estimated_research_cost": 1,
+        "maximum_research_latency_ms": 1_200_000,
+        "estimated_research_latency_ms": 60_000,
+        "maximum_research_iterations": 1,
+        "maximum_evidence_items": max(1, policy.maximum_claims),
     }
-    acceptance_payload["binding_hash"] = (
-        ScopeResearchAcceptanceBindingV1.canonical_hash_for(acceptance_payload)
-    )
-    acceptance = ScopeResearchAcceptanceBindingV1.model_validate(
-        acceptance_payload
-    )
-    task_context = task_context.model_copy(
-        update={
-            "required_execution_roles": roles,
-            "research_prd_type": None if intent == "custom" else intent,
-            "scope_contract_binding": binding,
-            "research_execution_inputs_hash": execution_hash,
-            "scope_research_acceptance": acceptance,
-            "scope_runtime_binding": TrustedRuntimeMetadataV1(),
-        }
-    )
-    run, reused = service.enqueue(
-        request,
-        outputs,
-        user,
-        external_org_id,
-        external_user_id,
-        idempotency_key,
-        request_id,
-        task_context=task_context,
-        agent_candidates=agent_candidates,
-        research_mode=research_mode,
-        grounding_policy=policy,
-    )
-    _seed_accepted_decision_rows(
-        service,
-        run,
-        user,
-        external_org_id,
-        external_user_id,
-        task_context,
-    )
-    return run, reused
-
-
-def _seed_accepted_decision_rows(
-    service: HybridRunService,
-    run: PipelineRun,
-    user: User,
-    external_org_id: str,
-    external_user_id: str,
-    task_context: OrqalyTaskContext,
-) -> None:
-    """Mirror the committed proposal/decision boundary for worker tests."""
-
-    binding = task_context.scope_contract_binding.model_dump(mode="json")
-    acceptance = task_context.scope_research_acceptance.model_dump(mode="json")
-    runtime = task_context.scope_runtime_binding.model_dump(mode="json")
-    packet = {
-        "scope_hash": acceptance["scope_hash"],
-        "research_contract": {"contract_hash": acceptance["contract_hash"]},
-        "runtime": runtime,
+    payload["research_brief"] = {
+        "business_idea": business.business_idea,
+        "target_stakeholders": business.target_customer,
+        "problem": business.problem,
+        "research_questions": questions[:30],
+        "required_execution_roles": (
+            list(task_context.required_execution_roles)
+            if intent == "commercial_market_launch"
+            else []
+        ),
+        "research_prd_type": None if intent == "custom" else intent,
+        "customer_role_contract": task_context.customer_role_contract,
+        "critical_claim_policy": task_context.critical_claim_policy,
+        "business_evidence_profile": (
+            task_context.business_evidence_profile.model_dump(mode="json")
+            if task_context.business_evidence_profile
+            else None
+        ),
+        "industry": business.industry or "general",
+        "location": business.location,
+        "market_scope": (
+            business.market_scope.model_dump(mode="json")
+            if business.market_scope
+            else None
+        ),
+        "depth": request.config.depth,
+        "sample_size": request.config.people_per_stakeholder,
     }
+    proposal_request = DecisionCreateRequestV1.model_validate(payload)
+
+    class FixtureResearchPort:
+        def __init__(self):
+            self.run = None
+            self.reused = False
+            self.error = None
+
+        def start(self, accepted_request, decision_id, _consumer_key):
+            accepted_context = HybridResearchAdapter._task_context(accepted_request)
+            accepted_agents = HybridResearchAdapter._agent_candidates(accepted_request)
+            try:
+                run, reused = service.enqueue(
+                    request,
+                    outputs,
+                    user,
+                    external_org_id,
+                    external_user_id,
+                    (
+                        "orchestration-research-acceptance:"
+                        f"{accepted_request.scope_proposal_acceptance.acceptance_id}:"
+                        f"{accepted_request.scope_proposal_acceptance.acceptance_hash}"
+                    ),
+                    decision_id,
+                    task_context=accepted_context,
+                    agent_candidates=accepted_agents,
+                    research_mode=research_mode,
+                    grounding_policy=policy,
+                )
+            except Exception as exc:
+                # DecisionService intentionally turns adapter admission failures
+                # into a needs-human decision. Preserve the underlying boundary
+                # error so negative enqueue tests can assert the exact producer
+                # rejection without bypassing the unified lifecycle.
+                self.error = exc
+                raise
+            self.run = run
+            self.reused = reused
+            return ResearchJobV1(
+                job_id=run.job_id,
+                status=run.status,
+                decision_id=decision_id,
+                scope_contract_binding=accepted_context.scope_contract_binding,
+                scope_research_acceptance=(
+                    accepted_request.scope_research_acceptance
+                ),
+                scope_runtime_binding=accepted_request.scope_packet.runtime,
+            )
+
     session = service.session_factory()
     try:
-        proposal_id = acceptance["proposal_decision_id"]
-        if not session.query(OrchestrationDecisionSnapshot).filter_by(
-            decision_id=proposal_id
-        ).first():
-            session.add(
-                OrchestrationDecisionSnapshot(
-                    decision_id=proposal_id,
-                    partner_id="orqaly",
-                    external_org_id=external_org_id,
-                    external_user_id=external_user_id,
-                    user_id=user.user_id,
-                    idempotency_key=f"proposal:{proposal_id}",
-                    request_id=f"request:{proposal_id}",
-                    request_hash="a" * 64,
-                    contract_version="1.0",
-                    scorer_version="test",
-                    input_snapshot={
-                        "tenant": {
-                            "orgId": external_org_id,
-                            "userId": external_user_id,
-                        },
-                        "task": {"taskId": task_context.task_id},
-                        "scope_packet": packet,
-                        "scope_research_acceptance": None,
-                    },
-                    decision_payload={
-                        "decision_id": proposal_id,
-                        "research_job": None,
-                        "scope_contract_binding": binding,
-                        "scope_research_acceptance": None,
-                        "scope_runtime_binding": runtime,
-                        "research_execution_inputs_hash": acceptance[
-                            "execution_inputs_hash"
-                        ],
-                    },
-                    routing_mode="research_assisted",
-                    confidence=0,
-                    status="pending_research",
-                    created_at=datetime.now(timezone.utc),
-                )
-            )
-        accepted_id = run.request_id
-        if not session.query(OrchestrationDecisionSnapshot).filter_by(
-            decision_id=accepted_id
-        ).first():
-            session.add(
-                OrchestrationDecisionSnapshot(
-                    decision_id=accepted_id,
-                    partner_id="orqaly",
-                    external_org_id=external_org_id,
-                    external_user_id=external_user_id,
-                    user_id=user.user_id,
-                    idempotency_key=f"accepted:{accepted_id}",
-                    request_id=f"request:{accepted_id}",
-                    request_hash="b" * 64,
-                    contract_version="1.0",
-                    scorer_version="test",
-                    input_snapshot={
-                        "tenant": {
-                            "orgId": external_org_id,
-                            "userId": external_user_id,
-                        },
-                        "task": {"taskId": task_context.task_id},
-                        "scope_packet": packet,
-                        "scope_research_acceptance": acceptance,
-                    },
-                    decision_payload={
-                        "decision_id": accepted_id,
-                        "parent_decision_id": proposal_id,
-                        "scope_contract_binding": binding,
-                        "scope_research_acceptance": acceptance,
-                        "scope_runtime_binding": runtime,
-                        "research_execution_inputs_hash": acceptance[
-                            "execution_inputs_hash"
-                        ],
-                        "research_job": {
-                            "job_id": run.job_id,
-                            "decision_id": accepted_id,
-                            "scope_contract_binding": binding,
-                            "scope_research_acceptance": acceptance,
-                            "scope_runtime_binding": runtime,
-                        },
-                    },
-                    routing_mode="research_assisted",
-                    confidence=0,
-                    status="pending_research",
-                    parent_decision_id=proposal_id,
-                    created_at=datetime.now(timezone.utc),
-                )
-            )
-        session.commit()
+        decision_store = SqlAlchemyDecisionStore(session)
+        parent = OrchestrationDecisionService(decision_store).create(
+            proposal_request,
+            user_id=user.user_id,
+            idempotency_key=f"fixture-proposal:{idempotency_key}",
+        )
+        proposal = parent.scope_proposal
+        proposal_service = ScopeProposalService(
+            decision_store=decision_store,
+            correction_store=SqlAlchemyScopeCorrectionStore(session),
+            acceptance_store=SqlAlchemyScopeAcceptanceStore(session),
+        )
+        acceptance = proposal_service.accept(
+            ScopeProposalAcceptanceRequestV1(
+                org_id=proposal.org_id,
+                user_id=proposal.user_id,
+                task_id=proposal.task_id,
+                proposal_decision_id=proposal.proposal_decision_id,
+                scope_generation=proposal.scope_generation,
+                scope_hash=proposal.scope_hash,
+                contract_hash=proposal.contract_hash,
+                proposal_hash=proposal.proposal_hash,
+                proposal_inputs_hash=proposal.proposal_inputs_hash,
+                research_execution_inputs_hash=(
+                    proposal.research_execution_inputs_hash
+                ),
+            ),
+            internal_user_id=user.user_id,
+        )
+        consumer_inputs = ScopeConsumerInputsV1(
+            purpose="research",
+            consumer_id=f"fixture-research:{idempotency_key}",
+            task_id=proposal.task_id,
+            scope_hash=proposal.scope_hash,
+            scope_generation=proposal.scope_generation,
+            payload={},
+            payload_hash=canonical_hash({}),
+        )
+        continuation_request = ScopeContinuationRequestV1(
+            proposal_decision_id=proposal.proposal_decision_id,
+            acceptance_id=acceptance.acceptance_id,
+            acceptance_hash=acceptance.acceptance_hash,
+            consumer_inputs=consumer_inputs,
+        )
+        port = FixtureResearchPort()
+        consumed = OrchestrationDecisionService(
+            decision_store,
+            research_port=port,
+            scope_proposal_service=proposal_service,
+        ).consume_scope_proposal(
+            continuation_request,
+            org_id=external_org_id,
+            external_user_id=external_user_id,
+            user_id=user.user_id,
+            idempotency_key=f"fixture-consumer:{idempotency_key}",
+        )
+        if port.error is not None:
+            raise port.error
+        run = port.run or service.get_run_for_tenant(
+            consumed.research_job.job_id,
+            user.user_id,
+            external_org_id,
+            external_user_id,
+        )
+        return run, bool(consumed.reused or port.reused)
     finally:
         session.close()
 
@@ -701,6 +736,9 @@ async def fake_enrichment(result, request):
     result.empirical_personas = [
         {
             "name": "Alex Researcher",
+            "stakeholder_intelligence": {
+                "stakeholder_type": "economic_buyer",
+            },
             "pain_points": [
                 "Cannot approve commercial budget without traceable local evidence"
             ],
@@ -2220,7 +2258,9 @@ def _physical_business_task_context(
                 "version": "business_evidence_profile_v1",
                 "intent": intent,
                 "economic_model": "physical_product",
-                "market_scope_hash": "a" * 64,
+                "market_scope_hash": (
+                    _request().business_context.market_scope.resolution_hash
+                ),
                 "fact_requirements": [
                     {
                         "kind": "physical_product_offer",
@@ -2512,35 +2552,40 @@ async def test_worker_rejects_pre_acceptance_legacy_row_before_parser_or_model(
         fake_enrichment,
         fake_grounding,
     )
-    _seed_running_hybrid_run(
-        session_factory,
-        job_id="legacy-unbound-worker",
-        simulation_id="legacy-unbound-simulation",
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    run, _ = _accepted_enqueue(
+        service,
+        _request(),
+        HybridOutputs(),
+        user,
+        "orqaly-org-1",
+        "orqaly-user-1",
+        "legacy-unbound-worker",
+        "legacy-unbound-worker",
     )
     session = session_factory()
-    row = session.query(PipelineRun).filter_by(job_id="legacy-unbound-worker").one()
-    row.request_payload = {
-        "simulation": _request().model_dump(mode="json"),
-        "research_mode": "synthetic_only",
-        "grounding_policy": HybridGroundingPolicy(required=False).model_dump(
-            mode="json"
-        ),
-        "agent_candidates": [],
-    }
-    row.requested_outputs = HybridOutputs().model_dump(mode="json")
+    row = session.query(PipelineRun).filter_by(job_id=run.job_id).one()
+    legacy_context = dict(row.request_payload["task_context"])
+    legacy_context.pop("scope_proposal_acceptance", None)
+    legacy_context.pop("scope_continuation", None)
+    legacy_context.pop("scope_consumer_inputs", None)
+    row.request_payload = {**row.request_payload, "task_context": legacy_context}
     session.commit()
     session.close()
 
-    await service.process_job("legacy-unbound-worker", already_claimed=True)
+    await service.process_job(run.job_id)
 
     persisted = service.get_run_for_tenant(
-        "legacy-unbound-worker",
+        run.job_id,
         "axwise-user-1",
         "orqaly-org-1",
         "orqaly-user-1",
     )
     assert persisted.status == "failed"
-    assert "explicit scope and acceptance bindings" in persisted.error
+    assert "generic scope capability" in persisted.error
     assert orchestrator.parsed_questionnaires == []
     assert orchestrator.finalize_flags == []
 
@@ -2709,7 +2754,9 @@ def test_enqueue_rejects_disabled_business_evidence_adapter_before_persistence(
         business_evidence_profile={
             "intent": "commercial_market_launch",
             "economic_model": "physical_product",
-            "market_scope_hash": "a" * 64,
+            "market_scope_hash": (
+                _request().business_context.market_scope.resolution_hash
+            ),
             "fact_requirements": [],
             "calculation_requirements": [],
             "required_role_slots": [],
@@ -2719,13 +2766,18 @@ def test_enqueue_rejects_disabled_business_evidence_adapter_before_persistence(
     with pytest.raises(ValueError, match="physical_product is not enabled"):
         _accepted_enqueue(service,
             _request(),
-            HybridOutputs(),
+            _bundle_outputs(),
             user,
             "orqaly-org-1",
             "orqaly-user-1",
             "idem-disabled-projector",
             "trace-disabled-projector",
             task_context=task_context,
+            research_mode=HybridResearchMode.GROUNDED_HYBRID,
+            grounding_policy=HybridGroundingPolicy(
+                required=True,
+                requested_mode="grounded_fast",
+            ),
         )
 
     session = session_factory()
@@ -2895,7 +2947,9 @@ async def test_worker_publishes_only_after_hybrid_result_is_persisted(session_fa
     )
 
     claimed_id = await service.process_next()
-    assert claimed_id == run.job_id
+    assert claimed_id == run.job_id, service.get_run_for_tenant(
+        run.job_id, "axwise-user-1", "orqaly-org-1"
+    ).error
     await service.process_job(claimed_id, already_claimed=True)
 
     persisted = service.get_run_for_tenant(run.job_id, "axwise-user-1", "orqaly-org-1")
@@ -3360,7 +3414,7 @@ def test_enqueue_accepts_typed_partial_bundle_and_rejects_missing_grounding_loca
             )
         }
     )
-    with pytest.raises(ValueError, match="country-qualified location"):
+    with pytest.raises(ValueError, match="country-resolved.*market_scope"):
         _accepted_enqueue(service,
             request_without_location,
             _bundle_outputs(),

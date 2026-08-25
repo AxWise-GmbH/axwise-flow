@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from copy import deepcopy
 
 import pytest
@@ -14,7 +15,6 @@ from backend.domain.orchestration.enums import RoutingMode
 from backend.domain.orchestration.models import (
     DecisionCreateRequestV1,
     EvidenceItemV1,
-    PlanningRequirementsV1,
     ResearchJobV1,
     ResearchResultV1,
 )
@@ -188,114 +188,69 @@ def test_resolved_evidence_is_preserved_in_the_immutable_input_snapshot(
     )
 
 
-def test_phase1_idempotency_hash_remains_compatible_only_for_default_phase2_fields(
+@pytest.mark.parametrize(
+    "legacy_fields",
+    [
+        (
+            "evidence_catalogue",
+            "research_policy",
+            "research_brief",
+            "planning",
+            "upstream_decision_id",
+            "scope_state",
+            "scope_packet",
+            "scope_continuation",
+        ),
+        (
+            "planning",
+            "upstream_decision_id",
+            "scope_state",
+            "scope_packet",
+            "scope_continuation",
+        ),
+        (
+            "upstream_decision_id",
+            "scope_state",
+            "scope_packet",
+            "scope_continuation",
+        ),
+        ("scope_state", "scope_packet", "scope_continuation"),
+    ],
+    ids=("phase1", "phase2", "pre-link", "pre-scope-contract"),
+)
+def test_non_normalized_legacy_idempotency_hash_is_rejected(
     decision_store,
+    legacy_fields,
 ):
     service = OrchestrationDecisionService(SqlAlchemyDecisionStore(decision_store))
     request = _request()
-    created = service.create(request, "axwise-user", "legacy-phase1-hash")
+    idempotency_key = "stale-" + "-".join(legacy_fields)
+    created = service.create(request, "axwise-user", idempotency_key)
     row = (
         decision_store.query(OrchestrationDecisionSnapshot)
         .filter(OrchestrationDecisionSnapshot.decision_id == created.decision_id)
         .one()
     )
-    row.request_hash = service._legacy_phase1_request_hash(request)
+    legacy_payload = created.input_snapshot.model_dump(
+        mode="json",
+        by_alias=True,
+        exclude_none=False,
+    )
+    for field in legacy_fields:
+        legacy_payload.pop(field, None)
+    legacy_json = json.dumps(legacy_payload, sort_keys=True, separators=(",", ":"))
+    legacy_hash = hashlib.sha256(legacy_json.encode("utf-8")).hexdigest()
+    assert legacy_hash != created.request_hash
+    row.request_hash = legacy_hash
     snapshot = dict(row.input_snapshot)
-    snapshot.pop("evidence_catalogue")
-    snapshot.pop("research_policy")
-    snapshot.pop("research_brief")
+    for field in legacy_fields:
+        snapshot.pop(field, None)
     row.input_snapshot = snapshot
     decision_store.commit()
 
-    retry = service.create(request, "axwise-user", "legacy-phase1-hash")
-    changed_payload = _ambiguous_research_payload()
-    changed_request = _request(changed_payload)
-
-    assert retry.reused is True
-    assert retry.decision_id == created.decision_id
-    with pytest.raises(IdempotencyConflict):
-        service.create(
-            changed_request,
-            "axwise-user",
-            "legacy-phase1-hash",
-        )
-
-
-def test_phase2_idempotency_hash_remains_compatible_until_planning_changes(
-    decision_store,
-):
-    research = FakeResearchPort()
-    service = OrchestrationDecisionService(
-        SqlAlchemyDecisionStore(decision_store),
-        research_port=research,
-    )
-    request = _request(_ambiguous_research_payload())
-    created = service.create(request, "axwise-user", "legacy-phase2-hash")
-    row = (
-        decision_store.query(OrchestrationDecisionSnapshot)
-        .filter(OrchestrationDecisionSnapshot.decision_id == created.decision_id)
-        .one()
-    )
-    row.request_hash = service._legacy_phase2_request_hash(request)
-    snapshot = dict(row.input_snapshot)
-    snapshot.pop("planning")
-    row.input_snapshot = snapshot
-    decision_store.commit()
-
-    retry = service.create(request, "axwise-user", "legacy-phase2-hash")
-    planning = {
-        "pattern": "single",
-        "steps": [
-            {
-                "step_id": "planned-step",
-                "title": "Execute the planned step",
-                "objective": "Execute the explicitly contracted planned step",
-                "required_capabilities": ["core operation"],
-                "required_tools": ["records_read"],
-                "requested_actions": ["analyze_records"],
-                "input_contract": {"task": "TaskEnvelopeV1"},
-                "output_contract": {"result": "ResultV1"},
-                "completion_criteria": ["The requested result is complete"],
-            }
-        ],
-    }
-    changed = request.model_copy(
-        update={"planning": PlanningRequirementsV1.model_validate(planning)}
-    )
-
-    assert retry.reused is True
-    assert retry.decision_id == created.decision_id
-    with pytest.raises(IdempotencyConflict):
-        service.create(changed, "axwise-user", "legacy-phase2-hash")
-
-
-def test_pre_link_idempotency_hash_remains_compatible_without_an_upstream_parent(
-    decision_store,
-):
-    service = OrchestrationDecisionService(SqlAlchemyDecisionStore(decision_store))
-    request = _request()
-    created = service.create(request, "axwise-user", "legacy-pre-link-hash")
-    row = (
-        decision_store.query(OrchestrationDecisionSnapshot)
-        .filter(OrchestrationDecisionSnapshot.decision_id == created.decision_id)
-        .one()
-    )
-    row.request_hash = service._legacy_pre_link_request_hash(request)
-    snapshot = dict(row.input_snapshot)
-    snapshot.pop("upstream_decision_id")
-    row.input_snapshot = snapshot
-    decision_store.commit()
-
-    retry = service.create(request, "axwise-user", "legacy-pre-link-hash")
-
-    assert retry.reused is True
-    assert retry.decision_id == created.decision_id
-    with pytest.raises(DecisionLinkError):
-        service.create(
-            request.model_copy(update={"upstream_decision_id": "decision-new-parent"}),
-            "axwise-user",
-            "legacy-pre-link-hash",
-        )
+    with pytest.raises(IdempotencyConflict, match="different request"):
+        service.create(request, "axwise-user", idempotency_key)
+    assert decision_store.query(OrchestrationDecisionSnapshot).count() == 1
 
 
 def test_unapproved_scope_is_admission_only_and_does_not_start_research(decision_store):

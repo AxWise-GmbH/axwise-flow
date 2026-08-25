@@ -12,12 +12,14 @@ import os
 import re
 import time
 import uuid
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import httpx
 from pydantic import BaseModel, Field
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from backend.api.research.simulation_bridge.models import SimulationRequest, SimulationResponse
@@ -33,9 +35,21 @@ from backend.models import (
     CachedPRD,
     InterviewData,
     OrchestrationDecisionSnapshot,
+    OrchestrationScopeAcceptance,
+    OrchestrationScopeCorrection,
     PipelineRun,
     SimulationData,
     User,
+)
+from backend.domain.orchestration.models import (
+    DecisionCreateRequestV1,
+    OrchestrationDecisionV1,
+)
+from backend.domain.orchestration.scope_models import (
+    SCOPE_ACTIVE_REVISION_STATUSES,
+    ScopeCorrectionCompilationV1,
+    ScopeProposalAcceptanceV1,
+    ScopeProposalBindingV1,
 )
 from backend.services.llm import LLMServiceFactory
 from backend.services.processing.prd_generation_service import PRDGenerationService
@@ -87,6 +101,7 @@ logger = logging.getLogger(__name__)
 
 PARTNER_ID = "orqaly"
 TERMINAL_STATUSES = {"completed", "completed_with_warnings", "failed", "cancelled"}
+PIPELINE_WORKER_LEASE_SECONDS = 30 * 60
 _PRIVATE_GROUNDING_SOURCE_KEYS = {
     "_authority_document_artifact",
     "_structured_evidence_html",
@@ -197,6 +212,18 @@ class HybridRunService:
         self.enrichment = enrichment
         self.grounding = grounding
         self.atomic_session = atomic_session
+        self._active_lease_tokens: Dict[str, str] = {}
+        self._last_claimed_tenant_key: tuple[str, str] | None = None
+        self._lease_context: ContextVar[tuple[str, str] | None] = ContextVar(
+            f"hybrid_run_lease_{id(self)}",
+            default=None,
+        )
+
+    def _lease_token_for_job(self, job_id: str) -> str | None:
+        context = self._lease_context.get()
+        if context is not None and context[0] == job_id:
+            return context[1]
+        return self._active_lease_tokens.get(job_id)
 
     @staticmethod
     def _validated_orqaly_scope_context(
@@ -223,6 +250,9 @@ class HybridRunService:
         binding = task_context.scope_contract_binding
         acceptance = task_context.scope_research_acceptance
         runtime = task_context.scope_runtime_binding
+        proposal_acceptance = task_context.scope_proposal_acceptance
+        continuation = task_context.scope_continuation
+        consumer = task_context.scope_consumer_inputs
         if binding is None or acceptance is None or runtime is None:
             raise ValueError(
                 "Orqaly research requires scope, acceptance, and runtime bindings"
@@ -238,6 +268,44 @@ class HybridRunService:
             raise ValueError(
                 "durable Orqaly scope bindings are not exact canonical echoes"
             )
+        generic = (
+            proposal_acceptance is not None,
+            continuation is not None,
+            consumer is not None,
+        )
+        if any(generic) and not all(generic):
+            raise ValueError(
+                "generic proposal acceptance, continuation, and consumer are atomic"
+            )
+        if all(generic) and (
+            proposal_acceptance.org_id != external_org_id
+            or proposal_acceptance.user_id != external_user_id
+            or proposal_acceptance.task_id != task_context.task_id
+            or continuation.proposal_decision_id
+            != proposal_acceptance.proposal_decision_id
+            or continuation.proposal_hash != proposal_acceptance.proposal_hash
+            or continuation.acceptance_id != proposal_acceptance.acceptance_id
+            or continuation.acceptance_hash != proposal_acceptance.acceptance_hash
+            or continuation.scope_hash != proposal_acceptance.scope_hash
+            or continuation.scope_generation
+            != proposal_acceptance.scope_generation
+            or continuation.purpose != "research"
+            or consumer.purpose != "research"
+            or consumer.task_id != task_context.task_id
+            or consumer.scope_hash != proposal_acceptance.scope_hash
+            or consumer.scope_generation != proposal_acceptance.scope_generation
+            or continuation.consumer_inputs_hash != consumer.consumer_inputs_hash
+        ):
+            raise ValueError("generic research capability is internally inconsistent")
+        if raw_task_context is not None and all(generic) and (
+            raw_task_context.get("scope_proposal_acceptance")
+            != proposal_acceptance.model_dump(mode="json")
+            or raw_task_context.get("scope_continuation")
+            != continuation.model_dump(mode="json")
+            or raw_task_context.get("scope_consumer_inputs")
+            != consumer.model_dump(mode="json")
+        ):
+            raise ValueError("durable generic research capability is not an exact echo")
         if (
             acceptance.scope_hash != binding.scope_hash
             or acceptance.contract_hash != binding.contract_hash
@@ -295,14 +363,26 @@ class HybridRunService:
         job_id: str,
         claimed: Dict[str, Any],
         task_context: OrqalyTaskContext,
+        *,
+        session=None,
     ) -> None:
-        """Bind a claimed paid row to its committed owner-approved decision."""
+        """Revalidate the generic Gate-1 capability immediately before spend."""
 
         binding = task_context.scope_contract_binding
-        acceptance = task_context.scope_research_acceptance
+        legacy_acceptance = task_context.scope_research_acceptance
         runtime = task_context.scope_runtime_binding
+        acceptance = task_context.scope_proposal_acceptance
+        continuation = task_context.scope_continuation
+        consumer = task_context.scope_consumer_inputs
+        if acceptance is None or continuation is None or consumer is None:
+            raise ValueError(
+                "paid research requires the durable generic proposal capability"
+            )
+        if continuation.purpose != "research" or consumer.purpose != "research":
+            raise ValueError("paid research capability has the wrong purpose")
         decision_id = str(claimed.get("request_id") or "")
-        session = self.session_factory()
+        owns_session = session is None
+        session = session or self.session_factory()
         try:
             row = (
                 session.query(OrchestrationDecisionSnapshot)
@@ -322,43 +402,81 @@ class HybridRunService:
                 raise ValueError(
                     "paid research run has no durable accepted decision owner"
                 )
-            decision = row.decision_payload or {}
-            request = row.input_snapshot or {}
-            job = decision.get("research_job") or {}
-            packet = request.get("scope_packet") or decision.get("scope_packet") or {}
-            contract = packet.get("research_contract") or {}
-            tenant = request.get("tenant") or {}
-            task = request.get("task") or {}
-            binding_payload = binding.model_dump(mode="json")
-            acceptance_payload = acceptance.model_dump(mode="json")
-            runtime_payload = runtime.model_dump(mode="json")
+            decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
+            request = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+            job = decision.research_job
+            packet = request.scope_packet
             if (
-                decision.get("decision_id") != decision_id
-                or decision.get("parent_decision_id")
+                job is None
+                or packet is None
+                or binding is None
+                or legacy_acceptance is None
+                or runtime is None
+                or decision.decision_id != decision_id
+                or decision.parent_decision_id != acceptance.proposal_decision_id
+                or decision.scope_packet != packet
+                or decision.scope_contract_binding != binding
+                or decision.scope_research_acceptance != legacy_acceptance
+                or decision.scope_runtime_binding != runtime
+                or job.job_id != job_id
+                or job.decision_id != decision_id
+                or job.scope_contract_binding != binding
+                or job.scope_research_acceptance != legacy_acceptance
+                or job.scope_runtime_binding != runtime
+                or request.tenant.org_id != acceptance.org_id
+                or request.tenant.user_id != acceptance.user_id
+                or request.task.task_id != acceptance.task_id
+                or request.scope_proposal_acceptance != acceptance
+                or request.scope_continuation != continuation
+                or request.scope_consumer_inputs != consumer
+                or request.scope_research_acceptance != legacy_acceptance
+                or packet.scope_hash != acceptance.scope_hash
+                or packet.research_contract.contract_hash != acceptance.contract_hash
+                or packet.runtime != runtime
+                or continuation.proposal_decision_id
                 != acceptance.proposal_decision_id
-                or decision.get("scope_contract_binding") != binding_payload
-                or decision.get("scope_research_acceptance") != acceptance_payload
-                or decision.get("scope_runtime_binding") != runtime_payload
-                or decision.get("research_execution_inputs_hash")
-                != acceptance.execution_inputs_hash
-                or job.get("job_id") != job_id
-                or job.get("decision_id") != decision_id
-                or job.get("scope_contract_binding") != binding_payload
-                or job.get("scope_research_acceptance") != acceptance_payload
-                or job.get("scope_runtime_binding") != runtime_payload
-                or tenant.get("orgId", tenant.get("org_id")) != acceptance.org_id
-                or tenant.get("userId", tenant.get("user_id"))
-                != acceptance.user_id
-                or task.get("taskId", task.get("task_id")) != acceptance.goal_id
-                or request.get("scope_research_acceptance") != acceptance_payload
-                or packet.get("scope_hash") != acceptance.scope_hash
-                or contract.get("contract_hash") != acceptance.contract_hash
-                or packet.get("runtime") != runtime_payload
+                or continuation.proposal_hash != acceptance.proposal_hash
+                or continuation.acceptance_id != acceptance.acceptance_id
+                or continuation.acceptance_hash != acceptance.acceptance_hash
+                or continuation.scope_hash != acceptance.scope_hash
+                or continuation.scope_generation != acceptance.scope_generation
+                or continuation.consumer_inputs_hash != consumer.consumer_inputs_hash
+                or consumer.task_id != acceptance.task_id
+                or consumer.scope_hash != acceptance.scope_hash
+                or consumer.scope_generation != acceptance.scope_generation
+                or task_context.research_execution_inputs_hash
+                != acceptance.research_execution_inputs_hash
+                or legacy_acceptance.proposal_decision_id
+                != acceptance.proposal_decision_id
+                or legacy_acceptance.scope_hash != acceptance.scope_hash
+                or legacy_acceptance.contract_hash != acceptance.contract_hash
+                or legacy_acceptance.execution_inputs_hash
+                != acceptance.research_execution_inputs_hash
             ):
                 raise ValueError(
                     "paid research row does not match its durable accepted decision"
                 )
-            parent = (
+
+            acceptance_row = (
+                session.query(OrchestrationScopeAcceptance)
+                .filter(
+                    OrchestrationScopeAcceptance.acceptance_id
+                    == acceptance.acceptance_id,
+                    OrchestrationScopeAcceptance.partner_id == PARTNER_ID,
+                    OrchestrationScopeAcceptance.external_org_id == acceptance.org_id,
+                    OrchestrationScopeAcceptance.external_user_id == acceptance.user_id,
+                    OrchestrationScopeAcceptance.user_id == claimed.get("user_id"),
+                    OrchestrationScopeAcceptance.proposal_decision_id
+                    == acceptance.proposal_decision_id,
+                )
+                .first()
+            )
+            if acceptance_row is None or ScopeProposalAcceptanceV1.model_validate(
+                acceptance_row.acceptance_payload
+            ) != acceptance:
+                raise ValueError("paid research acceptance is not durable or exact")
+
+            proposal_row = (
                 session.query(OrchestrationDecisionSnapshot)
                 .filter(
                     OrchestrationDecisionSnapshot.decision_id
@@ -373,21 +491,218 @@ class HybridRunService:
                 )
                 .first()
             )
-            parent_payload = parent.decision_payload if parent is not None else {}
+            if proposal_row is None:
+                raise ValueError("paid research proposal is not durable")
+            proposal_decision = OrchestrationDecisionV1.model_validate(
+                proposal_row.decision_payload
+            )
+            proposal_request = DecisionCreateRequestV1.model_validate(
+                proposal_row.input_snapshot
+            )
+            proposal = proposal_decision.scope_proposal
             if (
-                parent is None
-                or parent_payload.get("research_job") is not None
-                or parent_payload.get("scope_research_acceptance") is not None
-                or parent_payload.get("scope_contract_binding") != binding_payload
-                or parent_payload.get("scope_runtime_binding") != runtime_payload
-                or parent_payload.get("research_execution_inputs_hash")
-                != acceptance.execution_inputs_hash
+                proposal is None
+                or proposal_decision.decision_id != acceptance.proposal_decision_id
+                or proposal.proposal_decision_id != acceptance.proposal_decision_id
+                or proposal.proposal_hash != acceptance.proposal_hash
+                or proposal.scope_hash != acceptance.scope_hash
+                or proposal.contract_hash != acceptance.contract_hash
+                or proposal.proposal_inputs_hash != acceptance.proposal_inputs_hash
+                or proposal.research_execution_inputs_hash
+                != acceptance.research_execution_inputs_hash
+                or proposal.scope_generation != acceptance.scope_generation
+                or proposal_decision.scope_packet != proposal_request.scope_packet
+                or proposal_decision.scope_packet is None
+                or proposal_decision.scope_packet.scope_hash != acceptance.scope_hash
+                or proposal_decision.scope_contract_binding != binding
+                or proposal_decision.scope_runtime_binding != runtime
+                or proposal_decision.research_job is not None
+                or proposal_decision.scope_research_acceptance is not None
+                or proposal_request.scope_proposal_acceptance is not None
+                or proposal_request.scope_continuation is not None
+                or proposal_request.scope_consumer_inputs is not None
             ):
                 raise ValueError(
                     "paid research row does not match its durable scope proposal"
                 )
+
+            upstream_id = (
+                proposal.proposal_decision_id
+                if proposal.scope_generation == 0
+                else proposal.parent_decision_id
+            )
+            if not upstream_id:
+                raise ValueError("paid research proposal lost its root decision")
+            active_revision = (
+                session.query(OrchestrationScopeCorrection)
+                .filter(
+                    OrchestrationScopeCorrection.partner_id == PARTNER_ID,
+                    OrchestrationScopeCorrection.external_org_id == acceptance.org_id,
+                    OrchestrationScopeCorrection.external_user_id == acceptance.user_id,
+                    OrchestrationScopeCorrection.user_id == claimed.get("user_id"),
+                    OrchestrationScopeCorrection.task_id == acceptance.task_id,
+                    OrchestrationScopeCorrection.upstream_decision_id == upstream_id,
+                    OrchestrationScopeCorrection.source_scope_hash
+                    == acceptance.scope_hash,
+                    OrchestrationScopeCorrection.status.in_(
+                        SCOPE_ACTIVE_REVISION_STATUSES
+                    ),
+                )
+                .first()
+            )
+            if active_revision is not None:
+                raise ValueError(
+                    "paid research proposal is superseded by a newer scope revision"
+                )
+            if proposal.scope_generation > 0:
+                correction_row = (
+                    session.query(OrchestrationScopeCorrection)
+                    .filter(
+                        OrchestrationScopeCorrection.correction_id
+                        == proposal.correction_id,
+                        OrchestrationScopeCorrection.partner_id == PARTNER_ID,
+                        OrchestrationScopeCorrection.external_org_id
+                        == acceptance.org_id,
+                        OrchestrationScopeCorrection.external_user_id
+                        == acceptance.user_id,
+                        OrchestrationScopeCorrection.user_id == claimed.get("user_id"),
+                        OrchestrationScopeCorrection.task_id == acceptance.task_id,
+                        OrchestrationScopeCorrection.upstream_decision_id == upstream_id,
+                        OrchestrationScopeCorrection.status == "compiled",
+                    )
+                    .first()
+                )
+                correction = (
+                    ScopeCorrectionCompilationV1.model_validate(
+                        correction_row.compilation_payload
+                    )
+                    if correction_row is not None
+                    and correction_row.compilation_payload is not None
+                    else None
+                )
+                if (
+                    correction is None
+                    or correction.scope_packet != proposal_decision.scope_packet
+                    or correction.proposal is None
+                    or correction.proposal.scope_proposal != proposal
+                ):
+                    raise ValueError(
+                        "paid research corrected proposal is not the compiled head"
+                    )
         finally:
-            session.close()
+            if owns_session:
+                session.close()
+
+    @staticmethod
+    def _claimed_snapshot(run: PipelineRun) -> Dict[str, Any]:
+        return {
+            "user_id": run.user_id,
+            "simulation_id": run.simulation_id,
+            "partner_id": run.partner_id,
+            "external_org_id": run.external_org_id,
+            "external_user_id": run.external_user_id,
+            "request_id": run.request_id,
+            "request_payload": run.request_payload,
+            "requested_outputs": run.requested_outputs,
+            "worker_lease_token": run.worker_lease_token,
+            "worker_lease_expires_at": (
+                run.worker_lease_expires_at.isoformat()
+                if run.worker_lease_expires_at is not None
+                else None
+            ),
+        }
+
+    @staticmethod
+    def _validate_resume_receipts(run: PipelineRun) -> None:
+        """Only admit checkpoints whose durable output is exact and reusable."""
+
+        receipts = run.paid_stage_receipts or {}
+        if not isinstance(receipts, dict):
+            raise ValueError("paid-stage receipt ledger is malformed")
+        for stage, raw_receipt in receipts.items():
+            if not isinstance(raw_receipt, dict):
+                raise ValueError(f"paid-stage receipt {stage} is malformed")
+            receipt = dict(raw_receipt)
+            if receipt.get("status") != "completed" or not receipt.get(
+                "resume_safe"
+            ):
+                raise ValueError(
+                    f"paid-stage receipt {stage} is not a safe resume checkpoint"
+                )
+            if stage != "questionnaire_parse":
+                raise ValueError(f"paid-stage receipt {stage} is not resumable")
+            if receipt.get("durable_output_reference") != (
+                "pipeline_runs.request_payload.simulation.questions_data"
+            ):
+                raise ValueError("questionnaire checkpoint reference is invalid")
+            questions = (
+                ((run.request_payload or {}).get("simulation") or {}).get(
+                    "questions_data"
+                )
+            )
+            if (
+                not isinstance(questions, dict)
+                or receipt.get("durable_output_hash") != canonical_hash(questions)
+            ):
+                raise ValueError("questionnaire checkpoint output hash is invalid")
+
+    @staticmethod
+    def _lock_scope_root_for_claim(
+        session,
+        run: PipelineRun,
+        task_context: OrqalyTaskContext,
+    ) -> None:
+        acceptance = task_context.scope_proposal_acceptance
+        continuation = task_context.scope_continuation
+        consumer = task_context.scope_consumer_inputs
+        if acceptance is None or continuation is None or consumer is None:
+            raise ValueError("queued paid row lacks a generic scope capability")
+        proposal_row = (
+            session.query(OrchestrationDecisionSnapshot)
+            .filter(
+                OrchestrationDecisionSnapshot.decision_id
+                == acceptance.proposal_decision_id,
+                OrchestrationDecisionSnapshot.partner_id == PARTNER_ID,
+                OrchestrationDecisionSnapshot.external_org_id
+                == run.external_org_id,
+                OrchestrationDecisionSnapshot.external_user_id
+                == run.external_user_id,
+                OrchestrationDecisionSnapshot.user_id == run.user_id,
+                OrchestrationDecisionSnapshot.deleted_at.is_(None),
+            )
+            .first()
+        )
+        proposal = (
+            OrchestrationDecisionV1.model_validate(
+                proposal_row.decision_payload
+            ).scope_proposal
+            if proposal_row is not None
+            else None
+        )
+        root_id = (
+            proposal.proposal_decision_id
+            if proposal is not None and proposal.scope_generation == 0
+            else proposal.parent_decision_id if proposal is not None else None
+        )
+        if not root_id:
+            raise ValueError("queued paid row lost its scope root")
+        root = (
+            session.query(OrchestrationDecisionSnapshot)
+            .filter(
+                OrchestrationDecisionSnapshot.decision_id == root_id,
+                OrchestrationDecisionSnapshot.partner_id == PARTNER_ID,
+                OrchestrationDecisionSnapshot.external_org_id
+                == run.external_org_id,
+                OrchestrationDecisionSnapshot.external_user_id
+                == run.external_user_id,
+                OrchestrationDecisionSnapshot.user_id == run.user_id,
+                OrchestrationDecisionSnapshot.deleted_at.is_(None),
+            )
+            .with_for_update()
+            .first()
+        )
+        if root is None:
+            raise ValueError("queued paid row scope root is unavailable")
 
     @staticmethod
     def _claim_class_applicability(
@@ -1072,6 +1387,9 @@ class HybridRunService:
             run.error = reason[:4000]
             run.completed_at = now
             run.updated_at = now
+            run.worker_lease_token = None
+            run.worker_lease_expires_at = None
+            run.worker_heartbeat_at = None
             session.commit()
             session.refresh(run)
             session.expunge(run)
@@ -1092,20 +1410,84 @@ class HybridRunService:
                 )
                 .order_by(PipelineRun.created_at)
             )
-            try:
-                run = query.with_for_update(skip_locked=True).first()
-            except Exception:
-                run = query.first()
+            run = None
+            if self._last_claimed_tenant_key is not None:
+                external_org_id, external_user_id = self._last_claimed_tenant_key
+                alternate = query.filter(
+                    or_(
+                        PipelineRun.external_org_id != external_org_id,
+                        PipelineRun.external_user_id != external_user_id,
+                    )
+                )
+                try:
+                    run = alternate.with_for_update(skip_locked=True).first()
+                except Exception:
+                    run = alternate.first()
+            if run is None:
+                try:
+                    run = query.with_for_update(skip_locked=True).first()
+                except Exception:
+                    run = query.first()
             if not run:
                 return None
             job_id = run.job_id
-            run.status = "running"
-            run.current_stage = "initializing"
-            run.progress_percentage = 1
-            run.started_at = run.started_at or datetime.now(timezone.utc)
-            run.updated_at = datetime.now(timezone.utc)
-            run.attempt_count = (run.attempt_count or 0) + 1
+            selected_tenant_key = (
+                str(run.external_org_id or ""),
+                str(run.external_user_id or ""),
+            )
+            now = datetime.now(timezone.utc)
+            raw_task_context = (run.request_payload or {}).get("task_context")
+            try:
+                task_context = OrqalyTaskContext.model_validate(raw_task_context)
+                self._validate_resume_receipts(run)
+                self._lock_scope_root_for_claim(session, run, task_context)
+                self._validate_durable_accepted_decision(
+                    job_id,
+                    self._claimed_snapshot(run),
+                    task_context,
+                    session=session,
+                )
+            except Exception as exc:
+                run.status = "failed"
+                run.current_stage = "security_failed"
+                run.error = str(exc)[:4000]
+                run.completed_at = now
+                run.updated_at = now
+                run.worker_lease_token = None
+                run.worker_lease_expires_at = None
+                run.worker_heartbeat_at = None
+                session.commit()
+                self._last_claimed_tenant_key = selected_tenant_key
+                return None
+            lease_token = f"pipeline-lease-{uuid.uuid4().hex}"
+            claimed_count = (
+                session.query(PipelineRun)
+                .filter(
+                    PipelineRun.id == run.id,
+                    PipelineRun.status == "queued",
+                    PipelineRun.worker_lease_token.is_(None),
+                )
+                .update(
+                    {
+                        PipelineRun.status: "running",
+                        PipelineRun.current_stage: "initializing",
+                        PipelineRun.progress_percentage: 1,
+                        PipelineRun.started_at: run.started_at or now,
+                        PipelineRun.updated_at: now,
+                        PipelineRun.attempt_count: (run.attempt_count or 0) + 1,
+                        PipelineRun.worker_lease_token: lease_token,
+                        PipelineRun.worker_lease_expires_at: now
+                        + timedelta(seconds=PIPELINE_WORKER_LEASE_SECONDS),
+                        PipelineRun.worker_heartbeat_at: now,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            if claimed_count != 1:
+                session.rollback()
+                return None
             session.commit()
+            self._last_claimed_tenant_key = selected_tenant_key
             return job_id
         finally:
             session.close()
@@ -1114,34 +1496,89 @@ class HybridRunService:
         """Requeue Orqaly A+B jobs whose worker heartbeat lease went stale."""
         session = self.session_factory()
         try:
-            cutoff = datetime.now(timezone.utc) - timedelta(minutes=stale_after_minutes)
+            now = datetime.now(timezone.utc)
+            cutoff = now - timedelta(minutes=stale_after_minutes)
             stale_runs = (
                 session.query(PipelineRun)
                 .filter(
                     PipelineRun.partner_id == PARTNER_ID,
                     PipelineRun.pipeline_mode == "hybrid_a_plus_b",
                     PipelineRun.status == "running",
-                    PipelineRun.updated_at < cutoff,
+                    or_(
+                        PipelineRun.worker_lease_expires_at <= now,
+                        and_(
+                            PipelineRun.worker_lease_expires_at.is_(None),
+                            PipelineRun.updated_at < cutoff,
+                        ),
+                    ),
                 )
                 .with_for_update(skip_locked=True)
                 .all()
             )
             for run in stale_runs:
+                raw_receipts = run.paid_stage_receipts or {}
+                receipts = {
+                    str(stage): dict(receipt)
+                    for stage, receipt in (
+                        raw_receipts.items()
+                        if isinstance(raw_receipts, dict)
+                        else ()
+                    )
+                    if isinstance(receipt, dict)
+                }
+                ambiguous = [
+                    stage
+                    for stage, receipt in receipts.items()
+                    if receipt.get("status") != "completed"
+                ]
+                if not isinstance(raw_receipts, dict) or len(receipts) != len(
+                    raw_receipts
+                ):
+                    ambiguous.append("invalid_receipt")
+                non_resumable = [
+                    stage
+                    for stage, receipt in receipts.items()
+                    if receipt.get("status") == "completed"
+                    and (
+                        not receipt.get("resume_safe")
+                        or not receipt.get("durable_output_reference")
+                        or not receipt.get("durable_output_hash")
+                    )
+                ]
+                if ambiguous or non_resumable:
+                    run.status = "failed"
+                    run.current_stage = "manual_reconciliation_required"
+                    run.error = (
+                        "worker lease expired after guarded work without a safe "
+                        "resume checkpoint; automatic replay is disabled to prevent "
+                        "duplicate spend "
+                        f"(ambiguous={','.join(sorted(ambiguous)) or 'none'}; "
+                        f"non_resumable={','.join(sorted(non_resumable)) or 'none'})"
+                    )
+                    run.completed_at = now
+                    run.updated_at = now
+                    run.worker_lease_token = None
+                    run.worker_lease_expires_at = None
+                    run.worker_heartbeat_at = None
+                    continue
                 trace = list(run.execution_trace or [])
                 trace.append(
                     {
                         "stage": "queued",
                         "progress_percentage": 0,
                         "message": "Recovered after an interrupted worker attempt",
-                        "at": datetime.now(timezone.utc).isoformat(),
+                        "at": now.isoformat(),
                     }
                 )
                 run.status = "queued"
                 run.current_stage = "queued"
                 run.progress_percentage = 0
                 run.started_at = None
-                run.updated_at = datetime.now(timezone.utc)
+                run.updated_at = now
                 run.execution_trace = trace
+                run.worker_lease_token = None
+                run.worker_lease_expires_at = None
+                run.worker_heartbeat_at = None
             if stale_runs:
                 session.commit()
             return len(stale_runs)
@@ -1157,6 +1594,11 @@ class HybridRunService:
         )
         if not claimed:
             return
+        lease_token = str(claimed.get("worker_lease_token") or "")
+        if not lease_token:
+            return
+        self._active_lease_tokens[job_id] = lease_token
+        self._lease_context.set((job_id, lease_token))
         started = time.monotonic()
         failure_diagnostics: Dict[str, Any] = {}
         try:
@@ -1231,6 +1673,7 @@ class HybridRunService:
             # Normalize the persisted request here as well so async A+B runs do
             # not reach simulate_with_persistence with questions_data=None.
             if request.raw_questionnaire_content and not request.questions_data:
+                self._begin_paid_stage(job_id, "questionnaire_parse")
                 parsed = await self.orchestrator.parse_raw_questionnaire(
                     request.raw_questionnaire_content,
                     request.config,
@@ -1238,6 +1681,23 @@ class HybridRunService:
                 request = request.model_copy(
                     update={"questions_data": parsed.questions_data}
                 )
+                persisted_request_payload = {
+                    **claimed["request_payload"],
+                    "simulation": request.model_dump(mode="json"),
+                }
+                self._complete_paid_stage(
+                    job_id,
+                    "questionnaire_parse",
+                    durable_output_reference=(
+                        "pipeline_runs.request_payload.simulation.questions_data"
+                    ),
+                    durable_output_hash=canonical_hash(
+                        request.questions_data.model_dump(mode="json")
+                    ),
+                    resume_safe=True,
+                    request_payload_update=persisted_request_payload,
+                )
+                claimed["request_payload"] = persisted_request_payload
             if not request.questions_data or not request.questions_data.stakeholders:
                 raise RuntimeError(
                     "Hybrid research requires parsed stakeholder questions"
@@ -1383,6 +1843,7 @@ class HybridRunService:
                     3,
                     "Grounding the regional market with registry and Google sources",
                 )
+                self._begin_paid_stage(job_id, "market_grounding")
                 try:
                     grounding = await self.grounding(request, grounding_policy)
                 except Exception as exc:
@@ -1612,6 +2073,7 @@ class HybridRunService:
                     grounding,
                     grounding_policy,
                 )
+                self._complete_paid_stage(job_id, "market_grounding")
                 grounding = _strip_private_grounding_artifacts(grounding)
             # Non-critical grounded runs may still carry evaluator-only fetch
             # anchors. Scrub them before composing provider/user payloads or
@@ -1624,6 +2086,7 @@ class HybridRunService:
             # a terminal result or callback while the empirical stage is pending.
             await self._set_stage(job_id, "generating_people", 5, "Generating simulated people")
             pipeline_b_request = request.model_copy(update={"callback_url": None})
+            self._begin_paid_stage(job_id, "pipeline_b_simulation")
             result = await self.orchestrator.simulate_with_persistence(
                 pipeline_b_request,
                 user_id=claimed["user_id"],
@@ -1632,6 +2095,7 @@ class HybridRunService:
             )
             if not result.success:
                 raise RuntimeError(result.message)
+            self._complete_paid_stage(job_id, "pipeline_b_simulation")
             # Every durable run, including synthetic-only jobs, must satisfy the
             # declared cohort before empirical enrichment or terminal publication.
             self._validate_required_synthetic_cohort(request, result)
@@ -1643,7 +2107,9 @@ class HybridRunService:
                 70,
                 "Constructing evidence-grounded personas",
             )
+            self._begin_paid_stage(job_id, "empirical_enrichment")
             result = await self.enrichment(result, request)
+            self._complete_paid_stage(job_id, "empirical_enrichment")
             self._ensure_active(job_id)
             result.data = {
                 **(result.data or {}),
@@ -1701,6 +2167,7 @@ class HybridRunService:
                 94,
                 "Persisting hybrid research deliverables",
             )
+            self._begin_paid_stage(job_id, "artifact_persistence")
             analysis_result_id = self._create_canonical_analysis_result(
                 result, request, claimed["user_id"], task_context
             )
@@ -1716,9 +2183,11 @@ class HybridRunService:
             }
             if outputs.prd.enabled:
                 await self._set_stage(job_id, "generating_prd", 96, "Generating PRD")
+                self._begin_paid_stage(job_id, "prd_generation")
                 research_prd, warning = await self._generate_prd(
                     analysis_result_id, request, outputs, claimed["user_id"]
                 )
+                self._complete_paid_stage(job_id, "prd_generation")
                 if research_prd["status"] == "failed" and outputs.prd.required:
                     raise RuntimeError(warning or "Required PRD generation failed")
 
@@ -1753,6 +2222,7 @@ class HybridRunService:
                 )
 
             terminal_status = "completed_with_warnings" if warning else "completed"
+            self._complete_paid_stage(job_id, "artifact_persistence")
             self._persist_success(
                 job_id,
                 result,
@@ -1767,8 +2237,10 @@ class HybridRunService:
             # the durable hybrid record is terminal.
             await self.orchestrator.finalize_hybrid_simulation(result)
             await self._deliver_terminal_webhook(job_id, terminal_status)
+            self._active_lease_tokens.pop(job_id, None)
         except HybridRunCancelled:
             logger.info("Hybrid A+B run was cancelled: %s", job_id)
+            self._active_lease_tokens.pop(job_id, None)
             return
         except Exception as exc:
             logger.exception("Hybrid A+B run failed: %s", job_id)
@@ -1785,46 +2257,211 @@ class HybridRunService:
                     "Hybrid A+B failure was not persisted because the run is no longer active: %s",
                     job_id,
                 )
+            self._active_lease_tokens.pop(job_id, None)
 
     async def _claim_specific_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         session = self.session_factory()
         try:
-            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
-            if not run or run.status in TERMINAL_STATUSES:
+            run = (
+                session.query(PipelineRun)
+                .filter(PipelineRun.job_id == job_id)
+                .with_for_update()
+                .first()
+            )
+            if not run or run.status != "queued":
                 return None
-            if run.status == "running" and run.started_at:
+            now = datetime.now(timezone.utc)
+            raw_task_context = (run.request_payload or {}).get("task_context")
+            try:
+                task_context = OrqalyTaskContext.model_validate(raw_task_context)
+                self._validate_resume_receipts(run)
+                self._lock_scope_root_for_claim(session, run, task_context)
+                self._validate_durable_accepted_decision(
+                    job_id,
+                    self._claimed_snapshot(run),
+                    task_context,
+                    session=session,
+                )
+            except Exception as exc:
+                run.status = "failed"
+                run.current_stage = "security_failed"
+                run.error = str(exc)[:4000]
+                run.completed_at = now
+                run.updated_at = now
+                run.worker_lease_token = None
+                run.worker_lease_expires_at = None
+                run.worker_heartbeat_at = None
+                session.commit()
                 return None
-            run.status = "running"
-            run.current_stage = "initializing"
-            run.progress_percentage = max(run.progress_percentage or 0, 1)
-            run.started_at = run.started_at or datetime.now(timezone.utc)
-            run.updated_at = datetime.now(timezone.utc)
-            run.attempt_count = (run.attempt_count or 0) + 1
-            snapshot = {
-                "user_id": run.user_id,
-                "simulation_id": run.simulation_id,
-                "partner_id": run.partner_id,
-                "external_org_id": run.external_org_id,
-                "external_user_id": run.external_user_id,
-                "request_id": run.request_id,
-                "request_payload": run.request_payload,
-                "requested_outputs": run.requested_outputs,
-            }
+            lease_token = f"pipeline-lease-{uuid.uuid4().hex}"
+            claimed_count = (
+                session.query(PipelineRun)
+                .filter(
+                    PipelineRun.id == run.id,
+                    PipelineRun.status == "queued",
+                    PipelineRun.worker_lease_token.is_(None),
+                )
+                .update(
+                    {
+                        PipelineRun.status: "running",
+                        PipelineRun.current_stage: "initializing",
+                        PipelineRun.progress_percentage: max(
+                            run.progress_percentage or 0, 1
+                        ),
+                        PipelineRun.started_at: run.started_at or now,
+                        PipelineRun.updated_at: now,
+                        PipelineRun.attempt_count: (run.attempt_count or 0) + 1,
+                        PipelineRun.worker_lease_token: lease_token,
+                        PipelineRun.worker_lease_expires_at: now
+                        + timedelta(seconds=PIPELINE_WORKER_LEASE_SECONDS),
+                        PipelineRun.worker_heartbeat_at: now,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            if claimed_count != 1:
+                session.rollback()
+                return None
+            session.flush()
+            session.refresh(run)
+            snapshot = self._claimed_snapshot(run)
             session.commit()
             return snapshot
         finally:
             session.close()
 
     def _ensure_active(self, job_id: str) -> None:
+        lease_token = self._lease_token_for_job(job_id)
+        if not lease_token:
+            raise HybridRunCancelled(job_id)
         session = self.session_factory()
         try:
-            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
+            run = (
+                session.query(PipelineRun)
+                .filter(
+                    PipelineRun.job_id == job_id,
+                    PipelineRun.worker_lease_token == lease_token,
+                    PipelineRun.worker_lease_expires_at
+                    > datetime.now(timezone.utc),
+                )
+                .first()
+            )
             if not run or run.status == "cancelled":
                 raise HybridRunCancelled(job_id)
             if run.status in TERMINAL_STATUSES:
                 raise RuntimeError(f"Hybrid job became terminal during processing: {run.status}")
         finally:
             session.close()
+
+    def _record_guarded_stage(
+        self,
+        job_id: str,
+        stage: str,
+        status: str,
+        *,
+        durable_output_reference: str | None = None,
+        durable_output_hash: str | None = None,
+        resume_safe: bool = False,
+        request_payload_update: Dict[str, Any] | None = None,
+    ) -> None:
+        lease_token = self._lease_token_for_job(job_id)
+        if not lease_token:
+            raise HybridRunCancelled(job_id)
+        session = self.session_factory()
+        try:
+            now = datetime.now(timezone.utc)
+            run = (
+                session.query(PipelineRun)
+                .filter(
+                    PipelineRun.job_id == job_id,
+                    PipelineRun.status == "running",
+                    PipelineRun.worker_lease_token == lease_token,
+                    PipelineRun.worker_lease_expires_at > now,
+                )
+                .with_for_update()
+                .first()
+            )
+            if run is None:
+                raise HybridRunCancelled(job_id)
+            if status == "started":
+                raw_task_context = (run.request_payload or {}).get("task_context")
+                task_context = OrqalyTaskContext.model_validate(raw_task_context)
+                self._lock_scope_root_for_claim(session, run, task_context)
+                self._validate_durable_accepted_decision(
+                    job_id,
+                    self._claimed_snapshot(run),
+                    task_context,
+                    session=session,
+                )
+            receipts = dict(run.paid_stage_receipts or {})
+            current = dict(receipts.get(stage) or {})
+            token_hash = hashlib.sha256(lease_token.encode("utf-8")).hexdigest()
+            if status == "started":
+                if current:
+                    raise RuntimeError(
+                        f"guarded stage {stage} cannot be executed twice"
+                    )
+                current = {
+                    "status": "started",
+                    "started_at": now.isoformat(),
+                    "lease_token_hash": token_hash,
+                    "resume_safe": False,
+                }
+            elif (
+                status == "completed"
+                and current.get("status") == "started"
+                and current.get("lease_token_hash") == token_hash
+            ):
+                current["status"] = "completed"
+                current["completed_at"] = now.isoformat()
+                if resume_safe:
+                    if (
+                        not durable_output_reference
+                        or not durable_output_hash
+                        or request_payload_update is None
+                    ):
+                        raise RuntimeError(
+                            "resume-safe stage completion requires an atomic durable output"
+                        )
+                    current["resume_safe"] = True
+                    current["durable_output_reference"] = durable_output_reference
+                    current["durable_output_hash"] = durable_output_hash
+                    run.request_payload = request_payload_update
+            else:
+                raise RuntimeError(f"guarded stage {stage} has no owned start receipt")
+            receipts[stage] = current
+            run.paid_stage_receipts = receipts
+            run.worker_heartbeat_at = now
+            run.worker_lease_expires_at = now + timedelta(
+                seconds=PIPELINE_WORKER_LEASE_SECONDS
+            )
+            run.updated_at = now
+            session.commit()
+        finally:
+            session.close()
+
+    def _begin_paid_stage(self, job_id: str, stage: str) -> None:
+        self._record_guarded_stage(job_id, stage, "started")
+
+    def _complete_paid_stage(
+        self,
+        job_id: str,
+        stage: str,
+        *,
+        durable_output_reference: str | None = None,
+        durable_output_hash: str | None = None,
+        resume_safe: bool = False,
+        request_payload_update: Dict[str, Any] | None = None,
+    ) -> None:
+        self._record_guarded_stage(
+            job_id,
+            stage,
+            "completed",
+            durable_output_reference=durable_output_reference,
+            durable_output_hash=durable_output_hash,
+            resume_safe=resume_safe,
+            request_payload_update=request_payload_update,
+        )
 
     async def _load_claimed_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         session = self.session_factory()
@@ -1834,36 +2471,42 @@ class HybridRunService:
                 .filter(
                     PipelineRun.job_id == job_id,
                     PipelineRun.status == "running",
+                    PipelineRun.worker_lease_token.is_not(None),
+                    PipelineRun.worker_lease_expires_at
+                    > datetime.now(timezone.utc),
                 )
                 .first()
             )
             if not run:
                 return None
-            return {
-                "user_id": run.user_id,
-                "simulation_id": run.simulation_id,
-                "partner_id": run.partner_id,
-                "external_org_id": run.external_org_id,
-                "external_user_id": run.external_user_id,
-                "request_id": run.request_id,
-                "request_payload": run.request_payload,
-                "requested_outputs": run.requested_outputs,
-            }
+            return self._claimed_snapshot(run)
         finally:
             session.close()
 
     async def _set_stage(
         self, job_id: str, stage: str, progress: int, message: str
     ) -> None:
+        lease_token = self._lease_token_for_job(job_id)
+        if not lease_token:
+            raise HybridRunCancelled(job_id)
         session = self.session_factory()
         try:
-            run = session.query(PipelineRun).filter(PipelineRun.job_id == job_id).first()
-            if not run or run.status in TERMINAL_STATUSES:
-                return
+            now = datetime.now(timezone.utc)
+            run = (
+                session.query(PipelineRun)
+                .filter(
+                    PipelineRun.job_id == job_id,
+                    PipelineRun.status == "running",
+                    PipelineRun.worker_lease_token == lease_token,
+                    PipelineRun.worker_lease_expires_at > now,
+                )
+                .first()
+            )
+            if not run:
+                raise HybridRunCancelled(job_id)
             run.current_stage = stage
             run.progress_percentage = max(run.progress_percentage or 0, progress)
             trace = [dict(row) for row in (run.execution_trace or [])]
-            now = datetime.now(timezone.utc)
             if trace and trace[-1].get("duration_ms") is None:
                 try:
                     previous = _utc(datetime.fromisoformat(str(trace[-1]["at"])))
@@ -1882,7 +2525,11 @@ class HybridRunService:
                 }
             )
             run.execution_trace = trace
-            run.updated_at = datetime.now(timezone.utc)
+            run.updated_at = now
+            run.worker_heartbeat_at = now
+            run.worker_lease_expires_at = now + timedelta(
+                seconds=PIPELINE_WORKER_LEASE_SECONDS
+            )
             session.commit()
         finally:
             session.close()
@@ -2245,20 +2892,31 @@ class HybridRunService:
         warning: Optional[str],
         duration: float,
     ) -> None:
+        lease_token = self._lease_token_for_job(job_id)
+        if not lease_token:
+            raise HybridRunCancelled(job_id)
         session = self.session_factory()
         try:
             run = (
                 session.query(PipelineRun)
-                .filter(PipelineRun.job_id == job_id)
+                .filter(
+                    PipelineRun.job_id == job_id,
+                    PipelineRun.status == "running",
+                    PipelineRun.worker_lease_token == lease_token,
+                    PipelineRun.worker_lease_expires_at
+                    > datetime.now(timezone.utc),
+                )
                 .with_for_update()
                 .first()
             )
+            if run is None:
+                raise HybridRunCancelled(job_id)
             simulation = (
                 session.query(SimulationData)
                 .filter(SimulationData.simulation_id == result.simulation_id)
                 .first()
             )
-            if not run or not simulation:
+            if simulation is None:
                 raise RuntimeError("Hybrid run persistence record was not found")
             if run.status == "cancelled":
                 raise HybridRunCancelled(job_id)
@@ -2319,6 +2977,9 @@ class HybridRunService:
             run.persona_count = len(result.empirical_personas or [])
             run.interview_count = len(result.interviews or [])
             run.warning = warning
+            run.worker_lease_token = None
+            run.worker_lease_expires_at = None
+            run.worker_heartbeat_at = None
 
             simulation.empirical_personas = result.empirical_personas or []
             simulation.hybrid_metadata = result.metadata or {}
@@ -2633,11 +3294,20 @@ class HybridRunService:
         *,
         diagnostics: Optional[Dict[str, Any]] = None,
     ) -> bool:
+        lease_token = self._lease_token_for_job(job_id)
+        if not lease_token:
+            return False
         session = self.session_factory()
         try:
             run = (
                 session.query(PipelineRun)
-                .filter(PipelineRun.job_id == job_id)
+                .filter(
+                    PipelineRun.job_id == job_id,
+                    PipelineRun.status == "running",
+                    PipelineRun.worker_lease_token == lease_token,
+                    PipelineRun.worker_lease_expires_at
+                    > datetime.now(timezone.utc),
+                )
                 .with_for_update()
                 .first()
             )
@@ -2656,6 +3326,9 @@ class HybridRunService:
             run.completed_at = completed_at
             run.updated_at = completed_at
             run.total_duration_seconds = duration
+            run.worker_lease_token = None
+            run.worker_lease_expires_at = None
+            run.worker_heartbeat_at = None
             session.commit()
             return True
         finally:

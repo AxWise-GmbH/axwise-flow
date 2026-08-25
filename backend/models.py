@@ -10,7 +10,9 @@ from sqlalchemy import (
     Float,
     Boolean,
     ForeignKeyConstraint,
+    Index,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, sessionmaker, foreign
@@ -346,6 +348,10 @@ class PipelineRun(Base):
     result_summary = Column(JSON, nullable=True)
     warning = Column(Text, nullable=True)
     attempt_count = Column(Integer, nullable=False, default=0)
+    worker_lease_token = Column(String, nullable=True, index=True)
+    worker_lease_expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    worker_heartbeat_at = Column(DateTime(timezone=True), nullable=True)
+    paid_stage_receipts = Column(JSON, nullable=True)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     user = relationship("User", viewonly=True)
@@ -430,6 +436,143 @@ class OrchestrationDecisionSnapshot(Base):
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     retention_until = Column(DateTime(timezone=True), nullable=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class OrchestrationScopeCorrection(Base):
+    """Durable raw correction and first-success semantic compilation."""
+
+    __tablename__ = "orchestration_scope_corrections"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            "idempotency_key",
+            name="uq_scope_correction_idempotency",
+        ),
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            "task_id",
+            "upstream_decision_id",
+            "source_scope_hash",
+            "correction_hash",
+            name="uq_scope_correction_raw_submission",
+        ),
+        UniqueConstraint(
+            "parent_correction_id",
+            name="uq_scope_correction_clarification_parent",
+        ),
+        Index(
+            "uq_scope_correction_active_source",
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            "task_id",
+            "upstream_decision_id",
+            "source_scope_hash",
+            unique=True,
+            postgresql_where=text(
+                "status IN ('queued', 'interpreting', 'proposal_pending', "
+                "'proposal_persisting', 'proposal_failed', "
+                "'proposal_dead_lettered', 'compiled', "
+                "'needs_material_clarification', 'accepted')"
+            ),
+            sqlite_where=text(
+                "status IN ('queued', 'interpreting', 'proposal_pending', "
+                "'proposal_persisting', 'proposal_failed', "
+                "'proposal_dead_lettered', 'compiled', "
+                "'needs_material_clarification', 'accepted')"
+            ),
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    correction_id = Column(String, unique=True, nullable=False, index=True)
+    partner_id = Column(String, nullable=False, index=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    task_id = Column(String, nullable=False, index=True)
+    upstream_decision_id = Column(
+        String,
+        ForeignKey("orchestration_decisions.decision_id"),
+        nullable=False,
+        index=True,
+    )
+    source_correction_id = Column(String, nullable=True, index=True)
+    parent_correction_id = Column(
+        String,
+        ForeignKey("orchestration_scope_corrections.correction_id"),
+        nullable=True,
+        index=True,
+    )
+    clarification_answer_hash = Column(String, nullable=True, index=True)
+    source_scope_hash = Column(String, nullable=False, index=True)
+    source_scope_generation = Column(Integer, nullable=False)
+    correction_hash = Column(String, nullable=False, index=True)
+    idempotency_key = Column(String, nullable=False)
+    raw_request_payload = Column(JSON, nullable=False)
+    status = Column(String, nullable=False)
+    compilation_payload = Column(JSON, nullable=True)
+    acceptance_payload = Column(JSON, nullable=True)
+    usage_payload = Column(JSON, nullable=True)
+    attempt_count = Column(Integer, nullable=False, default=1)
+    proposal_attempt_count = Column(Integer, nullable=False, default=0)
+    proposal_next_attempt_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    proposal_dead_lettered_at = Column(DateTime(timezone=True), nullable=True)
+    error_code = Column(String, nullable=True)
+    interpretation_lease_token = Column(String, nullable=True, index=True)
+    interpretation_lease_expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
+
+
+class OrchestrationScopeAcceptance(Base):
+    """One immutable server-issued owner acceptance per Gate-1 proposal."""
+
+    __tablename__ = "orchestration_scope_acceptances"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id",
+            "external_org_id",
+            "external_user_id",
+            "proposal_decision_id",
+            name="uq_scope_acceptance_proposal_owner",
+        ),
+        {"extend_existing": True},
+    )
+    __module__ = "backend.models"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    acceptance_id = Column(String, unique=True, nullable=False, index=True)
+    partner_id = Column(String, nullable=False, index=True)
+    external_org_id = Column(String, nullable=False, index=True)
+    external_user_id = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    task_id = Column(String, nullable=False, index=True)
+    proposal_decision_id = Column(
+        String,
+        ForeignKey("orchestration_decisions.decision_id"),
+        nullable=False,
+        index=True,
+    )
+    scope_generation = Column(Integer, nullable=False)
+    scope_hash = Column(String, nullable=False, index=True)
+    contract_hash = Column(String, nullable=False)
+    proposal_hash = Column(String, nullable=False, index=True)
+    proposal_inputs_hash = Column(String, nullable=False)
+    research_execution_inputs_hash = Column(String, nullable=True)
+    acceptance_payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
 class OrchestrationEvent(Base):
