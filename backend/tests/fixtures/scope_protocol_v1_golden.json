@@ -1,6 +1,6 @@
 {
   "canonicalization": "ecmascript_sorted_json_sha256_v1",
-  "fixture_fingerprint": "68014c8148a95c5abe2c0e3acfe0f3d5328ff7b67655a4f1ddcb1f134d26892e",
+  "fixture_fingerprint": "34d02f01fea05044b64078cdd532a31940263805f83dcdaf68c0ef5b80776de1",
   "fixtures": {
     "clarification": {
       "clarification_hash": "b317c77737fc8dca1e063e088bcf9dc6d807e2b9439cc68fec453133aa1ed1ae",
@@ -19,8 +19,8 @@
         "binding": {
           "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
           "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
-          "binding_hash": "eb5af78e155891211efb7b29adc2a361eae83037cbbfaeffc748068e6390b061",
-          "consumer_inputs_hash": "282ecc722ae135f2358e5748f60947b6702a6be3f038265cf7649171d6e41f1c",
+          "binding_hash": "0d15d2b37e4294cc229b18f998291d0b289f997a20e11f87ea0defa7475dca06",
+          "consumer_inputs_hash": "e061f4832604fbb0e3eb43940dca298a047a1120afb41bf040368dd44b400da0",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
@@ -32,8 +32,8 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "eb5af78e155891211efb7b29adc2a361eae83037cbbfaeffc748068e6390b061",
-        "consumer_inputs_hash": "282ecc722ae135f2358e5748f60947b6702a6be3f038265cf7649171d6e41f1c",
+        "binding_hash": "0d15d2b37e4294cc229b18f998291d0b289f997a20e11f87ea0defa7475dca06",
+        "consumer_inputs_hash": "e061f4832604fbb0e3eb43940dca298a047a1120afb41bf040368dd44b400da0",
         "request": {
           "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
           "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
@@ -49,11 +49,11 @@
                 "planning_consumer_inputs_hash": "12ace52d6e133e35cd5ab2cb9a41885a7c928afb072faed15e7a4df274591941",
                 "planning_continuation_binding_hash": "5f4198e0317098f38528ea7f7631b0d451efdded6fdc682dc7f99a1a78fd5664",
                 "planning_decision_id": "decision-planning-golden-v1",
-                "planning_projection_hash": "940a08f89b1dca3291b27d863332c77efe1f505b6143db7c4880f90b6a129155",
+                "planning_projection_hash": "6b38b343c5f512f6d93b5f94913e8f1d52f306317c98c331c0b07f17f25e56b3",
                 "version": "axwise_scope_planning_projection_ref_v1"
               }
             },
-            "payload_hash": "4ec950805c8e4a38fbfb237da82642cc4948b2287bf0b182b68f6f8897395d2c",
+            "payload_hash": "e1018155d2aa60e240a230c37279d17b11c71fe7787e520614643431cad3ccb1",
             "purpose": "assignment",
             "scope_generation": 0,
             "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -68,8 +68,8 @@
         "binding": {
           "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
           "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
-          "binding_hash": "64da819482569e02a3739ef2ea8e14ab673f522c131afd780c13832691f0c14c",
-          "consumer_inputs_hash": "89b2b0881bc4377e50015886e71701d9d934097792b254ff19563e0019e815dd",
+          "binding_hash": "bd6829688346bdaeab37b7775f8f948aea52b0b21aee68e8770761e26aebe6fe",
+          "consumer_inputs_hash": "20f49ab250343f8733d23b39a66d12902bc3c21837be5cd4fbcc717a1de4903d",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-11111111111111111111111111111111",
@@ -81,8 +81,8 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "64da819482569e02a3739ef2ea8e14ab673f522c131afd780c13832691f0c14c",
-        "consumer_inputs_hash": "89b2b0881bc4377e50015886e71701d9d934097792b254ff19563e0019e815dd",
+        "binding_hash": "bd6829688346bdaeab37b7775f8f948aea52b0b21aee68e8770761e26aebe6fe",
+        "consumer_inputs_hash": "20f49ab250343f8733d23b39a66d12902bc3c21837be5cd4fbcc717a1de4903d",
         "request": {
           "acceptance_hash": "53f9edc43d370272b5482d5f14d657a3edf77c6efc47662edb1bb9a9f4623055",
           "acceptance_id": "scope-acceptance-4b0c65ec91e2b7a99a848ec5d56ac02e",
@@ -91,28 +91,45 @@
             "payload": {
               "action_inputs": [
                 {
-                  "action_id": "send_sms",
-                  "agent_id": "00000000-0000-0000-0000-000000000010",
+                  "action_id": "internal-work-step-golden",
+                  "agent_id": "agent-golden-writer",
                   "concilium_id": "concilium-campaign-approval",
                   "input_refs": [
                     {
-                      "content_hash": "4444444444444444444444444444444444444444444444444444444444444444",
-                      "reference_id": "artifact-approved-message-v1",
-                      "reference_type": "artifact"
+                      "content_hash": "7e154df0cb57159f59c1a18a613f0a2a39656e9a2f5c05660ea27d95a203787b",
+                      "reference_id": "structured-input-step-golden-v1",
+                      "reference_type": "structured_input"
                     }
                   ],
-                  "job_id": "job-send-sms",
-                  "task_id": "team-task-send-sms",
+                  "job_id": "job-step-golden",
+                  "plan_node_id": "step-golden",
+                  "task_id": "team-task-step-golden",
                   "team_id": "00000000-0000-0000-0000-000000000011",
+                  "tool_action_grants": [
+                    {
+                      "allowed_actions": [
+                        "send_sms"
+                      ],
+                      "tool_id": "tool-sms"
+                    }
+                  ],
                   "tool_grant_ids": [
-                    "tool-grant-sms-provider-v1"
+                    "tool-sms"
                   ],
                   "workflow_execution_id": "00000000-0000-0000-0000-000000000012",
-                  "workflow_id": "workflow-sms-campaign"
+                  "workflow_id": "workflow-document-production"
                 }
-              ]
+              ],
+              "authority_kind": "planning_projection",
+              "planning_projection_ref": {
+                "planning_consumer_inputs_hash": "12ace52d6e133e35cd5ab2cb9a41885a7c928afb072faed15e7a4df274591941",
+                "planning_continuation_binding_hash": "5f4198e0317098f38528ea7f7631b0d451efdded6fdc682dc7f99a1a78fd5664",
+                "planning_decision_id": "decision-planning-golden-v1",
+                "planning_projection_hash": "6b38b343c5f512f6d93b5f94913e8f1d52f306317c98c331c0b07f17f25e56b3",
+                "version": "axwise_scope_planning_projection_ref_v1"
+              }
             },
-            "payload_hash": "b7f4d6f069342bcf1847e43e3fbb3f17033ac73b5d6716dec035cfa25117cca2",
+            "payload_hash": "e06851ef54c32b8b695815d92c5e8dc4c90d89c56a9da4f77c6dd4fe76b81439",
             "purpose": "execution",
             "scope_generation": 0,
             "scope_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -323,7 +340,7 @@
         "decision_id": "decision-assignment-golden-v1",
         "decision_status": "recommended",
         "executable": true,
-        "projection_hash": "59346abb4fec5a5bf1695531d2a56906358960f146f74cfccb4557ee9c500747",
+        "projection_hash": "9f17c207bdb8aefa915492f40bd24f09a416169230d6d20a97cac4d6fe81b027",
         "purpose": "assignment",
         "routing_mode": "direct",
         "selected_agents": [
@@ -336,7 +353,17 @@
             "required_capabilities": [
               "document_writer"
             ],
-            "tool_ids": []
+            "tool_action_grants": [
+              {
+                "allowed_actions": [
+                  "send_sms"
+                ],
+                "tool_id": "tool-sms"
+              }
+            ],
+            "tool_ids": [
+              "tool-sms"
+            ]
           }
         ],
         "validation_rejections": [],
@@ -390,10 +417,20 @@
             "review_rules": [],
             "reviewer_agent_id": null,
             "title": "Produce the accepted deliverable",
-            "tool_ids": []
+            "tool_action_grants": [
+              {
+                "allowed_actions": [
+                  "send_sms"
+                ],
+                "tool_id": "tool-sms"
+              }
+            ],
+            "tool_ids": [
+              "tool-sms"
+            ]
           }
         ],
-        "projection_hash": "940a08f89b1dca3291b27d863332c77efe1f505b6143db7c4880f90b6a129155",
+        "projection_hash": "6b38b343c5f512f6d93b5f94913e8f1d52f306317c98c331c0b07f17f25e56b3",
         "purpose": "planning",
         "routing_mode": "sequential",
         "team_member_ids": [
@@ -452,10 +489,20 @@
             "review_rules": [],
             "reviewer_agent_id": null,
             "title": "Produce the accepted deliverable",
-            "tool_ids": []
+            "tool_action_grants": [
+              {
+                "allowed_actions": [
+                  "send_sms"
+                ],
+                "tool_id": "tool-sms"
+              }
+            ],
+            "tool_ids": [
+              "tool-sms"
+            ]
           }
         ],
-        "projection_hash": "1868a068f7f866f86bbb755627932e0eccdbaa7f97be11adc3d8b637c78cdaeb",
+        "projection_hash": "9175c7caae74d0d7528c50e5f8c101572b3e67cd07f0e3e73f8908e4ca784260",
         "purpose": "planning",
         "routing_mode": "sequential",
         "team_member_ids": [
@@ -657,8 +704,8 @@
         "binding": {
           "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
           "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
-          "binding_hash": "b576cc96c37275e977aea38c6420ee997452554cf353665b6ed1d79a05fefcd4",
-          "consumer_inputs_hash": "d478c45b43c76148aabbcef79fd15edd31140a38a41d6ecd71a74ba2a2985e28",
+          "binding_hash": "5d68f678089cf3df06ef9f611bb7352b93da7f3327a461a64abecb46ce689ba6",
+          "consumer_inputs_hash": "3ef3f1c58d9df23530bee36782c3b5795ccd0fe6f7be8862c7fbc18cfd165c05",
           "correction_id": null,
           "org_id": "00000000-0000-0000-0000-000000000001",
           "proposal_decision_id": "scope-proposal-44444444444444444444444444444444",
@@ -670,8 +717,8 @@
           "user_id": "00000000-0000-0000-0000-000000000002",
           "version": "axwise_scope_continuation_v1"
         },
-        "binding_hash": "b576cc96c37275e977aea38c6420ee997452554cf353665b6ed1d79a05fefcd4",
-        "consumer_inputs_hash": "d478c45b43c76148aabbcef79fd15edd31140a38a41d6ecd71a74ba2a2985e28",
+        "binding_hash": "5d68f678089cf3df06ef9f611bb7352b93da7f3327a461a64abecb46ce689ba6",
+        "consumer_inputs_hash": "3ef3f1c58d9df23530bee36782c3b5795ccd0fe6f7be8862c7fbc18cfd165c05",
         "request": {
           "acceptance_hash": "e2ecbbd2946484774e7753eb395f6b0138065448556d05dd75be36ab845f1a66",
           "acceptance_id": "scope-acceptance-bd4cd4ad29e992f7d423310f3dd0cd47",
@@ -687,11 +734,11 @@
                 "planning_consumer_inputs_hash": "97de66dcea1fd547ebf282510bff14c05da82fafb096d2afd5137e37b92907d1",
                 "planning_continuation_binding_hash": "15a8671cb5b12c551173d9a0dc3bf5d209b3b48fb30c1cfb993bb9334a909489",
                 "planning_decision_id": "decision-research-planning-golden-v1",
-                "planning_projection_hash": "1868a068f7f866f86bbb755627932e0eccdbaa7f97be11adc3d8b637c78cdaeb",
+                "planning_projection_hash": "9175c7caae74d0d7528c50e5f8c101572b3e67cd07f0e3e73f8908e4ca784260",
                 "version": "axwise_scope_planning_projection_ref_v1"
               }
             },
-            "payload_hash": "5aa314fec3ad433897903a6c1318e3b8e36d9679e12322534c6a25ec5b2ff319",
+            "payload_hash": "98100b4e08e61161298cd7163c32d76132e40806bdc3ac940c661baf0e8d1f0d",
             "purpose": "assignment",
             "scope_generation": 0,
             "scope_hash": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -775,8 +822,8 @@
       }
     }
   },
-  "protocol_fingerprint": "28335d8d571e5f97d14ab41eb54bebae5490b18f9b36f1310e593c82b50e121d",
-  "schema_fingerprint": "643aacf0f93d2c2668023bbd26d195b7a5b1ed2fc30b03ecd6d5ca6bfbade980",
+  "protocol_fingerprint": "7c06abd13193bc9e34429f58e6447fd5d4280153fff11aa1e7a569bf94427823",
+  "schema_fingerprint": "25e59993b8a4d0649f04dad6cbae3480edc473997499d69f9be68304b890a9f6",
   "tamper_cases": [
     {
       "base_fixture": "continuations.execution.request",
@@ -791,13 +838,13 @@
     },
     {
       "base_fixture": "continuations.execution.request",
-      "expected_error": "execution action_id is outside the accepted scope",
+      "expected_error": "execution action_inputs must exactly cover planning projection nodes",
       "expected_stage": "authority",
       "mutation": {
-        "json_pointer": "/consumer_inputs/payload/action_inputs/0/action_id",
-        "value": "publish"
+        "json_pointer": "/consumer_inputs/payload/action_inputs/0/plan_node_id",
+        "value": "foreign-plan-node"
       },
-      "name": "execution_action_drift",
+      "name": "execution_plan_node_drift",
       "rehash_payload": true
     },
     {

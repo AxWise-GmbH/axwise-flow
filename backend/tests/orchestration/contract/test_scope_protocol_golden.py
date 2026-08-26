@@ -163,9 +163,18 @@ def test_golden_synthesis_and_execution_surfaces_are_exact_and_content_free():
 
     assert set(synthesis) == {"artifact_refs", "output_contract"}
     assert set(synthesis["artifact_refs"][0]) == {"reference_id", "content_hash"}
-    assert set(execution) == {"action_inputs"}
+    assert set(execution) == {
+        "authority_kind",
+        "planning_projection_ref",
+        "action_inputs",
+    }
+    assert execution["authority_kind"] == "planning_projection"
+    assert execution["planning_projection_ref"] == continuations["assignment"][
+        "request"
+    ]["consumer_inputs"]["payload"]["planning_projection_ref"]
     assert set(execution["action_inputs"][0]) == {
         "action_id",
+        "plan_node_id",
         "task_id",
         "job_id",
         "agent_id",
@@ -175,10 +184,201 @@ def test_golden_synthesis_and_execution_surfaces_are_exact_and_content_free():
         "workflow_execution_id",
         "input_refs",
         "tool_grant_ids",
+        "tool_action_grants",
     }
+    assert execution["action_inputs"][0]["tool_action_grants"] == [
+        {"tool_id": "tool-sms", "allowed_actions": ["send_sms"]}
+    ]
     serialized = json.dumps({"synthesis": synthesis, "execution": execution})
     assert "prompt" not in serialized.casefold()
     assert "instruction" not in serialized.casefold()
+
+
+@pytest.mark.parametrize(
+    "json_pointer",
+    [
+        "/consumer_inputs/payload/authority_kind",
+        "/consumer_inputs/payload/planning_projection_ref",
+        "/consumer_inputs/payload/action_inputs/0/plan_node_id",
+        "/consumer_inputs/payload/action_inputs/0/tool_action_grants",
+    ],
+)
+def test_execution_projection_authority_fields_are_required(json_pointer):
+    request = deepcopy(
+        _stored()["fixtures"]["continuations"]["execution"]["request"]
+    )
+    parts = json_pointer.split("/")[1:]
+    cursor = request
+    for part in parts[:-1]:
+        cursor = cursor[int(part)] if isinstance(cursor, list) else cursor[part]
+    cursor.pop(parts[-1])
+    request["consumer_inputs"]["payload_hash"] = canonical_hash(
+        request["consumer_inputs"]["payload"]
+    )
+
+    with pytest.raises(ValidationError, match="Field required"):
+        ScopeContinuationRequestV1.model_validate(request)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["action_id", "plan_node_id", "task_id", "job_id"],
+)
+def test_execution_manifest_identifiers_are_individually_unique(field):
+    request = deepcopy(
+        _stored()["fixtures"]["continuations"]["execution"]["request"]
+    )
+    first = request["consumer_inputs"]["payload"]["action_inputs"][0]
+    second = deepcopy(first)
+    second.update(
+        {
+            "action_id": "second-internal-work",
+            "plan_node_id": "second-plan-node",
+            "task_id": "second-team-task",
+            "job_id": "second-job",
+        }
+    )
+    second[field] = first[field]
+    request["consumer_inputs"]["payload"]["action_inputs"].append(second)
+    request["consumer_inputs"]["payload_hash"] = canonical_hash(
+        request["consumer_inputs"]["payload"]
+    )
+
+    with pytest.raises(ValidationError, match=f"unique {field}"):
+        ScopeContinuationRequestV1.model_validate(request)
+
+
+def test_planning_projection_node_id_uses_cross_runtime_durable_id_shape():
+    planning = deepcopy(_stored()["fixtures"]["decision_projections"]["planning"])
+    planning["nodes"][0]["node_id"] = "node id with spaces"
+    planning["projection_hash"] = ScopePlanningDecisionProjectionV1.canonical_hash_for(
+        planning
+    )
+
+    with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+        ScopePlanningDecisionProjectionV1.model_validate(planning)
+
+
+@pytest.mark.parametrize(
+    ("tamper", "expected"),
+    [
+        ("assigned_agent_id", "string_pattern_mismatch"),
+        ("reviewer_agent_id", "string_pattern_mismatch"),
+        ("tool_id", "string_pattern_mismatch"),
+        ("duplicate_tool_id", "projected plan node tool_ids must be unique"),
+        (
+            "grant_tool_not_on_node",
+            "projected tool_action_grants must exactly cover node tool_ids",
+        ),
+        (
+            "missing_tool_grant",
+            "projected tool_action_grants must exactly cover node tool_ids",
+        ),
+        (
+            "unsorted_grant_actions",
+            "tool action grant allowed_actions must be canonical, sorted, and unique",
+        ),
+        (
+            "unicode_grant_action",
+            "string_pattern_mismatch",
+        ),
+        ("dependency_id", "string_pattern_mismatch"),
+        (
+            "duplicate_dependency_id",
+            "projected plan node dependencies must be unique",
+        ),
+        ("team_member_id", "string_pattern_mismatch"),
+        ("duplicate_team_member_id", "projected team_member_ids must be unique"),
+    ],
+)
+def test_rehashed_planning_projection_rejects_unrepresentable_agent_tool_refs(
+    tamper,
+    expected,
+):
+    planning = deepcopy(_stored()["fixtures"]["decision_projections"]["planning"])
+    node = planning["nodes"][0]
+    if tamper in {"assigned_agent_id", "reviewer_agent_id"}:
+        node[tamper] = "agent with spaces"
+    elif tamper == "tool_id":
+        node["tool_ids"] = ["tool with spaces"]
+    elif tamper == "duplicate_tool_id":
+        node["tool_ids"] = ["tool-valid", "tool-valid"]
+    elif tamper == "grant_tool_not_on_node":
+        node["tool_action_grants"][0]["tool_id"] = "tool-other"
+    elif tamper == "missing_tool_grant":
+        node["tool_action_grants"] = []
+    elif tamper == "unsorted_grant_actions":
+        node["tool_action_grants"][0]["allowed_actions"] = [
+            "send_sms",
+            "create_draft",
+        ]
+    elif tamper == "unicode_grant_action":
+        node["tool_action_grants"][0]["allowed_actions"] = ["saada_sõnum"]
+    elif tamper == "dependency_id":
+        node["dependencies"] = ["node with spaces"]
+    elif tamper == "duplicate_dependency_id":
+        node["dependencies"] = ["step-golden", "step-golden"]
+    elif tamper == "team_member_id":
+        planning["team_member_ids"] = ["agent with spaces"]
+    else:
+        planning["team_member_ids"] = [
+            "agent-golden-writer",
+            "agent-golden-writer",
+        ]
+    planning["projection_hash"] = ScopePlanningDecisionProjectionV1.canonical_hash_for(
+        planning
+    )
+
+    with pytest.raises(ValidationError, match=expected):
+        ScopePlanningDecisionProjectionV1.model_validate(planning)
+
+
+@pytest.mark.parametrize(
+    ("tamper", "expected"),
+    [
+        ("agent_id", "string_pattern_mismatch"),
+        ("node_id", "string_pattern_mismatch"),
+        ("tool_id", "string_pattern_mismatch"),
+        ("duplicate_node_id", "assignment selection node_ids must be unique"),
+        ("duplicate_tool_id", "assignment selection tool_ids must be unique"),
+        (
+            "grant_tool_not_selected",
+            "assignment tool_action_grants must exactly cover selection tool_ids",
+        ),
+        (
+            "missing_tool_grant",
+            "assignment tool_action_grants must exactly cover selection tool_ids",
+        ),
+    ],
+)
+def test_rehashed_assignment_projection_rejects_unrepresentable_agent_tool_refs(
+    tamper,
+    expected,
+):
+    assignment = deepcopy(
+        _stored()["fixtures"]["decision_projections"]["assignment"]
+    )
+    selection = assignment["selected_agents"][0]
+    if tamper == "agent_id":
+        selection["agent_id"] = "agent with spaces"
+    elif tamper == "node_id":
+        selection["node_ids"] = ["node with spaces"]
+    elif tamper == "tool_id":
+        selection["tool_ids"] = ["tool with spaces"]
+    elif tamper == "duplicate_node_id":
+        selection["node_ids"] = ["node-valid", "node-valid"]
+    elif tamper == "grant_tool_not_selected":
+        selection["tool_action_grants"][0]["tool_id"] = "tool-other"
+    elif tamper == "missing_tool_grant":
+        selection["tool_action_grants"] = []
+    else:
+        selection["tool_ids"] = ["tool-valid", "tool-valid"]
+    assignment["projection_hash"] = (
+        ScopeAssignmentDecisionProjectionV1.canonical_hash_for(assignment)
+    )
+
+    with pytest.raises(ValidationError, match=expected):
+        ScopeAssignmentDecisionProjectionV1.model_validate(assignment)
 
 
 def test_golden_decision_projections_are_bounded_and_purpose_typed():
@@ -253,7 +453,7 @@ def test_authority_tamper_vectors_are_covered_by_named_service_regressions():
     }
 
     assert set(authority_cases) == {
-        "execution_action_drift",
+        "execution_plan_node_drift",
         "synthesis_output_expansion",
     }
     assert all(item["rehash_payload"] for item in authority_cases.values())

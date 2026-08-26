@@ -31,7 +31,6 @@ from backend.domain.orchestration.models import (
     ResearchResultV1,
 )
 from backend.domain.orchestration.scope_models import (
-    canonical_scope_action_id,
     ScopeClarificationAnswerRequestV1,
     ScopeConsumerInputsV1,
     ScopeCorrectionRequestV1,
@@ -418,35 +417,41 @@ def _synthesis_payload(packet, *, reference_id="artifact-prd-v1"):
     }
 
 
-def _execution_payload(packet):
-    action = next(
-        item
-        for item in packet.admission.requested_actions
-        if item.mode == "execute" and item.requires_authorization
-    )
+def _execution_payload(planned):
+    projection = build_scope_decision_projection(planned, "planning")
     return {
+        "authority_kind": "planning_projection",
+        "planning_projection_ref": _planning_projection_ref(planned),
         "action_inputs": [
             {
-                "action_id": canonical_scope_action_id(action.action),
-                "task_id": "team-task-send-sms",
-                "job_id": "job-send-sms",
-                "agent_id": "agent-11111111-1111-1111-1111-111111111111",
+                "action_id": f"internal-work-{index}",
+                "plan_node_id": node.node_id,
+                "task_id": f"team-task-{index}",
+                "job_id": f"job-{index}",
+                "agent_id": node.assigned_agent_id,
                 "team_id": "team-22222222-2222-2222-2222-222222222222",
-                "concilium_id": "concilium-campaign-approval",
-                "workflow_id": "workflow-sms-campaign",
+                "concilium_id": "concilium-scope-execution",
+                "workflow_id": "workflow-scope-execution",
                 "workflow_execution_id": (
                     "workflow-execution-33333333-3333-3333-3333-333333333333"
                 ),
                 "input_refs": [
                     {
-                        "reference_id": "artifact-approved-message-v1",
-                        "reference_type": "artifact",
-                        "content_hash": "b" * 64,
+                        "reference_id": f"structured-input-{index}",
+                        "reference_type": "structured_input",
+                        "content_hash": ScopeConsumerInputsV1.canonical_hash_for(
+                            node.input_contract
+                        ),
                     }
                 ],
-                "tool_grant_ids": ["tool-grant-sms-provider-v1"],
+                "tool_grant_ids": list(node.tool_ids),
+                "tool_action_grants": [
+                    grant.model_dump(mode="json")
+                    for grant in node.tool_action_grants
+                ],
             }
-        ]
+            for index, node in enumerate(projection.nodes, start=1)
+        ],
     }
 
 
@@ -2793,9 +2798,29 @@ def test_accepted_proposal_replay_fails_after_revision_reservation(lifecycle):
     assert acceptance.proposal_decision_id == parent.decision_id
 
 
-def _no_research_initial_proposal(session, *, key):
+def _no_research_initial_proposal(
+    session,
+    *,
+    key,
+    include_action_tool=False,
+    include_second_tool=False,
+):
     payload = deepcopy(_payload())
-    payload["task"]["requested_actions"] = []
+    if not include_action_tool and not include_second_tool:
+        payload["task"]["requested_actions"] = []
+        payload["task"]["required_tools"] = []
+    if include_second_tool:
+        second_tool = deepcopy(payload["available_tools"][0])
+        second_tool.update(
+            {
+                "tool_id": "records_export",
+                "name": "Records Export",
+            }
+        )
+        payload["available_tools"].append(second_tool)
+        payload["task"]["required_tools"].append("records_export")
+        for agent in payload["available_agents"]:
+            agent["tool_ids"].append("records_export")
     payload["research_policy"] = {
         "required": False,
         "minimum_mode": "instant",
@@ -2814,33 +2839,6 @@ def _no_research_initial_proposal(session, *, key):
         idempotency_key=key,
     )
     assert proposal.scope_packet.research_contract.evidence.mode == "none"
-    assert proposal.execution_plan.nodes == []
-    return proposal
-
-
-def _no_research_execution_proposal(session, *, key):
-    payload = deepcopy(_payload())
-    payload["task"]["requested_actions"] = ["send_sms"]
-    payload["task"]["risk_level"] = "high"
-    payload["task"]["reversibility"] = "irreversible"
-    payload["research_policy"] = {
-        "required": False,
-        "minimum_mode": "instant",
-        "grounding_required": False,
-        "required_outputs": [],
-    }
-    payload["research_brief"] = None
-    proposal = OrchestrationDecisionService(
-        SqlAlchemyDecisionStore(session),
-        scope_correction_store=SqlAlchemyScopeCorrectionStore(session),
-        scope_proposal_service=_proposal_service(session),
-    ).create(
-        DecisionCreateRequestV1.model_validate(payload),
-        user_id="axwise-user",
-        idempotency_key=key,
-    )
-    admitted = proposal.scope_packet.admission.requested_actions
-    assert any(item.action == "send_sms" for item in admitted)
     assert proposal.execution_plan.nodes == []
     return proposal
 
@@ -2876,6 +2874,9 @@ def _accepted_single_step_planning(packet):
                     "title": "Produce the accepted deliverable",
                     "objective": requirement.text,
                     "required_tools": list(packet.authority_snapshot.required_tools),
+                    "requested_actions": [
+                        action.action for action in packet.admission.requested_actions
+                    ],
                     "input_contract": {
                         "scope_hash": packet.scope_hash,
                         "requirement_ids": [requirement.requirement_id],
@@ -2906,6 +2907,39 @@ def _planning_projection_ref(planned):
         "planning_consumer_inputs_hash": consumer.consumer_inputs_hash,
         "planning_projection_hash": projection.projection_hash,
     }
+
+
+def _accepted_planning_decision(
+    session,
+    proposal_decision,
+    acceptance,
+    *,
+    key,
+):
+    proposal = proposal_decision.scope_proposal
+    request = _compact_continuation_request(
+        proposal,
+        acceptance,
+        purpose="planning",
+        consumer_id=f"{key}-consumer",
+        payload={
+            "planning": _accepted_single_step_planning(
+                proposal_decision.scope_packet
+            ).model_dump(mode="json"),
+            "catalogue": _catalogue_payload(proposal_decision),
+        },
+    )
+    return OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(session),
+        scope_correction_store=SqlAlchemyScopeCorrectionStore(session),
+        scope_proposal_service=_proposal_service(session),
+    ).consume_scope_proposal(
+        request,
+        org_id=proposal.org_id,
+        external_user_id=proposal.user_id,
+        user_id="axwise-user",
+        idempotency_key=f"{key}-dispatch",
+    )
 
 
 def test_compact_initial_no_research_assignment_and_planning(lifecycle):
@@ -3052,7 +3086,7 @@ def test_assignment_rejects_nonassignable_or_tampered_planning_authority(
         )
 
 
-def test_typed_synthesis_and_execution_preflights_are_non_authorizing(lifecycle):
+def test_projection_bound_no_action_execution_preflight_is_non_authorizing(lifecycle):
     session = lifecycle[0]
     proposal_service = _proposal_service(session)
     initial_count = session.query(OrchestrationDecisionSnapshot).count()
@@ -3081,16 +3115,23 @@ def test_typed_synthesis_and_execution_preflights_are_non_authorizing(lifecycle)
     )
     assert synthesis.purpose == "synthesis"
 
-    execution_proposal = _no_research_execution_proposal(
+    execution_proposal = _no_research_initial_proposal(
         session,
         key="typed-execution-preflight",
     )
+    assert not execution_proposal.scope_packet.admission.requested_actions
     execution_binding = execution_proposal.scope_proposal
     execution_acceptance = proposal_service.accept(
         _accept_request(execution_binding),
         internal_user_id="axwise-user",
     )
-    execution_payload = _execution_payload(execution_proposal.scope_packet)
+    planned = _accepted_planning_decision(
+        session,
+        execution_proposal,
+        execution_acceptance,
+        key="typed-execution-planning",
+    )
+    execution_payload = _execution_payload(planned)
     execution_request = _compact_continuation_request(
         execution_binding,
         execution_acceptance,
@@ -3108,12 +3149,12 @@ def test_typed_synthesis_and_execution_preflights_are_non_authorizing(lifecycle)
     assert execution.consumer_inputs_hash == (
         execution_request.consumer_inputs.consumer_inputs_hash
     )
-    # Proposal creation is the only decision persistence above. Continuation
-    # minting itself creates no plan, job, tool call, or execution authority.
-    assert session.query(OrchestrationDecisionSnapshot).count() == initial_count + 2
+    # The two proposals and exact planning decision are the only persistence.
+    # Execution preflight creates no plan, job, tool call, or execution authority.
+    assert session.query(OrchestrationDecisionSnapshot).count() == initial_count + 3
 
     changed_action = deepcopy(execution_payload)
-    changed_action["action_inputs"][0]["action_id"] = "publish"
+    changed_action["action_inputs"][0]["action_id"] = "opaque-retry-work-id"
     changed_request = _compact_continuation_request(
         execution_binding,
         execution_acceptance,
@@ -3121,13 +3162,13 @@ def test_typed_synthesis_and_execution_preflights_are_non_authorizing(lifecycle)
         consumer_id="goal:execution:manifest-v2",
         payload=changed_action,
     )
-    with pytest.raises(ScopeProposalError, match="outside the accepted scope"):
-        proposal_service.continuation(
-            changed_request,
-            org_id=execution_binding.org_id,
-            external_user_id=execution_binding.user_id,
-            internal_user_id="axwise-user",
-        )
+    changed_binding = proposal_service.continuation(
+        changed_request,
+        org_id=execution_binding.org_id,
+        external_user_id=execution_binding.user_id,
+        internal_user_id="axwise-user",
+    )
+    assert changed_binding.consumer_inputs_hash != execution.consumer_inputs_hash
 
     changed_output = _synthesis_payload(synthesis_proposal.scope_packet)
     changed_output["output_contract"]["count"] += 1
@@ -3179,34 +3220,107 @@ def test_typed_synthesis_and_execution_preflights_are_non_authorizing(lifecycle)
             internal_user_id="axwise-user",
         )
 
-    # Admission itself rejects two literals that collapse to one action ID but
-    # carry different authority, so the service's exact lookup cannot silently
-    # overwrite a conflicting action in its dictionary.
-    colliding_admission = execution_proposal.scope_packet.admission.model_dump(
-        mode="json"
-    )
-    colliding_admission["requested_actions"].append(
-        {
-            "action": "send sms",
-            "mode": "prepare",
-            "side_effect": "none",
-            "requires_authorization": False,
-        }
-    )
-    with pytest.raises(ValidationError, match="conflicting definitions"):
-        type(execution_proposal.scope_packet.admission).model_validate(
-            colliding_admission
-        )
 
-    duplicated_admission = execution_proposal.scope_packet.admission.model_dump(
-        mode="json"
+@pytest.mark.parametrize(
+    ("tamper", "expected"),
+    [
+        ("planning_decision_id", "planning projection decision was not found"),
+        ("planning_continuation_binding_hash", "lost its exact scope"),
+        ("planning_consumer_inputs_hash", "lost its exact scope"),
+        ("planning_projection_hash", "projection hash is stale or tampered"),
+        ("plan_node_id", "must exactly cover planning projection nodes"),
+        ("agent_id", "agent_id does not match"),
+        ("tool_grant_ids", "tool_grant_ids do not exactly match"),
+        ("tool_grant_order", "tool_grant_ids do not exactly match"),
+        (
+            "tool_action_grants",
+            "tool_action_grants do not exactly match",
+        ),
+        ("input_reference_type", "requires one structured_input ref"),
+        ("input_reference_count", "requires one structured_input ref"),
+        ("input_hash", "structured_input hash does not match"),
+    ],
+)
+def test_execution_preflight_rejects_planning_authority_drift(
+    lifecycle,
+    tamper,
+    expected,
+):
+    session = lifecycle[0]
+    proposal_decision = _no_research_initial_proposal(
+        session,
+        key=f"execution-authority-{tamper}",
+        include_action_tool=(
+            tamper in {"tool_grant_ids", "tool_action_grants"}
+        ),
+        include_second_tool=tamper == "tool_grant_order",
     )
-    duplicated_admission["requested_actions"].append(
-        dict(duplicated_admission["requested_actions"][0])
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
     )
-    with pytest.raises(ValidationError, match="duplicate semantic action ID"):
-        type(execution_proposal.scope_packet.admission).model_validate(
-            duplicated_admission
+    planned = _accepted_planning_decision(
+        session,
+        proposal_decision,
+        acceptance,
+        key=f"execution-authority-{tamper}-planning",
+    )
+    payload = _execution_payload(planned)
+    if tamper in {
+        "planning_decision_id",
+        "planning_continuation_binding_hash",
+        "planning_consumer_inputs_hash",
+        "planning_projection_hash",
+    }:
+        payload["planning_projection_ref"][tamper] = (
+            "foreign-planning-decision"
+            if tamper == "planning_decision_id"
+            else "0" * 64
+        )
+    elif tamper == "plan_node_id":
+        payload["action_inputs"][0]["plan_node_id"] = "foreign-plan-node"
+    elif tamper == "agent_id":
+        payload["action_inputs"][0]["agent_id"] = "foreign-agent"
+    elif tamper == "tool_grant_ids":
+        payload["action_inputs"][0]["tool_grant_ids"] = []
+        payload["action_inputs"][0]["tool_action_grants"] = []
+    elif tamper == "tool_grant_order":
+        tool_ids = payload["action_inputs"][0]["tool_grant_ids"]
+        assert len(tool_ids) == 2
+        payload["action_inputs"][0]["tool_grant_ids"] = list(
+            reversed(tool_ids)
+        )
+    elif tamper == "tool_action_grants":
+        payload["action_inputs"][0]["tool_action_grants"] = [
+            {
+                "tool_id": payload["action_inputs"][0]["tool_grant_ids"][0],
+                "allowed_actions": ["send_sms"],
+            }
+        ]
+    elif tamper == "input_reference_type":
+        payload["action_inputs"][0]["input_refs"][0]["reference_type"] = "artifact"
+    elif tamper == "input_reference_count":
+        second_ref = deepcopy(payload["action_inputs"][0]["input_refs"][0])
+        second_ref["reference_id"] = "second-structured-input"
+        payload["action_inputs"][0]["input_refs"].append(second_ref)
+    else:
+        payload["action_inputs"][0]["input_refs"][0]["content_hash"] = "0" * 64
+
+    request = _compact_continuation_request(
+        proposal,
+        acceptance,
+        purpose="execution",
+        consumer_id=f"goal:execution:{tamper}",
+        payload=payload,
+    )
+    with pytest.raises(ScopeProposalError, match=expected):
+        proposal_service.continuation(
+            request,
+            org_id=proposal.org_id,
+            external_user_id=proposal.user_id,
+            internal_user_id="axwise-user",
         )
 
 
@@ -3214,7 +3328,7 @@ def test_consumer_preflight_rejects_free_prose_extra_fields_hash_and_owner_drift
     lifecycle,
 ):
     session = lifecycle[0]
-    proposal_decision = _no_research_execution_proposal(
+    proposal_decision = _no_research_initial_proposal(
         session,
         key="typed-preflight-tamper",
     )
@@ -3224,7 +3338,13 @@ def test_consumer_preflight_rejects_free_prose_extra_fields_hash_and_owner_drift
         _accept_request(proposal),
         internal_user_id="axwise-user",
     )
-    payload = _execution_payload(proposal_decision.scope_packet)
+    planned = _accepted_planning_decision(
+        session,
+        proposal_decision,
+        acceptance,
+        key="typed-preflight-tamper-planning",
+    )
+    payload = _execution_payload(planned)
     base = {
         "purpose": "execution",
         "consumer_id": "goal:execution:tamper",

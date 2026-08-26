@@ -58,10 +58,15 @@ from backend.domain.orchestration.ports import (
 )
 from backend.domain.orchestration.validation import canonical_json, canonical_request_hash
 from backend.models import OrchestrationDecisionSnapshot
-from backend.services.orchestration.assignment_scorer import AssignmentScorer
+from backend.services.orchestration.action_authority import (
+    exact_tool_action_grants,
+    normalized_action_ids,
+    sealed_consequential_action_ids,
+)
 from backend.services.orchestration.adapters.plan_feasibility_adapter import (
     CataloguePlanFeasibilityAdapter,
 )
+from backend.services.orchestration.assignment_scorer import AssignmentScorer
 from backend.services.orchestration.team_planner import TeamPlanner
 from backend.services.orchestration.replanning_service import ReplanningService
 from backend.services.orchestration.uncertainty_router import UncertaintyRouter
@@ -355,6 +360,10 @@ class OrchestrationDecisionService:
         approval_actions = required_actions.intersection(
             self.scorer.registry.normalize_many(policy.human_approval_required_for)
         )
+        sealed_consequential_actions = sealed_consequential_action_ids(
+            request,
+            self.scorer.registry,
+        )
         risk_requires_approval = (
             RISK_ORDER[task.risk_level]
             > RISK_ORDER[policy.maximum_risk_without_human]
@@ -371,6 +380,8 @@ class OrchestrationDecisionService:
         reasons = []
         if approval_actions:
             reasons.append("configured actions require approval")
+        if sealed_consequential_actions:
+            reasons.append("sealed consequential actions require approval")
         if risk_requires_approval:
             reasons.append("task risk exceeds autonomous policy threshold")
         if irreversible_requires_approval:
@@ -699,7 +710,36 @@ class OrchestrationDecisionService:
                 RoutingMode.HUMAN_CONTROLLED,
             }
             nodes: list[PlanNode] = []
-            if selected and executable_mode and consumer_execution_allowed:
+            direct_tool_action_grants = exact_tool_action_grants(
+                request,
+                task.required_tools,
+                task.requested_actions,
+                self.scorer.registry,
+            )
+            direct_action_ids = normalized_action_ids(
+                task.requested_actions,
+                self.scorer.registry,
+            )
+            direct_granted_action_ids = {
+                action_id
+                for grant in direct_tool_action_grants
+                for action_id in grant.allowed_actions
+            }
+            direct_consequential_action_ids = sealed_consequential_action_ids(
+                request,
+                self.scorer.registry,
+            )
+            direct_tool_authority_exact = {
+                grant.tool_id for grant in direct_tool_action_grants
+            } == set(task.required_tools) and direct_consequential_action_ids.issubset(
+                direct_action_ids.intersection(direct_granted_action_ids)
+            )
+            if (
+                selected
+                and executable_mode
+                and consumer_execution_allowed
+                and direct_tool_authority_exact
+            ):
                 agent = next(
                     item
                     for item in request.available_agents
@@ -712,6 +752,7 @@ class OrchestrationDecisionService:
                         assigned_agent_id=selected.agent_id,
                         required_capabilities=scoring.required_capabilities,
                         tool_ids=task.required_tools,
+                        tool_action_grants=direct_tool_action_grants,
                         input_contract={
                             "task_id": task.task_id,
                             "context_reference_ids": [
@@ -754,6 +795,13 @@ class OrchestrationDecisionService:
                         "plan feasibility was rejected: "
                         + plan_feasibility.rejections[0].reason,
                     )
+            elif selected and executable_mode and consumer_execution_allowed:
+                routing_mode = RoutingMode.HUMAN_CONTROLLED
+                assessment = self._override_assessment(
+                    assessment,
+                    routing_mode,
+                    "required tool lacks an exact requested-action grant",
+                )
 
         if awaiting_scope_confirmation and unified_lifecycle:
             status = DecisionStatus.ESCALATED

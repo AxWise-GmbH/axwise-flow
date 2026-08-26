@@ -16,6 +16,11 @@ from backend.domain.orchestration.models import (
     PlanNode,
     PlanStepV1,
 )
+from backend.services.orchestration.action_authority import (
+    exact_tool_action_grants,
+    normalized_action_ids,
+    sealed_consequential_action_ids,
+)
 from backend.services.orchestration.assignment_scorer import AssignmentScorer
 from backend.services.orchestration.plan_validator import (
     PlanValidationResult,
@@ -213,6 +218,11 @@ class TeamPlanner:
                 request.policy_context.human_approval_required_for
             )
         )
+        consequential_actions = sealed_consequential_action_ids(
+            request,
+            self.scorer.registry,
+        )
+        gated_actions = approval_actions.union(consequential_actions)
 
         for index, step in enumerate(planning.steps):
             forbidden = self._separation_forbidden(request, step.step_id, owners)
@@ -252,10 +262,11 @@ class TeamPlanner:
                     [*input_contract.get("dependency_outputs", []), *dependencies]
                 )
             )
-            actions = set(
-                self.scorer.registry.normalize_many(step.requested_actions)
+            actions = normalized_action_ids(
+                step.requested_actions,
+                self.scorer.registry,
             )
-            needs_approval = bool(actions.intersection(approval_actions)) or (
+            needs_approval = bool(actions.intersection(gated_actions)) or (
                 planning.pattern == "human_controlled"
             )
             gate_ids: list[str] = []
@@ -266,7 +277,9 @@ class TeamPlanner:
                     ApprovalGate(
                         gate_id=gate_id,
                         reason=(
-                            "configured consequential action requires Orqaly approval"
+                            "sealed consequential action requires Orqaly approval"
+                            if actions.intersection(consequential_actions)
+                            else "configured action requires Orqaly approval"
                             if actions.intersection(approval_actions)
                             else "human-controlled plan requires authorization before every node"
                         ),
@@ -292,6 +305,19 @@ class TeamPlanner:
                 if any(value is None for value in latency_values)
                 else sum(int(value) for value in latency_values)
             )
+            tool_action_grants = exact_tool_action_grants(
+                request,
+                step.required_tools,
+                step.requested_actions,
+                self.scorer.registry,
+            )
+            if {grant.tool_id for grant in tool_action_grants} != set(
+                step.required_tools
+            ):
+                planning_errors.append(
+                    f"step {step.step_id} attaches a tool without an exact requested-action grant"
+                )
+                continue
             nodes.append(
                 PlanNode(
                     node_id=step.step_id,
@@ -301,6 +327,7 @@ class TeamPlanner:
                         step.required_capabilities
                     ),
                     tool_ids=step.required_tools,
+                    tool_action_grants=tool_action_grants,
                     dependencies=dependencies,
                     input_contract=input_contract,
                     output_contract=step.output_contract,
@@ -343,6 +370,7 @@ class TeamPlanner:
                         required_capabilities=self.scorer.registry.normalize_many(
                             supervisor_step.required_capabilities
                         ),
+                        tool_action_grants=[],
                         dependencies=sorted(terminal_ids),
                         input_contract=supervisor_step.input_contract,
                         output_contract=supervisor_step.output_contract,

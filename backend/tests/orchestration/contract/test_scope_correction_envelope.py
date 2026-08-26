@@ -24,7 +24,10 @@ from backend.domain.orchestration.scope_models import (
     ScopeSemanticFieldEditV1,
     ScopeSourceSpanV1,
 )
-from backend.services.orchestration.scope_contract_service import build_scope_packet
+from backend.services.orchestration.scope_contract_service import (
+    ScopeContractError,
+    build_scope_packet,
+)
 from backend.services.orchestration.scope_correction_service import (
     compile_scope_correction,
     PydanticAIScopeSemanticInterpreter,
@@ -865,6 +868,124 @@ def test_continuation_request_rejects_new_action_tool_and_unbound_plan_step():
     expanded = continued.model_copy(update={"task": expanded_task})
     with pytest.raises(Exception, match="task.required_tools"):
         validate_continuation_request_authority(expanded, packet)
+
+
+def _canonical_alias_continuation():
+    payload = _commercial_payload()
+    payload["task"]["requested_actions"] = ["send SMS"]
+    source = DecisionCreateRequestV1.model_validate(payload)
+    packet = build_scope_packet(source)
+    assert [item.action for item in packet.admission.requested_actions] == [
+        "send SMS"
+    ]
+    requirement = next(
+        item
+        for item in packet.ledger.requirements
+        if item.text == packet.intent.objective
+    )
+    criterion = next(
+        item
+        for item in packet.ledger.acceptance
+        if requirement.requirement_id in item.supports
+    )
+    planning = PlanningRequirementsV1.model_validate(
+        {
+            "pattern": "single",
+            "steps": [
+                {
+                    "step_id": "step-send-sms",
+                    "title": "Send SMS for the accepted deliverable",
+                    "objective": requirement.text,
+                    "required_tools": list(
+                        packet.authority_snapshot.required_tools
+                    ),
+                    "requested_actions": ["send_sms"],
+                    "input_contract": {
+                        "scope_hash": packet.scope_hash,
+                        "requirement_ids": [requirement.requirement_id],
+                    },
+                    "output_contract": {
+                        "scope_hash": packet.scope_hash,
+                        "requirement_ids": [requirement.requirement_id],
+                        "deliverable_type": packet.deliverable.type,
+                        "deliverable_count": packet.deliverable.count,
+                        "presentation": packet.deliverable.presentation,
+                        "required_sections": list(
+                            packet.deliverable.required_sections
+                        ),
+                    },
+                    "completion_criteria": [getattr(criterion, "then")[0]],
+                }
+            ],
+        }
+    )
+    continued = source.model_copy(
+        update={
+            "task": source.task.model_copy(
+                update={"requested_actions": ["send_sms"]}
+            ),
+            "planning": planning,
+        }
+    )
+    return continued, packet
+
+
+def test_continuation_action_authority_uses_one_canonical_alias_identity():
+    continued, packet = _canonical_alias_continuation()
+
+    validate_continuation_request_authority(
+        continued,
+        packet,
+        require_binding=False,
+    )
+
+
+def test_scope_admission_rejects_an_empty_canonical_action_identity():
+    payload = _commercial_payload()
+    payload["task"]["requested_actions"] = ["!!!"]
+
+    with pytest.raises(ValidationError, match="non-empty canonical action ID"):
+        build_scope_packet(DecisionCreateRequestV1.model_validate(payload))
+
+
+@pytest.mark.parametrize(
+    ("target", "expected"),
+    [
+        ("task", "task.requested_actions"),
+        ("planning", "planning.step-send-sms.requested_actions"),
+    ],
+)
+def test_continuation_rejects_actions_with_an_empty_canonical_identity(
+    target,
+    expected,
+):
+    continued, packet = _canonical_alias_continuation()
+    if target == "task":
+        continued = continued.model_copy(
+            update={
+                "task": continued.task.model_copy(
+                    update={"requested_actions": ["!!!"]}
+                )
+            }
+        )
+    else:
+        invalid_step = continued.planning.steps[0].model_copy(
+            update={"requested_actions": ["???"]}
+        )
+        continued = continued.model_copy(
+            update={
+                "planning": continued.planning.model_copy(
+                    update={"steps": [invalid_step]}
+                )
+            }
+        )
+
+    with pytest.raises(ScopeContractError, match=expected):
+        validate_continuation_request_authority(
+            continued,
+            packet,
+            require_binding=False,
+        )
 
 
 def test_planning_continuation_rejects_hidden_actions_and_unsealed_outputs():
