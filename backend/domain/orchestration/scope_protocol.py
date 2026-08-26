@@ -198,7 +198,13 @@ def _decision_projection(*, purpose: str, decision_id: str | None = None):
                     "title": "Produce the accepted deliverable",
                     "assigned_agent_id": "agent-golden-writer",
                     "required_capabilities": ["document_writer"],
-                    "tool_ids": [],
+                    "tool_ids": ["tool-sms"],
+                    "tool_action_grants": [
+                        {
+                            "tool_id": "tool-sms",
+                            "allowed_actions": ["send_sms"],
+                        }
+                    ],
                     "dependencies": [],
                     "input_contract": {
                         "scope_hash": "a" * 64,
@@ -246,7 +252,13 @@ def _decision_projection(*, purpose: str, decision_id: str | None = None):
                 "agent_id": "agent-golden-writer",
                 "node_ids": ["node-direct-assignment"],
                 "required_capabilities": ["document_writer"],
-                "tool_ids": [],
+                "tool_ids": ["tool-sms"],
+                "tool_action_grants": [
+                    {
+                        "tool_id": "tool-sms",
+                        "allowed_actions": ["send_sms"],
+                    }
+                ],
                 "approval_gate_ids": [],
             }
         ],
@@ -302,6 +314,8 @@ def _schemas_fingerprint() -> str:
         ScopeConsumerDispatchV1,
         ScopeResearchCompletionRefV1,
         ScopePlanningProjectionRefV1,
+        ScopePlanningDecisionProjectionV1,
+        ScopeAssignmentDecisionProjectionV1,
     )
     return canonical_hash(
         {model.__name__: model.model_json_schema() for model in models}
@@ -344,16 +358,17 @@ def build_scope_protocol_golden_bundle() -> dict[str, Any]:
         acceptance,
         planning_consumer,
     )
+    planning_projection_ref = {
+        "version": "axwise_scope_planning_projection_ref_v1",
+        "planning_decision_id": planning_projection.decision_id,
+        "planning_continuation_binding_hash": planning_binding.binding_hash,
+        "planning_consumer_inputs_hash": planning_consumer.consumer_inputs_hash,
+        "planning_projection_hash": planning_projection.projection_hash,
+    }
     assignment_payload = {
         "authority_kind": "planning_projection",
         "catalogue": {"available_agents": [], "available_tools": []},
-        "planning_projection_ref": {
-            "version": "axwise_scope_planning_projection_ref_v1",
-            "planning_decision_id": planning_projection.decision_id,
-            "planning_continuation_binding_hash": planning_binding.binding_hash,
-            "planning_consumer_inputs_hash": planning_consumer.consumer_inputs_hash,
-            "planning_projection_hash": planning_projection.projection_hash,
-        },
+        "planning_projection_ref": planning_projection_ref,
     }
     payloads = {
         "planning": planning_payload,
@@ -371,26 +386,37 @@ def build_scope_protocol_golden_bundle() -> dict[str, Any]:
             },
         },
         "execution": {
+            "authority_kind": "planning_projection",
+            "planning_projection_ref": planning_projection_ref,
             "action_inputs": [
                 {
-                    "action_id": "send_sms",
-                    "task_id": "team-task-send-sms",
-                    "job_id": "job-send-sms",
-                    "agent_id": "00000000-0000-0000-0000-000000000010",
+                    "action_id": "internal-work-step-golden",
+                    "plan_node_id": "step-golden",
+                    "task_id": "team-task-step-golden",
+                    "job_id": "job-step-golden",
+                    "agent_id": "agent-golden-writer",
                     "team_id": "00000000-0000-0000-0000-000000000011",
                     "concilium_id": "concilium-campaign-approval",
-                    "workflow_id": "workflow-sms-campaign",
+                    "workflow_id": "workflow-document-production",
                     "workflow_execution_id": (
                         "00000000-0000-0000-0000-000000000012"
                     ),
                     "input_refs": [
                         {
-                            "reference_id": "artifact-approved-message-v1",
-                            "reference_type": "artifact",
-                            "content_hash": "4" * 64,
+                            "reference_id": "structured-input-step-golden-v1",
+                            "reference_type": "structured_input",
+                            "content_hash": canonical_hash(
+                                planning_projection.nodes[0].input_contract
+                            ),
                         }
                     ],
-                    "tool_grant_ids": ["tool-grant-sms-provider-v1"],
+                    "tool_grant_ids": ["tool-sms"],
+                    "tool_action_grants": [
+                        {
+                            "tool_id": "tool-sms",
+                            "allowed_actions": ["send_sms"],
+                        }
+                    ],
                 }
             ]
         },
@@ -547,15 +573,17 @@ def build_scope_protocol_golden_bundle() -> dict[str, Any]:
             "expected_error": "extra_forbidden",
         },
         {
-            "name": "execution_action_drift",
+            "name": "execution_plan_node_drift",
             "base_fixture": "continuations.execution.request",
             "mutation": {
-                "json_pointer": "/consumer_inputs/payload/action_inputs/0/action_id",
-                "value": "publish",
+                "json_pointer": "/consumer_inputs/payload/action_inputs/0/plan_node_id",
+                "value": "foreign-plan-node",
             },
             "rehash_payload": True,
             "expected_stage": "authority",
-            "expected_error": "execution action_id is outside the accepted scope",
+            "expected_error": (
+                "execution action_inputs must exactly cover planning projection nodes"
+            ),
         },
         {
             "name": "execution_payload_hash_tamper",

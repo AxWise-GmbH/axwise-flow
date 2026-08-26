@@ -308,12 +308,35 @@ async def _consume_accepted(
         assert [item["agent_id"] for item in projection["selected_agents"]] == [
             item["agent_id"] for item in decision["recommended_agents"]
         ]
+        for selection in projection["selected_agents"]:
+            nodes = [
+                node
+                for node in decision["execution_plan"]["nodes"]
+                if node["assigned_agent_id"] == selection["agent_id"]
+            ]
+            expected_actions_by_tool = {}
+            for node in nodes:
+                for grant in node["tool_action_grants"]:
+                    expected_actions_by_tool.setdefault(grant["tool_id"], set()).update(
+                        grant["allowed_actions"]
+                    )
+            assert selection["tool_action_grants"] == [
+                {
+                    "tool_id": tool_id,
+                    "allowed_actions": sorted(expected_actions_by_tool[tool_id]),
+                }
+                for tool_id in sorted(expected_actions_by_tool)
+            ]
     else:
         assert [item["node_id"] for item in projection["nodes"]] == [
             item["node_id"] for item in decision["execution_plan"]["nodes"]
         ]
         assert [item["dependencies"] for item in projection["nodes"]] == [
             item["dependencies"] for item in decision["execution_plan"]["nodes"]
+        ]
+        assert [item["tool_action_grants"] for item in projection["nodes"]] == [
+            item["tool_action_grants"]
+            for item in decision["execution_plan"]["nodes"]
         ]
     return dispatch_response, decision_response
 
@@ -1217,6 +1240,7 @@ async def test_compact_planning_projection_retains_only_operational_contract(
         "assigned_agent_id",
         "required_capabilities",
         "tool_ids",
+        "tool_action_grants",
         "dependencies",
         "input_contract",
         "output_contract",

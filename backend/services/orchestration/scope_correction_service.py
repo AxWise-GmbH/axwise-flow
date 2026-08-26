@@ -30,6 +30,8 @@ from backend.domain.orchestration.models import (
     ResearchBriefV1,
 )
 from backend.domain.orchestration.scope_models import (
+    canonical_scope_action_id,
+    strict_canonical_scope_action_ids,
     ScopeAssignmentConsumerPayloadV1,
     ScopeAcceptanceV1,
     ScopeClarificationAnswerRequestV1,
@@ -2289,8 +2291,20 @@ def validate_continuation_request_authority(
     if request.task.capability_profile != authority.task_capability_profile:
         mismatches.append("task.capability_profile")
 
-    accepted_actions = {item.action for item in admission.requested_actions}
-    requested_actions = set(request.task.requested_actions)
+    try:
+        accepted_actions = strict_canonical_scope_action_ids(
+            item.action for item in admission.requested_actions
+        )
+    except ValueError:
+        accepted_actions = set()
+        mismatches.append("scope.admission.requested_actions")
+    try:
+        requested_actions = strict_canonical_scope_action_ids(
+            request.task.requested_actions
+        )
+    except ValueError:
+        requested_actions = set()
+        mismatches.append("task.requested_actions")
     if not requested_actions.issubset(accepted_actions):
         mismatches.append("task.requested_actions")
     if set(request.task.required_tools) != set(authority.required_tools):
@@ -2495,7 +2509,14 @@ def validate_continuation_request_authority(
         for step in request.planning.steps:
             if not set(step.required_tools).issubset(set(authority.required_tools)):
                 mismatches.append(f"planning.{step.step_id}.required_tools")
-            if not set(step.requested_actions).issubset(accepted_actions):
+            try:
+                step_actions = strict_canonical_scope_action_ids(
+                    step.requested_actions
+                )
+            except ValueError:
+                step_actions = set()
+                mismatches.append(f"planning.{step.step_id}.requested_actions")
+            if not step_actions.issubset(accepted_actions):
                 mismatches.append(f"planning.{step.step_id}.requested_actions")
             if not set(step.required_capabilities).issubset(accepted_capabilities):
                 mismatches.append(f"planning.{step.step_id}.required_capabilities")
@@ -2559,14 +2580,14 @@ def validate_continuation_request_authority(
             collect_text(step.input_contract)
             collect_text(step.output_contract)
             detected_actions = {
-                action
+                canonical_scope_action_id(action)
                 for action in _OPERATION_TO_ACTION.values()
                 if any(
                     _contains_literal(text, action.replace("_", " "))
                     for text in semantic_texts
                 )
             }
-            if not detected_actions.issubset(set(step.requested_actions)):
+            if not detected_actions.issubset(step_actions):
                 mismatches.append(f"planning.{step.step_id}.undeclared_actions")
     if mismatches:
         raise ScopeContractError(
