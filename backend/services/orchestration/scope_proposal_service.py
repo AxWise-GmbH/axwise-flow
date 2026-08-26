@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
 from uuid import NAMESPACE_URL, uuid5
@@ -14,7 +15,6 @@ from backend.domain.orchestration.models import (
     OrchestrationDecisionV1,
 )
 from backend.domain.orchestration.scope_models import (
-    canonical_scope_action_id,
     ScopeAssignmentConsumerPayloadV1,
     ScopeContractBindingV1,
     ScopeConsumerInputsV1,
@@ -23,6 +23,8 @@ from backend.domain.orchestration.scope_models import (
     ScopeContinuationRequestV1,
     ScopeExecutionConsumerPayloadV1,
     ScopePlanningConsumerPayloadV1,
+    ScopePlanningDecisionProjectionV1,
+    ScopePlanningProjectionRefV1,
     ScopeProposalAcceptanceRequestV1,
     ScopeProposalAcceptanceV1,
     ScopeProposalBindingV1,
@@ -38,6 +40,14 @@ from backend.services.orchestration.scope_decision_projection import (
 
 
 PARTNER_ID = "orqaly"
+
+
+@dataclass(frozen=True)
+class _PlanningAuthority:
+    """Exact private source and public projection sealed by one planning ref."""
+
+    source: DecisionCreateRequestV1
+    projection: ScopePlanningDecisionProjectionV1
 
 
 class ScopeProposalError(ValueError):
@@ -659,15 +669,15 @@ class ScopeProposalService:
         )
         return ScopeResearchCompletionRefV1.model_validate(payload), result_source
 
-    def _planning_source_from_ref(
+    def _planning_authority_from_ref(
         self,
-        planning_ref,
+        planning_ref: ScopePlanningProjectionRefV1,
         *,
         proposal: ScopeProposalBindingV1,
         acceptance: ScopeProposalAcceptanceV1,
         packet: Any,
         internal_user_id: str,
-    ) -> DecisionCreateRequestV1:
+    ) -> _PlanningAuthority:
         row = self.decision_store.get_for_tenant(
             planning_ref.planning_decision_id,
             proposal.org_id,
@@ -716,6 +726,8 @@ class ScopeProposalService:
         ):
             raise ScopeProposalError("planning projection reference lost its exact scope")
         projection = build_scope_decision_projection(decision, "planning")
+        if not isinstance(projection, ScopePlanningDecisionProjectionV1):
+            raise ScopeProposalError("planning projection payload is invalid")
         if planning_ref.planning_projection_hash != projection.projection_hash:
             raise ScopeProposalError("planning projection hash is stale or tampered")
         planning_payload = consumer.payload
@@ -759,7 +771,7 @@ class ScopeProposalService:
             raise ScopeProposalError(
                 "planning projection is not executable, feasible, and assignable"
             )
-        return source
+        return _PlanningAuthority(source=source, projection=projection)
 
     def validate_consumer(
         self,
@@ -834,13 +846,14 @@ class ScopeProposalService:
             assignment_payload = consumer.payload
             if not isinstance(assignment_payload, ScopeAssignmentConsumerPayloadV1):
                 raise ScopeProposalError("assignment payload schema is invalid")
-            staged_source = self._planning_source_from_ref(
+            authority = self._planning_authority_from_ref(
                 assignment_payload.planning_projection_ref,
                 proposal=decision.scope_proposal,
                 acceptance=acceptance,
                 packet=packet,
                 internal_user_id=internal_user_id,
             )
+            staged_source = authority.source
         if purpose == "synthesis":
             synthesis = consumer.payload
             if not isinstance(synthesis, ScopeSynthesisConsumerPayloadV1):
@@ -861,26 +874,59 @@ class ScopeProposalService:
             execution = consumer.payload
             if not isinstance(execution, ScopeExecutionConsumerPayloadV1):
                 raise ScopeProposalError("execution payload schema is invalid")
-            if packet.admission is None:
-                raise ScopeProposalError("execution requires typed admitted actions")
-            admitted_actions = {}
-            for action in packet.admission.requested_actions:
-                action_id = canonical_scope_action_id(action.action)
-                existing = admitted_actions.get(action_id)
-                if existing is not None:
-                    raise ScopeProposalError(
-                        "accepted scope contains a duplicate semantic action ID"
-                    )
-                admitted_actions[action_id] = action
+            authority = self._planning_authority_from_ref(
+                execution.planning_projection_ref,
+                proposal=decision.scope_proposal,
+                acceptance=acceptance,
+                packet=packet,
+                internal_user_id=internal_user_id,
+            )
+            projected_nodes = {
+                node.node_id: node for node in authority.projection.nodes
+            }
+            action_nodes = {
+                action.plan_node_id for action in execution.action_inputs
+            }
+            if (
+                len(execution.action_inputs) != len(projected_nodes)
+                or action_nodes != set(projected_nodes)
+            ):
+                raise ScopeProposalError(
+                    "execution action_inputs must exactly cover planning "
+                    "projection nodes"
+                )
             for action_input in execution.action_inputs:
-                admitted = admitted_actions.get(action_input.action_id)
-                if admitted is None:
+                node = projected_nodes[action_input.plan_node_id]
+                if action_input.agent_id != node.assigned_agent_id:
                     raise ScopeProposalError(
-                        "execution action_id is outside the accepted scope"
+                        "execution agent_id does not match its planning projection node"
                     )
-                if admitted.mode != "execute" or not admitted.requires_authorization:
+                if action_input.tool_grant_ids != node.tool_ids:
                     raise ScopeProposalError(
-                        "execution preflight requires an admitted Gate-2 action"
+                        "execution tool_grant_ids do not exactly match their "
+                        "planning projection node"
+                    )
+                if action_input.tool_action_grants != node.tool_action_grants:
+                    raise ScopeProposalError(
+                        "execution tool_action_grants do not exactly match their "
+                        "planning projection node"
+                    )
+                if (
+                    len(action_input.input_refs) != 1
+                    or action_input.input_refs[0].reference_type
+                    != "structured_input"
+                ):
+                    raise ScopeProposalError(
+                        "execution requires one structured_input ref per "
+                        "planning projection node"
+                    )
+                expected_input_hash = ScopeConsumerInputsV1.canonical_hash_for(
+                    node.input_contract
+                )
+                if action_input.input_refs[0].content_hash != expected_input_hash:
+                    raise ScopeProposalError(
+                        "execution structured_input hash does not match its "
+                        "planning projection node"
                     )
             return decision, source, packet, staged_source
         return decision, source, packet, staged_source

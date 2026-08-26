@@ -25,6 +25,7 @@ from backend.domain.orchestration.enums import (
     RoutingMode,
     Urgency,
 )
+from backend.domain.orchestration.identifiers import DurableId
 from backend.domain.market_scope import MarketScopeV2, resolve_market_expression
 from backend.domain.orchestration.scope_models import (
     ScopeConfirmationV1,
@@ -37,6 +38,7 @@ from backend.domain.orchestration.scope_models import (
     ScopeProposalAcceptanceV1,
     ScopeResearchAcceptanceBindingV1,
     ScopeStateV1,
+    ToolActionGrantV1,
     ScopeValidationReportV1,
     TrustedRuntimeMetadataV1,
 )
@@ -125,7 +127,7 @@ class TaskEnvelopeV1(ContractModel):
 
 
 class AgentCandidateV1(ContractModel):
-    agent_id: str = Field(..., min_length=1, max_length=255)
+    agent_id: DurableId
     org_id: str = Field(..., min_length=1, max_length=255)
     name: str = Field(..., min_length=1, max_length=255)
     capabilities: List[str] = Field(default_factory=list, max_length=200)
@@ -499,14 +501,14 @@ class ResearchBriefV1(ContractModel):
 
 
 class PlanStepV1(ContractModel):
-    step_id: str = Field(..., min_length=1, max_length=255)
+    step_id: DurableId
     title: str = Field(..., min_length=3, max_length=500)
     objective: str = Field(..., min_length=3, max_length=4000)
     required_capabilities: List[str] = Field(default_factory=list, max_length=100)
     preferred_capabilities: List[str] = Field(default_factory=list, max_length=100)
-    required_tools: List[str] = Field(default_factory=list, max_length=100)
+    required_tools: List[DurableId] = Field(default_factory=list, max_length=100)
     requested_actions: List[str] = Field(default_factory=list, max_length=100)
-    dependencies: List[str] = Field(default_factory=list, max_length=100)
+    dependencies: List[DurableId] = Field(default_factory=list, max_length=100)
     input_contract: Dict[str, Any] = Field(..., min_length=1)
     output_contract: Dict[str, Any] = Field(..., min_length=1)
     completion_criteria: List[str] = Field(..., min_length=1, max_length=50)
@@ -514,6 +516,20 @@ class PlanStepV1(ContractModel):
     requires_distinct_reviewer: bool = False
     reviewer_capabilities: List[str] = Field(default_factory=list, max_length=100)
     budget: BudgetV1 = Field(default_factory=BudgetV1)
+
+    @field_validator("required_tools")
+    @classmethod
+    def unique_required_tools(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("plan step required_tools must be unique")
+        return values
+
+    @field_validator("dependencies")
+    @classmethod
+    def unique_dependencies(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("plan step dependencies must be unique")
+        return values
 
 
 class SeparationOfDutyRuleV1(ContractModel):
@@ -786,29 +802,57 @@ class NodeFailurePathV1(ContractModel):
 
 
 class PlanNode(ContractModel):
-    node_id: str
+    node_id: DurableId
     title: str
-    assigned_agent_id: str
+    assigned_agent_id: DurableId
     required_capabilities: List[str] = Field(default_factory=list)
-    tool_ids: List[str] = Field(default_factory=list)
-    dependencies: List[str] = Field(default_factory=list)
+    tool_ids: List[DurableId] = Field(default_factory=list, max_length=100)
+    tool_action_grants: List[ToolActionGrantV1] = Field(..., max_length=100)
+    dependencies: List[DurableId] = Field(default_factory=list, max_length=100)
     input_contract: Dict[str, Any] = Field(default_factory=dict)
     output_contract: Dict[str, Any] = Field(default_factory=dict)
     completion_criteria: List[str] = Field(default_factory=list)
     approval_gate_ids: List[str] = Field(default_factory=list)
-    reviewer_agent_id: Optional[str] = None
+    reviewer_agent_id: Optional[DurableId] = None
     review_rules: List[str] = Field(default_factory=list)
     budget: BudgetV1 = Field(default_factory=BudgetV1)
     estimated_cost: Optional[float] = Field(default=None, ge=0.0)
     estimated_latency_ms: Optional[int] = Field(default=None, ge=0)
     failure_paths: List[NodeFailurePathV1] = Field(default_factory=list)
 
+    @field_validator("tool_ids")
+    @classmethod
+    def unique_tool_ids(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("plan node tool_ids must be unique")
+        return values
+
+    @model_validator(mode="after")
+    def exact_tool_action_grant_references(self) -> "PlanNode":
+        grant_ids = [grant.tool_id for grant in self.tool_action_grants]
+        if grant_ids != sorted(grant_ids) or len(grant_ids) != len(set(grant_ids)):
+            raise ValueError(
+                "plan node tool_action_grants must be sorted by unique tool_id"
+            )
+        if set(grant_ids) != set(self.tool_ids):
+            raise ValueError(
+                "plan node tool_action_grants must exactly cover node tool_ids"
+            )
+        return self
+
+    @field_validator("dependencies")
+    @classmethod
+    def unique_dependencies(cls, values: List[str]) -> List[str]:
+        if len(values) != len(set(values)):
+            raise ValueError("plan node dependencies must be unique")
+        return values
+
 
 class ExecutionPlan(ContractModel):
     mode: RoutingMode
     nodes: List[PlanNode] = Field(default_factory=list)
     template_mode: Optional[RoutingMode] = None
-    team_member_ids: List[str] = Field(default_factory=list)
+    team_member_ids: List[DurableId] = Field(default_factory=list, max_length=50)
     total_estimated_cost: Optional[float] = Field(default=None, ge=0.0)
     critical_path_latency_ms: Optional[int] = Field(default=None, ge=0)
     currency: str = Field(default="EUR", min_length=3, max_length=3)
@@ -816,6 +860,11 @@ class ExecutionPlan(ContractModel):
 
     @model_validator(mode="after")
     def empty_plan_is_never_executable(self) -> "ExecutionPlan":
+        node_ids = [node.node_id for node in self.nodes]
+        if len(node_ids) != len(set(node_ids)):
+            raise ValueError("execution plan nodes must have unique node_id values")
+        if len(self.team_member_ids) != len(set(self.team_member_ids)):
+            raise ValueError("execution plan team_member_ids must be unique")
         if not self.nodes:
             self.executable = False
         return self

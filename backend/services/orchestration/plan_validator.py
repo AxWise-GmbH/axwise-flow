@@ -11,8 +11,13 @@ from backend.domain.orchestration.models import (
     ExecutionPlan,
     PlanFeasibilityRejectionV1,
 )
-from backend.services.orchestration.capability_registry import CapabilityRegistry
 from backend.domain.orchestration.validation import classification_allows, risk_allows
+from backend.services.orchestration.action_authority import (
+    exact_tool_action_grants,
+    normalized_action_ids,
+    sealed_consequential_action_ids,
+)
+from backend.services.orchestration.capability_registry import CapabilityRegistry
 
 
 @dataclass(frozen=True)
@@ -143,8 +148,33 @@ class PlanValidator:
         approval_actions = set(
             self.registry.normalize_many(request.policy_context.human_approval_required_for)
         )
+        consequential_actions = sealed_consequential_action_ids(
+            request,
+            self.registry,
+        )
+        gated_actions = approval_actions.union(consequential_actions)
         planning = request.planning
         steps = {step.step_id: step for step in planning.steps} if planning else {}
+        represented_actions = {
+            action
+            for node in plan.nodes
+            if (step := steps.get(node.node_id)) is not None
+            for action in normalized_action_ids(
+                step.requested_actions,
+                self.registry,
+            )
+        }
+        missing_consequential_actions = sorted(
+            consequential_actions.difference(represented_actions)
+        )
+        if missing_consequential_actions:
+            rejections.append(
+                self._reject(
+                    "sealed consequential actions are absent from plan nodes: "
+                    + ", ".join(missing_consequential_actions),
+                    code="policy_rejected",
+                )
+            )
         for node in plan.nodes:
             owner = agents.get(node.assigned_agent_id)
             if not owner:
@@ -199,7 +229,6 @@ class PlanValidator:
                         code="agent_not_authorized",
                     )
                 )
-            allowed_actions: set[str] = set()
             for tool_id in node.tool_ids:
                 tool = tools.get(tool_id)
                 if not tool or tool.org_id != request.tenant.org_id:
@@ -243,9 +272,6 @@ class PlanValidator:
                                 "tool_not_authorized",
                             )
                         )
-                    allowed_actions.update(
-                        self.registry.normalize_many(tool.allowed_actions)
-                    )
             if node.reviewer_agent_id == node.assigned_agent_id:
                 rejections.append(
                     self._reject(
@@ -268,7 +294,9 @@ class PlanValidator:
                     )
             step = steps.get(node.node_id)
             actions = (
-                set(self.registry.normalize_many(step.requested_actions)) if step else set()
+                normalized_action_ids(step.requested_actions, self.registry)
+                if step
+                else set()
             )
             prohibited = actions.intersection(
                 self.registry.normalize_many(owner.prohibited_actions)
@@ -282,10 +310,63 @@ class PlanValidator:
                         code="agent_not_authorized",
                     )
                 )
-            if actions and node.tool_ids and not actions.issubset(allowed_actions):
+            expected_grants = exact_tool_action_grants(
+                request,
+                node.tool_ids,
+                step.requested_actions if step else [],
+                self.registry,
+            )
+            if node.tool_action_grants != expected_grants:
                 rejections.append(
                     self._reject(
-                        "node tools do not authorize every requested action",
+                        "node tool_action_grants do not exactly match same-node "
+                        "catalogue action authority",
+                        node.node_id,
+                        owner.agent_id,
+                        code="tool_not_authorized",
+                    )
+                )
+            if {grant.tool_id for grant in node.tool_action_grants} != set(
+                node.tool_ids
+            ):
+                rejections.append(
+                    self._reject(
+                        "every node tool requires one non-empty exact action grant",
+                        node.node_id,
+                        owner.agent_id,
+                        code="tool_not_authorized",
+                    )
+                )
+            if actions:
+                unrelated_tools = sorted(
+                    tool_id
+                    for tool_id in node.tool_ids
+                    if tool_id in tools
+                    and not actions.intersection(
+                        self.registry.normalize_many(tools[tool_id].allowed_actions)
+                    )
+                )
+                if unrelated_tools:
+                    rejections.append(
+                        self._reject(
+                            "action-bearing node includes unrelated tools: "
+                            + ", ".join(unrelated_tools),
+                            node.node_id,
+                            owner.agent_id,
+                            code="tool_not_authorized",
+                        )
+                    )
+            granted_actions = {
+                action
+                for grant in node.tool_action_grants
+                for action in grant.allowed_actions
+            }
+            if not actions.intersection(consequential_actions).issubset(
+                granted_actions
+            ):
+                rejections.append(
+                    self._reject(
+                        "sealed consequential action lacks same-node tool authorization",
                         node.node_id,
                         owner.agent_id,
                         code="tool_not_authorized",
@@ -297,10 +378,10 @@ class PlanValidator:
                 if gate_id in gates
                 and gates[gate_id].required_before in {node.node_id, "execution"}
             }
-            if actions.intersection(approval_actions) and not applicable_gates:
+            if actions.intersection(gated_actions) and not applicable_gates:
                 rejections.append(
                     self._reject(
-                        "consequential action is missing its configured approval gate",
+                        "consequential action is missing its applicable approval gate",
                         node.node_id,
                         owner.agent_id,
                         code="policy_rejected",

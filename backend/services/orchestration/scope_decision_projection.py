@@ -13,6 +13,22 @@ from backend.domain.orchestration.scope_models import (
 )
 
 
+def _merged_tool_action_grants(nodes) -> list[dict]:
+    actions_by_tool: dict[str, set[str]] = {}
+    for node in nodes:
+        for grant in node.tool_action_grants:
+            actions_by_tool.setdefault(grant.tool_id, set()).update(
+                grant.allowed_actions
+            )
+    return [
+        {
+            "tool_id": tool_id,
+            "allowed_actions": sorted(actions_by_tool[tool_id]),
+        }
+        for tool_id in sorted(actions_by_tool)
+    ]
+
+
 def build_scope_decision_projection(
     result: OrchestrationDecisionV1,
     purpose: Literal["planning", "assignment"],
@@ -68,6 +84,10 @@ def build_scope_decision_projection(
                     "assigned_agent_id": node.assigned_agent_id,
                     "required_capabilities": node.required_capabilities,
                     "tool_ids": node.tool_ids,
+                    "tool_action_grants": [
+                        grant.model_dump(mode="json")
+                        for grant in node.tool_action_grants
+                    ],
                     "dependencies": node.dependencies,
                     "input_contract": node.input_contract,
                     "output_contract": node.output_contract,
@@ -127,6 +147,7 @@ def build_scope_decision_projection(
                         tool_id for node in nodes for tool_id in node.tool_ids
                     )
                 ),
+                tool_action_grants=tuple(_merged_tool_action_grants(nodes)),
                 approval_gate_ids=tuple(
                     dict.fromkeys(
                         gate_id
