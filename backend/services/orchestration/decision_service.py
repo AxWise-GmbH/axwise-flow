@@ -89,6 +89,7 @@ from backend.services.orchestration.scope_proposal_service import (
     ScopeAcceptanceConflict,
     ScopeProposalError,
     ScopeProposalService,
+    parse_stored_scope_snapshot,
 )
 from backend.services.orqaly_research_bundle_service import canonical_hash
 
@@ -183,9 +184,17 @@ class OrchestrationDecisionService:
     def _record_from_row(
         row: OrchestrationDecisionSnapshot,
         reused: bool = False,
+        *,
+        stored_scope_label: str | None = None,
     ) -> OrchestrationDecisionRecordV1:
-        decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
-        request = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+        if stored_scope_label is None:
+            decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
+            request = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+        else:
+            decision, request = parse_stored_scope_snapshot(
+                row,
+                label=stored_scope_label,
+            )
         return OrchestrationDecisionRecordV1(
             **decision.model_dump(),
             input_snapshot=request,
@@ -967,6 +976,8 @@ class OrchestrationDecisionService:
         user_id: str,
         idempotency_key: str,
         request_hash: str,
+        *,
+        stored_scope_label: str | None = None,
     ) -> OrchestrationDecisionRecordV1:
         snapshot = canonical_json(
             request.model_dump(mode="json", by_alias=True, exclude_none=False)
@@ -1007,7 +1018,11 @@ class OrchestrationDecisionService:
                 idempotency_key,
             )
             if existing and existing.request_hash == request_hash:
-                return self._record_from_row(existing, reused=True)
+                return self._record_from_row(
+                    existing,
+                    reused=True,
+                    stored_scope_label=stored_scope_label,
+                )
             raise IdempotencyConflict(
                 "Idempotency key was reused with a different request"
             )
@@ -1137,7 +1152,16 @@ class OrchestrationDecisionService:
             )
             if not parent_row:
                 raise DecisionLinkError("upstream orchestration decision was not found")
-            parent = self._record_from_row(parent_row)
+            parent = self._record_from_row(
+                parent_row,
+                stored_scope_label=(
+                    "upstream scope decision"
+                    if unified_downstream
+                    or acceptance is not None
+                    or continuation is not None
+                    else None
+                ),
+            )
             if parent.task_id != submitted_request.task.task_id:
                 raise DecisionLinkError(
                     "upstream decision belongs to a different task"
@@ -1363,6 +1387,13 @@ class OrchestrationDecisionService:
             )
         )
         request_hash = canonical_request_hash(request)
+        stored_scope_label = (
+            "scope consumer decision"
+            if unified_downstream
+            else "accepted research decision"
+            if acceptance is not None
+            else None
+        )
         existing = self.store.find_by_idempotency(
             PARTNER_ID,
             request.tenant.org_id,
@@ -1374,7 +1405,11 @@ class OrchestrationDecisionService:
                 raise IdempotencyConflict(
                     "Idempotency key was reused with a different request"
                 )
-            return self._record_from_row(existing, reused=True)
+            return self._record_from_row(
+                existing,
+                reused=True,
+                stored_scope_label=stored_scope_label,
+            )
 
         if acceptance is not None:
             evidence = list(request.evidence_catalogue)
@@ -1438,6 +1473,7 @@ class OrchestrationDecisionService:
                 user_id,
                 effective_idempotency_key,
                 request_hash,
+                stored_scope_label=stored_scope_label,
             )
         except Exception:
             if accepted_research_dispatch:
@@ -1626,7 +1662,10 @@ class OrchestrationDecisionService:
         )
         if not row:
             raise ResearchRefreshError("orchestration decision was not found")
-        parent = self._record_from_row(row)
+        parent = self._record_from_row(
+            row,
+            stored_scope_label="research decision",
+        )
         if not parent.research_job:
             raise ResearchRefreshError("decision has no research job to refresh")
         if not self.research_port:
@@ -1642,10 +1681,12 @@ class OrchestrationDecisionService:
                 raise IdempotencyConflict(
                     "Idempotency key was reused for a different research refresh"
                 )
-            return ResearchRefresh(
-                record=self._record_from_row(existing, reused=True),
-                pending=False,
+            record = self._record_from_row(
+                existing,
+                reused=True,
+                stored_scope_label="research refresh result",
             )
+            return ResearchRefresh(record=record, pending=False)
 
         result = self.research_port.collect(parent.input_snapshot, parent.research_job)
         expected_binding = parent.scope_contract_binding
@@ -1804,6 +1845,7 @@ class OrchestrationDecisionService:
             user_id,
             idempotency_key,
             request_hash,
+            stored_scope_label="research refresh result",
         )
         return ResearchRefresh(record=record, pending=False)
 
