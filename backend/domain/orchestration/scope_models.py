@@ -6,12 +6,13 @@ import hashlib
 import json
 import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Annotated, Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.domain.market_scope import MARKET_COUNTRY_CODES
+from backend.domain.orchestration.identifiers import DURABLE_ID_PATTERN, DurableId
 
 
 SCOPE_PACKET_VERSION = "axwise_scope_packet_v1"
@@ -71,6 +72,61 @@ def canonical_scope_action_id(value: str) -> str:
     """Derive one deterministic identifier without inferring action semantics."""
 
     return _semantic_action_key(value).replace(" ", "_")
+
+
+def strict_canonical_scope_action_ids(values: Iterable[str]) -> set[str]:
+    """Canonicalize an action collection without admitting an empty identity."""
+
+    canonical = {canonical_scope_action_id(value) for value in values}
+    if "" in canonical:
+        raise ValueError("scope actions must have a non-empty canonical action ID")
+    return canonical
+
+
+ToolActionIdV1 = Annotated[
+    str,
+    Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^[a-z0-9]+(?:_[a-z0-9]+)*$",
+    ),
+]
+
+
+class ToolActionGrantV1(ImmutableScopeContractModel):
+    """Exact semantic actions authorized through one same-node tool."""
+
+    tool_id: DurableId
+    allowed_actions: Tuple[ToolActionIdV1, ...] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+    )
+
+    @field_validator("allowed_actions")
+    @classmethod
+    def canonical_allowed_actions(cls, values: Tuple[str, ...]) -> Tuple[str, ...]:
+        if any(
+            not re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)*", value)
+            for value in values
+        ):
+            raise ValueError(
+                "tool action grant allowed_actions must use ASCII canonical action IDs"
+            )
+        canonical = tuple(
+            sorted(
+                {
+                    canonical_scope_action_id(value)
+                    for value in values
+                    if canonical_scope_action_id(value)
+                }
+            )
+        )
+        if values != canonical:
+            raise ValueError(
+                "tool action grant allowed_actions must be canonical, sorted, and unique"
+            )
+        return values
 
 
 def _semantic_id(prefix: str, payload: dict) -> str:
@@ -690,6 +746,7 @@ class ScopeAdmissionV1(ScopeContractModel):
         cls,
         values: List[ScopeRequestedActionV1],
     ) -> List[ScopeRequestedActionV1]:
+        strict_canonical_scope_action_ids(value.action for value in values)
         by_action: dict[str, ScopeRequestedActionV1] = {}
         for value in values:
             key = _semantic_action_key(value.action)
@@ -2116,7 +2173,7 @@ ScopeContinuationPurposeV1 = Literal[
 ]
 
 
-_DURABLE_REFERENCE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,254}$"
+_DURABLE_REFERENCE_PATTERN = DURABLE_ID_PATTERN
 
 
 class ScopeResearchConsumerPayloadV1(ImmutableScopeContractModel):
@@ -2278,9 +2335,15 @@ class ScopeExecutionInputReferenceV1(ImmutableScopeContractModel):
 
 
 class ScopeExecutionActionInputV1(ImmutableScopeContractModel):
-    """One exact Orqaly child-work manifest admitted for Gate-2 preflight."""
+    """One opaque Orqaly work item bound to an exact projected plan node."""
 
     action_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=_DURABLE_REFERENCE_PATTERN,
+    )
+    plan_node_id: str = Field(
         ...,
         min_length=1,
         max_length=255,
@@ -2337,6 +2400,7 @@ class ScopeExecutionActionInputV1(ImmutableScopeContractModel):
         max_length=100,
     )
     tool_grant_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
+    tool_action_grants: Tuple[ToolActionGrantV1, ...] = Field(..., max_length=100)
 
     @field_validator("tool_grant_ids")
     @classmethod
@@ -2353,12 +2417,23 @@ class ScopeExecutionActionInputV1(ImmutableScopeContractModel):
         identities = [item.reference_id for item in self.input_refs]
         if len(identities) != len(set(identities)):
             raise ValueError("input_refs must have unique reference_id values")
+        grant_ids = [grant.tool_id for grant in self.tool_action_grants]
+        if grant_ids != sorted(grant_ids) or len(grant_ids) != len(set(grant_ids)):
+            raise ValueError(
+                "execution tool_action_grants must be sorted by unique tool_id"
+            )
+        if set(grant_ids) != set(self.tool_grant_ids):
+            raise ValueError(
+                "execution tool_action_grants must exactly cover tool_grant_ids"
+            )
         return self
 
 
 class ScopeExecutionConsumerPayloadV1(ImmutableScopeContractModel):
-    """Non-authorizing action preflight later bound to Orqaly Gate 2."""
+    """Projection-bound preflight later bound to Orqaly Gate 2."""
 
+    authority_kind: Literal["planning_projection"]
+    planning_projection_ref: ScopePlanningProjectionRefV1
     action_inputs: Tuple[ScopeExecutionActionInputV1, ...] = Field(
         ...,
         min_length=1,
@@ -2367,12 +2442,15 @@ class ScopeExecutionConsumerPayloadV1(ImmutableScopeContractModel):
 
     @model_validator(mode="after")
     def unique_action_manifests(self) -> "ScopeExecutionConsumerPayloadV1":
-        identities = [
-            (item.action_id, item.task_id, item.job_id)
-            for item in self.action_inputs
-        ]
-        if len(identities) != len(set(identities)):
-            raise ValueError("action_inputs must have unique action/task/job tuples")
+        identifiers = {
+            "action_id": [item.action_id for item in self.action_inputs],
+            "plan_node_id": [item.plan_node_id for item in self.action_inputs],
+            "task_id": [item.task_id for item in self.action_inputs],
+            "job_id": [item.job_id for item in self.action_inputs],
+        }
+        for field, values in identifiers.items():
+            if len(values) != len(set(values)):
+                raise ValueError(f"action_inputs must have unique {field} values")
         return self
 
 
@@ -2553,17 +2631,26 @@ class ScopePlanFailurePolicyV1(ImmutableScopeContractModel):
 class ScopePlanningNodeProjectionV1(ImmutableScopeContractModel):
     """Operational plan node Orqaly can materialize without sealed inputs."""
 
-    node_id: str = Field(..., min_length=1, max_length=255)
+    node_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        pattern=_DURABLE_REFERENCE_PATTERN,
+    )
     title: str = Field(..., min_length=1, max_length=500)
-    assigned_agent_id: str = Field(..., min_length=1, max_length=255)
+    assigned_agent_id: DurableId
     required_capabilities: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
-    tool_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
-    dependencies: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
+    tool_ids: Tuple[DurableId, ...] = Field(default_factory=tuple, max_length=100)
+    tool_action_grants: Tuple[ToolActionGrantV1, ...] = Field(..., max_length=100)
+    dependencies: Tuple[DurableId, ...] = Field(
+        default_factory=tuple,
+        max_length=100,
+    )
     input_contract: Dict[str, Any] = Field(..., min_length=1)
     output_contract: Dict[str, Any] = Field(..., min_length=1)
     completion_criteria: Tuple[str, ...] = Field(..., min_length=1, max_length=50)
     approval_gate_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=50)
-    reviewer_agent_id: Optional[str] = Field(default=None, max_length=255)
+    reviewer_agent_id: Optional[DurableId] = None
     review_rules: Tuple[str, ...] = Field(default_factory=tuple, max_length=50)
     budget: ScopePlanBudgetProjectionV1
     estimated_cost: Optional[float] = Field(default=None, ge=0.0)
@@ -2575,6 +2662,19 @@ class ScopePlanningNodeProjectionV1(ImmutableScopeContractModel):
 
     @model_validator(mode="after")
     def validate_bounded_contracts(self) -> "ScopePlanningNodeProjectionV1":
+        if len(self.tool_ids) != len(set(self.tool_ids)):
+            raise ValueError("projected plan node tool_ids must be unique")
+        grant_ids = [grant.tool_id for grant in self.tool_action_grants]
+        if grant_ids != sorted(grant_ids) or len(grant_ids) != len(set(grant_ids)):
+            raise ValueError(
+                "projected tool_action_grants must be sorted by unique tool_id"
+            )
+        if set(grant_ids) != set(self.tool_ids):
+            raise ValueError(
+                "projected tool_action_grants must exactly cover node tool_ids"
+            )
+        if len(self.dependencies) != len(set(self.dependencies)):
+            raise ValueError("projected plan node dependencies must be unique")
         encoded = json.dumps(
             {"input": self.input_contract, "output": self.output_contract},
             ensure_ascii=False,
@@ -2589,11 +2689,29 @@ class ScopePlanningNodeProjectionV1(ImmutableScopeContractModel):
 class ScopeAssignmentSelectionV1(ImmutableScopeContractModel):
     """One selected eligible agent without scores or ranking rationale."""
 
-    agent_id: str = Field(..., min_length=1, max_length=255)
-    node_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=50)
+    agent_id: DurableId
+    node_ids: Tuple[DurableId, ...] = Field(default_factory=tuple, max_length=50)
     required_capabilities: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
-    tool_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=100)
+    tool_ids: Tuple[DurableId, ...] = Field(default_factory=tuple, max_length=100)
+    tool_action_grants: Tuple[ToolActionGrantV1, ...] = Field(..., max_length=100)
     approval_gate_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_unique_references(self) -> "ScopeAssignmentSelectionV1":
+        if len(self.node_ids) != len(set(self.node_ids)):
+            raise ValueError("assignment selection node_ids must be unique")
+        if len(self.tool_ids) != len(set(self.tool_ids)):
+            raise ValueError("assignment selection tool_ids must be unique")
+        grant_ids = [grant.tool_id for grant in self.tool_action_grants]
+        if grant_ids != sorted(grant_ids) or len(grant_ids) != len(set(grant_ids)):
+            raise ValueError(
+                "assignment tool_action_grants must be sorted by unique tool_id"
+            )
+        if set(grant_ids) != set(self.tool_ids):
+            raise ValueError(
+                "assignment tool_action_grants must exactly cover selection tool_ids"
+            )
+        return self
 
 
 class _ScopeDecisionProjectionBaseV1(ImmutableScopeContractModel):
@@ -2655,7 +2773,10 @@ class ScopePlanningDecisionProjectionV1(_ScopeDecisionProjectionBaseV1):
         default_factory=tuple,
         max_length=50,
     )
-    team_member_ids: Tuple[str, ...] = Field(default_factory=tuple, max_length=50)
+    team_member_ids: Tuple[DurableId, ...] = Field(
+        default_factory=tuple,
+        max_length=50,
+    )
     template_mode: Optional[ScopeRoutingModeV1] = None
     total_estimated_cost: Optional[float] = Field(default=None, ge=0.0)
     critical_path_latency_ms: Optional[int] = Field(default=None, ge=0)
@@ -2666,6 +2787,8 @@ class ScopePlanningDecisionProjectionV1(_ScopeDecisionProjectionBaseV1):
         node_ids = [node.node_id for node in self.nodes]
         if len(node_ids) != len(set(node_ids)):
             raise ValueError("projected plan nodes must be unique")
+        if len(self.team_member_ids) != len(set(self.team_member_ids)):
+            raise ValueError("projected team_member_ids must be unique")
         known = set(node_ids)
         for node in self.nodes:
             if node.node_id in node.dependencies or not set(node.dependencies).issubset(
@@ -2925,6 +3048,7 @@ class ScopeCorrectionPollV1(ImmutableScopeContractModel):
 __all__ = [
     "SCOPE_ACTIVE_REVISION_STATUSES",
     "canonical_scope_action_id",
+    "strict_canonical_scope_action_ids",
     "QualityContractV1",
     "ScopeAcceptanceSeedV1",
     "ScopeAcceptanceV1",
