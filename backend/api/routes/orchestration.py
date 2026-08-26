@@ -72,8 +72,10 @@ from backend.services.orchestration.scope_correction_service import (
 )
 from backend.services.orchestration.scope_proposal_service import (
     ScopeAcceptanceConflict,
+    ScopeConsumerEnvelopeInvalid,
     ScopeProposalError,
     ScopeProposalService,
+    StoredScopeContractStale,
 )
 from backend.services.orchestration.scorer_registry import ScorerRegistryService
 from backend.services.orchestration.scope_decision_projection import (
@@ -85,6 +87,9 @@ router = APIRouter(
     prefix="/api/orqaly-axwise/v1/orchestration",
     tags=["Orchestration Decisions"],
 )
+
+STORED_SCOPE_CONTRACT_STALE_CODE = "AXWISE_STORED_SCOPE_CONTRACT_STALE"
+SCOPE_CONSUMER_ENVELOPE_INVALID_CODE = "AXWISE_SCOPE_CONSUMER_ENVELOPE_INVALID"
 
 
 def _correlation_id(request_id: str | None) -> str:
@@ -467,10 +472,12 @@ async def accept_scope_correction(
 async def create_scope_continuation(
     proposal_decision_id: str,
     continuation: ScopeContinuationRequestV1,
+    request_id: str | None = Header(default=None, alias="X-Request-ID"),
     tenant: TenantContext = Depends(tenant_context_from_headers),
     _service_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> ScopeContinuationBindingV1:
+    correlation_id = _correlation_id(request_id)
     if proposal_decision_id != continuation.proposal_decision_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -483,6 +490,13 @@ async def create_scope_continuation(
             org_id=tenant.orgId,
             external_user_id=tenant.userId,
             internal_user_id=user.user_id,
+        )
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
+            correlation_id,
         )
     except (ScopeProposalError, ScopeAcceptanceConflict) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
@@ -497,10 +511,12 @@ async def create_scope_continuation(
 async def get_scope_research_completion(
     proposal_decision_id: str,
     result_decision_id: str,
+    request_id: str | None = Header(default=None, alias="X-Request-ID"),
     tenant: TenantContext = Depends(tenant_context_from_headers),
     _service_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> ScopeResearchCompletionRefV1:
+    correlation_id = _correlation_id(request_id)
     user = resolve_orqaly_tenant_user(db, tenant)
     try:
         return _scope_proposal_service(db).research_completion_ref(
@@ -509,6 +525,13 @@ async def get_scope_research_completion(
             org_id=tenant.orgId,
             external_user_id=tenant.userId,
             internal_user_id=user.user_id,
+        )
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
+            correlation_id,
         )
     except (ScopeProposalError, ScopeAcceptanceConflict) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
@@ -544,6 +567,13 @@ async def consume_scope_proposal(
             org_id=tenant.orgId,
             external_user_id=tenant.userId,
             internal_user_id=user.user_id,
+        )
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
+            correlation_id,
         )
     except (ScopeProposalError, ScopeAcceptanceConflict, ScopeContractError) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
@@ -597,6 +627,20 @@ async def consume_scope_proposal(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "AXWISE_RESEARCH_DISPATCH_UNAVAILABLE",
             "accepted research could not be durably dispatched; retry the same request",
+            correlation_id,
+        )
+    except ScopeConsumerEnvelopeInvalid as exc:
+        raise _contract_error(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            SCOPE_CONSUMER_ENVELOPE_INVALID_CODE,
+            str(exc),
+            correlation_id,
+        )
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
             correlation_id,
         )
     except (ScopeProposalError, ScopeAcceptanceConflict, ScopeContractError) as exc:
@@ -704,6 +748,13 @@ async def create_orchestration_decision(
             else "AXWISE_UPSTREAM_DECISION_INVALID"
         )
         raise _contract_error(code, error_code, detail, correlation_id)
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
+            correlation_id,
+        )
     except (ScopeProposalError, ScopeAcceptanceConflict) as exc:
         raise _contract_error(
             status.HTTP_409_CONFLICT,
@@ -738,6 +789,7 @@ async def refresh_orchestration_research(
     _service_key: str = Depends(verify_orqaly_service_key),
     db: Session = Depends(get_db),
 ) -> OrchestrationDecisionRecordV1:
+    correlation_id = _correlation_id(request_id)
     user = resolve_orqaly_tenant_user(db, tenant)
     try:
         refreshed = _service(db, user, tenant).refresh_research(
@@ -746,10 +798,17 @@ async def refresh_orchestration_research(
             external_user_id=tenant.userId,
             user_id=user.user_id,
             idempotency_key=idempotency_key.strip(),
-            request_id=request_id,
+            request_id=correlation_id,
         )
     except IdempotencyConflict as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except StoredScopeContractStale as exc:
+        raise _contract_error(
+            status.HTTP_409_CONFLICT,
+            STORED_SCOPE_CONTRACT_STALE_CODE,
+            str(exc),
+            correlation_id,
+        )
     except ResearchRefreshError as exc:
         detail = str(exc)
         code = status.HTTP_404_NOT_FOUND if "not found" in detail else status.HTTP_409_CONFLICT
