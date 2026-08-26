@@ -2160,6 +2160,7 @@ def _legacy_decision_continuation_reuses_accepted_packet_and_rejects_action_expa
 class _CountingResearchPort:
     def __init__(self):
         self.start_calls = 0
+        self.collect_calls = 0
 
     def start(self, request, decision_id, idempotency_key):
         self.start_calls += 1
@@ -2194,6 +2195,7 @@ class _FailAfterFlushResearchPort:
 
 class _CompletingResearchPort(_CountingResearchPort):
     def collect(self, request, job):
+        self.collect_calls += 1
         evidence = EvidenceItemV1(
             reference_id="research:completion:authoritative",
             provenance="empirical",
@@ -2267,6 +2269,444 @@ def _completed_research_chain(lifecycle, *, key: str):
         refreshed.record,
         completion,
     )
+
+
+def _remove_stored_plan_node_action_grants(session, decision_id: str) -> None:
+    """Reproduce a result persisted before exact action grants were required."""
+
+    row = session.query(OrchestrationDecisionSnapshot).filter_by(
+        decision_id=decision_id
+    ).one()
+    payload = deepcopy(row.decision_payload)
+    nodes = payload["execution_plan"]["nodes"]
+    assert nodes
+    for node in nodes:
+        assert node.pop("tool_action_grants", None) is not None
+    row.decision_payload = payload
+    session.commit()
+
+
+def test_http_continuation_returns_typed_conflict_for_stale_proposal_snapshot(
+    lifecycle,
+    monkeypatch,
+):
+    session, proposal_decision, _, _, _ = lifecycle
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    continuation = _research_continuation_request(
+        proposal,
+        acceptance,
+        consumer_id="stale-proposal-continuation",
+    )
+    proposal_row = session.query(OrchestrationDecisionSnapshot).filter_by(
+        decision_id=proposal.proposal_decision_id
+    ).one()
+    stale_payload = deepcopy(proposal_row.decision_payload)
+    assert stale_payload.pop("execution_plan", None) is not None
+    proposal_row.decision_payload = stale_payload
+    session.commit()
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                (
+                    "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+                    f"{proposal.proposal_decision_id}/continuations"
+                ),
+                headers={
+                    "X-Request-ID": "stale-proposal-trace",
+                    "X-Orqaly-Org-ID": proposal.org_id,
+                    "X-Orqaly-User-ID": proposal.user_id,
+                },
+                json=continuation.model_dump(mode="json"),
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == {
+        "code": "AXWISE_STORED_SCOPE_CONTRACT_STALE",
+        "message": (
+            "stored scope proposal no longer matches the current scope contract"
+        ),
+        "request_id": "stale-proposal-trace",
+    }
+    assert response.headers["x-request-id"] == "stale-proposal-trace"
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before
+
+
+def test_http_assignment_returns_typed_conflict_for_stale_planning_projection(
+    lifecycle,
+    monkeypatch,
+):
+    session = lifecycle[0]
+    proposal_decision = _no_research_initial_proposal(
+        session,
+        key="stale-planning-projection",
+    )
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    planned = _accepted_planning_decision(
+        session,
+        proposal_decision,
+        acceptance,
+        key="stale-planning-projection",
+    )
+    planning_ref = _planning_projection_ref(planned)
+    _remove_stored_plan_node_action_grants(session, planned.decision_id)
+    assignment = _compact_continuation_request(
+        proposal,
+        acceptance,
+        purpose="assignment",
+        consumer_id="stale-planning-projection-assignment",
+        payload={
+            "authority_kind": "planning_projection",
+            "catalogue": _catalogue_payload(proposal_decision),
+            "planning_projection_ref": planning_ref,
+        },
+    )
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                (
+                    "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+                    f"{proposal.proposal_decision_id}/consumers"
+                ),
+                headers={
+                    "Idempotency-Key": "stale-planning-projection-dispatch",
+                    "X-Request-ID": "stale-planning-projection-trace",
+                    "X-Orqaly-Org-ID": proposal.org_id,
+                    "X-Orqaly-User-ID": proposal.user_id,
+                },
+                json=assignment.model_dump(mode="json"),
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == {
+        "code": "AXWISE_STORED_SCOPE_CONTRACT_STALE",
+        "message": (
+            "stored planning projection no longer matches the current scope contract"
+        ),
+        "request_id": "stale-planning-projection-trace",
+    }
+    assert response.headers["x-request-id"] == "stale-planning-projection-trace"
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before
+
+
+def test_http_planning_consumer_returns_typed_conflict_for_stale_research_result(
+    lifecycle,
+    monkeypatch,
+):
+    (
+        session,
+        proposal_decision,
+        _,
+        acceptance,
+        decision_service,
+        _,
+        result,
+        completion,
+    ) = _completed_research_chain(lifecycle, key="stale-planning-result")
+    proposal = proposal_decision.scope_proposal
+    request = _compact_continuation_request(
+        proposal,
+        acceptance,
+        purpose="planning",
+        consumer_id="stale-planning-result-consumer",
+        payload={
+            "planning": _accepted_single_step_planning(
+                proposal_decision.scope_packet
+            ).model_dump(mode="json"),
+            "catalogue": _catalogue_payload(proposal_decision),
+            "research_completion_ref": completion.model_dump(mode="json"),
+        },
+    )
+    _remove_stored_plan_node_action_grants(session, result.decision_id)
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+    monkeypatch.setattr(
+        orchestration_route,
+        "_service",
+        lambda _db, _user, _tenant: decision_service,
+    )
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                (
+                    "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+                    f"{proposal.proposal_decision_id}/consumers"
+                ),
+                headers={
+                    "Idempotency-Key": "stale-planning-result-dispatch",
+                    "X-Request-ID": "stale-planning-result-trace",
+                    "X-Orqaly-Org-ID": proposal.org_id,
+                    "X-Orqaly-User-ID": proposal.user_id,
+                },
+                json=request.model_dump(mode="json"),
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == {
+        "code": "AXWISE_STORED_SCOPE_CONTRACT_STALE",
+        "message": (
+            "stored research result no longer matches the current scope contract"
+        ),
+        "request_id": "stale-planning-result-trace",
+    }
+    assert response.headers["x-request-id"] == "stale-planning-result-trace"
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before
+
+
+def test_http_stale_refresh_winner_requires_new_key_then_reprojects_completed_run(
+    lifecycle,
+    monkeypatch,
+):
+    (
+        session,
+        proposal_decision,
+        _,
+        _,
+        decision_service,
+        dispatch,
+        result,
+        _,
+    ) = _completed_research_chain(lifecycle, key="stale-refresh-winner")
+    proposal = proposal_decision.scope_proposal
+    research = decision_service.research_port
+    assert isinstance(research, _CompletingResearchPort)
+    assert research.start_calls == 1
+    assert research.collect_calls == 1
+    _remove_stored_plan_node_action_grants(session, result.decision_id)
+    monkeypatch.setattr(
+        orchestration_route,
+        "_service",
+        lambda _db, _user, _tenant: decision_service,
+    )
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                (
+                    "/api/orqaly-axwise/v1/orchestration/decisions/"
+                    f"{dispatch.decision_id}/research/refresh"
+                ),
+                headers={
+                    "Idempotency-Key": "stale-refresh-winner-research-result",
+                    "X-Request-ID": "stale-refresh-winner-trace",
+                    "X-Orqaly-Org-ID": proposal.org_id,
+                    "X-Orqaly-User-ID": proposal.user_id,
+                },
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == {
+        "code": "AXWISE_STORED_SCOPE_CONTRACT_STALE",
+        "message": (
+            "stored research refresh result no longer matches the current scope "
+            "contract"
+        ),
+        "request_id": "stale-refresh-winner-trace",
+    }
+    assert response.headers["x-request-id"] == "stale-refresh-winner-trace"
+    assert research.start_calls == 1
+    assert research.collect_calls == 1
+
+    replacement = decision_service.refresh_research(
+        dispatch.decision_id,
+        proposal.org_id,
+        proposal.user_id,
+        "axwise-user",
+        "stale-refresh-winner-research-result-v3",
+    ).record
+
+    assert replacement.decision_id != result.decision_id
+    assert replacement.execution_plan.nodes
+    assert research.start_calls == 1
+    assert research.collect_calls == 2
+    for node in replacement.execution_plan.nodes:
+        grant_ids = [grant.tool_id for grant in node.tool_action_grants]
+        assert grant_ids == sorted(node.tool_ids)
+        assert set(grant_ids) == set(node.tool_ids)
+    replacement_row = session.query(OrchestrationDecisionSnapshot).filter_by(
+        decision_id=replacement.decision_id
+    ).one()
+    assert all(
+        "tool_action_grants" in node
+        for node in replacement_row.decision_payload["execution_plan"]["nodes"]
+    )
+
+
+def test_http_planning_rejects_local_only_action_grants_as_typed_envelope_error(
+    lifecycle,
+    monkeypatch,
+):
+    session = lifecycle[0]
+    proposal_decision = _no_research_initial_proposal(
+        session,
+        key="local-only-planning-grants",
+    )
+    proposal = proposal_decision.scope_proposal
+    proposal_service = _proposal_service(session)
+    acceptance = proposal_service.accept(
+        _accept_request(proposal),
+        internal_user_id="axwise-user",
+    )
+    decision_service = OrchestrationDecisionService(
+        SqlAlchemyDecisionStore(session),
+        scope_proposal_service=proposal_service,
+    )
+    request = _compact_continuation_request(
+        proposal,
+        acceptance,
+        purpose="planning",
+        consumer_id="local-only-planning-grants-consumer",
+        payload={
+            "planning": _accepted_single_step_planning(
+                proposal_decision.scope_packet
+            ).model_dump(mode="json"),
+            "catalogue": _catalogue_payload(proposal_decision),
+        },
+    ).model_dump(mode="json", exclude_none=True)
+    compact_payload = request["consumer_inputs"]["payload"]
+    compact_payload["planning"]["steps"][0]["tool_action_grants"] = []
+    request["consumer_inputs"]["payload_hash"] = canonical_hash(compact_payload)
+    decisions_before = session.query(OrchestrationDecisionSnapshot).count()
+    monkeypatch.setattr(
+        orchestration_route,
+        "_service",
+        lambda _db, _user, _tenant: decision_service,
+    )
+    monkeypatch.setattr(
+        orchestration_route,
+        "resolve_orqaly_tenant_user",
+        lambda _db, _tenant: SimpleNamespace(user_id="axwise-user"),
+    )
+    app = FastAPI()
+    app.include_router(orchestration_route.router)
+
+    def override_get_db():
+        yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[verify_orqaly_service_key] = lambda: "test-service"
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                (
+                    "/api/orqaly-axwise/v1/orchestration/scope/proposals/"
+                    f"{proposal.proposal_decision_id}/consumers"
+                ),
+                headers={
+                    "Idempotency-Key": "local-only-planning-grants-dispatch",
+                    "X-Request-ID": "local-only-planning-grants-trace",
+                    "X-Orqaly-Org-ID": proposal.org_id,
+                    "X-Orqaly-User-ID": proposal.user_id,
+                },
+                json=request,
+            )
+
+    response = asyncio.run(exercise())
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"] == {
+        "code": "AXWISE_SCOPE_CONSUMER_ENVELOPE_INVALID",
+        "message": (
+            "compact scope consumer envelope does not match the current contract"
+        ),
+        "request_id": "local-only-planning-grants-trace",
+    }
+    assert response.headers["x-request-id"] == "local-only-planning-grants-trace"
+    assert session.query(OrchestrationDecisionSnapshot).count() == decisions_before
 
 
 def test_compact_corrected_research_consumes_sealed_proposal_once(lifecycle):
