@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Protocol
 from uuid import NAMESPACE_URL, uuid5
 
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from backend.domain.orchestration.enums import DecisionStatus, RoutingMode
@@ -54,8 +55,33 @@ class ScopeProposalError(ValueError):
     """Proposal is absent, stale, cross-tenant, or otherwise unacceptable."""
 
 
+class StoredScopeContractStale(ScopeProposalError):
+    """A persisted orchestration snapshot predates the active strict contract."""
+
+
+class ScopeConsumerEnvelopeInvalid(ScopeProposalError):
+    """A compact consumer delta cannot form the strict downstream request."""
+
+
 class ScopeAcceptanceConflict(ValueError):
     """A first-success acceptance was replayed with changed inputs."""
+
+
+def parse_stored_scope_snapshot(
+    row: Any,
+    *,
+    label: str,
+) -> tuple[OrchestrationDecisionV1, DecisionCreateRequestV1]:
+    """Strictly parse one durable scope row without legacy field synthesis."""
+
+    try:
+        decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
+        source = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+    except ValidationError as exc:
+        raise StoredScopeContractStale(
+            f"stored {label} no longer matches the current scope contract"
+        ) from exc
+    return decision, source
 
 
 class DecisionStore(Protocol):
@@ -157,7 +183,7 @@ class ScopeProposalService:
         )
         if row is None:
             raise ScopeProposalError("scope proposal decision was not found")
-        decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
+        decision, _ = parse_stored_scope_snapshot(row, label="scope proposal")
         proposal = decision.scope_proposal
         if (
             proposal is None
@@ -488,22 +514,15 @@ class ScopeProposalService:
             external_user_id=external_user_id,
             internal_user_id=internal_user_id,
         )
-        proposal_row = self.decision_store.get_for_tenant(
+        _, _, proposal = self._proposal(
             proposal_decision_id,
-            org_id,
-            external_user_id,
-            internal_user_id,
+            org_id=org_id,
+            external_user_id=external_user_id,
+            internal_user_id=internal_user_id,
         )
-        if proposal_row is None:
-            raise ScopeProposalError("scope proposal decision was not found")
-        proposal_decision = OrchestrationDecisionV1.model_validate(
-            proposal_row.decision_payload
-        )
-        if proposal_decision.scope_proposal is None:
-            raise ScopeProposalError("scope proposal lost its immutable binding")
         receipt, _ = self._research_completion_from_result(
             result_decision_id=result_decision_id,
-            proposal=proposal_decision.scope_proposal,
+            proposal=proposal,
             acceptance=acceptance,
             internal_user_id=internal_user_id,
         )
@@ -525,10 +544,10 @@ class ScopeProposalService:
         )
         if result_row is None:
             raise ScopeProposalError("research result decision was not found")
-        result_decision = OrchestrationDecisionV1.model_validate(
-            result_row.decision_payload
+        result_decision, result_source = parse_stored_scope_snapshot(
+            result_row,
+            label="research result",
         )
-        result_source = DecisionCreateRequestV1.model_validate(result_row.input_snapshot)
         result_job = result_decision.research_job
         research_decision_id = result_decision.parent_decision_id
         if (
@@ -546,11 +565,9 @@ class ScopeProposalService:
         )
         if research_row is None:
             raise ScopeProposalError("research dispatch decision was not found")
-        research_decision = OrchestrationDecisionV1.model_validate(
-            research_row.decision_payload
-        )
-        research_source = DecisionCreateRequestV1.model_validate(
-            research_row.input_snapshot
+        research_decision, research_source = parse_stored_scope_snapshot(
+            research_row,
+            label="research dispatch",
         )
         if (
             research_decision.parent_decision_id != proposal.proposal_decision_id
@@ -686,8 +703,10 @@ class ScopeProposalService:
         )
         if row is None:
             raise ScopeProposalError("planning projection decision was not found")
-        decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
-        source = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+        decision, source = parse_stored_scope_snapshot(
+            row,
+            label="planning projection",
+        )
         continuation = source.scope_continuation
         consumer = source.scope_consumer_inputs
         if (
@@ -808,8 +827,10 @@ class ScopeProposalService:
         )
         if row is None:
             raise ScopeProposalError("scope proposal decision was not found")
-        decision = OrchestrationDecisionV1.model_validate(row.decision_payload)
-        source = DecisionCreateRequestV1.model_validate(row.input_snapshot)
+        decision, source = parse_stored_scope_snapshot(
+            row,
+            label="scope proposal",
+        )
         packet = decision.scope_packet
         if packet is None or decision.scope_proposal is None:
             raise ScopeProposalError("scope proposal lost its sealed request")
@@ -1054,7 +1075,12 @@ class ScopeProposalService:
                 "scope_consumer_inputs": consumer.model_dump(mode="json"),
             }
         )
-        request = DecisionCreateRequestV1.model_validate(payload)
+        try:
+            request = DecisionCreateRequestV1.model_validate(payload)
+        except ValidationError as exc:
+            raise ScopeConsumerEnvelopeInvalid(
+                "compact scope consumer envelope does not match the current contract"
+            ) from exc
         from backend.services.orchestration.scope_correction_service import (
             validate_continuation_request_authority,
         )
