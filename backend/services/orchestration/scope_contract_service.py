@@ -9,7 +9,7 @@ import re
 from typing import Any, Iterable, TypeVar
 
 import pycountry
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend.domain.market_scope import MARKET_GROUPS, resolve_market_expression
 from backend.domain.orchestration.models import (
@@ -100,6 +100,9 @@ _DOCUMENT_PATTERNS: dict[str, tuple[str, ...]] = {
         r"\bmarket\s+launch\b",
         r"\bgo[-\s]+to[-\s]+market\b",
         r"\blaunch\b[^.;]{0,50}\b(?:market|commercial|sales|distribution)\b",
+        r"\blaunch[-\s]+ready\b[^.;]{0,160}\b(?:operating\s+plan|"
+        r"distribut(?:e|ing|ion)|pricing|unit[-\s]+economics|"
+        r"supplier[-\s]+to[-\s]+last[-\s]+mile)\b",
     ),
     "software_product": (
         r"\bsoftware[_\s-]+product\b",
@@ -694,6 +697,14 @@ def _evidence_payload(
     requested_outputs = (
         set(policy.required_outputs) if research_plan_declared else set()
     )
+    # ``research_prd`` names one of the supported schema-backed research
+    # documents, not every Markdown deliverable. A custom scope may still use
+    # grounded research and later synthesis, but it cannot silently ask the
+    # research worker to emit a PRD with no selected schema. Apply this before
+    # the acquisition-mode branch so grounded custom work is normalized just
+    # as safely as synthetic custom work.
+    if document_intent == "custom":
+        requested_outputs.discard("research_prd")
     policy_requires_external = (
         policy.grounding_required
         or policy.minimum_mode in {"grounded_fast", "grounded_deep"}
@@ -718,8 +729,6 @@ def _evidence_payload(
         # coherent acquisition plan. Market claims/sources cannot be synthetic,
         # and custom intent must not silently become an operational PRD.
         requested_outputs.difference_update({"market_sources", "market_claims"})
-        if document_intent == "custom":
-            requested_outputs.discard("research_prd")
         if requested_outputs:
             requested_outputs.add("research_bundle")
         outputs = sorted(requested_outputs)
@@ -1955,7 +1964,18 @@ def build_scope_packet(request: DecisionCreateRequestV1) -> ScopePacketV1:
 def ensure_scope_packet(request: DecisionCreateRequestV1) -> DecisionCreateRequestV1:
     """Attach the derived packet, rejecting stale or caller-modified variants."""
 
-    expected = build_scope_packet(request)
+    try:
+        expected = build_scope_packet(request)
+    except ScopeContractError:
+        raise
+    except ValidationError as exc:
+        # Request-body validation is handled by FastAPI before this boundary.
+        # Any ValidationError here was produced while AxWise constructed its
+        # own canonical contract and must become a bounded partner error, not
+        # an opaque HTTP 500 containing internal Pydantic diagnostics.
+        raise ScopeContractError(
+            "derived scope contract is internally inconsistent"
+        ) from exc
     if request.scope_packet is not None and request.scope_packet != expected:
         raise ScopeContractError(
             "supplied scope_packet is stale or does not match the canonical scope state"

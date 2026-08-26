@@ -213,6 +213,118 @@ def test_commercial_launch_binds_estonia_without_expanding_eu_and_pins_topology(
     ]
 
 
+def test_launch_ready_estonia_distribution_prd_uses_commercial_contract():
+    prompt = (
+        "Create a launch-ready, evidence-grounded PRD and operating plan for "
+        "distributing subscription cat food in Estonia. Define customer and "
+        "executor personas; supplier-to-last-mile workflow; pricing and "
+        "unit-economics assumptions; legal and food-safety risks; KPIs; "
+        "measurable acceptance criteria; and a phased rollout. Use current "
+        "public evidence where required. Deliver exactly one complete Markdown "
+        "file named estonia-cat-food-distribution-plan.md. Do not purchase, "
+        "order, message third parties, or perform external business actions. "
+        "Exclude credentials, payment data, authentication/session tokens, and "
+        "unrelated goals."
+    )
+    payload = _request_payload(
+        prompt,
+        prompt,
+        domain="general_operations",
+        research_outputs=ALL_RESEARCH_OUTPUTS,
+    )
+    payload["research_policy"].update(
+        {
+            "required": False,
+            "grounding_required": False,
+            "fail_closed": True,
+        }
+    )
+    payload["research_brief"] = {
+        "business_idea": prompt,
+        "target_stakeholders": (
+            "Unknown — identify the person, team, organisation, community, "
+            "buyer, user, or beneficiary affected by this goal"
+        ),
+        "problem": prompt,
+        "research_questions": [
+            "Who directly experiences the problem?",
+            "Which observable outcome would count as success?",
+        ],
+        "required_execution_roles": [],
+        "industry": "general_operations",
+        "location": None,
+        "depth": "detailed",
+        "sample_size": 1,
+    }
+    payload["scope_state"] = {
+        "requirements": [
+            {
+                "text": prompt,
+                "priority": "P0",
+                "authority": "user",
+                "source_refs": ["goal.parsed_requirements"],
+            }
+        ]
+    }
+
+    packet = build_scope_packet(_request(payload))
+    contract = packet.research_contract
+
+    assert contract.document_intent == "commercial_market_launch"
+    assert contract.geographies == ("EE",)
+    assert {
+        "procurement_logistics",
+        "research_analysis",
+        "strategy_planning",
+    }.issubset(contract.work_types)
+    assert contract.evidence.mode == "grounded"
+    assert contract.evidence.required_outputs == tuple(
+        sorted(ALL_RESEARCH_OUTPUTS)
+    )
+    assert packet.deliverable.type == "commercial_market_launch_prd"
+    assert [slot.role for slot in contract.executor_role_slots] == list(
+        COMMERCIAL_MARKET_LAUNCH_EXECUTION_ROLES
+    )
+    assert packet.admission.requested_actions == []
+
+
+@pytest.mark.parametrize(
+    ("objective", "expected_mode", "expected_geographies"),
+    [
+        (
+            "Prepare a stakeholder briefing memo from synthetic interviews only",
+            "synthetic",
+            (),
+        ),
+        (
+            "Prepare a stakeholder briefing memo for Estonia using current public evidence",
+            "grounded",
+            ("EE",),
+        ),
+    ],
+)
+def test_custom_research_normalizes_unsupported_prd_output_for_every_mode(
+    objective: str,
+    expected_mode: str,
+    expected_geographies: tuple[str, ...],
+):
+    payload = _request_payload(
+        objective,
+        "Return one reviewed Markdown briefing",
+        research_outputs=ALL_RESEARCH_OUTPUTS,
+    )
+
+    packet = build_scope_packet(_request(payload))
+    contract = packet.research_contract
+
+    assert contract.document_intent == "custom"
+    assert contract.evidence.mode == expected_mode
+    assert contract.geographies == expected_geographies
+    assert "research_prd" not in contract.evidence.required_outputs
+    assert "research_bundle" in contract.evidence.required_outputs
+    assert packet.deliverable.type == "custom_deliverable"
+
+
 @pytest.mark.parametrize(
     ("objective", "expected_work_type", "expected_role"),
     [
