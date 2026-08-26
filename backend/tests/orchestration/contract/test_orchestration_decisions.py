@@ -20,7 +20,10 @@ from backend.api.routes.orchestration import router
 from backend.database import Base, get_db
 from backend.domain.orchestration.examples import ORCHESTRATION_DECISION_EXAMPLES
 from backend.domain.orchestration.models import EvaluationSliceV1
-from backend.domain.orchestration.scope_models import canonical_scope_action_id
+from backend.domain.orchestration.scope_models import (
+    ScopeResearchContractV1,
+    canonical_scope_action_id,
+)
 from backend.models import (
     OrchestrationDecisionSnapshot,
     OrchestrationEvent,
@@ -643,6 +646,42 @@ async def test_unknown_contract_and_unstructured_secret_claims_are_rejected(
     assert secret_response.status_code == 422
     assert compatible_response.status_code == 201
     assert compatible_response.json()["contract_version"] == "1.0"
+
+
+@pytest.mark.asyncio
+async def test_internal_scope_validation_error_is_a_bounded_partner_422(
+    orchestration_client,
+    monkeypatch,
+):
+    from backend.services.orchestration import scope_contract_service
+
+    client, _ = orchestration_client
+
+    def invalid_derived_contract(_request):
+        # This represents a bug in AxWise's deterministic compiler, after the
+        # request body has already passed FastAPI/Pydantic validation.
+        return ScopeResearchContractV1.model_validate({})
+
+    monkeypatch.setattr(
+        scope_contract_service,
+        "build_scope_packet",
+        invalid_derived_contract,
+    )
+    response = await client.post(
+        "/api/orqaly-axwise/v1/orchestration/decisions",
+        headers=_post_headers("internal-scope-validation"),
+        json=_payload(),
+    )
+
+    assert response.status_code == 422
+    assert response.headers["X-Request-ID"] == "trace-internal-scope-validation"
+    assert response.json() == {
+        "detail": {
+            "code": "AXWISE_SCOPE_CONTRACT_INVALID",
+            "message": "derived scope contract is internally inconsistent",
+            "request_id": "trace-internal-scope-validation",
+        }
+    }
 
 
 @pytest.mark.asyncio
