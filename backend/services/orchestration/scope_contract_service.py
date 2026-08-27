@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend.domain.market_scope import MARKET_GROUPS, resolve_market_expression
 from backend.domain.orchestration.models import (
+    CriticalClaimPolicyV1,
     DecisionCreateRequestV1,
     ResearchPolicyV1,
 )
@@ -69,6 +70,12 @@ COMMERCIAL_MARKET_LAUNCH_EXECUTION_ROLES = (
     "GDPR Legal Compliance Specialist",
     "Business Development Sales Specialist",
     "Commercial Risk Analyst",
+)
+
+_COMMERCIAL_MARKET_LAUNCH_CLAIM_CLASSES = (
+    "statutory_current",
+    "official_statistic",
+    "observed_primary_market",
 )
 
 BUSINESS_EVIDENCE_ROLE_LABELS = {
@@ -1055,6 +1062,50 @@ def scope_contract_binding(packet: ScopePacketV1) -> ScopeContractBindingV1:
     return ScopeContractBindingV1.from_packet(packet)
 
 
+def _effective_research_policy(
+    policy: ResearchPolicyV1,
+    contract: ScopeResearchContractV1,
+) -> ResearchPolicyV1:
+    """Project the policy authorized by the accepted acquisition contract."""
+
+    if contract.evidence.mode != "grounded":
+        return policy
+    return policy.model_copy(
+        update={
+            "allow_hybrid_research": True,
+            "required": True,
+            "grounding_required": True,
+            "fail_closed": True,
+        }
+    )
+
+
+def _effective_critical_claim_policy(
+    policy: CriticalClaimPolicyV1,
+    contract: ScopeResearchContractV1,
+) -> CriticalClaimPolicyV1:
+    """Require the full evidence boundary for grounded commercial launches."""
+
+    if not (
+        contract.document_intent == "commercial_market_launch"
+        and contract.evidence.mode == "grounded"
+    ):
+        return policy
+    required_classes = list(policy.mandatory_claim_classes)
+    seen_classes = set(required_classes)
+    for claim_class in _COMMERCIAL_MARKET_LAUNCH_CLAIM_CLASSES:
+        if claim_class not in seen_classes:
+            required_classes.append(claim_class)
+            seen_classes.add(claim_class)
+    return policy.model_copy(
+        update={
+            "required": True,
+            "fail_closed": True,
+            "mandatory_claim_classes": required_classes,
+        }
+    )
+
+
 def research_execution_inputs_payload(
     request: DecisionCreateRequestV1,
     packet: ScopePacketV1,
@@ -1073,7 +1124,7 @@ def research_execution_inputs_payload(
         if contract.geographies
         else None
     )
-    policy = request.research_policy
+    policy = _effective_research_policy(request.research_policy, contract)
     return {
         "version": "axwise_research_execution_inputs_v1",
         "scope_contract_binding": scope_contract_binding(packet).model_dump(
@@ -1147,9 +1198,10 @@ def research_execution_inputs_payload(
                 "customer_role_contract": brief.customer_role_contract.model_dump(
                     mode="json"
                 ),
-                "critical_claim_policy": brief.critical_claim_policy.model_dump(
-                    mode="json"
-                ),
+                "critical_claim_policy": _effective_critical_claim_policy(
+                    brief.critical_claim_policy,
+                    contract,
+                ).model_dump(mode="json"),
                 "business_evidence_profile": (
                     brief.business_evidence_profile.model_dump(mode="json")
                     if brief.business_evidence_profile
