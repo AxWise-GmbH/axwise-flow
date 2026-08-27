@@ -34,6 +34,25 @@ MAX_ALIASES_PER_COUNTRY = 12
 MAX_TOPIC_PHRASE_CHARS = 120
 MAX_VISIBLE_FIELD_CHARS = 1_000
 MAX_VISIBLE_SERIES_OR_DIMENSIONS = 32
+# Topic-bearing text is kept exact through the existing bounded deterministic
+# selector. Longer accepted scopes must fail before retrieval until Gate 1
+# supplies explicit exact-span topic anchors; silently compressing 8,000
+# characters into eight inferred anchors cannot preserve topic authority.
+MAX_IMMUTABLE_GOAL_ID_CHARS = 255
+MAX_IMMUTABLE_TITLE_CHARS = 4_000
+MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS = 4_000
+MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS = 4_000
+MAX_IMMUTABLE_MISSION_CHARS = 4_000
+MAX_IMMUTABLE_INDUSTRY_CHARS = 500
+MAX_IMMUTABLE_TARGET_USER_CHARS = 2_000
+MAX_IMMUTABLE_SOURCE_CHARS = max(
+    MAX_IMMUTABLE_TITLE_CHARS,
+    MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS,
+    MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS,
+    MAX_IMMUTABLE_MISSION_CHARS,
+    MAX_IMMUTABLE_INDUSTRY_CHARS,
+    MAX_IMMUTABLE_TARGET_USER_CHARS,
+)
 TRUSTED_TOPIC_ALIAS_REGISTRY_ID = "axwise-topic-alias-registry"
 TRUSTED_TOPIC_ALIAS_REGISTRY_VERSION = "2026-08-13.v2"
 TRUSTED_TOPIC_ALIAS_REGISTRY_SHA256 = (
@@ -319,13 +338,19 @@ class ImmutableGoalTopicFields(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    goal_id: str = Field(min_length=1, max_length=128)
-    title: str = Field(min_length=1, max_length=300)
-    problem_scope: str = Field(default="", max_length=4_000)
-    desired_outcome: str = Field(default="", max_length=4_000)
-    mission: str = Field(default="", max_length=4_000)
-    industry: str = Field(default="", max_length=500)
-    target_user: str = Field(default="", max_length=1_000)
+    goal_id: str = Field(min_length=1, max_length=MAX_IMMUTABLE_GOAL_ID_CHARS)
+    title: str = Field(min_length=1, max_length=MAX_IMMUTABLE_TITLE_CHARS)
+    problem_scope: str = Field(
+        default="", max_length=MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS
+    )
+    desired_outcome: str = Field(
+        default="", max_length=MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS
+    )
+    mission: str = Field(default="", max_length=MAX_IMMUTABLE_MISSION_CHARS)
+    industry: str = Field(default="", max_length=MAX_IMMUTABLE_INDUSTRY_CHARS)
+    target_user: str = Field(
+        default="", max_length=MAX_IMMUTABLE_TARGET_USER_CHARS
+    )
     exact_topic_anchors: tuple[str, ...] = Field(
         default=(), max_length=MAX_GOAL_ANCHORS
     )
@@ -333,7 +358,11 @@ class ImmutableGoalTopicFields(BaseModel):
     @field_validator("goal_id", "title")
     @classmethod
     def clean_required_text(cls, value: str, info: Any) -> str:
-        maximum = 128 if info.field_name == "goal_id" else 300
+        maximum = (
+            MAX_IMMUTABLE_GOAL_ID_CHARS
+            if info.field_name == "goal_id"
+            else MAX_IMMUTABLE_TITLE_CHARS
+        )
         return _clean_immutable_text(value, label=info.field_name, maximum=maximum)
 
     @field_validator(
@@ -348,9 +377,12 @@ class ImmutableGoalTopicFields(BaseModel):
         if value == "":
             return value
         maximum = {
-            "industry": 500,
-            "target_user": 1_000,
-        }.get(info.field_name, 4_000)
+            "problem_scope": MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS,
+            "desired_outcome": MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS,
+            "mission": MAX_IMMUTABLE_MISSION_CHARS,
+            "industry": MAX_IMMUTABLE_INDUSTRY_CHARS,
+            "target_user": MAX_IMMUTABLE_TARGET_USER_CHARS,
+        }[info.field_name]
         return _clean_immutable_text(
             value, label=info.field_name, maximum=maximum
         )
@@ -427,8 +459,8 @@ class TopicAnchorBinding(BaseModel):
 
     phrase: str = Field(min_length=1, max_length=MAX_TOPIC_PHRASE_CHARS)
     source_field: TopicAnchorSourceField
-    normalized_start: int = Field(ge=0, le=4_000)
-    normalized_end: int = Field(gt=0, le=4_000)
+    normalized_start: int = Field(ge=0, le=MAX_IMMUTABLE_SOURCE_CHARS)
+    normalized_end: int = Field(gt=0, le=MAX_IMMUTABLE_SOURCE_CHARS)
     source_text_sha256: str = Field(pattern=_SHA256_PATTERN)
     source_span_sha256: str = Field(pattern=_SHA256_PATTERN)
     derivation: Literal[
@@ -453,7 +485,7 @@ class TopicSeedContract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     schema_version: Literal[TOPIC_CONTRACT_SCHEMA_VERSION]
-    goal_id: str = Field(min_length=1, max_length=128)
+    goal_id: str = Field(min_length=1, max_length=MAX_IMMUTABLE_GOAL_ID_CHARS)
     immutable_goal_sha256: str = Field(pattern=_SHA256_PATTERN)
     confirmed_market_scope_sha256: str = Field(pattern=_SHA256_PATTERN)
     exact_goal_anchors: tuple[str, ...] = Field(
@@ -1852,6 +1884,14 @@ __all__ = [
     "MAX_ALIASES",
     "MAX_ALIASES_PER_COUNTRY",
     "MAX_GOAL_ANCHORS",
+    "MAX_IMMUTABLE_DESIRED_OUTCOME_CHARS",
+    "MAX_IMMUTABLE_GOAL_ID_CHARS",
+    "MAX_IMMUTABLE_INDUSTRY_CHARS",
+    "MAX_IMMUTABLE_MISSION_CHARS",
+    "MAX_IMMUTABLE_PROBLEM_SCOPE_CHARS",
+    "MAX_IMMUTABLE_SOURCE_CHARS",
+    "MAX_IMMUTABLE_TARGET_USER_CHARS",
+    "MAX_IMMUTABLE_TITLE_CHARS",
     "MAX_TOPIC_PHRASE_CHARS",
     "TOPIC_CONTRACT_SCHEMA_VERSION",
     "TRUSTED_TOPIC_ALIAS_REGISTRY_ID",
