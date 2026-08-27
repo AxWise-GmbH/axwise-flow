@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from uuid import UUID
@@ -96,27 +97,34 @@ class FakeDrafter:
         claim_type: str = "legal_safety",
         assumptions: list[str] | None = None,
         evidence: bool = True,
+        evidence_count: int = 1,
     ) -> None:
         self.criticality = criticality
         self.claim_type = claim_type
         self.assumptions = assumptions or []
         self.evidence = evidence
+        self.evidence_count = evidence_count
 
     async def draft(self, _input_value, objective_context):
         assert objective_context == []
         topic_start = REQUEST.index("cat-food")
         requirements = []
         if self.evidence:
-            requirements.append(
-                {
-                    "id": "food-safety-law",
-                    "claimType": self.claim_type,
-                    "description": "Verify applicable pet-food safety obligations.",
-                    "criticality": self.criticality,
-                    "appliesWhen": "The deliverable recommends an Estonia launch.",
-                    "acceptedSourceTypes": ["government", "primary_law"],
-                }
-            )
+            for index in range(self.evidence_count):
+                requirements.append(
+                    {
+                        "id": (
+                            "food-safety-law"
+                            if index == 0
+                            else f"food-safety-law-{index}"
+                        ),
+                        "claimType": self.claim_type,
+                        "description": "Verify applicable pet-food safety obligations.",
+                        "criticality": self.criticality,
+                        "appliesWhen": "The deliverable recommends an Estonia launch.",
+                        "acceptedSourceTypes": ["government", "primary_law"],
+                    }
+                )
         return ModelOutput(
             ScopeDraft(
                 objective=REQUEST,
@@ -424,11 +432,69 @@ class MissingResearchRunner:
 
 
 class TransientFailureRunner:
+    def __init__(self) -> None:
+        self.queries = []
+
     async def search(self, _query):
+        self.queries.append(_query)
         return {
             "search_performed": False,
             "runtime_diagnostics": {"status": "retry_exhausted", "call_count": 3},
         }
+
+
+class ConfigurationFailureRunner:
+    def __init__(self) -> None:
+        self.queries = []
+
+    async def search(self, query):
+        self.queries.append(query)
+        return {
+            "search_performed": False,
+            "runtime_diagnostics": {"status": "configuration_error", "call_count": 0},
+        }
+
+
+class FailFastCancellationRunner:
+    def __init__(self) -> None:
+        self.blocker_started = asyncio.Event()
+        self.blocker_cancelled = asyncio.Event()
+
+    async def search(self, query):
+        requirement_id = json.loads(query.split("\n", 1)[1])["requirement"]["id"]
+        if requirement_id != "food-safety-law-1":
+            await self.blocker_started.wait()
+            return {
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "configuration_error",
+                    "call_count": 0,
+                },
+            }
+        self.blocker_started.set()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            self.blocker_cancelled.set()
+            raise
+
+
+class ParentCancellationRunner:
+    def __init__(self, expected_calls: int) -> None:
+        self.expected_calls = expected_calls
+        self.started = asyncio.Event()
+        self.started_calls = 0
+        self.cancelled_calls = 0
+
+    async def search(self, _query):
+        self.started_calls += 1
+        if self.started_calls == self.expected_calls:
+            self.started.set()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            self.cancelled_calls += 1
+            raise
 
 
 class VerifiedResearchRunner:
@@ -454,6 +520,23 @@ class VerifiedResearchRunner:
             },
             "runtime_diagnostics": {"call_count": 2, "retry_count": 1},
         }
+
+
+class TransientThenVerifiedRunner(VerifiedResearchRunner):
+    def __init__(self) -> None:
+        self.queries = []
+
+    async def search(self, query):
+        self.queries.append(query)
+        if len(self.queries) == 1:
+            return {
+                "search_performed": False,
+                "runtime_diagnostics": {
+                    "status": "deadline_exceeded",
+                    "call_count": 2,
+                },
+            }
+        return await super().search(query)
 
 
 class UngroundedConflictRunner(VerifiedResearchRunner):
@@ -553,16 +636,97 @@ async def test_optional_gap_repairs_once_and_delivers_non_launch_ready_result() 
 
 
 @pytest.mark.asyncio
-async def test_unresolved_essential_evidence_blocks_but_transient_failure_is_not_gap() -> None:
+async def test_unresolved_essential_evidence_blocks_after_one_transient_repair() -> None:
     compiled = await compiled_scope()
     blocked = await execute_research(compiled, MissingResearchRunner())
     assert blocked.evidence_readiness == "blocked"
     assert blocked.artifact.payload["launchReady"] is False
 
+    runner = TransientFailureRunner()
+    transient = await execute_research(compiled, runner)
+    assert transient.evidence_readiness == "blocked"
+    assert transient.artifact.payload["boundedRepairPasses"] == 1
+    assert transient.artifact.payload["claimLedger"] == []
+    assert len(runner.queries) == 2
+    finding = transient.artifact.payload["findings"][0]
+    assert finding["status"] == "missing"
+    assert "retry_exhausted" in finding["note"]
+    assert "no accepted grounded claim was recorded" in finding["note"]
+
+
+@pytest.mark.asyncio
+async def test_optional_transient_acquisition_delivers_an_explicit_gap() -> None:
+    compiled = await compiled_scope(
+        criticality="nonblocking", claim_type="market_statistic"
+    )
+    runner = TransientFailureRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "ready_with_gaps"
+    assert result.artifact.payload["launchReady"] is False
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert len(runner.queries) == 2
+    assert "retry_exhausted" in result.artifact.payload["gaps"][0]
+
+
+@pytest.mark.asyncio
+async def test_targeted_repair_can_recover_a_transient_initial_search() -> None:
+    compiled = await compiled_scope()
+    runner = TransientThenVerifiedRunner()
+
+    result = await execute_research(compiled, runner)
+
+    assert result.evidence_readiness == "ready"
+    assert result.artifact.payload["boundedRepairPasses"] == 1
+    assert len(runner.queries) == 2
+    assert [entry["passNumber"] for entry in result.artifact.payload["claimLedger"]] == [
+        1
+    ]
+    assert result.artifact.payload["findings"][0]["status"] == "verified"
+
+
+@pytest.mark.asyncio
+async def test_configuration_failure_still_fails_closed_without_repair() -> None:
+    compiled = await compiled_scope()
+    runner = ConfigurationFailureRunner()
+
     with pytest.raises(CognitiveExecutionFailure) as raised:
-        await execute_research(compiled, TransientFailureRunner())
-    assert raised.value.error_class == "AXWISE_RESEARCH_RETRY_EXHAUSTED"
-    assert raised.value.retryable is True
+        await execute_research(compiled, runner)
+
+    assert raised.value.error_class == "AXWISE_RESEARCH_CONFIGURATION_ERROR"
+    assert raised.value.retryable is False
+    assert len(runner.queries) == 1
+
+
+@pytest.mark.asyncio
+async def test_research_child_failure_cancels_and_awaits_blocked_sibling() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(evidence_count=2), AUTHORITY_KEY
+    ).execute(envelope_for())
+    runner = FailFastCancellationRunner()
+
+    with pytest.raises(CognitiveExecutionFailure) as raised:
+        await asyncio.wait_for(execute_research(compiled, runner), timeout=1)
+
+    assert raised.value.error_class == "AXWISE_RESEARCH_CONFIGURATION_ERROR"
+    assert runner.blocker_cancelled.is_set()
+
+
+@pytest.mark.asyncio
+async def test_research_parent_cancellation_cancels_and_awaits_all_children() -> None:
+    compiled = await GeminiCognitiveExecutor(
+        FakeDrafter(evidence_count=2), AUTHORITY_KEY
+    ).execute(envelope_for())
+    runner = ParentCancellationRunner(expected_calls=2)
+    execution = asyncio.create_task(execute_research(compiled, runner))
+    await asyncio.wait_for(runner.started.wait(), timeout=1)
+
+    execution.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await execution
+    assert runner.cancelled_calls == 2
 
 
 @pytest.mark.asyncio
