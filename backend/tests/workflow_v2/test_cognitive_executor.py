@@ -33,6 +33,7 @@ from backend.services.workflow_v2.cognitive_executor import (
     _usage_from_result,
     _usage_from_search,
     _validate_synthesis,
+    has_positive_launch_readiness_claim,
 )
 from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
@@ -837,6 +838,79 @@ def test_ready_with_gaps_validator_rejects_launch_claim_even_with_gap_section() 
         title="Unsafe claim",
         markdown=(
             "# PRD\n\nThis is launch-ready.\n\n## Evidence gaps\n\n"
+            "Optional statistic is missing."
+        ),
+    )
+    with pytest.raises(ValueError, match="launch-ready"):
+        _validate_synthesis(context, draft)
+
+
+@pytest.mark.parametrize(
+    ("markdown", "expected"),
+    [
+        ("This artifact is launch-ready.", True),
+        ("This artifact is launch‑ready.", True),
+        ("This artifact is **launch-ready**.", True),
+        ("The product is ready to launch.", True),
+        ("The product is ready **for launch**.", True),
+        ("Production readiness has been confirmed.", True),
+        ("Launch readiness: confirmed.", True),
+        ("All launch requirements have been met.", True),
+        ("Market entry may now proceed.", True),
+        ("There are no blockers to launch.", True),
+        ("Go-live is approved.", True),
+        ("Launch is authorised.", True),
+        ("The product has launch clearance.", True),
+        ("We have the green light to launch.", True),
+        ("There is nothing preventing launch.", True),
+        ("The plan can be released to production.", True),
+        ("Production deployment has been approved.", True),
+        ("The evidence is not complete, but this plan is market ready.", True),
+        ("The evidence is not complete, although this plan is market ready.", True),
+        (
+            "This does not waive the gaps; nevertheless, it is approved for launch.",
+            True,
+        ),
+        ("Although legal approval is pending, the plan is launch-ready.", True),
+        ("This artifact is not launch-ready.", False),
+        ("We cannot consider this production ready.", False),
+        ("Without claiming market readiness, this remains useful.", False),
+        ("Launch readiness has not been established.", False),
+        ("If legal review passes, launch can proceed.", False),
+        ("Launch may proceed only after legal clearance.", False),
+        ("This would be launch-ready once safety evidence is verified.", False),
+        ("The plan can be released to production only after legal approval.", False),
+        ("Pending legal approval, the plan may go live.", False),
+        ("No launch clearance has been granted.", False),
+    ],
+)
+def test_launch_readiness_guard_has_clause_local_parity(
+    markdown: str, expected: bool
+) -> None:
+    assert has_positive_launch_readiness_claim(markdown) is expected
+
+
+@pytest.mark.parametrize(
+    "claim",
+    [
+        "Go-live is approved.",
+        "The product has launch clearance.",
+        "We have the green light to launch.",
+        "There is nothing preventing launch.",
+        "The plan can be released to production.",
+    ],
+)
+def test_ready_with_gaps_validator_rejects_launch_euphemisms(claim: str) -> None:
+    context = SynthesisContext(
+        required_sections=["PRD"],
+        evidence_readiness="ready_with_gaps",
+        allowed_claim_ids=[],
+        required_gap_labels=["Optional statistic is missing."],
+    )
+    draft = SynthesisDraft(
+        title="Unsafe claim",
+        markdown=(
+            f"# PRD\n\n{claim}\n\n## Evidence gaps\n\n"
             "Optional statistic is missing."
         ),
     )
