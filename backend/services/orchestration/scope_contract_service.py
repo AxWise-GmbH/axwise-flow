@@ -2032,6 +2032,16 @@ def _acceptance(
 def build_scope_packet(request: DecisionCreateRequestV1) -> ScopePacketV1:
     """Derive one canonical, order-independent packet from validated scope state."""
 
+    for field_name, value in (
+        ("task objective", request.task.objective),
+        ("task desired outcome", request.task.desired_outcome),
+    ):
+        if len(_text(value)) > 4_000:
+            raise ScopeContractError(
+                f"{field_name} exceeds the lossless 4000-character scope contract; "
+                "shorten it because longer scope remains blocked until Gate 1 "
+                "supports explicit exact-span topic anchors"
+            )
     state = request.scope_state or ScopeStateV1()
     corrections = _correction_texts(state)
     research_contract = _research_contract(request, state)

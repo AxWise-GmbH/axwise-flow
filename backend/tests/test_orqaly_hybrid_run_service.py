@@ -55,12 +55,16 @@ from backend.services.orchestration.adapters.hybrid_research_adapter import (
     HybridResearchAdapter,
 )
 from backend.services.orchestration.decision_service import OrchestrationDecisionService
+from backend.services.orchestration.scope_contract_service import (
+    ScopeContractError,
+)
 from backend.services.orchestration.scope_proposal_service import ScopeProposalService
 from backend.services.orqaly_hybrid_run_service import (
     HybridRunCancelled,
     HybridOutputs,
     HybridPRDOutput,
     HybridRunService,
+    _bounded_accepted_topic_text,
     _public_grounding_value,
     _strip_private_grounding_artifacts,
 )
@@ -86,6 +90,7 @@ from backend.services.research_source_authority_service import (
 from backend.services.research_topic_contract_service import (
     ConfirmedMarketScope,
     ImmutableGoalTopicFields,
+    MAX_IMMUTABLE_TITLE_CHARS,
     TopicSeedContract,
     build_topic_seed,
 )
@@ -178,6 +183,130 @@ def test_topic_seed_maps_immutable_goal_and_confirmed_scope_without_location():
     assert seed.confirmed_country_codes == ("CA", "US")
     assert seed.confirmed_market_scope_sha256
     assert all(binding.source_span_sha256 for binding in seed.anchor_bindings)
+
+
+def test_topic_field_projection_preserves_exact_normalized_text_and_fails_lossless():
+    assert _bounded_accepted_topic_text("  Cat food distribution  ", 300) == (
+        "Cat food distribution"
+    )
+    assert _bounded_accepted_topic_text("Ｃａｔ   food", 8) == "Cat food"
+    exact_limit = "x" * MAX_IMMUTABLE_TITLE_CHARS
+    assert (
+        _bounded_accepted_topic_text(
+            exact_limit,
+            MAX_IMMUTABLE_TITLE_CHARS,
+            label="title",
+        )
+        == exact_limit
+    )
+    with pytest.raises(ValueError, match="accepted title exceeds.*4000"):
+        _bounded_accepted_topic_text(
+            exact_limit + "x",
+            MAX_IMMUTABLE_TITLE_CHARS,
+            label="title",
+        )
+
+
+def test_long_topic_title_builds_deterministic_hash_distinct_seed():
+    request = _request()
+    common = "Subscription pet supplies and last-mile distribution " * 8
+    task_a = _bremen_task_context().model_copy(
+        update={
+            "title": common + "alpha tail",
+            "description": "Compare verified subscription pet-supply offers",
+            "desired_outcome": "A current market comparison",
+        }
+    )
+    task_b = task_a.model_copy(update={"title": common + "beta tail"})
+    countries = ["DE"]
+
+    seed_a = TopicSeedContract.model_validate(
+        HybridRunService._topic_seed_contract(request, task_a, countries)
+    )
+    repeated = TopicSeedContract.model_validate(
+        HybridRunService._topic_seed_contract(request, task_a, countries)
+    )
+    seed_b = TopicSeedContract.model_validate(
+        HybridRunService._topic_seed_contract(request, task_b, countries)
+    )
+
+    assert seed_a == repeated
+    assert seed_a.immutable_goal_sha256 != seed_b.immutable_goal_sha256
+    assert seed_a.seed_sha256 != seed_b.seed_sha256
+
+
+def test_over_limit_shared_prefix_tail_domains_fail_closed_without_anchor_collision():
+    shared_clause = (
+        "Prepare a launch-ready PRD covering the operating model, customer "
+        "experience, distribution channels, pricing, unit economics, compliance "
+        "obligations, measurable milestones, execution ownership, failure modes, "
+        "and current public evidence. "
+    )
+    shared = (
+        shared_clause * 20
+        + "Current evidence. " * 2
+        + "Research. " * 8
+    )
+    tails = (
+        "subscription cat food distribution in Estonia",
+        "transactional SMS delivery service in Estonia",
+    )
+    objectives = tuple(shared + tail for tail in tails)
+    assert {len(objective) for objective in objectives} == {4_921}
+
+    rejected_seeds = []
+    for index, objective in enumerate(objectives):
+        request = _request().model_copy(
+            update={
+                "business_context": _request().business_context.model_copy(
+                    update={
+                        "business_idea": objective,
+                        "problem": objective,
+                    }
+                )
+            }
+        )
+        task = _bremen_task_context().model_copy(
+            update={
+                "task_id": f"over-limit-{index}",
+                "title": objective,
+                "description": objective,
+                "desired_outcome": objective,
+            }
+        )
+        with pytest.raises(ValueError, match="accepted title exceeds.*4000"):
+            HybridRunService._immutable_topic_goal_fields(request, task)
+        rejected_seeds.append(
+            HybridRunService._topic_seed_contract(request, task, ["DE"])
+        )
+
+    assert rejected_seeds == [None, None]
+
+
+def test_exact_topic_limit_keeps_unicode_tail_anchor_and_provenance_offset():
+    tail = " 猫用フード 配送"
+    title = "Ａ" * (MAX_IMMUTABLE_TITLE_CHARS - len(tail)) + tail
+    goal = ImmutableGoalTopicFields(
+        goal_id="unicode-topic-limit",
+        title=title,
+    )
+
+    seed = build_topic_seed(
+        goal,
+        ConfirmedMarketScope(
+            scope_label="Japan",
+            country_codes=("JP",),
+            confirmed=True,
+        ),
+    )
+
+    assert goal.title.endswith("猫用フード 配送")
+    binding = next(
+        row for row in seed.anchor_bindings if row.phrase == "猫用フード 配送"
+    )
+    assert binding.source_field == "title"
+    assert binding.normalized_start > 3_900
+    assert binding.normalized_end == MAX_IMMUTABLE_TITLE_CHARS
 
 
 @pytest.mark.parametrize("location", ["Estonia", "Bremen, Germany"])
@@ -3493,6 +3622,72 @@ async def test_worker_parses_raw_questionnaire_before_durable_execution(session_
     assert orchestrator.parsed_questionnaires == [
         "- Who experiences the operational delay?"
     ]
+
+
+def test_gate1_rejects_lossy_long_topic_before_durable_or_paid_work(
+    session_factory,
+):
+    orchestrator = FakeOrchestrator(session_factory)
+    service = HybridRunService(
+        orchestrator,
+        session_factory,
+        fake_enrichment,
+        fake_grounding,
+    )
+    session = session_factory()
+    user = session.query(User).filter(User.user_id == "axwise-user-1").first()
+    session.expunge(user)
+    session.close()
+    shared = (
+        "Prepare a launch-ready PRD with current evidence, operating controls, "
+        "pricing, compliance, distribution, ownership, and measurable outcomes. "
+        * 35
+    )
+    objective = shared[:4_876] + "subscription cat food distribution in Estonia"
+    assert len(objective) == 4_921
+    request = SimulationRequest(
+        business_context=BusinessContext(
+            business_idea="Accepted commercial research",
+            target_customer="Commercial operator",
+            problem="Choose a grounded launch path",
+            industry="general",
+            location="Estonia",
+            market_scope=resolve_market_expression("Estonia"),
+        ),
+        raw_questionnaire_content="- Which evidence must guide the launch?",
+        config=SimulationConfig(people_per_stakeholder=1),
+    )
+    with pytest.raises(
+        ScopeContractError,
+        match=(
+            "task objective exceeds the lossless 4000-character scope contract; "
+            "shorten it.*explicit exact-span topic anchors"
+        ),
+    ):
+        _accepted_enqueue(
+            service,
+            request,
+            _bundle_outputs(),
+            user,
+            "orqaly-org-1",
+            "orqaly-user-1",
+            "idem-lossless-topic-preflight",
+            "trace-lossless-topic-preflight",
+            task_context=OrqalyTaskContext(
+                task_id="long-topic-preflight",
+                title=objective,
+                description=objective,
+            ),
+            research_mode=HybridResearchMode.GROUNDED_HYBRID,
+            grounding_policy=HybridGroundingPolicy(required=True),
+        )
+
+    session = session_factory()
+    try:
+        assert session.query(PipelineRun).count() == 0
+    finally:
+        session.close()
+    assert orchestrator.parsed_questionnaires == []
 
 
 @pytest.mark.asyncio
