@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+COPY workflow_v2_requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+COPY domain /app/backend/domain
+COPY services/workflow_v2 /app/backend/services/workflow_v2
+COPY services/llm/gemini_runtime.py /app/backend/services/llm/gemini_runtime.py
+COPY services/generative/gemini_search_service.py /app/backend/services/generative/gemini_search_service.py
+COPY api/routes/workflow_v2_operations.py /app/backend/api/routes/workflow_v2_operations.py
+COPY api/workflow_v2_app.py /app/backend/api/workflow_v2_app.py
+
+RUN useradd --create-home --shell /usr/sbin/nologin app \
+    && chown -R app:app /app
+
+USER app
+EXPOSE 8080
+CMD ["sh", "-c", "exec python -m uvicorn backend.api.workflow_v2_app:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]
