@@ -17,6 +17,14 @@ BEGIN
 END
 $$;
 
+-- Cloud SQL's built-in postgres account is an administrative role, not a true
+-- PostgreSQL superuser. PostgreSQL 16 therefore requires an explicit SET-role
+-- membership and CREATE on the containing schema while SECURITY DEFINER
+-- ownership is transferred. The enclosing transaction makes both temporary
+-- grants rollback-safe.
+GRANT axwise_v2_owner TO CURRENT_USER;
+GRANT CREATE ON SCHEMA axwise TO axwise_v2_owner;
+
 CREATE TABLE axwise.cognitive_operations (
   operation_id uuid PRIMARY KEY,
   operation_type text NOT NULL CHECK (operation_type IN (
@@ -278,6 +286,7 @@ ALTER FUNCTION axwise.complete_cognitive_operation(uuid, uuid, uuid, jsonb)
   OWNER TO axwise_v2_owner;
 ALTER FUNCTION axwise.fail_cognitive_operation(uuid, uuid, uuid, boolean, text)
   OWNER TO axwise_v2_owner;
+REVOKE CREATE ON SCHEMA axwise FROM axwise_v2_owner;
 
 REVOKE ALL ON SCHEMA axwise FROM PUBLIC;
 REVOKE ALL ON axwise.cognitive_operations FROM PUBLIC;
@@ -297,5 +306,6 @@ GRANT EXECUTE ON FUNCTION axwise.complete_cognitive_operation(uuid, uuid, uuid, 
   TO axwise_v2_worker;
 GRANT EXECUTE ON FUNCTION axwise.fail_cognitive_operation(uuid, uuid, uuid, boolean, text)
   TO axwise_v2_worker;
+REVOKE axwise_v2_owner FROM CURRENT_USER;
 
 COMMIT;

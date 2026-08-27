@@ -61,6 +61,7 @@ jobs:
     env:
       AXWISE_SERVICE_URL: https://axwise-ci.invalid
       AXWISE_V2_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/axwise_v2_test
+      AXWISE_V2_MIGRATION_DATABASE_URL: postgresql://axwise_v2_migration_admin@127.0.0.1:5432/axwise_v2_test
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
@@ -80,9 +81,15 @@ jobs:
       - name: Verify clean baseline checksum
         working-directory: backend/database/workflow_v2
         run: sha256sum --check SCHEMA_SHA256
-      - name: Apply clean baseline 001
+      - name: Prepare Cloud SQL-equivalent migration role
         run: >-
           psql "${AXWISE_V2_TEST_DATABASE_URL}"
+          --set=ON_ERROR_STOP=1
+          --command="CREATE ROLE axwise_v2_migration_admin LOGIN CREATEROLE;
+          ALTER DATABASE axwise_v2_test OWNER TO axwise_v2_migration_admin;"
+      - name: Apply clean baseline 001
+        run: >-
+          psql "${AXWISE_V2_MIGRATION_DATABASE_URL}"
           --set=ON_ERROR_STOP=1
           --file=backend/database/workflow_v2/001_cognitive_operations.sql
       - name: Run pure contracts and durable worker/API tests
