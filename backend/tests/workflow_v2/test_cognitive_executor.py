@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from uuid import UUID
 
+import httpx
 import pytest
+from pydantic import BaseModel
+from pydantic_ai import Agent, PromptedOutput
 
 import backend.services.workflow_v2.cognitive_executor as cognitive_executor_module
 from backend.domain.workflow_v2.contracts import (
@@ -25,9 +29,14 @@ from backend.services.workflow_v2.cognitive_executor import (
     ScopeRevisionDraft,
     SynthesisContext,
     SynthesisDraft,
+    _operation_metrics,
+    _usage_from_result,
+    _usage_from_search,
     _validate_synthesis,
 )
+from backend.services.llm import gemini_runtime
 from backend.services.workflow_v2.operation_service import CognitiveExecutionFailure
+from backend.services.workflow_v2.worker_main import cost_configuration_ready
 
 
 REQUEST = "Create an Estonia cat-food launch PRD."
@@ -169,6 +178,128 @@ def test_complex_outputs_use_provider_compatible_prompted_transport(monkeypatch)
 
 
 @pytest.mark.asyncio
+async def test_pydantic_ai_228_usage_property_preserves_thought_tokens_and_cost(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class UsageProbe(BaseModel):
+        value: str
+
+    captured_requests: list[tuple[str, dict]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_requests.append((str(request.url), json.loads(request.content)))
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [{"text": '{"value":"ok"}'}],
+                            "role": "model",
+                        },
+                        "finishReason": "STOP",
+                    }
+                ],
+                "usageMetadata": {
+                    "promptTokenCount": 10,
+                    "candidatesTokenCount": 5,
+                    "thoughtsTokenCount": 7,
+                    "totalTokenCount": 22,
+                },
+                "modelVersion": "gemini-3.7-flash",
+            },
+        )
+
+    def client_factory(**kwargs):
+        return httpx.AsyncClient(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setenv("GEMINI_MODEL", "models/gemini-3.7-flash")
+    monkeypatch.setenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS", "750000")
+    monkeypatch.setenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS", "3750000")
+    monkeypatch.setattr(gemini_runtime, "BoundedRetryAsyncClient", client_factory)
+    await gemini_runtime.close_shared_research_models()
+    try:
+        model = gemini_runtime.get_shared_workflow_model("usage-property-test-key")
+        result = await Agent(
+            model=model,
+            output_type=PromptedOutput(UsageProbe),
+        ).run("usage probe")
+
+        assert callable(result.usage) is False
+        assert result.usage.input_tokens == 10
+        assert result.usage.output_tokens == 12
+        assert result.usage.output_reasoning_tokens == 7
+        assert result.usage.total_tokens == 22
+        assert result.usage.details["thoughts_tokens"] == 7
+        input_tokens, output_tokens = _usage_from_result(result)
+        assert (input_tokens, output_tokens) == (10, 12)
+        metrics = _operation_metrics(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
+        assert metrics.total_tokens == 22
+        assert metrics.estimated_cost_micros == 52
+
+        assert len(captured_requests) == 1
+        url, body = captured_requests[0]
+        assert url.endswith("/v1beta/models/gemini-3.7-flash:generateContent")
+        config = body["generationConfig"]
+        assert config["thinkingConfig"] == {"thinking_level": "HIGH"}
+        assert "maxOutputTokens" not in config
+        assert "temperature" not in config
+        assert "topP" not in config
+        assert "topK" not in config
+        assert "candidateCount" not in config
+    finally:
+        await gemini_runtime.close_shared_research_models()
+
+
+def test_grounded_usage_prices_tool_thought_tokens_and_provider_queries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    usage = _usage_from_search(
+        {
+            "usage_metadata": {
+                "promptTokenCount": 10,
+                "toolUsePromptTokenCount": 3,
+                "candidatesTokenCount": 5,
+                "thoughtsTokenCount": 7,
+                "totalTokenCount": 25,
+            },
+            "provider_queries": ["query one", "query two", "query three"],
+            "runtime_diagnostics": {"call_count": 2, "retry_count": 1},
+        }
+    )
+
+    assert usage == (13, 12, 25, 3)
+    monkeypatch.setenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS", "750000")
+    monkeypatch.setenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS", "3750000")
+    monkeypatch.setenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY", "14000")
+    metrics = _operation_metrics(
+        input_tokens=usage[0],
+        output_tokens=usage[1],
+        total_tokens=usage[2],
+        search_calls=usage[3],
+    )
+    assert metrics.search_calls == 3
+    assert metrics.estimated_cost_micros == 42_054
+
+
+def test_worker_readiness_requires_nonnegative_search_query_rate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS", "750000")
+    monkeypatch.setenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS", "3750000")
+    monkeypatch.setenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY", "14000")
+    assert cost_configuration_ready() is True
+
+    monkeypatch.delenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY")
+    assert cost_configuration_ready() is False
+    monkeypatch.setenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY", "-1")
+    assert cost_configuration_ready() is False
+
+
+@pytest.mark.asyncio
 async def test_compile_scope_seals_exact_spans_hashes_discriminator_and_metrics() -> None:
     executor = GeminiCognitiveExecutor(FakeDrafter(), AUTHORITY_KEY)
     result = await executor.execute(envelope_for())
@@ -285,6 +416,7 @@ class MissingResearchRunner:
             "text": "",
             "claims": [],
             "sources": [],
+            "provider_queries": [f"provider query {len(self.queries)}"],
             "usage_metadata": {"inputTokens": 3, "outputTokens": 2},
             "runtime_diagnostics": {"callCount": 1},
         }
@@ -307,12 +439,19 @@ class VerifiedResearchRunner:
             "text": text,
             "claims": [{"text": text, "source_urls": [url]}],
             "sources": [{"title": "Estonian regulation", "url": url}],
+            "provider_queries": [
+                "Estonian pet-food operator law",
+                "EU animal-feed regulation",
+                "Estonian feed register",
+            ],
             "usage_metadata": {
                 "promptTokenCount": 5,
                 "candidatesTokenCount": 7,
-                "totalTokenCount": 12,
+                "thoughtsTokenCount": 3,
+                "toolUsePromptTokenCount": 2,
+                "totalTokenCount": 17,
             },
-            "runtime_diagnostics": {"call_count": 1},
+            "runtime_diagnostics": {"call_count": 2, "retry_count": 1},
         }
 
 
@@ -437,9 +576,10 @@ async def test_verified_grounding_has_exact_claim_provenance_and_usage() -> None
     response = ledger[0]["providerResponseText"].encode("utf-8")
     assert response[claim["segmentStart"] : claim["segmentEnd"]].decode() == claim["text"]
     assert claim["providerResponseHash"] == ledger[0]["providerResponseHash"]
-    assert result.metrics.input_tokens == 5
-    assert result.metrics.output_tokens == 7
-    assert result.metrics.total_tokens == 12
+    assert result.metrics.input_tokens == 7
+    assert result.metrics.output_tokens == 10
+    assert result.metrics.total_tokens == 17
+    assert result.metrics.search_calls == 3
 
 
 @pytest.mark.asyncio

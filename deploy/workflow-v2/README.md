@@ -33,12 +33,15 @@ Required worker configuration:
 - `GEMINI_SEARCH_MODEL=gemini-3.7-flash`
 - `GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS=750000`
 - `GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS=3750000`
+- `GEMINI_SEARCH_COST_MICROS_PER_QUERY=14000`
 - bounded research, lease, heartbeat, idle and pool settings as needed
 
-`estimatedCostMicros` covers configured Gemini input/output token rates. Google
-Search tool charges are not available in the provider usage response, so they
-remain separately identifiable via `searchCalls` and are not folded into that
-estimate.
+`estimatedCostMicros` covers configured Gemini input/output token rates plus a
+conservative worst-case list-price charge for every provider-reported grounded
+web-search query. `searchCalls` is the sum of Gemini
+`groundingMetadata.webSearchQueries`, not HTTP attempts. The search estimate is
+intentionally before monthly free-tier and billing reconciliation; reconcile
+the durable metrics against the Google invoice for final accounting.
 
 Cloud Run safeguards are part of the service configuration, not application
 defaults. Keep the API at a small capped scale (for example max 4 instances).
