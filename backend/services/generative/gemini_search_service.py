@@ -171,9 +171,13 @@ def _normalized_usage_metadata(response: Any) -> Dict[str, int]:
                     return 0
         return 0
 
-    input_tokens = counter(
+    prompt_tokens = counter(
         "prompt_token_count", "promptTokenCount", "input_tokens", "inputTokens"
     )
+    tool_prompt_tokens = counter(
+        "tool_use_prompt_token_count", "toolUsePromptTokenCount"
+    )
+    input_tokens = prompt_tokens + tool_prompt_tokens
     candidate_tokens = counter(
         "candidates_token_count",
         "candidatesTokenCount",

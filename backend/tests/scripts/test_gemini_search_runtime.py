@@ -41,13 +41,26 @@ class SequenceModels:
 
 
 def _response(text: str = "Grounded answer") -> SimpleNamespace:
+    grounding_metadata = SimpleNamespace(
+        web_search_queries=["query one", "query two", "query three"],
+        search_entry_point=None,
+        grounding_chunks=[],
+        grounding_supports=[],
+    )
     return SimpleNamespace(
         text=text,
-        candidates=[],
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(parts=[SimpleNamespace(text=text)]),
+                grounding_metadata=grounding_metadata,
+            )
+        ],
         usage_metadata=SimpleNamespace(
             prompt_token_count=17,
             candidates_token_count=9,
-            total_token_count=26,
+            thoughts_token_count=11,
+            tool_use_prompt_token_count=4,
+            total_token_count=41,
         ),
     )
 
@@ -92,6 +105,8 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
     assert config.temperature is None
     assert config.top_p is None
     assert config.top_k is None
+    assert config.candidate_count is None
+    assert config.max_output_tokens is None
     assert str(config.thinking_config.thinking_level).upper().endswith("HIGH")
     assert config.http_options.timeout == 5000
     assert config.http_options.retry_options.attempts == 1
@@ -106,10 +121,11 @@ def test_search_uses_exact_model_one_sdk_attempt_and_emits_runtime_metrics(
         "fallback_used": False,
     }
     assert result["usage_metadata"] == {
-        "input_tokens": 17,
-        "output_tokens": 9,
-        "total_tokens": 26,
+        "input_tokens": 21,
+        "output_tokens": 20,
+        "total_tokens": 41,
     }
+    assert result["provider_queries"] == ["query one", "query two", "query three"]
 
 
 def test_transient_disconnect_retries_same_model_with_bounded_call_count(
@@ -133,6 +149,7 @@ def test_transient_disconnect_retries_same_model_with_bounded_call_count(
     assert result["runtime_diagnostics"]["call_count"] == 2
     assert result["runtime_diagnostics"]["retry_count"] == 1
     assert result["runtime_diagnostics"]["elapsed_ms"] == 1000
+    assert result["provider_queries"] == ["query one", "query two", "query three"]
 
 
 def test_retry_after_is_honored_without_sdk_retry_multiplication(

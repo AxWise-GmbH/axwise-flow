@@ -194,7 +194,8 @@ def _validate_draft(request: str, draft: ScopeDraft) -> None:
 
 
 def _usage_from_result(result: Any) -> tuple[int, int]:
-    usage_value = result.usage() if callable(getattr(result, "usage", None)) else None
+    usage_member = getattr(result, "usage", None)
+    usage_value = usage_member() if callable(usage_member) else usage_member
     return (
         int(getattr(usage_value, "input_tokens", 0) or 0),
         int(getattr(usage_value, "output_tokens", 0) or 0),
@@ -209,18 +210,32 @@ def _unwrap_model_output(
     return value, 0, 0
 
 
-def _estimated_cost_micros(input_tokens: int, output_tokens: int) -> int | None:
+def _estimated_cost_micros(
+    input_tokens: int,
+    output_tokens: int,
+    search_calls: int = 0,
+) -> int | None:
     input_rate = os.getenv("GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS")
     output_rate = os.getenv("GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS")
     if input_rate is None or output_rate is None:
         return None
     try:
-        numerator = input_tokens * int(input_rate) + output_tokens * int(output_rate)
-        if int(input_rate) < 0 or int(output_rate) < 0:
+        parsed_input_rate = int(input_rate)
+        parsed_output_rate = int(output_rate)
+        if parsed_input_rate < 0 or parsed_output_rate < 0:
             return None
+        token_numerator = (
+            input_tokens * parsed_input_rate + output_tokens * parsed_output_rate
+        )
+        search_cost = 0
+        if search_calls:
+            search_rate = os.getenv("GEMINI_SEARCH_COST_MICROS_PER_QUERY")
+            if search_rate is None or int(search_rate) < 0:
+                return None
+            search_cost = search_calls * int(search_rate)
     except ValueError:
         return None
-    return max(0, numerator // 1_000_000)
+    return max(0, token_numerator // 1_000_000 + search_cost)
 
 
 def _operation_metrics(
@@ -240,7 +255,11 @@ def _operation_metrics(
             input_tokens + output_tokens if total_tokens is None else total_tokens
         ),
         search_calls=search_calls,
-        estimated_cost_micros=_estimated_cost_micros(input_tokens, output_tokens),
+        estimated_cost_micros=_estimated_cost_micros(
+            input_tokens,
+            output_tokens,
+            search_calls,
+        ),
     )
 
 
@@ -690,46 +709,76 @@ def _claim_from_grounding(
 
 def _usage_from_search(result: dict[str, Any]) -> tuple[int, int, int, int]:
     usage = result.get("usage_metadata") or {}
-    diagnostics = result.get("runtime_diagnostics") or {}
 
-    def first_int(source: Any, *keys: str) -> int:
+    def first_optional_int(source: Any, *keys: str) -> int | None:
         if not isinstance(source, dict):
-            return 0
+            return None
         for key in keys:
             value = source.get(key)
             if value is not None:
                 try:
                     return max(0, int(value))
                 except (TypeError, ValueError):
-                    return 0
-        return 0
+                    return None
+        return None
 
-    input_tokens = first_int(
-        usage,
-        "input_tokens",
-        "inputTokens",
-        "prompt_token_count",
-        "promptTokenCount",
+    normalized_input = first_optional_int(usage, "input_tokens", "inputTokens")
+    input_tokens = (
+        normalized_input
+        if normalized_input is not None
+        else (
+            first_optional_int(
+                usage, "prompt_token_count", "promptTokenCount"
+            )
+            or 0
+        )
+        + (
+            first_optional_int(
+                usage,
+                "tool_use_prompt_token_count",
+                "toolUsePromptTokenCount",
+            )
+            or 0
+        )
     )
-    output_tokens = first_int(
-        usage,
-        "output_tokens",
-        "outputTokens",
-        "candidates_token_count",
-        "candidatesTokenCount",
+    normalized_output = first_optional_int(usage, "output_tokens", "outputTokens")
+    output_tokens = (
+        normalized_output
+        if normalized_output is not None
+        else (
+            first_optional_int(
+                usage, "candidates_token_count", "candidatesTokenCount"
+            )
+            or 0
+        )
+        + (
+            first_optional_int(
+                usage, "thoughts_token_count", "thoughtsTokenCount"
+            )
+            or 0
+        )
     )
-    total_tokens = first_int(
+    reported_total = first_optional_int(
         usage,
         "total_tokens",
         "totalTokens",
         "total_token_count",
         "totalTokenCount",
     )
+    if reported_total is not None:
+        # Google bills thinking as output. Any reported non-input remainder is
+        # therefore output even if a response shape omitted thoughtsTokenCount.
+        output_tokens = max(output_tokens, max(0, reported_total - input_tokens))
+    total_tokens = max(reported_total or 0, input_tokens + output_tokens)
+    provider_queries = result.get("provider_queries")
+    search_query_count = (
+        len(provider_queries) if isinstance(provider_queries, list) else 0
+    )
     return (
         input_tokens,
         output_tokens,
-        total_tokens or input_tokens + output_tokens,
-        first_int(diagnostics, "call_count", "callCount"),
+        total_tokens,
+        search_query_count,
     )
 
 
@@ -1294,7 +1343,7 @@ class GeminiCognitiveExecutor:
                 usage_input,
                 usage_output,
                 usage_total,
-                max(1, calls),
+                calls,
             )
 
         async def run_round(

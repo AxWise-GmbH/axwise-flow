@@ -32,6 +32,7 @@ def cost_configuration_ready() -> bool:
     for name in (
         "GEMINI_INPUT_COST_MICROS_PER_MILLION_TOKENS",
         "GEMINI_OUTPUT_COST_MICROS_PER_MILLION_TOKENS",
+        "GEMINI_SEARCH_COST_MICROS_PER_QUERY",
     ):
         try:
             if int(os.getenv(name, "")) < 0:
@@ -44,6 +45,8 @@ def cost_configuration_ready() -> bool:
 def build_worker() -> tuple[PostgresOperationStore, OperationWorker]:
     _validate_canonical_service_origin()
     require_search_model()
+    if not cost_configuration_ready():
+        raise RuntimeError("Gemini token and grounded-search cost rates are required")
     store = PostgresOperationStore.from_environment()
     if not store.ready():
         raise RuntimeError("AxWise operation database is not ready")
